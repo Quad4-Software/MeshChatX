@@ -8,8 +8,11 @@ copies any missing ``*.whl`` files from that directory into each identity's
 ``repository-server/bundled`` folder (no network required).
 
 The PyPI/sdist wheel intentionally omits this tree (see ``MANIFEST.in`` and
-``tool.setuptools.exclude-package-data``); use this script for desktop/full
-builds or refresh bundled wheels in the app when online.
+``tool.setuptools.exclude-package-data``); use this script for desktop or
+Android builds, or refresh bundled wheels when online. If
+``dist/reticulum_meshchatx-*.whl`` exists at the project root, it is copied into
+the bundled directory after PyPI downloads so the shipped wheel matches this
+tree.
 
 Usage::
 

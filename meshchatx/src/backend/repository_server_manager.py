@@ -179,6 +179,36 @@ def _download_wheel_via_pypi_index(
     return True, None
 
 
+def stage_local_meshchatx_wheel_into_bundled_dir(dest: Path) -> Path | None:
+    """If ``dist/reticulum_meshchatx-*.whl`` exists under the project root, copy the newest into ``dest``.
+
+    Replaces any PyPI-downloaded ``reticulum_meshchatx-*.whl`` so APK/offline bundles ship this tree's wheel.
+    """
+    root = meshchat_bundle_project_root()
+    if root is None:
+        return None
+    dist_dir = root / "dist"
+    if not dist_dir.is_dir():
+        return None
+    candidates = sorted(
+        dist_dir.glob("reticulum_meshchatx-*.whl"),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+    if not candidates:
+        return None
+    chosen = candidates[0]
+    for old in dest.glob("reticulum_meshchatx-*.whl"):
+        try:
+            old.unlink()
+        except OSError:
+            logging.warning("Could not remove prior wheel %s", old)
+    target = dest / chosen.name
+    shutil.copy2(chosen, target)
+    logging.info("Staged local MeshChatX wheel into bundled dir: %s", target.name)
+    return target
+
+
 def download_bundled_wheels_to_directory(
     dest: Path,
     *,
@@ -201,6 +231,11 @@ def download_bundled_wheels_to_directory(
             ok.append(pkg)
         else:
             failed[pkg] = f"pypi:{e_http or 'failed'}"
+    staged = stage_local_meshchatx_wheel_into_bundled_dir(dest)
+    if staged is not None:
+        failed.pop(_MESHCHATX_BUNDLE_PIP_NAME, None)
+        if _MESHCHATX_BUNDLE_PIP_NAME not in ok:
+            ok.append(_MESHCHATX_BUNDLE_PIP_NAME)
     return {
         "ok": bool(ok),
         "downloaded": ok,
