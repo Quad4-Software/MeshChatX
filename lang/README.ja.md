@@ -8,7 +8,7 @@ Liam Cottle 氏による Reticulum MeshChat を大幅に改修・機能拡張し
 
 - ウェブサイト: [meshchatx.com](https://meshchatx.com)
 - ソースコード: [git.quad4.io/RNS-Things/MeshChatX](https://git.quad4.io/RNS-Things/MeshChatX)
-- 公式ミラー: [github.com/Quad4/MeshChatX](https://github.com/Quad4/MeshChatX) — 現時点では Windows / macOS ビルドにも使用。
+- 公式ミラー: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX) — 現時点では Windows / macOS ビルドにも使用。
 - リリース: [git.quad4.io/RNS-Things/MeshChatX/releases](https://git.quad4.io/RNS-Things/MeshChatX/releases)
 - 変更履歴: [`CHANGELOG.md`](../CHANGELOG.md)
 - TODO: [Boards](https://git.quad4.io/RNS-Things/MeshChatX/projects)
@@ -316,7 +316,7 @@ pnpm run version:sync
 
 ロケールの検出は自動で行われます。`meshchatx/src/frontend/locales/` に新しい JSON（例: `xx.json`）を追加し、`en.json` と同じキーに加え、言語選択に表示する名前を `_languageName` で指定します。`en.json` をコピーしてすべて手翻訳しても構いません。**機械翻訳による生成は任意**で、必須ではありません。
 
-**修正や人間による翻訳の提供を歓迎します。** 既存ロケールの改善や完全な手翻訳ファイルは、[ソースリポジトリ](https://git.quad4.io/RNS-Things/MeshChatX)または [GitHub ミラー](https://github.com/Sudo-Ivan/MeshChatX) にプルリクエストまたは issue で送ってください。
+**修正や人間による翻訳の提供を歓迎します。** 既存ロケールの改善や完全な手翻訳ファイルは、[ソースリポジトリ](https://git.quad4.io/RNS-Things/MeshChatX)または [GitHub ミラー](https://github.com/Quad4-Software/MeshChatX) にプルリクエストまたは issue で送ってください。
 
 **任意: Argos Translate による下書き** -- `en.json` から機械翻訳のたたき台が欲しい場合は `scripts/argos_translate.py` を使えます。フォーマット処理や補間変数（`{count}` など）の保護に役立ちます。
 

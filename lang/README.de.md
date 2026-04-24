@@ -8,7 +8,7 @@ Dieses Projekt ist unabhaengig vom originalen Reticulum MeshChat und steht in ke
 
 - Website: [meshchatx.com](https://meshchatx.com)
 - Quellcode: [git.quad4.io/RNS-Things/MeshChatX](https://git.quad4.io/RNS-Things/MeshChatX)
-- Offizieller Spiegel: [github.com/Quad4/MeshChatX](https://github.com/Quad4/MeshChatX) – derzeit auch fuer Windows- und macOS-Builds genutzt.
+- Offizieller Spiegel: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX) – derzeit auch fuer Windows- und macOS-Builds genutzt.
 - Releases: [git.quad4.io/RNS-Things/MeshChatX/releases](https://git.quad4.io/RNS-Things/MeshChatX/releases)
 - Aenderungsprotokoll: [`CHANGELOG.md`](../CHANGELOG.md)
 - TODO: [Boards](https://git.quad4.io/RNS-Things/MeshChatX/projects)
@@ -316,7 +316,7 @@ Fuer konsistente Releases die Versionsfelder dort abgleichen, wo noetig (`packag
 
 Die Locale-Erkennung erfolgt automatisch. Legen Sie eine neue Datei unter `meshchatx/src/frontend/locales/` an (z. B. `xx.json`) mit denselben Schluesseln wie `en.json` und einem obersten Feld `_languageName` fuer die Anzeige in der Sprachauswahl. Sie koennen `en.json` kopieren und alles von Hand uebersetzen; **maschinelle Erzeugung ist optional** und nie verpflichtend.
 
-**Korrekturen und menschliche Uebersetzungen sind willkommen.** Verbesserungen an bestehenden Locale-Dateien oder vollstaendig manuell uebersetzte Dateien koennen Sie per Pull Request oder Issue im [Quellcode-Repository](https://git.quad4.io/RNS-Things/MeshChatX) oder beim [GitHub-Spiegel](https://github.com/Sudo-Ivan/MeshChatX) einreichen.
+**Korrekturen und menschliche Uebersetzungen sind willkommen.** Verbesserungen an bestehenden Locale-Dateien oder vollstaendig manuell uebersetzte Dateien koennen Sie per Pull Request oder Issue im [Quellcode-Repository](https://git.quad4.io/RNS-Things/MeshChatX) oder beim [GitHub-Spiegel](https://github.com/Quad4-Software/MeshChatX) einreichen.
 
 **Optional: Argos-Translate-Bootstrap** -- Wenn Sie einen maschinellen Erstentwurf aus `en.json` wollen, koennen Sie `scripts/argos_translate.py` nutzen. Es kuemmert sich um Formatierung und schuetzt Interpolationsvariablen (wie `{count}`) vor versehentlichen Aenderungen.
 

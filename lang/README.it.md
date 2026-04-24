@@ -8,7 +8,7 @@ Questo progetto e indipendente dal progetto originale Reticulum MeshChat e non e
 
 - Sito web: [meshchatx.com](https://meshchatx.com)
 - Codice sorgente: [git.quad4.io/RNS-Things/MeshChatX](https://git.quad4.io/RNS-Things/MeshChatX)
-- Mirror ufficiale: [github.com/Quad4/MeshChatX](https://github.com/Quad4/MeshChatX) — usato anche per le build Windows e macOS al momento.
+- Mirror ufficiale: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX) — usato anche per le build Windows e macOS al momento.
 - Release: [git.quad4.io/RNS-Things/MeshChatX/releases](https://git.quad4.io/RNS-Things/MeshChatX/releases)
 - Changelog: [`CHANGELOG.md`](../CHANGELOG.md)
 - TODO: [Boards](https://git.quad4.io/RNS-Things/MeshChatX/projects)
@@ -316,7 +316,7 @@ Per release coerenti, allineare i campi di versione dove richiesto (`package.jso
 
 Il rilevamento della lingua locale è automatico. Aggiungi un nuovo file in `meshchatx/src/frontend/locales/` (ad esempio `xx.json`) con le stesse chiavi di `en.json` e un campo in cima `_languageName` per l'etichetta nel selettore lingue. Puoi copiare `en.json` e tradurre tutto a mano; **la generazione automatica è opzionale** e non è mai obbligatoria.
 
-**Correzioni e traduzioni umane sono benvenute.** Miglioramenti a un file esistente o un file interamente tradotto a mano possono essere inviati con una pull request o una segnalazione sul [repository sorgente](https://git.quad4.io/RNS-Things/MeshChatX) o sul [mirror GitHub](https://github.com/Sudo-Ivan/MeshChatX).
+**Correzioni e traduzioni umane sono benvenute.** Miglioramenti a un file esistente o un file interamente tradotto a mano possono essere inviati con una pull request o una segnalazione sul [repository sorgente](https://git.quad4.io/RNS-Things/MeshChatX) o sul [mirror GitHub](https://github.com/Quad4-Software/MeshChatX).
 
 **Opzionale: bozza con Argos Translate** -- Se vuoi una prima bozza generata da `en.json`, puoi usare `scripts/argos_translate.py`. Gestisce la formattazione e aiuta a proteggere le variabili di interpolazione (come `{count}`).
 

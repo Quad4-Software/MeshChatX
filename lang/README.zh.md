@@ -8,7 +8,7 @@ Liam Cottle 开发的 Reticulum MeshChat 的一个功能丰富的深度修改分
 
 - 网站: [meshchatx.com](https://meshchatx.com)
 - 源码: [git.quad4.io/RNS-Things/MeshChatX](https://git.quad4.io/RNS-Things/MeshChatX)
-- 官方镜像: [github.com/Quad4/MeshChatX](https://github.com/Quad4/MeshChatX) — 目前亦用于 Windows 与 macOS 构建。
+- 官方镜像: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX) — 目前亦用于 Windows 与 macOS 构建。
 - 发行版: [git.quad4.io/RNS-Things/MeshChatX/releases](https://git.quad4.io/RNS-Things/MeshChatX/releases)
 - 变更日志: [`CHANGELOG.md`](../CHANGELOG.md)
 - TODO: [Boards](https://git.quad4.io/RNS-Things/MeshChatX/projects)
@@ -316,7 +316,7 @@ pnpm run version:sync
 
 语言检测是自动的。在 `meshchatx/src/frontend/locales/` 下新增 JSON 文件（例如 `xx.json`），键与 `en.json` 一致，并在顶层设置 `_languageName` 作为语言选择器中的显示名称。可以复制 `en.json` 后完全人工翻译；**使用 Argos 等机器辅助生成是可选的**，并非必需。
 
-**欢迎提交纠错与人工翻译。** 若修正现有语言文件或提交完整人工翻译，请通过合并请求或议题提交至[项目源码仓库](https://git.quad4.io/RNS-Things/MeshChatX)或 [GitHub 镜像](https://github.com/Sudo-Ivan/MeshChatX)。
+**欢迎提交纠错与人工翻译。** 若修正现有语言文件或提交完整人工翻译，请通过合并请求或议题提交至[项目源码仓库](https://git.quad4.io/RNS-Things/MeshChatX)或 [GitHub 镜像](https://github.com/Quad4-Software/MeshChatX)。
 
 **可选：Argos Translate 初稿** -- 若需要从 `en.json` 生成机器翻译初稿，可使用 `scripts/argos_translate.py`。它会处理格式并有助于保护插值变量（如 `{count}`）。
 

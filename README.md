@@ -8,7 +8,7 @@ This project is independent from the original Reticulum MeshChat project and is 
 
 - Website: [meshchatx.com](https://meshchatx.com)
 - Source: [git.quad4.io/RNS-Things/MeshChatX](https://git.quad4.io/RNS-Things/MeshChatX)
-- Official Mirror: [github.com/Sudo-Ivan/MeshChatX](https://github.com/Sudo-Ivan/MeshChatX) - Used for GitHub Actions.
+- Official GitHub Mirror: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - Releases: [git.quad4.io/RNS-Things/MeshChatX/releases](https://git.quad4.io/RNS-Things/MeshChatX/releases)
 - Changelog: [`CHANGELOG.md`](CHANGELOG.md)
 - TODO: [Boards](https://git.quad4.io/RNS-Things/MeshChatX/projects)

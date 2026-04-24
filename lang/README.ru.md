@@ -8,7 +8,7 @@
 
 - Сайт: [meshchatx.com](https://meshchatx.com)
 - Исходный код: [git.quad4.io/RNS-Things/MeshChatX](https://git.quad4.io/RNS-Things/MeshChatX)
-- Официальное зеркало: [github.com/Quad4/MeshChatX](https://github.com/Quad4/MeshChatX) — пока также используется для сборок Windows и macOS.
+- Официальное зеркало: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX) — пока также используется для сборок Windows и macOS.
 - Релизы: [git.quad4.io/RNS-Things/MeshChatX/releases](https://git.quad4.io/RNS-Things/MeshChatX/releases)
 - Журнал изменений: [`CHANGELOG.md`](../CHANGELOG.md)
 - TODO: [Boards](https://git.quad4.io/RNS-Things/MeshChatX/projects)
@@ -316,7 +316,7 @@ pnpm run version:sync
 
 Обнаружение локали происходит автоматически. Добавьте новый файл в `meshchatx/src/frontend/locales/` (например `xx.json`) с теми же ключами, что и в `en.json`, и полем `_languageName` в начале для подписи в селекторе языка. Можно скопировать `en.json` и перевести всё вручную; **автоматическая генерация (Argos и т. п.) необязательна** и не требуется.
 
-**Исправления и переводы от людей приветствуются.** Улучшения существующих файлов локали или полностью ручной перевод можно прислать через pull request или issue в [исходном репозитории](https://git.quad4.io/RNS-Things/MeshChatX) или на [зеркале GitHub](https://github.com/Sudo-Ivan/MeshChatX).
+**Исправления и переводы от людей приветствуются.** Улучшения существующих файлов локали или полностью ручной перевод можно прислать через pull request или issue в [исходном репозитории](https://git.quad4.io/RNS-Things/MeshChatX) или на [зеркале GitHub](https://github.com/Quad4-Software/MeshChatX).
 
 **По желанию: черновик через Argos Translate** -- если нужен машинный первый проход из `en.json`, можно использовать `scripts/argos_translate.py`. Он обрабатывает форматирование и помогает защитить переменные интерполяции (например `{count}`).
 
