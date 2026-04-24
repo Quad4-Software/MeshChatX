@@ -46,38 +46,38 @@ class Utils {
         };
     }
 
-    static formatSeconds(seconds) {
+    static formatSecondsWithoutAgo(seconds) {
         const parsedSeconds = this.parseSeconds(seconds);
 
         if (parsedSeconds.days > 0) {
             if (parsedSeconds.days === 1) {
-                return "1 day ago";
-            } else {
-                return parsedSeconds.days + " days ago";
+                return "1 day";
             }
+            return parsedSeconds.days + " days";
         }
 
         if (parsedSeconds.hours > 0) {
             if (parsedSeconds.hours === 1) {
-                return "1 hour ago";
-            } else {
-                return parsedSeconds.hours + " hours ago";
+                return "1 hour";
             }
+            return parsedSeconds.hours + " hours";
         }
 
         if (parsedSeconds.minutes > 0) {
             if (parsedSeconds.minutes === 1) {
-                return "1 min ago";
-            } else {
-                return parsedSeconds.minutes + " mins ago";
+                return "1 min";
             }
+            return parsedSeconds.minutes + " mins";
         }
 
         if (parsedSeconds.seconds <= 1) {
-            return "a second ago";
-        } else {
-            return parsedSeconds.seconds + " seconds ago";
+            return "a second";
         }
+        return parsedSeconds.seconds + " seconds";
+    }
+
+    static formatSeconds(seconds) {
+        return this.formatSecondsWithoutAgo(seconds) + " ago";
     }
 
     static formatTimeAgo(datetimeString) {
@@ -108,9 +108,46 @@ class Utils {
         return this.formatSeconds(diffSec);
     }
 
+    /**
+     * Relative age fragment without trailing " ago" / "ago" duplication when used inside i18n
+     * strings that already add a locale-specific suffix (e.g. "Last synced {time} ago.").
+     * Sub-minute uses a neutral phrase so English templates avoid "just now ago".
+     */
+    static formatTimeAgoForI18n(datetimeString) {
+        if (!datetimeString) return "unknown";
+
+        let dateString = datetimeString;
+        if (typeof dateString === "string" && !dateString.includes("Z") && !dateString.includes("+")) {
+            dateString = dateString.replace(" ", "T") + "Z";
+        }
+
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        const diffSec = Math.round(diffMs / 1000);
+
+        if (diffSec < 60) {
+            return "less than a minute";
+        }
+
+        if (diffSec > 86400) {
+            return dayjs(date).format("MMM D, h:mm A");
+        }
+
+        return this.formatSecondsWithoutAgo(diffSec);
+    }
+
     static formatSecondsAgo(seconds) {
         const secondsAgo = Math.round(Date.now() / 1000 - seconds);
         return this.formatSeconds(secondsAgo);
+    }
+
+    static formatSecondsAgoForI18n(seconds) {
+        const secondsAgo = Math.round(Date.now() / 1000 - seconds);
+        if (secondsAgo < 60) {
+            return "less than a minute";
+        }
+        return this.formatSecondsWithoutAgo(secondsAgo);
     }
 
     static formatMinutesSeconds(seconds) {
