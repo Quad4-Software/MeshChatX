@@ -310,7 +310,7 @@ pnpm run version:sync
 
 - [`SECURITY.md`](../SECURITY.md)
 - アプリ実行時の組み込み整合性チェックとデフォルトの HTTPS/WSS
-- `.gitea/workflows/` の CI スキャンワークフロー
+- CI とリリースは `.github/workflows/`。Gitea では GitHub リリース同期用に `.gitea/workflows/github-release-sync.yml` のみ（`SECURITY.md` を参照）
 
 ## 言語の追加
 

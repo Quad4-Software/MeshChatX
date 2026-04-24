@@ -1,97 +1,59 @@
 # Security Policy
 
-## Contact Information
+## Reporting a vulnerability
 
-If you discover a security vulnerability or have concerns about the security of Reticulum MeshChatX, please contact the lead developer using the following methods in order of preference:
+If you believe you have found a **security vulnerability** in MeshChatX, please report it privately so it can be fixed before wider disclosure.
+
+**Preferred contact (in order):**
 
 1. **LXMF**: `7cc8d66b4f6a0e0e49d34af7f6077b5a`
 
-For legal inquiries (non-security), contact `legal@quad4.io` or see [`LEGAL.md`](LEGAL.md).
+Include enough detail to reproduce or understand the issue (what version or build you used, what you expected, what happened). Do not open a public issue for unfixed vulnerabilities.
 
-## Security Overview
+**Not security (legal, licensing, general questions):** `legal@quad4.io` or see [`LEGAL.md`](LEGAL.md).
 
-Reticulum MeshChatX is designed with a high degree of security and privacy in mind, leveraging multiple layers of protection and modern security practices.
+---
 
-We follow the [Electron Best Security Practices](https://www.electronjs.org/docs/latest/tutorial/security).
+MeshChatX is meant to be used on **trusted networks** (for example at home, on a LAN, or over a VPN you control). 
 
-### Exposing to the public internet (with authentication)
+If you still put the web interface on the **public internet**, you accept much higher risk (password guessing, misconfigured TLS or proxies, automated scanning, and overload of a single-node app). If you must expose it: **turn on authentication**, use **HTTPS** with a valid certificate for the public name, **restrict who can reach the port** (firewall, VPN, or a reverse proxy with sensible rules), and **keep the application updated**. `/robots.txt` with `Disallow: /` is only a hint to crawlers, not protection.
 
-MeshChatX is primarily intended for **local or trusted networks** (for example behind a home router or VPN). Putting the HTTP(S) UI on the **public internet** is **not recommended**: you enlarge the attack surface (credential stuffing, TLS and certificate management, reverse-proxy misconfiguration, automated scanning, and denial-of-service against the single-node service).
+The app adds **rate limiting** and **lockout** for failed logins, **logging** of access attempts (viewable under Debug Logs), and **HttpOnly** session cookies with **SameSite=Lax**. These measures reduce some abuse; they do not make a public deployment “safe by default.”
 
-If you still choose to expose it, **enable authentication**, use **HTTPS** (valid certificates on the public name), restrict **who can reach the port** where possible (firewall allowlists, VPN, or a reverse proxy with additional controls), and keep the app **updated**. The application serves **`/robots.txt`** with **`Disallow: /`** (a hint to crawlers; it is not access control). The application includes **defence-in-depth** for the login and initial-setup endpoints: **per-IP rate limiting**, **lockout** after repeated failed passwords from an address (with **trusted client** recognition after a successful login so your own browsers are less likely to be blocked during broad attacks), **logging** of access attempts (IP, User-Agent, path, time) inspectable under **Debug Logs → Access attempts**, and session cookies configured as **HttpOnly** with **SameSite=Lax**. None of this removes the inherent risks of a public-facing service; it only reduces some abuse and accident scenarios.
+### What you download should match what we built
 
-### Core Security Features
+Official release binaries and packages are built in **automation on GitHub**, not by hand on a laptop. Each tagged release is intended to ship:
 
-- **ASAR Integrity Validation**: Utilizes Electron 39 features to protect the application against tampering.
-- **Backend Binary Verification**: Generates a SHA-256 manifest of the unpacked Python backend during build and verifies it on every startup.
-- **Data-at-Rest Integrity Monitoring**: Snapshots the state of identities and database files on clean shutdown and warns if they were modified while the app was closed.
-- **CSP Hardening**: Multi-layered Content Security Policy protection across the entire application stack.
-- **Hardened Electron Environment**: Hardened security by disabling `runAsNode` and `nodeOptions` environment variables via Electron Fuses.
-- **Rootless Docker Images**: Support for running in restricted environments with rootless container images.
+- **Installable files** (for example AppImage, `.deb`, Windows and macOS installers, Python wheels) from that tag.
+- A **software bill of materials (SBOM)** in CycloneDX form (`sbom.cyclonedx.json`) where the Linux release pipeline produces it, so you or your tools can see what went into the build.
+- **Signed provenance** files (`*.intoto.jsonl`) that cryptographically tie those binaries to the **same source repository and tag** on GitHub, using the industry [SLSA](https://slsa.dev/) approach and the [slsa-github-generator](https://github.com/slsa-framework/slsa-github-generator) project. New tags also get a **draft** GitHub release so assets can be reviewed before the release is published.
 
-### Automated Security Measures
+**Docker images** published to GitHub Container Registry are built in CI and **signed with Cosign (keyless / Sigstore)** so the signature can be checked against the image digest.
 
-The project employs continuous security monitoring and testing:
+**Optional extra signatures:** If you see `*.cosign.bundle` files next to a binary, those are additional attestations from a **repository-managed signing key** (when the project enables it). They are separate from the SLSA `*.intoto.jsonl` files; either or both may be present depending on configuration.
 
-- **Security Scanning**: `.gitea/workflows/scan.yml` runs on a weekly schedule and on pushes to `master` and `dev`. It installs frontend dependencies and runs **Trivy filesystem** vulnerabilities on the repo (`scripts/ci/trivy-fs-scan.sh`: high and critical severities, exit non-zero on findings), and **Trivy Dockerfile** misconfiguration (`trivy config --exit-code 1 Dockerfile`). The **Docker** workflow runs **Trivy** on the built image (`trivy image`) separately from that job.
-- **Auth and path-safety tests**: Pytest covers HTTP **401** on protected `/api/*` when `auth_enabled` is on and no session (`tests/backend/test_notifications.py`), **ValueError** on backup/snapshot delete paths that escape storage (`tests/backend/test_security_path_and_backup.py`), and **schema upgrade** from version **N-1** (`tests/backend/test_schema_migration_upgrade.py`). Database **backup/restore** round-trips are covered in `tests/backend/test_database_snapshots.py`. Login and setup **rate limiting**, **lockout**, and **access attempt** logging are covered in `tests/backend/test_access_attempts_dao.py` and `tests/backend/test_access_attempts_enforcement.py` (including Hypothesis and HTTP smoke tests).
-- **CI**: On pushes and pull requests, **`pip-audit`** (Python) and **Trivy** (`trivy fs` via `scripts/ci/trivy-fs-scan.sh`) run against the repository tree (including Node lockfiles and manifests after install where applicable).
-- **Pinned Actions**: CI/CD workflows use pinned actions with full URLs to forked, vetted actions hosted on our Gitea instance (`git.quad4.io`) where an action is used at all.
-- **Extensive Testing & Fuzzing**: Backend benchmarking and stress coverage to reduce instability and resource-exhaustion risks.
-- **Linting & Code Quality**: Linting and static analysis run on CI paths.
+### Practical tips
 
-## Release provenance
+- Prefer **official download pages** or **GitHub Releases** for your copy of the app.
+- For Docker, prefer an image referenced by **digest** (`@sha256:…`) once you trust a given build, not only by a moving tag.
+- If something claims to be MeshChatX but does not match published checksums or verification steps, treat it as **untrusted**.
 
-Tagged releases are built from `.gitea/workflows/build.yml`. Release assets include a CycloneDX SBOM (`sbom.cyclonedx.json`). When the repository secret **`COSIGN_PRIVATE_KEY`** is set (PEM from `cosign generate-key-pair`, with **`COSIGN_PASSWORD`** if the key is encrypted), the workflow also produces **SLSA v1**-style cosign bundle files (`*.cosign.bundle`) next to each attested artifact.
+---
 
-Attestations are uploaded to the **Sigstore public transparency log (Rekor)** by default. The build runner must be able to reach the Rekor endpoint (default `https://rekor.sigstore.dev`; override with **`COSIGN_REKOR_URL`** if you use another instance).
+## For security professionals and auditors
 
-Commit the cosign **public** key at the **repository root** as **`cosign.pub`** so others can verify without hunting for the key out of band.
+### Product controls (high level)
 
-### Signing key rotation
+- **Desktop (Electron):** Packaging and runtime follow [Electron security guidance](https://www.electronjs.org/docs/latest/tutorial/security); ASAR integrity and hardened defaults (for example fuses that reduce risky Node integration) are part of the shipped app.
+- **Backend:** A SHA-256 manifest of the bundled Python backend is checked on startup to detect tampering with the on-disk payload.
+- **Data at rest:** The application can detect unexpected changes to sensitive files between runs (integrity monitoring around identities and database state).
+- **Web surface:** Content Security Policy is applied in depth across the stack.
+- **Containers:** Images are intended to run **without root** inside the container where the platform supports it.
 
-Rotate the signing key when it may be compromised or on an internal schedule (for example annually). Generate a new key pair, replace the **`COSIGN_PRIVATE_KEY`** (and password) secret in Gitea, and replace **`cosign.pub`** in the repository with the new public key. Releases built **before** rotation remain verifiable using the **old** public key kept alongside the download or in git history; document which key applies to which release tag if you maintain multiple keys.
+### Build, supply chain, and transparency
 
-## Verifying releases
-
-Install **[cosign](https://docs.sigstore.dev/cosign/installation/)**. Download the release artifact and its matching **`artifact.cosign.bundle`** from the same release page.
-
-Use a **permalink** to the public key that matches the signing key for that release (same tag or commit as the release, or a known-good commit that still documents the key you trust). Example (replace with your tag or commit as needed):
-
-- **Immutable commit (raw key):**  
-  `https://git.quad4.io/RNS-Things/MeshChatX/raw/commit/a3ce41148e6b044d9dc78f2a024fec91d343edb9/cosign.pub`
-
-**Bash or zsh** (no separate key file; process substitution feeds the key to cosign):
-
-```bash
-cosign verify-blob-attestation \
-  --key <(curl -fsSL 'https://git.quad4.io/RNS-Things/MeshChatX/raw/commit/a3ce41148e6b044d9dc78f2a024fec91d343edb9/cosign.pub') \
-  --bundle ./MeshChatX-Example.AppImage.cosign.bundle \
-  --type slsaprovenance1 \
-  ./MeshChatX-Example.AppImage
-```
-
-If your shell does not support `<(...)`, download the key once and pass a path:
-
-```bash
-curl -fsSL -o cosign.pub 'https://git.quad4.io/RNS-Things/MeshChatX/raw/commit/a3ce41148e6b044d9dc78f2a024fec91d343edb9/cosign.pub'
-cosign verify-blob-attestation \
-  --key cosign.pub \
-  --bundle ./MeshChatX-Example.AppImage.cosign.bundle \
-  --type slsaprovenance1 \
-  ./MeshChatX-Example.AppImage
-```
-
-If you intentionally use a private Sigstore deployment, set the same **`COSIGN_REKOR_URL`** (and any other Sigstore env vars) your builder used.
-
-When CI signing is disabled (no **`COSIGN_PRIVATE_KEY`**), there will be no **`.cosign.bundle`** files for that release.
-
-### Container images
-
-Published images are built in `.gitea/workflows/docker.yml`. **OCI image cosign signing is not wired in that workflow yet.** Until it is, treat digest pinning as the main integrity check: pull or reference the image by **`@sha256:<digest>`** from a trusted manifest or registry UI, and optionally run **`trivy image`** against that digest. When cosign image signing is added, verification will look like:
-
-```bash
-cosign verify --key cosign.pub <registry>/<image>@sha256:<digest>
-```
-
-(Exact flags may depend on keyless versus key-based signing; follow the release notes when signing lands.)
+- **CI:** Automated pipelines (hosted on GitHub Actions) run dependency and configuration scanning (including **Trivy** and **pip-audit** on relevant paths), build checks, and security-relevant automated tests (authentication, path safety on dangerous operations, schema upgrades, backup/restore, rate limiting and access logging, and related areas).
+- **Action pinning:** Third-party GitHub Actions are referenced with **pinned commit SHAs** in workflow definitions to reduce unexpected upgrades.
+- **Releases:** Tagged release artifacts for Linux, Windows, and macOS are produced in CI. **SLSA Build Level 3–style provenance** for those artifacts is generated via the **generic** SLSA GitHub generator (`generator_generic_slsa3.yml` at release **v2.1.0**), which satisfies the **isolated builder and signed provenance** expectations for that tier; **distribution** (draft releases, mirrors) and **consumer verification** remain your operational controls, as described in upstream SLSA documentation.
+- **Transparency logs:** Builds that use Sigstore (including the SLSA generator path and optional Cosign signing) normally write attestations to the **public Rekor** log (`https://rekor.sigstore.dev` by default). Private-repo or air-gapped policies may require different Sigstore settings; operators should align `COSIGN_REKOR_URL` and related variables with their own governance.
+- **Cosign public key:** When repository key-based signing is used, the **public** key is published in-repo as `cosign.pub` so verifiers do not need a separate out-of-band key hunt. **Key rotation:** replace the GitHub secret holding the private key and update `cosign.pub` in the repository; older releases remain verifiable with the key that was current at build time.

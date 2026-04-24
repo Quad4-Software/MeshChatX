@@ -8,7 +8,7 @@ This project is independent from the original Reticulum MeshChat project and is 
 
 - Website: [meshchatx.com](https://meshchatx.com)
 - Source: [git.quad4.io/RNS-Things/MeshChatX](https://git.quad4.io/RNS-Things/MeshChatX)
-- Official Mirror: [github.com/Sudo-Ivan/MeshChatX](https://github.com/Sudo-Ivan/MeshChatX) - Also used for Windows and MacOS builds for the moment.
+- Official Mirror: [github.com/Sudo-Ivan/MeshChatX](https://github.com/Sudo-Ivan/MeshChatX) - Used for GitHub Actions.
 - Releases: [git.quad4.io/RNS-Things/MeshChatX/releases](https://git.quad4.io/RNS-Things/MeshChatX/releases)
 - Changelog: [`CHANGELOG.md`](CHANGELOG.md)
 - TODO: [Boards](https://git.quad4.io/RNS-Things/MeshChatX/projects)
@@ -58,8 +58,8 @@ Use the method that matches your environment and packaging preference.
 
 Notes:
 
-- The release workflow explicitly builds Linux `x64` and `arm64` AppImage + DEB.
-- RPM is also attempted by release workflow and uploaded when produced.
+- GitHub Actions builds tagged releases: Windows and macOS via `.github/workflows/build-release.yml`, Linux wheel/AppImage/deb/rpm via `.github/workflows/build-linux-release.yml`, and the container image via `.github/workflows/docker.yml`.
+- Linux `x64` and `arm64` AppImage + DEB are built on GitHub; RPM is attempted and uploaded when produced.
 
 ## Quick Start: Docker
 
@@ -198,6 +198,32 @@ Or through Task:
 task dist:fe:rpm
 ```
 
+## Container build (wheel, AppImage, deb, rpm)
+
+`Dockerfile.build` runs the same shell-driven steps CI uses (Poetry, pnpm, `task`, packaging APT deps). It is oriented toward **linux/amd64** (NodeSource amd64 tarball, Task amd64 binary). Default target is everything; override with a build arg.
+
+Targets for `MESHCHATX_BUILD_TARGETS`: `all` (default), `wheel`, or `electron` (AppImage + deb for x64 and arm64, best-effort RPM, no wheel).
+
+Build:
+
+```text
+docker build -f Dockerfile.build -t meshchatx-build:local .
+```
+
+Build only a wheel:
+
+```text
+docker build -f Dockerfile.build --build-arg MESHCHATX_BUILD_TARGETS=wheel -t meshchatx-build:wheel .
+```
+
+Copy `/artifacts` from the finished image to the host:
+
+```text
+cid=$(docker create meshchatx-build:local)
+docker cp "${cid}:/artifacts" ./meshchatx-artifacts
+docker rm "${cid}"
+```
+
 ## Architecture Support Summary
 
 - Docker image: `amd64`, `arm64`
@@ -318,7 +344,7 @@ Security and integrity details:
 - [`SECURITY.md`](SECURITY.md)
 - [`LEGAL.md`](LEGAL.md)
 - Built-in integrity checks and HTTPS/WSS defaults in app runtime
-- CI scanning workflows in `.gitea/workflows/`
+- CI and release builds on GitHub Actions (`.github/workflows/`). Version tags also get **SLSA Build Level 3** provenance (`*.intoto.jsonl` via [slsa-github-generator](https://github.com/slsa-framework/slsa-github-generator)) and a **draft** GitHub release with binaries plus provenance for review before publishing. Verify with [slsa-verifier](https://github.com/slsa-framework/slsa-verifier) (see `SECURITY.md`). On Gitea, only `.gitea/workflows/github-release-sync.yml` is kept: for tags matching `release_*` it waits for successful GitHub workflow runs and publishes assets to a GitHub release using the `GH_PAT` and `GH_REPOSITORY` repository secrets (see `SECURITY.md`).
 
 ## Adding a Language
 

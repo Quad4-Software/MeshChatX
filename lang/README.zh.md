@@ -310,7 +310,7 @@ pnpm run version:sync
 
 - [`SECURITY.md`](../SECURITY.md)
 - 应用内置完整性检查与默认 HTTPS/WSS
-- `.gitea/workflows/` 中的 CI 扫描工作流
+- CI 与发版在 `.github/workflows/`；Gitea 仅保留 `.gitea/workflows/github-release-sync.yml` 用于同步 GitHub Release（见 `SECURITY.md`）
 
 ## 添加语言
 

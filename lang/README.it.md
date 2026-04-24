@@ -310,7 +310,7 @@ Per release coerenti, allineare i campi di versione dove richiesto (`package.jso
 
 - [`SECURITY.md`](../SECURITY.md)
 - Controlli di integrita integrati e HTTPS/WSS predefiniti nell'app
-- Workflow di scansione CI in `.gitea/workflows/`
+- CI e release in `.github/workflows/`; su Gitea solo `.gitea/workflows/github-release-sync.yml` per il sync delle release su GitHub (vedi `SECURITY.md`)
 
 ## Aggiungere una lingua
 

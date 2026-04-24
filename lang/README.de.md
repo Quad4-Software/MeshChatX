@@ -310,7 +310,7 @@ Fuer konsistente Releases die Versionsfelder dort abgleichen, wo noetig (`packag
 
 - [`SECURITY.md`](../SECURITY.md)
 - Integrierte Integritaetspruefungen und HTTPS/WSS-Standardeinstellungen in der App
-- CI-Scanning-Workflows in `.gitea/workflows/`
+- CI- und Release-Workflows in `.github/workflows/`; auf Gitea nur `.gitea/workflows/github-release-sync.yml` für GitHub-Release-Sync (siehe `SECURITY.md`)
 
 ## Sprache hinzufuegen
 
