@@ -1532,6 +1532,7 @@ import "emoji-picker-element";
 import StickerView from "../stickers/StickerView.vue";
 import InViewAnimatedImg from "./InViewAnimatedImg.vue";
 import TelemetryHistoryModal from "./telemetry/TelemetryHistoryModal.vue";
+import { v4 as uuidv4 } from "uuid";
 
 export default {
     name: "ConversationViewer",
@@ -2087,6 +2088,11 @@ export default {
             this.windowWidth = window.innerWidth;
         };
         window.addEventListener("resize", this._onWindowResize);
+        this._visualViewport = typeof window !== "undefined" ? window.visualViewport : null;
+        if (this._visualViewport) {
+            this._visualViewport.addEventListener("resize", this._onWindowResize);
+            this._visualViewport.addEventListener("scroll", this._onWindowResize);
+        }
     },
     beforeUnmount() {
         this.scrollBottomGen += 1;
@@ -2096,6 +2102,12 @@ export default {
         }
         if (this._onWindowResize) {
             window.removeEventListener("resize", this._onWindowResize);
+            if (this._visualViewport) {
+                this._visualViewport.removeEventListener("resize", this._onWindowResize);
+                this._visualViewport.removeEventListener("scroll", this._onWindowResize);
+                this._visualViewport = null;
+            }
+            this._onWindowResize = null;
         }
         if (this.updateTimer) {
             clearInterval(this.updateTimer);
@@ -4050,7 +4062,7 @@ export default {
             try {
                 job.pendingHash = null;
                 if (job.canOptimisticPending) {
-                    const pendingHash = `pending-${crypto.randomUUID()}`;
+                    const pendingHash = `pending-${uuidv4()}`;
                     job.pendingHash = pendingHash;
                     const pendingFields = {};
                     if (job.images.length > 0) {

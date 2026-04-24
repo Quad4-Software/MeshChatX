@@ -92,6 +92,34 @@ describe("MessageSendingFailures.test.js", () => {
         expect(DialogUtils.alert).toHaveBeenCalledWith("Sending failed");
     });
 
+    it("sends plain text when crypto.randomUUID is unavailable (non-secure context)", async () => {
+        DialogUtils.alert.mockClear();
+
+        const c = globalThis.crypto;
+        vi.stubGlobal("crypto", {
+            ...c,
+            getRandomValues: c.getRandomValues.bind(c),
+            randomUUID: undefined,
+        });
+
+        const wrapper = mountConversationViewer();
+        wrapper.vm.newMessageText = "http LAN host";
+
+        await wrapper.vm.sendMessage();
+
+        expect(DialogUtils.alert).not.toHaveBeenCalled();
+        expect(axiosMock.post).toHaveBeenCalledWith(
+            "/api/v1/lxmf-messages/send",
+            expect.objectContaining({
+                lxmf_message: expect.objectContaining({
+                    content: "http LAN host",
+                    destination_hash: "test-hash",
+                }),
+            })
+        );
+        expect(wrapper.vm.chatItems.some((item) => item.lxmf_message.hash === "mock")).toBe(true);
+    });
+
     it("updates UI when message state becomes failed via WebSocket", async () => {
         const wrapper = mountConversationViewer();
         const messageHash = "msg-123";
