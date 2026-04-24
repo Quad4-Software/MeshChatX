@@ -323,14 +323,10 @@ task build:all
 
 Current version in this repo is `4.6.0`.
 
-- `package.json` is the JavaScript/Electron version source.
-- `meshchatx/src/version.py` is synced from `package.json` using:
-
-```bash
-pnpm run version:sync
-```
-
-For release consistency, keep version fields aligned where required (`package.json`, `pyproject.toml`, `meshchatx/__init__.py`).
+- **`package.json`** `version` is the only value you edit for a release bump.
+- Run **`pnpm run version:sync`** (also run at the start of **`pnpm run build`**) to propagate that version into **`pyproject.toml`**, **`meshchatx/src/version.py`**, **`THIRD_PARTY_NOTICES.txt`** (product line), **README** / **lang/README.\*** “current version” lines, **`docs/meshchatx_on_raspberry_pi.md`** pipx example, and **`packaging/arch/PKGBUILD`** helpers.
+- **`meshchatx.__version__`** is read from **`meshchatx/src/version.py`** without importing **`meshchatx.src`**, so a plain `import meshchatx` stays lightweight.
+- **Changelog** entries stay manual when you cut a release.
 
 ## Security
 
