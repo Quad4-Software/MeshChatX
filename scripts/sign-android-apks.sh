@@ -80,7 +80,7 @@ if [[ ! -x "${BT_DIR}/zipalign" || ! -x "${BT_DIR}/apksigner" ]]; then
     exit 1
 fi
 
-APK_GLOB="${APK_GLOB:-android/app/build/outputs/apk/*/release/*-unsigned.apk}"
+APK_GLOB="${APK_GLOB:-android/app/build/outputs/apk/release/*-unsigned.apk}"
 shopt -s nullglob
 APKS=( ${APK_GLOB} )
 shopt -u nullglob

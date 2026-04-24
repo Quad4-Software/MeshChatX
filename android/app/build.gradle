@@ -42,17 +42,6 @@ android {
     namespace 'com.meshchatx'
     compileSdk 34
 
-    flavorDimensions "pythonBundle"
-    productFlavors {
-        slim {
-            dimension "pythonBundle"
-            isDefault true
-        }
-        full {
-            dimension "pythonBundle"
-        }
-    }
-
     defaultConfig {
         applicationId "com.meshchatx"
         minSdk 24
@@ -114,47 +103,28 @@ tasks.register("fetchRepositoryBundledWheels", Exec) {
     }
 }
 
-def registerMeshchatPythonSync = { String bundle ->
-    def cap = bundle.capitalize()
-    tasks.register("syncMeshchatPython${cap}", Sync) {
-        if (bundle == "full") {
-            dependsOn("fetchRepositoryBundledWheels")
-        }
-        if (!meshchatSourceDir.exists()) {
-            throw new org.gradle.api.GradleException("Missing meshchatx source directory at ${meshchatSourceDir}")
-        }
-        doFirst {
-            delete(
-                file("$projectDir/src/main/python/meshchatx"),
-                file("$projectDir/src/main/python/LXST"),
-                file("$projectDir/src/main/python/LXMF"),
-                file("$projectDir/src/main/python/RNS")
-            )
-        }
-        from(meshchatSourceDir) {
-            if (bundle == "slim") {
-                exclude("src/frontend/**")
-                exclude("public/reticulum-docs-bundled/**")
-                exclude("public/rnode-flasher/**")
-                exclude("public/repository-server-bundled/**")
-            }
-        }
-        includeEmptyDirs = false
-        from(new File(repoRoot, "CHANGELOG.md"))
-        into(file("$projectDir/src/${bundle}/python/meshchatx"))
+tasks.register("syncMeshchatPython", Sync) {
+    dependsOn("fetchRepositoryBundledWheels")
+    if (!meshchatSourceDir.exists()) {
+        throw new org.gradle.api.GradleException("Missing meshchatx source directory at ${meshchatSourceDir}")
     }
+    doFirst {
+        delete(
+            file("$projectDir/src/main/python/meshchatx"),
+            file("$projectDir/src/main/python/LXST"),
+            file("$projectDir/src/main/python/LXMF"),
+            file("$projectDir/src/main/python/RNS")
+        )
+    }
+    from(meshchatSourceDir)
+    includeEmptyDirs = false
+    from(new File(repoRoot, "CHANGELOG.md"))
+    into(file("$projectDir/src/main/python/meshchatx"))
 }
-
-registerMeshchatPythonSync("slim")
-registerMeshchatPythonSync("full")
 
 tasks.configureEach { task ->
     if (task.name.toLowerCase().contains("merge") && task.name.toLowerCase().contains("pythonsources")) {
-        if (task.name.contains("Slim")) {
-            task.dependsOn(tasks.named("syncMeshchatPythonSlim"))
-        } else if (task.name.contains("Full")) {
-            task.dependsOn(tasks.named("syncMeshchatPythonFull"))
-        }
+        task.dependsOn(tasks.named("syncMeshchatPython"))
     }
 }
 
