@@ -219,31 +219,23 @@ MeshChatX поддерживает нативные Android APK (не тольк
 # 1) Собрать колёса Chaquopy для android/app/build.gradle
 bash scripts/build-android-wheels-local.sh
 
-# 2) Собрать slim APK по умолчанию (universal: один APK на flavor и тип сборки)
+# 2) Собрать универсальные APK (debug и release; см. android/README.md)
 cd android
-./gradlew --no-daemon :app:assembleSlimDebug :app:assembleSlimRelease
+./gradlew --no-daemon :app:assembleDebug :app:assembleRelease
 ```
 
-Выходы определяются **product flavors** `slim` / `full` (размер дерева Python) и **ABI-упаковкой** `universal` (по умолчанию) или `split` (см. `android/app/build.gradle`).
+Одна вариант-сборка Android (без flavor `slim` / `full`). Gradle синхронизирует весь `meshchatx/` в `app/src/main/python/meshchatx/`, включая офлайн-колёса репозитория. **ABI-упаковка:** `universal` (по умолчанию) или `split` (см. `android/app/build.gradle`).
 
-При **`-PmeshchatxAbiPackaging=universal`** (по умолчанию) один APK содержит все выбранные ABI.
+При **`-PmeshchatxAbiPackaging=universal`** (по умолчанию):
 
-Отладка (`android/app/build/outputs/apk/slim/debug/`):
-
-- `app-slim-debug.apk`
-
-Релиз (`android/app/build/outputs/apk/slim/release/`):
-
-- `app-slim-release-unsigned.apk`
-
-Для полного Python-бандла: `:app:assembleFullDebug` или `:app:assembleFullRelease`.
+- Отладка: `android/app/build/outputs/apk/debug/app-debug.apk`
+- Релиз: `android/app/build/outputs/apk/release/app-release-unsigned.apk`
 
 Примечания:
 
-- Релизные артефакты по умолчанию не подписаны, если не настроена подпись.
-- Для одной сборки, например: `:app:assembleSlimDebug` или `:app:assembleSlimRelease`.
+- Релизы по умолчанию не подписаны (`scripts/sign-android-apks.sh`).
 - ABI: `-PmeshchatxAbis` или `MESHCHATX_ABIS`; упаковка: `-PmeshchatxAbiPackaging` или `MESHCHATX_ABI_PACKAGING`.
-- Дерево `meshchatx/` для Chaquopy: **`slim`** синхронизируется в `src/slim/python/`, **`full`** в `src/full/python/`. Подробнее в [`android/README.md`](../android/README.md).
+- Если в корне репозитория есть `dist/reticulum_meshchatx-*.whl` (например после `python -m build --wheel -o dist .`), оно предпочитается при бандле. Подробнее в [`android/README.md`](../android/README.md).
 
 Дополнительная документация:
 

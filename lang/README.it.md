@@ -219,31 +219,23 @@ Dalla root del repository:
 # 1) Build delle wheel Chaquopy usate da android/app/build.gradle
 bash scripts/build-android-wheels-local.sh
 
-# 2) Build degli APK slim predefiniti (universal: un APK per flavor e tipo di build)
+# 2) Build APK universali (un debug e una release; vedi android/README.md)
 cd android
-./gradlew --no-daemon :app:assembleSlimDebug :app:assembleSlimRelease
+./gradlew --no-daemon :app:assembleDebug :app:assembleRelease
 ```
 
-Gli output dipendono dai **product flavors** `slim` / `full` (dimensione dell'albero Python) e dall **imballaggio ABI** `universal` (predefinito) o `split` (vedi `android/app/build.gradle`).
+Esiste una sola variante Android (niente flavor `slim` / `full`). Gradle sincronizza l'intero albero `meshchatx/` in `app/src/main/python/meshchatx/`, incluse le wheel offline del repository. **Imballaggio ABI:** `universal` (predefinito) o `split` (vedi `android/app/build.gradle`).
 
-Con **`-PmeshchatxAbiPackaging=universal`** (predefinito), un solo APK contiene tutti gli ABI selezionati.
+Con **`-PmeshchatxAbiPackaging=universal`** (predefinito):
 
-Debug (`android/app/build/outputs/apk/slim/debug/`):
-
-- `app-slim-debug.apk`
-
-Release (`android/app/build/outputs/apk/slim/release/`):
-
-- `app-slim-release-unsigned.apk`
-
-Per il bundle Python completo: `:app:assembleFullDebug` o `:app:assembleFullRelease`.
+- Debug: `android/app/build/outputs/apk/debug/app-debug.apk`
+- Release: `android/app/build/outputs/apk/release/app-release-unsigned.apk`
 
 Note:
 
-- Gli output release sono non firmati di default se non configurate le firme.
-- Per una sola build, ad esempio: `:app:assembleSlimDebug` o `:app:assembleSlimRelease`.
+- Le release sono non firmate di default (`scripts/sign-android-apks.sh`).
 - ABI: `-PmeshchatxAbis` o `MESHCHATX_ABIS`; imballaggio: `-PmeshchatxAbiPackaging` o `MESHCHATX_ABI_PACKAGING`.
-- Albero `meshchatx/` per Chaquopy: **`slim`** in `src/slim/python/`, **`full`** in `src/full/python/`. Dettagli in [`android/README.md`](../android/README.md).
+- Se nella root del repo esiste `dist/reticulum_meshchatx-*.whl` (es. dopo `python -m build --wheel -o dist .`), quella wheel ha priorita nel bundle. Dettagli in [`android/README.md`](../android/README.md).
 
 Documentazione aggiuntiva:
 

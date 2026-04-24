@@ -1,205 +1,45 @@
-# MeshChatX Android App
+# MeshChatX Android (Chaquopy)
 
-This directory contains the Android app build configuration using Chaquopy to embed the Python MeshChatX server.
+Native APK with embedded Python (`meshchatx/`) and a WebView UI.
 
-## Architecture
+## Prerequisites
 
-The app uses a **WebView** to display the existing Vue.js frontend. The Python server runs in the background via Chaquopy and serves the web interface on `https://127.0.0.1:8000`.
+- Android SDK (`ANDROID_HOME` / `ANDROID_SDK_ROOT`) with `cmdline-tools` and a matching **NDK** (see `android/app/build.gradle` for the pinned NDK version used in CI).
+- **JDK 17** (Temurin or compatible).
+- Chaquopy vendor wheels under `android/vendor/` (build locally with `bash scripts/build-android-wheels-local.sh` from repo root, or use CI artifacts).
 
-## Build debug APK
+## Build
 
-Prerequisites:
-
-- **JDK 17 or newer** (required by the Android Gradle Plugin used in this project). On distributions with multiple JDKs, point the build at JDK 17+ (for example `JAVA_HOME` for the Gradle invocation).
-- **Android SDK** with API **34** platform and **Build-Tools 34** installed. Set `ANDROID_HOME` and `ANDROID_SDK_ROOT` to the SDK root (the same directory for both is fine).
-- **Host build tools for wheel patching**: `patchelf`, `cmake`, `pkg-config`, `unzip`, and build essentials (`gcc`, `make`, headers). On Arch-based systems, install `patchelf cmake pkgconf base-devel rustup unzip`.
-- **`android/vendor/`** must contain the Chaquopy vendor wheels (see [Updating Android Python ABI Wheels](#updating-android-python-abi-wheels-python-311)). The build fails fast if this directory is missing or incomplete.
-- **MeshChatX Python sources** at the repository root (`meshchatx/`). The build syncs them into the app before compiling.
-
-SDK licenses:
-
-- Use **Command-line Tools** `sdkmanager`, not the legacy `tools/bin/sdkmanager` from old SDK layouts. The legacy tool loads JAXB classes that were removed from the JDK in Java 11, so running it on JDK 17+ fails with `NoClassDefFoundError: javax/xml/bind/annotation/XmlSchema`.
-- Install Command-line Tools if needed: download the package for your OS from [Android Studio command-line tools](https://developer.android.com/studio#command-tools), extract it so you have `cmdline-tools/latest/bin/sdkmanager` under `ANDROID_HOME` (the inner folder is often named `latest`; see Google’s layout for that zip).
-- Accept licenses (writes under the SDK; use sudo if the SDK is root-owned):
+From repo root:
 
 ```bash
-yes | path/to/cmdline-tools/latest/bin/sdkmanager --licenses
+bash scripts/build-android-wheels-local.sh
+cd android
+./gradlew --no-daemon :app:assembleDebug :app:assembleRelease
 ```
 
-- Install missing packages if the build still complains (platform 34, build-tools 34, etc.):
+There is a **single** application variant (no product flavors). Gradle syncs the **entire** `meshchatx/` tree into `app/src/main/python/meshchatx/` (including `public/repository-server-bundled` for the in-app repository server). The `fetchRepositoryBundledWheels` task runs before sync when bundled wheels are missing; if repo root `dist/reticulum_meshchatx-*.whl` exists (e.g. from `python -m build --wheel -o dist .`), that wheel is preferred over PyPI for the bundled set.
 
-```bash
-path/to/cmdline-tools/latest/bin/sdkmanager "platforms;android-34" "build-tools;34.0.0"
-```
+### ABI selection and packaging
 
-Build from the `android/` directory (default **slim** flavor, **universal** ABI packaging):
+- **`-PmeshchatxAbis=...`** or **`MESHCHATX_ABIS`**: comma-separated list from `arm64-v8a`, `x86_64`, `armeabi-v7a` (default: all three).
+- **`-PmeshchatxAbiPackaging=universal|split`** or **`MESHCHATX_ABI_PACKAGING`**: `universal` (default) emits one APK per build type; `split` may emit per-ABI splits when more than one ABI is selected.
 
-```bash
-./gradlew :app:assembleSlimDebug
-```
+### Outputs
 
-Debug APK example path:
+With default **universal** packaging:
 
-- `app/build/outputs/apk/slim/debug/app-slim-debug.apk`
+- Debug: `app/build/outputs/apk/debug/app-debug.apk`
+- Release (unsigned until you sign): `app/build/outputs/apk/release/app-release-unsigned.apk`
 
-By default all ABIs are included in that single universal APK. To build only specific ABIs:
+### Signing release APKs
 
-```bash
-./gradlew :app:assembleSlimDebug -PmeshchatxAbis=armeabi-v7a
-./gradlew :app:assembleSlimDebug -PmeshchatxAbis=arm64-v8a,x86_64
-```
+See repo root `scripts/sign-android-apks.sh` (default glob targets `outputs/apk/release/`).
 
-To emit **per-ABI split APKs** (and a universal split when Gradle enables it), set:
+## Troubleshooting
 
-```bash
-./gradlew :app:assembleSlimDebug -PmeshchatxAbiPackaging=split
-```
-
-Same property accepts `MESHCHATX_ABI_PACKAGING`.
-
-### Python bundle: `slim` vs `full` flavors
-
-The Chaquopy layer packs `meshchatx/` into `assets/chaquopy/app.imy`. These are **Android product flavors** (separate Gradle variants):
-
-| Flavor | Meaning |
-|--------|--------|
-| **`slim`** (default `isDefault`) | Smaller APK: sync omits Vue sources (`src/frontend`), bundled Reticulum HTML manual (`public/reticulum-docs-bundled`), RNode flasher static files, and **offline repository wheels** (`public/repository-server-bundled`). |
-| **`full`** | Syncs the whole `meshchatx/` tree (Gradle runs `fetchRepositoryBundledWheels` first when bundled wheels are missing). Use when the APK must ship the offline repository mirror and bundled docs. |
-
-Assemble the matching variant:
-
-```bash
-./gradlew :app:assembleSlimDebug -PmeshchatxAbis=arm64-v8a
-./gradlew :app:assembleFullDebug
-./gradlew :app:assembleFullRelease
-```
-
-## Signing Release APKs (optional SourceStamp)
-
-Build release APKs first:
-
-```bash
-./gradlew --no-daemon :app:assembleSlimRelease
-```
-
-Create a release signing key (one time):
-
-```bash
-mkdir -p android/keystore
-keytool -genkeypair -v \
-  -keystore android/keystore/meshchatx-release.jks \
-  -alias meshchatx-release \
-  -keyalg RSA \
-  -keysize 4096 \
-  -validity 9125
-```
-
-Optional: create a separate SourceStamp key (recommended if you use SourceStamp):
-
-```bash
-keytool -genkeypair -v \
-  -keystore android/keystore/meshchatx-stamp.jks \
-  -alias meshchatx-stamp \
-  -keyalg RSA \
-  -keysize 4096 \
-  -validity 9125
-```
-
-Sign all `*-unsigned.apk` release artifacts:
-
-```bash
-ANDROID_HOME="$HOME/Android/sdk" \
-SIGNING_KEYSTORE_PATH=android/keystore/meshchatx-release.jks \
-SIGNING_KEY_ALIAS=meshchatx-release \
-SIGNING_KEYSTORE_PASSWORD='<release-keystore-password>' \
-SIGNING_KEY_PASSWORD='<release-key-password>' \
-bash scripts/sign-android-apks.sh
-```
-
-Sign with SourceStamp enabled:
-
-```bash
-ANDROID_HOME="$HOME/Android/sdk" \
-SIGNING_KEYSTORE_PATH=android/keystore/meshchatx-release.jks \
-SIGNING_KEY_ALIAS=meshchatx-release \
-SIGNING_KEYSTORE_PASSWORD='<release-keystore-password>' \
-SIGNING_KEY_PASSWORD='<release-key-password>' \
-ENABLE_SOURCESTAMP=true \
-SOURCESTAMP_KEYSTORE_PATH=android/keystore/meshchatx-stamp.jks \
-SOURCESTAMP_KEY_ALIAS=meshchatx-stamp \
-SOURCESTAMP_KEYSTORE_PASSWORD='<stamp-keystore-password>' \
-SOURCESTAMP_KEY_PASSWORD='<stamp-key-password>' \
-bash scripts/sign-android-apks.sh
-```
-
-The helper script auto-detects the newest Android Build-Tools, runs `zipalign`, signs with `apksigner`, and verifies each output certificate/signature block.
-
-## Updating Android Python ABI Wheels (Python 3.11)
-
-Use this workflow when a dependency (for example `cryptography`) requires custom Android wheels for the ABIs listed in `app/build.gradle` (`ndk.abiFilters`).
-
-For **`armeabi-v7a`**, Chaquopy usually has no prebuilt NumPy wheel; `scripts/build-android-wheels-local.sh` builds NumPy from source and must cache the official `chaquopy-openblas` wheel (handled in the script) and run with **`ANDROID_HOME`** pointing at an SDK that includes **Command-line Tools** and NDK **27.3.13750724** (Chaquopy’s `target/android-env.sh` installs the NDK via `sdkmanager` if missing).
-
-1. Build wheels in a Podman Python 3.11 container to avoid host Python mismatches:
-   - Use `docker.io/library/python:3.11-bookworm`.
-   - Mount project root to `/work` and Android SDK to `/opt/android-sdk`.
-   - Export `ANDROID_HOME` and `ANDROID_SDK_ROOT` to `/opt/android-sdk`.
-   - Example container entry:
-     `podman run --rm --network host -e ANDROID_HOME=/opt/android-sdk -e ANDROID_SDK_ROOT=/opt/android-sdk -v "/opt/android-sdk:/opt/android-sdk" -v "<repo>:/work" -w /work docker.io/library/python:3.11-bookworm bash`
-2. Keep custom Chaquopy recipes in `android/chaquopy-recipes/<package>-<major>/`:
-   - Define package/version in `meta.yaml`.
-   - Store source patches in `patches/`.
-3. Build the configured ABIs with Chaquopy `build-wheel.py` (via `scripts/build-android-wheels-local.sh`) and place final wheels in `android/vendor/`.
-4. Update `android/app/build.gradle` `pip` installs to the new pinned version.
-5. Rebuild with `./gradlew :app:assembleSlimDebug` (or `-PmeshchatxAbiPackaging=split` when you need per-ABI artifacts) and confirm the expected APK under `app/build/outputs/apk/`.
-
-Local host build example (no shell startup files required):
-
-```bash
-cd /path/to/reticulum-meshchatX
-ANDROID_HOME="$HOME/Android/sdk" \
-ANDROID_SDK_ROOT="$HOME/Android/sdk" \
-PYTHON_BIN="$(uv python find 3.11)" \
-bash scripts/build-android-wheels-local.sh --abis armeabi-v7a
-```
-
-If `uv` does not have Python 3.11 yet, install it first:
-
-```bash
-uv python install 3.11
-```
-
-If the wheel build fails with `No such file or directory: 'patchelf'`, install `patchelf` and re-run the same command.
-
-Notes:
-- For Rust-backed wheels (such as modern `cryptography`), build inside the container with Rust toolchain available.
-- Keep recipe files and patches versioned; keep generated build artifacts untracked.
-
-## Custom Recipes and Patches
-
-This project keeps Android-specific Chaquopy recipes in `android/chaquopy-recipes/` to bridge gaps between desktop Python dependencies and Android wheel availability.
-
-- `cryptography-46`
-  - Purpose: provide Android ABI wheels for `cryptography 46.0.7` for each ABI in the wheel script (for example `arm64-v8a`, `x86_64`, `armeabi-v7a`) because upstream Chaquopy index only provided older builds.
-  - `patches/openssl_no_legacy.patch`: disables OpenSSL legacy provider loading, which is unavailable in the bundled Android OpenSSL runtime.
-  - `patches/pyo3_no_interpreter.patch`: enables compatible `pyo3` ABI settings for Chaquopy Python 3.11 Android builds.
-
-- `aiohttp-3.13`
-  - Purpose: align Android with desktop dependency line (`aiohttp 3.13.3`) by building fresh ABI wheels with Chaquopy.
-  - No source patch is required; recipe pins the newer upstream version for Android wheel generation.
-
-- `psutil-7.2`
-  - Purpose: align Android with desktop dependency line (`psutil 7.2.2`) while preserving Android runtime behavior.
-  - `patches/chaquopy.patch`: treats `android` platform as Linux in psutil internals and forces a safe partition enumeration path because `/proc/filesystems` can be restricted by SELinux on some Android API levels.
-
-- `bcrypt-5`
-  - Purpose: tracks attempted upgrade path to desktop-equivalent bcrypt.
-  - Status: currently not enabled in Android app dependencies; `bcrypt==3.1.7` remains pinned for stable APK builds.
-
-## License
-
-This directory is part of the main project licensing split:
-- project-owned portions: 0BSD
-- original upstream MeshChat portions: MIT
+1. Confirm `android/vendor/` contains required `.whl` files from the wheel build script.
+2. Run `./gradlew :app:assembleDebug` with `--stacktrace` if Python sync or Chaquopy pip steps fail.
+3. Re-run `./gradlew :app:assembleDebug` after changing `meshchatx/` assets; sync runs on merge Python sources tasks.
 
 See [`../LICENSE`](../LICENSE) for full text and notices.
