@@ -73,17 +73,13 @@ function patchFile(rel, fn) {
 patchFile("README.md", (c) => c.replace(/(Current version in this repo is `)[^`]+(`)/, `$1${version}$2`));
 
 patchFile("lang/README.de.md", (c) =>
-    c.replace(/(Aktuelle Version in diesem Repository: `)[^`]+(`)/, `$1${version}$2`),
+    c.replace(/(Aktuelle Version in diesem Repository: `)[^`]+(`)/, `$1${version}$2`)
 );
-patchFile("lang/README.it.md", (c) =>
-    c.replace(/(Versione attuale nel repository: `)[^`]+(`)/, `$1${version}$2`),
-);
+patchFile("lang/README.it.md", (c) => c.replace(/(Versione attuale nel repository: `)[^`]+(`)/, `$1${version}$2`));
 patchFile("lang/README.ja.md", (c) =>
-    c.replace(/(このリポジトリの現在のバージョンは `)[^`]+(` です。)/, `$1${version}$2`),
+    c.replace(/(このリポジトリの現在のバージョンは `)[^`]+(` です。)/, `$1${version}$2`)
 );
-patchFile("lang/README.ru.md", (c) =>
-    c.replace(/(Текущая версия в репозитории: `)[^`]+(`)/, `$1${version}$2`),
-);
+patchFile("lang/README.ru.md", (c) => c.replace(/(Текущая версия в репозитории: `)[^`]+(`)/, `$1${version}$2`));
 patchFile("lang/README.zh.md", (c) => c.replace(/(本仓库当前版本: `)[^`]+(`)/, `$1${version}$2`));
 
 patchFile("docs/meshchatx_on_raspberry_pi.md", (c) => {
@@ -92,7 +88,7 @@ patchFile("docs/meshchatx_on_raspberry_pi.md", (c) => {
     x = x.replace(/Direct example \(v\d+\.\d+\.\d+\):/, `Direct example (v${version}):`);
     x = x.replace(
         /releases\/download\/v\d+\.\d+\.\d+\/reticulum_meshchatx-\d+\.\d+\.\d+-py3-none-any\.whl/,
-        `releases/download/v${version}/reticulum_meshchatx-${version}-py3-none-any.whl`,
+        `releases/download/v${version}/reticulum_meshchatx-${version}-py3-none-any.whl`
     );
     return x;
 });
