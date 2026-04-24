@@ -10,6 +10,7 @@
 #   actions/setup-node@v6.1.0          395ad3262231945c25e8478fd5baf05154b1d79f
 #   actions/upload-artifact@v5.0.0     330a01c490aca151604b8cf639adc76d48f6c5d4
 #   actions/download-artifact@v5.0.0   634f93cb2916e3fdff6788551b99b062d0335ce0
+#   actions/cache@v4.2.0               1bd1e32a3bdc45362d1e726936510720a7c30a57
 name: CI
 
 on:
@@ -84,13 +85,23 @@ jobs:
                   POETRY_VERSION: ${{ env.POETRY_VERSION }}
               run: bash scripts/ci/github-install-poetry.sh
 
+            - name: Cache Poetry downloads
+              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              with:
+                  path: ~/.cache/pypoetry
+                  key: ${{ runner.os }}-pypoetry-${{ hashFiles('poetry.lock') }}
+                  restore-keys: |
+                      ${{ runner.os }}-pypoetry-
+
+            - name: Enable pnpm (corepack)
+              run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+
             - name: Set up Node
               uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
               with:
                   node-version: ${{ env.NODE_VERSION }}
-
-            - name: Enable pnpm (corepack)
-              run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+                  cache: pnpm
+                  cache-dependency-path: pnpm-lock.yaml
 
             - name: Install dependencies
               run: bash scripts/ci/github-install-deps.sh
@@ -146,13 +157,23 @@ jobs:
                   POETRY_VERSION: ${{ env.POETRY_VERSION }}
               run: bash scripts/ci/github-install-poetry.sh
 
+            - name: Cache Poetry downloads
+              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              with:
+                  path: ~/.cache/pypoetry
+                  key: ${{ runner.os }}-pypoetry-${{ hashFiles('poetry.lock') }}
+                  restore-keys: |
+                      ${{ runner.os }}-pypoetry-
+
+            - name: Enable pnpm (corepack)
+              run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+
             - name: Set up Node
               uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
               with:
                   node-version: ${{ env.NODE_VERSION }}
-
-            - name: Enable pnpm (corepack)
-              run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+                  cache: pnpm
+                  cache-dependency-path: pnpm-lock.yaml
 
             - name: Install dependencies
               run: bash scripts/ci/github-install-deps.sh

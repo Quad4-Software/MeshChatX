@@ -132,6 +132,8 @@ jobs:
                   platforms: linux/amd64,linux/arm64
                   push: true
                   tags: ${{ steps.tags.outputs.tags }}
+                  cache-from: type=gha
+                  cache-to: type=gha,mode=max
                   build-args: |
                       OCI_REVISION=${{ github.sha }}
                       OCI_VERSION=${{ steps.oci.outputs.version }}

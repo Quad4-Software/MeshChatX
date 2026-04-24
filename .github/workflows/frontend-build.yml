@@ -84,15 +84,17 @@ jobs:
               with:
                   python-version: ${{ inputs.python_version }}
 
-            - name: Set up Node
-              uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
-              with:
-                  node-version: ${{ inputs.node_version }}
-
             - name: Enable pnpm (corepack)
               env:
                   PNPM_VERSION: ${{ inputs.pnpm_version }}
               run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+
+            - name: Set up Node
+              uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
+              with:
+                  node-version: ${{ inputs.node_version }}
+                  cache: pnpm
+                  cache-dependency-path: pnpm-lock.yaml
 
             - name: Install frontend dependencies
               run: pnpm install --frozen-lockfile

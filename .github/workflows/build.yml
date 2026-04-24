@@ -85,13 +85,15 @@ jobs:
                   POETRY_VERSION: ${{ env.POETRY_VERSION }}
               run: bash scripts/ci/github-install-poetry.sh
 
+            - name: Enable pnpm (corepack)
+              run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+
             - name: Set up Node
               uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
               with:
                   node-version: ${{ env.NODE_VERSION }}
-
-            - name: Enable pnpm (corepack)
-              run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+                  cache: pnpm
+                  cache-dependency-path: pnpm-lock.yaml
 
             - name: Install dependencies
               run: bash scripts/ci/github-install-deps.sh

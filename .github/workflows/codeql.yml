@@ -5,6 +5,7 @@
 #   actions/download-artifact@v5.0.0              634f93cb2916e3fdff6788551b99b062d0335ce0
 #   github/codeql-action/init@v4.31.6             95e58e9a2cdfd71adc6e0353d5c52f41a045d225
 #   github/codeql-action/analyze@v4.31.6          95e58e9a2cdfd71adc6e0353d5c52f41a045d225
+#   actions/cache@v4.2.0                           1bd1e32a3bdc45362d1e726936510720a7c30a57
 
 name: "CodeQL Advanced"
 
@@ -107,13 +108,23 @@ jobs:
                   POETRY_VERSION: ${{ env.POETRY_VERSION }}
               run: bash scripts/ci/github-install-poetry.sh
 
+            - name: Cache Poetry downloads
+              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              with:
+                  path: ~/.cache/pypoetry
+                  key: ${{ runner.os }}-pypoetry-${{ hashFiles('poetry.lock') }}
+                  restore-keys: |
+                      ${{ runner.os }}-pypoetry-
+
+            - name: Enable pnpm (corepack)
+              run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+
             - name: Set up Node
               uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
               with:
                   node-version: ${{ env.NODE_VERSION }}
-
-            - name: Enable pnpm (corepack)
-              run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+                  cache: pnpm
+                  cache-dependency-path: pnpm-lock.yaml
 
             - name: Install dependencies
               run: bash scripts/ci/github-install-deps.sh
