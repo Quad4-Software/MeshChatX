@@ -1,10 +1,5 @@
 # Android APK build (debug + optional release).
 #
-# The Vite frontend and offline Reticulum manual are produced by the reusable
-# Frontend build workflow and downloaded into meshchatx/public/. This avoids
-# re-running the full pnpm install + build pipeline alongside the much heavier
-# Android NDK/wheel build steps.
-#
 # Pinned first-party actions (bump tag and SHA together when upgrading):
 #   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
 #   actions/setup-python@v6.2.0        a309ff8b426b58ec0e2a45f0f869d46889d02405
@@ -21,6 +16,8 @@ on:
     push:
         branches:
             - dev
+        tags:
+            - "*"
     workflow_dispatch:
         inputs:
             build_release:
@@ -70,7 +67,7 @@ jobs:
         needs: frontend
         timeout-minutes: 90
         permissions:
-            contents: read
+            contents: write
             actions: write
         defaults:
             run:
@@ -80,6 +77,54 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              with:
+                  fetch-depth: 0
+
+            - name: Resolve tag release track
+              id: track
+              if: github.ref_type == 'tag'
+              run: |
+                  set -euo pipefail
+                  git fetch --no-tags origin dev master
+                  sha="$(git rev-parse HEAD)"
+                  on_m=false
+                  on_d=false
+                  while IFS= read -r line; do
+                    ref="$(printf '%s' "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+                    case "$ref" in
+                      origin/master) on_m=true ;;
+                      origin/dev) on_d=true ;;
+                    esac
+                  done < <(git branch -r --contains "${sha}")
+                  if [[ "${on_m}" == true ]]; then
+                    track=master
+                  elif [[ "${on_d}" == true ]]; then
+                    track=dev
+                  else
+                    track=none
+                  fi
+                  echo "track=${track}" >> "${GITHUB_OUTPUT}"
+                  echo "Resolved tag ${GITHUB_REF_NAME} -> track=${track}"
+
+            - name: Detect Android release signing secrets
+              id: android_signing
+              env:
+                  KS_B64: ${{ secrets.ANDROID_SIGNING_KEYSTORE_BASE64 }}
+                  KS_PASS: ${{ secrets.ANDROID_SIGNING_KEYSTORE_PASSWORD }}
+                  KS_ALIAS: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}
+              run: |
+                  set -euo pipefail
+                  if [[ -n "${KS_B64}" && -n "${KS_PASS}" && -n "${KS_ALIAS}" ]]; then
+                    echo "ready=true" >> "${GITHUB_OUTPUT}"
+                  else
+                    echo "ready=false" >> "${GITHUB_OUTPUT}"
+                  fi
+
+            - name: Require signing secrets for master release tags
+              if: ${{ github.ref_type == 'tag' && steps.track.outputs.track == 'master' && steps.android_signing.outputs.ready != 'true' }}
+              run: |
+                  echo "::error::Tagged master build needs release signing. Set secrets ANDROID_SIGNING_KEYSTORE_BASE64, ANDROID_SIGNING_KEYSTORE_PASSWORD, and ANDROID_SIGNING_KEY_ALIAS (see workflow header)."
+                  exit 1
 
             - name: Set up Java
               uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00
@@ -186,17 +231,33 @@ jobs:
                   ./gradlew --no-daemon :app:testDebugUnitTest
 
             - name: Build debug APK
+              if: ${{ github.ref_type != 'tag' || steps.track.outputs.track != 'master' }}
               working-directory: android
               run: |
                   chmod +x gradlew
                   ./gradlew --no-daemon :app:assembleDebug
 
             - name: Build release APK
-              if: ${{ github.event_name != 'workflow_dispatch' || inputs.build_release }}
+              if: ${{ (github.ref_type == 'tag' && steps.track.outputs.track == 'master') || (github.ref_type != 'tag' && (github.event_name != 'workflow_dispatch' || inputs.build_release)) }}
               working-directory: android
               run: |
                   chmod +x gradlew
                   ./gradlew --no-daemon :app:assembleRelease
+
+            - name: Sign release APKs
+              if: ${{ github.ref_type == 'tag' && steps.track.outputs.track == 'master' && steps.android_signing.outputs.ready == 'true' }}
+              env:
+                  KS_B64: ${{ secrets.ANDROID_SIGNING_KEYSTORE_BASE64 }}
+                  SIGNING_KEYSTORE_PATH: ${{ runner.temp }}/meshchatx-release.jks
+                  SIGNING_KEY_ALIAS: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}
+                  SIGNING_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_SIGNING_KEYSTORE_PASSWORD }}
+                  SIGNING_KEY_PASSWORD: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
+              run: |
+                  set -euo pipefail
+                  printf '%s' "${KS_B64}" | base64 -d > "${SIGNING_KEYSTORE_PATH}"
+                  export SIGNING_KEYSTORE_PATH SIGNING_KEY_ALIAS SIGNING_KEYSTORE_PASSWORD
+                  export SIGNING_KEY_PASSWORD="${SIGNING_KEY_PASSWORD:-${SIGNING_KEYSTORE_PASSWORD}}"
+                  bash scripts/sign-android-apks.sh
 
             - name: Upload wheels
               uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
@@ -206,6 +267,7 @@ jobs:
                   if-no-files-found: error
 
             - name: Upload debug APK
+              if: ${{ github.ref_type != 'tag' || steps.track.outputs.track != 'master' }}
               uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
               with:
                   name: meshchatx-android-debug-${{ github.ref_name }}-${{ github.run_id }}
@@ -223,9 +285,32 @@ jobs:
                   if-no-files-found: warn
 
             - name: Upload release APK
-              if: ${{ github.event_name != 'workflow_dispatch' || inputs.build_release }}
+              if: ${{ (github.ref_type == 'tag' && steps.track.outputs.track == 'master') || (github.ref_type != 'tag' && (github.event_name != 'workflow_dispatch' || inputs.build_release)) }}
               uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
               with:
                   name: meshchatx-android-release-${{ github.ref_name }}-${{ github.run_id }}
                   path: android/app/build/outputs/apk/release/*.apk
                   if-no-files-found: error
+
+            - name: Upload APKs to GitHub release
+              if: ${{ github.ref_type == 'tag' && (steps.track.outputs.track == 'dev' || steps.track.outputs.track == 'master') }}
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  set -euo pipefail
+                  dir="${RUNNER_TEMP}/android-gh-release"
+                  rm -rf "${dir}"
+                  mkdir -p "${dir}"
+                  if [[ "${{ steps.track.outputs.track }}" == "dev" ]]; then
+                    cp -v android/app/build/outputs/apk/debug/*.apk "${dir}/"
+                  else
+                    shopt -s nullglob
+                    signed=(android/app/build/outputs/apk/release/*-signed.apk)
+                    shopt -u nullglob
+                    if [[ ${#signed[@]} -eq 0 ]]; then
+                      echo "::error::Expected *-signed.apk under android/app/build/outputs/apk/release/" >&2
+                      exit 1
+                    fi
+                    cp -v "${signed[@]}" "${dir}/"
+                  fi
+                  bash scripts/ci/github-draft-release-upload-assets.sh "${dir}"
