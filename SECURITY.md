@@ -14,7 +14,7 @@ Include enough detail to reproduce or understand the issue (what version or buil
 
 ---
 
-MeshChatX is meant to be used on **trusted networks** (for example at home, on a LAN, or over a VPN you control). 
+MeshChatX is meant to be used on **trusted networks** (for example at home, on a LAN, or over a VPN you control).
 
 If you still put the web interface on the **public internet**, you accept much higher risk (password guessing, misconfigured TLS or proxies, automated scanning, and overload of a single-node app). If you must expose it: **turn on authentication**, use **HTTPS** with a valid certificate for the public name, **restrict who can reach the port** (firewall, VPN, or a reverse proxy with sensible rules), and **keep the application updated**. `/robots.txt` with `Disallow: /` is only a hint to crawlers, not protection.
 
