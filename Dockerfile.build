@@ -1,0 +1,26 @@
+# Reproducible native build (wheel, Linux AppImage/deb/rpm) in one image.
+# Default target builds everything; override with --build-arg MESHCHATX_BUILD_TARGETS=wheel|electron|all
+#
+# Build:
+#   docker build -f Dockerfile.build -t meshchatx-build:local .
+#
+# Copy artifacts to the host (example):
+#   cid=$(docker create meshchatx-build:local)
+#   docker cp "$cid":/artifacts ./meshchatx-artifacts
+#   docker rm "$cid"
+
+FROM python:3.14.4-slim-trixie
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    MESHCHATX_BUILD_TARGETS=all
+
+ARG MESHCHATX_BUILD_TARGETS=all
+ENV MESHCHATX_BUILD_TARGETS=${MESHCHATX_BUILD_TARGETS}
+
+WORKDIR /src
+COPY . /src
+
+RUN chmod +x scripts/ci/docker-build-entry.sh && \
+    find scripts/ci -maxdepth 1 -name '*.sh' -exec chmod +x {} + && \
+    bash scripts/ci/docker-build-entry.sh
