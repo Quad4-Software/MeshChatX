@@ -65,13 +65,19 @@ describe("ArchivesPage.vue", () => {
         ).toBe("notes_12345678.md");
     });
 
-    it("downloadTextAsFile creates a blob URL and revokes it", () => {
-        const wrapper = mountPage();
-        const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
-        wrapper.vm.downloadTextAsFile("hello", "test.mu");
-        expect(createObjectURLSpy).toHaveBeenCalled();
-        expect(clickSpy).toHaveBeenCalled();
-        expect(revokeObjectURLSpy).toHaveBeenCalledWith("blob:mock");
-        clickSpy.mockRestore();
+    it("downloadTextAsFile creates a blob URL and revokes it after DownloadUtils delay", async () => {
+        vi.useFakeTimers();
+        try {
+            const wrapper = mountPage();
+            const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+            await wrapper.vm.downloadTextAsFile("hello", "test.mu");
+            expect(createObjectURLSpy).toHaveBeenCalled();
+            expect(clickSpy).toHaveBeenCalled();
+            vi.advanceTimersByTime(10000);
+            expect(revokeObjectURLSpy).toHaveBeenCalledWith("blob:mock");
+            clickSpy.mockRestore();
+        } finally {
+            vi.useRealTimers();
+        }
     });
 });
