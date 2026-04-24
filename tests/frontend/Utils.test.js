@@ -88,6 +88,56 @@ describe("Utils.js", () => {
         });
     });
 
+    describe("formatSecondsWithoutAgo", () => {
+        it("matches formatSeconds without trailing ago", () => {
+            expect(Utils.formatSecondsWithoutAgo(120) + " ago").toBe(Utils.formatSeconds(120));
+            expect(Utils.formatSecondsWithoutAgo(86400) + " ago").toBe(Utils.formatSeconds(86400));
+        });
+    });
+
+    describe("formatTimeAgoForI18n", () => {
+        beforeEach(() => {
+            vi.useFakeTimers();
+        });
+
+        afterEach(() => {
+            vi.useRealTimers();
+        });
+
+        it("uses neutral sub-minute phrase for i18n suffixes", () => {
+            const now = new Date("2025-01-01T12:00:00Z");
+            vi.setSystemTime(now);
+            const recent = "2025-01-01 11:59:30";
+            expect(Utils.formatTimeAgoForI18n(recent)).toBe("less than a minute");
+            expect(Utils.formatTimeAgo(recent)).toBe("just now");
+        });
+
+        it("omits ago for minute-scale relative fragments", () => {
+            const now = new Date("2025-01-01T12:00:00Z");
+            vi.setSystemTime(now);
+            const pastDate = "2025-01-01 11:59:00";
+            expect(Utils.formatTimeAgoForI18n(pastDate)).toBe("1 min");
+            expect(Utils.formatTimeAgo(pastDate)).toBe("1 min ago");
+        });
+    });
+
+    describe("formatSecondsAgoForI18n", () => {
+        beforeEach(() => {
+            vi.useFakeTimers();
+        });
+
+        afterEach(() => {
+            vi.useRealTimers();
+        });
+
+        it("returns less than a minute for recent unix timestamps", () => {
+            const nowSec = Math.floor(new Date("2025-06-01T15:00:00Z").getTime() / 1000);
+            vi.setSystemTime(new Date("2025-06-01T15:00:00Z"));
+            expect(Utils.formatSecondsAgoForI18n(nowSec - 10)).toBe("less than a minute");
+            expect(Utils.formatSecondsAgoForI18n(nowSec - 120)).toBe("2 mins");
+        });
+    });
+
     describe("formatTimeAgo", () => {
         beforeEach(() => {
             vi.useFakeTimers();
