@@ -168,7 +168,9 @@ def test_refresh_invokes_bundled_downloader(mock_dl, tmp_path):
     return_value=None,
 )
 @patch("meshchatx.src.backend.repository_server_manager._download_wheel_via_pypi_index")
-def test_download_bundled_wheels_to_directory(mock_pypi, _mock_stage, tmp_path, monkeypatch):
+def test_download_bundled_wheels_to_directory(
+    mock_pypi, _mock_stage, tmp_path, monkeypatch
+):
     monkeypatch.setenv("MESHCHAT_REPOSITORY_EXTRA_PIP", "")
     mock_pypi.return_value = (True, None)
     dest = tmp_path / "out"
