@@ -149,6 +149,45 @@ describe("ConversationViewer.vue", () => {
         expect(wrapper.vm.newMessageImages).toHaveLength(0);
     });
 
+    it("updates windowWidth on visualViewport resize and removes listeners on unmount", async () => {
+        const vvListeners = { resize: [], scroll: [] };
+        const vv = {
+            addEventListener(ev, fn) {
+                if (ev === "resize") {
+                    vvListeners.resize.push(fn);
+                }
+                if (ev === "scroll") {
+                    vvListeners.scroll.push(fn);
+                }
+            },
+            removeEventListener(ev, fn) {
+                if (ev === "resize") {
+                    vvListeners.resize = vvListeners.resize.filter((f) => f !== fn);
+                }
+                if (ev === "scroll") {
+                    vvListeners.scroll = vvListeners.scroll.filter((f) => f !== fn);
+                }
+            },
+        };
+        vi.stubGlobal("visualViewport", vv);
+
+        Object.defineProperty(window, "innerWidth", { configurable: true, value: 300 });
+        const wrapper = mountConversationViewer();
+        await wrapper.vm.$nextTick();
+
+        Object.defineProperty(window, "innerWidth", { configurable: true, value: 700 });
+        expect(vvListeners.resize.length).toBeGreaterThan(0);
+        vvListeners.resize[0]();
+        expect(wrapper.vm.windowWidth).toBe(700);
+
+        vvListeners.scroll[0]();
+        expect(wrapper.vm.windowWidth).toBe(700);
+
+        wrapper.unmount();
+        expect(vvListeners.resize).toHaveLength(0);
+        expect(vvListeners.scroll).toHaveLength(0);
+    });
+
     it("onMessagePaste adds multiple images from a single paste event", () => {
         const wrapper = mountConversationViewer();
         const f1 = new File([""], "a.png", { type: "image/png" });

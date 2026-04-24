@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mount } from "@vue/test-utils";
 import App from "../../meshchatx/src/frontend/components/App.vue";
+import { appPackageVersion } from "./fixtures/repoPackageVersion.js";
 import { createRouter, createWebHashHistory } from "vue-router";
 import { createI18n } from "vue-i18n";
 import { createVuetify } from "vuetify";
@@ -62,9 +63,9 @@ describe("App.vue Modals", () => {
                 return Promise.resolve({
                     data: {
                         app_info: {
-                            version: "4.6.0",
+                            version: appPackageVersion,
                             tutorial_seen: true,
-                            changelog_seen_version: "4.6.0",
+                            changelog_seen_version: appPackageVersion,
                         },
                     },
                 });
@@ -94,7 +95,7 @@ describe("App.vue Modals", () => {
                 return Promise.resolve({
                     data: {
                         app_info: {
-                            version: "4.6.0",
+                            version: appPackageVersion,
                             tutorial_seen: false,
                             changelog_seen_version: "0.0.0",
                         },
@@ -153,7 +154,7 @@ describe("App.vue Modals", () => {
                 return Promise.resolve({
                     data: {
                         app_info: {
-                            version: "4.6.0",
+                            version: appPackageVersion,
                             tutorial_seen: true,
                             changelog_seen_version: "3.9.0",
                         },
@@ -161,7 +162,9 @@ describe("App.vue Modals", () => {
                 });
             }
             if (url === "/api/v1/app/changelog") {
-                return Promise.resolve({ data: { html: "<h1>New Features</h1>", version: "4.6.0" } });
+                return Promise.resolve({
+                    data: { html: "<h1>New Features</h1>", version: appPackageVersion },
+                });
             }
             if (url === "/api/v1/config") return Promise.resolve({ data: { config: { theme: "dark" } } });
             if (url === "/api/v1/auth/status") return Promise.resolve({ data: { auth_enabled: false } });

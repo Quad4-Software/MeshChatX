@@ -2,6 +2,7 @@ import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import ChangelogModal from "@/components/ChangelogModal.vue";
 import { createVuetify } from "vuetify";
+import { appPackageVersion } from "./fixtures/repoPackageVersion.js";
 
 const vuetify = createVuetify();
 
@@ -78,7 +79,7 @@ describe("ChangelogModal.vue", () => {
         axiosMock.get.mockResolvedValue({
             data: {
                 html: "<h1>Test</h1>",
-                version: "4.6.0",
+                version: appPackageVersion,
             },
         });
 
@@ -95,7 +96,7 @@ describe("ChangelogModal.vue", () => {
         axiosMock.get.mockResolvedValue({
             data: {
                 html: "<h1>Test</h1>",
-                version: "4.6.0",
+                version: appPackageVersion,
             },
         });
 
@@ -114,7 +115,7 @@ describe("ChangelogModal.vue", () => {
         axiosMock.get.mockResolvedValue({
             data: {
                 html: "<h1>Test</h1>",
-                version: "4.6.0",
+                version: appPackageVersion,
             },
         });
 

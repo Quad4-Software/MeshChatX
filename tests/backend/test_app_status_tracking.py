@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import RNS
 
+import meshchatx
 from meshchatx.meshchat import ReticulumMeshChat
 
 
@@ -96,8 +97,10 @@ async def test_app_status_endpoints(mock_rns_minimal, temp_dir):
         app_instance.config.set("tutorial_seen", True)
         assert app_instance.config.get("tutorial_seen") == "true"
 
-        app_instance.config.set("changelog_seen_version", "4.6.0")
-        assert app_instance.config.get("changelog_seen_version") == "4.6.0"
+        app_instance.config.set("changelog_seen_version", meshchatx.__version__)
+        assert (
+            app_instance.config.get("changelog_seen_version") == meshchatx.__version__
+        )
 
         # Test app_info returns these values
         with ExitStack() as info_stack:
@@ -113,4 +116,4 @@ async def test_app_status_endpoints(mock_rns_minimal, temp_dir):
             assert val == "true"
 
             val = app_instance.config.get("changelog_seen_version")
-            assert val == "4.6.0"
+            assert val == meshchatx.__version__
