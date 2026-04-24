@@ -62,7 +62,9 @@
         >
             <div class="w-full max-w-md bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Share Contact</h3>
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">
+                        {{ $t("messages.share_contact_modal_title") }}
+                    </h3>
                     <button
                         type="button"
                         class="text-gray-400 hover:text-gray-500 dark:hover:text-zinc-300 transition-colors"
@@ -77,7 +79,7 @@
                             <input
                                 v-model="contactsSearch"
                                 type="text"
-                                placeholder="Search contacts..."
+                                :placeholder="$t('messages.share_contact_search_placeholder')"
                                 class="block w-full rounded-lg border-0 py-2 pl-10 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
                             />
                             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -94,10 +96,9 @@
                             @click="shareContact(contact)"
                         >
                             <div
-                                class="size-10 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-500 flex items-center justify-center shrink-0"
-                            >
-                                <MaterialDesignIcon icon-name="account" class="size-6" />
-                            </div>
+                                class="h-10 w-10 shrink-0 rounded-full border-2 border-dashed border-gray-300 dark:border-zinc-600 bg-gray-50 dark:bg-zinc-800/80"
+                                aria-hidden="true"
+                            />
                             <div class="min-w-0">
                                 <div class="font-bold text-gray-900 dark:text-white truncate">
                                     {{ contact.name }}
@@ -1487,6 +1488,7 @@
 
 <script>
 import Utils from "../../js/Utils";
+import DownloadUtils from "../../js/DownloadUtils";
 import { clampFloatingToViewport } from "../../js/clampFloatingToViewport.js";
 import { isNearBottom, scrollContainerToBottom, shouldLoadPreviousMessages } from "./conversationScroll.js";
 import {
@@ -3766,33 +3768,7 @@ export default {
             return this.imageGroupSortedChron(items).map((it) => this.lxmfImageUrl(it.lxmf_message.hash));
         },
         downloadFileFromBase64: async function (fileName, fileBytesBase64) {
-            // create blob from base64 encoded file bytes
-            const byteCharacters = atob(fileBytesBase64);
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-                byteNumbers[i] = byteCharacters.charCodeAt(i);
-            }
-            const byteArray = new Uint8Array(byteNumbers);
-            const blob = new Blob([byteArray]);
-
-            // create object url for blob
-            const objectUrl = URL.createObjectURL(blob);
-
-            // create link element to download blob
-            const link = document.createElement("a");
-            link.href = objectUrl;
-            link.download = fileName;
-            link.style.display = "none";
-            document.body.append(link);
-
-            // click link to download file in browser
-            link.click();
-
-            // link element is no longer needed
-            link.remove();
-
-            // revoke object url to clear memory
-            setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
+            DownloadUtils.downloadFromBase64(fileName, fileBytesBase64);
         },
         async processAudioForSelectedPeerChatItems() {
             for (const chatItem of this.selectedPeerChatItems) {

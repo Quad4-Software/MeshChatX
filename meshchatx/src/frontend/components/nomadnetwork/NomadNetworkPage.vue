@@ -450,6 +450,7 @@ import DialogUtils from "../../js/DialogUtils";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import NomadNetworkSidebar from "./NomadNetworkSidebar.vue";
 import Utils from "../../js/Utils";
+import DownloadUtils from "../../js/DownloadUtils";
 import ToastUtils from "../../js/ToastUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import IconButton from "../IconButton.vue";
@@ -1762,33 +1763,7 @@ export default {
             ToastUtils.warning(this.$t("nomadnet.unsupported_url") + url);
         },
         downloadFileFromBase64: async function (fileName, fileBytesBase64) {
-            // create blob from base64 encoded file bytes
-            const byteCharacters = atob(fileBytesBase64);
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-                byteNumbers[i] = byteCharacters.charCodeAt(i);
-            }
-            const byteArray = new Uint8Array(byteNumbers);
-            const blob = new Blob([byteArray]);
-
-            // create object url for blob
-            const objectUrl = URL.createObjectURL(blob);
-
-            // create link element to download blob
-            const link = document.createElement("a");
-            link.href = objectUrl;
-            link.download = fileName;
-            link.style.display = "none";
-            document.body.append(link);
-
-            // click link to download file in browser
-            link.click();
-
-            // link element is no longer needed
-            link.remove();
-
-            // revoke object url to clear memory
-            setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
+            DownloadUtils.downloadFromBase64(fileName, fileBytesBase64);
         },
         formatBytesPerSecond: function (bytesPerSecond) {
             return Utils.formatBytesPerSecond(bytesPerSecond);

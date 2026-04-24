@@ -233,6 +233,7 @@
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import Utils from "../../js/Utils";
+import DownloadUtils from "../../js/DownloadUtils";
 import MicronParser from "../../js/MicronParser.js";
 import GlobalState from "../../js/GlobalState.js";
 import { renderNomadPageByPath } from "../../js/NomadPageRenderer.js";
@@ -504,17 +505,9 @@ export default {
                 }
             }
         },
-        downloadTextAsFile(content, filename) {
+        async downloadTextAsFile(content, filename) {
             const blob = new Blob([content ?? ""], { type: "text/plain;charset=utf-8" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = filename;
-            a.rel = "noopener";
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            await DownloadUtils.downloadFile(filename, blob);
         },
         muExportBasename(archive) {
             let base = (archive.page_path || "page").split("/").pop() || "page";

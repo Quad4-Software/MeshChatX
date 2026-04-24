@@ -622,6 +622,43 @@
                                     @change="importFolders"
                                 />
                             </div>
+
+                            <div class="grid grid-cols-2 gap-3 mt-2 pt-4 border-t border-gray-100 dark:border-zinc-800">
+                                <button
+                                    type="button"
+                                    class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-teal-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-teal-500 transition group"
+                                    @click="exportNomadnetFavouritesLayout"
+                                >
+                                    <MaterialDesignIcon
+                                        icon-name="file-export"
+                                        class="size-6 text-teal-500 group-hover:scale-110 transition"
+                                    />
+                                    <div class="text-sm font-bold">
+                                        {{ $t("maintenance.export_nomadnet_favourites") }}
+                                    </div>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-cyan-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-cyan-500 transition group"
+                                    @click="triggerNomadnetFavouritesImport"
+                                >
+                                    <MaterialDesignIcon
+                                        icon-name="import"
+                                        class="size-6 text-cyan-500 group-hover:scale-110 transition"
+                                    />
+                                    <div class="text-sm font-bold">
+                                        {{ $t("maintenance.import_nomadnet_favourites") }}
+                                    </div>
+                                </button>
+                                <input
+                                    ref="nomadnetFavouritesImportFile"
+                                    type="file"
+                                    accept=".json"
+                                    class="hidden"
+                                    @change="importNomadnetFavouritesLayoutFile"
+                                />
+                            </div>
                         </div>
                     </section>
 
@@ -2077,7 +2114,7 @@
                                 <div class="text-xs text-gray-600 dark:text-gray-400">
                                     <span v-if="config.lxmf_preferred_propagation_node_last_synced_at">{{
                                         $t("app.last_synced", {
-                                            time: formatSecondsAgo(
+                                            time: formatSecondsAgoForI18n(
                                                 config.lxmf_preferred_propagation_node_last_synced_at
                                             ),
                                         })
@@ -2271,6 +2308,8 @@ import Utils from "../../js/Utils";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
+import DownloadUtils from "../../js/DownloadUtils";
+import GlobalEmitter from "../../js/GlobalEmitter";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import Toggle from "../forms/Toggle.vue";
 import ShortcutRecorder from "./ShortcutRecorder.vue";
@@ -2460,6 +2499,8 @@ export default {
                     "maintenance.export_messages_desc",
                     "maintenance.import_messages",
                     "maintenance.import_messages_desc",
+                    "maintenance.export_nomadnet_favourites",
+                    "maintenance.import_nomadnet_favourites",
                     "Automatic Backup Limit",
                     "Export Folders",
                     "Import Folders",
@@ -3703,8 +3744,170 @@ export default {
             // Reset input
             event.target.value = "";
         },
+        normalizeNomadnetFavouritesLayoutShape(layout) {
+            if (!layout || typeof layout !== "object" || !Array.isArray(layout.sections)) {
+                return null;
+            }
+            const favouritesBySection =
+                layout.favouritesBySection && typeof layout.favouritesBySection === "object"
+                    ? layout.favouritesBySection
+                    : {};
+            const sectionOrder = Array.isArray(layout.sectionOrder)
+                ? layout.sectionOrder
+                : layout.sections.map((s) => s && s.id).filter(Boolean);
+            const sections = layout.sections
+                .filter((s) => s && typeof s.id === "string")
+                .map((s) => ({
+                    id: s.id,
+                    name: typeof s.name === "string" ? s.name : "",
+                    collapsed: s.collapsed === true,
+                }));
+            const sanitizedMap = {};
+            for (const k of Object.keys(favouritesBySection)) {
+                const arr = favouritesBySection[k];
+                if (Array.isArray(arr)) {
+                    sanitizedMap[k] = arr.filter((h) => typeof h === "string");
+                }
+            }
+            return { sections, sectionOrder, favouritesBySection: sanitizedMap };
+        },
+        parseNomadnetFavouritesImportData(data) {
+            if (!data || typeof data !== "object") {
+                return null;
+            }
+            if (data.format === "meshchatx/nomadnet_favourites/v1" && data.layout && typeof data.layout === "object") {
+                const layout = this.normalizeNomadnetFavouritesLayoutShape(data.layout);
+                return layout ? { kind: "full", layout } : null;
+            }
+            if (data.format === "meshchatx/nomadnet_favourites_section/v1") {
+                const sec = data.section;
+                if (!sec || typeof sec.id !== "string") {
+                    return null;
+                }
+                return { kind: "section", payload: data };
+            }
+            const layout = this.normalizeNomadnetFavouritesLayoutShape(data);
+            return layout ? { kind: "full", layout } : null;
+        },
+        mergeNomadnetFavouritesSectionImport(payload) {
+            const sec = payload.section;
+            const hashes = Array.isArray(payload.destination_hashes)
+                ? payload.destination_hashes.filter((h) => typeof h === "string")
+                : [];
+            let raw = null;
+            try {
+                raw = localStorage.getItem("meshchat.nomadnet.favourites.layout");
+            } catch {
+                raw = null;
+            }
+            let base = { sections: [], sectionOrder: [], favouritesBySection: {} };
+            if (raw) {
+                try {
+                    const parsed = JSON.parse(raw);
+                    const normalized = this.normalizeNomadnetFavouritesLayoutShape(parsed);
+                    if (normalized) {
+                        base = normalized;
+                    }
+                } catch {
+                    // keep default base
+                }
+            }
+            const sections = [...base.sections];
+            const sectionOrder = [...base.sectionOrder];
+            const favouritesBySection = { ...base.favouritesBySection };
+            const idx = sections.findIndex((s) => s.id === sec.id);
+            const sectionObj = {
+                id: sec.id,
+                name:
+                    typeof sec.name === "string" && sec.name.trim() !== "" ? sec.name : this.$t("nomadnet.favourites"),
+                collapsed: sec.collapsed === true,
+            };
+            if (idx === -1) {
+                sections.push(sectionObj);
+                if (!sectionOrder.includes(sec.id)) {
+                    sectionOrder.push(sec.id);
+                }
+            } else {
+                sections[idx] = { ...sections[idx], ...sectionObj };
+            }
+            favouritesBySection[sec.id] = hashes;
+            const merged = this.normalizeNomadnetFavouritesLayoutShape({
+                sections,
+                sectionOrder,
+                favouritesBySection,
+            });
+            if (!merged) {
+                throw new Error("invalid layout");
+            }
+            localStorage.setItem("meshchat.nomadnet.favourites.layout", JSON.stringify(merged));
+        },
+        async exportNomadnetFavouritesLayout() {
+            let layout = { sections: [], sectionOrder: [], favouritesBySection: {} };
+            try {
+                const raw = localStorage.getItem("meshchat.nomadnet.favourites.layout");
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    const normalized = this.normalizeNomadnetFavouritesLayoutShape(parsed);
+                    if (normalized) {
+                        layout = normalized;
+                    }
+                }
+            } catch {
+                // keep empty layout
+            }
+            const body = {
+                format: "meshchatx/nomadnet_favourites/v1",
+                exported_at: new Date().toISOString(),
+                layout,
+            };
+            const blob = new Blob([JSON.stringify(body, null, 2)], { type: "application/json" });
+            try {
+                await DownloadUtils.downloadFile(
+                    `meshchat_nomadnet_favourites_${new Date().toISOString().slice(0, 10)}.json`,
+                    blob
+                );
+                ToastUtils.success(this.$t("maintenance.nomadnet_favourites_exported"));
+            } catch {
+                ToastUtils.error(this.$t("maintenance.nomadnet_favourites_export_failed"));
+            }
+        },
+        triggerNomadnetFavouritesImport() {
+            this.$refs.nomadnetFavouritesImportFile.click();
+        },
+        importNomadnetFavouritesLayoutFile(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    const parsed = this.parseNomadnetFavouritesImportData(data);
+                    if (!parsed) {
+                        throw new Error("invalid file");
+                    }
+                    if (parsed.kind === "full") {
+                        localStorage.setItem("meshchat.nomadnet.favourites.layout", JSON.stringify(parsed.layout));
+                    } else if (parsed.kind === "section") {
+                        this.mergeNomadnetFavouritesSectionImport(parsed.payload);
+                    } else {
+                        throw new Error("invalid file");
+                    }
+                    GlobalEmitter.emit("nomadnet-favourites-layout-imported");
+                    ToastUtils.success(this.$t("maintenance.nomadnet_favourites_imported"));
+                } catch {
+                    ToastUtils.error(this.$t("maintenance.nomadnet_favourites_import_failed"));
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = "";
+        },
         formatSecondsAgo: function (seconds) {
             return Utils.formatSecondsAgo(seconds);
+        },
+        formatSecondsAgoForI18n: function (seconds) {
+            return Utils.formatSecondsAgoForI18n(seconds);
         },
     },
 };

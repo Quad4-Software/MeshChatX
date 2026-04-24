@@ -894,7 +894,7 @@
                                                 <span
                                                     class="text-[10px] text-gray-500 dark:text-zinc-500 font-mono ml-2 shrink-0"
                                                 >
-                                                    {{ formatTimeAgo(announce.updated_at) }} ago
+                                                    {{ formatTimeAgo(announce.updated_at) }}
                                                 </span>
                                             </div>
                                             <div class="flex items-center justify-between mt-1">

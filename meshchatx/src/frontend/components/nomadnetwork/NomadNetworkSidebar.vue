@@ -358,6 +358,10 @@
                             <MaterialDesignIcon icon-name="pencil" class="size-4 text-gray-400" />
                             Rename Section
                         </ContextMenuItem>
+                        <ContextMenuItem @click="exportSectionFavouritesFromContext">
+                            <MaterialDesignIcon icon-name="file-export" class="size-4 text-gray-400" />
+                            {{ $t("nomadnet.export_section_favourites") }}
+                        </ContextMenuItem>
                         <ContextMenuItem
                             :item-class="
                                 'text-red-600 dark:text-red-400' +
@@ -423,7 +427,9 @@
                                     </div>
                                     <div class="text-xs text-gray-500 dark:text-gray-400 flex flex-col gap-0.5">
                                         <span class="truncate">{{
-                                            $t("nomadnet.announced_time_ago", { time: formatTimeAgo(node.updated_at) })
+                                            $t("nomadnet.announced_time_ago", {
+                                                time: formatTimeAgoForI18n(node.updated_at),
+                                            })
                                         }}</span>
                                         <span
                                             class="cursor-pointer hover:text-blue-500 dark:hover:text-blue-400 inline-flex items-center"
@@ -534,6 +540,7 @@ import DialogUtils from "../../js/DialogUtils";
 import GlobalState from "../../js/GlobalState";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import ToastUtils from "../../js/ToastUtils";
+import DownloadUtils from "../../js/DownloadUtils";
 
 export default {
     name: "NomadNetworkSidebar",
@@ -730,10 +737,17 @@ export default {
         };
         this._smUpResize();
         this._smUpMql.addEventListener("change", this._smUpResize);
+        this._onNomadnetFavouritesLayoutImported = () => {
+            this.loadFavouriteLayout();
+        };
+        GlobalEmitter.on("nomadnet-favourites-layout-imported", this._onNomadnetFavouritesLayoutImported);
     },
     unmounted() {
         if (this._smUpMql && this._smUpResize) {
             this._smUpMql.removeEventListener("change", this._smUpResize);
+        }
+        if (this._onNomadnetFavouritesLayoutImported) {
+            GlobalEmitter.off("nomadnet-favourites-layout-imported", this._onNomadnetFavouritesLayoutImported);
         }
     },
     methods: {
@@ -1067,6 +1081,41 @@ export default {
             };
             this.favouriteContextMenu.show = false;
         },
+        async exportSectionFavouritesFromContext() {
+            const sid = this.sectionContextMenu.sectionId;
+            if (!sid) {
+                this.closeContextMenus();
+                return;
+            }
+            const section = this.sections.find((s) => s.id === sid);
+            this.closeContextMenus();
+            if (!section) {
+                return;
+            }
+            const hashes = this.favouritesBySection[sid] || [];
+            const payload = {
+                format: "meshchatx/nomadnet_favourites_section/v1",
+                exported_at: new Date().toISOString(),
+                section: {
+                    id: section.id,
+                    name: section.name,
+                    collapsed: section.collapsed === true,
+                },
+                destination_hashes: hashes.filter((h) => typeof h === "string"),
+            };
+            const slug = (section.name || "section")
+                .replace(/[^a-z0-9]+/gi, "_")
+                .replace(/^_|_$/g, "")
+                .slice(0, 48);
+            const namePart = slug || "section";
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+            try {
+                await DownloadUtils.downloadFile(`nomadnet_favourites_section_${namePart}.json`, blob);
+                ToastUtils.success(this.$t("nomadnet.section_favourites_exported"));
+            } catch {
+                ToastUtils.error(this.$t("nomadnet.section_favourites_export_failed"));
+            }
+        },
         closeContextMenus() {
             this.favouriteContextMenu.show = false;
             this.sectionContextMenu.show = false;
@@ -1226,6 +1275,9 @@ export default {
         },
         formatTimeAgo: function (datetimeString) {
             return Utils.formatTimeAgo(datetimeString);
+        },
+        formatTimeAgoForI18n: function (datetimeString) {
+            return Utils.formatTimeAgoForI18n(datetimeString);
         },
         formatDestinationHash: function (destinationHash) {
             return Utils.formatDestinationHash(destinationHash);
