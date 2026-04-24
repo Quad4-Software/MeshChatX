@@ -91,7 +91,10 @@ def start_server(port=8000, app_files_dir=None):
         signal.signal = _safe_signal
         asyncio_signal_patch = _patch_asyncio_signal_handlers_for_android()
         aiohttp_run_app_patch = _patch_aiohttp_run_app_for_android()
-        from meshchatx.meshchat import main
+        from meshchatx.android_push_bridge import install_websocket_hook
+        from meshchatx.meshchat import ReticulumMeshChat, main
+
+        install_websocket_hook(ReticulumMeshChat)
 
         sys.argv = [
             "meshchat",
