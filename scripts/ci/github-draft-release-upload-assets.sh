@@ -18,6 +18,10 @@ fi
 
 export GH_TOKEN
 
+if [ -z "${GH_REPO:-}" ] && [ -n "${GITHUB_REPOSITORY:-}" ]; then
+    export GH_REPO="$GITHUB_REPOSITORY"
+fi
+
 if ! gh release view "$TAG" >/dev/null 2>&1; then
     gh release create "$TAG" --draft --title "$TAG" --notes "Automated draft release. Review assets and provenance before publishing."
 fi
