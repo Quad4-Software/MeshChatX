@@ -234,6 +234,11 @@ tasks:
         cmds:
             - "poetry run pytest tests/backend/test_translator_handler.py"
 
+    bench:
+        desc: Default benchmark run (backend comprehensive suite; same as bench:be)
+        cmds:
+            - task: bench:be
+
     bench:be:
         desc: Run backend benchmarks
         cmds:

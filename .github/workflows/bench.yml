@@ -1,4 +1,4 @@
-# Benchmarks and integrity checks (workflow_dispatch only).
+# Benchmarks and integrity checks (push to main branches and workflow_dispatch).
 #
 # Pinned first-party actions (bump tag and SHA together when upgrading):
 #   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
@@ -9,6 +9,14 @@ name: Benchmarks
 
 on:
     workflow_dispatch:
+    push:
+        branches:
+            - master
+            - dev
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
 
 permissions:
     contents: read
@@ -60,4 +68,4 @@ jobs:
             - name: Run integrity tests
               run: |
                   set -euo pipefail
-                  task test-integrity 2>&1 | tee -a bench_results.txt
+                  task test:integrity 2>&1 | tee -a bench_results.txt
