@@ -74,7 +74,7 @@ COPY scripts/docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
 LABEL org.opencontainers.image.source="https://git.quad4.io/RNS-Things/MeshChatX"
-LABEL org.opencontainers.image.description="All in one Reticulum client."
+LABEL org.opencontainers.image.description="MeshChatX is a all in one Reticulum client."
 LABEL org.opencontainers.image.licenses="MIT AND 0BSD"
 LABEL org.opencontainers.image.authors="Quad4"
 LABEL org.opencontainers.image.revision="${OCI_REVISION}"
