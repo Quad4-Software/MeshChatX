@@ -110,7 +110,7 @@ meshchatx --headless --host 0.0.0.0 --port 8000
 
 Then open:
 
-```text
+```bash
 http://<pi-ip>:8000
 ```
 

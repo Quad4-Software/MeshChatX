@@ -206,19 +206,19 @@ Targets for `MESHCHATX_BUILD_TARGETS`: `all` (default), `wheel`, or `electron` (
 
 Build:
 
-```text
+```bash
 docker build -f Dockerfile.build -t meshchatx-build:local .
 ```
 
 Build only a wheel:
 
-```text
+```bash
 docker build -f Dockerfile.build --build-arg MESHCHATX_BUILD_TARGETS=wheel -t meshchatx-build:wheel .
 ```
 
 Copy `/artifacts` from the finished image to the host:
 
-```text
+```bash
 cid=$(docker create meshchatx-build:local)
 docker cp "${cid}:/artifacts" ./meshchatx-artifacts
 docker rm "${cid}"
