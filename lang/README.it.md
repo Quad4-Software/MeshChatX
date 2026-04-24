@@ -63,6 +63,9 @@ Note:
 
 ## Avvio rapido: Docker
 
+- **Docker Hub:** `quad4io/meshchatx`
+- **GHCR:** `ghcr.io/quad4-software/meshchatx`
+
 ```bash
 docker compose up -d
 ```

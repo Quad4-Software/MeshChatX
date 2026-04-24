@@ -2,6 +2,15 @@
 
 Native APK with embedded Python (`meshchatx/`) and a WebView UI.
 
+## MeshChatX server (Docker)
+
+The headless/web server is also published as a container (separate from this APK):
+
+- **Docker Hub:** `quad4io/meshchatx`
+- **GHCR:** `ghcr.io/quad4-software/meshchatx`
+
+See the repository root [README](../README.md#quick-start-docker) for `docker compose` usage.
+
 ## Prerequisites
 
 - Android SDK (`ANDROID_HOME` / `ANDROID_SDK_ROOT`) with `cmdline-tools` and a matching **NDK** (see `android/app/build.gradle` for the pinned NDK version used in CI).
