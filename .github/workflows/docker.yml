@@ -120,8 +120,21 @@ jobs:
                   username: ${{ github.actor }}
                   password: ${{ github.token }}
 
+            - name: Detect Docker Hub credentials
+              id: dockerhub
+              env:
+                  DH_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+                  DH_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+              run: |
+                  set -euo pipefail
+                  if [ -n "${DH_USER}" ] && [ -n "${DH_TOKEN}" ]; then
+                    echo "configured=true" >> "$GITHUB_OUTPUT"
+                  else
+                    echo "configured=false" >> "$GITHUB_OUTPUT"
+                  fi
+
             - name: Log in to Docker Hub
-              if: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
+              if: ${{ steps.dockerhub.outputs.configured == 'true' }}
               uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1
               with:
                   registry: docker.io
@@ -144,7 +157,7 @@ jobs:
 
             - name: Generate Docker Hub tags
               id: dh_tags
-              if: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
+              if: ${{ steps.dockerhub.outputs.configured == 'true' }}
               env:
                   GITHUB_REF: ${{ github.ref }}
                   GITHUB_REF_NAME: ${{ github.ref_name }}
