@@ -5,6 +5,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT"
 
+# shellcheck source=scripts/ci/priv.sh
+. "$(dirname "$0")/priv.sh"
+
 export GIT_TERMINAL_PROMPT=0
 
 # pycodec2 builds against libcodec2. Export for this step and persist to GITHUB_ENV so
@@ -30,8 +33,8 @@ fi
 # Linux runners do not ship these by default, so backend Opus encode tests fail
 # with PyOggError until the shared libraries are present.
 if [[ "$(uname -s)" == "Linux" ]] && command -v apt-get >/dev/null 2>&1; then
-    sudo apt-get update -y
-    sudo apt-get install -y libopus0 libogg0
+    run_priv apt-get update -y
+    run_priv apt-get install -y libopus0 libogg0
 fi
 
 python -m poetry check --lock

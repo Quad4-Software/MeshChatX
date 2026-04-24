@@ -35,7 +35,7 @@ def _build_type() -> str:
         os.environ.get("GITHUB_REPOSITORY") or os.environ.get("GITEA_REPOSITORY") or ""
     )
     if server and repo:
-        return f"{server}/{repo}/.gitea/workflows/build.yml"
+        return f"{server}/{repo}/.github/workflows/build-linux-release.yml"
     return "https://slsa.dev/provenance/v1"
 
 

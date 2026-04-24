@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-# Download Windows/macOS build artifacts from GitHub Actions (build-release workflow)
+# Download Windows/macOS build artifacts from GitHub Actions (build-release.yml)
 # and attach them to an existing Gitea release. Best-effort: missing platforms are skipped.
+#
+# Primary CI and Linux release binaries live under .github/workflows/ (see README.md).
+# Linux artifacts are produced by build-linux-release.yml on GitHub if you extend this script.
 #
 # Required env: TAG, GITHUB_REPOSITORY, GITHUB_PAT, GITEA_API_URL, GITEA_REPOSITORY, GITEA_TOKEN
 set -euo pipefail
@@ -112,7 +115,7 @@ fi
 REL_JSON=$(curl -sS "${AUTH_GITEA[@]}" "${GITEA_API_URL}/api/v1/repos/${GITEA_REPOSITORY}/releases/tags/${TAG}")
 REL_ID=$(printf '%s' "$REL_JSON" | jq -r '.id // empty')
 if [ -z "$REL_ID" ] || [ "$REL_ID" = "null" ]; then
-  log "Error: No Gitea release for tag '${TAG}'. Create the release first (e.g. push the tag so .gitea/workflows/build.yml runs)."
+  log "Error: No Gitea release for tag '${TAG}'. Create the Gitea release first, then re-run this script."
   exit 1
 fi
 
