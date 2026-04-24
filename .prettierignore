@@ -32,5 +32,4 @@ android/README.md
 CHANGELOG.md
 
 # Gradle-synced Chaquopy Python tree (bundled HTML/JS fails strict Prettier parse)
-android/app/src/slim/python/meshchatx/
-android/app/src/full/python/meshchatx/
+android/app/src/main/python/meshchatx/

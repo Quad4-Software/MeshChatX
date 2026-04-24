@@ -15,5 +15,4 @@
 local.properties
 
 # Gradle-synced Chaquopy Python tree (see app/build.gradle)
-/app/src/slim/python/meshchatx/
-/app/src/full/python/meshchatx/
+/app/src/main/python/meshchatx/
