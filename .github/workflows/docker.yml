@@ -1,5 +1,13 @@
 # Build multi-arch image, push to GHCR, and keyless-sign the manifest (Cosign).
+# Optionally also push to Docker Hub when credentials are configured (fork-friendly).
 # Runs on push to dev (tags :dev and :sha-*), tags (semver tags), and workflow_dispatch.
+#
+# Optional Docker Hub (same tag set as GHCR):
+#   Repository secrets (both required to enable Hub push; omit either to skip):
+#     DOCKERHUB_USERNAME  Docker Hub user or org (e.g. quad4io).
+#     DOCKERHUB_TOKEN     Docker Hub access token (PAT) with push to the target repo.
+#   Optional repository variable:
+#     DOCKERHUB_REPOSITORY  Image name under the user (default: meshchatx) -> docker.io/$user/$repo
 #
 # Pinned third-party actions (bump tag and SHA together when upgrading).
 # Automated check: first step resolves each tag via api.github.com and
@@ -17,7 +25,7 @@
 #   docker/build-push-action@v6.18.0      263435318d21b8e681c14492fe198d362a7d2c83
 #   sigstore/cosign-installer@v3.10.1      7e8b541eb2e61bf99390e1afd4be13a184e9ebc5
 
-name: Docker (GHCR)
+name: Docker (GHCR + Docker Hub)
 
 on:
     workflow_dispatch:
@@ -112,7 +120,15 @@ jobs:
                   username: ${{ github.actor }}
                   password: ${{ github.token }}
 
-            - name: Generate Docker tags
+            - name: Log in to Docker Hub
+              if: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
+              uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1
+              with:
+                  registry: docker.io
+                  username: ${{ secrets.DOCKERHUB_USERNAME }}
+                  password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+            - name: Generate GHCR tags
               id: tags
               env:
                   GITHUB_REF: ${{ github.ref }}
@@ -126,6 +142,41 @@ jobs:
                     echo 'EOF'
                   } >> "$GITHUB_OUTPUT"
 
+            - name: Generate Docker Hub tags
+              id: dh_tags
+              if: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
+              env:
+                  GITHUB_REF: ${{ github.ref }}
+                  GITHUB_REF_NAME: ${{ github.ref_name }}
+                  DH_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+                  DH_REPO_NAME: ${{ vars.DOCKERHUB_REPOSITORY }}
+              run: |
+                  set -euo pipefail
+                  repo="${DH_REPO_NAME:-meshchatx}"
+                  base="docker.io/$(printf '%s' "$DH_USER" | tr '[:upper:]' '[:lower:]')/$(printf '%s' "$repo" | tr '[:upper:]' '[:lower:]')"
+                  sh scripts/ci/docker-tags.sh "${base}" /tmp/docker-hub-tags.txt
+                  {
+                    echo 'tags<<EOF'
+                    sed 's/^-t //' /tmp/docker-hub-tags.txt
+                    echo 'EOF'
+                  } >> "$GITHUB_OUTPUT"
+
+            - name: Merge image tags for build
+              id: all_tags
+              env:
+                  GH_TAGS: ${{ steps.tags.outputs.tags }}
+                  DH_TAGS: ${{ steps.dh_tags.outputs.tags }}
+              run: |
+                  set -euo pipefail
+                  {
+                    echo 'tags<<EOF'
+                    printf '%s\n' "${GH_TAGS}"
+                    if [ -n "${DH_TAGS:-}" ]; then
+                      printf '%s\n' "${DH_TAGS}"
+                    fi
+                    echo 'EOF'
+                  } >> "$GITHUB_OUTPUT"
+
             - name: Build and push
               id: build
               uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
@@ -134,7 +185,7 @@ jobs:
                   file: ./Dockerfile
                   platforms: linux/amd64,linux/arm64
                   push: true
-                  tags: ${{ steps.tags.outputs.tags }}
+                  tags: ${{ steps.all_tags.outputs.tags }}
                   cache-from: type=gha
                   cache-to: type=gha,mode=max
                   build-args: |
@@ -145,7 +196,7 @@ jobs:
             - name: Install Cosign
               uses: sigstore/cosign-installer@7e8b541eb2e61bf99390e1afd4be13a184e9ebc5
 
-            - name: Cosign sign (keyless)
+            - name: Cosign sign (keyless, GHCR only)
               env:
                   COSIGN_YES: "true"
               run: |
