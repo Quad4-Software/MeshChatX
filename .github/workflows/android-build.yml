@@ -145,6 +145,12 @@ jobs:
             - name: Build Android wheels
               run: bash scripts/build-android-wheels-local.sh --python-minor "${PYTHON_VERSION}" --chaquopy-ref "${CHAQUOPY_REF}" --abis arm64-v8a,x86_64,armeabi-v7a
 
+            - name: Build MeshChatX wheel for repository bundle
+              run: |
+                  set -euo pipefail
+                  python -m pip install -U pip build
+                  python -m build --wheel -o dist .
+
             - name: Verify required Android wheels are present
               run: |
                   set -euo pipefail
@@ -177,20 +183,20 @@ jobs:
               working-directory: android
               run: |
                   chmod +x gradlew
-                  ./gradlew --no-daemon :app:testSlimDebugUnitTest
+                  ./gradlew --no-daemon :app:testDebugUnitTest
 
             - name: Build debug APK
               working-directory: android
               run: |
                   chmod +x gradlew
-                  ./gradlew --no-daemon :app:assembleSlimDebug
+                  ./gradlew --no-daemon :app:assembleDebug
 
             - name: Build release APK
               if: ${{ github.event_name != 'workflow_dispatch' || inputs.build_release }}
               working-directory: android
               run: |
                   chmod +x gradlew
-                  ./gradlew --no-daemon :app:assembleSlimRelease
+                  ./gradlew --no-daemon :app:assembleRelease
 
             - name: Upload wheels
               uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
@@ -203,7 +209,7 @@ jobs:
               uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
               with:
                   name: meshchatx-android-debug-${{ github.ref_name }}-${{ github.run_id }}
-                  path: android/app/build/outputs/apk/slim/debug/*.apk
+                  path: android/app/build/outputs/apk/debug/*.apk
                   if-no-files-found: error
 
             - name: Upload test reports
@@ -221,5 +227,5 @@ jobs:
               uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
               with:
                   name: meshchatx-android-release-${{ github.ref_name }}-${{ github.run_id }}
-                  path: android/app/build/outputs/apk/slim/release/*.apk
+                  path: android/app/build/outputs/apk/release/*.apk
                   if-no-files-found: error

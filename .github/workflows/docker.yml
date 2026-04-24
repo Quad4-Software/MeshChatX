@@ -1,4 +1,5 @@
 # Build multi-arch image, push to GHCR, and keyless-sign the manifest (Cosign).
+# Runs on push to dev (tags :dev and :sha-*), tags (semver tags), and workflow_dispatch.
 #
 # Pinned third-party actions (bump tag and SHA together when upgrading).
 # Automated check: first step resolves each tag via api.github.com and
@@ -21,6 +22,8 @@ name: Docker (GHCR)
 on:
     workflow_dispatch:
     push:
+        branches:
+            - dev
         tags:
             - "*"
 

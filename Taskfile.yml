@@ -479,7 +479,7 @@ tasks:
                 echo "Preparing Android assets..."
                 mkdir -p "{{.PYTHON_SRC_DIR}}"
                 rm -rf "{{.PYTHON_SRC_DIR}}/meshchatx"
-                echo "MeshChatX Python tree is synced by Gradle into app/src/slim|full/python/meshchatx (see android/app/build.gradle)."
+                echo "MeshChatX Python tree is synced by Gradle into app/src/main/python/meshchatx (see android/app/build.gradle)."
 
     android:wheels:
         desc: Build the Android (Chaquopy) wheels into android/vendor/. Mirrors CI.
@@ -495,30 +495,28 @@ tasks:
                     --abis "{{.ANDROID_WHEEL_ABIS}}"
 
     android:build:
-        desc: Build Debug APK (slim flavor, universal ABI packaging, arm64-v8a only unless overridden)
+        desc: Build Debug APK (universal ABI packaging; arm64-v8a only unless overridden)
         deps: [android:prepare]
         vars:
-            MESHCHATX_ANDROID_FLAVOR: '{{.MESHCHATX_ANDROID_FLAVOR | default "slim"}}'
             MESHCHATX_ABIS: '{{.MESHCHATX_ABIS | default "arm64-v8a"}}'
             MESHCHATX_ABI_PACKAGING: '{{.MESHCHATX_ABI_PACKAGING | default "universal"}}'
         cmds:
-            - cd "{{.ANDROID_DIR}}" && ./gradlew :app:assemble{{title (.MESHCHATX_ANDROID_FLAVOR | default "slim")}}Debug -PmeshchatxAbis={{.MESHCHATX_ABIS}} -PmeshchatxAbiPackaging={{.MESHCHATX_ABI_PACKAGING}}
+            - cd "{{.ANDROID_DIR}}" && ./gradlew :app:assembleDebug -PmeshchatxAbis={{.MESHCHATX_ABIS}} -PmeshchatxAbiPackaging={{.MESHCHATX_ABI_PACKAGING}}
 
     android:build:release:
-        desc: Build Release APK (same flavor / ABI defaults as android:build unless overridden)
+        desc: Build Release APK (same ABI defaults as android:build unless overridden)
         deps: [android:prepare]
         vars:
-            MESHCHATX_ANDROID_FLAVOR: '{{.MESHCHATX_ANDROID_FLAVOR | default "slim"}}'
             MESHCHATX_ABIS: '{{.MESHCHATX_ABIS | default "arm64-v8a"}}'
             MESHCHATX_ABI_PACKAGING: '{{.MESHCHATX_ABI_PACKAGING | default "universal"}}'
         cmds:
-            - cd "{{.ANDROID_DIR}}" && ./gradlew :app:assemble{{title (.MESHCHATX_ANDROID_FLAVOR | default "slim")}}Release -PmeshchatxAbis={{.MESHCHATX_ABIS}} -PmeshchatxAbiPackaging={{.MESHCHATX_ABI_PACKAGING}}
+            - cd "{{.ANDROID_DIR}}" && ./gradlew :app:assembleRelease -PmeshchatxAbis={{.MESHCHATX_ABIS}} -PmeshchatxAbiPackaging={{.MESHCHATX_ABI_PACKAGING}}
 
     android:clean:
         desc: Clean Android artifacts
         cmds:
             - cd "{{.ANDROID_DIR}}" && ./gradlew clean
-            - rm -rf "{{.PYTHON_SRC_DIR}}/meshchatx" "{{.ANDROID_DIR}}/app/src/slim/python/meshchatx" "{{.ANDROID_DIR}}/app/src/full/python/meshchatx"
+            - rm -rf "{{.PYTHON_SRC_DIR}}/meshchatx" "{{.ANDROID_DIR}}/app/src/main/python/meshchatx"
 
     # --- Maintenance ---
 
