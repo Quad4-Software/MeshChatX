@@ -3,7 +3,7 @@
 <template>
     <div
         :class="{ dark: config?.theme === 'dark' }"
-        class="h-screen w-full flex flex-col transition-colors"
+        class="h-dvh min-h-0 w-full flex flex-col transition-colors"
         :style="shellCanvasStyle"
     >
         <AppShellBanners

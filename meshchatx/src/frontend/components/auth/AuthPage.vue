@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="h-screen w-full flex items-center justify-center bg-slate-50 dark:bg-zinc-950">
+    <div class="h-dvh min-h-0 w-full flex items-center justify-center bg-slate-50 dark:bg-zinc-950">
         <div class="w-full max-w-md p-8">
             <div
                 class="bg-white dark:bg-zinc-900 rounded-2xl shadow-lg border border-gray-200 dark:border-zinc-800 p-8"
