@@ -73,6 +73,42 @@ def _notify_java(title: str, body: str, dedupe_hex: str | None) -> None:
         logger.debug("showInboundMessage failed: %s", exc)
 
 
+def _notify_incoming_call_java(caller_name: str, dedupe_hex: str | None) -> None:
+    try:
+        from com.meshchatx import AndroidNotificationBridge  # type: ignore[import-not-found,import-untyped]
+    except Exception as exc:
+        logger.debug("Android notification bridge unavailable: %s", exc)
+        return
+    try:
+        AndroidNotificationBridge.showIncomingCall(caller_name, dedupe_hex)
+    except Exception as exc:
+        logger.debug("showIncomingCall failed: %s", exc)
+
+
+def _notify_missed_call_java(title: str, body: str, dedupe_hex: str | None) -> None:
+    try:
+        from com.meshchatx import AndroidNotificationBridge  # type: ignore[import-not-found,import-untyped]
+    except Exception as exc:
+        logger.debug("Android notification bridge unavailable: %s", exc)
+        return
+    try:
+        AndroidNotificationBridge.showMissedCall(title, body, dedupe_hex)
+    except Exception as exc:
+        logger.debug("showMissedCall failed: %s", exc)
+
+
+def _cancel_incoming_call_notification_java() -> None:
+    try:
+        from com.meshchatx import AndroidNotificationBridge  # type: ignore[import-not-found,import-untyped]
+    except Exception as exc:
+        logger.debug("Android notification bridge unavailable: %s", exc)
+        return
+    try:
+        AndroidNotificationBridge.cancelIncomingCallNotification()
+    except Exception as exc:
+        logger.debug("cancelIncomingCallNotification failed: %s", exc)
+
+
 def _after_websocket_broadcast(data: object) -> None:
     if not isinstance(data, str):
         return
@@ -81,6 +117,32 @@ def _after_websocket_broadcast(data: object) -> None:
     except json.JSONDecodeError:
         return
     if not isinstance(payload, dict):
+        return
+    t = payload.get("type")
+    if t in ("telephone_call_ended", "telephone_call_established"):
+        _cancel_incoming_call_notification_java()
+        return
+    if t == "telephone_ringing":
+        ch = payload.get("remote_identity_hash")
+        name = (payload.get("remote_identity_name") or "").strip() or "Mesh"
+        ded = ch if isinstance(ch, str) and len(ch) >= 8 else None
+        _notify_incoming_call_java(name, ded)
+        return
+    if t == "telephone_missed_call":
+        sender = (payload.get("remote_identity_name") or "").strip() or "Mesh"
+        ch = payload.get("remote_identity_hash")
+        h = ch if isinstance(ch, str) and len(ch) >= 8 else None
+        if sender and sender != "Mesh":
+            title = "Missed call"
+            body = f"Missed call from {sender}"
+        elif isinstance(ch, str) and ch:
+            short_h = f"{ch[:6]}" if len(ch) > 6 else ch
+            title = "Missed call"
+            body = f"From {short_h}..."
+        else:
+            title = "Missed call"
+            body = "Missed call"
+        _notify_missed_call_java(title, body, h)
         return
     pair = lxmf_delivery_notification_text(payload)
     if not pair:

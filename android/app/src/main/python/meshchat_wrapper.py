@@ -3,6 +3,11 @@
 import os
 import signal
 import sys
+import threading
+
+# Prevents a second meshchat main() if Java starts two threads (e.g. activity edge cases).
+_server_loop_lock = threading.Lock()
+_server_loop_active = False
 
 
 def _ensure_android_reticulum_config(reticulum_config_dir):
@@ -67,6 +72,12 @@ def _patch_aiohttp_run_app_for_android():
 
 
 def start_server(port=8000, app_files_dir=None):
+    global _server_loop_active
+    with _server_loop_lock:
+        if _server_loop_active:
+            print("meshchat_wrapper: start_server ignored (server loop already active)")
+            return
+        _server_loop_active = True
     try:
         storage_dir = None
         reticulum_config_dir = None
@@ -91,10 +102,14 @@ def start_server(port=8000, app_files_dir=None):
         signal.signal = _safe_signal
         asyncio_signal_patch = _patch_asyncio_signal_handlers_for_android()
         aiohttp_run_app_patch = _patch_aiohttp_run_app_for_android()
-        from meshchatx.android_push_bridge import install_websocket_hook
         from meshchatx.meshchat import ReticulumMeshChat, main
 
-        install_websocket_hook(ReticulumMeshChat)
+        try:
+            from meshchatx.android_push_bridge import install_websocket_hook
+
+            install_websocket_hook(ReticulumMeshChat)
+        except Exception as hook_exc:
+            print(f"meshchat_wrapper: install_websocket_hook skipped: {hook_exc}")
 
         sys.argv = [
             "meshchat",
@@ -125,3 +140,6 @@ def start_server(port=8000, app_files_dir=None):
 
         traceback.print_exc()
         raise
+    finally:
+        with _server_loop_lock:
+            _server_loop_active = False
