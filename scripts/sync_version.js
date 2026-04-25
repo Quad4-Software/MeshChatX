@@ -32,8 +32,9 @@ function writeIfChanged(absPath, content) {
     }
 }
 
-const versionPy = `"""Version string synced from package.json. Do not edit by hand.
-Run: pnpm run version:sync
+const versionPy = `"""Version string synced from package.json.
+
+Do not edit by hand. Run: pnpm run version:sync
 """
 
 __version__ = "${version}"
