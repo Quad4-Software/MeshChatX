@@ -2,20 +2,21 @@
 
 Native APK with embedded Python (`meshchatx/`) and a WebView UI.
 
-## MeshChatX server (Docker)
-
-The headless/web server is also published as a container (separate from this APK):
-
-- **Docker Hub:** `quad4io/meshchatx`
-- **GHCR:** `ghcr.io/quad4-software/meshchatx`
-
-See the repository root [README](../README.md#quick-start-docker) for `docker compose` usage.
-
 ## Prerequisites
 
 - Android SDK (`ANDROID_HOME` / `ANDROID_SDK_ROOT`) with `cmdline-tools` and a matching **NDK** (see `android/app/build.gradle` for the pinned NDK version used in CI).
 - **JDK 17** (Temurin or compatible).
 - Chaquopy vendor wheels under `android/vendor/` (build locally with `bash scripts/build-android-wheels-local.sh` from repo root, or use CI artifacts).
+
+## Lint and static analysis
+
+- **Android Lint** (Java, Kotlin, manifests, resources): from `android/`, run `./gradlew --no-daemon :app:lintDebug`. HTML report: `app/build/reports/lint-results-debug.html`. CI runs this in the Android workflow when tests run.
+- **SAST (GitHub CodeQL)**: the repository workflow includes a `java-kotlin` matrix entry (see `.github/workflows/codeql.yml`) for GitHub’s security analysis on default branches and PRs.
+
+## Launcher shortcuts, language
+
+- **App shortcuts** (long-press the launcher icon): open **Messages** (`meshchatx://app/messages`) and **Call** (`meshchatx://app/call`). The WebView handles these in `App.vue` via `handleProtocolLink`.
+- **Per-app language (Android 13+)**: `android:localeConfig` points to `res/xml/locales_config.xml`. Add translated `values-xx/strings.xml` for Android notification/shortcut strings; the in-app language still comes from MeshChatX server config.
 
 ## Build
 
