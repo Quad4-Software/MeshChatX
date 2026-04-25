@@ -40,12 +40,12 @@ def enableAbiSplits = meshchatxAbiPackaging == "split" && selectedAndroidAbis.si
 
 android {
     namespace 'com.meshchatx'
-    compileSdk 34
+    compileSdk 35
 
     defaultConfig {
         applicationId "com.meshchatx"
         minSdk 24
-        targetSdk 34
+        targetSdk 35
         versionCode 1
         versionName "3.1.0"
 
@@ -83,6 +83,11 @@ android {
         jniLibs {
             useLegacyPackaging = true
         }
+    }
+
+    lint {
+        abortOnError true
+        checkReleaseBuilds false
     }
 }
 
@@ -182,13 +187,14 @@ chaquopy {
 }
 
 dependencies {
-    implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'com.google.android.material:material:1.10.0'
-    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-    implementation 'androidx.webkit:webkit:1.8.0'
-    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.6.2'
-    
+    implementation 'androidx.core:core:1.16.0'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+    implementation 'androidx.appcompat:appcompat:1.7.1'
+    implementation 'com.google.android.material:material:1.13.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
+    implementation 'androidx.webkit:webkit:1.14.0'
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.8.7'
     testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
 }
