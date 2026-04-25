@@ -204,15 +204,17 @@ class Utils {
     }
 
     static formatFrequency(hz) {
-        if (!hz || hz <= 0) {
+        const n = Number(hz);
+        if (!Number.isFinite(n) || n <= 0) {
             return "0 Hz";
         }
 
         const k = 1000;
+        const rounded = Math.round(n);
         const sizes = ["Hz", "kHz", "MHz", "GHz", "THz", "PHz", "EHz", "ZHz", "YHz"];
-        const i = Math.floor(Math.log(hz) / Math.log(k));
+        const i = Math.floor(Math.log(rounded) / Math.log(k));
 
-        return parseFloat(hz / Math.pow(k, i)) + " " + sizes[i];
+        return parseFloat((rounded / Math.pow(k, i)).toFixed(6)) + " " + sizes[i];
     }
 
     static decodeBase64ToUtf8String(base64) {
