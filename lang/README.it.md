@@ -49,14 +49,14 @@ task build:all
 
 Scegli il metodo in base all'ambiente e al formato del pacchetto.
 
-| Metodo                    | Include frontend     | Architetture                                | Ideale per                                         |
-| ------------------------- | -------------------- | ------------------------------------------- | -------------------------------------------------- |
-| Immagine Docker           | Si                   | `linux/amd64`, `linux/arm64`                | Avvio rapido su server Linux                       |
-| Python wheel (`.whl`)     | Si                   | Qualsiasi architettura supportata da Python | Installazione headless/web-server senza build Node |
-| Linux AppImage            | Si                   | `x64`, `arm64`                              | Uso desktop portatile                              |
-| Pacchetto Debian (`.deb`) | Si                   | `x64`, `arm64`                              | Installazione Debian/Ubuntu                        |
-| Pacchetto RPM (`.rpm`)    | Si                   | Dipende dal runner CI per l'artefatto pubblicato | Fedora/RHEL/openSUSE                          |
-| Da sorgente               | Compilato localmente | Architettura host                           | Sviluppo e build personalizzati                    |
+| Metodo                    | Include frontend     | Architetture                                     | Ideale per                                         |
+| ------------------------- | -------------------- | ------------------------------------------------ | -------------------------------------------------- |
+| Immagine Docker           | Si                   | `linux/amd64`, `linux/arm64`                     | Avvio rapido su server Linux                       |
+| Python wheel (`.whl`)     | Si                   | Qualsiasi architettura supportata da Python      | Installazione headless/web-server senza build Node |
+| Linux AppImage            | Si                   | `x64`, `arm64`                                   | Uso desktop portatile                              |
+| Pacchetto Debian (`.deb`) | Si                   | `x64`, `arm64`                                   | Installazione Debian/Ubuntu                        |
+| Pacchetto RPM (`.rpm`)    | Si                   | Dipende dal runner CI per l'artefatto pubblicato | Fedora/RHEL/openSUSE                               |
+| Da sorgente               | Compilato localmente | Architettura host                                | Sviluppo e build personalizzati                    |
 
 Note:
 
@@ -289,17 +289,17 @@ Documentazione aggiuntiva:
 
 ## Configurazione
 
-| Argomento                  | Variabile d'ambiente                     | Predefinito | Descrizione                                                                                                                                                                                           |
-| -------------------------- | ---------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--host`                   | `MESHCHAT_HOST`                          | `127.0.0.1` | Indirizzo di bind del web server                                                                                                                                                                      |
-| `--port`                   | `MESHCHAT_PORT`                          | `8000`      | Porta del web server                                                                                                                                                                                  |
-| `--no-https`               | `MESHCHAT_NO_HTTPS`                      | `false`     | Disattiva HTTPS                                                                                                                                                                                       |
-| `--ssl-cert` / `--ssl-key` | `MESHCHAT_SSL_CERT` / `MESHCHAT_SSL_KEY` | (nessuno)   | Percorsi PEM certificato e chiave; impostare entrambi. Sostituisce i certificati auto-generati sotto l'identita nella directory `ssl/`.                                                               |
-| `--rns-log-level`          | `MESHCHAT_RNS_LOG_LEVEL`                 | (nessuno)   | Livello di log Reticulum (RNS): `none`, `critical`, `error`, `warning`, `notice`, `verbose`, `debug`, `extreme` o numerico. La CLI ha priorita sulla variabile d'ambiente se entrambe sono impostate. |
-| `--headless`               | `MESHCHAT_HEADLESS`                      | `false`     | Non aprire il browser automaticamente                                                                                                                                                                 |
-| `--auth`                   | `MESHCHAT_AUTH`                          | `false`     | Attiva autenticazione base                                                                                                                                                                            |
-| `--storage-dir`            | `MESHCHAT_STORAGE_DIR`                   | `./storage` | Directory dei dati                                                                                                                                                                                    |
-| `--public-dir`             | `MESHCHAT_PUBLIC_DIR`                    | auto/bundled | Directory dei file frontend (necessaria per installazioni da sorgente senza asset in bundle)                                                                                                         |
+| Argomento                  | Variabile d'ambiente                     | Predefinito  | Descrizione                                                                                                                                                                                           |
+| -------------------------- | ---------------------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--host`                   | `MESHCHAT_HOST`                          | `127.0.0.1`  | Indirizzo di bind del web server                                                                                                                                                                      |
+| `--port`                   | `MESHCHAT_PORT`                          | `8000`       | Porta del web server                                                                                                                                                                                  |
+| `--no-https`               | `MESHCHAT_NO_HTTPS`                      | `false`      | Disattiva HTTPS                                                                                                                                                                                       |
+| `--ssl-cert` / `--ssl-key` | `MESHCHAT_SSL_CERT` / `MESHCHAT_SSL_KEY` | (nessuno)    | Percorsi PEM certificato e chiave; impostare entrambi. Sostituisce i certificati auto-generati sotto l'identita nella directory `ssl/`.                                                               |
+| `--rns-log-level`          | `MESHCHAT_RNS_LOG_LEVEL`                 | (nessuno)    | Livello di log Reticulum (RNS): `none`, `critical`, `error`, `warning`, `notice`, `verbose`, `debug`, `extreme` o numerico. La CLI ha priorita sulla variabile d'ambiente se entrambe sono impostate. |
+| `--headless`               | `MESHCHAT_HEADLESS`                      | `false`      | Non aprire il browser automaticamente                                                                                                                                                                 |
+| `--auth`                   | `MESHCHAT_AUTH`                          | `false`      | Attiva autenticazione base                                                                                                                                                                            |
+| `--storage-dir`            | `MESHCHAT_STORAGE_DIR`                   | `./storage`  | Directory dei dati                                                                                                                                                                                    |
+| `--public-dir`             | `MESHCHAT_PUBLIC_DIR`                    | auto/bundled | Directory dei file frontend (necessaria per installazioni da sorgente senza asset in bundle)                                                                                                          |
 
 ## Branch
 

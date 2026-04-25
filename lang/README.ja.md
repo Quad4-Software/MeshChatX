@@ -55,7 +55,7 @@ task build:all
 | Python wheel (`.whl`)      | はい               | Python がサポートする全アーキテクチャ | Node ビルド不要のヘッドレス/Web サーバー |
 | Linux AppImage             | はい               | `x64`, `arm64`                        | ポータブルデスクトップ                   |
 | Debian パッケージ (`.deb`) | はい               | `x64`, `arm64`                        | Debian/Ubuntu                            |
-| RPM パッケージ (`.rpm`)    | はい               | 公開用 CI ランナーに依存            | Fedora/RHEL/openSUSE                    |
+| RPM パッケージ (`.rpm`)    | はい               | 公開用 CI ランナーに依存              | Fedora/RHEL/openSUSE                     |
 | ソースから                 | ローカルビルド     | ホストアーキテクチャ                  | 開発・カスタムビルド                     |
 
 備考:
@@ -335,7 +335,7 @@ task build:all
 このリポジトリの現在のバージョンは `4.6.0` です。
 
 - リリースのバージョン上げは **`package.json` の `version` のみ**編集します。
-- **`pnpm run version:sync`**（**`pnpm run build`** 開始時にも実行）で、**`pyproject.toml`**、**`meshchatx/src/version.py`**、**`THIRD_PARTY_NOTICES.txt`**（製品行）、**README** / **lang/README.***（現在のバージョン行）、**`docs/meshchatx_on_raspberry_pi.md`** の pipx 例、**`packaging/arch/PKGBUILD`** の補助フィールドに反映します。
+- **`pnpm run version:sync`**（**`pnpm run build`** 開始時にも実行）で、**`pyproject.toml`**、**`meshchatx/src/version.py`**、**`THIRD_PARTY_NOTICES.txt`**（製品行）、**README** / **lang/README.\***（現在のバージョン行）、**`docs/meshchatx_on_raspberry_pi.md`** の pipx 例、**`packaging/arch/PKGBUILD`** の補助フィールドに反映します。
 - **`meshchatx.__version__`** は **`meshchatx/src/version.py`** から読み、**`meshchatx.src`** をインポートしないため、単なる `import meshchatx` は軽量のままです。
 - **Changelog** のエントリはリリース時に手作業のままです。
 

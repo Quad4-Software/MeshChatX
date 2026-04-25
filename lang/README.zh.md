@@ -55,7 +55,7 @@ task build:all
 | Python wheel (`.whl`) | 是       | 任何 Python 支持的架构       | 无需 Node 构建的无头/Web 服务器安装 |
 | Linux AppImage        | 是       | `x64`, `arm64`               | 便携式桌面使用                      |
 | Debian 包 (`.deb`)    | 是       | `x64`, `arm64`               | Debian/Ubuntu 安装                  |
-| RPM 包 (`.rpm`)       | 是       | 取决于发布所用 CI 运行环境        | Fedora/RHEL/openSUSE                |
+| RPM 包 (`.rpm`)       | 是       | 取决于发布所用 CI 运行环境   | Fedora/RHEL/openSUSE                |
 | 从源码                | 本地构建 | 主机架构                     | 开发与自定义构建                    |
 
 说明:

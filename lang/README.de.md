@@ -49,14 +49,14 @@ task build:all
 
 Waehlen Sie die Methode passend zu Umgebung und Paketierung.
 
-| Methode               | Frontend enthalten | Architekturen                         | Geeignet fuer                       |
-| --------------------- | ------------------ | ------------------------------------- | ----------------------------------- |
-| Docker-Image          | Ja                 | `linux/amd64`, `linux/arm64`          | Schnellster Start auf Linux-Servern |
-| Python Wheel (`.whl`) | Ja                 | Jede Python-unterstuetzte Architektur | Headless/Webserver ohne Node-Build  |
-| Linux AppImage        | Ja                 | `x64`, `arm64`                        | Portabler Desktop-Einsatz           |
-| Debian-Paket (`.deb`) | Ja                 | `x64`, `arm64`                        | Debian/Ubuntu-Installation          |
-| RPM-Paket (`.rpm`)    | Ja                 | Vom CI-Runner abhaengig (Veroeffentlichung)      | Fedora/RHEL/openSUSE         |
-| Aus Quellcode         | Lokal gebaut       | Host-Architektur                      | Entwicklung und individuelle Builds |
+| Methode               | Frontend enthalten | Architekturen                               | Geeignet fuer                       |
+| --------------------- | ------------------ | ------------------------------------------- | ----------------------------------- |
+| Docker-Image          | Ja                 | `linux/amd64`, `linux/arm64`                | Schnellster Start auf Linux-Servern |
+| Python Wheel (`.whl`) | Ja                 | Jede Python-unterstuetzte Architektur       | Headless/Webserver ohne Node-Build  |
+| Linux AppImage        | Ja                 | `x64`, `arm64`                              | Portabler Desktop-Einsatz           |
+| Debian-Paket (`.deb`) | Ja                 | `x64`, `arm64`                              | Debian/Ubuntu-Installation          |
+| RPM-Paket (`.rpm`)    | Ja                 | Vom CI-Runner abhaengig (Veroeffentlichung) | Fedora/RHEL/openSUSE                |
+| Aus Quellcode         | Lokal gebaut       | Host-Architektur                            | Entwicklung und individuelle Builds |
 
 Hinweise:
 
@@ -335,7 +335,7 @@ task build:all
 Aktuelle Version in diesem Repository: `4.6.0`.
 
 - Fuer Release-Bumps bearbeiten Sie **nur** `version` in **`package.json`**.
-- **`pnpm run version:sync`** (wird auch zu Beginn von **`pnpm run build`** ausgefuehrt) verbreitet diese Version in **`pyproject.toml`**, **`meshchatx/src/version.py`**, **`THIRD_PARTY_NOTICES.txt`** (Produktzeile), **README** / **lang/README.*** (Zeilen mit aktueller Version), **`docs/meshchatx_on_raspberry_pi.md`** (pipx-Beispiel) und Hilfsfelder in **`packaging/arch/PKGBUILD`**.
+- **`pnpm run version:sync`** (wird auch zu Beginn von **`pnpm run build`** ausgefuehrt) verbreitet diese Version in **`pyproject.toml`**, **`meshchatx/src/version.py`**, **`THIRD_PARTY_NOTICES.txt`** (Produktzeile), **README** / **lang/README.\*** (Zeilen mit aktueller Version), **`docs/meshchatx_on_raspberry_pi.md`** (pipx-Beispiel) und Hilfsfelder in **`packaging/arch/PKGBUILD`**.
 - **`meshchatx.__version__`** wird aus **`meshchatx/src/version.py`** gelesen, ohne `meshchatx.src` zu importieren, damit ein normales `import meshchatx` leicht bleibt.
 - **Changelog**-Eintrage bleiben beim Release manuell.
 
