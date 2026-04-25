@@ -19,6 +19,7 @@ class MicrophoneRecorder {
         this.sampleRate = 0;
         this.channels = 1;
         this._workletBlobUrl = null;
+        this._scriptProcessorCapture = false;
     }
 
     cleanupMediaStream() {
@@ -43,6 +44,14 @@ class MicrophoneRecorder {
         } catch {
             // ignore
         }
+        try {
+            if (this._scriptProcessorCapture && this.processorNode) {
+                this.processorNode.onaudioprocess = null;
+            }
+        } catch {
+            // ignore
+        }
+        this._scriptProcessorCapture = false;
         try {
             this.processorNode?.disconnect?.();
         } catch {
@@ -82,9 +91,86 @@ class MicrophoneRecorder {
         this.audioContext = null;
     }
 
+    async _tryStartMicrophoneWorkletCapture() {
+        if (globalThis.isSecureContext === false) {
+            return false;
+        }
+        if (!this.audioContext.audioWorklet || typeof this.audioContext.audioWorklet.addModule !== "function") {
+            return false;
+        }
+        const AudioWorkletNodeCtor = globalThis.AudioWorkletNode;
+        if (typeof AudioWorkletNodeCtor !== "function") {
+            return false;
+        }
+        const workletBlob = new Blob([microphoneRecorderWorkletSource], {
+            type: "application/javascript",
+        });
+        this._workletBlobUrl = URL.createObjectURL(workletBlob);
+        try {
+            await this.audioContext.audioWorklet.addModule(this._workletBlobUrl);
+        } catch {
+            try {
+                URL.revokeObjectURL(this._workletBlobUrl);
+            } catch {
+                // ignore
+            }
+            this._workletBlobUrl = null;
+            return false;
+        }
+        try {
+            this.processorNode = new AudioWorkletNodeCtor(this.audioContext, "microphone-pcm-float", {
+                numberOfInputs: 1,
+                numberOfOutputs: 1,
+                channelCount: 1,
+            });
+        } catch {
+            try {
+                URL.revokeObjectURL(this._workletBlobUrl);
+            } catch {
+                // ignore
+            }
+            this._workletBlobUrl = null;
+            this.processorNode = null;
+            return false;
+        }
+        this.processorNode.port.onmessage = (event) => {
+            const buf = event.data;
+            if (!buf || typeof buf.byteLength !== "number" || buf.byteLength === 0) {
+                return;
+            }
+            this.pcmChunks.push(new Float32Array(buf.slice(0)));
+        };
+        return true;
+    }
+
+    _tryStartMicrophoneScriptProcessorCapture() {
+        if (typeof this.audioContext.createScriptProcessor !== "function") {
+            return false;
+        }
+        let node;
+        try {
+            node = this.audioContext.createScriptProcessor(4096, 1, 1);
+        } catch {
+            return false;
+        }
+        this._scriptProcessorCapture = true;
+        node.onaudioprocess = (e) => {
+            const ch0 = e.inputBuffer.getChannelData(0);
+            if (!ch0 || ch0.length === 0) {
+                return;
+            }
+            const copy = new Float32Array(ch0.length);
+            copy.set(ch0);
+            this.pcmChunks.push(copy);
+        };
+        this.processorNode = node;
+        return true;
+    }
+
     async start() {
         try {
             this.pcmChunks = [];
+            this._scriptProcessorCapture = false;
 
             if (!navigator?.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== "function") {
                 return false;
@@ -113,39 +199,15 @@ class MicrophoneRecorder {
 
             this.sourceNode = this.audioContext.createMediaStreamSource(this.microphoneMediaStream);
 
-            if (!this.audioContext.audioWorklet || typeof this.audioContext.audioWorklet.addModule !== "function") {
-                this.cleanupMediaStream();
-                this.teardownAudioGraph();
-                return false;
-            }
-
-            const workletBlob = new Blob([microphoneRecorderWorkletSource], {
-                type: "application/javascript",
-            });
-            this._workletBlobUrl = URL.createObjectURL(workletBlob);
-            try {
-                await this.audioContext.audioWorklet.addModule(this._workletBlobUrl);
-            } catch {
-                try {
-                    URL.revokeObjectURL(this._workletBlobUrl);
-                } catch {
-                    // ignore
+            const workletOk = await this._tryStartMicrophoneWorkletCapture();
+            if (!workletOk) {
+                const scriptOk = this._tryStartMicrophoneScriptProcessorCapture();
+                if (!scriptOk) {
+                    this.cleanupMediaStream();
+                    this.teardownAudioGraph();
+                    return false;
                 }
-                this._workletBlobUrl = null;
-                throw new Error("AudioWorklet addModule failed");
             }
-            this.processorNode = new AudioWorkletNode(this.audioContext, "microphone-pcm-float", {
-                numberOfInputs: 1,
-                numberOfOutputs: 1,
-                channelCount: 1,
-            });
-            this.processorNode.port.onmessage = (event) => {
-                const buf = event.data;
-                if (!buf || typeof buf.byteLength !== "number" || buf.byteLength === 0) {
-                    return;
-                }
-                this.pcmChunks.push(new Float32Array(buf.slice(0)));
-            };
 
             this.sourceNode.connect(this.processorNode);
             this.silentGainNode = this.audioContext.createGain();
