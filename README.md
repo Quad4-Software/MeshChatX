@@ -15,7 +15,7 @@ This project is independent from the original Reticulum MeshChat project and is 
 
 ## Important Changes from Reticulum MeshChat
 
-- Uses LXST
+- Uses LXST for calls
 - Replaced Peewee ORM with raw SQL.
 - Replaced Axios with native fetch.
 - Uses Electron 41.x (bundled Node 24 runtime).
@@ -27,7 +27,7 @@ This project is independent from the original Reticulum MeshChat project and is 
 > MeshChatX is not guaranteed to be wire/data compatible with older Reticulum MeshChat releases. Back up data before migration/testing.
 
 > [!WARNING]
-> Legacy systems are not fully supported yet. Current baseline is Python `>=3.11` and Node `>=24` (Electron 41 aligns with Node 24; `package.json` `engines` and CI use the same line).
+> Legacy systems are not supported yet. Current baseline is Python `>=3.11` and Node `>=24` (Electron 41 aligns with Node 24; `package.json` `engines` and CI use the same line).
 
 ## Requirements
 
@@ -61,7 +61,7 @@ Notes:
 - GitHub Actions builds tagged releases: Windows and macOS via `.github/workflows/build-release.yml`, Linux wheel/AppImage/deb/rpm via `.github/workflows/build-linux-release.yml`, and the container image via `.github/workflows/docker.yml`.
 - Linux `x64` and `arm64` AppImage + DEB are built on GitHub; RPM is attempted and uploaded when produced.
 
-## Quick Start: Docker
+## Docker
 
 - **Docker Hub:** `quad4io/meshchatx`
 - **GHCR:** `ghcr.io/quad4-software/meshchatx`
@@ -69,6 +69,17 @@ Notes:
 ```bash
 docker compose up -d
 ```
+
+```bash
+docker run -d --name reticulum-meshchatx \
+  --restart unless-stopped \
+  --security-opt no-new-privileges:true \
+  -p 127.0.0.1:8000:8000 \
+  -v "$(pwd)/meshchat-config:/config" \
+  ghcr.io/quad4-software/meshchatx:latest
+```
+
+You can substitute `quad4io/meshchatx:latest` for the image if you prefer Docker Hub.
 
 Default compose file maps:
 
@@ -334,10 +345,14 @@ Security and integrity details:
 
 - [`SECURITY.md`](SECURITY.md)
 - [`LEGAL.md`](LEGAL.md)
-- Built-in integrity checks and HTTPS/WSS defaults in app runtime
-- CI and release builds on GitHub Actions (`.github/workflows/`). Version tags also get **SLSA Build Level 3** provenance (`*.intoto.jsonl` via [slsa-github-generator](https://github.com/slsa-framework/slsa-github-generator)) and a **draft** GitHub release with binaries plus provenance for review before publishing. Verify with [slsa-verifier](https://github.com/slsa-framework/slsa-verifier) (see `SECURITY.md`). On Gitea, only `.gitea/workflows/github-release-sync.yml` is kept: for tags matching `release_*` it waits for successful GitHub workflow runs and publishes assets to a GitHub release using the `GH_PAT` and `GH_REPOSITORY` repository secrets (see `SECURITY.md`).
+- Built-in integrity checks and HTTPS/WSS defaults in app runtime.
+- CI and release builds on GitHub Actions.
 
 ## Adding a Language
+
+My workflow: ArgosTranslate -> Local LLM (Qwen 3 + Gemma 4)
+
+People are then welcome to submit fixes to me via LXMF or wherever you can contact me.
 
 Locale discovery is automatic. Add a new file under `meshchatx/src/frontend/locales/` (for example `xx.json`) with the same keys as `en.json` and a top-level `_languageName` string for the label shown in the language selector. You can copy `en.json` and translate every value by hand; **machine-assisted generation is optional** and never required.
 
