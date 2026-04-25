@@ -8,14 +8,16 @@
 
 - Сайт: [meshchatx.com](https://meshchatx.com)
 - Исходный код: [git.quad4.io/RNS-Things/MeshChatX](https://git.quad4.io/RNS-Things/MeshChatX)
-- Официальное зеркало: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX) — пока также используется для сборок Windows и macOS.
-- Релизы: [git.quad4.io/RNS-Things/MeshChatX/releases](https://git.quad4.io/RNS-Things/MeshChatX/releases)
+- Официальное зеркало на GitHub: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
+- Релизы: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - Журнал изменений: [`CHANGELOG.md`](../CHANGELOG.md)
-- TODO: [Boards](https://git.quad4.io/RNS-Things/MeshChatX/projects)
+
+rngit: `git clone rns://926baefe13daf5178c174f158dae1b45/quad4/MeshChatX`
+NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
 
 ## Важные отличия от Reticulum MeshChat
 
-- Используется LXST
+- Для вызовов используется LXST
 - Peewee ORM заменён на прямой SQL
 - Axios заменён на нативный `fetch`
 - Electron 41.x (встроенная среда Node 24)
@@ -27,7 +29,7 @@
 > MeshChatX не гарантирует совместимость данных со старыми версиями Reticulum MeshChat. Сделайте резервную копию перед миграцией или тестированием.
 
 > [!WARNING]
-> Устаревшие системы пока не полностью поддерживаются. Текущие требования: Python `>=3.11` и Node `>=24` (Electron 41 соответствует Node 24; поле `engines` в `package.json` и CI на той же линии).
+> Устаревшие системы пока не поддерживаются. Текущий базис: Python `>=3.11` и Node `>=24` (Electron 41 выровнен с Node 24; поле `engines` в `package.json` и CI на той же линии).
 
 ## Требования
 
@@ -53,15 +55,15 @@ task build:all
 | Python wheel (`.whl`) | Да                  | Любая архитектура, поддерживаемая Python | Безголовый/веб-сервер без сборки Node |
 | Linux AppImage        | Да                  | `x64`, `arm64`                           | Портативное использование на ПК       |
 | Debian-пакет (`.deb`) | Да                  | `x64`, `arm64`                           | Установка на Debian/Ubuntu            |
-| RPM-пакет (`.rpm`)    | Да                  | Зависит от CI                            | Fedora/RHEL/openSUSE                  |
+| RPM-пакет (`.rpm`)    | Да                  | Зависит от раннера CI для публикуемого артефакта | Fedora/RHEL/openSUSE            |
 | Из исходников         | Собирается локально | Архитектура хоста                        | Разработка и кастомные сборки         |
 
 Примечания:
 
-- Релизный workflow явно собирает Linux `x64` и `arm64` AppImage + DEB.
-- RPM также собирается при попытке и загружается при успехе.
+- GitHub Actions собирает помеченные тегом релизы: Windows и macOS в `.github/workflows/build-release.yml`, Linux wheel/AppImage/deb/rpm в `.github/workflows/build-linux-release.yml`, образ контейнера в `.github/workflows/docker.yml`.
+- AppImage + DEB для Linux `x64` и `arm64` собираются на GitHub; RPM собирается по возможности и выкладывается, если шаг дал артефакт.
 
-## Быстрый старт: Docker
+## Docker
 
 - **Docker Hub:** `quad4io/meshchatx`
 - **GHCR:** `ghcr.io/quad4-software/meshchatx`
@@ -69,8 +71,6 @@ task build:all
 ```bash
 docker compose up -d
 ```
-
-То же самое без Compose (тот же порт и том конфигурации):
 
 ```bash
 docker run -d --name reticulum-meshchatx \
@@ -81,7 +81,7 @@ docker run -d --name reticulum-meshchatx \
   ghcr.io/quad4-software/meshchatx:latest
 ```
 
-Вместо образа можно указать `quad4io/meshchatx:latest` (Docker Hub).
+Вместо образа GHCR можно указать `quad4io/meshchatx:latest`, если предпочитаете Docker Hub.
 
 Compose-файл по умолчанию:
 
@@ -160,7 +160,7 @@ poetry run python -m meshchatx.meshchat --headless --host 127.0.0.1
 
 - `pnpm install --frozen-lockfile` запрещает обновление `pnpm-lock.yaml` и завершится с ошибкой, если lock-файл не соответствует `package.json`. Это исключает скрытую установку неожиданной upstream-версии.
 - `verify-store-integrity=true` уже задан в `.npmrc` проекта; явный `pnpm config set` дополнительно ужесточает пользовательскую конфигурацию.
-- Lifecycle-скрипты (`preinstall`/`postinstall`) по умолчанию заблокированы в pnpm v10+. Скрипты установки могут запускать только пакеты из `pnpm.onlyBuiltDependencies` в `package.json` (сейчас это `electron`, `electron-winstaller`, `esbuild`, `protobufjs`).
+- Lifecycle-скрипты (`preinstall`/`postinstall`) по умолчанию заблокированы в pnpm v10+. Скрипты установки могут запускать только пакеты из `pnpm.onlyBuiltDependencies` в `package.json` (сейчас `electron`, `electron-winstaller`, `esbuild`).
 - `poetry check --lock` сразу падает, если `poetry.lock` не синхронизирован с `pyproject.toml`; затем `poetry install` ставит зависимости только из lock-файла.
 - Для строгой установки Poetry только из lock-файла зафиксируйте версию Poetry через `pip install "poetry==2.3.4"`, как это делает CI.
 
@@ -172,7 +172,7 @@ poetry run python -m meshchatx.meshchat --headless --host 127.0.0.1
 
 - [`docs/meshchatx_linux_sandbox.md`](../docs/meshchatx_linux_sandbox.md)
 
-Та же страница отображается во встроенной **Документации** (документация MeshChatX), когда она отдаётся из `meshchatx-docs`.
+Та же страница отображается в списке **Документация** (документация MeshChatX) в приложении, если файлы отдаются из встроенных или синхронизированных `meshchatx-docs`.
 
 ## Linux на ПК: шрифты эмодзи
 
@@ -214,6 +214,32 @@ pnpm run dist:rpm
 task dist:fe:rpm
 ```
 
+## Сборка в контейнере (wheel, AppImage, deb, rpm)
+
+`Dockerfile.build` выполняет те же шаги, что и CI (Poetry, pnpm, `task`, пакетные зависимости APT). Ориентирован на **linux/amd64** (NodeSource amd64, Task amd64). Цель по умолчанию — всё; её можно переопределить build-arg.
+
+Для `MESHCHATX_BUILD_TARGETS` доступны: `all` (по умолчанию), `wheel` или `electron` (AppImage + deb для x64 и arm64, RPM по возможности, без wheel).
+
+Сборка:
+
+```bash
+docker build -f Dockerfile.build -t meshchatx-build:local .
+```
+
+Только wheel:
+
+```bash
+docker build -f Dockerfile.build --build-arg MESHCHATX_BUILD_TARGETS=wheel -t meshchatx-build:wheel .
+```
+
+Скопируйте `/artifacts` из готового образа на хост:
+
+```bash
+cid=$(docker create meshchatx-build:local)
+docker cp "${cid}:/artifacts" ./meshchatx-artifacts
+docker rm "${cid}"
+```
+
 ## Поддержка архитектур
 
 - Образ Docker: `amd64`, `arm64`
@@ -221,7 +247,7 @@ task dist:fe:rpm
 - Linux DEB: `x64`, `arm64`
 - Windows: `x64`, `arm64` (скрипты сборки есть)
 - macOS: скрипты сборки (`arm64`, `universal`) для локальных сред
-- Android: нативные APK — ABI `arm64-v8a`, `x86_64`, плюс universal
+- Android: нативные APK — ABI `arm64-v8a`, `x86_64`, `armeabi-v7a` (32-bit ARM), плюс universal
 
 ## Android
 
@@ -235,23 +261,26 @@ MeshChatX поддерживает нативные Android APK (не тольк
 # 1) Собрать колёса Chaquopy для android/app/build.gradle
 bash scripts/build-android-wheels-local.sh
 
-# 2) Собрать универсальные APK (debug и release; см. android/README.md)
+# 2) Собрать universal APK (один debug + один release за прогон; см. android/README.md)
 cd android
 ./gradlew --no-daemon :app:assembleDebug :app:assembleRelease
 ```
 
-Одна вариант-сборка Android (без flavor `slim` / `full`). Gradle синхронизирует весь `meshchatx/` в `app/src/main/python/meshchatx/`, включая офлайн-колёса репозитория. **ABI-упаковка:** `universal` (по умолчанию) или `split` (см. `android/app/build.gradle`).
+**Один** вариант Android. Gradle синхронизирует весь каталог `meshchatx/` в `app/src/main/python/meshchatx/`, включая офлайн-колёса репозитория. **Упаковка ABI:** `universal` (по умолчанию) или `split` (см. `android/app/build.gradle`).
 
-При **`-PmeshchatxAbiPackaging=universal`** (по умолчанию):
+С **`-PmeshchatxAbiPackaging=universal`** (по умолчанию) у каждого типа сборки один APK со всеми выбранными ABI:
 
-- Отладка: `android/app/build/outputs/apk/debug/app-debug.apk`
-- Релиз: `android/app/build/outputs/apk/release/app-release-unsigned.apk`
+- Debug: `android/app/build/outputs/apk/debug/app-debug.apk`
+- Release: `android/app/build/outputs/apk/release/app-release-unsigned.apk`
+
+С **`-PmeshchatxAbiPackaging=split`** и более чем одним ABI в `-PmeshchatxAbis` Gradle может выдавать отдельные APK по ABI, как в [`android/README.md`](../android/README.md).
 
 Примечания:
 
-- Релизы по умолчанию не подписаны (`scripts/sign-android-apks.sh`).
-- ABI: `-PmeshchatxAbis` или `MESHCHATX_ABIS`; упаковка: `-PmeshchatxAbiPackaging` или `MESHCHATX_ABI_PACKAGING`.
-- Если в корне репозитория есть `dist/reticulum_meshchatx-*.whl` (например после `python -m build --wheel -o dist .`), оно предпочитается при бандле. Подробнее в [`android/README.md`](../android/README.md).
+- Релизы по умолчанию не подписаны, пока не настроена подпись (`scripts/sign-android-apks.sh`).
+- Android ориентируется на ABI из `android/app/build.gradle` (в т.ч. `armeabi-v7a`, если включён). Сборка колёс для `armeabi-v7a` требует Android SDK в `ANDROID_HOME` (см. `android/README.md`).
+- Список ABI: `-PmeshchatxAbis` или `MESHCHATX_ABIS`. Упаковка: `-PmeshchatxAbiPackaging=universal|split` или `MESHCHATX_ABI_PACKAGING`.
+- Если в корне репо есть `dist/reticulum_meshchatx-*.whl` (например из `python -m build --wheel -o dist .`), обновление встроенного репозитория предпочитает эту wheel пакету MeshChatX с PyPI. В CI wheel собирается до шага Android Gradle.
 
 Дополнительная документация:
 
@@ -305,51 +334,50 @@ task build:all
 
 Текущая версия в репозитории: `4.6.0`.
 
-- Источник версии JS/Electron — `package.json`.
-- `meshchatx/src/version.py` синхронизируется из `package.json`:
-
-```bash
-pnpm run version:sync
-```
-
-Для согласованных релизов выравнивайте поля версий где нужно (`package.json`, `pyproject.toml`, `meshchatx/__init__.py`).
+- Редактируйте для релизного бампа **только** поле `version` в **`package.json`**.
+- Команда **`pnpm run version:sync`** (также в начале **`pnpm run build`**) распространяет эту версию в **`pyproject.toml`**, **`meshchatx/src/version.py`**, **`THIRD_PARTY_NOTICES.txt`** (строка продукта), **README** / **lang/README.\*** (строки «текущая версия»), **`docs/meshchatx_on_raspberry_pi.md`** (пример pipx) и вспомогательные поля **`packaging/arch/PKGBUILD`**.
+- **`meshchatx.__version__`** читается из **`meshchatx/src/version.py`** без импорта **`meshchatx.src`**, поэтому обычный `import meshchatx` остаётся лёгким.
+- Записи **changelog** по-прежнему вносятся вручную при релизе.
 
 ## Безопасность
 
 - [`SECURITY.md`](../SECURITY.md)
-- Встроенные проверки целостности и HTTPS/WSS по умолчанию в приложении
-- CI и релизы в `.github/workflows/`; на Gitea только `.gitea/workflows/github-release-sync.yml` для выгрузки релизов на GitHub (см. `SECURITY.md`)
+- [`LEGAL.md`](../LEGAL.md)
+- Встроенные проверки целостности и значения по умолчанию HTTPS/WSS в рантайме приложения.
+- Сборка CI и релизы на GitHub Actions.
 
 ## Добавление языка
 
-Обнаружение локали происходит автоматически. Добавьте новый файл в `meshchatx/src/frontend/locales/` (например `xx.json`) с теми же ключами, что и в `en.json`, и полем `_languageName` в начале для подписи в селекторе языка. Можно скопировать `en.json` и перевести всё вручную; **автоматическая генерация (Argos и т. п.) необязательна** и не требуется.
+Авторский рабочий процесс: ArgosTranslate, затем локальная LLM (Qwen 3 + Gemma 4).
 
-**Исправления и переводы от людей приветствуются.** Улучшения существующих файлов локали или полностью ручной перевод можно прислать через pull request или issue в [исходном репозитории](https://git.quad4.io/RNS-Things/MeshChatX) или на [зеркале GitHub](https://github.com/Quad4-Software/MeshChatX).
+Затем правки и улучшения от сообщества приветствуются — через LXMF или любой доступный канал.
 
-**По желанию: черновик через Argos Translate** -- если нужен машинный первый проход из `en.json`, можно использовать `scripts/argos_translate.py`. Он обрабатывает форматирование и помогает защитить переменные интерполяции (например `{count}`).
+Обнаружение локали автоматическое. Добавьте файл в `meshchatx/src/frontend/locales/` (например `xx.json`) с теми же ключами, что в `en.json`, и строку верхнего уровня `_languageName` для подписи в селекторе. Можно скопировать `en.json` и перевести вручную; **машинная генерация (в т. ч. Argos) необязательна** и никогда не требуется.
+
+**По желанию: старт с Argos Translate** — для чернового перевода из `en.json` можно вызвать `scripts/argos_translate.py` (форматирование, цветной вывод, защита плейсхолдеров вроде `{count}`).
 
 ```bash
-# Установите argostranslate, если вы еще этого не сделали
-pip install argostranslate
+# Установите argostranslate при необходимости
+pipx install argostranslate
 
 # Запустите скрипт перевода
-python scripts/argos_translate.py --from en --to xx --input meshchatx/src/frontend/locales/en.json --output meshchatx/src/frontend/locales/xx.json --name "Название вашего языка"
+python scripts/argos_translate.py --from en --to xx --input meshchatx/src/frontend/locales/en.json --output meshchatx/src/frontend/locales/xx.json --name "Название языка"
 ```
 
-После машинного черновика имеет смысл проверить грамматику, контекст и тон с помощью LLM или человека (формальный или неформальный стиль).
+После любой машинной прогонки пусть LLM или человек проверяет грамматику, контекст и тон (например формальный/неформальный стиль).
 
-Проверьте совпадение ключей с помощью: `pnpm test -- tests/frontend/i18n.test.js --run`
+`pnpm test -- tests/frontend/i18n.test.js --run` — проверка равенства ключей с `en.json`.
 
 Никаких других изменений в коде не требуется. Приложение, селектор языка и тесты обнаруживают локали из каталога `meshchatx/src/frontend/locales/` во время сборки.
 
 ## Авторы
 
 - [Liam Cottle](https://github.com/liamcottle) — оригинальный Reticulum MeshChat
-- [RFnexus](https://github.com/RFnexus) — парсер Micron (JavaScript)
+- [RFnexus](https://github.com/RFnexus) — парсер micron (JavaScript)
 - [markqvist](https://github.com/markqvist) — Reticulum, LXMF, LXST
 
 ## Лицензия
 
 Собственные части проекта лицензированы по 0BSD.
-Оригинальные upstream-части, унаследованные от MeshChat, остаются под MIT.
+Оригинальные upstream-части из Reticulum MeshChat остаются под MIT.
 Полный текст и уведомления см. в [`../LICENSE`](../LICENSE).

@@ -9,9 +9,11 @@ This project is independent from the original Reticulum MeshChat project and is 
 - Website: [meshchatx.com](https://meshchatx.com)
 - Source: [git.quad4.io/RNS-Things/MeshChatX](https://git.quad4.io/RNS-Things/MeshChatX)
 - Official GitHub Mirror: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
-- Releases: [git.quad4.io/RNS-Things/MeshChatX/releases](https://git.quad4.io/RNS-Things/MeshChatX/releases)
+- Releases: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - Changelog: [`CHANGELOG.md`](CHANGELOG.md)
-- TODO: [Boards](https://git.quad4.io/RNS-Things/MeshChatX/projects)
+
+rngit: `git clone rns://926baefe13daf5178c174f158dae1b45/quad4/MeshChatX`
+NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
 
 ## Important Changes from Reticulum MeshChat
 

@@ -8,14 +8,16 @@ Dieses Projekt ist unabhaengig vom originalen Reticulum MeshChat und steht in ke
 
 - Website: [meshchatx.com](https://meshchatx.com)
 - Quellcode: [git.quad4.io/RNS-Things/MeshChatX](https://git.quad4.io/RNS-Things/MeshChatX)
-- Offizieller Spiegel: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX) – derzeit auch fuer Windows- und macOS-Builds genutzt.
-- Releases: [git.quad4.io/RNS-Things/MeshChatX/releases](https://git.quad4.io/RNS-Things/MeshChatX/releases)
+- Offizielles GitHub-Mirror: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
+- Releases: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - Aenderungsprotokoll: [`CHANGELOG.md`](../CHANGELOG.md)
-- TODO: [Boards](https://git.quad4.io/RNS-Things/MeshChatX/projects)
+
+rngit: `git clone rns://926baefe13daf5178c174f158dae1b45/quad4/MeshChatX`
+NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
 
 ## Wichtige Aenderungen gegenueber Reticulum MeshChat
 
-- Verwendet LXST
+- Verwendet LXST fuer Anrufe
 - Peewee-ORM durch direktes SQL ersetzt
 - Axios durch natives `fetch` ersetzt
 - Electron 41.x (mit Node-24-Laufzeit)
@@ -27,7 +29,7 @@ Dieses Projekt ist unabhaengig vom originalen Reticulum MeshChat und steht in ke
 > MeshChatX garantiert keine Datenkompatibilitaet mit aelteren Reticulum-MeshChat-Versionen. Erstellen Sie vor Migration oder Tests eine Datensicherung.
 
 > [!WARNING]
-> Aeltere Systeme werden noch nicht vollstaendig unterstuetzt. Aktuelle Mindestanforderungen: Python `>=3.11` und Node `>=24` (Electron 41 entspricht Node 24; `engines` in `package.json` und CI folgen derselben Vorgabe).
+> Aeltere Systeme werden noch nicht unterstuetzt. Aktuelle Basis: Python `>=3.11` und Node `>=24` (Electron 41 entspricht Node 24; `engines` in `package.json` und CI folgen derselben Linie).
 
 ## Voraussetzungen
 
@@ -53,15 +55,15 @@ Waehlen Sie die Methode passend zu Umgebung und Paketierung.
 | Python Wheel (`.whl`) | Ja                 | Jede Python-unterstuetzte Architektur | Headless/Webserver ohne Node-Build  |
 | Linux AppImage        | Ja                 | `x64`, `arm64`                        | Portabler Desktop-Einsatz           |
 | Debian-Paket (`.deb`) | Ja                 | `x64`, `arm64`                        | Debian/Ubuntu-Installation          |
-| RPM-Paket (`.rpm`)    | Ja                 | CI-abhaengig                          | Fedora/RHEL/openSUSE                |
+| RPM-Paket (`.rpm`)    | Ja                 | Vom CI-Runner abhaengig (Veroeffentlichung)      | Fedora/RHEL/openSUSE         |
 | Aus Quellcode         | Lokal gebaut       | Host-Architektur                      | Entwicklung und individuelle Builds |
 
 Hinweise:
 
-- Der Release-Workflow baut explizit Linux `x64` und `arm64` AppImage + DEB.
-- RPM wird ebenfalls versucht und bei Erfolg hochgeladen.
+- GitHub Actions baut getaggte Releases: Windows und macOS in `.github/workflows/build-release.yml`, Linux Wheel/AppImage/deb/rpm in `.github/workflows/build-linux-release.yml` und das Container-Image in `.github/workflows/docker.yml`.
+- Linux `x64` und `arm64` AppImage + DEB werden auf GitHub gebaut; RPM wird versucht und hochgeladen, wenn es erzeugt wird.
 
-## Schnellstart: Docker
+## Docker
 
 - **Docker Hub:** `quad4io/meshchatx`
 - **GHCR:** `ghcr.io/quad4-software/meshchatx`
@@ -69,8 +71,6 @@ Hinweise:
 ```bash
 docker compose up -d
 ```
-
-Entsprechend ohne Compose (gleiche Port-Bindung und Config-Volume):
 
 ```bash
 docker run -d --name reticulum-meshchatx \
@@ -81,7 +81,7 @@ docker run -d --name reticulum-meshchatx \
   ghcr.io/quad4-software/meshchatx:latest
 ```
 
-Alternativ kann das Image `quad4io/meshchatx:latest` (Docker Hub) verwendet werden.
+Sie koennen `quad4io/meshchatx:latest` statt des GHCR-Images verwenden, wenn Sie Docker Hub bevorzugen.
 
 Standard-Compose-Datei:
 
@@ -160,7 +160,7 @@ Hinweise zu den Installationsbefehlen:
 
 - `pnpm install --frozen-lockfile` verweigert Aenderungen an `pnpm-lock.yaml` und schlaegt fehl, wenn die Lockdatei nicht zu `package.json` passt. Damit wird verhindert, dass eine unerwartete Upstream-Version still eingespielt wird.
 - `verify-store-integrity=true` ist auch in der projektweiten `.npmrc` gesetzt; die explizite `pnpm config set`-Zeile haertet zusaetzlich die Benutzerkonfiguration.
-- Lifecycle-Skripte (`preinstall`/`postinstall`) sind in pnpm v10+ standardmaessig blockiert. Nur die unter `pnpm.onlyBuiltDependencies` in `package.json` aufgefuehrten Pakete duerfen Installationsskripte ausfuehren (aktuell `electron`, `electron-winstaller`, `esbuild`, `protobufjs`).
+- Lifecycle-Skripte (`preinstall`/`postinstall`) sind in pnpm v10+ standardmaessig blockiert. Nur die unter `pnpm.onlyBuiltDependencies` in `package.json` aufgefuehrten Pakete duerfen Installationsskripte ausfuehren (aktuell `electron`, `electron-winstaller`, `esbuild`).
 - `poetry check --lock` schlaegt frueh fehl, wenn `poetry.lock` nicht mit `pyproject.toml` synchron ist; `poetry install` aufloest danach nur aus der Lockdatei.
 - Fuer eine strikte Lockfile-Installation (ohne implizite Lock-Aktualisierung) Poetry mit `pip install "poetry==2.3.4"` pinnen, passend zur CI-Version.
 
@@ -172,7 +172,7 @@ Um das native `meshchatx`-Programm (Alias: `meshchat`) mit zusaetzlicher Dateisy
 
 - [`docs/meshchatx_linux_sandbox.md`](../docs/meshchatx_linux_sandbox.md)
 
-Dieselbe Seite erscheint in der in-app-**Dokumentation** (MeshChatX-Docs), wenn sie aus den gebuendelten oder synchronisierten `meshchatx-docs`-Dateien ausgeliefert wird.
+Dieselbe Seite erscheint in der in-app-Liste **Dokumentation** (MeshChatX-Dokumentation), wenn sie aus den gebuendelten oder synchronisierten `meshchatx-docs`-Dateien ausgeliefert wird.
 
 ## Linux-Desktop: Emoji-Schriften
 
@@ -214,6 +214,32 @@ Oder ueber Task:
 task dist:fe:rpm
 ```
 
+## Container-Build (Wheel, AppImage, deb, rpm)
+
+`Dockerfile.build` fuehrt die gleichen Schritte wie die CI aus (Poetry, pnpm, `task`, APT-Paketabhaengigkeiten). Ausgelegt auf **linux/amd64** (NodeSource amd64, Task amd64). Standardziel ist alles; per Build-Arg ueberschreibbar.
+
+Werte fuer `MESHCHATX_BUILD_TARGETS`: `all` (Standard), `wheel` oder `electron` (AppImage + deb fuer x64 und arm64, RPM best-effort, kein wheel).
+
+Build:
+
+```bash
+docker build -f Dockerfile.build -t meshchatx-build:local .
+```
+
+Nur Wheel:
+
+```bash
+docker build -f Dockerfile.build --build-arg MESHCHATX_BUILD_TARGETS=wheel -t meshchatx-build:wheel .
+```
+
+`/artifacts` aus dem fertigen Image auf den Host kopieren:
+
+```bash
+cid=$(docker create meshchatx-build:local)
+docker cp "${cid}:/artifacts" ./meshchatx-artifacts
+docker rm "${cid}"
+```
+
 ## Architekturunterstuetzung
 
 - Docker-Image: `amd64`, `arm64`
@@ -221,7 +247,7 @@ task dist:fe:rpm
 - Linux DEB: `x64`, `arm64`
 - Windows: `x64`, `arm64` (Build-Skripte vorhanden)
 - macOS: Build-Skripte vorhanden (`arm64`, `universal`) fuer lokale Build-Umgebungen
-- Android: native APKs — ABIs `arm64-v8a`, `x86_64`, plus universal
+- Android: native APKs — ABIs `arm64-v8a`, `x86_64`, `armeabi-v7a` (32-bit ARM), plus universal
 
 ## Android
 
@@ -235,23 +261,26 @@ Vom Repository-Root:
 # 1) Chaquopy-Wheels gemaess android/app/build.gradle bauen
 bash scripts/build-android-wheels-local.sh
 
-# 2) Universal-APKs bauen (ein Debug- und ein Release-APK; siehe android/README.md)
+# 2) Universal-APK bauen (ein Debug + ein Release pro Lauf; siehe android/README.md)
 cd android
 ./gradlew --no-daemon :app:assembleDebug :app:assembleRelease
 ```
 
-Es gibt nur eine Android-Variante (keine `slim`-/`full`-Flavors). Gradle synchronisiert den gesamten `meshchatx/`-Baum nach `app/src/main/python/meshchatx/`, inklusive Offline-Repository-Raeder. **ABI-Packaging:** `universal` (Standard) oder `split` (siehe `android/app/build.gradle`).
+**Eine** Android-Variante. Gradle synchronisiert den gesamten `meshchatx/`-Ordner nach `app/src/main/python/meshchatx/`, inklusive Offline-Repository-Raeder. **ABI-Verpackung:** `universal` (Standard) oder `split` (siehe `android/app/build.gradle`).
 
-Mit **`-PmeshchatxAbiPackaging=universal`** (Standard):
+Bei **`-PmeshchatxAbiPackaging=universal`** (Standard) liefert jeder Buildtyp ein APK mit allen gewaehlten ABIs:
 
 - Debug: `android/app/build/outputs/apk/debug/app-debug.apk`
 - Release: `android/app/build/outputs/apk/release/app-release-unsigned.apk`
 
+Bei **`-PmeshchatxAbiPackaging=split`** und mehr als einem ABI in `-PmeshchatxAbis` koennen pro-ABI-APKs entstehen, wie in [`android/README.md`](../android/README.md) beschrieben.
+
 Hinweise:
 
-- Release-Ausgaben sind standardmaessig unsigniert (`scripts/sign-android-apks.sh`).
-- ABI: `-PmeshchatxAbis` oder `MESHCHATX_ABIS`; Packaging: `-PmeshchatxAbiPackaging` oder `MESHCHATX_ABI_PACKAGING`.
-- Existiert im Repo-Root `dist/reticulum_meshchatx-*.whl` (z. B. nach `python -m build --wheel -o dist .`), wird dieses Rad beim Bundling bevorzugt. Details in [`android/README.md`](../android/README.md).
+- Release-Builds sind standardmaessig unsigniert, bis die Signatur konfiguriert ist (`scripts/sign-android-apks.sh`).
+- Android richtet sich nach den in `android/app/build.gradle` gelisteten ABIs (einschliesslich `armeabi-v7a`, falls aktiviert). Das Bauen von Radern fuer `armeabi-v7a` erfordert ein Android-SDK in `ANDROID_HOME` (siehe `android/README.md`).
+- ABI-Liste: `-PmeshchatxAbis` oder `MESHCHATX_ABIS`. Verpackung: `-PmeshchatxAbiPackaging=universal|split` oder `MESHCHATX_ABI_PACKAGING`.
+- Existiert im Repo-Root `dist/reticulum_meshchatx-*.whl` (z. B. nach `python -m build --wheel -o dist .`), bevorzugt die Aktualisierung des Offline-Repositorys dieses Wheel gegueber PyPI. In der CI wird das Wheel vor dem Android-Gradle-Schritt gebaut.
 
 Weitere Dokumentation:
 
@@ -270,7 +299,7 @@ Weitere Dokumentation:
 | `--headless`               | `MESHCHAT_HEADLESS`                      | `false`      | Browser nicht automatisch oeffnen                                                                                                                                                            |
 | `--auth`                   | `MESHCHAT_AUTH`                          | `false`      | Basis-Authentifizierung aktivieren                                                                                                                                                           |
 | `--storage-dir`            | `MESHCHAT_STORAGE_DIR`                   | `./storage`  | Datenverzeichnis                                                                                                                                                                             |
-| `--public-dir`             | `MESHCHAT_PUBLIC_DIR`                    | auto/bundled | Frontend-Verzeichnis (fuer Installationen ohne gebundelte Assets)                                                                                                                            |
+| `--public-dir`             | `MESHCHAT_PUBLIC_DIR`                    | auto/bundled | Frontend-Verzeichnis (fuer Quell-Installationen ohne gebundelte Assets)                                                                                                                      |
 
 ## Branches
 
@@ -305,51 +334,50 @@ task build:all
 
 Aktuelle Version in diesem Repository: `4.6.0`.
 
-- `package.json` ist die Quelle fuer die JavaScript/Electron-Version.
-- `meshchatx/src/version.py` wird aus `package.json` synchronisiert mit:
-
-```bash
-pnpm run version:sync
-```
-
-Fuer konsistente Releases die Versionsfelder dort abgleichen, wo noetig (`package.json`, `pyproject.toml`, `meshchatx/__init__.py`).
+- Fuer Release-Bumps bearbeiten Sie **nur** `version` in **`package.json`**.
+- **`pnpm run version:sync`** (wird auch zu Beginn von **`pnpm run build`** ausgefuehrt) verbreitet diese Version in **`pyproject.toml`**, **`meshchatx/src/version.py`**, **`THIRD_PARTY_NOTICES.txt`** (Produktzeile), **README** / **lang/README.*** (Zeilen mit aktueller Version), **`docs/meshchatx_on_raspberry_pi.md`** (pipx-Beispiel) und Hilfsfelder in **`packaging/arch/PKGBUILD`**.
+- **`meshchatx.__version__`** wird aus **`meshchatx/src/version.py`** gelesen, ohne `meshchatx.src` zu importieren, damit ein normales `import meshchatx` leicht bleibt.
+- **Changelog**-Eintrage bleiben beim Release manuell.
 
 ## Sicherheit
 
 - [`SECURITY.md`](../SECURITY.md)
-- Integrierte Integritaetspruefungen und HTTPS/WSS-Standardeinstellungen in der App
-- CI- und Release-Workflows in `.github/workflows/`; auf Gitea nur `.gitea/workflows/github-release-sync.yml` für GitHub-Release-Sync (siehe `SECURITY.md`)
+- [`LEGAL.md`](../LEGAL.md)
+- Eingebaute Integritaetspruefungen und HTTPS/WSS-Standardwerte in der App-Laufzeit.
+- CI- und Release-Builds in GitHub Actions.
 
 ## Sprache hinzufuegen
 
-Die Locale-Erkennung erfolgt automatisch. Legen Sie eine neue Datei unter `meshchatx/src/frontend/locales/` an (z. B. `xx.json`) mit denselben Schluesseln wie `en.json` und einem obersten Feld `_languageName` fuer die Anzeige in der Sprachauswahl. Sie koennen `en.json` kopieren und alles von Hand uebersetzen; **maschinelle Erzeugung ist optional** und nie verpflichtend.
+Arbeitsablauf des Autors: ArgosTranslate, dann lokales LLM (Qwen 3 + Gemma 4).
 
-**Korrekturen und menschliche Uebersetzungen sind willkommen.** Verbesserungen an bestehenden Locale-Dateien oder vollstaendig manuell uebersetzte Dateien koennen Sie per Pull Request oder Issue im [Quellcode-Repository](https://git.quad4.io/RNS-Things/MeshChatX) oder beim [GitHub-Spiegel](https://github.com/Quad4-Software/MeshChatX) einreichen.
+Korrekturen von der Community sind willkommen — per LXMF oder wo Sie erreichbar sind.
 
-**Optional: Argos-Translate-Bootstrap** -- Wenn Sie einen maschinellen Erstentwurf aus `en.json` wollen, koennen Sie `scripts/argos_translate.py` nutzen. Es kuemmert sich um Formatierung und schuetzt Interpolationsvariablen (wie `{count}`) vor versehentlichen Aenderungen.
+Die Locale-Erkennung erfolgt automatisch. Fuegen Sie Dateien unter `meshchatx/src/frontend/locales/` hinzu (z. B. `xx.json`) mit denselben Schluesseln wie `en.json` und oberstes `_languageName` fuer die Sprachauswahl. Sie koennen `en.json` kopieren und alles manuell uebersetzen; **maschinenunterstuetzte Erzeugung (optional)** ist niemals erforderlich.
+
+**Optional: Argos-Translate-Start** — fuer einen Entwurf aus `en.json` koennen Sie `scripts/argos_translate.py` nutzen; es behandelt Formatierung, farbige Ausgabe und schuetzt z. B. `{count}`.
 
 ```bash
-# Installieren Sie argostranslate, falls noch nicht geschehen
-pip install argostranslate
+# argostranslate ggf. installieren
+pipx install argostranslate
 
-# Fuehren Sie das Uebersetzungsskript aus
+# Uebersetzungsskript ausfuehren
 python scripts/argos_translate.py --from en --to xx --input meshchatx/src/frontend/locales/en.json --output meshchatx/src/frontend/locales/xx.json --name "Ihr Sprachname"
 ```
 
-Nach einem maschinellen Entwurf sollten ein LLM oder ein Mensch Grammatik, Kontext und Ton pruefen (z. B. formell vs. informell).
+Nach jeder maschinellen Runde Grammatik, Kontext und Ton (formell vs. informell) mit LLM oder Mensch pruefen.
 
-Schluesselparitaet pruefen: `pnpm test -- tests/frontend/i18n.test.js --run`
+`pnpm test -- tests/frontend/i18n.test.js --run` prueft die Schluesselparitaet mit `en.json`.
 
 Keine weiteren Code-Aenderungen noetig. App, Sprachwahl und Tests lesen Locales zur Build-Zeit aus `meshchatx/src/frontend/locales/`.
 
 ## Mitwirkende
 
 - [Liam Cottle](https://github.com/liamcottle) - Originales Reticulum MeshChat
-- [RFnexus](https://github.com/RFnexus) - Micron-Parser (JavaScript)
+- [RFnexus](https://github.com/RFnexus) - micron-Parser (JavaScript)
 - [markqvist](https://github.com/markqvist) - Reticulum, LXMF, LXST
 
 ## Lizenz
 
 Die projekt-eigenen Anteile stehen unter 0BSD.
-Urspruengliche Upstream-Anteile von MeshChat bleiben unter MIT.
+Urspruengliche Upstream-Anteile von Reticulum MeshChat bleiben unter MIT.
 Vollstaendiger Text und Hinweise in [`../LICENSE`](../LICENSE).
