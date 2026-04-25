@@ -1498,7 +1498,7 @@
 <script>
 import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
-import { numOrNull } from "../../js/interfaceDiscoveryUtils";
+import { numOrNull, parseRNodeFrequencyHz } from "../../js/interfaceDiscoveryUtils";
 import ExpandingSection from "./ExpandingSection.vue";
 import FormLabel from "../forms/FormLabel.vue";
 import Toggle from "../forms/Toggle.vue";
@@ -1705,7 +1705,7 @@ export default {
             return !this.parseBool(v);
         },
         formattedFrequency() {
-            const totalHz = this.calculateFrequencyInHz();
+            const totalHz = Math.round(this.calculateFrequencyInHz());
             if (totalHz >= 1e9) {
                 return `${(totalHz / 1e9).toFixed(3)} GHz`;
             } else if (totalHz >= 1e6) {
@@ -1766,6 +1766,7 @@ export default {
             return Boolean(value);
         },
         numOrNull,
+        parseRNodeFrequencyHz,
         async loadReticulumDiscoveryConfig() {
             try {
                 const response = await window.api.get(`/api/v1/reticulum/discovery`);
@@ -2013,10 +2014,12 @@ export default {
 
             // Radio params
             if (config.frequency) {
-                const freq = Number(config.frequency);
-                this.RNodeGHzValue = Math.floor(freq / 1e9);
-                this.RNodeMHzValue = Math.floor((freq % 1e9) / 1e6);
-                this.RNodekHzValue = Math.floor((freq % 1e6) / 1e3);
+                const hz = this.parseRNodeFrequencyHz(config.frequency);
+                if (hz != null && hz > 0) {
+                    this.RNodeGHzValue = Math.floor(hz / 1e9);
+                    this.RNodeMHzValue = Math.floor((hz % 1e9) / 1e6);
+                    this.RNodekHzValue = Math.floor((hz % 1e6) / 1e3);
+                }
             }
             if (config.bandwidth) this.newInterfaceBandwidth = Number(config.bandwidth);
             if (config.txpower) this.newInterfaceTxpower = Number(config.txpower);
@@ -2115,7 +2118,7 @@ export default {
                 listen_ip: config.listen_ip || null,
                 listen_port: this.numOrNull(config.listen_port),
                 port: config.port || null,
-                frequency: this.numOrNull(config.frequency),
+                frequency: this.parseRNodeFrequencyHz(config.frequency) ?? this.numOrNull(config.frequency),
                 bandwidth: this.numOrNull(config.bandwidth),
                 txpower: this.numOrNull(config.txpower),
                 spreadingfactor: this.numOrNull(config.spreadingfactor),
@@ -2268,7 +2271,7 @@ export default {
             this.isSaving = true;
             try {
                 const discoveryEnabled = this.discovery.discoverable === true;
-                const freqHz = this.calculateFrequencyInHz();
+                const freqHz = Math.round(this.calculateFrequencyInHz());
 
                 const i2pPeers =
                     this.newInterfaceType === "I2PInterface"
@@ -2376,7 +2379,7 @@ export default {
             }
         },
         calculateFrequencyInHz() {
-            return this.RNodeGHzValue * 1e9 + this.RNodeMHzValue * 1e6 + this.RNodekHzValue * 1e3;
+            return Math.round(this.RNodeGHzValue * 1e9 + this.RNodeMHzValue * 1e6 + this.RNodekHzValue * 1e3);
         },
         updateRNodeCalculations() {
             this.calculateRNodeParameters(

@@ -1612,6 +1612,7 @@ export default {
             audioAttachmentRecordingStartedAt: null,
             audioAttachmentRecordingDuration: null,
             audioAttachmentRecordingTimer: null,
+            androidNativeOpusAttachment: false,
             lxmfMessageAudioAttachmentCache: {},
             isDownloadingAudio: {},
             expandedMessageInfo: null,
@@ -2125,6 +2126,13 @@ export default {
         }
     },
     methods: {
+        isMeshChatXAndroid() {
+            return (
+                window.MeshChatXAndroid &&
+                typeof window.MeshChatXAndroid.getPlatform === "function" &&
+                window.MeshChatXAndroid.getPlatform() === "android"
+            );
+        },
         setupPeerHeaderResizeObserver() {
             this.teardownPeerHeaderResizeObserver();
             const root = this.$refs.conversationPeerHeader;
@@ -5048,13 +5056,38 @@ export default {
                     break;
                 }
                 case "opus": {
-                    // start recording microphone
+                    if (this.isMeshChatXAndroid() && window.MeshChatXAndroid?.startNativeWavAttachment) {
+                        if (
+                            typeof window.MeshChatXAndroid.isNativePcmAudioAvailable === "function" &&
+                            !window.MeshChatXAndroid.isNativePcmAudioAvailable()
+                        ) {
+                            DialogUtils.alert(this.buildAudioRecordingFailureMessage());
+                            break;
+                        }
+                        const res = window.MeshChatXAndroid.startNativeWavAttachment();
+                        if (res !== "ok") {
+                            DialogUtils.alert(this.buildAudioRecordingFailureMessage());
+                            break;
+                        }
+                        this.androidNativeOpusAttachment = true;
+                        this.audioAttachmentMicrophoneRecorderCodec = "opus";
+                        this.audioAttachmentMicrophoneRecorder = { _androidNative: true };
+                        this.audioAttachmentRecordingStartedAt = Date.now();
+                        this.isRecordingAudioAttachment = true;
+                        this.audioAttachmentRecordingDuration = Utils.formatMinutesSeconds(0);
+                        this.audioAttachmentRecordingTimer = setInterval(() => {
+                            const recordingDurationMillis = Date.now() - this.audioAttachmentRecordingStartedAt;
+                            const recordingDurationSeconds = recordingDurationMillis / 1000;
+                            this.audioAttachmentRecordingDuration =
+                                Utils.formatMinutesSeconds(recordingDurationSeconds);
+                        }, 1000);
+                        break;
+                    }
                     this.audioAttachmentMicrophoneRecorderCodec = "opus";
                     this.audioAttachmentMicrophoneRecorder = new MicrophoneRecorder();
                     this.audioAttachmentRecordingStartedAt = Date.now();
                     this.isRecordingAudioAttachment = await this.audioAttachmentMicrophoneRecorder.start();
 
-                    // update recording time in ui every second
                     this.audioAttachmentRecordingDuration = Utils.formatMinutesSeconds(0);
                     this.audioAttachmentRecordingTimer = setInterval(() => {
                         const recordingDurationMillis = Date.now() - this.audioAttachmentRecordingStartedAt;
@@ -5062,7 +5095,6 @@ export default {
                         this.audioAttachmentRecordingDuration = Utils.formatMinutesSeconds(recordingDurationSeconds);
                     }, 1000);
 
-                    // alert if failed to start recording
                     if (!this.isRecordingAudioAttachment) {
                         DialogUtils.alert(this.buildAudioRecordingFailureMessage());
                     }
@@ -5079,13 +5111,65 @@ export default {
             // clear audio recording timer
             clearInterval(this.audioAttachmentRecordingTimer);
 
-            // do nothing if not recording
             if (!this.isRecordingAudioAttachment) {
                 return;
             }
 
-            // stop recording microphone and get audio
             this.isRecordingAudioAttachment = false;
+            if (this.androidNativeOpusAttachment) {
+                this.androidNativeOpusAttachment = false;
+                const p = new Promise((resolve) => {
+                    const done = () => {
+                        try {
+                            if (window.__meshchatXNative) {
+                                window.__meshchatXNative = undefined;
+                            }
+                        } catch {
+                            // ignore
+                        }
+                        resolve();
+                    };
+                    window.__meshchatXNative = {
+                        onWav: (payload) => {
+                            if (!payload || !payload.ok) {
+                                const err = payload && payload.error ? String(payload.error) : "unknown";
+                                if (err !== "empty") {
+                                    DialogUtils.alert(`${this.$t("messages.failed")}${err ? ` (${err})` : ""}`);
+                                }
+                                done();
+                                return;
+                            }
+                            try {
+                                const binary = atob(payload.data);
+                                const bytes = new Uint8Array(binary.length);
+                                for (let i = 0; i < binary.length; i += 1) {
+                                    bytes[i] = binary.charCodeAt(i);
+                                }
+                                const audio = new Blob([bytes], { type: "audio/wav" });
+                                this.newMessageAudio = {
+                                    audio_mode: 0x10,
+                                    audio_blob: audio,
+                                    audio_preview_url: URL.createObjectURL(audio),
+                                };
+                            } catch {
+                                DialogUtils.alert(this.buildAudioRecordingFailureMessage());
+                            }
+                            done();
+                        },
+                    };
+                    try {
+                        window.MeshChatXAndroid.stopNativeWavAttachment();
+                    } catch {
+                        DialogUtils.alert(this.buildAudioRecordingFailureMessage());
+                        done();
+                    }
+                });
+                await p;
+                this.audioAttachmentMicrophoneRecorder = null;
+                this.audioAttachmentMicrophoneRecorderCodec = null;
+                return;
+            }
+
             const audio = await this.audioAttachmentMicrophoneRecorder.stop();
 
             // handle audio based on codec
@@ -5164,7 +5248,12 @@ export default {
             let probe = null;
             try {
                 probe = new AudioContextCtor();
-                if (!probe.audioWorklet || typeof probe.audioWorklet.addModule !== "function") {
+                const canWorklet =
+                    globalThis.isSecureContext !== false &&
+                    probe.audioWorklet &&
+                    typeof probe.audioWorklet.addModule === "function";
+                const canScriptProcessor = typeof probe.createScriptProcessor === "function";
+                if (!canWorklet && !canScriptProcessor) {
                     return `${this.$t("messages.failed_start_recording")}. ${this.$t("messages.failed_start_recording_help_audio_worklet")}`;
                 }
             } catch {

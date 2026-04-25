@@ -2226,6 +2226,8 @@ export default {
             selectedAudioInputId: null,
             selectedAudioOutputId: null,
             remoteAudioEl: null,
+            useAndroidNativeTelephone: false,
+            androidNativeTelephoneListener: null,
         };
     },
     computed: {
@@ -2385,6 +2387,13 @@ export default {
         formatDuration(seconds) {
             return Utils.formatMinutesSeconds(seconds);
         },
+        isMeshChatXAndroid() {
+            return (
+                window.MeshChatXAndroid &&
+                typeof window.MeshChatXAndroid.getPlatform === "function" &&
+                window.MeshChatXAndroid.getPlatform() === "android"
+            );
+        },
         getMediaDevicesApi() {
             const mediaDevices = navigator?.mediaDevices;
             if (!mediaDevices || typeof mediaDevices.getUserMedia !== "function") {
@@ -2460,11 +2469,11 @@ export default {
             this.stopWebAudio();
         },
         async ensureWebAudio(webAudioStatus) {
-            if (!this.config?.telephone_web_audio_enabled) {
+            if (!webAudioStatus?.enabled) {
                 this.stopWebAudio();
                 return;
             }
-            if (this.activeCall && webAudioStatus?.enabled) {
+            if (this.activeCall && webAudioStatus.enabled) {
                 this.audioFrameMs = webAudioStatus.frame_ms || 60;
                 await this.startWebAudio();
             } else {
@@ -2499,6 +2508,45 @@ export default {
         },
         async startWebAudio() {
             if (!this.activeCall) {
+                return;
+            }
+            if (this.isMeshChatXAndroid()) {
+                this.stopWebAudio();
+                if (
+                    !window.MeshChatXAndroid ||
+                    typeof window.MeshChatXAndroid.startTelephoneNativeAudio !== "function"
+                ) {
+                    await this.disableWebAudioBridgeWithError(
+                        "call.web_audio_not_available",
+                        new Error("Native audio bridge not linked"),
+                        "start-android-missing"
+                    );
+                    return;
+                }
+                const telMic = window.MeshChatXAndroid.isTelephoneNativeAudioAvailable;
+                const micOk =
+                    typeof telMic === "function"
+                        ? telMic()
+                        : window.MeshChatXAndroid.isNativePcmAudioAvailable?.() === true;
+                if (!micOk) {
+                    await this.disableWebAudioBridgeWithError(
+                        "call.microphone_permission_denied",
+                        new Error("RECORD_AUDIO not granted"),
+                        "start-android-perm"
+                    );
+                    return;
+                }
+                const ret = window.MeshChatXAndroid.startTelephoneNativeAudio();
+                if (ret !== "ok") {
+                    await this.disableWebAudioBridgeWithError(
+                        "call.web_audio_not_available",
+                        new Error(String(ret || "native start")),
+                        "start-android"
+                    );
+                    return;
+                }
+                this._bindAndroidNativeTelephone();
+                this.useAndroidNativeTelephone = true;
                 return;
             }
             if (this.audioWs && this.audioWs.readyState === WebSocket.OPEN) {
@@ -2563,35 +2611,84 @@ export default {
                 const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
                 const url = `${wsProtocol}//${window.location.host}/ws/telephone/audio`;
 
-                if (!this.audioCtx.audioWorklet || typeof this.audioCtx.audioWorklet.addModule !== "function") {
-                    await this.disableWebAudioBridgeWithError(
-                        "call.web_audio_not_available",
-                        new Error("AudioWorklet is unavailable in this browser"),
-                        "start-preflight-audio-worklet"
-                    );
-                    return;
-                }
-                await this.audioCtx.audioWorklet.addModule(telephonePcmCaptureWorkletUrl);
-                const processor = new AudioWorkletNode(this.audioCtx, "telephone-pcm-capture", {
-                    numberOfInputs: 1,
-                    numberOfOutputs: 1,
-                    channelCount: 1,
-                });
-                processor.port.onmessage = (event) => {
+                const sendMicPcmToWs = (arrayBuffer) => {
                     if (!this.audioWs || this.audioWs.readyState !== WebSocket.OPEN) {
                         return;
                     }
-                    const data = event.data;
-                    if (data && data.byteLength > 0) {
-                        this.audioWs.send(data);
+                    if (arrayBuffer && arrayBuffer.byteLength > 0) {
+                        this.audioWs.send(arrayBuffer);
                     }
                 };
-                source.connect(processor);
-                this.audioWorkletNode = processor;
+
+                const floatChannelToInt16PcmBuffer = (ch0) => {
+                    const pcm = new Int16Array(ch0.length);
+                    for (let i = 0; i < ch0.length; i += 1) {
+                        const s = ch0[i];
+                        pcm[i] = Math.max(-1, Math.min(1, s)) * 0x7fff;
+                    }
+                    return pcm.buffer;
+                };
+
+                let micTapNode = null;
+
+                if (
+                    globalThis.isSecureContext !== false &&
+                    this.audioCtx.audioWorklet &&
+                    typeof this.audioCtx.audioWorklet.addModule === "function"
+                ) {
+                    try {
+                        await this.audioCtx.audioWorklet.addModule(telephonePcmCaptureWorkletUrl);
+                        const processor = new AudioWorkletNode(this.audioCtx, "telephone-pcm-capture", {
+                            numberOfInputs: 1,
+                            numberOfOutputs: 1,
+                            channelCount: 1,
+                        });
+                        processor.port.onmessage = (event) => {
+                            sendMicPcmToWs(event.data);
+                        };
+                        source.connect(processor);
+                        this.audioWorkletNode = processor;
+                        micTapNode = processor;
+                    } catch (workletErr) {
+                        this.logWebAudioFailure("telephone-worklet-add", workletErr);
+                    }
+                }
+
+                if (!micTapNode) {
+                    if (typeof this.audioCtx.createScriptProcessor !== "function") {
+                        await this.disableWebAudioBridgeWithError(
+                            "call.web_audio_not_available",
+                            new Error("AudioWorklet and ScriptProcessor capture are unavailable"),
+                            "start-preflight-audio-capture"
+                        );
+                        return;
+                    }
+                    try {
+                        const scriptNode = this.audioCtx.createScriptProcessor(4096, 1, 1);
+                        scriptNode.onaudioprocess = (e) => {
+                            const ch0 = e.inputBuffer.getChannelData(0);
+                            if (!ch0 || ch0.length === 0) {
+                                return;
+                            }
+                            sendMicPcmToWs(floatChannelToInt16PcmBuffer(ch0));
+                        };
+                        source.connect(scriptNode);
+                        this.audioProcessor = scriptNode;
+                        micTapNode = scriptNode;
+                    } catch (scriptErr) {
+                        await this.disableWebAudioBridgeWithError(
+                            "call.web_audio_not_available",
+                            scriptErr,
+                            "start-preflight-script-processor"
+                        );
+                        return;
+                    }
+                }
+
                 const silentGain = this.audioCtx.createGain();
                 silentGain.gain.value = 0;
                 this.audioSilentGain = silentGain;
-                processor.connect(silentGain);
+                micTapNode.connect(silentGain);
                 silentGain.connect(this.audioCtx.destination);
 
                 const ws = new WebSocket(url);
@@ -2648,6 +2745,15 @@ export default {
         },
         async requestAudioPermission() {
             try {
+                if (this.isMeshChatXAndroid()) {
+                    const tel = window.MeshChatXAndroid?.isTelephoneNativeAudioAvailable;
+                    if (typeof tel === "function" && tel()) {
+                        return true;
+                    }
+                    if (window.MeshChatXAndroid?.isNativePcmAudioAvailable?.()) {
+                        return true;
+                    }
+                }
                 const mediaDevices = this.getMediaDevicesApi();
                 if (!mediaDevices) {
                     throw new Error("navigator.mediaDevices is unavailable");
@@ -2762,7 +2868,34 @@ export default {
                 bufferSource.start();
             }
         },
+        _bindAndroidNativeTelephone() {
+            this._unbindAndroidNativeTelephone();
+            this.androidNativeTelephoneListener = (ev) => {
+                const d = ev && ev.detail;
+                if (d && d.kind === "error" && d.detail) {
+                    this.logWebAudioFailure("android-native", new Error(String(d.sub || d.detail || "error")));
+                }
+            };
+            window.addEventListener("meshchatx-native-telephone-audio", this.androidNativeTelephoneListener);
+        },
+        _unbindAndroidNativeTelephone() {
+            if (this.androidNativeTelephoneListener) {
+                window.removeEventListener("meshchatx-native-telephone-audio", this.androidNativeTelephoneListener);
+                this.androidNativeTelephoneListener = null;
+            }
+        },
         stopWebAudio() {
+            if (this.useAndroidNativeTelephone) {
+                this._unbindAndroidNativeTelephone();
+                this.useAndroidNativeTelephone = false;
+                try {
+                    if (window.MeshChatXAndroid?.stopTelephoneNativeAudio) {
+                        window.MeshChatXAndroid.stopTelephoneNativeAudio();
+                    }
+                } catch (e) {
+                    this.logWebAudioFailure("android-native-stop", e);
+                }
+            }
             const ws = this.audioWs;
             this.audioWs = null;
             if (ws) {

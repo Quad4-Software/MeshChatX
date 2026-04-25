@@ -1737,6 +1737,14 @@ export default {
                 if (!normalizedUrl) {
                     return;
                 }
+                if (/^meshchatx:\/\/app\/messages\/?/i.test(normalizedUrl)) {
+                    this.$router.push({ name: "messages" });
+                    return;
+                }
+                if (/^meshchatx:\/\/app\/call\/?/i.test(normalizedUrl)) {
+                    this.$router.push({ name: "call", query: { tab: "phone" } });
+                    return;
+                }
                 if (/^(meshchatx|meshchat):\/\/map\b/i.test(normalizedUrl)) {
                     WebSocketConnection.send(
                         JSON.stringify({
