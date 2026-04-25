@@ -13,6 +13,7 @@ This project is independent from the original Reticulum MeshChat project and is 
 - Changelog: [`CHANGELOG.md`](CHANGELOG.md)
 
 rngit: `git clone rns://926baefe13daf5178c174f158dae1b45/quad4/MeshChatX`
+
 NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
 
 ## Important Changes from Reticulum MeshChat
