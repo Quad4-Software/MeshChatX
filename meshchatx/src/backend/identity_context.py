@@ -460,6 +460,19 @@ class IdentityContext:
                     )
                 ),
             ),
+            AnnounceHandler(
+                "git.repositories",
+                lambda aspect, dh, ai, ad, aph: (
+                    self.app.on_rngit_repositories_announce_received(
+                        aspect,
+                        dh,
+                        ai,
+                        ad,
+                        aph,
+                        context=self,
+                    )
+                ),
+            ),
         ]
         for handler in handlers:
             RNS.Transport.register_announce_handler(handler)

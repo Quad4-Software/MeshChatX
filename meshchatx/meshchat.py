@@ -123,6 +123,7 @@ from meshchatx.src.backend.nomadnet_utils import (
 from meshchatx.src.backend.page_node_manager import PageNodeManager
 from meshchatx.src.backend.persistent_log_handler import PersistentLogHandler
 from meshchatx.src.backend.recovery import CrashRecovery, HealthMonitor
+import meshchatx.src.backend.rngit_tool as rngit_tool
 from meshchatx.src.backend.rnprobe_handler import RNProbeHandler
 from meshchatx.src.backend.sideband_commands import SidebandCommands
 from meshchatx.src.backend.sticker_utils import (
@@ -133,6 +134,7 @@ from meshchatx.src.backend.sticker_utils import (
     validate_export_document,
 )
 from meshchatx.src.backend.telemetry_utils import Telemeter
+from meshchatx.android_push_bridge import _is_chaquopy_android
 from meshchatx.src.backend.web_audio_bridge import WebAudioBridge
 from meshchatx.src.env_utils import env_bool
 from meshchatx.src.path_utils import (
@@ -144,6 +146,15 @@ from meshchatx.src.path_utils import (
 )
 from meshchatx.src.ssl_self_signed import generate_ssl_certificate
 from meshchatx.src.version import __version__ as app_version
+
+
+def _truncated_hash32_hex_ok(value: str | None) -> bool:
+    """32 lowercase hex chars (Reticulum truncated hash) without relying on live RNS constants."""
+    n = normalize_hex_identifier(value or "")
+    if len(n) != 32:
+        return False
+    return hex_identifier_to_bytes(n) is not None
+
 
 # Global log handler
 memory_log_handler = PersistentLogHandler()
@@ -2862,11 +2873,15 @@ class ReticulumMeshChat:
         self.voicemail_manager.handle_incoming_call(caller_identity)
 
         print(f"on_incoming_telephone_call: {caller_identity.hash.hex()}")
+        ch = caller_identity.hash.hex()
+        caller_name = (self.get_name_for_identity_hash(ch) or "").strip() or "Mesh"
         AsyncUtils.run_async(
             self.websocket_broadcast(
                 json.dumps(
                     {
                         "type": "telephone_ringing",
+                        "remote_identity_hash": ch,
+                        "remote_identity_name": caller_name,
                     },
                 ),
             ),
@@ -4506,7 +4521,11 @@ class ReticulumMeshChat:
 
                 # set required RNodeInterface options
                 interface_details["port"] = interface_port
-                interface_details["frequency"] = interface_frequency
+                interface_details["frequency"] = (
+                    InterfaceEditor.coerce_rnode_frequency_hz(
+                        interface_frequency,
+                    )
+                )
                 interface_details["bandwidth"] = interface_bandwidth
                 interface_details["txpower"] = interface_txpower
                 interface_details["spreadingfactor"] = interface_spreadingfactor
@@ -4595,7 +4614,9 @@ class ReticulumMeshChat:
                     sub_interface_name = sub_interface.get("name")
                     interface_details[sub_interface_name] = {
                         "interface_enabled": "true",
-                        "frequency": int(sub_interface["frequency"]),
+                        "frequency": InterfaceEditor.coerce_rnode_frequency_hz(
+                            sub_interface["frequency"],
+                        ),
                         "bandwidth": int(sub_interface["bandwidth"]),
                         "txpower": int(sub_interface["txpower"]),
                         "spreadingfactor": int(sub_interface["spreadingfactor"]),
@@ -4853,6 +4874,23 @@ class ReticulumMeshChat:
                     if "enabled" in interface_config[interface_name]:
                         del interface_config[interface_name]["enabled"]
 
+                    iface_body = interface_config[interface_name]
+                    iface_type = iface_body.get("type")
+                    if iface_type in ("RNodeInterface", "RNodeIPInterface"):
+                        freq = iface_body.get("frequency")
+                        if freq is not None and freq != "":
+                            iface_body["frequency"] = (
+                                InterfaceEditor.coerce_rnode_frequency_hz(freq)
+                            )
+                    elif iface_type == "RNodeMultiInterface":
+                        for _sub_key, sub in list(iface_body.items()):
+                            if isinstance(sub, dict):
+                                freq = sub.get("frequency")
+                                if freq is not None and freq != "":
+                                    sub["frequency"] = (
+                                        InterfaceEditor.coerce_rnode_frequency_hz(freq)
+                                    )
+
                 # update reticulum config with new interfaces
                 interfaces = self._get_interfaces_section()
                 interfaces.update(interface_config)
@@ -4921,8 +4959,11 @@ class ReticulumMeshChat:
             )
             await websocket_response.prepare(request)
 
-            # Early guard on config
-            if not self.web_audio_bridge.config_enabled():
+            # Chaquopy Android has no LXST host audio device; always allow the websocket bridge.
+            web_audio_allowed = (
+                self.web_audio_bridge.config_enabled() or _is_chaquopy_android()
+            )
+            if not web_audio_allowed:
                 await websocket_response.send_str(
                     json.dumps(
                         {"type": "error", "message": "Web audio is disabled in config"},
@@ -6618,7 +6659,8 @@ class ReticulumMeshChat:
                             self.config.telephone_web_audio_enabled,
                             "get",
                             lambda: False,
-                        )(),
+                        )()
+                        or _is_chaquopy_android(),
                         "allow_fallback": getattr(
                             self.config.telephone_web_audio_allow_fallback,
                             "get",
@@ -7670,8 +7712,8 @@ class ReticulumMeshChat:
                 for row in db_custom_names:
                     custom_names[row["destination_hash"]] = row["display_name"]
 
-                # If we're looking for telephony announces, pre-fetch LXMF announces for the same identities
-                if aspect == "lxst.telephony":
+                # Pre-fetch LXMF display names by identity (telephony + rngit heard list).
+                if aspect in ("lxst.telephony", rngit_tool.RNGIT_ANNOUNCE_ASPECT):
                     identity_hashes = list(
                         {r["identity_hash"] for r in results if r.get("identity_hash")},
                     )
@@ -7716,6 +7758,14 @@ class ReticulumMeshChat:
                         display_name = lxmf_names_for_telephony.get(
                             announce["identity_hash"],
                         )
+                elif announce["aspect"] == rngit_tool.RNGIT_ANNOUNCE_ASPECT:
+                    display_name = rngit_tool.display_name_from_rngit_app_data(
+                        announce.get("app_data"),
+                    )
+                    if not display_name or display_name == "Anonymous Peer":
+                        cand = lxmf_names_for_telephony.get(announce["identity_hash"])
+                        if cand and cand != "Anonymous Peer":
+                            display_name = cand
 
                 if not display_name or display_name == "Anonymous Peer":
                     if is_local and self.current_context:
@@ -8718,6 +8768,70 @@ class ReticulumMeshChat:
             except Exception as e:
                 return web.json_response({"message": str(e)}, status=500)
 
+        @routes.post("/api/v1/rngit-tool/probe")
+        async def rngit_tool_probe(request):
+            if not getattr(self, "reticulum", None) or not self.current_context:
+                return web.json_response(
+                    {"message": "Reticulum not ready"},
+                    status=503,
+                )
+            try:
+                data = await request.json()
+            except Exception:
+                return web.json_response({"message": "Invalid JSON"}, status=400)
+
+            destination_hash_str = (data.get("destination_hash") or "").strip()
+            group_name = (data.get("group_name") or "").strip()
+            raw_names = data.get("repository_names")
+            if isinstance(raw_names, list):
+                name_list = [str(x).strip() for x in raw_names if str(x).strip()]
+            else:
+                text = (data.get("repository_names_text") or raw_names or "").strip()
+                name_list = rngit_tool.parse_repository_name_lines(text)
+
+            path_timeout = data.get("path_timeout")
+            link_timeout = data.get("link_timeout")
+            list_timeout = data.get("list_timeout")
+            for_push = bool(data.get("for_push", False))
+
+            try:
+                pto = float(path_timeout) if path_timeout is not None else None
+            except (TypeError, ValueError):
+                pto = None
+            try:
+                lto = float(link_timeout) if link_timeout is not None else None
+            except (TypeError, ValueError):
+                lto = None
+            try:
+                rto = float(list_timeout) if list_timeout is not None else None
+            except (TypeError, ValueError):
+                rto = None
+
+            result = await rngit_tool.probe_repositories(
+                self.current_context.identity,
+                destination_hash_str,
+                group_name,
+                name_list,
+                path_timeout=pto,
+                link_timeout=lto,
+                list_timeout=rto,
+                for_push=for_push,
+            )
+            if not result.get("ok"):
+                err = result.get("error", "unknown")
+                status = (
+                    400
+                    if err
+                    in (
+                        "invalid_destination_hash",
+                        "invalid_group_name",
+                        "no_repository_names",
+                    )
+                    else 502
+                )
+                return web.json_response(result, status=status)
+            return web.json_response(result)
+
         # --- Page Node API ---
 
         @routes.get("/api/v1/page-nodes")
@@ -9377,6 +9491,9 @@ class ReticulumMeshChat:
                     destination_hash,
                     display_name,
                 )
+                self.websocket_rebroadcast_rngit_after_custom_destination_display_name_change(
+                    destination_hash,
+                )
                 return web.json_response(
                     {
                         "message": "Custom display name has been updated",
@@ -9385,6 +9502,9 @@ class ReticulumMeshChat:
 
             # otherwise remove display name
             self.database.announces.delete_custom_display_name(destination_hash)
+            self.websocket_rebroadcast_rngit_after_custom_destination_display_name_change(
+                destination_hash,
+            )
             return web.json_response(
                 {
                     "message": "Custom display name has been removed",
@@ -13927,6 +14047,10 @@ class ReticulumMeshChat:
             )
         elif announce["aspect"] == "lxst.telephony":
             display_name = parse_lxmf_display_name(announce["app_data"])
+        elif announce["aspect"] == rngit_tool.RNGIT_ANNOUNCE_ASPECT:
+            display_name = rngit_tool.display_name_from_rngit_app_data(
+                announce.get("app_data")
+            )
 
         # Try to find associated LXMF destination hash if this is a telephony announce
         lxmf_destination_hash = None
@@ -13970,6 +14094,38 @@ class ReticulumMeshChat:
                             pass
                 except Exception:
                     pass
+
+        if (
+            announce.get("aspect") == rngit_tool.RNGIT_ANNOUNCE_ASPECT
+            and announce.get("identity_hash")
+            and (not display_name or display_name == "Anonymous Peer")
+        ):
+            lxmf_announces = self.database.announces.get_filtered_announces(
+                aspect="lxmf.delivery",
+                search_term=announce["identity_hash"],
+            )
+            if lxmf_announces:
+                for lxmf_a in lxmf_announces:
+                    if lxmf_a["identity_hash"] == announce["identity_hash"]:
+                        cand = parse_lxmf_display_name(lxmf_a["app_data"])
+                        if cand and cand != "Anonymous Peer":
+                            display_name = cand
+                        break
+
+        if not display_name or display_name == "Anonymous Peer":
+            is_local = (
+                self.current_context
+                and announce.get("identity_hash") == self.current_context.identity_hash
+            )
+            if is_local and self.current_context:
+                display_name = self.current_context.config.display_name.get()
+            elif announce.get("identity_hash"):
+                display_name = (
+                    self.get_name_for_identity_hash(announce["identity_hash"])
+                    or "Anonymous Peer"
+                )
+            else:
+                display_name = "Anonymous Peer"
 
         # find lxmf user icon from database
         lxmf_user_icon = None
@@ -15486,6 +15642,11 @@ class ReticulumMeshChat:
             ),
         )
 
+        self.websocket_rebroadcast_rngit_for_identity_hashes(
+            {identity_hash},
+            context=ctx,
+        )
+
         # resend all failed messages that were intended for this destination
         if ctx.config.auto_resend_failed_messages_when_announce_received.get():
             AsyncUtils.run_async(
@@ -15634,6 +15795,137 @@ class ReticulumMeshChat:
 
             except Exception as e:
                 print("Error resending failed message: " + str(e))
+
+    def websocket_rebroadcast_rngit_for_identity_hashes(
+        self,
+        identity_hashes: set[str] | list[str] | None,
+        context=None,
+    ):
+        """Push stored ``git.repositories`` rows again so UIs pick up new derived display names."""
+        ctx = context or self.current_context
+        if not ctx or not ctx.database or not identity_hashes:
+            return
+        seen_dest: set[str] = set()
+        for raw_ih in identity_hashes:
+            if not raw_ih:
+                continue
+            ih = normalize_hex_identifier(raw_ih)
+            if not _truncated_hash32_hex_ok(ih):
+                continue
+            rows = ctx.database.announces.get_filtered_announces(
+                aspect=rngit_tool.RNGIT_ANNOUNCE_ASPECT,
+                identity_hash=ih,
+                limit=500,
+                offset=0,
+            )
+            for row in rows:
+                dh = row.get("destination_hash")
+                if not dh or dh in seen_dest:
+                    continue
+                seen_dest.add(dh)
+                announce = ctx.database.announces.get_announce_by_hash(dh)
+                if not announce:
+                    continue
+                ad = dict(announce) if not isinstance(announce, dict) else announce
+                AsyncUtils.run_async(
+                    self.websocket_broadcast(
+                        json.dumps(
+                            {
+                                "type": "announce",
+                                "announce": self.convert_db_announce_to_dict(ad),
+                            },
+                        ),
+                    ),
+                )
+
+    def websocket_rebroadcast_rngit_after_custom_destination_display_name_change(
+        self,
+        destination_hash_raw: str,
+        context=None,
+    ):
+        """Re-send rngit rows when a custom name is set on the rngit hash or the peer's LXMF hash."""
+        ctx = context or self.current_context
+        if not ctx or not ctx.database:
+            return
+        dh = normalize_hex_identifier(destination_hash_raw)
+        if not _truncated_hash32_hex_ok(dh):
+            return
+        row = ctx.database.announces.get_announce_by_hash(dh)
+        if not row:
+            return
+        rd = dict(row) if not isinstance(row, dict) else row
+        aspect = rd.get("aspect")
+        if aspect == rngit_tool.RNGIT_ANNOUNCE_ASPECT:
+            AsyncUtils.run_async(
+                self.websocket_broadcast(
+                    json.dumps(
+                        {
+                            "type": "announce",
+                            "announce": self.convert_db_announce_to_dict(rd),
+                        },
+                    ),
+                ),
+            )
+        elif aspect == "lxmf.delivery":
+            ih = rd.get("identity_hash")
+            if ih:
+                self.websocket_rebroadcast_rngit_for_identity_hashes(
+                    {ih},
+                    context=ctx,
+                )
+
+    def on_rngit_repositories_announce_received(
+        self,
+        aspect,
+        destination_hash,
+        announced_identity,
+        app_data,
+        announce_packet_hash,
+        context=None,
+    ):
+        """Handle rngit ``git.repositories`` announces (same storage path as other aspects)."""
+        ctx = context or self.current_context
+        if not ctx or not ctx.running or not ctx.announce_manager or not ctx.database:
+            return
+
+        identity_hash = announced_identity.hash.hex()
+        if self.is_destination_blocked(identity_hash, context=ctx):
+            print(f"Dropping rngit announce from blocked source: {identity_hash}")
+            if hasattr(self, "reticulum") and self.reticulum:
+                self.reticulum.drop_path(destination_hash)
+            return
+
+        print(
+            "Received an announce from "
+            + RNS.prettyhexrep(destination_hash)
+            + " for [git.repositories]",
+        )
+
+        self.announce_timestamps.append(time.time())
+
+        ctx.announce_manager.upsert_announce(
+            self.reticulum,
+            announced_identity,
+            destination_hash,
+            aspect,
+            app_data,
+            announce_packet_hash,
+        )
+
+        announce = ctx.database.announces.get_announce_by_hash(destination_hash.hex())
+        if not announce:
+            return
+
+        AsyncUtils.run_async(
+            self.websocket_broadcast(
+                json.dumps(
+                    {
+                        "type": "announce",
+                        "announce": self.convert_db_announce_to_dict(announce),
+                    },
+                ),
+            ),
+        )
 
     def on_nomadnet_node_announce_received(
         self,
