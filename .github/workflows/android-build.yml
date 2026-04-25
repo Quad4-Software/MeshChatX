@@ -230,6 +230,13 @@ jobs:
                   chmod +x gradlew
                   ./gradlew --no-daemon :app:testDebugUnitTest
 
+            - name: Run Android Lint
+              if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_tests }}
+              working-directory: android
+              run: |
+                  chmod +x gradlew
+                  ./gradlew --no-daemon :app:lintDebug
+
             - name: Build debug APK
               if: ${{ github.ref_type != 'tag' || steps.track.outputs.track != 'master' }}
               working-directory: android
@@ -282,6 +289,8 @@ jobs:
                   path: |
                       android/app/build/reports/tests/
                       android/app/build/test-results/
+                      android/app/build/reports/lint-results-debug.html
+                      android/app/build/reports/lint-results-debug.xml
                   if-no-files-found: warn
 
             - name: Upload release APK
