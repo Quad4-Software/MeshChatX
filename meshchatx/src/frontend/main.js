@@ -145,6 +145,11 @@ const router = createRouter({
             component: defineAsyncComponent(() => import("./components/rncp/RNCPPage.vue")),
         },
         {
+            name: "rngit-explorer",
+            path: "/tools/rngit-explorer",
+            component: defineAsyncComponent(() => import("./components/tools/RNGitExplorerPage.vue")),
+        },
+        {
             name: "rnstatus",
             path: "/rnstatus",
             component: defineAsyncComponent(() => import("./components/rnstatus/RNStatusPage.vue")),

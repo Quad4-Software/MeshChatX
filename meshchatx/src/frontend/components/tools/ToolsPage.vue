@@ -151,6 +151,14 @@ export default {
                     descriptionKey: "tools.rncp.description",
                 },
                 {
+                    name: "rngit-explorer",
+                    route: { name: "rngit-explorer" },
+                    icon: "source-branch",
+                    iconBg: "tool-card__icon bg-teal-50 text-teal-600 dark:bg-teal-900/30 dark:text-teal-200",
+                    titleKey: "tools.rngit_explorer.title",
+                    descriptionKey: "tools.rngit_explorer.description",
+                },
+                {
                     name: "rnstatus",
                     route: { name: "rnstatus" },
                     icon: "chart-line",

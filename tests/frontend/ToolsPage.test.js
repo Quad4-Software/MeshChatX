@@ -10,6 +10,7 @@ describe("ToolsPage.vue", () => {
             { path: "/ping", name: "ping", component: { template: "div" } },
             { path: "/rnprobe", name: "rnprobe", component: { template: "div" } },
             { path: "/rncp", name: "rncp", component: { template: "div" } },
+            { path: "/tools/rngit-explorer", name: "rngit-explorer", component: { template: "div" } },
             { path: "/rnstatus", name: "rnstatus", component: { template: "div" } },
             { path: "/rnpath", name: "rnpath", component: { template: "div" } },
             { path: "/rnpath-trace", name: "rnpath-trace", component: { template: "div" } },
@@ -55,7 +56,7 @@ describe("ToolsPage.vue", () => {
     it("renders all tool rows", () => {
         const wrapper = mountToolsPage();
         const toolRows = wrapper.findAll(".tool-row");
-        expect(toolRows.length).toBe(21);
+        expect(toolRows.length).toBe(22);
     });
 
     it("filters tools based on search query", async () => {
@@ -80,6 +81,6 @@ describe("ToolsPage.vue", () => {
         await clearButton.trigger("click");
 
         expect(wrapper.vm.searchQuery).toBe("");
-        expect(wrapper.vm.filteredTools.length).toBe(21);
+        expect(wrapper.vm.filteredTools.length).toBe(22);
     });
 });

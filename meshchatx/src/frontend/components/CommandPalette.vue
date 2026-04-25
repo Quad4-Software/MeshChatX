@@ -210,6 +210,14 @@ export default {
                     route: { name: "rncp" },
                 },
                 {
+                    id: "nav-rngit-explorer",
+                    title: "nav_rngit_explorer",
+                    description: "nav_rngit_explorer_desc",
+                    icon: "source-branch",
+                    type: "navigation",
+                    route: { name: "rngit-explorer" },
+                },
+                {
                     id: "nav-rnstatus",
                     title: "nav_rnstatus",
                     description: "nav_rnstatus_desc",
