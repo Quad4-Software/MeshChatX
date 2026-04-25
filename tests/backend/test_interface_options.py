@@ -357,6 +357,27 @@ async def test_rnode_persists_flow_control_and_id_callsign(temp_dir):
 
 
 @pytest.mark.asyncio
+async def test_rnode_frequency_mhz_decimal_normalized_to_hz(temp_dir):
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    async with make_app(temp_dir, config) as handler:
+        payload = {
+            "name": "RadioEU",
+            "type": "RNodeInterface",
+            "port": "/dev/ttyUSB0",
+            "frequency": 868.825,
+            "bandwidth": 125000,
+            "txpower": 7,
+            "spreadingfactor": 8,
+            "codingrate": 5,
+        }
+        response = await handler(make_request(payload))
+        body = json.loads(response.body)
+        assert response.status == 200, body
+        assert config["interfaces"]["RadioEU"]["frequency"] == 868825000
+
+
+@pytest.mark.asyncio
 async def test_kiss_persists_full_serial_options(temp_dir):
     config = ConfigDict({"reticulum": {}, "interfaces": {}})
 

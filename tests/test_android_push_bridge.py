@@ -215,6 +215,66 @@ def test_after_websocket_broadcast_skips_when_notification_text_none(monkeypatch
     assert calls == []
 
 
+def test_after_websocket_broadcast_incoming_call(monkeypatch):
+    inc = []
+    cancel = []
+    monkeypatch.setattr(
+        android_push_bridge, "_notify_incoming_call_java", lambda *a: inc.append(a)
+    )
+    monkeypatch.setattr(
+        android_push_bridge,
+        "_cancel_incoming_call_notification_java",
+        lambda: cancel.append(1),
+    )
+    android_push_bridge._after_websocket_broadcast(
+        json.dumps(
+            {
+                "type": "telephone_ringing",
+                "remote_identity_hash": "aabbccdd",
+                "remote_identity_name": "Zed",
+            },
+        ),
+    )
+    assert inc == [("Zed", "aabbccdd")]
+    assert cancel == []
+
+
+def test_after_websocket_broadcast_call_ended_cancels(monkeypatch):
+    calls = []
+    cancel = []
+    monkeypatch.setattr(android_push_bridge, "_notify_java", lambda *a: calls.append(a))
+    monkeypatch.setattr(
+        android_push_bridge,
+        "_cancel_incoming_call_notification_java",
+        lambda: cancel.append(1),
+    )
+    android_push_bridge._after_websocket_broadcast(
+        json.dumps({"type": "telephone_call_ended"})
+    )
+    assert calls == []
+    assert cancel == [1]
+
+
+def test_after_websocket_broadcast_missed_call(monkeypatch):
+    miss = []
+    monkeypatch.setattr(
+        android_push_bridge, "_notify_missed_call_java", lambda *a: miss.append(a)
+    )
+    android_push_bridge._after_websocket_broadcast(
+        json.dumps(
+            {
+                "type": "telephone_missed_call",
+                "remote_identity_hash": "00112233",
+                "remote_identity_name": "Mara",
+            },
+        ),
+    )
+    assert len(miss) == 1
+    assert miss[0][0] == "Missed call"
+    assert "Mara" in miss[0][1]
+    assert miss[0][2] == "00112233"
+
+
 def test_after_websocket_broadcast_notifies_with_dedupe(monkeypatch):
     calls = []
     monkeypatch.setattr(android_push_bridge, "_notify_java", lambda *a: calls.append(a))

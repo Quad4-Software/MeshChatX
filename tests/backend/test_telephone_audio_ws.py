@@ -49,6 +49,37 @@ async def test_telephone_audio_ws_disabled_config_returns_error(web_audio_app):
 
 
 @pytest.mark.asyncio
+async def test_telephone_audio_ws_allowed_on_chaquopy_when_config_disabled(
+    web_audio_app, monkeypatch
+):
+    monkeypatch.setattr("meshchatx.meshchat._is_chaquopy_android", lambda: True)
+
+    async def send_ready(ws):
+        await ws.send_str(json.dumps({"type": "web_audio.ready", "frame_ms": 60}))
+
+    bridge = MagicMock()
+    bridge.config_enabled.return_value = False
+    bridge.send_status = AsyncMock(side_effect=send_ready)
+    bridge.attach_client.return_value = False
+    bridge.detach_client = MagicMock()
+    bridge.push_client_frame = MagicMock()
+    web_audio_app.web_audio_bridge = bridge
+
+    aio_app = _build_aio_app(web_audio_app)
+    async with TestClient(TestServer(aio_app)) as client:
+        ws = await client.ws_connect("/ws/telephone/audio")
+        msg1 = await ws.receive_json()
+        msg2 = await ws.receive_json()
+        await ws.close()
+
+    assert msg1["type"] == "web_audio.ready"
+    assert msg2["type"] == "error"
+    assert "disabled" not in msg2.get("message", "").lower()
+    bridge.send_status.assert_called_once()
+    bridge.detach_client.assert_called_once()
+
+
+@pytest.mark.asyncio
 async def test_telephone_audio_ws_no_active_call_reports_attach_error(web_audio_app):
     async def send_ready(ws):
         await ws.send_str(json.dumps({"type": "web_audio.ready", "frame_ms": 60}))

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import MicrophoneRecorder from "@/js/MicrophoneRecorder";
 
-function installFakeAudioContext({ sampleRate = 48000 } = {}) {
+function installFakeAudioContext({ sampleRate = 48000, withScriptProcessor = false } = {}) {
     const workletNode = {
         port: {
             onmessage: null,
@@ -18,6 +18,9 @@ function installFakeAudioContext({ sampleRate = 48000 } = {}) {
         connect: vi.fn(),
         disconnect: vi.fn(),
     };
+    const scriptProcessorNode = withScriptProcessor
+        ? { connect: vi.fn(), disconnect: vi.fn(), onaudioprocess: null }
+        : null;
     const ctx = {
         sampleRate,
         destination: {},
@@ -29,6 +32,9 @@ function installFakeAudioContext({ sampleRate = 48000 } = {}) {
             addModule: vi.fn().mockResolvedValue(undefined),
         },
     };
+    if (withScriptProcessor) {
+        ctx.createScriptProcessor = vi.fn(() => scriptProcessorNode);
+    }
     const original = globalThis.AudioContext;
     const originalAWN = globalThis.AudioWorkletNode;
     globalThis.AudioContext = vi.fn(function FakeAudioContext() {
@@ -42,6 +48,7 @@ function installFakeAudioContext({ sampleRate = 48000 } = {}) {
         workletNode,
         gainNode,
         sourceNode,
+        scriptProcessorNode,
         restore() {
             if (typeof original === "undefined") {
                 Reflect.deleteProperty(globalThis, "AudioContext");
@@ -75,6 +82,7 @@ function installMediaDevices(getUserMedia) {
 describe("MicrophoneRecorder", () => {
     afterEach(() => {
         vi.restoreAllMocks();
+        vi.unstubAllGlobals();
     });
 
     it("returns false when mediaDevices API is unavailable", async () => {
@@ -171,6 +179,43 @@ describe("MicrophoneRecorder", () => {
             expect(buffer.byteLength).toBe(44 + frame.length * 2);
             expect(stopTrack).toHaveBeenCalledTimes(1);
             expect(audio.ctx.close).toHaveBeenCalledTimes(1);
+        } finally {
+            audio.restore();
+            restoreMedia();
+        }
+    });
+
+    it("captures via ScriptProcessor when not in a secure context", async () => {
+        vi.stubGlobal("isSecureContext", false);
+        const stopTrack = vi.fn();
+        const getUserMedia = vi.fn().mockResolvedValue({
+            getTracks: () => [{ stop: stopTrack }],
+        });
+        const restoreMedia = installMediaDevices(getUserMedia);
+        const audio = installFakeAudioContext({ sampleRate: 48000, withScriptProcessor: true });
+
+        try {
+            const recorder = new MicrophoneRecorder();
+            await expect(recorder.start()).resolves.toBe(true);
+
+            expect(audio.ctx.audioWorklet.addModule).not.toHaveBeenCalled();
+            expect(audio.ctx.createScriptProcessor).toHaveBeenCalledWith(4096, 1, 1);
+            expect(audio.sourceNode.connect).toHaveBeenCalledWith(audio.scriptProcessorNode);
+            expect(audio.scriptProcessorNode.connect).toHaveBeenCalledWith(audio.gainNode);
+
+            const frame = new Float32Array(256);
+            for (let i = 0; i < frame.length; i++) {
+                frame[i] = 0.25;
+            }
+            expect(typeof audio.scriptProcessorNode.onaudioprocess).toBe("function");
+            audio.scriptProcessorNode.onaudioprocess({
+                inputBuffer: { getChannelData: () => frame },
+            });
+
+            const blob = await recorder.stop();
+            expect(blob.type).toBe("audio/wav");
+            const buffer = await blob.arrayBuffer();
+            expect(buffer.byteLength).toBe(44 + frame.length * 2);
         } finally {
             audio.restore();
             restoreMedia();

@@ -194,6 +194,10 @@ describe("Utils.js", () => {
         it("formats kHz correctly", () => {
             expect(Utils.formatFrequency(1000)).toBe("1 kHz");
         });
+
+        it("rounds near-integer Hz before scaling to avoid float MHz noise", () => {
+            expect(Utils.formatFrequency(868824999.9999999)).toBe("868.825 MHz");
+        });
     });
 
     describe("isInterfaceEnabled", () => {

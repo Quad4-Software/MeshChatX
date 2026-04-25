@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { numOrNull } from "../../meshchatx/src/frontend/js/interfaceDiscoveryUtils.js";
+import { numOrNull, parseRNodeFrequencyHz } from "../../meshchatx/src/frontend/js/interfaceDiscoveryUtils.js";
 
 describe("interfaceDiscoveryUtils numOrNull", () => {
     it("treats empty and invalid as null", () => {
@@ -24,5 +24,27 @@ describe("interfaceDiscoveryUtils numOrNull", () => {
             const x = (Math.random() - 0.5) * 360;
             expect(numOrNull(x)).toBeCloseTo(x, 10);
         }
+    });
+});
+
+describe("interfaceDiscoveryUtils parseRNodeFrequencyHz", () => {
+    it("normalizes MHz-style decimals to integer Hz", () => {
+        expect(parseRNodeFrequencyHz(868.825)).toBe(868825000);
+        expect(parseRNodeFrequencyHz("868.825000000")).toBe(868825000);
+        expect(parseRNodeFrequencyHz("868.825000000 MHz")).toBe(868825000);
+    });
+
+    it("preserves full Hz values", () => {
+        expect(parseRNodeFrequencyHz(868825000)).toBe(868825000);
+        expect(parseRNodeFrequencyHz("868825000")).toBe(868825000);
+    });
+
+    it("maps small integer MHz (433, 868)", () => {
+        expect(parseRNodeFrequencyHz(433)).toBe(433000000);
+        expect(parseRNodeFrequencyHz(868)).toBe(868000000);
+    });
+
+    it("does not scale ambiguous midrange integers", () => {
+        expect(parseRNodeFrequencyHz(125000)).toBe(125000);
     });
 });

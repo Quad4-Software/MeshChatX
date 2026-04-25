@@ -231,13 +231,35 @@ describe("CallPage.vue", () => {
         });
     });
 
-    it("ensureWebAudio stops when web audio bridge disabled", async () => {
+    it("ensureWebAudio stops when server reports web audio disabled", async () => {
+        const wrapper = mountCallPage();
+        await wrapper.vm.$nextTick();
+        wrapper.vm.config = { telephone_web_audio_enabled: true };
+        wrapper.vm.activeCall = { status: 6 };
+        const stop = vi.spyOn(wrapper.vm, "stopWebAudio");
+        await wrapper.vm.ensureWebAudio({ enabled: false });
+        expect(stop).toHaveBeenCalled();
+    });
+
+    it("ensureWebAudio stops when no active call despite server enabled", async () => {
         const wrapper = mountCallPage();
         await wrapper.vm.$nextTick();
         wrapper.vm.config = { telephone_web_audio_enabled: false };
+        wrapper.vm.activeCall = null;
         const stop = vi.spyOn(wrapper.vm, "stopWebAudio");
         await wrapper.vm.ensureWebAudio({ enabled: true });
         expect(stop).toHaveBeenCalled();
+    });
+
+    it("ensureWebAudio starts when server enabled and call active even if config flag false", async () => {
+        const wrapper = mountCallPage();
+        await wrapper.vm.$nextTick();
+        wrapper.vm.config = { telephone_web_audio_enabled: false };
+        wrapper.vm.activeCall = { status: 6 };
+        const start = vi.spyOn(wrapper.vm, "startWebAudio").mockResolvedValue(undefined);
+        await wrapper.vm.ensureWebAudio({ enabled: true, frame_ms: 48 });
+        expect(start).toHaveBeenCalled();
+        expect(wrapper.vm.audioFrameMs).toBe(48);
     });
 
     it("ensureWebAudio starts when bridge enabled and call active", async () => {
@@ -301,6 +323,28 @@ describe("CallPage.vue", () => {
         expect(getUserMedia).toHaveBeenCalledTimes(2);
         expect(wrapper.vm.selectedAudioInputId).toBeNull();
         expect(stream).toBe(fakeStream);
+    });
+
+    it("startWebAudio uses MeshChatXAndroid native bridge when platform is android", async () => {
+        const wrapper = mountCallPage();
+        await flushPromises();
+        window.MeshChatXAndroid = {
+            getPlatform: () => "android",
+            startTelephoneNativeAudio: vi.fn(() => "ok"),
+            stopTelephoneNativeAudio: vi.fn(),
+            isTelephoneNativeAudioAvailable: vi.fn(() => true),
+        };
+        try {
+            wrapper.vm.config = { telephone_web_audio_enabled: false };
+            wrapper.vm.activeCall = { status: 6 };
+            const bind = vi.spyOn(wrapper.vm, "_bindAndroidNativeTelephone");
+            await wrapper.vm.startWebAudio();
+            expect(window.MeshChatXAndroid.startTelephoneNativeAudio).toHaveBeenCalled();
+            expect(bind).toHaveBeenCalled();
+            expect(wrapper.vm.useAndroidNativeTelephone).toBe(true);
+        } finally {
+            delete window.MeshChatXAndroid;
+        }
     });
 
     it("startWebAudio disables bridge when media devices API is missing", async () => {
