@@ -70,6 +70,19 @@ Hinweise:
 docker compose up -d
 ```
 
+Entsprechend ohne Compose (gleiche Port-Bindung und Config-Volume):
+
+```bash
+docker run -d --name reticulum-meshchatx \
+  --restart unless-stopped \
+  --security-opt no-new-privileges:true \
+  -p 127.0.0.1:8000:8000 \
+  -v "$(pwd)/meshchat-config:/config" \
+  ghcr.io/quad4-software/meshchatx:latest
+```
+
+Alternativ kann das Image `quad4io/meshchatx:latest` (Docker Hub) verwendet werden.
+
 Standard-Compose-Datei:
 
 - `127.0.0.1:8000` auf dem Host -> Container-Port `8000`

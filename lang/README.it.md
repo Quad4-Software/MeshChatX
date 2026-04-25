@@ -70,6 +70,19 @@ Note:
 docker compose up -d
 ```
 
+Equivalente senza Compose (stessa porta e volume di configurazione):
+
+```bash
+docker run -d --name reticulum-meshchatx \
+  --restart unless-stopped \
+  --security-opt no-new-privileges:true \
+  -p 127.0.0.1:8000:8000 \
+  -v "$(pwd)/meshchat-config:/config" \
+  ghcr.io/quad4-software/meshchatx:latest
+```
+
+Puoi usare l'immagine `quad4io/meshchatx:latest` (Docker Hub) al posto di GHCR.
+
 Il file compose predefinito mappa:
 
 - `127.0.0.1:8000` sull'host -> porta `8000` del container

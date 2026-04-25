@@ -70,6 +70,19 @@ task build:all
 docker compose up -d
 ```
 
+不使用 Compose 时的等效命令（相同的端口绑定与配置卷）:
+
+```bash
+docker run -d --name reticulum-meshchatx \
+  --restart unless-stopped \
+  --security-opt no-new-privileges:true \
+  -p 127.0.0.1:8000:8000 \
+  -v "$(pwd)/meshchat-config:/config" \
+  ghcr.io/quad4-software/meshchatx:latest
+```
+
+镜像也可换为 Docker Hub 的 `quad4io/meshchatx:latest`。
+
 默认 compose 文件映射:
 
 - 主机 `127.0.0.1:8000` -> 容器端口 `8000`

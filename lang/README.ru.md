@@ -70,6 +70,19 @@ task build:all
 docker compose up -d
 ```
 
+То же самое без Compose (тот же порт и том конфигурации):
+
+```bash
+docker run -d --name reticulum-meshchatx \
+  --restart unless-stopped \
+  --security-opt no-new-privileges:true \
+  -p 127.0.0.1:8000:8000 \
+  -v "$(pwd)/meshchat-config:/config" \
+  ghcr.io/quad4-software/meshchatx:latest
+```
+
+Вместо образа можно указать `quad4io/meshchatx:latest` (Docker Hub).
+
 Compose-файл по умолчанию:
 
 - `127.0.0.1:8000` на хосте -> порт `8000` контейнера
