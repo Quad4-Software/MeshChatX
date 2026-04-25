@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="open_messages"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_messages_short"
+        android:shortcutLongLabel="@string/shortcut_messages_long"
+        android:shortcutDisabledMessage="@string/shortcut_unavailable">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.meshchatx"
+            android:targetClass="com.meshchatx.MainActivity"
+            android:data="meshchatx://app/messages" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="open_call"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_call_short"
+        android:shortcutLongLabel="@string/shortcut_call_long"
+        android:shortcutDisabledMessage="@string/shortcut_unavailable">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="com.meshchatx"
+            android:targetClass="com.meshchatx.MainActivity"
+            android:data="meshchatx://app/call" />
+    </shortcut>
+</shortcuts>

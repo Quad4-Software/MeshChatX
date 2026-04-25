@@ -7,8 +7,20 @@
     <string name="notification_channel_background_desc">Shown while MeshChatX runs when the app is in the background</string>
     <string name="notification_channel_messages_name">Messages</string>
     <string name="notification_channel_messages_desc">Incoming LXMF message alerts</string>
+    <string name="notification_channel_calls_name">Calls</string>
+    <string name="notification_channel_calls_desc">Incoming and missed call alerts (ring + vibrate)</string>
+    <string name="notification_incoming_call_tap">Incoming call</string>
+    <string name="notification_incoming_call_label">%1$s is calling</string>
+    <string name="notification_call_decline">Decline</string>
+    <string name="notification_call_answer">Answer</string>
+    <string name="notification_missed_call_label">Missed call</string>
     <string name="notification_background_title">MeshChatX is running</string>
     <string name="notification_background_text">Reticulum stack active in the background. Tap to return.</string>
     <string name="notification_new_message_fallback">New message</string>
+    <string name="shortcut_messages_short">Messages</string>
+    <string name="shortcut_messages_long">Open messages</string>
+    <string name="shortcut_call_short">Call</string>
+    <string name="shortcut_call_long">Open phone / call</string>
+    <string name="shortcut_unavailable">Shortcut unavailable</string>
 </resources>
 

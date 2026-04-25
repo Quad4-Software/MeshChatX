@@ -37,7 +37,7 @@ public class MeshChatForegroundService extends Service {
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
         return new NotificationCompat.Builder(this, MeshChatApplication.CHANNEL_ID_BACKGROUND)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_stat_meshchatx)
             .setContentTitle(getString(R.string.notification_background_title))
             .setContentText(getString(R.string.notification_background_text))
             .setOngoing(true)

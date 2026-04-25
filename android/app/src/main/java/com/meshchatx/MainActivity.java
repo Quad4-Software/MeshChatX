@@ -36,6 +36,8 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.WindowCompat;
+import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import com.chaquo.python.Python;
@@ -67,14 +69,23 @@ public class MainActivity extends AppCompatActivity {
     private static final int MAX_CONNECTION_ATTEMPTS = 120;
     private static final long CONNECTION_RETRY_INITIAL_DELAY_MS = 500;
     private static final long CONNECTION_RETRY_MAX_DELAY_MS = 5000;
+    private static final int MESHCHAT_SERVER_START_MAX_ATTEMPTS = 4;
+    private static final long MESHCHAT_SERVER_RETRY_DELAY_MS = 2000L;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private PermissionRequest pendingWebPermissionRequest = null;
     private ValueCallback<Uri[]> filePathCallback = null;
     private boolean startupRequestHadLoadError = false;
     private boolean startupPageLoaded = false;
     private boolean backendFailed = false;
+    private int meshchatServerStartAttempts = 0;
     private int connectionAttempts = 0;
     private String pendingIntentUri = null;
+    @Nullable
+    private String pendingCallNotificationAction;
+    @Nullable
+    TelephoneNativeAudioSession telephoneNativeSession;
+    @Nullable
+    WavPcmAttachmentRecorder attachmentPcmRecorder;
     private static final String[] STARTUP_PHASES = new String[] {
         "Starting MeshChatX...",
         "Initializing Reticulum network stack...",
@@ -135,7 +146,9 @@ public class MainActivity extends AppCompatActivity {
     @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        getTheme().applyStyle(R.style.OptOutEdgeToEdgeEnforcement, false);
         super.onCreate(savedInstanceState);
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), true);
         setContentView(R.layout.activity_main);
 
         webView = findViewById(R.id.webView);
@@ -197,6 +210,7 @@ public class MainActivity extends AppCompatActivity {
                 loadingText.setVisibility(android.view.View.GONE);
                 errorText.setVisibility(android.view.View.GONE);
                 dispatchPendingIntentUri();
+                dispatchCallNotificationAction();
             }
 
             @Override
@@ -355,6 +369,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         handleIncomingIntent(getIntent());
+        consumeCallIntentForPending(getIntent());
 
         startMeshChatServer();
         scheduleConnectionRetry("Connecting to local server...");
@@ -379,8 +394,10 @@ public class MainActivity extends AppCompatActivity {
         super.onNewIntent(intent);
         setIntent(intent);
         handleIncomingIntent(intent);
+        consumeCallIntentForPending(intent);
         if (startupPageLoaded) {
             dispatchPendingIntentUri();
+            dispatchCallNotificationAction();
         }
     }
 
@@ -517,8 +534,27 @@ public class MainActivity extends AppCompatActivity {
                 String appFilesDir = getFilesDir().getAbsolutePath();
                 py.getModule("meshchat_wrapper").callAttr("start_server", SERVER_PORT, appFilesDir);
             } catch (Exception e) {
-                backendFailed = true;
-                showStartupError("MeshChatX backend failed:\n" + toStackTrace(e));
+                final String stack = toStackTrace(e);
+                runOnUiThread(() -> {
+                    if (startupPageLoaded) {
+                        return;
+                    }
+                    meshchatServerStartAttempts += 1;
+                    if (meshchatServerStartAttempts < MESHCHAT_SERVER_START_MAX_ATTEMPTS) {
+                        backendFailed = false;
+                        showLoading(
+                            "MeshChatX backend error, retrying ("
+                                + meshchatServerStartAttempts
+                                + "/"
+                                + MESHCHAT_SERVER_START_MAX_ATTEMPTS
+                                + ")..."
+                        );
+                        mainHandler.postDelayed(() -> startMeshChatServer(), MESHCHAT_SERVER_RETRY_DELAY_MS);
+                    } else {
+                        backendFailed = true;
+                        showStartupError("MeshChatX backend failed:\n" + stack);
+                    }
+                });
             }
         }).start();
     }
@@ -536,10 +572,62 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         String scheme = data.getScheme().toLowerCase();
+        if ("meshchatx".equals(scheme)) {
+            if (data.getHost() == null) {
+                return;
+            }
+            if (!"app".equalsIgnoreCase(data.getHost())) {
+                return;
+            }
+            pendingIntentUri = data.toString();
+            return;
+        }
         if (!"lxma".equals(scheme) && !"lxmf".equals(scheme) && !"lxm".equals(scheme)) {
             return;
         }
         pendingIntentUri = data.toString();
+    }
+
+    private void consumeCallIntentForPending(Intent intent) {
+        if (intent == null) {
+            return;
+        }
+        String a = intent.getAction();
+        if (AndroidNotificationBridge.ACTION_CALL_ANSWER.equals(a)) {
+            pendingCallNotificationAction = "answer";
+        } else if (AndroidNotificationBridge.ACTION_CALL_DECLINE.equals(a)) {
+            pendingCallNotificationAction = "decline";
+        } else if (AndroidNotificationBridge.ACTION_CALL_OPEN.equals(a)) {
+            pendingCallNotificationAction = "open";
+        }
+    }
+
+    private void dispatchCallNotificationAction() {
+        if (webView == null) {
+            return;
+        }
+        if (pendingCallNotificationAction == null) {
+            return;
+        }
+        String action = pendingCallNotificationAction;
+        pendingCallNotificationAction = null;
+        String js;
+        if ("decline".equals(action)) {
+            js =
+                "(function(){" +
+                "fetch('/api/v1/telephone/hangup', { credentials: 'include' }).catch(function(){});})();";
+        } else if ("answer".equals(action)) {
+            js =
+                "(function(){" +
+                "fetch('/api/v1/telephone/answer', { credentials: 'include' })" +
+                ".then(function(){ try { window.location.hash = '#/call?tab=phone'; } catch (e) {}})" +
+                ".catch(function(){});})();";
+        } else if ("open".equals(action)) {
+            js = "(function(){" + "try { window.location.hash = '#/call?tab=phone'; } catch (e) {}" + "})();";
+        } else {
+            return;
+        }
+        webView.evaluateJavascript(js, null);
     }
 
     private void dispatchPendingIntentUri() {
@@ -653,6 +741,14 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
+        if (telephoneNativeSession != null) {
+            telephoneNativeSession.onDestroy();
+            telephoneNativeSession = null;
+        }
+        if (attachmentPcmRecorder != null) {
+            attachmentPcmRecorder.cancel();
+            attachmentPcmRecorder = null;
+        }
         stopService(new Intent(this, MeshChatForegroundService.class));
         super.onDestroy();
         mainHandler.removeCallbacksAndMessages(null);
@@ -686,6 +782,10 @@ public class MainActivity extends AppCompatActivity {
             base = base.substring(0, 120);
         }
         return base;
+    }
+
+    WebView getWebViewForNativeBridge() {
+        return webView;
     }
 
     void persistMeshchatDownload(String fileName, byte[] data) throws IOException {
@@ -841,6 +941,109 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(activity, "USB settings unavailable", Toast.LENGTH_SHORT).show();
                 }
             });
+        }
+
+        @JavascriptInterface
+        public boolean isNativePcmAudioAvailable() {
+            return TelephoneNativeAudioSession.canRun(activity)
+                && WavPcmAttachmentRecorder.canStart(activity);
+        }
+
+        @JavascriptInterface
+        public boolean isTelephoneNativeAudioAvailable() {
+            return TelephoneNativeAudioSession.canRun(activity);
+        }
+
+        @JavascriptInterface
+        public String startTelephoneNativeAudio() {
+            try {
+                if (activity.telephoneNativeSession == null) {
+                    activity.telephoneNativeSession = new TelephoneNativeAudioSession(activity);
+                }
+                activity.telephoneNativeSession.start();
+                return "ok";
+            } catch (Exception e) {
+                return e.getMessage() != null ? e.getMessage() : "err";
+            }
+        }
+
+        @JavascriptInterface
+        public void stopTelephoneNativeAudio() {
+            try {
+                if (activity.telephoneNativeSession != null) {
+                    activity.telephoneNativeSession.stop();
+                }
+            } catch (Exception ignored) {
+            }
+        }
+
+        @JavascriptInterface
+        public boolean isTelephoneNativeAudioActive() {
+            return activity.telephoneNativeSession != null && activity.telephoneNativeSession.isActive();
+        }
+
+        @JavascriptInterface
+        public String startNativeWavAttachment() {
+            try {
+                if (activity.attachmentPcmRecorder == null) {
+                    activity.attachmentPcmRecorder = new WavPcmAttachmentRecorder(activity);
+                }
+                return activity.attachmentPcmRecorder.start();
+            } catch (Exception e) {
+                return e.getMessage() != null ? e.getMessage() : "err";
+            }
+        }
+
+        @JavascriptInterface
+        public void stopNativeWavAttachment() {
+            if (activity.attachmentPcmRecorder == null) {
+                return;
+            }
+            final WavPcmAttachmentRecorder r = activity.attachmentPcmRecorder;
+            new Thread(
+                () -> {
+                    String b64 = r.stopBase64Wav();
+                    activity.runOnUiThread(
+                        () -> {
+                            try {
+                                if (activity.webView == null) {
+                                    return;
+                                }
+                                org.json.JSONObject o = new org.json.JSONObject();
+                                if (b64 == null) {
+                                    o.put("ok", false);
+                                    o.put("error", "out_of_memory");
+                                } else if (b64.isEmpty()) {
+                                    o.put("ok", false);
+                                    o.put("error", "empty");
+                                } else {
+                                    o.put("ok", true);
+                                    o.put("data", b64);
+                                }
+                                String p = o.toString();
+                                activity.webView.evaluateJavascript(
+                                    "try{if(window.__meshchatXNative&&typeof window.__meshchatXNative.onWav==='function'){"
+                                        + "var p=" + p
+                                        + "; window.__meshchatXNative.onWav(p);}}catch(e){}",
+                                    null
+                                );
+                            } catch (Exception ignored) {
+                            } finally {
+                                activity.attachmentPcmRecorder = null;
+                            }
+                        }
+                    );
+                },
+                "meshchatx-attach-stop"
+            ).start();
+        }
+
+        @JavascriptInterface
+        public void cancelNativeWavAttachment() {
+            if (activity.attachmentPcmRecorder != null) {
+                activity.attachmentPcmRecorder.cancel();
+                activity.attachmentPcmRecorder = null;
+            }
         }
     }
 }

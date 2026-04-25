@@ -4,3 +4,7 @@
 -keep class org.conscrypt.** { *; }
 -dontwarn com.chaquo.python.**
 -dontwarn org.conscrypt.**
+-dontwarn okhttp3.**
+-dontwarn okio.**
+-keep class okhttp3.** { *; }
+-keep class okio.** { *; }
