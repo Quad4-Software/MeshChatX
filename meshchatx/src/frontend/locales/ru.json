@@ -1390,6 +1390,10 @@
             "title": "RNCP",
             "description": "Отправка и приём файлов по Reticulum (RNCP) с прогрессом."
         },
+        "rngit_explorer": {
+            "title": "Обозреватель RNGit",
+            "description": "Услышанные в сети узлы RNGit, проверка имён репозиториев и копирование команд git clone (только чтение)."
+        },
         "rnstatus": {
             "title": "RNStatus",
             "description": "Счётчики по интерфейсам и состояние канала от Reticulum."
@@ -1870,6 +1874,38 @@
         "web_path_hint": "Браузеры не показывают полные пути к файлам. Используйте настольное приложение для выбора или вставьте полный путь на этой машине.",
         "web_save_path_prompt": "Введите абсолютный путь к папке на машине с MeshChat (сервер), куда сохранить полученный файл:"
     },
+    "rngit_explorer": {
+        "back_tools": "Назад к инструментам",
+        "heard_heading": "Услышанные узлы rngit",
+        "heard_hint": "Из объявлений Reticulum для ``git.repositories``. Нажмите строку, чтобы подставить хеш назначения ниже.",
+        "heard_empty": "Пока нет объявлений rngit в памяти. Когда узел запустит rngit, он появится здесь.",
+        "heard_load_failed": "Не удалось загрузить объявления",
+        "refresh_heard": "Обновить",
+        "heard_title_short": "RNGit · {prefix}",
+        "unnamed_node": "Узел RNGit",
+        "hops_label": "Прыжков: {n}",
+        "intro": "У RNGit нет глобального индекса: вставьте кандидаты имён репозиториев (по одному в строке). MeshChatX запрашивает удалённый список ссылок для каждого; для доступных репозиториев показывается строка git clone для копирования. Приложение не хранит и не загружает данные git.",
+        "destination_hash": "Хеш назначения RNGit (32 hex)",
+        "group_name": "Группа (конфиг rngit)",
+        "repo_names_label": "Имена репозиториев для проверки",
+        "repo_names_placeholder": "MeshChatX\nmy-other-repo",
+        "for_push": "Список для push (проверка прав)",
+        "probe": "Проверить репозитории",
+        "probing": "Запрос к rngit…",
+        "probe_done": "Проверка завершена",
+        "probe_failed": "Проверка не удалась",
+        "results": "Результаты",
+        "reachable": "OK",
+        "unreachable": "—",
+        "detail_title": "Репозиторий: {repo}",
+        "clone_command": "Клонировать через git",
+        "copy": "Копировать",
+        "copied": "Скопировано в буфер обмена",
+        "copy_failed": "Не удалось скопировать",
+        "refs_preview": "Ссылки (фрагмент)",
+        "truncated": "(усечено)",
+        "no_clone_hint": "Нет строки clone для недоступных имён; проверьте доступ или написание на сервере rngit."
+    },
     "rnprobe": {
         "network_diagnostics": "Диагностика сети",
         "title": "RNProbe - Проверка назначения",
@@ -2264,6 +2300,8 @@
         "nav_rnprobe_desc": "Проверка доступности и задержки",
         "nav_rncp": "RNCP",
         "nav_rncp_desc": "Копирование файлов по Reticulum (RNCP)",
+        "nav_rngit_explorer": "Обозреватель RNGit",
+        "nav_rngit_explorer_desc": "Проверка репозиториев rngit и копирование URL клонирования",
         "nav_rnstatus": "RNStatus",
         "nav_rnstatus_desc": "Статистика интерфейса и канала",
         "nav_rnpath": "RNPath",

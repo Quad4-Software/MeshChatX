@@ -1502,6 +1502,10 @@
             "title": "RNCP",
             "description": "Invia e ricevi file su Reticulum (RNCP) con avanzamento."
         },
+        "rngit_explorer": {
+            "title": "Esplora RNGit",
+            "description": "Nodi RNGit sentiti sulla mesh, sonda i nomi dei repository e copia i comandi git clone (sola lettura)."
+        },
         "rnstatus": {
             "title": "RNStatus",
             "description": "Contatori per interfaccia e stato orientato al collegamento da Reticulum."
@@ -1982,6 +1986,38 @@
         "web_path_hint": "I browser non possono esporre percorsi completi. Usa l'app desktop per sfogliare o incolla il percorso completo su questa macchina.",
         "web_save_path_prompt": "Inserisci il percorso assoluto della cartella sulla macchina che esegue MeshChat (server) dove salvare il file recuperato:"
     },
+    "rngit_explorer": {
+        "back_tools": "Torna agli strumenti",
+        "heard_heading": "Nodi rngit rilevati",
+        "heard_hint": "Da annunci Reticulum per ``git.repositories``. Clicca una riga per compilare l'hash di destinazione sotto.",
+        "heard_empty": "Nessun annuncio rngit in memoria. Quando un peer esegue rngit, dovrebbe comparire qui.",
+        "heard_load_failed": "Impossibile caricare gli annunci",
+        "refresh_heard": "Aggiorna",
+        "heard_title_short": "RNGit · {prefix}",
+        "unnamed_node": "Nodo RNGit",
+        "hops_label": "Salti: {n}",
+        "intro": "RNGit non ha un indice globale: incolla nomi di repository candidati (uno per riga). MeshChatX prova un elenco refs remoto per ciascuno; i repository raggiungibili mostrano una riga git clone da copiare. L'app non ospita né scarica dati git.",
+        "destination_hash": "Hash destinazione RNGit (32 hex)",
+        "group_name": "Gruppo (config rngit)",
+        "repo_names_label": "Nomi repository da provare",
+        "repo_names_placeholder": "MeshChatX\nmy-other-repo",
+        "for_push": "Elenco per push (verifica permessi)",
+        "probe": "Sonda repository",
+        "probing": "Sondaggio rngit…",
+        "probe_done": "Sondaggio completato",
+        "probe_failed": "Sondaggio fallito",
+        "results": "Risultati",
+        "reachable": "OK",
+        "unreachable": "—",
+        "detail_title": "Repository: {repo}",
+        "clone_command": "Clona con git",
+        "copy": "Copia",
+        "copied": "Copiato negli appunti",
+        "copy_failed": "Impossibile copiare",
+        "refs_preview": "Refs (anteprima)",
+        "truncated": "(troncato)",
+        "no_clone_hint": "Nessuna riga clone per nomi irraggiungibili; correggi accesso o ortografia sul server rngit."
+    },
     "rnprobe": {
         "network_diagnostics": "Diagnostica di Rete",
         "title": "RNProbe - Sonda Destinazione",
@@ -2376,6 +2412,8 @@
         "nav_rnprobe_desc": "Verifica raggiungibilità e ritardo",
         "nav_rncp": "RNCP",
         "nav_rncp_desc": "Copia file su Reticulum (RNCP)",
+        "nav_rngit_explorer": "Esplora RNGit",
+        "nav_rngit_explorer_desc": "Sonda repo rngit e copia URL di clone",
         "nav_rnstatus": "RNStatus",
         "nav_rnstatus_desc": "Statistiche interfaccia e collegamento",
         "nav_rnpath": "RNPath",

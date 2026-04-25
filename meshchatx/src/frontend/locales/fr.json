@@ -1450,6 +1450,10 @@
             "title": "RNCP",
             "description": "Envoyez et recevez des fichiers sur Reticulum (RNCP) avec progrès."
         },
+        "rngit_explorer": {
+            "title": "Explorateur RNGit",
+            "description": "Nœuds RNGit entendus sur le maillage, sonder les noms de dépôts et copier les commandes git clone (lecture seule)."
+        },
         "rnstatus": {
             "title": "Statut RN",
             "description": "Compteurs par interface et statut orienté lien de Reticulum."
@@ -1930,6 +1934,38 @@
         "web_path_hint": "Les navigateurs ne peuvent pas exposer les chemins de fichiers complets. Utilisez l'application de bureau pour parcourir, ou coller le chemin complet vers le fichier sur cette machine.",
         "web_save_path_prompt": "Saisissez le chemin absolu du dossier sur la machine qui exécute MeshChat (serveur) où le fichier récupéré doit être enregistré :"
     },
+    "rngit_explorer": {
+        "back_tools": "Retour aux outils",
+        "heard_heading": "Nœuds rngit entendus",
+        "heard_hint": "D'après les annonces Reticulum pour ``git.repositories``. Cliquez une ligne pour remplir le hachage de destination ci-dessous.",
+        "heard_empty": "Aucune annonce rngit en mémoire pour l'instant. Lorsqu'un pair exécute rngit, il devrait apparaître ici.",
+        "heard_load_failed": "Impossible de charger les annonces",
+        "refresh_heard": "Actualiser",
+        "heard_title_short": "RNGit · {prefix}",
+        "unnamed_node": "Nœud RNGit",
+        "hops_label": "Sauts : {n}",
+        "intro": "RNGit n'a pas d'index global : collez des noms de dépôt candidats (un par ligne). MeshChatX tente une liste de refs distante pour chacun ; les dépôts joignables affichent une ligne git clone à copier. L'application n'héberge ni ne récupère les données git.",
+        "destination_hash": "Hachage de destination RNGit (32 hex)",
+        "group_name": "Groupe (configuration rngit)",
+        "repo_names_label": "Noms de dépôt à tester",
+        "repo_names_placeholder": "MeshChatX\nmy-other-repo",
+        "for_push": "Lister pour push (vérification des droits)",
+        "probe": "Sonder les dépôts",
+        "probing": "Sondage rngit…",
+        "probe_done": "Sondage terminé",
+        "probe_failed": "Sondage échoué",
+        "results": "Résultats",
+        "reachable": "OK",
+        "unreachable": "—",
+        "detail_title": "Dépôt : {repo}",
+        "clone_command": "Cloner avec git",
+        "copy": "Copier",
+        "copied": "Copié dans le presse-papiers",
+        "copy_failed": "Copie impossible",
+        "refs_preview": "Refs (aperçu)",
+        "truncated": "(tronqué)",
+        "no_clone_hint": "Pas de ligne clone pour les noms inaccessibles ; corrigez l'accès ou l'orthographe sur le serveur rngit."
+    },
     "rnprobe": {
         "network_diagnostics": "Diagnostics réseau",
         "title": "RNProbe - Sonde de destination",
@@ -2376,6 +2412,8 @@
         "nav_rnprobe_desc": "Possibilité d'accès et délai",
         "nav_rncp": "RNCP",
         "nav_rncp_desc": "Copie de fichier sur Reticulum (RNCP)",
+        "nav_rngit_explorer": "Explorateur RNGit",
+        "nav_rngit_explorer_desc": "Sonder les dépôts rngit et copier l'URL de clonage",
         "nav_rnstatus": "Statut RN",
         "nav_rnstatus_desc": "Statistiques sur les interfaces et les liaisons",
         "nav_rnpath": "RNPath",

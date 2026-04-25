@@ -1390,6 +1390,10 @@
             "title": "RNCP",
             "description": "Dateien über Reticulum (RNCP) mit Fortschritt senden und empfangen."
         },
+        "rngit_explorer": {
+            "title": "RNGit-Explorer",
+            "description": "Über das Mesh gehörte RNGit-Knoten, Repository-Namen abfragen und git clone-Befehle kopieren (nur lesend)."
+        },
         "rnstatus": {
             "title": "RNStatus",
             "description": "Schnittstellen-Zähler und verbindungsbezogener Status von Reticulum."
@@ -1870,6 +1874,38 @@
         "web_path_hint": "Browser können keine vollständigen Dateipfade anzeigen. Nutzen Sie die Desktop-App zum Auswählen oder fügen Sie den vollständigen Pfad auf diesem Rechner ein.",
         "web_save_path_prompt": "Geben Sie den absoluten Ordnerpfad auf dem Rechner mit MeshChat (Server) ein, in dem die abgerufene Datei gespeichert werden soll:"
     },
+    "rngit_explorer": {
+        "back_tools": "Zurück zu Werkzeugen",
+        "heard_heading": "Gehörte RNGit-Knoten",
+        "heard_hint": "Aus Reticulum-Ankündigungen für ``git.repositories``. Klicken Sie eine Zeile an, um den Ziel-Hash unten einzutragen.",
+        "heard_empty": "Noch keine RNGit-Ankündigungen im Speicher. Wenn ein Peer rngit betreibt, sollte er hier erscheinen.",
+        "heard_load_failed": "Ankündigungen konnten nicht geladen werden",
+        "refresh_heard": "Aktualisieren",
+        "heard_title_short": "RNGit · {prefix}",
+        "unnamed_node": "RNGit-Knoten",
+        "hops_label": "Hops: {n}",
+        "intro": "RNGit hat keinen globalen Index: Kandidaten-Repositorynamen einfügen (einer pro Zeile). MeshChatX versucht für jedes eine entfernte Ref-Liste; erreichbare Repos zeigen eine git clone-Zeile zum Kopieren. Die App hostet oder lädt keine Git-Daten.",
+        "destination_hash": "RNGit-Ziel-Hash (32 Hex)",
+        "group_name": "Gruppe (rngit-Konfiguration)",
+        "repo_names_label": "Zu prüfende Repositorynamen",
+        "repo_names_placeholder": "MeshChatX\nmy-other-repo",
+        "for_push": "Liste für Push (Rechteprüfung)",
+        "probe": "Repositorys abfragen",
+        "probing": "RNGit wird abgefragt…",
+        "probe_done": "Abfrage beendet",
+        "probe_failed": "Abfrage fehlgeschlagen",
+        "results": "Ergebnisse",
+        "reachable": "OK",
+        "unreachable": "—",
+        "detail_title": "Repository: {repo}",
+        "clone_command": "Mit git klonen",
+        "copy": "Kopieren",
+        "copied": "In die Zwischenablage kopiert",
+        "copy_failed": "Kopieren fehlgeschlagen",
+        "refs_preview": "Refs (Vorschau)",
+        "truncated": "(gekürzt)",
+        "no_clone_hint": "Keine Klon-Zeile für nicht erreichbare Namen; Zugriff oder Schreibweise auf dem rngit-Server prüfen."
+    },
     "rnprobe": {
         "network_diagnostics": "Netzwerkdiagnose",
         "title": "RNProbe - Ziel-Probe",
@@ -2264,6 +2300,8 @@
         "nav_rnprobe_desc": "Erreichbarkeit und Verzögerung prüfen",
         "nav_rncp": "RNCP",
         "nav_rncp_desc": "Dateikopie über Reticulum (RNCP)",
+        "nav_rngit_explorer": "RNGit-Explorer",
+        "nav_rngit_explorer_desc": "rngit-Repos abfragen und Klon-URL kopieren",
         "nav_rnstatus": "RNStatus",
         "nav_rnstatus_desc": "Schnittstellen- und Link-Statistik",
         "nav_rnpath": "RNPath",

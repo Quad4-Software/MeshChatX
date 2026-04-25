@@ -1450,6 +1450,10 @@
             "title": "RNCP",
             "description": "Stuur en ontvang bestanden over Reticulum (RNCP) met vooruitgang."
         },
+        "rngit_explorer": {
+            "title": "RNGit-verkenner",
+            "description": "RNGit-knopen op de mesh gehoord, reponaamsonderzoek en git clone-opdrachten kopiëren (alleen lezen)."
+        },
         "rnstatus": {
             "title": "RNStatus",
             "description": "Per-interface tellers en link-georiënteerde status van Reticulum."
@@ -1930,6 +1934,38 @@
         "web_path_hint": "Browsers kunnen geen volledige bestandspaden blootleggen. Gebruik de desktop-app om te bladeren, of plak het volledige pad naar het bestand op deze machine.",
         "web_save_path_prompt": "Voer het absolute mappad in op de machine met MeshChat (server) waar het opgehaalde bestand moet worden opgeslagen:"
     },
+    "rngit_explorer": {
+        "back_tools": "Terug naar gereedschappen",
+        "heard_heading": "Gehoorde rngit-knopen",
+        "heard_hint": "Uit Reticulum-aankondigingen voor ``git.repositories``. Klik op een rij om de bestemmings-hash hieronder in te vullen.",
+        "heard_empty": "Nog geen rngit-aankondigingen in geheugen. Wanneer een peer rngit draait, zou die hier moeten verschijnen.",
+        "heard_load_failed": "Aankondigingen laden mislukt",
+        "refresh_heard": "Vernieuwen",
+        "heard_title_short": "RNGit · {prefix}",
+        "unnamed_node": "RNGit-knoop",
+        "hops_label": "Hops: {n}",
+        "intro": "RNGit heeft geen wereldwijde index: plak kandidaat-reponamen (één per regel). MeshChatX probeert per naam een externe ref-lijst; bereikbare repos tonen een git clone-regel om te kopiëren. De app host of haalt geen git-gegevens op.",
+        "destination_hash": "RNGit-bestemmingshash (32 hex)",
+        "group_name": "Groep (rngit-configuratie)",
+        "repo_names_label": "Te proberen reponamen",
+        "repo_names_placeholder": "MeshChatX\nmy-other-repo",
+        "for_push": "Lijst voor push (rechtencontrole)",
+        "probe": "Repos verkennen",
+        "probing": "rngit wordt bevraagd…",
+        "probe_done": "Verkenning voltooid",
+        "probe_failed": "Verkenning mislukt",
+        "results": "Resultaten",
+        "reachable": "OK",
+        "unreachable": "—",
+        "detail_title": "Repository: {repo}",
+        "clone_command": "Klonen met git",
+        "copy": "Kopiëren",
+        "copied": "Naar klembord gekopieerd",
+        "copy_failed": "Kopiëren mislukt",
+        "refs_preview": "Refs (voorbeeld)",
+        "truncated": "(ingekort)",
+        "no_clone_hint": "Geen clone-regel voor onbereikbare namen; controleer toegang of spelling op de rngit-server."
+    },
     "rnprobe": {
         "network_diagnostics": "Netwerkdiagnostiek",
         "title": "RNProbe - Destination Probe",
@@ -2376,6 +2412,8 @@
         "nav_rnprobe_desc": "Bereikbaarheid en vertraging",
         "nav_rncp": "RNCP",
         "nav_rncp_desc": "Bestandskopie over Reticulum (RNCP)",
+        "nav_rngit_explorer": "RNGit-verkenner",
+        "nav_rngit_explorer_desc": "rngit-repos verkennen en kloon-URL kopiëren",
         "nav_rnstatus": "RNStatus",
         "nav_rnstatus_desc": "Interface- en koppelingsstatistieken",
         "nav_rnpath": "RNPath",

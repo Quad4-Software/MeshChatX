@@ -1450,6 +1450,10 @@
             "title": "RNCP 核电站",
             "description": "通过 Reticulum(RNCP) 发送和接收文件,并取得进展."
         },
+        "rngit_explorer": {
+            "title": "RNGit 浏览器",
+            "description": "收听网格上的 RNGit 节点、探测仓库名称并复制 git clone 命令（只读）。"
+        },
         "rnstatus": {
             "title": "状态",
             "description": "来自Reticulum的相接式对答和面向链接状态."
@@ -1930,6 +1934,38 @@
         "web_path_hint": "浏览器无法访问完整文件路径。使用桌面应用浏览，或粘贴此机器上文件的完整路径。",
         "web_save_path_prompt": "输入运行 MeshChat（服务器）的机器上用于保存获取文件的绝对文件夹路径："
     },
+    "rngit_explorer": {
+        "back_tools": "返回工具",
+        "heard_heading": "已收听的 rngit 节点",
+        "heard_hint": "来自 Reticulum 对 ``git.repositories`` 的宣告。点击一行以填入下方目标哈希。",
+        "heard_empty": "内存中尚无 rngit 宣告。对等端运行 rngit 后应会显示在此。",
+        "heard_load_failed": "无法加载宣告",
+        "refresh_heard": "刷新",
+        "heard_title_short": "RNGit · {prefix}",
+        "unnamed_node": "RNGit 节点",
+        "hops_label": "跳数：{n}",
+        "intro": "RNGit 没有全局索引：请粘贴候选仓库名（每行一个）。MeshChatX 会尝试每个名称的远程引用列表；可达的仓库会显示可复制的一行 git clone。应用内不托管或拉取 git 数据。",
+        "destination_hash": "RNGit 目标哈希（32 位十六进制）",
+        "group_name": "组（rngit 配置）",
+        "repo_names_label": "要尝试的仓库名",
+        "repo_names_placeholder": "MeshChatX\nmy-other-repo",
+        "for_push": "列出以供 push（权限检查）",
+        "probe": "探测仓库",
+        "probing": "正在探测 rngit…",
+        "probe_done": "探测完成",
+        "probe_failed": "探测失败",
+        "results": "结果",
+        "reachable": "正常",
+        "unreachable": "—",
+        "detail_title": "仓库：{repo}",
+        "clone_command": "使用 git 克隆",
+        "copy": "复制",
+        "copied": "已复制到剪贴板",
+        "copy_failed": "无法复制",
+        "refs_preview": "引用（预览）",
+        "truncated": "（已截断）",
+        "no_clone_hint": "不可达名称没有 clone 行；请在 rngit 服务器上修正访问或拼写。"
+    },
     "rnprobe": {
         "network_diagnostics": "网络诊断",
         "title": "RN Probe - 目标测试",
@@ -2376,6 +2412,8 @@
         "nav_rnprobe_desc": "探测可达性和延迟",
         "nav_rncp": "RNCP",
         "nav_rncp_desc": "通过 Reticulum 复制文件（RNCP）",
+        "nav_rngit_explorer": "RNGit 浏览器",
+        "nav_rngit_explorer_desc": "探测 rngit 仓库并复制克隆 URL",
         "nav_rnstatus": "RNStatus",
         "nav_rnstatus_desc": "接口和链接统计",
         "nav_rnpath": "RNPath",

@@ -1450,6 +1450,10 @@
             "title": "RNCP",
             "description": "Send files to or fetch files from another destination over Reticulum, with progress and optional compression."
         },
+        "rngit_explorer": {
+            "title": "RNGit explorer",
+            "description": "RNGit nodes heard on the mesh, probe repo names, and copy git clone commands (read-only)."
+        },
         "rnstatus": {
             "title": "RNStatus",
             "description": "Per-interface traffic counters and link status from your Reticulum instance."
@@ -1930,6 +1934,38 @@
         "web_path_hint": "Browsers cannot expose full file paths. Use the desktop app to browse, or paste the full path to the file on this machine.",
         "web_save_path_prompt": "Enter the absolute folder path on the machine running MeshChat (server) where the fetched file should be saved:"
     },
+    "rngit_explorer": {
+        "back_tools": "Back to tools",
+        "heard_heading": "Heard rngit nodes",
+        "heard_hint": "From Reticulum announces for ``git.repositories``. Click a row to fill the destination hash below.",
+        "heard_empty": "No rngit announces in memory yet. When a peer runs rngit, it should appear here.",
+        "heard_load_failed": "Could not load announces",
+        "refresh_heard": "Refresh",
+        "heard_title_short": "RNGit · {prefix}",
+        "unnamed_node": "RNGit node",
+        "hops_label": "Hops: {n}",
+        "intro": "RNGit has no global index: paste candidate repository names (one per line). MeshChatX tries a remote ref list for each; reachable repos show a git clone line you can copy. This does not host or fetch git data inside the app.",
+        "destination_hash": "RNGit destination hash (32 hex)",
+        "group_name": "Group (rngit config)",
+        "repo_names_label": "Repository names to try",
+        "repo_names_placeholder": "MeshChatX\nmy-other-repo",
+        "for_push": "List for push (permission check)",
+        "probe": "Probe repositories",
+        "probing": "Probing rngit…",
+        "probe_done": "Probe finished",
+        "probe_failed": "Probe failed",
+        "results": "Results",
+        "reachable": "OK",
+        "unreachable": "—",
+        "detail_title": "Repository: {repo}",
+        "clone_command": "Clone with git",
+        "copy": "Copy",
+        "copied": "Copied to clipboard",
+        "copy_failed": "Could not copy",
+        "refs_preview": "Refs (preview)",
+        "truncated": "(truncated)",
+        "no_clone_hint": "No clone line for unreachable names; fix access or spelling on the rngit server."
+    },
     "rnprobe": {
         "network_diagnostics": "Network Diagnostics",
         "title": "RNProbe - Destination Probe",
@@ -2376,6 +2412,8 @@
         "nav_rnprobe_desc": "Probe reachability and delay",
         "nav_rncp": "RNCP",
         "nav_rncp_desc": "File copy over Reticulum (RNCP)",
+        "nav_rngit_explorer": "RNGit explorer",
+        "nav_rngit_explorer_desc": "Probe rngit repos and copy clone URL",
         "nav_rnstatus": "RNStatus",
         "nav_rnstatus_desc": "Interface and link statistics",
         "nav_rnpath": "RNPath",
