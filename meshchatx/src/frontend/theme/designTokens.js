@@ -121,7 +121,7 @@ export const MESHCHAT_THEME_VARIABLES_DARK = {
 };
 
 /**
- * Tailwind theme.extend.colors.sem — uses the same --mc-* variables as style.css.
+ * Tailwind semantic colors (`sem-*` in class names) — `@theme` in style.css mirrors these keys; same --mc-* variables as global CSS.
  * Keep keys in sync with usages in style.css and Vue (e.g. bg-sem-canvas).
  */
 export function tailwindSemanticColorExtend() {

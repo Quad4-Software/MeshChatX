@@ -1,6 +1,53 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@plugin '@tailwindcss/forms';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-sem-canvas: var(--mc-canvas);
+  --color-sem-surface: var(--mc-surface);
+  --color-sem-border: var(--mc-border);
+  --color-sem-border-card: var(--mc-border-card);
+  --color-sem-border-strong: var(--mc-border-strong);
+  --color-sem-fg: var(--mc-text);
+  --color-sem-fg-secondary: var(--mc-text-secondary);
+  --color-sem-fg-muted: var(--mc-text-muted);
+  --color-sem-fg-label: var(--mc-text-label);
+  --color-sem-accent: var(--mc-accent);
+  --color-sem-accent-hover: var(--mc-accent-hover);
+  --color-sem-action-primary: var(--mc-action-primary);
+  --color-sem-action-primary-hover: var(--mc-action-primary-hover);
+  --color-sem-focus: var(--mc-focus);
+  --color-sem-glass: var(--mc-glass-surface);
+  --color-sem-surface-muted: var(--mc-surface-muted);
+  --color-sem-surface-raised: var(--mc-surface-raised);
+  --color-sem-info: var(--mc-info);
+  --color-sem-success: var(--mc-success);
+  --color-sem-warning: var(--mc-warning);
+  --color-sem-danger: var(--mc-error);
+  --color-sem-focus-border: var(--mc-focus-border);
+  --color-sem-file-input-bg: var(--mc-file-input-bg);
+  --color-sem-file-input-text: var(--mc-file-input-text);
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
 
 * {
     scrollbar-width: thin;
@@ -23,7 +70,7 @@
 }
 
 .glass-card {
-    @apply bg-sem-glass backdrop-blur border border-sem-border-card rounded-3xl shadow-xl px-4 py-4;
+    @apply bg-sem-glass backdrop-blur-sm border border-sem-border-card rounded-3xl shadow-xl px-4 py-4;
 }
 
 html[data-ui-glass="0"] .glass-card {
@@ -43,17 +90,17 @@ select.input-field option {
 }
 
 .primary-chip {
-    @apply inline-flex items-center justify-center gap-x-2 rounded-full bg-sem-action-primary px-4 py-2 text-xs font-bold text-white shadow-sm transition-all !important;
+    @apply inline-flex! items-center! justify-center! gap-x-2! rounded-full! bg-sem-action-primary! px-4! py-2! text-xs! font-bold! text-white! shadow-xs! transition-all!;
 }
 .primary-chip:hover {
-    @apply bg-sem-action-primary-hover -translate-y-0.5 !important;
+    @apply bg-sem-action-primary-hover! -translate-y-0.5!;
 }
 .primary-chip:active {
-    @apply scale-95 translate-y-0 !important;
+    @apply scale-95! translate-y-0!;
 }
 
 .secondary-chip {
-    @apply inline-flex items-center justify-center gap-x-2 rounded-full px-4 py-2 text-xs font-bold shadow-sm transition-all duration-200 !important;
+    @apply inline-flex! items-center! justify-center! gap-x-2! rounded-full! px-4! py-2! text-xs! font-bold! shadow-xs! transition-all! duration-200!;
     background-color: var(--mc-secondary-chip-bg) !important;
     color: var(--mc-secondary-chip-text) !important;
     border: 1px solid var(--mc-secondary-chip-border) !important;
@@ -62,18 +109,18 @@ select.input-field option {
     background-color: var(--mc-secondary-chip-hover-bg) !important;
     color: var(--mc-secondary-chip-hover-text) !important;
     border-color: var(--mc-secondary-chip-hover-border) !important;
-    @apply -translate-y-0.5 shadow-md !important;
+    @apply -translate-y-0.5! shadow-md!;
 }
 .secondary-chip:active {
-    @apply scale-95 translate-y-0 shadow-sm !important;
+    @apply scale-95! translate-y-0! shadow-xs!;
 }
 
 .dark .secondary-chip:hover {
-    @apply shadow-lg dark:shadow-blue-500/10 !important;
+    @apply shadow-lg! dark:shadow-blue-500/10!;
 }
 
 .danger-chip {
-    @apply inline-flex items-center justify-center gap-x-2 rounded-full px-4 py-2 text-xs font-bold transition-all duration-200 !important;
+    @apply inline-flex! items-center! justify-center! gap-x-2! rounded-full! px-4! py-2! text-xs! font-bold! transition-all! duration-200!;
     background-color: var(--mc-danger-chip-bg) !important;
     color: var(--mc-danger-chip-text) !important;
     border: 1px solid var(--mc-danger-chip-border) !important;
@@ -81,14 +128,14 @@ select.input-field option {
 .danger-chip:hover {
     background-color: var(--mc-danger-chip-hover-bg) !important;
     color: var(--mc-danger-chip-hover-text) !important;
-    @apply -translate-y-0.5 shadow-md !important;
+    @apply -translate-y-0.5! shadow-md!;
 }
 .danger-chip:active {
-    @apply scale-95 translate-y-0 !important;
+    @apply scale-95! translate-y-0!;
 }
 
 .dark .danger-chip:hover {
-    @apply shadow-lg dark:shadow-red-500/10 !important;
+    @apply shadow-lg! dark:shadow-red-500/10!;
 }
 
 .glass-label {
@@ -114,10 +161,10 @@ select.input-field option {
     @apply text-xs uppercase tracking-wide text-sem-fg-muted;
 }
 .address-card__value {
-    @apply text-sm text-sem-fg dark:text-white break-words pr-16;
+    @apply text-sm text-sem-fg dark:text-white wrap-break-word pr-16;
 }
 .address-card__action {
-    @apply absolute top-3 right-3 inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-bold shadow-sm transition-all !important;
+    @apply absolute! top-3! right-3! inline-flex! items-center! gap-1! rounded-full! px-3! py-1! text-[10px]! font-bold! shadow-xs! transition-all!;
     background-color: var(--mc-address-action-bg) !important;
     color: var(--mc-address-action-text) !important;
     border: 1px solid var(--mc-address-action-border) !important;
@@ -129,7 +176,7 @@ select.input-field option {
 }
 
 .file-input {
-    @apply block w-full text-xs cursor-pointer rounded-lg border bg-sem-file-input-bg text-sem-file-input-text focus:outline-none focus:ring-2 focus:ring-sem-focus;
+    @apply block w-full text-xs cursor-pointer rounded-lg border bg-sem-file-input-bg text-sem-file-input-text focus:outline-hidden focus:ring-2 focus:ring-sem-focus;
     border-color: var(--mc-file-input-border);
 }
 
