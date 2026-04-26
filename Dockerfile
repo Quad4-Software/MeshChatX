@@ -13,7 +13,7 @@ ARG PYTHON_HASH=sha256:27ac3ba1699f7a526ad19bf0d35c12369b43d3439e08297a880398d97
 FROM ${NODE_IMAGE}@${NODE_HASH} AS build-frontend
 WORKDIR /src
 RUN apk add --no-cache git
-COPY package.json pnpm-lock.yaml vite.config.js tailwind.config.js postcss.config.js ./
+COPY package.json pnpm-lock.yaml vite.config.js ./
 COPY patches ./patches
 COPY meshchatx/src/frontend ./meshchatx/src/frontend
 RUN npm install -g pnpm@10.33.0 && \
