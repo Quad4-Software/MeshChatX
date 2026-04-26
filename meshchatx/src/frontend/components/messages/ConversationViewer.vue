@@ -3496,6 +3496,16 @@ export default {
             if (lxmfMessage._pendingPathfinding) {
                 return "Finding path: Reticulum is resolving a route to this peer. Your message sends when the route is ready.";
             }
+            if (lxmfMessage.method === "propagated") {
+                if (lxmfMessage.state === "sending" && (lxmfMessage.progress ?? 0) > 0) {
+                    return this.$t("messages.outbound_pending_propagation_with_progress", {
+                        progress: Number(lxmfMessage.progress).toFixed(0),
+                    });
+                }
+                if (["sending", "outbound", "generating"].includes(lxmfMessage.state)) {
+                    return this.$t("messages.outbound_pending_propagation");
+                }
+            }
             if (lxmfMessage.state === "generating") {
                 return "Preparing message…";
             }
@@ -3506,6 +3516,15 @@ export default {
                 return "Sending…";
             }
             return "Pending";
+        },
+        outboundSentStatusTitle(lxmfMessage) {
+            if (!lxmfMessage) {
+                return "";
+            }
+            if (lxmfMessage.method === "propagated") {
+                return this.$t("messages.outbound_on_propagation_node");
+            }
+            return this.$t("messages.outbound_sent_network");
         },
         isOutboundWaitingBubble(chatItem) {
             return Boolean(chatItem?.is_outbound && chatItem?.lxmf_message?._pendingPathfinding);
@@ -3752,6 +3771,9 @@ export default {
                 return "Sending";
             }
             if (lxmfMessage.state === "outbound") {
+                if (lxmfMessage.method === "propagated") {
+                    return this.$t("messages.outbound_pending_propagation");
+                }
                 return "Outbound";
             }
             return this.outboundSendingStatusTooltip(lxmfMessage);

@@ -211,9 +211,7 @@
                         icon-name="check"
                         class="size-3"
                         :class="cv.outboundBubbleSentCheckIconClass(entry.items[0])"
-                        :title="
-                            entry.items[0].lxmf_message.state === 'propagated' ? 'Sent to propagation node' : 'Sent'
-                        "
+                        :title="cv.outboundSentStatusTitle(entry.items[0].lxmf_message)"
                     />
                     <svg
                         v-else-if="
@@ -905,7 +903,7 @@
                             icon-name="check"
                             class="size-3"
                             :class="cv.outboundBubbleSentCheckIconClass(chatItem)"
-                            :title="chatItem.lxmf_message.state === 'propagated' ? 'Sent to propagation node' : 'Sent'"
+                            :title="cv.outboundSentStatusTitle(chatItem.lxmf_message)"
                         />
                         <svg
                             v-else-if="cv.showRichOutboundPendingUi(chatItem) && cv.isOutboundPendingForUi(chatItem)"
