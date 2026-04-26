@@ -370,6 +370,10 @@ async def test_on_lxmf_sending_state_updated(mock_app):
             "meshchatx.meshchat.convert_lxmf_state_to_string",
             return_value="delivered",
         ),
+        patch(
+            "meshchatx.meshchat.convert_lxmf_method_to_string",
+            return_value="direct",
+        ),
         patch("meshchatx.meshchat.AsyncUtils.run_async") as mock_run_async,
     ):
         mock_app.on_lxmf_sending_state_updated(mock_msg, context=ctx)
@@ -379,6 +383,7 @@ async def test_on_lxmf_sending_state_updated(mock_app):
         assert call_kwargs.kwargs["message_hash"] == "ab" * 16
         assert call_kwargs.kwargs["progress"] == 75.0
         assert call_kwargs.kwargs["state"] == "delivered"
+        assert call_kwargs.kwargs["method"] == "direct"
         mock_run_async.assert_called_once()
 
 

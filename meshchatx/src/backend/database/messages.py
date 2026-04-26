@@ -71,6 +71,7 @@ class MessageDAO:
         rssi=None,
         snr=None,
         quality=None,
+        method=None,
     ):
         """Lightweight update for delivery-state changes only.
 
@@ -78,23 +79,43 @@ class MessageDAO:
         data) which the heavy ``upsert_lxmf_message`` path does.
         """
         now = datetime.now(UTC).isoformat()
-        self.provider.execute(
-            "UPDATE lxmf_messages SET state = ?, progress = ?, "
-            "delivery_attempts = ?, next_delivery_attempt_at = ?, "
-            "rssi = ?, snr = ?, quality = ?, updated_at = ? "
-            "WHERE hash = ?",
-            (
-                state,
-                progress,
-                delivery_attempts,
-                next_delivery_attempt_at,
-                rssi,
-                snr,
-                quality,
-                now,
-                message_hash,
-            ),
-        )
+        if method is None:
+            self.provider.execute(
+                "UPDATE lxmf_messages SET state = ?, progress = ?, "
+                "delivery_attempts = ?, next_delivery_attempt_at = ?, "
+                "rssi = ?, snr = ?, quality = ?, updated_at = ? "
+                "WHERE hash = ?",
+                (
+                    state,
+                    progress,
+                    delivery_attempts,
+                    next_delivery_attempt_at,
+                    rssi,
+                    snr,
+                    quality,
+                    now,
+                    message_hash,
+                ),
+            )
+        else:
+            self.provider.execute(
+                "UPDATE lxmf_messages SET state = ?, progress = ?, "
+                "delivery_attempts = ?, next_delivery_attempt_at = ?, "
+                "rssi = ?, snr = ?, quality = ?, method = ?, updated_at = ? "
+                "WHERE hash = ?",
+                (
+                    state,
+                    progress,
+                    delivery_attempts,
+                    next_delivery_attempt_at,
+                    rssi,
+                    snr,
+                    quality,
+                    method,
+                    now,
+                    message_hash,
+                ),
+            )
 
     def get_lxmf_message_by_hash(self, message_hash):
         return self.provider.fetchone(

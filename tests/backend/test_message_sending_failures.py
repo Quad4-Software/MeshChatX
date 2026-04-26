@@ -123,6 +123,10 @@ async def test_handle_lxmf_message_progress_failure_broadcast(mock_app):
     with (
         patch("meshchatx.meshchat.convert_lxmf_state_to_string", return_value="failed"),
         patch(
+            "meshchatx.meshchat.convert_lxmf_method_to_string",
+            return_value="direct",
+        ),
+        patch(
             "meshchatx.meshchat.convert_lxmf_message_to_dict",
             return_value={"hash": "hex", "state": "failed"},
         ),
@@ -145,6 +149,65 @@ async def test_handle_lxmf_message_progress_failure_broadcast(mock_app):
         payload = json.loads(args)
         assert payload["type"] == "lxmf_message_state_updated"
         assert payload["lxmf_message"]["state"] == "failed"
+
+
+@pytest.mark.asyncio
+async def test_handle_lxmf_message_progress_continues_while_propagation_fallback_pending(
+    mock_app,
+):
+    mock_msg = MagicMock()
+    mock_msg.hash = MagicMock()
+    mock_msg.hash.hex.return_value = "msg_hash_hex"
+    mock_msg.progress = 0.0
+    mock_msg.delivery_attempts = 1
+    mock_msg.try_propagation_on_fail = True
+    mock_msg.state = LXMF.LXMessage.FAILED
+    mock_msg.method = LXMF.LXMessage.DIRECT
+
+    iteration = 0
+
+    async def counting_sleep(_duration):
+        nonlocal iteration
+        iteration += 1
+        if iteration == 2:
+            mock_msg.try_propagation_on_fail = False
+            mock_msg.state = LXMF.LXMessage.SENT
+            mock_msg.method = LXMF.LXMessage.PROPAGATED
+
+    def state_to_str(msg):
+        if msg.state == LXMF.LXMessage.FAILED:
+            return "failed"
+        if msg.state == LXMF.LXMessage.SENT:
+            return "sent"
+        return "unknown"
+
+    with (
+        patch(
+            "meshchatx.meshchat.convert_lxmf_state_to_string", side_effect=state_to_str
+        ),
+        patch(
+            "meshchatx.meshchat.convert_lxmf_method_to_string",
+            side_effect=lambda m: (
+                "propagated" if m.method == LXMF.LXMessage.PROPAGATED else "direct"
+            ),
+        ),
+        patch(
+            "meshchatx.meshchat.convert_lxmf_message_to_dict",
+            side_effect=lambda *a, **k: {
+                "hash": "hex",
+                "state": "failed" if a[0].state == LXMF.LXMessage.FAILED else "sent",
+            },
+        ),
+        patch("asyncio.sleep", side_effect=counting_sleep),
+    ):
+        from meshchatx.meshchat import ReticulumMeshChat
+
+        await ReticulumMeshChat.handle_lxmf_message_progress(
+            mock_app, mock_msg, context=mock_app.current_context
+        )
+
+    assert iteration == 2
+    assert mock_app.database.messages.update_lxmf_message_state.call_count == 2
 
 
 @pytest.mark.asyncio

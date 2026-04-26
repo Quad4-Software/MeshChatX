@@ -89,6 +89,7 @@ from meshchatx.src.backend.lxmf_utils import (
     compute_lxmf_conversation_unread_from_latest_row,
     convert_db_lxmf_message_to_dict,
     convert_lxmf_message_to_dict,
+    convert_lxmf_method_to_string,
     convert_lxmf_state_to_string,
     is_user_facing_lxmf_payload,
     lxmf_fields_are_columba_reaction,
@@ -14966,6 +14967,7 @@ class ReticulumMeshChat:
             rssi=rssi,
             snr=snr,
             quality=quality,
+            method=convert_lxmf_method_to_string(lxmf_message),
         )
 
         AsyncUtils.run_async(
@@ -15491,6 +15493,7 @@ class ReticulumMeshChat:
                     "next_delivery_attempt",
                     None,
                 ),
+                method=convert_lxmf_method_to_string(lxmf_message),
             )
 
             await self.websocket_broadcast(
@@ -15512,7 +15515,10 @@ class ReticulumMeshChat:
                 lxmf_message.state == LXMF.LXMessage.SENT
                 and lxmf_message.method == LXMF.LXMessage.PROPAGATED
             )
-            has_failed = lxmf_message.state == LXMF.LXMessage.FAILED
+            has_failed = (
+                lxmf_message.state == LXMF.LXMessage.FAILED
+                and getattr(lxmf_message, "try_propagation_on_fail", False) is not True
+            )
             is_cancelled = lxmf_message.state == LXMF.LXMessage.CANCELLED
 
             # check if we should stop updating
