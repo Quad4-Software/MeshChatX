@@ -3,20 +3,6 @@
     "_source": "https://directory.rns.recipes/api/directory/submitted?search=&type=&status=online",
     "interfaces": [
         {
-            "name": "Backbone Shadow Chelyabinsk",
-            "type": "TCPClientInterface",
-            "target_host": "78.29.39.97",
-            "target_port": 4242,
-            "description": "directory.rns.recipes (user-submitted, online)"
-        },
-        {
-            "name": "Beleth Clearnet TCP",
-            "type": "TCPClientInterface",
-            "target_host": "rns.beleth.net",
-            "target_port": 4242,
-            "description": "directory.rns.recipes (user-submitted, online)"
-        },
-        {
             "name": "Beleth RNS Hub",
             "type": "TCPClientInterface",
             "target_host": "rns.beleth.net",
@@ -63,6 +49,20 @@
             "type": "TCPClientInterface",
             "target_host": "use.inertia.chat",
             "target_port": 4242,
+            "description": "directory.rns.recipes (user-submitted, online)"
+        },
+        {
+            "name": "MSK SZAO [HaLow Bridge]",
+            "type": "TCPClientInterface",
+            "target_host": "dreadgurizta.ru",
+            "target_port": 4242,
+            "description": "directory.rns.recipes (user-submitted, online)"
+        },
+        {
+            "name": "MichMesh",
+            "type": "TCPClientInterface",
+            "target_host": "rns.michmesh.net",
+            "target_port": 7822,
             "description": "directory.rns.recipes (user-submitted, online)"
         },
         {
@@ -122,20 +122,6 @@
             "description": "directory.rns.recipes (user-submitted, online)"
         },
         {
-            "name": "RNS Wiegand",
-            "type": "TCPClientInterface",
-            "target_host": "rns.wiegandtech.net",
-            "target_port": 4242,
-            "description": "directory.rns.recipes (user-submitted, online)"
-        },
-        {
-            "name": "RNS at chadobear.world",
-            "type": "TCPClientInterface",
-            "target_host": "rns.chadobear.world",
-            "target_port": 4242,
-            "description": "directory.rns.recipes (user-submitted, online)"
-        },
-        {
             "name": "RNS_Transport_US-East",
             "type": "TCPClientInterface",
             "target_host": "45.77.109.86",
@@ -168,13 +154,6 @@
             "type": "TCPClientInterface",
             "target_host": "aspark.uber.space",
             "target_port": 44860,
-            "description": "directory.rns.recipes (user-submitted, online)"
-        },
-        {
-            "name": "TCP Shadow Chelyabinsk",
-            "type": "TCPClientInterface",
-            "target_host": "78.29.39.97",
-            "target_port": 4243,
             "description": "directory.rns.recipes (user-submitted, online)"
         },
         {
