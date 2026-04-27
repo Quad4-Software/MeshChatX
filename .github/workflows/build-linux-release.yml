@@ -37,6 +37,8 @@ env:
     POETRY_VERSION: "2.3.4"
     PNPM_VERSION: "10.33.0"
     COSIGN_VERSION: "3.0.6"
+    TRIVY_DEB_URL: "https://git.quad4.io/Quad4-Software/Trivy-Assets/raw/commit/fdfe96b77d2f7b7f5a90cea00af5024c9f728f17/trivy_0.69.3_Linux-64bit.deb"
+    TRIVY_DEB_SHA256: "a484057aafde31089cf2558ca0f79a4bc835125a5ee6834183a5bcf0735af358"
 
 jobs:
     frontend:
@@ -116,6 +118,9 @@ jobs:
             - name: Setup Task
               run: sh scripts/ci/setup-task.sh
 
+            - name: Apt update (for Trivy .deb)
+              run: sh scripts/ci/exec-priv.sh apt-get update -qq
+
             - name: Setup Trivy
               run: sh scripts/ci/setup-trivy.sh
 
@@ -138,6 +143,7 @@ jobs:
                   GITHUB_RUN_ID: ${{ github.run_id }}
                   GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
                   GITHUB_WORKFLOW: ${{ github.workflow }}
+                  GITHUB_WORKFLOW_FILE: build-linux-release.yml
                   COSIGN_VERSION: ${{ env.COSIGN_VERSION }}
               run: |
                   set -eu

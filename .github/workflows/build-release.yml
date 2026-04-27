@@ -36,6 +36,7 @@ env:
     NODE_VERSION: "24"
     POETRY_VERSION: "2.3.4"
     PNPM_VERSION: "10.32.1"
+    COSIGN_VERSION: "3.0.6"
 
 jobs:
     frontend:
@@ -199,6 +200,9 @@ jobs:
         permissions:
             contents: write
         steps:
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
             - name: Download Windows dist
               uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
               with:
@@ -216,6 +220,32 @@ jobs:
               with:
                   name: ${{ needs.slsa-provenance-desktop.outputs.provenance-name }}
                   path: upload
+
+            - name: SLSA cosign bundles (desktop assets)
+              env:
+                  COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+                  COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+                  GITHUB_SERVER_URL: ${{ github.server_url }}
+                  GITHUB_REPOSITORY: ${{ github.repository }}
+                  GITHUB_SHA: ${{ github.sha }}
+                  GITHUB_REF: ${{ github.ref }}
+                  GITHUB_RUN_ID: ${{ github.run_id }}
+                  GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+                  GITHUB_WORKFLOW: ${{ github.workflow }}
+                  GITHUB_WORKFLOW_FILE: build-release.yml
+                  COSIGN_VERSION: ${{ env.COSIGN_VERSION }}
+              run: |
+                  set -eu
+                  if [ -z "${COSIGN_PRIVATE_KEY:-}" ]; then
+                    echo "Skipping cosign attestations (no COSIGN_PRIVATE_KEY)."
+                    exit 0
+                  fi
+                  sh scripts/ci/setup-cosign.sh "${COSIGN_VERSION}"
+                  printf '%s\n' "$COSIGN_PRIVATE_KEY" > /tmp/cosign.key
+                  chmod 600 /tmp/cosign.key
+                  export COSIGN_KEY_PATH=/tmp/cosign.key
+                  sh scripts/ci/attest-release-assets.sh upload
+                  rm -f /tmp/cosign.key
 
             - name: Upload to draft release
               env:
