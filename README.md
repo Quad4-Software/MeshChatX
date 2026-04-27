@@ -65,7 +65,7 @@ Use the method that matches your environment and packaging preference.
 
 Notes:
 
-- GitHub Actions builds tagged releases: Windows and macOS via `.github/workflows/build-release.yml`, Linux wheel/AppImage/deb/rpm via `.github/workflows/build-linux-release.yml`, and the container image via `.github/workflows/docker.yml`.
+- GitHub Actions builds tagged releases (Linux wheel/AppImage/deb/rpm, Windows, macOS, Flatpak, SLSA, draft release) in one run via `.github/workflows/build-release.yml`; the container image via `.github/workflows/docker.yml`.
 - Linux `x64` and `arm64` AppImage + DEB are built on GitHub; RPM is attempted and uploaded when produced.
 
 ## Docker

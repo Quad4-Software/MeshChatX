@@ -64,7 +64,7 @@ task build:all
 
 说明:
 
-- GitHub Actions 构建带标签的发行版：Windows 与 macOS 见 `.github/workflows/build-release.yml`，Linux wheel/AppImage/deb/rpm 见 `.github/workflows/build-linux-release.yml`，容器镜像见 `.github/workflows/docker.yml`。
+- GitHub Actions 在单次运行中构建带标签的发行版（Linux wheel/AppImage/deb/rpm、Windows、macOS、Flatpak、SLSA、草稿 Release）：`.github/workflows/build-release.yml`；容器镜像：`.github/workflows/docker.yml`。
 - Linux `x64` 与 `arm64` 的 AppImage + DEB 在 GitHub 上构建；RPM 会尝试构建，产出则上传。
 
 ## Docker

@@ -64,7 +64,7 @@ task build:all
 
 Примечания:
 
-- GitHub Actions собирает помеченные тегом релизы: Windows и macOS в `.github/workflows/build-release.yml`, Linux wheel/AppImage/deb/rpm в `.github/workflows/build-linux-release.yml`, образ контейнера в `.github/workflows/docker.yml`.
+- GitHub Actions собирает помеченные тегом релизы (Linux wheel/AppImage/deb/rpm, Windows, macOS, Flatpak, SLSA, черновик релиза) в одном запуске: `.github/workflows/build-release.yml`; образ контейнера — `.github/workflows/docker.yml`.
 - AppImage + DEB для Linux `x64` и `arm64` собираются на GitHub; RPM собирается по возможности и выкладывается, если шаг дал артефакт.
 
 ## Docker
