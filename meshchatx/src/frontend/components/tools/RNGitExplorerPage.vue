@@ -232,6 +232,10 @@
                         >
                     </div>
                 </div>
+
+                <p class="text-center text-[10px] leading-relaxed text-gray-400 dark:text-zinc-500 max-w-prose mx-auto">
+                    {{ $t("rngit_explorer.experimental_footer") }}
+                </p>
             </div>
         </div>
     </div>
