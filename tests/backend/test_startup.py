@@ -151,7 +151,7 @@ def test_reticulum_meshchat_init(mock_rns, temp_dir):
         mock_rns["LXMRouter"].assert_called_once()
 
         # Verify Announce Handlers registration
-        assert mock_rns["Transport"].register_announce_handler.call_count == 4
+        assert mock_rns["Transport"].register_announce_handler.call_count == 5
 
         app.teardown_identity()
 
