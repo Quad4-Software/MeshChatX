@@ -8,7 +8,7 @@ authors = [
 license = "0BSD AND MIT"
 readme = "README.md"
 requires-python = ">=3.11"
-keywords = ["reticulum", "meshchat", "lxmf", "rns"]
+keywords = ["reticulum", "meshchat", "meshchatx", "lxmf", "rns"]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
