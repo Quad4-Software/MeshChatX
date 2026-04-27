@@ -161,6 +161,9 @@ jobs:
         outputs:
             hashes: ${{ steps.hash.outputs.hashes }}
         steps:
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+
             - name: Download Windows dist
               uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
               with:
