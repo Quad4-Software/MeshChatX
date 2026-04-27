@@ -2,14 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.6.0] - 2026-04-24
+## [4.6.0] - 2026-05-02 - Upcoming
 
 ### TL;DR
 
 - **File downloads**: When you save or export things (including from archives), filenames are **cleaned up** so odd characters are less likely to break saves, and you get **clearer feedback** when a download wraps up.
 - **NomadNet favourites**: You can **import and export** your NomadNet favourites list so you are not stuck re-building it by hand on a new device; **contact sharing** wording is clearer across several languages.
-- **RNGit Explorer**: New in-app explorer for **RNGit**
-- **Android**: **Foreground sync** with notifications, **WebSocket** bridge hooks, **calls** and richer **audio** (including native attachments), plus **Lint** in CI and toolchain updates.
+- **RNGit Explorer**: New in-app explorer for **RNGit**.
+- **Android**: **Foreground sync** with notifications, **WebSocket** bridge hooks, **calls** and richer **audio** (including native attachments), **optional camera** manifest wiring, plus **Lint** in CI and toolchain updates.
+- **Reticulum and announces**: **Bootstrap-only** defaults for new **outbound TCP** / **backbone connector** interfaces (with discovery and add-interface options), **per-aspect announce storage** toggles in **`announce_manager`** / **`config_manager`**, and refreshed **community interface** presets (builder script and list cleanup).
+- **Chat UI**: Clearer **outbound propagation** status in threads; **clipboard** helpers for secure and non-secure contexts; **Tailwind CSS 4** with the **Vite** plugin and a slimmer frontend config footprint.
+- **Settings and locales**: **Privacy**, **message auto-delete**, **community preset** strings, **bootstrap node search** copy, and **outbound propagation** status translations across supported languages.
 
 ### Downloads, archives, and frontend utilities
 
@@ -21,12 +24,13 @@ All notable changes to this project will be documented in this file.
 
 - **Favourites**: **Import/export** for NomadNet favourites from the app.
 - **Locales**: **Contact sharing** options and related strings refreshed across supported languages; **RNGit Explorer** strings added; **localization tables** aligned for consistency.
+- **Locales**: **Bootstrap node search** copy; settings strings for **privacy**, **message auto-delete**, and **community preset** management; **outbound message propagation status** labels for the conversation UI.
 
 ### RNGit Explorer
 
 - **Backend**: **`rngit_tool`** introduces the RNGit explorer capability.
-- **Frontend**: **RNGit Explorer** page and **sidebar** / navigation integration.
-- **Tests**: Coverage for **server behaviour** and **frequency conversion** paths used by the tool.
+- **Frontend**: **RNGit Explorer** page and **sidebar** / navigation integration; **experimental** footer notice (localized).
+- **Tests**: Coverage for **server behaviour** and **frequency conversion** paths used by the tool; obsolete **RNGit database announcement conversion** test removed.
 
 ### Android
 
@@ -35,21 +39,32 @@ All notable changes to this project will be documented in this file.
 - **Docs**: Android README sections updated so they no longer talk about removed flavors.
 - **Sync and notifications**: **Foreground service** for message synchronization with user-facing **notification** copy; **WebSocket** integration in **`meshchat_wrapper`** and an **Android push bridge** so the UI can react to backend events.
 - **Reliability**: **Server loop control** and clearer **error handling** around the notification bridge.
-- **Calls and media**: **Call handling**, **notification channels**, **permissions** and **shortcuts**; **native audio attachment** support and improved **message routing** and in-app **audio** navigation.
+- **Calls and media**: **Call handling**, **notification channels**, **permissions** and **shortcuts**; **native audio attachment** support and improved **message routing** and in-app **audio** navigation; **TelephoneNativeAudioSession** and **WavPcmAttachmentRecorder** encapsulate **record creation** and **permission** checks.
+- **Manifest**: **Camera** added as an **optional** feature where appropriate; duplicate optional **camera** / **microphone** feature declarations removed from **`AndroidManifest.xml`**.
 - **Toolchain**: **Gradle** plugin and **SDK** bumps, dependency refresh, and **Lint** configuration.
 - **CI**: **Android Lint** runs in the workflow with **report artifacts** uploaded for review.
 
 ### MeshChat UI, conversations, and microphone
 
 - **Conversations**: **UUID**-based pending message hashing and **viewport resize** handling updates.
+- **Outbound status**: **`meshchat`** message updates accept a **method** parameter with **method-to-state** mapping so propagation outcomes read consistently; **`ConversationViewer`** shows clearer **propagation state** titles; tests cover outbound propagation status behaviour.
+- **Clipboard**: **`clipboardUtils.js`** improves **copy** / **read** for **secure** and **non-secure** contexts when **`navigator.clipboard`** is missing or rejects.
 - **Layout**: Responsive **height** class tweaks on **`App.vue`** and **`AuthPage.vue`**.
+- **Styling**: **z-index** values standardized and **class naming** cleaned up across multiple components.
 - **Microphone**: **`microphoneRecorder`** can capture via **AudioWorklet** or **ScriptProcessor** for better **performance** and **compatibility** across environments.
 
 ### Reticulum config, discovery, and display
 
+- **Bootstrap-only interfaces**: Discovery and **Add Interface** flows can mark new **TCP client** and **backbone connector** interfaces **`bootstrap_only`** so Reticulum can detach them after **`autoconnect_discovered_interfaces`** is satisfied; defaults are configurable under **Interfaces**.
+- **Announce storage**: **`announce_manager`** wires **per-aspect** persistence (**`announce_store_*`**) through **`config_manager`** so LXMF, telephony, NomadNet, propagation, and RNGit aspects can be stored or skipped independently.
 - **Interface editor**: **`coerce_rnode_frequency_hz`** normalizes frequency values written into Reticulum config.
 - **Discovery helpers**: **`parseRNodeFrequencyHz`** interprets frequency fields from API-style payloads.
 - **Formatting**: **`formatFrequency`** in **`Utils`** rejects or handles **non-finite** values safely instead of producing garbage output.
+
+### Community interface presets
+
+- **`build_community_interfaces`**: JSON fetch uses a **dedicated interface builder** instead of a one-off fetch helper.
+- **Preset list**: Removes **stale TCPClientInterface** bootstrap entries and adds **user-submitted** community interfaces.
 
 ### Version source and sync scripts
 
@@ -69,14 +84,19 @@ All notable changes to this project will be documented in this file.
 - **Android release**: Workflow updates for **tag handling**, **signing secret** detection, **APK upload** behaviour, and **Lint** (see Android section for product impact).
 - **Benchmarks**: **Taskfile** default **benchmark** task and workflow trigger alignment.
 - **Draft releases**: Script sets **`GH_REPO`** from **`GITHUB_REPOSITORY`** when unset.
-- **Trivy**: Install script gains **upstream verification** and **cosign** integration.
+- **Asset attestations**: Workflow **excludes additional file types** from attestation and **disables tlog upload** where that was causing friction.
+- **Trivy**: Build and **security scan** workflows include explicit **setup** / **update** steps; install script gains **upstream verification** and **cosign** integration.
 - **pip-audit**: **`CVE-2026-3219`** ignored temporarily with a documented rationale until an upstream fix lands.
-- **Tests**: Minor **formatting** tidy-ups in the test tree; **`test_app_status_tracking`** uses **`4.6.0`** as the example **`changelog_seen_version`** stamp so it tracks the release; added coverage for **`android_push_bridge`**, **`meshchat_wrapper`**, and **`rngit_tool`** (including wrapper server loops and frequency conversion).
+- **Tests**: Minor **formatting** tidy-ups in the test tree; **`test_app_status_tracking`** uses **`4.6.0`** as the example **`changelog_seen_version`** stamp so it tracks the release; added coverage for **`android_push_bridge`**, **`meshchat_wrapper`**, and **`rngit_tool`** (including wrapper server loops and frequency conversion); **`http_api_routes.json`** contract updated for new routes; **Transport** announce-handler registration test expectation fixed.
 
 ### Docker, compose, and documentation
 
-- **Dockerfile**: Optional **reproducible native build** target wiring; **OCI**-style metadata and **image source** hints refined; **`docker-compose.yml`** image source updated.
-- **Docs**: **README** and translated READMEs add **Docker Hub** / **GHCR** guidance and **copy-paste `docker run` examples** where helpful; **official GitHub mirror** links refreshed; **GitHub Actions** references replace Gitea-era wording; **security policy** and **SECURITY** formatting polish; **Raspberry Pi** install examples use **`bash`** fences consistently.
+- **Dockerfile**: Optional **reproducible native build** target wiring; **OCI**-style metadata and **image source** hints refined; **`docker-compose.yml`** image source updated; build context drops unnecessary **legacy Tailwind** config files.
+- **Docs**: **README** and translated READMEs add **Docker Hub** / **GHCR** guidance and **copy-paste `docker run` examples** where helpful; **browser requirements** called out where relevant; **official GitHub mirror** links refreshed; **GitHub Actions** references replace Gitea-era wording; **security policy** and **SECURITY** formatting polish; **Raspberry Pi** install examples use **`bash`** fences consistently.
+
+### Tailwind and Vite frontend
+
+- **Tailwind CSS 4.2.4** with **`@tailwindcss/vite`**; obsolete **Tailwind config** files removed and **`style.css`** updated for the new setup.
 
 ## [4.5.1] - 2026-04-24
 
