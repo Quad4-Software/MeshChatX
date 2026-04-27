@@ -34,9 +34,12 @@ def _build_type() -> str:
     repo = (
         os.environ.get("GITHUB_REPOSITORY") or os.environ.get("GITEA_REPOSITORY") or ""
     )
-    if server and repo:
-        return f"{server}/{repo}/.github/workflows/build-linux-release.yml"
-    return "https://slsa.dev/provenance/v1"
+    if not server or not repo:
+        return "https://slsa.dev/provenance/v1"
+    workflow_file = os.environ.get("GITHUB_WORKFLOW_FILE", "build-linux-release.yml")
+    if os.environ.get("GITEA_SERVER_URL"):
+        return f"{server}/{repo}/.gitea/workflows/{workflow_file}"
+    return f"{server}/{repo}/.github/workflows/{workflow_file}"
 
 
 def _builder_id() -> str:
