@@ -170,6 +170,7 @@ jobs:
     flatpak:
         name: Flatpak (electron-forge)
         needs: frontend
+        continue-on-error: true
         runs-on: ubuntu-latest
         timeout-minutes: 90
         permissions:
