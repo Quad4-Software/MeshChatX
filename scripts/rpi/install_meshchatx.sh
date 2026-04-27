@@ -520,7 +520,8 @@ try_verify_and_localize_wheel() {
         rm -f "$wf" "$bf" "$kf"
         return 1
     fi
-    if ! "$cbin" verify-blob-attestation --key "$kf" --bundle "$bf" --type slsaprovenance1 "$wf"; then
+    if ! "$cbin" verify-blob-attestation --key "$kf" --bundle "$bf" --type slsaprovenance1 \
+        --insecure-ignore-tlog=true "$wf"; then
         err "cosign attestation verification failed for the downloaded wheel."
         rm -f "$wf" "$bf" "$kf"
         exit 1
