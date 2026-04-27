@@ -22,7 +22,9 @@ trap 'rm -f "$tmp"' EXIT
 
 find "${roots[@]}" -type f \( \
     -name '*.exe' -o -name '*.dmg' -o -name '*.blockmap' -o -name '*.yml' -o -name '*.yaml' \
-    \) ! -path '*/.*' -print | LC_ALL=C sort | xargs -r sha256sum >"$tmp"
+    \) ! -path '*/.*' -print0 \
+    | LC_ALL=C sort -z \
+    | xargs -0r sha256sum >"$tmp"
 
 if [ ! -s "$tmp" ]; then
     echo "No matching dist files under: ${roots[*]}" >&2
