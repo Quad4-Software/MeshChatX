@@ -37,11 +37,27 @@ class MessageDAO:
             "is_spam",
             "reply_to_hash",
             "attachments_stripped",
+            "path_hops_at_send",
+            "path_interface_at_send",
+            "path_finding_measure",
+            "path_row_hash_hex",
         ]
 
         columns = ", ".join(fields)
         placeholders = ", ".join(["?"] * len(fields))
-        update_set = ", ".join([f"{f} = EXCLUDED.{f}" for f in fields if f != "hash"])
+        update_fields = [
+            f
+            for f in fields
+            if f != "hash"
+            and f
+            not in (
+                "path_hops_at_send",
+                "path_interface_at_send",
+                "path_finding_measure",
+                "path_row_hash_hex",
+            )
+        ]
+        update_set = ", ".join([f"{f} = EXCLUDED.{f}" for f in update_fields])
 
         query = (
             f"INSERT INTO lxmf_messages ({columns}, created_at, updated_at) VALUES ({placeholders}, ?, ?) "
@@ -60,6 +76,17 @@ class MessageDAO:
         params.append(now)
 
         self.provider.execute(query, params)
+
+    def set_lxmf_message_path_at_send_if_unset(
+        self, message_hash, hops, interface_name
+    ):
+        """Store Reticulum path snapshot once (send or receive); never overwrites."""
+        now = datetime.now(UTC).isoformat()
+        self.provider.execute(
+            "UPDATE lxmf_messages SET path_hops_at_send = ?, path_interface_at_send = ?, updated_at = ? "
+            "WHERE hash = ? AND path_hops_at_send IS NULL",
+            (hops, interface_name, now, message_hash),
+        )
 
     def update_lxmf_message_state(
         self,
@@ -165,6 +192,39 @@ class MessageDAO:
             return False
         self.set_peer_pinned(peer_hash, True)
         return True
+
+    def list_message_hashes_with_timestamp_before(self, cutoff_ts: float) -> list[str]:
+        rows = self.provider.fetchall(
+            "SELECT hash FROM lxmf_messages WHERE timestamp IS NOT NULL AND timestamp < ?",
+            (cutoff_ts,),
+        )
+        return [r["hash"] for r in rows if r.get("hash")]
+
+    def prune_conversation_metadata_for_peers_with_no_messages(self) -> None:
+        self.provider.execute(
+            """
+            DELETE FROM lxmf_conversation_read_state
+            WHERE destination_hash NOT IN (
+                SELECT DISTINCT peer_hash FROM lxmf_messages WHERE peer_hash IS NOT NULL
+            )
+            """,
+        )
+        self.provider.execute(
+            """
+            DELETE FROM lxmf_conversation_folders
+            WHERE peer_hash NOT IN (
+                SELECT DISTINCT peer_hash FROM lxmf_messages WHERE peer_hash IS NOT NULL
+            )
+            """,
+        )
+        self.provider.execute(
+            """
+            DELETE FROM lxmf_conversation_pins
+            WHERE peer_hash NOT IN (
+                SELECT DISTINCT peer_hash FROM lxmf_messages WHERE peer_hash IS NOT NULL
+            )
+            """,
+        )
 
     def delete_lxmf_messages_by_hashes(self, message_hashes):
         if not message_hashes:

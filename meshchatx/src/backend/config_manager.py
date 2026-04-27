@@ -256,7 +256,16 @@ class ConfigManager:
         self.telemetry_enabled = self.BoolConfig(self, "telemetry_enabled", False)
 
         # translator config
-        self.translator_enabled = self.BoolConfig(self, "translator_enabled", False)
+        self.translator_argos_enabled = self.BoolConfig(
+            self,
+            "translator_argos_enabled",
+            False,
+        )
+        self.translator_libretranslate_enabled = self.BoolConfig(
+            self,
+            "translator_libretranslate_enabled",
+            False,
+        )
         self.libretranslate_url = self.StringConfig(
             self,
             "libretranslate_url",
@@ -335,6 +344,33 @@ class ConfigManager:
             self,
             "message_waiting_bubble_color",
             "#e5e7eb",
+        )
+
+        # When False, meshchat does not persist received announces of that type (all True by default).
+        self.announce_store_lxmf_delivery = self.BoolConfig(
+            self,
+            "announce_store_lxmf_delivery",
+            True,
+        )
+        self.announce_store_lxst_telephony = self.BoolConfig(
+            self,
+            "announce_store_lxst_telephony",
+            True,
+        )
+        self.announce_store_nomadnetwork_node = self.BoolConfig(
+            self,
+            "announce_store_nomadnetwork_node",
+            True,
+        )
+        self.announce_store_lxmf_propagation = self.BoolConfig(
+            self,
+            "announce_store_lxmf_propagation",
+            True,
+        )
+        self.announce_store_git_repositories = self.BoolConfig(
+            self,
+            "announce_store_git_repositories",
+            True,
         )
 
         # announce caps: max rows stored per aspect (oldest dropped). Default 1000.
@@ -425,13 +461,44 @@ class ConfigManager:
             "[]",
         )
 
+        self.local_message_auto_delete_enabled = self.BoolConfig(
+            self,
+            "local_message_auto_delete_enabled",
+            False,
+        )
+        self.local_message_auto_delete_value = self.IntConfig(
+            self,
+            "local_message_auto_delete_value",
+            30,
+        )
+        self.local_message_auto_delete_unit = self.StringConfig(
+            self,
+            "local_message_auto_delete_unit",
+            "days",
+        )
+        self.local_message_auto_delete_last_run_at = self.IntConfig(
+            self,
+            "local_message_auto_delete_last_run_at",
+            None,
+        )
+
         self._migrate_legacy_announce_limit_keys()
+        self._migrate_translator_from_legacy()
 
     def get(self, key: str, default_value=None) -> str | None:
         return self.db.config.get(key, default_value)
 
     def set(self, key: str, value: str | None):
         self.db.config.set(key, value)
+
+    def _migrate_translator_from_legacy(self):
+        old = self.db.config.get("translator_enabled", default=None)
+        a = self.db.config.get("translator_argos_enabled", default=None)
+        libre = self.db.config.get("translator_libretranslate_enabled", default=None)
+        if old is not None and a is None and libre is None:
+            v = "true" if str(old).lower() == "true" else "false"
+            self.db.config.set("translator_argos_enabled", v)
+            self.db.config.set("translator_libretranslate_enabled", v)
 
     def _migrate_legacy_announce_limit_keys(self):
         pairs = [

@@ -8,6 +8,7 @@ from LXMF.LXMRouter import LXMRouter
 
 from meshchatx.src.backend.async_utils import AsyncUtils
 from meshchatx.src.backend.meshchat_utils import parse_lxmf_propagation_node_app_data
+from meshchatx.src.backend import reticulum_pathfinding
 
 _PROP_FAILURE_STATES = frozenset(
     {
@@ -57,15 +58,13 @@ class AutoPropagationManager:
             await asyncio.sleep(self._check_interval)
 
     async def _wait_for_path(self, dest_hash: bytes, timeout: float) -> bool:
-        if RNS.Transport.has_path(dest_hash):
-            return True
-        RNS.Transport.request_path(dest_hash)
-        deadline = time.monotonic() + timeout
-        while time.monotonic() < deadline:
-            if RNS.Transport.has_path(dest_hash):
-                return True
-            await asyncio.sleep(POLL_INTERVAL_SECONDS)
-        return RNS.Transport.has_path(dest_hash)
+        r = self.app.reticulum if self.app and hasattr(self.app, "reticulum") else None
+        return await reticulum_pathfinding.wait_for_path(
+            r,
+            dest_hash,
+            timeout,
+            poll_interval=POLL_INTERVAL_SECONDS,
+        )
 
     async def _probe_propagation_sync(self, node_hex: str) -> bool:
         ctx = self.context

@@ -273,10 +273,10 @@ class IdentityContext:
         )
 
         libretranslate_url = self.config.libretranslate_url.get()
-        translator_enabled = self.config.translator_enabled.get()
         self.translator_handler = TranslatorHandler(
             libretranslate_url=libretranslate_url,
-            enabled=translator_enabled,
+            translator_argos_enabled=self.config.translator_argos_enabled.get(),
+            translator_libretranslate_enabled=self.config.translator_libretranslate_enabled.get(),
         )
 
         self.bot_handler = BotHandler(
@@ -339,6 +339,10 @@ class IdentityContext:
 
         self.community_interfaces_manager = CommunityInterfacesManager(
             public_override_path=self.app.get_public_path("community_interfaces.json"),
+            cache_path=os.path.join(
+                self.storage_path,
+                "community_interfaces_cache.json",
+            ),
         )
 
         self.auto_propagation_manager = AutoPropagationManager(
@@ -398,6 +402,16 @@ class IdentityContext:
         thread = threading.Thread(
             target=asyncio.run,
             args=(self.app.telemetry_tracking_loop(self.session_id, context=self),),
+        )
+        thread.daemon = True
+        thread.start()
+
+        # start background thread for local (device-only) message age retention
+        thread = threading.Thread(
+            target=asyncio.run,
+            args=(
+                self.app.local_message_retention_loop(self.session_id, context=self),
+            ),
         )
         thread.daemon = True
         thread.start()

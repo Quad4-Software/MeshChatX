@@ -4,7 +4,10 @@
 
 from __future__ import annotations
 
+import json
 import re
+import urllib.error
+import urllib.request
 from typing import Any
 
 DEFAULT_SUBMITTED_URL = (
@@ -12,6 +15,31 @@ DEFAULT_SUBMITTED_URL = (
 )
 
 DESCRIPTION = "directory.rns.recipes (user-submitted, online)"
+
+
+def fetch_directory_payload(url: str, *, timeout: float = 60.0) -> object:
+    req = urllib.request.Request(
+        url,
+        headers={
+            "Accept": "application/json",
+            "User-Agent": "MeshChatX-community-interfaces/1.0 (+https://meshchatx.com/)",
+        },
+        method="GET",
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return json.loads(resp.read().decode("utf-8"))
+
+
+def build_interfaces_from_directory_url(
+    url: str | None = None,
+    *,
+    timeout: float = 60.0,
+) -> tuple[list[dict[str, Any]], str]:
+    resolved = url or DEFAULT_SUBMITTED_URL
+    payload = fetch_directory_payload(resolved, timeout=timeout)
+    rows = rows_from_payload(payload)
+    return transform_directory_rows(rows), resolved
+
 
 _RE_REMOTE = re.compile(r"^\s*remote\s*=\s*(\S+)", re.MULTILINE | re.IGNORECASE)
 _RE_TARGET_HOST = re.compile(

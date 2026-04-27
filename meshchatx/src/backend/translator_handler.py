@@ -91,8 +91,14 @@ def _sync_run_coro(coro):
 
 
 class TranslatorHandler:
-    def __init__(self, libretranslate_url: str | None = None, enabled: bool = False):
-        self.enabled = enabled
+    def __init__(
+        self,
+        libretranslate_url: str | None = None,
+        translator_argos_enabled: bool = False,
+        translator_libretranslate_enabled: bool = False,
+    ):
+        self.translator_argos_enabled = translator_argos_enabled
+        self.translator_libretranslate_enabled = translator_libretranslate_enabled
         self.libretranslate_url = libretranslate_url or os.getenv(
             "LIBRETRANSLATE_URL",
             "http://localhost:5000",
@@ -102,6 +108,18 @@ class TranslatorHandler:
         self.has_argos_cli = self._argos_cli_executable is not None
         self.has_argos = self.has_argos_lib or self.has_argos_cli
         self.has_requests = HAS_AIOHTTP
+
+    def _any_backend_config_enabled(self) -> bool:
+        return self.translator_argos_enabled or self.translator_libretranslate_enabled
+
+    @property
+    def enabled(self) -> bool:
+        return self._any_backend_config_enabled()
+
+    @enabled.setter
+    def enabled(self, value: bool) -> None:
+        self.translator_argos_enabled = value
+        self.translator_libretranslate_enabled = value
 
     async def _fetch_languages_async(self, url: str):
         base = url.rstrip("/")
@@ -115,23 +133,26 @@ class TranslatorHandler:
                     return await response.json()
         return None
 
-    def get_supported_languages(self, libretranslate_url: str | None = None):
-        languages = []
-        if not self.enabled:
-            return languages
+    def get_translator_languages_response(
+        self,
+        libretranslate_url: str | None = None,
+    ) -> dict[str, Any]:
+        """List installed/reachable language pairs for UI; not gated on enable toggles."""
+        languages: list[dict[str, str]] = []
+        libretranslate_reachable = False
 
         url = libretranslate_url or self.libretranslate_url
-        if libretranslate_url is not None and str(libretranslate_url).strip():
-            try:
-                url = normalize_loopback_http_service_base(libretranslate_url)
-            except UnsafeOutboundUrlError as e:
-                msg = str(e)
-                raise ValueError(msg) from e
-
         if self.has_requests:
+            if libretranslate_url is not None and str(libretranslate_url).strip():
+                try:
+                    url = normalize_loopback_http_service_base(libretranslate_url)
+                except UnsafeOutboundUrlError as e:
+                    msg = str(e)
+                    raise ValueError(msg) from e
             try:
                 libretranslate_langs = _sync_run_coro(self._fetch_languages_async(url))
                 if libretranslate_langs is not None:
+                    libretranslate_reachable = True
                     languages.extend(
                         {
                             "code": lang.get("code"),
@@ -140,7 +161,6 @@ class TranslatorHandler:
                         }
                         for lang in libretranslate_langs
                     )
-                    return languages
             except Exception as e:
                 print(f"Failed to fetch LibreTranslate languages: {e}")
 
@@ -169,7 +189,15 @@ class TranslatorHandler:
             except Exception as e:
                 print(f"Failed to fetch Argos languages via CLI: {e}")
 
-        return languages
+        return {
+            "languages": languages,
+            "libretranslate_reachable": libretranslate_reachable,
+        }
+
+    def get_supported_languages(self, libretranslate_url: str | None = None) -> list:
+        return self.get_translator_languages_response(
+            libretranslate_url=libretranslate_url,
+        )["languages"]
 
     def translate_text(
         self,
@@ -179,7 +207,7 @@ class TranslatorHandler:
         use_argos: bool = False,
         libretranslate_url: str | None = None,
     ) -> dict[str, Any]:
-        if not self.enabled:
+        if not self._any_backend_config_enabled():
             msg = "Translator is disabled"
             raise RuntimeError(msg)
 
@@ -187,10 +215,13 @@ class TranslatorHandler:
             msg = "Text cannot be empty"
             raise ValueError(msg)
 
-        if use_argos and self.has_argos:
+        if use_argos:
+            if not self.translator_argos_enabled or not self.has_argos:
+                msg = "Argos translation is not enabled or not available"
+                raise RuntimeError(msg)
             return self._translate_argos(text, source_lang, target_lang)
 
-        if self.has_requests:
+        if self.translator_libretranslate_enabled and self.has_requests:
             try:
                 url = libretranslate_url or self.libretranslate_url
                 if libretranslate_url is not None and str(libretranslate_url).strip():
@@ -206,11 +237,11 @@ class TranslatorHandler:
                     libretranslate_url=url,
                 )
             except Exception as e:
-                if self.has_argos:
+                if self.translator_argos_enabled and self.has_argos:
                     return self._translate_argos(text, source_lang, target_lang)
                 raise e
 
-        if self.has_argos:
+        if self.translator_argos_enabled and self.has_argos:
             return self._translate_argos(text, source_lang, target_lang)
 
         msg = "No translation backend available. Install aiohttp for LibreTranslate or argostranslate for local translation."

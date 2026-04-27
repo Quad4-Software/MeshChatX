@@ -18,6 +18,14 @@ _ASPECT_FETCH_LIMIT_KEYS = {
     "lxst.telephony": "announce_fetch_limit_lxmf_delivery",
 }
 
+_ASPECT_STORE_ENABLE_KEYS = {
+    "lxmf.delivery": "announce_store_lxmf_delivery",
+    "lxst.telephony": "announce_store_lxst_telephony",
+    "nomadnetwork.node": "announce_store_nomadnetwork_node",
+    "lxmf.propagation": "announce_store_lxmf_propagation",
+    "git.repositories": "announce_store_git_repositories",
+}
+
 
 class AnnounceManager:
     def __init__(self, db: Database, config=None):
@@ -50,6 +58,17 @@ class AnnounceManager:
             return 500
         return min(v, 100_000)
 
+    def is_storing_announce_for_aspect(self, aspect, force_store: bool = False) -> bool:
+        if force_store or not self.config:
+            return True
+        key = _ASPECT_STORE_ENABLE_KEYS.get(aspect)
+        if not key:
+            return True
+        attr = getattr(self.config, key, None)
+        if attr is None:
+            return True
+        return bool(attr.get())
+
     def upsert_announce(
         self,
         reticulum,
@@ -58,7 +77,11 @@ class AnnounceManager:
         aspect,
         app_data,
         announce_packet_hash,
+        force_store: bool = False,
     ):
+        if not self.is_storing_announce_for_aspect(aspect, force_store=force_store):
+            return
+
         rssi = snr = quality = None
         if announce_packet_hash and reticulum:
             rssi = reticulum.get_packet_rssi(announce_packet_hash)

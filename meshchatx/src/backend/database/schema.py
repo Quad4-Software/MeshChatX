@@ -15,7 +15,7 @@ def _validate_identifier(name: str, label: str = "identifier") -> str:
 
 
 class DatabaseSchema:
-    LATEST_VERSION = 46
+    LATEST_VERSION = 48
 
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -220,6 +220,10 @@ class DatabaseSchema:
                     quality REAL,
                     is_spam INTEGER DEFAULT 0,
                     reply_to_hash TEXT,
+                    path_hops_at_send INTEGER,
+                    path_interface_at_send TEXT,
+                    path_finding_measure TEXT,
+                    path_row_hash_hex TEXT,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
@@ -1249,6 +1253,14 @@ class DatabaseSchema:
             self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_user_stickers_pack ON user_stickers(pack_id, sort_order)",
             )
+
+        if current_version < 47:
+            self._ensure_column("lxmf_messages", "path_hops_at_send", "INTEGER")
+            self._ensure_column("lxmf_messages", "path_interface_at_send", "TEXT")
+
+        if current_version < 48:
+            self._ensure_column("lxmf_messages", "path_finding_measure", "TEXT")
+            self._ensure_column("lxmf_messages", "path_row_hash_hex", "TEXT")
 
         # Update version in config
         self._safe_execute(
