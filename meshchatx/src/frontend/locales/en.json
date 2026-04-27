@@ -1165,6 +1165,7 @@
         "map_link_copied": "Map link copied",
         "hash_copied": "Identity hash copied to clipboard",
         "failed_to_copy_hash": "Failed to copy identity hash",
+        "copy_hash": "Copy Hash",
         "failed_copy_address": "Failed to copy address",
         "translation_failed": "Translation failed",
         "translate_select_target": "Translate to",
