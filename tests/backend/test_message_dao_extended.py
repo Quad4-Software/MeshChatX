@@ -56,3 +56,14 @@ def test_get_conversation_messages(message_dao, mock_provider):
         "SELECT * FROM lxmf_messages WHERE peer_hash = ? ORDER BY timestamp DESC LIMIT ? OFFSET ?",
         ("peer1", 10, 5),
     )
+
+
+def test_set_lxmf_message_path_at_send_if_unset(message_dao, mock_provider):
+    message_dao.set_lxmf_message_path_at_send_if_unset("deadbeef", 2, "UDP Interface")
+    args, _ = mock_provider.execute.call_args
+    query, params = args
+    assert "path_hops_at_send" in query
+    assert "path_hops_at_send IS NULL" in query
+    assert params[0] == 2
+    assert params[1] == "UDP Interface"
+    assert params[3] == "deadbeef"

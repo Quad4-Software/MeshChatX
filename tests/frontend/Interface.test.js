@@ -57,7 +57,7 @@ describe("Interface.vue", () => {
         expect(contentArea.exists()).toBe(true);
     });
 
-    it("has break-words on description for long host:port", () => {
+    it("has word-wrap on description for long host:port", () => {
         const wrapper = mountInterface({
             _name: "RNS Testnet Amsterdam",
             type: "TCPClientInterface",
@@ -65,7 +65,7 @@ describe("Interface.vue", () => {
             target_port: 4965,
         });
         const desc = wrapper.find(".text-sm.text-gray-600");
-        expect(desc.classes()).toContain("break-words");
+        expect(desc.classes()).toContain("wrap-break-word");
         expect(desc.classes()).toContain("min-w-0");
     });
 

@@ -4,6 +4,8 @@ import ConversationViewer from "@/components/messages/ConversationViewer.vue";
 import WebSocketConnection from "@/js/WebSocketConnection";
 import GlobalState from "@/js/GlobalState";
 import DialogUtils from "@/js/DialogUtils";
+import ToastUtils from "@/js/ToastUtils";
+import { MESSAGE_BODY_MAX_DISPLAY_CHARS } from "../../meshchatx/src/frontend/js/messageDisplayLimits.js";
 
 vi.mock("@/js/DialogUtils", () => ({
     default: {
@@ -486,13 +488,107 @@ describe("ConversationViewer.vue", () => {
             ...navigator,
             clipboard: { readText },
         });
+        const prevSc = window.isSecureContext;
+        Object.defineProperty(window, "isSecureContext", { configurable: true, value: true });
+        try {
+            const wrapper = mountConversationViewer();
+            const ta = wrapper.find("#message-input").element;
+            ta.selectionStart = 0;
+            ta.selectionEnd = 0;
+            wrapper.vm.newMessageText = "";
+            await wrapper.vm.pasteFromClipboard();
+            expect(wrapper.vm.newMessageText).toBe("pasted-text");
+        } finally {
+            Object.defineProperty(window, "isSecureContext", { configurable: true, value: prevSc });
+        }
+    });
+
+    it("pasteFromClipboard toasts insecure context and does not call readText", async () => {
+        const readText = vi.fn(() => Promise.resolve("never"));
+        vi.stubGlobal("navigator", {
+            ...navigator,
+            clipboard: { readText },
+        });
+        const prevSc = window.isSecureContext;
+        Object.defineProperty(window, "isSecureContext", { configurable: true, value: false });
+        const errSpy = vi.spyOn(ToastUtils, "error").mockImplementation(() => {});
+        try {
+            const wrapper = mountConversationViewer();
+            await wrapper.vm.pasteFromClipboard();
+            expect(readText).not.toHaveBeenCalled();
+            expect(errSpy).toHaveBeenCalledWith("messages.clipboard_read_requires_secure_context");
+        } finally {
+            errSpy.mockRestore();
+            Object.defineProperty(window, "isSecureContext", { configurable: true, value: prevSc });
+        }
+    });
+
+    it("showRawMessage loads raw uri and keeps stored path fields from the message", async () => {
+        const peer = "a".repeat(32);
+        const msgHash = "b".repeat(32);
+        axiosMock.get.mockImplementation((url) => {
+            if (url.includes("/lxmf-messages/") && url.includes("/uri")) {
+                return Promise.resolve({ data: { uri: "lxmf://packed-uri" } });
+            }
+            if (url.includes("/destination/") && url.includes("/path")) {
+                return Promise.resolve({
+                    data: { path: { hops: 99, next_hop_interface: "Should not use" } },
+                });
+            }
+            if (url.includes("/path")) return Promise.resolve({ data: { path: [] } });
+            if (url.includes("/stamp-info")) return Promise.resolve({ data: { stamp_info: {} } });
+            if (url.includes("/signal-metrics")) return Promise.resolve({ data: { signal_metrics: {} } });
+            return Promise.resolve({ data: {} });
+        });
+        const wrapper = mountConversationViewer({
+            selectedPeer: { destination_hash: peer, display_name: "Peer" },
+            myLxmfAddressHash: "c".repeat(32),
+        });
+        const getCallsBefore = axiosMock.get.mock.calls.length;
+        await wrapper.vm.showRawMessage({
+            lxmf_message: {
+                hash: msgHash,
+                source_hash: "d".repeat(32),
+                destination_hash: peer,
+                state: "delivered",
+                method: "direct",
+                content: "hi",
+                fields: {},
+                id: 42,
+                path_hops_at_send: 3,
+                path_interface_at_send: "Default Interface",
+            },
+        });
+        expect(wrapper.vm.isRawMessageModalOpen).toBe(true);
+        expect(wrapper.vm.rawMessageData.raw_uri).toBe("lxmf://packed-uri");
+        expect(wrapper.vm.rawMessageData.path_hops_at_send).toBe(3);
+        expect(wrapper.vm.rawMessageData.path_interface_at_send).toBe("Default Interface");
+        const callsDuringRaw = axiosMock.get.mock.calls.slice(getCallsBefore);
+        const destinationPathCalls = callsDuringRaw.filter(
+            (c) => typeof c[0] === "string" && c[0].includes("/destination/") && c[0].includes("/path")
+        );
+        expect(destinationPathCalls.length).toBe(0);
+        expect(callsDuringRaw.some((c) => c[0].includes("/uri"))).toBe(true);
+    });
+
+    it("isMessageBodyTooLargeForDisplay is true only above display limit", () => {
         const wrapper = mountConversationViewer();
-        const ta = wrapper.find("#message-input").element;
-        ta.selectionStart = 0;
-        ta.selectionEnd = 0;
-        wrapper.vm.newMessageText = "";
-        await wrapper.vm.pasteFromClipboard();
-        expect(wrapper.vm.newMessageText).toBe("pasted-text");
+        const atLimit = { lxmf_message: { content: "x".repeat(MESSAGE_BODY_MAX_DISPLAY_CHARS) } };
+        const over = { lxmf_message: { content: "x".repeat(MESSAGE_BODY_MAX_DISPLAY_CHARS + 1) } };
+        expect(wrapper.vm.isMessageBodyTooLargeForDisplay(atLimit)).toBe(false);
+        expect(wrapper.vm.isMessageBodyTooLargeForDisplay(over)).toBe(true);
+    });
+
+    it("rawMessageJsonPreviewPretty replaces huge content for JSON details", async () => {
+        const wrapper = mountConversationViewer();
+        const huge = "z".repeat(MESSAGE_BODY_MAX_DISPLAY_CHARS + 5000);
+        await wrapper.setData({
+            rawMessageData: { id: 1, content: huge, hash: "b".repeat(32) },
+        });
+        const s = wrapper.vm.rawMessageJsonPreviewPretty;
+        expect(s).not.toContain(huge);
+        expect(s).toContain("Omitted");
+        expect(s).toContain(String(huge.length));
     });
 
     it("adds multiple images and renders previews", async () => {
@@ -822,7 +918,7 @@ describe("ConversationViewer.vue", () => {
             "background-color": "#ff0000",
             color: "#ffffff",
         });
-        expect(wrapper.vm.outboundBubbleSurfaceClass(chatItem)).toBe("shadow-sm");
+        expect(wrapper.vm.outboundBubbleSurfaceClass(chatItem)).toBe("shadow-xs");
         expect(wrapper.vm.isThemeOutboundBubble(chatItem)).toBe(false);
     });
 
@@ -1052,6 +1148,68 @@ describe("ConversationViewer.vue", () => {
             await wrapper.vm.loadPrevious();
 
             expect(conversationGets().length).toBe(countBefore);
+        });
+
+        it("uses min loaded peer message id for pagination when telemetry-only rows are hidden from the list", async () => {
+            const deferredResolvers = deferredConversationGet();
+            const peerHash = "a".repeat(32);
+            const wrapper = mountConversationViewer({
+                selectedPeer: { destination_hash: peerHash, display_name: "A" },
+            });
+            await vi.waitFor(() => expect(deferredResolvers.length).toBeGreaterThanOrEqual(1));
+            deferredResolvers[0]({ data: { lxmf_messages: [] } });
+            await wrapper.vm.$nextTick();
+
+            expect(wrapper.vm.showTelemetryInChat).toBe(false);
+
+            wrapper.vm.chatItems = [
+                {
+                    type: "lxmf_message",
+                    is_outbound: false,
+                    lxmf_message: {
+                        id: 100,
+                        hash: "h100",
+                        source_hash: peerHash,
+                        destination_hash: "my-hash",
+                        content: "",
+                        state: "delivered",
+                        timestamp: 1700000000,
+                        fields: { commands: [{ "0x01": [1, true] }] },
+                    },
+                },
+                {
+                    type: "lxmf_message",
+                    is_outbound: false,
+                    lxmf_message: {
+                        id: 200,
+                        hash: "h200",
+                        source_hash: peerHash,
+                        destination_hash: "my-hash",
+                        content: "hello",
+                        state: "delivered",
+                        timestamp: 1700000001,
+                        fields: {},
+                    },
+                },
+            ];
+            await wrapper.vm.$nextTick();
+
+            expect(wrapper.vm.selectedPeerChatItems).toHaveLength(1);
+            expect(wrapper.vm.oldestMessageId).toBe(100);
+
+            axiosMock.get.mockImplementation((url, config) => {
+                if (url.includes("/lxmf-messages/conversation/")) {
+                    expect(config.params.after_id).toBe(100);
+                    return Promise.resolve({ data: { lxmf_messages: [] } });
+                }
+                if (url.includes("/path")) return Promise.resolve({ data: { path: [] } });
+                if (url.includes("/stamp-info")) return Promise.resolve({ data: { stamp_info: {} } });
+                if (url.includes("/signal-metrics")) return Promise.resolve({ data: { signal_metrics: {} } });
+                if (url.includes("/contacts/check/")) return Promise.resolve({ data: {} });
+                return Promise.resolve({ data: {} });
+            });
+
+            await wrapper.vm.loadPrevious();
         });
     });
 

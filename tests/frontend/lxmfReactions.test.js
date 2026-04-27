@@ -50,6 +50,11 @@ describe("lxmfConversationListPreview", () => {
 });
 
 describe("mergeLxmfReactionRowsIntoMessages", () => {
+    it("returns an empty array when input is not an array", () => {
+        expect(mergeLxmfReactionRowsIntoMessages(undefined)).toEqual([]);
+        expect(mergeLxmfReactionRowsIntoMessages(null)).toEqual([]);
+    });
+
     it("merges reaction rows onto parents and drops reaction-only rows", () => {
         const parentHash = "a".repeat(32);
         const incoming = [
@@ -75,6 +80,22 @@ describe("mergeLxmfReactionRowsIntoMessages", () => {
         expect(out[0].reactions).toHaveLength(1);
         expect(out[0].reactions[0].emoji).toBe("\u{1F44D}");
         expect(out[0].reactions[0].sender).toBe("e".repeat(32));
+    });
+
+    it("matches reaction_to to parent hash case-insensitively", () => {
+        const parentHash = "Aa".repeat(16);
+        const incoming = [
+            { hash: parentHash, content: "hi", is_reaction: false },
+            {
+                hash: "c".repeat(32),
+                is_reaction: true,
+                reaction_to: parentHash.toLowerCase(),
+                reaction_emoji: "\u{1F44D}",
+                reaction_sender: "e".repeat(32),
+            },
+        ];
+        const out = mergeLxmfReactionRowsIntoMessages(incoming);
+        expect(out[0].reactions).toHaveLength(1);
     });
 
     it("dedupes same sender and emoji", () => {

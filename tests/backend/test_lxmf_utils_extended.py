@@ -144,6 +144,8 @@ def test_convert_db_lxmf_message_to_dict():
         "snr": 5,
         "quality": 2,
         "is_spam": 0,
+        "path_hops_at_send": 4,
+        "path_interface_at_send": "RNode Interface",
         "created_at": "2023-01-01 12:00:00",
         "updated_at": "2023-01-01 12:05:00",
     }
@@ -152,6 +154,8 @@ def test_convert_db_lxmf_message_to_dict():
     result = convert_db_lxmf_message_to_dict(db_msg, include_attachments=True)
     assert result["fields"]["image"]["image_bytes"] is not None
     assert result["created_at"].endswith("Z")
+    assert result["path_hops_at_send"] == 4
+    assert result["path_interface_at_send"] == "RNode Interface"
 
     # Test without attachments
     result_no_att = convert_db_lxmf_message_to_dict(db_msg, include_attachments=False)
@@ -159,6 +163,32 @@ def test_convert_db_lxmf_message_to_dict():
     assert result_no_att["fields"]["image"]["image_size"] == len(b"img")
     assert result_no_att["fields"]["audio"]["audio_size"] == len(b"audio")
     assert result_no_att["fields"]["file_attachments"][0]["file_size"] == len(b"file")
+
+
+def test_convert_db_lxmf_message_to_dict_defaults_missing_method():
+    db_msg = {
+        "id": 1,
+        "hash": "a" * 32,
+        "source_hash": "b" * 32,
+        "destination_hash": "c" * 32,
+        "is_incoming": 0,
+        "state": "sent",
+        "progress": 100.0,
+        "delivery_attempts": 0,
+        "next_delivery_attempt_at": None,
+        "title": "",
+        "content": "x",
+        "fields": "{}",
+        "timestamp": 1.0,
+        "rssi": None,
+        "snr": None,
+        "quality": None,
+        "is_spam": 0,
+        "created_at": "2023-01-01 12:00:00",
+        "updated_at": "2023-01-01 12:00:00",
+    }
+    result = convert_db_lxmf_message_to_dict(db_msg)
+    assert result["method"] == "unknown"
 
 
 def test_convert_lxmf_message_to_dict_with_reply():

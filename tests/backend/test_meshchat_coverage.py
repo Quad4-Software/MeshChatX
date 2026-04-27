@@ -10,6 +10,7 @@ import pytest
 
 from meshchatx.meshchat import ReticulumMeshChat
 from meshchatx.src.backend.lxmf_message_fields import LxmfAudioField
+from meshchatx.src.backend.reticulum_pathfinding import OutboundPathOutcome
 
 
 @pytest.fixture
@@ -145,7 +146,8 @@ def test_get_config_dict_basic(mock_app):
         "banished_color",
         "message_font_size",
         "message_icon_size",
-        "translator_enabled",
+        "translator_argos_enabled",
+        "translator_libretranslate_enabled",
         "libretranslate_url",
         "desktop_open_calls_in_separate_window",
         "desktop_hardware_acceleration_enabled",
@@ -528,7 +530,9 @@ def sendable_app(mock_app):
     ctx.local_lxmf_destination = MagicMock()
     ctx.forwarding_manager = None
 
-    mock_app._await_transport_path = AsyncMock()
+    mock_app._await_transport_path = AsyncMock(
+        return_value=OutboundPathOutcome(True, "reused_valid_path", False),
+    )
     mock_app.get_current_icon_hash = MagicMock(return_value=None)
     mock_app.db_upsert_lxmf_message = MagicMock()
     mock_app.websocket_broadcast = AsyncMock()

@@ -24,6 +24,16 @@ def mock_config():
     config.announce_fetch_limit_lxmf_delivery = MagicMock()
     config.announce_fetch_limit_nomadnetwork_node = MagicMock()
     config.announce_fetch_limit_lxmf_propagation = MagicMock()
+    for _k in (
+        "announce_store_lxmf_delivery",
+        "announce_store_lxst_telephony",
+        "announce_store_nomadnetwork_node",
+        "announce_store_lxmf_propagation",
+        "announce_store_git_repositories",
+    ):
+        _m = MagicMock()
+        _m.get.return_value = True
+        setattr(config, _k, _m)
     return config
 
 

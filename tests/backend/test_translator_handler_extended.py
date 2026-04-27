@@ -8,13 +8,21 @@ from meshchatx.src.backend.translator_handler import TranslatorHandler
 
 
 def test_translator_handler_init():
-    handler = TranslatorHandler(libretranslate_url="http://test:5000", enabled=True)
+    handler = TranslatorHandler(
+        libretranslate_url="http://test:5000",
+        translator_argos_enabled=True,
+        translator_libretranslate_enabled=True,
+    )
     assert handler.libretranslate_url == "http://test:5000"
-    assert handler.enabled is True
+    assert handler.translator_argos_enabled is True
 
 
-def test_get_supported_languages_disabled():
-    handler = TranslatorHandler(enabled=False)
+def test_get_supported_languages_no_backends():
+    handler = TranslatorHandler()
+    handler.has_requests = False
+    handler.has_argos = False
+    handler.has_argos_lib = False
+    handler.has_argos_cli = False
     assert handler.get_supported_languages() == []
 
 
@@ -37,7 +45,11 @@ def test_get_supported_languages_libretranslate(mock_session_cls):
     mock_session.__aexit__ = AsyncMock(return_value=None)
     mock_session_cls.return_value = mock_session
 
-    handler = TranslatorHandler(enabled=True)
+    handler = TranslatorHandler()
+    handler.has_argos = False
+    handler.has_argos_lib = False
+    handler.has_argos_cli = False
+    handler.has_requests = True
     langs = handler.get_supported_languages()
     assert len(langs) == 2
     assert langs[0]["code"] == "en"
@@ -58,7 +70,8 @@ def test_translate_libretranslate(mock_session_cls):
     mock_session.__aexit__ = AsyncMock(return_value=None)
     mock_session_cls.return_value = mock_session
 
-    handler = TranslatorHandler(enabled=True)
+    handler = TranslatorHandler(translator_libretranslate_enabled=True)
+    handler.has_requests = True
     result = handler.translate_text("Hello", source_lang="en", target_lang="fr")
     assert result["translated_text"] == "Bonjour"
 
@@ -69,7 +82,9 @@ def test_translate_argos_cli(mock_run):
     mock_result.stdout = "Hola"
     mock_run.return_value = mock_result
 
-    handler = TranslatorHandler(enabled=True)
+    handler = TranslatorHandler(
+        translator_argos_enabled=True, translator_libretranslate_enabled=False
+    )
     handler.has_argos_cli = True
     handler.has_argos = True
     handler.has_requests = False  # Force CLI
@@ -86,7 +101,7 @@ def test_translate_argos_cli(mock_run):
 
 
 def test_detect_language_simple():
-    TranslatorHandler(enabled=True)
+    TranslatorHandler()
     # _detect_language is private
 
 
@@ -109,17 +124,22 @@ def test_detect_language_libretranslate(mock_session_cls):
     mock_session.__aexit__ = AsyncMock(return_value=None)
     mock_session_cls.return_value = mock_session
 
-    handler = TranslatorHandler(enabled=True)
+    handler = TranslatorHandler(translator_libretranslate_enabled=True)
+    handler.has_requests = True
     result = handler.translate_text("Hello world", source_lang="auto", target_lang="fr")
     assert result["source_lang"] == "en"
 
 
 def test_translator_handler_errors():
-    handler = TranslatorHandler(enabled=False)
+    handler = TranslatorHandler(
+        translator_argos_enabled=False,
+        translator_libretranslate_enabled=False,
+    )
     with pytest.raises(RuntimeError, match="Translator is disabled"):
         handler.translate_text("Hello", "en", "fr")
 
-    handler.enabled = True
+    handler.translator_argos_enabled = True
+    handler.translator_libretranslate_enabled = True
     with pytest.raises(ValueError, match="Text cannot be empty"):
         handler.translate_text("", "en", "fr")
 

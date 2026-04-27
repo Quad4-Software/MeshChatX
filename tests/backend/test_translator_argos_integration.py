@@ -59,7 +59,10 @@ def test_find_argos_cli_matches_shutil_which():
     reason="Network unreachable (Argos CLI may download Stanza resources)",
 )
 def test_translate_en_es_via_cli_round_trip():
-    handler = TranslatorHandler(enabled=True)
+    handler = TranslatorHandler(
+        translator_argos_enabled=True,
+        translator_libretranslate_enabled=True,
+    )
     assert handler.has_argos_cli
     assert not handler.has_argos_lib
 
@@ -89,7 +92,10 @@ def test_translate_en_es_via_cli_round_trip():
 @pytest.mark.integration
 @pytest.mark.skipif(not _argos_cli_on_path(), reason="Argos CLI not on PATH")
 def test_get_supported_languages_includes_argos_when_libretranslate_down():
-    handler = TranslatorHandler(enabled=True)
+    handler = TranslatorHandler(
+        translator_argos_enabled=True,
+        translator_libretranslate_enabled=True,
+    )
     langs = handler.get_supported_languages()
     argos = [x for x in langs if x.get("source") == "argos"]
     assert len(argos) >= 1

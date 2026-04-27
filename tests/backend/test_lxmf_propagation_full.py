@@ -352,6 +352,8 @@ async def test_destination_path_returns_local_hop_zero_for_local_destinations(mo
     assert data["path"]["hops"] == 0
     assert data["path"]["next_hop"] == local_hash
     assert data["path"]["next_hop_interface"] == "Local"
+    assert data["path_stale"] is False
+    assert data["path_unresponsive"] is False
 
 
 def test_convert_propagation_node_state_maps_all_lxmf_transfer_states():

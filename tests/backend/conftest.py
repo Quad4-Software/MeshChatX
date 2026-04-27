@@ -198,6 +198,13 @@ def mock_app(db, tmp_path, temp_db):
         stack.enter_context(
             patch.object(
                 ReticulumMeshChat,
+                "local_message_retention_loop",
+                new=MagicMock(return_value=None),
+            ),
+        )
+        stack.enter_context(
+            patch.object(
+                ReticulumMeshChat,
                 "send_config_to_websocket_clients",
                 return_value=None,
             ),

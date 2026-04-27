@@ -101,6 +101,10 @@
             "path": "/api/v1/community-interfaces"
         },
         {
+            "method": "POST",
+            "path": "/api/v1/community-interfaces/refresh"
+        },
+        {
             "method": "GET",
             "path": "/api/v1/comports"
         },

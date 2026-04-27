@@ -126,7 +126,8 @@ def test_reticulum_meshchat_init(mock_rns, temp_dir):
         mock_config_instance.libretranslate_url.get.return_value = (
             "http://localhost:5000"
         )
-        mock_config_instance.translator_enabled.get.return_value = False
+        mock_config_instance.translator_argos_enabled.get.return_value = False
+        mock_config_instance.translator_libretranslate_enabled.get.return_value = False
 
         app = ReticulumMeshChat(
             identity=mock_rns["id_instance"],

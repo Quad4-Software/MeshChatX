@@ -8,6 +8,7 @@ import LXMF
 import pytest
 
 from meshchatx.meshchat import ReticulumMeshChat
+from meshchatx.src.backend.reticulum_pathfinding import OutboundPathOutcome
 
 
 @pytest.fixture
@@ -19,7 +20,9 @@ def mock_app():
     app.database = MagicMock()
     app.reticulum = MagicMock()
     app.message_router = MagicMock()
-    app._await_transport_path = AsyncMock(return_value=True)
+    app._await_transport_path = AsyncMock(
+        return_value=OutboundPathOutcome(True, "reused_valid_path", False),
+    )
     app.get_current_icon_hash = MagicMock(return_value=None)
     app.db_upsert_lxmf_message = MagicMock()
     app.websocket_broadcast = AsyncMock()
@@ -235,7 +238,9 @@ async def test_send_message_db_upsert_failure_still_broadcasts(mock_app):
 
 @pytest.mark.asyncio
 async def test_send_message_await_path_timeout(mock_app):
-    mock_app._await_transport_path = AsyncMock(return_value=False)
+    mock_app._await_transport_path = AsyncMock(
+        return_value=OutboundPathOutcome(False, "new_path_requested", True),
+    )
     destination_hash = "aa" * 16
 
     # Even if _await_transport_path returns False, it continues to recall identity

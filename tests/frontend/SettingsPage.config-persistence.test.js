@@ -91,6 +91,14 @@ describe("SettingsPage — config persistence (PATCH and related)", () => {
         expect(api.patch).toHaveBeenCalledWith("/api/v1/config", { theme: "light" });
     });
 
+    it("onAnnounceStoreToggle PATCHes a single announce_store flag", async () => {
+        const w = await mountSettingsPage(api);
+        w.vm.config.announce_store_lxmf_delivery = true;
+        await w.vm.onAnnounceStoreToggle("announce_store_lxmf_delivery", false);
+        expect(w.vm.config.announce_store_lxmf_delivery).toBe(false);
+        expect(api.patch).toHaveBeenCalledWith("/api/v1/config", { announce_store_lxmf_delivery: false });
+    });
+
     it("onLanguageChange PATCHes language", async () => {
         const w = await mountSettingsPage(api);
         w.vm.config.language = "de";
@@ -422,18 +430,6 @@ describe("SettingsPage — config persistence (PATCH and related)", () => {
         await w.vm.onAuthEnabledChange(true);
         expect(api.patch).toHaveBeenCalledWith("/api/v1/config", { auth_enabled: true });
         expect(router.push).toHaveBeenCalledWith({ name: "auth" });
-    });
-
-    it("translator toggle and debounced URL PATCH", async () => {
-        const w = await mountSettingsPage(api);
-        await w.vm.onTranslatorEnabledChange(true);
-        expect(api.patch).toHaveBeenCalledWith("/api/v1/config", { translator_enabled: true });
-        w.vm.config.libretranslate_url = "http://translate.example";
-        await w.vm.onTranslatorConfigChange();
-        await vi.advanceTimersByTimeAsync(1000);
-        expect(api.patch).toHaveBeenCalledWith("/api/v1/config", {
-            libretranslate_url: "http://translate.example",
-        });
     });
 
     it("onGiteaConfigChange PATCHes after debounce", async () => {

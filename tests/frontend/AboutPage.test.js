@@ -18,6 +18,7 @@ describe("AboutPage.vue", () => {
     let axiosMock;
 
     beforeEach(() => {
+        vi.clearAllMocks();
         vi.useFakeTimers();
         axiosMock = {
             get: vi.fn().mockImplementation(() => Promise.resolve({ data: {} })),
@@ -212,7 +213,7 @@ describe("AboutPage.vue", () => {
         expect(axiosMock.get).toHaveBeenCalledTimes(7); // +2 from updateInterval
     });
 
-    it("handles vacuum database action", async () => {
+    it("handles vacuum database action and shows success toast", async () => {
         axiosMock.get.mockResolvedValue({
             data: {
                 app_info: {},
@@ -232,12 +233,111 @@ describe("AboutPage.vue", () => {
         const wrapper = mountAboutPage();
         await wrapper.vm.$nextTick();
 
-        // Find vacuum button (it's the second button in the database health section)
-        // Or we can just call the method directly to be sure
         await wrapper.vm.vacuumDatabase();
 
         expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/database/vacuum");
         expect(wrapper.vm.databaseActionMessage).toBe("Vacuum success");
+        expect(ToastUtils.success).toHaveBeenCalledWith("about.vacuum_complete");
+    });
+
+    it("shows error toast when vacuum fails", async () => {
+        axiosMock.get.mockResolvedValue({
+            data: {
+                app_info: {},
+                config: {},
+                database: {},
+            },
+        });
+        const apiErr = new Error("vacuum failed");
+        apiErr.response = { data: { message: "Failed to vacuum database: locked" } };
+        axiosMock.post.mockRejectedValue(apiErr);
+
+        const wrapper = mountAboutPage();
+        await wrapper.vm.$nextTick();
+
+        await wrapper.vm.vacuumDatabase();
+
+        expect(ToastUtils.error).toHaveBeenCalledWith("Failed to vacuum database: locked");
+        expect(wrapper.vm.databaseActionError).toBe("about.vacuum_failed");
+    });
+
+    it("handles database recovery and shows success toast", async () => {
+        vi.spyOn(DialogUtils, "confirm").mockResolvedValue(true);
+        axiosMock.get.mockResolvedValue({
+            data: {
+                app_info: {},
+                config: {},
+                database: {
+                    quick_check: "ok",
+                    journal_mode: "wal",
+                    page_count: 1,
+                    estimated_free_bytes: 0,
+                },
+            },
+        });
+        axiosMock.post.mockImplementation((url) => {
+            if (url === "/api/v1/database/recover") {
+                return Promise.resolve({
+                    data: {
+                        message: "Database recovery routine completed",
+                        database: {
+                            health: {
+                                quick_check: "ok",
+                                journal_mode: "wal",
+                                page_count: 2,
+                                estimated_free_bytes: 100,
+                            },
+                            actions: [{ step: "wal_checkpoint", result: [] }],
+                        },
+                    },
+                });
+            }
+            return Promise.resolve({ data: {} });
+        });
+
+        const wrapper = mountAboutPage();
+        await wrapper.vm.$nextTick();
+
+        await wrapper.vm.runRecovery();
+
+        expect(DialogUtils.confirm).toHaveBeenCalledWith("about.recovery_confirm");
+        expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/database/recover");
+        expect(ToastUtils.success).toHaveBeenCalledWith("about.recovery_complete");
+        expect(wrapper.vm.databaseRecoveryActions.length).toBe(1);
+    });
+
+    it("does not run recovery when user cancels the confirm dialog", async () => {
+        vi.spyOn(DialogUtils, "confirm").mockResolvedValue(false);
+        axiosMock.get.mockResolvedValue({
+            data: { app_info: {}, config: {}, database: {} },
+        });
+
+        const wrapper = mountAboutPage();
+        await wrapper.vm.$nextTick();
+
+        await wrapper.vm.runRecovery();
+
+        expect(DialogUtils.confirm).toHaveBeenCalledWith("about.recovery_confirm");
+        expect(axiosMock.post).not.toHaveBeenCalledWith("/api/v1/database/recover");
+        expect(ToastUtils.success).not.toHaveBeenCalledWith("about.recovery_complete");
+    });
+
+    it("shows error toast when recovery fails", async () => {
+        vi.spyOn(DialogUtils, "confirm").mockResolvedValue(true);
+        axiosMock.get.mockResolvedValue({
+            data: { app_info: {}, config: {}, database: {} },
+        });
+        const apiErr = new Error("recover failed");
+        apiErr.response = { data: { message: "Failed to recover database: corrupt" } };
+        axiosMock.post.mockRejectedValue(apiErr);
+
+        const wrapper = mountAboutPage();
+        await wrapper.vm.$nextTick();
+
+        await wrapper.vm.runRecovery();
+
+        expect(ToastUtils.error).toHaveBeenCalledWith("Failed to recover database: corrupt");
+        expect(wrapper.vm.databaseActionError).toBe("about.recovery_failed");
     });
 
     it("displays Free Space from database health", async () => {

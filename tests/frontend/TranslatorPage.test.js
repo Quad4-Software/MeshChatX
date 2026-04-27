@@ -14,7 +14,15 @@ describe("TranslatorPage.vue", () => {
 
         axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/config") {
-                return Promise.resolve({ data: { config: { translator_enabled: true } } });
+                return Promise.resolve({
+                    data: {
+                        config: {
+                            translator_argos_enabled: true,
+                            translator_libretranslate_enabled: true,
+                            libretranslate_url: "http://localhost:5000",
+                        },
+                    },
+                });
             }
             if (url === "/api/v1/translator/languages") {
                 return Promise.resolve({
@@ -26,6 +34,8 @@ describe("TranslatorPage.vue", () => {
                             { code: "de", name: "German", source: "libretranslate" },
                         ],
                         has_argos: true,
+                        libre_client_available: true,
+                        libretranslate_reachable: true,
                     },
                 });
             }
@@ -59,6 +69,40 @@ describe("TranslatorPage.vue", () => {
         const wrapper = mountTranslatorPage();
         await vi.waitFor(() => expect(wrapper.vm.config).not.toBeNull());
         expect(wrapper.text()).toContain("Translator");
+    });
+
+    it("shows Libre tab when HTTP client is available even if server is not reachable yet", async () => {
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/config") {
+                return Promise.resolve({
+                    data: {
+                        config: {
+                            translator_argos_enabled: false,
+                            translator_libretranslate_enabled: false,
+                            libretranslate_url: "http://127.0.0.1:5000",
+                        },
+                    },
+                });
+            }
+            if (url === "/api/v1/translator/languages") {
+                return Promise.resolve({
+                    data: {
+                        languages: [],
+                        has_argos: false,
+                        libre_client_available: true,
+                        libretranslate_reachable: false,
+                    },
+                });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        const wrapper = mountTranslatorPage();
+        await vi.waitFor(() => expect(wrapper.vm.config).not.toBeNull());
+        const libreTab = wrapper.findAll("button").find((b) => b.text().includes("LibreTranslate"));
+        expect(libreTab).toBeDefined();
+        await libreTab.trigger("click");
+        expect(wrapper.vm.translationMode).toBe("libretranslate");
+        expect(wrapper.text()).toContain("LibreTranslate API Server");
     });
 
     it("switches translation modes", async () => {

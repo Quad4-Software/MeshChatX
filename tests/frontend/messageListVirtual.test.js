@@ -36,6 +36,18 @@ describe("messageListVirtual.js", () => {
         expect(findDisplayGroupIndexForMessageHash(groups, "missing")).toBe(-1);
     });
 
+    it("findDisplayGroupIndexForMessageHash skips date dividers", () => {
+        const groups = [
+            { type: "dateDivider", dayKey: "2026-04-26", key: "d1" },
+            { type: "single", key: "x", chatItem: { lxmf_message: { hash: "h1" } } },
+        ];
+        expect(findDisplayGroupIndexForMessageHash(groups, "h1")).toBe(1);
+    });
+
+    it("estimateGroupHeight returns modest height for date dividers", () => {
+        expect(estimateGroupHeight({ type: "dateDivider", key: "d" })).toBe(44);
+    });
+
     it("MIN_VIRTUAL_DISPLAY_GROUPS is a positive threshold", () => {
         expect(MIN_VIRTUAL_DISPLAY_GROUPS).toBeGreaterThan(10);
     });

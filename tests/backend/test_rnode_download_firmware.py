@@ -50,7 +50,7 @@ class _FakeSession:
     async def __aexit__(self, exc_type, exc, tb):
         return False
 
-    def get(self, url, allow_redirects=True):
+    def get(self, url, allow_redirects=True, headers=None):
         self.requested_urls.append(url)
         status = self._status
         body = self._body
@@ -172,6 +172,7 @@ class _FakeJsonSession:
         self._status = status
         self._payload = payload
         self.requested_urls: list[str] = []
+        self.last_headers = None
 
     async def __aenter__(self):
         return self
@@ -179,8 +180,9 @@ class _FakeJsonSession:
     async def __aexit__(self, exc_type, exc, tb):
         return False
 
-    def get(self, url, allow_redirects=True):
+    def get(self, url, allow_redirects=True, headers=None):
         self.requested_urls.append(url)
+        self.last_headers = headers
         status = self._status
         payload = self._payload
 
@@ -189,6 +191,64 @@ class _FakeJsonSession:
             yield _FakeJsonResponse(status, payload)
 
         return _cm()
+
+
+@pytest.mark.asyncio
+async def test_download_firmware_accepts_objects_githubusercontent_url(web_app):
+    aio_app = _build_aio_app(web_app)
+    fake_zip = b"PK\x03\x04x"
+    fake_session = _FakeSession(200, fake_zip)
+    asset_url = (
+        "https://objects.githubusercontent.com/github-production-release-asset/1/2/3"
+        "?response-content-disposition=attachment%3B%20filename%3Dfw.zip"
+    )
+
+    with patch("aiohttp.ClientSession", MagicMock(return_value=fake_session)):
+        async with TestClient(TestServer(aio_app)) as client:
+            r = await client.get(
+                "/api/v1/tools/rnode/download_firmware",
+                params={"url": asset_url},
+            )
+            assert r.status == 200
+            assert fake_session.requested_urls == [asset_url]
+
+
+@pytest.mark.asyncio
+async def test_download_firmware_accepts_release_assets_githubusercontent_url(web_app):
+    aio_app = _build_aio_app(web_app)
+    fake_zip = b"PK\x03\x04y"
+    fake_session = _FakeSession(200, fake_zip)
+    asset_url = "https://release-assets.githubusercontent.com/github-production-release-asset/9/8/7/fw.zip"
+
+    with patch("aiohttp.ClientSession", MagicMock(return_value=fake_session)):
+        async with TestClient(TestServer(aio_app)) as client:
+            r = await client.get(
+                "/api/v1/tools/rnode/download_firmware",
+                params={"url": asset_url},
+            )
+            assert r.status == 200
+            data = await r.read()
+            assert data == fake_zip
+
+
+@pytest.mark.asyncio
+async def test_download_firmware_accepts_configured_gitea_base_url(web_app):
+    aio_app = _build_aio_app(web_app)
+    web_app.config.gitea_base_url.set("https://gitea.custom.example")
+    fake_zip = b"PK\x03\x04z"
+    fake_session = _FakeSession(200, fake_zip)
+    asset_url = (
+        "https://gitea.custom.example/someorg/somerepo/releases/download/v1/x.zip"
+    )
+
+    with patch("aiohttp.ClientSession", MagicMock(return_value=fake_session)):
+        async with TestClient(TestServer(aio_app)) as client:
+            r = await client.get(
+                "/api/v1/tools/rnode/download_firmware",
+                params={"url": asset_url},
+            )
+            assert r.status == 200
+            assert fake_session.requested_urls == [asset_url]
 
 
 @pytest.mark.asyncio
@@ -214,8 +274,16 @@ async def test_latest_release_returns_proxied_payload(web_app):
             assert r.status == 200
             body = await r.json()
             assert body == payload
-            assert fake_session.requested_urls[0].endswith(
-                "/api/v1/repos/Reticulum/RNode_Firmware/releases/latest"
+            assert fake_session.requested_urls[0] == (
+                "https://api.github.com/repos/markqvist/RNode_Firmware/releases/latest"
+            )
+            assert fake_session.last_headers is not None
+            assert (
+                fake_session.last_headers.get("Accept") == "application/vnd.github+json"
+            )
+            assert fake_session.last_headers.get("X-GitHub-Api-Version") == "2022-11-28"
+            assert "MeshChatX-RNodeFlasher" in fake_session.last_headers.get(
+                "User-Agent", ""
             )
 
 
@@ -234,8 +302,8 @@ async def test_latest_release_uses_repo_query_param(web_app):
                 params={"repo": "Some/Other_Repo"},
             )
             assert r.status == 200
-            assert fake_session.requested_urls[0].endswith(
-                "/api/v1/repos/Some/Other_Repo/releases/latest"
+            assert fake_session.requested_urls[0] == (
+                "https://api.github.com/repos/Some/Other_Repo/releases/latest"
             )
 
 
@@ -243,7 +311,16 @@ async def test_latest_release_uses_repo_query_param(web_app):
 async def test_latest_release_rejects_invalid_repo(web_app):
     aio_app = _build_aio_app(web_app)
     async with TestClient(TestServer(aio_app)) as client:
-        for repo in ("no-slash", "../etc/passwd", "evil repo/x", "bad?repo/x"):
+        for repo in (
+            "no-slash",
+            "../etc/passwd",
+            "evil repo/x",
+            "bad?repo/x",
+            "too/many/slashes",
+            "@bad/name",
+            "/leading/slash",
+            "trailing/",
+        ):
             r = await client.get(
                 "/api/v1/tools/rnode/latest_release",
                 params={"repo": repo},

@@ -27,11 +27,17 @@ def _mock_session_for_languages():
 
 class TestTranslatorHandler(unittest.TestCase):
     def setUp(self):
-        self.handler = TranslatorHandler(enabled=True)
+        self.handler = TranslatorHandler(
+            translator_libretranslate_enabled=True,
+            translator_argos_enabled=False,
+        )
 
     @patch("meshchatx.src.backend.translator_handler.aiohttp.ClientSession")
     def test_get_supported_languages(self, mock_session_cls):
         self.handler.has_requests = True
+        self.handler.has_argos = False
+        self.handler.has_argos_lib = False
+        self.handler.has_argos_cli = False
         mock_session_cls.return_value = _mock_session_for_languages()
 
         langs = self.handler.get_supported_languages()
@@ -41,6 +47,7 @@ class TestTranslatorHandler(unittest.TestCase):
     @patch("meshchatx.src.backend.translator_handler.aiohttp.ClientSession")
     def test_translate_text_libretranslate(self, mock_session_cls):
         self.handler.has_requests = True
+        self.handler.translator_libretranslate_enabled = True
         mock_response = MagicMock()
         mock_response.status = 200
         mock_response.json = AsyncMock(
@@ -58,7 +65,7 @@ class TestTranslatorHandler(unittest.TestCase):
         mock_session.__aexit__ = AsyncMock(return_value=None)
         mock_session_cls.return_value = mock_session
 
-        result = self.handler.translate_text("Hello", "en", "de")
+        result = self.handler.translate_text("Hello", "en", "de", use_argos=False)
         self.assertEqual(result["translated_text"], "Hallo")
         self.assertEqual(result["source"], "libretranslate")
 

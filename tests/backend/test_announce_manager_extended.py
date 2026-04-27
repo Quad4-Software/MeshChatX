@@ -44,6 +44,57 @@ def test_upsert_announce(mock_db):
     assert data["app_data"] == base64.b64encode(b"app_data").decode("utf-8")
 
 
+def test_upsert_skips_when_store_disabled_for_aspect(mock_db):
+    config = MagicMock()
+    config.announce_store_lxmf_delivery = MagicMock()
+    config.announce_store_lxmf_delivery.get.return_value = False
+    manager = AnnounceManager(mock_db, config=config)
+    manager.upsert_announce(
+        None,
+        MagicMock(),
+        b"\x00" * 16,
+        "lxmf.delivery",
+        b"x",
+        None,
+    )
+    mock_db.announces.upsert_announce.assert_not_called()
+
+
+def test_is_storing_announce_for_aspect_respects_config(mock_db):
+    config = MagicMock()
+    config.announce_store_git_repositories = MagicMock()
+    config.announce_store_git_repositories.get.return_value = False
+    manager = AnnounceManager(mock_db, config=config)
+    assert manager.is_storing_announce_for_aspect("git.repositories") is False
+    assert (
+        manager.is_storing_announce_for_aspect("git.repositories", force_store=True)
+        is True
+    )
+    assert manager.is_storing_announce_for_aspect("unknown.aspect") is True
+
+
+def test_upsert_force_store_bypasses_disabled_config(mock_db):
+    config = MagicMock()
+    config.announce_store_nomadnetwork_node = MagicMock()
+    config.announce_store_nomadnetwork_node.get.return_value = False
+    config.announce_max_stored_nomadnetwork_node = MagicMock()
+    config.announce_max_stored_nomadnetwork_node.get.return_value = 1000
+    manager = AnnounceManager(mock_db, config=config)
+    idm = MagicMock()
+    idm.hash.hex.return_value = "a" * 64
+    idm.get_public_key.return_value = b"k"
+    manager.upsert_announce(
+        None,
+        idm,
+        b"\x00" * 16,
+        "nomadnetwork.node",
+        None,
+        None,
+        force_store=True,
+    )
+    mock_db.announces.upsert_announce.assert_called_once()
+
+
 def test_get_filtered_announces(mock_db):
     manager = AnnounceManager(mock_db)
     manager.get_filtered_announces(aspect="test", query="search", limit=10)

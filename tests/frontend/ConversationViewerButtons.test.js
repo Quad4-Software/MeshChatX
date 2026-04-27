@@ -215,6 +215,69 @@ describe("ConversationViewer.vue button interactions", () => {
         expect(deleteSpy).toHaveBeenCalledWith(chatItem);
     });
 
+    it("default translate target prefers meshchatx.translateTargetLang from localStorage", async () => {
+        localStorage.getItem.mockImplementation((k) => {
+            if (k === "meshchatx.translateTargetLang") {
+                return "de";
+            }
+            return null;
+        });
+        const wrapper = mountViewer({
+            config: {
+                translator_argos_enabled: true,
+                translator_libretranslate_enabled: false,
+                language: "en",
+            },
+        });
+        await wrapper.vm.$nextTick();
+        wrapper.vm.translatorLanguages = [
+            { code: "en", name: "English" },
+            { code: "de", name: "German" },
+        ];
+        expect(wrapper.vm.defaultTranslateTargetForModal()).toBe("de");
+        expect(wrapper.vm.defaultBubbleTranslateTargetForModal()).toBe("de");
+    });
+
+    it("openBubbleTranslateFromContextMenu opens the bubble target bar on the next microtask", async () => {
+        const chatItem = {
+            type: "lxmf_message",
+            is_outbound: false,
+            lxmf_message: {
+                hash: "msg-tr",
+                content: "Hello for translate",
+                state: "delivered",
+                fields: {},
+            },
+        };
+        const wrapper = mountViewer({
+            config: {
+                translator_argos_enabled: true,
+                translator_libretranslate_enabled: false,
+                language: "en",
+            },
+        });
+        await wrapper.vm.$nextTick();
+        wrapper.vm.hasTranslator = true;
+        wrapper.vm.translatorLanguages = [
+            { code: "en", name: "English" },
+            { code: "de", name: "German" },
+        ];
+        wrapper.vm.messageContextMenu = {
+            show: true,
+            x: 0,
+            y: 0,
+            chatItem,
+            justOpened: false,
+            openedFromBubble: true,
+        };
+        wrapper.vm.openBubbleTranslateFromContextMenu();
+        expect(wrapper.vm.translateTargetBarOpen).toBe(false);
+        expect(wrapper.vm.messageContextMenu.show).toBe(false);
+        await new Promise((r) => queueMicrotask(r));
+        await vi.waitFor(() => expect(wrapper.vm.translateTargetBarOpen).toBe(true), { timeout: 2000 });
+        expect(wrapper.vm.translateTargetModalContext).toEqual({ type: "bubble", chatItem });
+    });
+
     it("call button exists and onStartCall is callable", async () => {
         const wrapper = mountViewer();
         expect(typeof wrapper.vm.onStartCall).toBe("function");
@@ -263,34 +326,48 @@ describe("ConversationViewer.vue button interactions", () => {
                 ...navigator,
                 clipboard: { readText },
             });
-            const wrapper = mountViewer();
-            await wrapper.vm.$nextTick();
-            const ta = wrapper.find("#message-input").element;
-            ta.selectionStart = 0;
-            ta.selectionEnd = 0;
-            wrapper.vm.newMessageText = "";
+            const prevSc = window.isSecureContext;
+            Object.defineProperty(window, "isSecureContext", { configurable: true, value: true });
+            try {
+                const wrapper = mountViewer();
+                await wrapper.vm.$nextTick();
+                const ta = wrapper.find("#message-input").element;
+                ta.selectionStart = 0;
+                ta.selectionEnd = 0;
+                wrapper.vm.newMessageText = "";
 
-            const actionButtons = wrapper.findAll(".attachment-action-button");
-            await actionButtons[1].trigger("click");
-            await vi.waitFor(() => expect(wrapper.vm.newMessageText).toBe("from-clipboard"));
+                const actionButtons = wrapper.findAll(".attachment-action-button");
+                await actionButtons[1].trigger("click");
+                await vi.waitFor(() => expect(wrapper.vm.newMessageText).toBe("from-clipboard"));
+            } finally {
+                Object.defineProperty(window, "isSecureContext", { configurable: true, value: prevSc });
+            }
         });
 
-        it("translateMessage replaces text when the translator API succeeds", async () => {
+        it("applyComposeTranslation posts translate and replaces text", async () => {
             axiosMock.post.mockImplementation((url) => {
                 if (url.includes("/translator/translate")) {
                     return Promise.resolve({ data: { translated_text: "translated" } });
                 }
                 return Promise.resolve({ data: {} });
             });
-            const wrapper = mountViewer();
+            const wrapper = mountViewer({
+                config: {
+                    translator_argos_enabled: true,
+                    translator_libretranslate_enabled: false,
+                    language: "en",
+                },
+            });
             wrapper.vm.newMessageText = "hello";
-            await wrapper.vm.translateMessage();
+            await wrapper.vm.applyComposeTranslation("de");
             expect(wrapper.vm.newMessageText).toBe("translated");
             expect(axiosMock.post).toHaveBeenCalledWith(
                 "/api/v1/translator/translate",
                 expect.objectContaining({
                     text: "hello",
-                    target_lang: "en",
+                    source_lang: "en",
+                    target_lang: "de",
+                    use_argos: true,
                 })
             );
         });

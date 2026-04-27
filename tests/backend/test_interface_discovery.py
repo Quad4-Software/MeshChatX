@@ -58,6 +58,7 @@ async def test_reticulum_discovery_get_and_patch(temp_dir):
                 "interface_discovery_blacklist": "tcp-bad,*:9999",
                 "required_discovery_value": "16",
                 "autoconnect_discovered_interfaces": "2",
+                "default_bootstrap_only": "yes",
                 "network_identity": "/tmp/net_id",
             },
             "interfaces": {},
@@ -105,6 +106,7 @@ async def test_reticulum_discovery_get_and_patch(temp_dir):
         )
         assert get_data["discovery"]["required_discovery_value"] == "16"
         assert get_data["discovery"]["autoconnect_discovered_interfaces"] == "2"
+        assert get_data["discovery"]["default_bootstrap_only"] is True
         assert get_data["discovery"]["network_identity"] == "/tmp/net_id"
 
         # PATCH updates and persists
@@ -115,6 +117,7 @@ async def test_reticulum_discovery_get_and_patch(temp_dir):
             "interface_discovery_blacklist": "",
             "required_discovery_value": 18,
             "autoconnect_discovered_interfaces": 5,
+            "default_bootstrap_only": False,
             "network_identity": "/tmp/other_id",
         }
 
@@ -134,6 +137,7 @@ async def test_reticulum_discovery_get_and_patch(temp_dir):
         assert patch_data["discovery"]["interface_discovery_blacklist"] is None
         assert patch_data["discovery"]["required_discovery_value"] == 18
         assert patch_data["discovery"]["autoconnect_discovered_interfaces"] == 5
+        assert patch_data["discovery"]["default_bootstrap_only"] is False
         assert patch_data["discovery"]["network_identity"] == "/tmp/other_id"
         assert config["reticulum"]["discover_interfaces"] is False
         assert "interface_discovery_sources" not in config["reticulum"]
@@ -141,6 +145,7 @@ async def test_reticulum_discovery_get_and_patch(temp_dir):
         assert "interface_discovery_blacklist" not in config["reticulum"]
         assert config["reticulum"]["required_discovery_value"] == 18
         assert config["reticulum"]["autoconnect_discovered_interfaces"] == 5
+        assert config["reticulum"]["default_bootstrap_only"] is False
         assert config["reticulum"]["network_identity"] == "/tmp/other_id"
         assert config.write_called
 
@@ -356,7 +361,127 @@ async def test_interface_add_includes_discovery_fields(temp_dir):
         assert saved["discovery_frequency"] == 915000000
         assert saved["discovery_bandwidth"] == 125000
         assert saved["discovery_modulation"] == "LoRa"
+        assert saved.get("bootstrap_only") == "yes"
         assert config.write_called
+
+
+@pytest.mark.asyncio
+async def test_interface_add_tcp_omits_bootstrap_when_default_off(temp_dir):
+    config = ConfigDict(
+        {
+            "reticulum": {"default_bootstrap_only": False},
+            "interfaces": {},
+        },
+    )
+
+    with (
+        patch("meshchatx.meshchat.generate_ssl_certificate"),
+        patch("RNS.Reticulum") as mock_rns,
+        patch("RNS.Transport"),
+        patch("LXMF.LXMRouter"),
+    ):
+        mock_reticulum = mock_rns.return_value
+        mock_reticulum.config = config
+        mock_reticulum.configpath = "/tmp/mock_config"
+        mock_reticulum.is_connected_to_shared_instance = False
+        mock_reticulum.transport_enabled.return_value = True
+
+        app_instance = ReticulumMeshChat(
+            identity=build_identity(),
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+
+        add_handler = await find_route_handler(
+            app_instance,
+            "/api/v1/reticulum/interfaces/add",
+            "POST",
+        )
+        assert add_handler
+
+        payload = {
+            "allow_overwriting_interface": False,
+            "name": "NoBoot",
+            "type": "TCPClientInterface",
+            "target_host": "example.com",
+            "target_port": "4242",
+        }
+
+        class AddRequest:
+            @staticmethod
+            async def json():
+                return payload
+
+        response = await add_handler(AddRequest())
+        data = json.loads(response.body)
+        assert "Interface has been added" in data["message"]
+        saved = config["interfaces"]["NoBoot"]
+        assert "bootstrap_only" not in saved
+
+
+@pytest.mark.asyncio
+async def test_interface_add_tcp_explicit_bootstrap_only_no(temp_dir):
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    with (
+        patch("meshchatx.meshchat.generate_ssl_certificate"),
+        patch("RNS.Reticulum") as mock_rns,
+        patch("RNS.Transport"),
+        patch("LXMF.LXMRouter"),
+    ):
+        mock_reticulum = mock_rns.return_value
+        mock_reticulum.config = config
+        mock_reticulum.configpath = "/tmp/mock_config"
+        mock_reticulum.is_connected_to_shared_instance = False
+        mock_reticulum.transport_enabled.return_value = True
+
+        app_instance = ReticulumMeshChat(
+            identity=build_identity(),
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+
+        add_handler = await find_route_handler(
+            app_instance,
+            "/api/v1/reticulum/interfaces/add",
+            "POST",
+        )
+        assert add_handler
+
+        payload = {
+            "allow_overwriting_interface": False,
+            "name": "ExplicitNo",
+            "type": "TCPClientInterface",
+            "target_host": "example.com",
+            "target_port": "4242",
+            "bootstrap_only": False,
+        }
+
+        class AddRequest:
+            @staticmethod
+            async def json():
+                return payload
+
+        response = await add_handler(AddRequest())
+        data = json.loads(response.body)
+        assert "Interface has been added" in data["message"]
+        assert config["interfaces"]["ExplicitNo"]["bootstrap_only"] == "no"
+
+
+def test_apply_bootstrap_only_to_interface():
+    details = {}
+    ReticulumMeshChat.apply_bootstrap_only_to_interface(details, {}, True)
+    assert details["bootstrap_only"] == "yes"
+
+    details = {"bootstrap_only": "yes"}
+    ReticulumMeshChat.apply_bootstrap_only_to_interface(
+        details, {"bootstrap_only": False}, True
+    )
+    assert details["bootstrap_only"] == "no"
+
+    details = {}
+    ReticulumMeshChat.apply_bootstrap_only_to_interface(details, {}, False)
+    assert "bootstrap_only" not in details
 
 
 @pytest.mark.asyncio

@@ -115,7 +115,8 @@ def test_run_https_logic(mock_rns, temp_dir):
         mock_config.lxmf_preferred_propagation_node_destination_hash.get.return_value = None
         mock_config.lxmf_local_propagation_node_enabled.get.return_value = False
         mock_config.libretranslate_url.get.return_value = "http://localhost:5000"
-        mock_config.translator_enabled.get.return_value = False
+        mock_config.translator_argos_enabled.get.return_value = False
+        mock_config.translator_libretranslate_enabled.get.return_value = False
 
         app = ReticulumMeshChat(
             identity=mock_rns["id_instance"],
@@ -275,7 +276,8 @@ def test_database_health_issues_set_on_setup(mock_rns, temp_dir):
         mock_config.lxmf_preferred_propagation_node_destination_hash.get.return_value = None
         mock_config.lxmf_local_propagation_node_enabled.get.return_value = False
         mock_config.libretranslate_url.get.return_value = "http://localhost:5000"
-        mock_config.translator_enabled.get.return_value = False
+        mock_config.translator_argos_enabled.get.return_value = False
+        mock_config.translator_libretranslate_enabled.get.return_value = False
 
         app = ReticulumMeshChat(
             identity=mock_rns["id_instance"],
