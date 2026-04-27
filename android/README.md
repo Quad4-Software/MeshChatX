@@ -30,14 +30,15 @@ cd android
 
 There is a **single** application variant (no product flavors). Gradle syncs the **entire** `meshchatx/` tree into `app/src/main/python/meshchatx/` (including `public/repository-server-bundled` for the in-app repository server). The `fetchRepositoryBundledWheels` task runs before sync when bundled wheels are missing; if repo root `dist/reticulum_meshchatx-*.whl` exists (e.g. from `python -m build --wheel -o dist .`), that wheel is preferred over PyPI for the bundled set.
 
-### ABI selection and packaging
+### Native ABIs (universal APK)
 
-- **`-PmeshchatxAbis=...`** or **`MESHCHATX_ABIS`**: comma-separated list from `arm64-v8a`, `x86_64`, `armeabi-v7a` (default: all three).
-- **`-PmeshchatxAbiPackaging=universal|split`** or **`MESHCHATX_ABI_PACKAGING`**: `universal` (default) emits one APK per build type; `split` may emit per-ABI splits when more than one ABI is selected.
+Release and debug artifacts are **universal APKs** only: one APK per build type, embedding the native libraries for each ABI selected at build time.
+
+- **`-PmeshchatxAbis=...`** or **`MESHCHATX_ABIS`**: comma-separated list from `arm64-v8a`, `x86_64`, `armeabi-v7a` (default: all three). This controls which `.so` variants are merged into the single universal APK, not separate per-ABI store listings.
 
 ### Outputs
 
-With default **universal** packaging:
+Each build produces:
 
 - Debug: `app/build/outputs/apk/debug/app-debug.apk`
 - Release (unsigned until you sign): `app/build/outputs/apk/release/app-release-unsigned.apk`

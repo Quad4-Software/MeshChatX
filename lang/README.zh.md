@@ -38,6 +38,10 @@ NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
 - pnpm `10.33.0`（来自 `package.json` 的 `packageManager`）
 - Poetry（用于 `Taskfile.yml` 与 CI 工作流）
 
+**Browser Versions Required:**
+
+Safari 16.4 或更高版本、Chrome 111 或更高版本、Firefox 128 或更高版本（内置 Web UI）。
+
 ```bash
 task install
 task lint:all
@@ -247,7 +251,7 @@ docker rm "${cid}"
 - Linux DEB: `x64`, `arm64`
 - Windows: `x64`, `arm64`（提供构建脚本）
 - macOS: 提供构建脚本（`arm64`、`universal`），适用于本地构建环境
-- Android: 原生 APK — ABI `arm64-v8a`、`x86_64`、`armeabi-v7a`（32 位 ARM），以及 universal
+- Android: 仅 universal APK（见 [`android/README.md`](../android/README.md)）
 
 ## Android
 
@@ -266,20 +270,15 @@ cd android
 ./gradlew --no-daemon :app:assembleDebug :app:assembleRelease
 ```
 
-**单一** Android 变体。Gradle 将完整 `meshchatx/` 树同步到 `app/src/main/python/meshchatx/`，含离线仓库 wheel 包。**ABI 打包：** `universal`（默认）或 `split`（见 `android/app/build.gradle`）。
-
-**`-PmeshchatxAbiPackaging=universal`**（默认）下，每种构建类型各一个包含所有已选 ABI 的 APK：
+**单一** Android 变体。Gradle 将完整 `meshchatx/` 树同步到 `app/src/main/python/meshchatx/`，含离线仓库 wheel 包。文档与发布流程仅使用 **universal** 打包：每次运行各生成一个调试 APK 与一个发布 APK，内含 `android/app/build.gradle` 中配置的全部原生 ABI。
 
 - 调试：`android/app/build/outputs/apk/debug/app-debug.apk`
 - 发布：`android/app/build/outputs/apk/release/app-release-unsigned.apk`
 
-**`-PmeshchatxAbiPackaging=split`** 且 `-PmeshchatxAbis` 含多个 ABI 时，Gradle 可能按 ABI 分别产出 APK，见 [`android/README.md`](../android/README.md)。
-
 说明:
 
 - 发布产物默认未签名，除非配置签名（`scripts/sign-android-apks.sh`）。
-- Android 目标 ABI 以 `android/app/build.gradle` 为准（含启用时的 `armeabi-v7a`）。为 `armeabi-v7a` 构建 wheel 需本机 `ANDROID_HOME` 上有 Android SDK（见 `android/README.md`）。
-- 覆盖 ABI：`-PmeshchatxAbis` 或 `MESHCHATX_ABIS`。打包：`-PmeshchatxAbiPackaging=universal|split` 或 `MESHCHATX_ABI_PACKAGING`。
+- universal APK 内嵌的原生 ABI 以 `android/app/build.gradle` 为准（含启用时的 `armeabi-v7a`）。为 `armeabi-v7a` 构建 wheel 需本机 `ANDROID_HOME` 上有 Android SDK（见 `android/README.md`）。
 - 若仓库根存在 `dist/reticulum_meshchatx-*.whl`（例如 `python -m build --wheel -o dist .`），刷新内置仓库时优先于 PyPI 使用该 MeshChatX wheel。CI 在 Android Gradle 步骤前会构建该 wheel。
 
 更多文档:

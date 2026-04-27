@@ -38,6 +38,10 @@ NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
 - pnpm `10.33.0` (aus `package.json`, Feld `packageManager`)
 - Poetry (verwendet in `Taskfile.yml` und CI-Workflows)
 
+**Browser Versions Required:**
+
+Safari 16.4 oder neuer, Chrome 111 oder neuer, Firefox 128 oder neuer (Web-Oberflaeche).
+
 ```bash
 task install
 task lint:all
@@ -247,7 +251,7 @@ docker rm "${cid}"
 - Linux DEB: `x64`, `arm64`
 - Windows: `x64`, `arm64` (Build-Skripte vorhanden)
 - macOS: Build-Skripte vorhanden (`arm64`, `universal`) fuer lokale Build-Umgebungen
-- Android: native APKs — ABIs `arm64-v8a`, `x86_64`, `armeabi-v7a` (32-bit ARM), plus universal
+- Android: nur Universal-APK (siehe [`android/README.md`](../android/README.md))
 
 ## Android
 
@@ -266,20 +270,15 @@ cd android
 ./gradlew --no-daemon :app:assembleDebug :app:assembleRelease
 ```
 
-**Eine** Android-Variante. Gradle synchronisiert den gesamten `meshchatx/`-Ordner nach `app/src/main/python/meshchatx/`, inklusive Offline-Repository-Raeder. **ABI-Verpackung:** `universal` (Standard) oder `split` (siehe `android/app/build.gradle`).
-
-Bei **`-PmeshchatxAbiPackaging=universal`** (Standard) liefert jeder Buildtyp ein APK mit allen gewaehlten ABIs:
+**Eine** Android-Variante. Gradle synchronisiert den gesamten `meshchatx/`-Ordner nach `app/src/main/python/meshchatx/`, inklusive Offline-Repository-Raeder. Dokumentierte und veroeffentlichte Builds nutzen ausschliesslich **Universal**-Packaging: je ein Debug- und ein Release-APK pro Lauf, mit allen in `android/app/build.gradle` gewaehlten nativen ABIs.
 
 - Debug: `android/app/build/outputs/apk/debug/app-debug.apk`
 - Release: `android/app/build/outputs/apk/release/app-release-unsigned.apk`
 
-Bei **`-PmeshchatxAbiPackaging=split`** und mehr als einem ABI in `-PmeshchatxAbis` koennen pro-ABI-APKs entstehen, wie in [`android/README.md`](../android/README.md) beschrieben.
-
 Hinweise:
 
 - Release-Builds sind standardmaessig unsigniert, bis die Signatur konfiguriert ist (`scripts/sign-android-apks.sh`).
-- Android richtet sich nach den in `android/app/build.gradle` gelisteten ABIs (einschliesslich `armeabi-v7a`, falls aktiviert). Das Bauen von Radern fuer `armeabi-v7a` erfordert ein Android-SDK in `ANDROID_HOME` (siehe `android/README.md`).
-- ABI-Liste: `-PmeshchatxAbis` oder `MESHCHATX_ABIS`. Verpackung: `-PmeshchatxAbiPackaging=universal|split` oder `MESHCHATX_ABI_PACKAGING`.
+- Die im Universal-APK enthaltenen nativen ABIs folgen `android/app/build.gradle` (einschliesslich `armeabi-v7a`, falls aktiviert). Das Bauen von Radern fuer `armeabi-v7a` erfordert ein Android-SDK in `ANDROID_HOME` (siehe `android/README.md`).
 - Existiert im Repo-Root `dist/reticulum_meshchatx-*.whl` (z. B. nach `python -m build --wheel -o dist .`), bevorzugt die Aktualisierung des Offline-Repositorys dieses Wheel gegueber PyPI. In der CI wird das Wheel vor dem Android-Gradle-Schritt gebaut.
 
 Weitere Dokumentation:
@@ -350,11 +349,11 @@ Aktuelle Version in diesem Repository: `4.6.0`.
 
 Arbeitsablauf des Autors: ArgosTranslate, dann lokales LLM (Qwen 3 + Gemma 4).
 
-Korrekturen von der Community sind willkommen — per LXMF oder wo Sie erreichbar sind.
+Korrekturen von der Community sind willkommen, per LXMF oder wo Sie erreichbar sind.
 
 Die Locale-Erkennung erfolgt automatisch. Fuegen Sie Dateien unter `meshchatx/src/frontend/locales/` hinzu (z. B. `xx.json`) mit denselben Schluesseln wie `en.json` und oberstes `_languageName` fuer die Sprachauswahl. Sie koennen `en.json` kopieren und alles manuell uebersetzen; **maschinenunterstuetzte Erzeugung (optional)** ist niemals erforderlich.
 
-**Optional: Argos-Translate-Start** — fuer einen Entwurf aus `en.json` koennen Sie `scripts/argos_translate.py` nutzen; es behandelt Formatierung, farbige Ausgabe und schuetzt z. B. `{count}`.
+**Optional: Argos-Translate-Start:** fuer einen Entwurf aus `en.json` koennen Sie `scripts/argos_translate.py` nutzen; es behandelt Formatierung, farbige Ausgabe und schuetzt z. B. `{count}`.
 
 ```bash
 # argostranslate ggf. installieren

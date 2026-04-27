@@ -38,6 +38,10 @@ NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
 - pnpm `10.33.0`（`package.json` の `packageManager`）
 - Poetry（`Taskfile.yml` および CI ワークフローで使用）
 
+**Browser Versions Required:**
+
+Safari 16.4 以降、Chrome 111 以降、Firefox 128 以降（同梱 Web UI）。
+
 ```bash
 task install
 task lint:all
@@ -247,7 +251,7 @@ docker rm "${cid}"
 - Linux DEB: `x64`, `arm64`
 - Windows: `x64`, `arm64`（ビルドスクリプトあり）
 - macOS: ローカルビルド向けにビルドスクリプトあり（`arm64`, `universal`）
-- Android: ネイティブ APK — ABI `arm64-v8a`、`x86_64`、`armeabi-v7a`（32-bit ARM）、および universal
+- Android: universal APK のみ（[`android/README.md`](../android/README.md) 参照）
 
 ## Android
 
@@ -266,20 +270,15 @@ cd android
 ./gradlew --no-daemon :app:assembleDebug :app:assembleRelease
 ```
 
-**単一**の Android バリアント。Gradle が `meshchatx/` ツリー全体を `app/src/main/python/meshchatx/` に同期し、オフラインリポジトリ用ホイールも含みます。**ABI パッケージング:** `universal`（既定）または `split`（`android/app/build.gradle`）。
-
-**`-PmeshchatxAbiPackaging=universal`**（既定）では、各ビルド種別は選択した全 ABI を含む 1 つの APK です:
+**単一**の Android バリアント。Gradle が `meshchatx/` ツリー全体を `app/src/main/python/meshchatx/` に同期し、オフラインリポジトリ用ホイールも含みます。ドキュメントおよび公開ビルドは **universal** パッケージのみです。実行ごとにデバッグ APK 1 本とリリース APK 1 本が生成され、それぞれ `android/app/build.gradle` で選んだ全ネイティブ ABI を含みます。
 
 - デバッグ: `android/app/build/outputs/apk/debug/app-debug.apk`
 - リリース: `android/app/build/outputs/apk/release/app-release-unsigned.apk`
 
-**`-PmeshchatxAbiPackaging=split`** かつ `-PmeshchatxAbis` に ABI が複数ある場合、ABI 別 APK になることがあります（[`android/README.md`](../android/README.md) 参照）。
-
 備考:
 
 - リリース成果物は、署名を設定するまで既定で未署名（`scripts/sign-android-apks.sh`）。
-- 対象 ABI は `android/app/build.gradle` の一覧（`armeabi-v7a` 有効時を含む）。`armeabi-v7a` 用ホイールのビルドには `ANDROID_HOME` の Android SDK が必要（`android/README.md` 参照）。
-- ABI 上書き: `-PmeshchatxAbis` または `MESHCHATX_ABIS`。パッケージング: `-PmeshchatxAbiPackaging=universal|split` または `MESHCHATX_ABI_PACKAGING`。
+- universal APK に埋め込まれるネイティブ ABI は `android/app/build.gradle` の一覧（`armeabi-v7a` 有効時を含む）。`armeabi-v7a` 用ホイールのビルドには `ANDROID_HOME` の Android SDK が必要（`android/README.md` 参照）。
 - リポジトリルートに `dist/reticulum_meshchatx-*.whl` があると（例: `python -m build --wheel -o dist .`）、同梱リポジトリの更新で PyPI よりその MeshChatX ホイールを優先。CI では Android Gradle の前にそのホイールをビルドします。
 
 追加ドキュメント:

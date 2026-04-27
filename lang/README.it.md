@@ -38,6 +38,10 @@ NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
 - pnpm `10.33.0` (da `package.json`, campo `packageManager`)
 - Poetry (utilizzato in `Taskfile.yml` e nei workflow CI)
 
+**Browser Versions Required:**
+
+Safari 16.4 o successivo, Chrome 111 o successivo, Firefox 128 o successivo (interfaccia web integrata).
+
 ```bash
 task install
 task lint:all
@@ -247,7 +251,7 @@ docker rm "${cid}"
 - Linux DEB: `x64`, `arm64`
 - Windows: `x64`, `arm64` (script di build disponibili)
 - macOS: script di build disponibili (`arm64`, `universal`) per ambienti di build locali
-- Android: APK nativi — `arm64-v8a`, `x86_64`, `armeabi-v7a` (ARM a 32 bit), piu universale
+- Android: solo APK universale (vedi [`android/README.md`](../android/README.md))
 
 ## Android
 
@@ -266,20 +270,15 @@ cd android
 ./gradlew --no-daemon :app:assembleDebug :app:assembleRelease
 ```
 
-**Una** sola variante Android. Gradle sincronizza l'intera directory `meshchatx/` in `app/src/main/python/meshchatx/`, incluse le wheel offline del repository. **Packaging ABI:** `universal` (predefinito) o `split` (vedi `android/app/build.gradle`).
-
-Con **`-PmeshchatxAbiPackaging=universal`** (predefinito) ogni tipo di build e un APK con tutti gli ABI scelti:
+**Una** sola variante Android. Gradle sincronizza l'intera directory `meshchatx/` in `app/src/main/python/meshchatx/`, incluse le wheel offline del repository. Build documentate e pubblicate usano solo packaging **universal**: un APK debug e uno release per esecuzione, ciascuno con tutti gli ABI nativi configurati in `android/app/build.gradle`.
 
 - Debug: `android/app/build/outputs/apk/debug/app-debug.apk`
 - Release: `android/app/build/outputs/apk/release/app-release-unsigned.apk`
 
-Con **`-PmeshchatxAbiPackaging=split`** e piu di un ABI in `-PmeshchatxAbis`, Gradle puo emettere APK per ABI come documentato in [`android/README.md`](../android/README.md).
-
 Note:
 
 - Gli output di release non sono firmati finche non configuri la firma (`scripts/sign-android-apks.sh`).
-- Android punta agli ABI elencati in `android/app/build.gradle` (incluso `armeabi-v7a` se abilitato). Le wheel per `armeabi-v7a` richiedono Android SDK su `ANDROID_HOME` (vedi `android/README.md`).
-- Selezione ABI: `-PmeshchatxAbis` o `MESHCHATX_ABIS`. Packaging: `-PmeshchatxAbiPackaging=universal|split` o `MESHCHATX_ABI_PACKAGING`.
+- Gli ABI nativi nel APK universale seguono `android/app/build.gradle` (incluso `armeabi-v7a` se abilitato). Le wheel per `armeabi-v7a` richiedono Android SDK su `ANDROID_HOME` (vedi `android/README.md`).
 - Se esiste in root `dist/reticulum_meshchatx-*.whl` (es. da `python -m build --wheel -o dist .`), l'aggiornamento del repository in bundle preferisce quella wheel rispetto a PyPI. In CI la wheel viene costruita prima del passo Gradle Android.
 
 Documentazione aggiuntiva:

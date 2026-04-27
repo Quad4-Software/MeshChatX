@@ -38,6 +38,10 @@ NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
 - pnpm `10.33.0` (из `package.json`, поле `packageManager`)
 - Poetry (используется в `Taskfile.yml` и CI)
 
+**Browser Versions Required:**
+
+Safari 16.4 или новее, Chrome 111 или новее, Firefox 128 или новее (встроенный веб-интерфейс).
+
 ```bash
 task install
 task lint:all
@@ -216,7 +220,7 @@ task dist:fe:rpm
 
 ## Сборка в контейнере (wheel, AppImage, deb, rpm)
 
-`Dockerfile.build` выполняет те же шаги, что и CI (Poetry, pnpm, `task`, пакетные зависимости APT). Ориентирован на **linux/amd64** (NodeSource amd64, Task amd64). Цель по умолчанию — всё; её можно переопределить build-arg.
+`Dockerfile.build` выполняет те же шаги, что и CI (Poetry, pnpm, `task`, пакетные зависимости APT). Ориентирован на **linux/amd64** (NodeSource amd64, Task amd64). Цель по умолчанию: всё; её можно переопределить build-arg.
 
 Для `MESHCHATX_BUILD_TARGETS` доступны: `all` (по умолчанию), `wheel` или `electron` (AppImage + deb для x64 и arm64, RPM по возможности, без wheel).
 
@@ -247,7 +251,7 @@ docker rm "${cid}"
 - Linux DEB: `x64`, `arm64`
 - Windows: `x64`, `arm64` (скрипты сборки есть)
 - macOS: скрипты сборки (`arm64`, `universal`) для локальных сред
-- Android: нативные APK — ABI `arm64-v8a`, `x86_64`, `armeabi-v7a` (32-bit ARM), плюс universal
+- Android: только universal APK (см. [`android/README.md`](../android/README.md))
 
 ## Android
 
@@ -266,20 +270,15 @@ cd android
 ./gradlew --no-daemon :app:assembleDebug :app:assembleRelease
 ```
 
-**Один** вариант Android. Gradle синхронизирует весь каталог `meshchatx/` в `app/src/main/python/meshchatx/`, включая офлайн-колёса репозитория. **Упаковка ABI:** `universal` (по умолчанию) или `split` (см. `android/app/build.gradle`).
-
-С **`-PmeshchatxAbiPackaging=universal`** (по умолчанию) у каждого типа сборки один APK со всеми выбранными ABI:
+**Один** вариант Android. Gradle синхронизирует весь каталог `meshchatx/` в `app/src/main/python/meshchatx/`, включая офлайн-колёса репозитория. Документированные и публикуемые сборки используют только **universal**: за один прогон один debug APK и один release APK, каждый со всеми нативными ABI из `android/app/build.gradle`.
 
 - Debug: `android/app/build/outputs/apk/debug/app-debug.apk`
 - Release: `android/app/build/outputs/apk/release/app-release-unsigned.apk`
 
-С **`-PmeshchatxAbiPackaging=split`** и более чем одним ABI в `-PmeshchatxAbis` Gradle может выдавать отдельные APK по ABI, как в [`android/README.md`](../android/README.md).
-
 Примечания:
 
 - Релизы по умолчанию не подписаны, пока не настроена подпись (`scripts/sign-android-apks.sh`).
-- Android ориентируется на ABI из `android/app/build.gradle` (в т.ч. `armeabi-v7a`, если включён). Сборка колёс для `armeabi-v7a` требует Android SDK в `ANDROID_HOME` (см. `android/README.md`).
-- Список ABI: `-PmeshchatxAbis` или `MESHCHATX_ABIS`. Упаковка: `-PmeshchatxAbiPackaging=universal|split` или `MESHCHATX_ABI_PACKAGING`.
+- Нативные ABI внутри universal APK задаются в `android/app/build.gradle` (в т.ч. `armeabi-v7a`, если включён). Сборка колёс для `armeabi-v7a` требует Android SDK в `ANDROID_HOME` (см. `android/README.md`).
 - Если в корне репо есть `dist/reticulum_meshchatx-*.whl` (например из `python -m build --wheel -o dist .`), обновление встроенного репозитория предпочитает эту wheel пакету MeshChatX с PyPI. В CI wheel собирается до шага Android Gradle.
 
 Дополнительная документация:
@@ -350,11 +349,11 @@ task build:all
 
 Авторский рабочий процесс: ArgosTranslate, затем локальная LLM (Qwen 3 + Gemma 4).
 
-Затем правки и улучшения от сообщества приветствуются — через LXMF или любой доступный канал.
+Затем правки и улучшения от сообщества приветствуются через LXMF или любой доступный канал.
 
 Обнаружение локали автоматическое. Добавьте файл в `meshchatx/src/frontend/locales/` (например `xx.json`) с теми же ключами, что в `en.json`, и строку верхнего уровня `_languageName` для подписи в селекторе. Можно скопировать `en.json` и перевести вручную; **машинная генерация (в т. ч. Argos) необязательна** и никогда не требуется.
 
-**По желанию: старт с Argos Translate** — для чернового перевода из `en.json` можно вызвать `scripts/argos_translate.py` (форматирование, цветной вывод, защита плейсхолдеров вроде `{count}`).
+**По желанию: старт с Argos Translate:** для чернового перевода из `en.json` можно вызвать `scripts/argos_translate.py` (форматирование, цветной вывод, защита плейсхолдеров вроде `{count}`).
 
 ```bash
 # Установите argostranslate при необходимости
@@ -366,15 +365,15 @@ python scripts/argos_translate.py --from en --to xx --input meshchatx/src/fronte
 
 После любой машинной прогонки пусть LLM или человек проверяет грамматику, контекст и тон (например формальный/неформальный стиль).
 
-`pnpm test -- tests/frontend/i18n.test.js --run` — проверка равенства ключей с `en.json`.
+`pnpm test -- tests/frontend/i18n.test.js --run`: проверка равенства ключей с `en.json`.
 
 Никаких других изменений в коде не требуется. Приложение, селектор языка и тесты обнаруживают локали из каталога `meshchatx/src/frontend/locales/` во время сборки.
 
 ## Авторы
 
-- [Liam Cottle](https://github.com/liamcottle) — оригинальный Reticulum MeshChat
-- [RFnexus](https://github.com/RFnexus) — парсер micron (JavaScript)
-- [markqvist](https://github.com/markqvist) — Reticulum, LXMF, LXST
+- [Liam Cottle](https://github.com/liamcottle) - оригинальный Reticulum MeshChat
+- [RFnexus](https://github.com/RFnexus) - парсер micron (JavaScript)
+- [markqvist](https://github.com/markqvist) - Reticulum, LXMF, LXST
 
 ## Лицензия
 

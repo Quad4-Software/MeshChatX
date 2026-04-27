@@ -39,6 +39,10 @@ NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
 - pnpm `10.33.0` (from `package.json` `packageManager`)
 - Poetry (used by `Taskfile.yml` and CI workflows)
 
+**Browser Versions Required:**
+
+Safari 16.4 or later, Chrome 111 or later, Firefox 128 or later (bundled web UI).
+
 ```bash
 task install
 task lint:all
@@ -139,6 +143,8 @@ meshchatx --headless
 ```bash
 pipx install ./reticulum_meshchatx-*-py3-none-any.whl
 ```
+
+The wheel **does not embed** Reticulum inside the MeshChatX package. It declares **`rns`** as a normal Python dependency (`rns>=1.1.9` in `pyproject.toml`), so in the same virtualenv or `pip` environment you get **separate** `site-packages` entries. You can **upgrade Reticulum independently** (for example `pip install -U "rns>=1.1.9"`) and the next `meshchatx` run will use that installed `RNS` module, as long as the version still satisfies the declared range. That is the usual “user-controlled” pip story; it is **not** shared with self-contained app bundles.
 
 ## Run from Source (Web Server Mode)
 
@@ -248,7 +254,7 @@ docker rm "${cid}"
 - Linux DEB: `x64`, `arm64`
 - Windows: `x64`, `arm64` (build scripts available)
 - macOS: build scripts available (`arm64`, `universal`) for local build environments
-- Android: native APKs — ABIs `arm64-v8a`, `x86_64`, `armeabi-v7a` (32-bit ARM), plus universal
+- Android: universal APK only (see [`android/README.md`](android/README.md))
 
 ## Android
 
@@ -267,20 +273,15 @@ cd android
 ./gradlew --no-daemon :app:assembleDebug :app:assembleRelease
 ```
 
-There is a **single** Android variant. Gradle syncs the full `meshchatx/` tree into `app/src/main/python/meshchatx/`, including the offline repository wheel bundle. **ABI packaging** is `universal` (default) or `split` (see `android/app/build.gradle`).
-
-With **`-PmeshchatxAbiPackaging=universal`** (default), each build type is one APK with every selected ABI:
+There is a **single** Android variant. Gradle syncs the full `meshchatx/` tree into `app/src/main/python/meshchatx/`, including the offline repository wheel bundle. Published and documented builds use **universal** packaging only: one debug APK and one release APK per run, each containing the native ABIs configured in `android/app/build.gradle`.
 
 - Debug: `android/app/build/outputs/apk/debug/app-debug.apk`
 - Release: `android/app/build/outputs/apk/release/app-release-unsigned.apk`
 
-With **`-PmeshchatxAbiPackaging=split`** and more than one ABI in `-PmeshchatxAbis`, Gradle may emit per-ABI APKs as documented in `android/README.md`.
-
 Notes:
 
 - Release outputs are unsigned by default unless you configure signing (`scripts/sign-android-apks.sh`).
-- Android targets the ABIs listed in `android/app/build.gradle` (including `armeabi-v7a` when enabled). Building wheels for `armeabi-v7a` needs an Android SDK on `ANDROID_HOME` (see `android/README.md`).
-- Override ABI selection with `-PmeshchatxAbis=<comma-separated list>` or `MESHCHATX_ABIS`. Override packaging with `-PmeshchatxAbiPackaging=universal|split` or `MESHCHATX_ABI_PACKAGING`.
+- Native ABIs embedded in the universal APK follow `android/app/build.gradle` (including `armeabi-v7a` when enabled). Building wheels for `armeabi-v7a` needs an Android SDK on `ANDROID_HOME` (see `android/README.md`).
 - If repo root `dist/reticulum_meshchatx-*.whl` exists (for example from `python -m build --wheel -o dist .`), bundled repository refresh prefers that wheel over PyPI for the MeshChatX package. CI builds that wheel before the Android Gradle step.
 
 Additional docs:
