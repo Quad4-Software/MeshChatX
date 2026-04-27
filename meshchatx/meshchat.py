@@ -124,6 +124,7 @@ from meshchatx.src.backend.nomadnet_utils import (
 from meshchatx.src.backend.page_node_manager import PageNodeManager
 from meshchatx.src.backend.persistent_log_handler import PersistentLogHandler
 from meshchatx.src.backend.recovery import CrashRecovery, HealthMonitor
+from meshchatx.src.backend import reticulum_pathfinding
 import meshchatx.src.backend.rngit_tool as rngit_tool
 from meshchatx.src.backend.rnprobe_handler import RNProbeHandler
 from meshchatx.src.backend.sideband_commands import SidebandCommands
@@ -638,6 +639,7 @@ class ReticulumMeshChat:
   instance_name = default
   discover_interfaces = True
   autoconnect_discovered_interfaces = 3
+  default_bootstrap_only = True
   required_discovery_value = 16
 
 # Some platforms don't support domain sockets, and if that
@@ -1945,6 +1947,50 @@ class ReticulumMeshChat:
             if len(sanitized) >= max_patterns:
                 break
         return sanitized
+
+    @staticmethod
+    def _reticulum_yes_no_preference(value, *, default):
+        if value is None or value == "":
+            return default
+        if isinstance(value, bool):
+            return value
+        s = str(value).strip().lower()
+        if s in ("false", "no", "0", "n", "off"):
+            return False
+        if s in ("true", "yes", "1", "y", "on"):
+            return True
+        return default
+
+    @staticmethod
+    def _bootstrap_only_request_yes_no(value):
+        if value is None or value == "":
+            return None
+        if isinstance(value, bool):
+            return "yes" if value else "no"
+        s = str(value).strip().lower()
+        if s in ("true", "yes", "1", "y", "on"):
+            return "yes"
+        if s in ("false", "no", "0", "n", "off"):
+            return "no"
+        return None
+
+    @staticmethod
+    def apply_bootstrap_only_to_interface(interface_details, data, default_enabled):
+        if "bootstrap_only" in data:
+            yn = ReticulumMeshChat._bootstrap_only_request_yes_no(
+                data.get("bootstrap_only")
+            )
+            if yn == "yes":
+                interface_details["bootstrap_only"] = "yes"
+            elif yn == "no":
+                interface_details["bootstrap_only"] = "no"
+            else:
+                interface_details.pop("bootstrap_only", None)
+            return
+        if default_enabled:
+            interface_details["bootstrap_only"] = "yes"
+        else:
+            interface_details.pop("bootstrap_only", None)
 
     @staticmethod
     def discovery_filter_candidates(interface):
@@ -3790,25 +3836,30 @@ class ReticulumMeshChat:
 
         @routes.get("/api/v1/tools/rnode/latest_release")
         async def tools_rnode_latest_release(request):
-            """Proxy the Gitea releases-latest endpoint for the configured RNode firmware repo.
+            """Proxy GitHub's latest-release JSON for RNode firmware (official repo).
 
-            The frontend cannot call git.quad4.io directly because the Gitea instance
-            does not return CORS headers; doing the lookup server-side avoids that
-            restriction and works identically in browser, Electron and Android WebView.
+            Browsers cannot reliably call third-party APIs from static pages (CORS); the
+            MeshChat server fetches api.github.com instead. Default repo is
+            markqvist/RNode_Firmware; optional ?repo=owner/name must match a strict slug.
             """
-            repo = request.query.get("repo", "Reticulum/RNode_Firmware")
+            repo = request.query.get("repo", "markqvist/RNode_Firmware")
             if "/" not in repo or any(c in repo for c in (" ", "?", "#", "..", "\\")):
                 return web.json_response({"error": "Invalid repo"}, status=400)
+            if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repo):
+                return web.json_response({"error": "Invalid repo"}, status=400)
 
-            gitea_url = "https://git.quad4.io"
-            if self.current_context and self.current_context.config:
-                gitea_url = self.current_context.config.gitea_base_url.get()
-
-            url = f"{gitea_url.rstrip('/')}/api/v1/repos/{repo}/releases/latest"
+            url = f"https://api.github.com/repos/{repo}/releases/latest"
+            gh_headers = {
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28",
+                "User-Agent": "MeshChatX-RNodeFlasher",
+            }
             try:
                 timeout = aiohttp.ClientTimeout(total=15)
                 async with aiohttp.ClientSession(timeout=timeout) as session:
-                    async with session.get(url, allow_redirects=True) as response:
+                    async with session.get(
+                        url, headers=gh_headers, allow_redirects=True
+                    ) as response:
                         if response.status != 200:
                             return web.json_response(
                                 {
@@ -3837,6 +3888,7 @@ class ReticulumMeshChat:
                 and not url.startswith("https://git.quad4.io/")
                 and not url.startswith("https://github.com/")
                 and not url.startswith("https://objects.githubusercontent.com/")
+                and not url.startswith("https://release-assets.githubusercontent.com/")
             ):
                 return web.json_response({"error": "Invalid download URL"}, status=403)
 
@@ -3905,6 +3957,51 @@ class ReticulumMeshChat:
         async def community_interfaces(request):
             interfaces = await self.community_interfaces_manager.get_interfaces()
             return web.json_response({"interfaces": interfaces})
+
+        @routes.post("/api/v1/community-interfaces/refresh")
+        async def community_interfaces_refresh(request):
+            body: dict = {}
+            try:
+                data = await request.json()
+                if isinstance(data, dict):
+                    body = data
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                pass
+            url = body.get("url")
+            if url is not None and url != "":
+                if not isinstance(url, str):
+                    return web.json_response(
+                        {"ok": False, "message": "url must be a string"},
+                        status=422,
+                    )
+                if len(url) > 512:
+                    return web.json_response(
+                        {"ok": False, "message": "url too long"},
+                        status=422,
+                    )
+
+            def do_refresh():
+                return self.community_interfaces_manager.refresh_from_directory(
+                    url=url.strip() if isinstance(url, str) and url.strip() else None,
+                )
+
+            try:
+                result = await asyncio.to_thread(do_refresh)
+            except ValueError as e:
+                return web.json_response({"ok": False, "message": str(e)}, status=400)
+            except OSError as e:
+                return web.json_response({"ok": False, "message": str(e)}, status=502)
+            except json.JSONDecodeError as e:
+                return web.json_response(
+                    {"ok": False, "message": f"Invalid directory response: {e}"},
+                    status=502,
+                )
+            except Exception as e:
+                return web.json_response({"ok": False, "message": str(e)}, status=500)
+
+            return web.json_response({"ok": True, **result})
 
         # enable reticulum interface
         @routes.post("/api/v1/reticulum/interfaces/enable")
@@ -4722,6 +4819,20 @@ class ReticulumMeshChat:
                 "discovery_modulation",
             ):
                 InterfaceEditor.update_value(interface_details, data, discovery_key)
+
+            if interface_type == "TCPClientInterface" or (
+                interface_type == "BackboneInterface"
+                and str(interface_details.get("remote") or "").strip() != ""
+            ):
+                default_boot = ReticulumMeshChat._reticulum_yes_no_preference(
+                    self._get_reticulum_section().get("default_bootstrap_only"),
+                    default=True,
+                )
+                ReticulumMeshChat.apply_bootstrap_only_to_interface(
+                    interface_details,
+                    data,
+                    default_boot,
+                )
 
             # set common interface options
             InterfaceEditor.update_value(interface_details, data, "bitrate")
@@ -6165,6 +6276,10 @@ class ReticulumMeshChat:
                 "autoconnect_discovered_interfaces": reticulum_config.get(
                     "autoconnect_discovered_interfaces",
                 ),
+                "default_bootstrap_only": ReticulumMeshChat._reticulum_yes_no_preference(
+                    reticulum_config.get("default_bootstrap_only"),
+                    default=True,
+                ),
                 "network_identity": reticulum_config.get("network_identity"),
             }
 
@@ -6208,6 +6323,7 @@ class ReticulumMeshChat:
                 "interface_discovery_blacklist",
                 "required_discovery_value",
                 "autoconnect_discovered_interfaces",
+                "default_bootstrap_only",
                 "network_identity",
             ):
                 update_config_value(key)
@@ -6234,6 +6350,10 @@ class ReticulumMeshChat:
                 ),
                 "autoconnect_discovered_interfaces": reticulum_config.get(
                     "autoconnect_discovered_interfaces",
+                ),
+                "default_bootstrap_only": ReticulumMeshChat._reticulum_yes_no_preference(
+                    reticulum_config.get("default_bootstrap_only"),
+                    default=True,
                 ),
                 "network_identity": reticulum_config.get("network_identity"),
             }
@@ -8308,6 +8428,8 @@ class ReticulumMeshChat:
                             "next_hop": destination_hash_hex,
                             "next_hop_interface": "Local",
                         },
+                        "path_stale": False,
+                        "path_unresponsive": False,
                     },
                 )
 
@@ -8319,9 +8441,11 @@ class ReticulumMeshChat:
                 timeout_seconds = int(request.query.get("timeout", 15))
                 timeout_after_seconds = time.time() + timeout_seconds
 
-                # request path if we don't have it
-                if not RNS.Transport.has_path(destination_hash):
-                    RNS.Transport.request_path(destination_hash)
+                reticulum = self.reticulum if hasattr(self, "reticulum") else None
+                reticulum_pathfinding.prepare_fresh_path_request(
+                    reticulum,
+                    destination_hash,
+                )
 
                 # wait until we have a path, or give up after the configured timeout
                 while (
@@ -8332,27 +8456,27 @@ class ReticulumMeshChat:
 
             # ensure path is known
             if not RNS.Transport.has_path(destination_hash):
+                pm = reticulum_pathfinding.path_metadata_for_api(destination_hash)
                 return web.json_response(
                     {
                         "path": None,
+                        **pm,
                     },
                 )
 
             # determine next hop and hop count
             hops = RNS.Transport.hops_to(destination_hash)
             next_hop_bytes = None
-            next_hop_interface = None
             if hasattr(self, "reticulum") and self.reticulum:
                 next_hop_bytes = self.reticulum.get_next_hop(destination_hash)
-                next_hop_interface = self.reticulum.get_next_hop_if_name(
-                    destination_hash,
-                )
 
             # ensure next hop provided
             if next_hop_bytes is None:
+                pm = reticulum_pathfinding.path_metadata_for_api(destination_hash)
                 return web.json_response(
                     {
                         "path": None,
+                        **pm,
                     },
                 )
 
@@ -8363,6 +8487,7 @@ class ReticulumMeshChat:
                 else None
             )
 
+            pm = reticulum_pathfinding.path_metadata_for_api(destination_hash)
             return web.json_response(
                 {
                     "path": {
@@ -8370,6 +8495,7 @@ class ReticulumMeshChat:
                         "next_hop": next_hop,
                         "next_hop_interface": next_hop_interface,
                     },
+                    **pm,
                 },
             )
 
@@ -8405,7 +8531,11 @@ class ReticulumMeshChat:
                     },
                     status=400,
                 )
-            RNS.Transport.request_path(destination_hash_bytes)
+            reticulum = self.reticulum if hasattr(self, "reticulum") else None
+            reticulum_pathfinding.prepare_fresh_path_request(
+                reticulum,
+                destination_hash_bytes,
+            )
             return web.json_response(
                 {
                     "message": "ok",
@@ -9180,15 +9310,18 @@ class ReticulumMeshChat:
         async def translator_languages(request):
             try:
                 libretranslate_url = request.query.get("libretranslate_url")
-                languages = self.translator_handler.get_supported_languages(
+                th = self.translator_handler
+                out = th.get_translator_languages_response(
                     libretranslate_url=libretranslate_url,
                 )
                 return web.json_response(
                     {
-                        "languages": languages,
-                        "has_argos": self.translator_handler.has_argos,
-                        "has_argos_lib": self.translator_handler.has_argos_lib,
-                        "has_argos_cli": self.translator_handler.has_argos_cli,
+                        "languages": out["languages"],
+                        "has_argos": th.has_argos,
+                        "has_argos_lib": th.has_argos_lib,
+                        "has_argos_cli": th.has_argos_cli,
+                        "libre_client_available": th.has_requests,
+                        "libretranslate_reachable": out["libretranslate_reachable"],
                     },
                 )
             except ValueError as e:
@@ -11711,9 +11844,20 @@ class ReticulumMeshChat:
             ]
 
             path = request.path
-            if path.startswith("/reticulum-docs/") or path.startswith(
-                "/rnode-flasher/"
-            ):
+            if path.startswith("/rnode-flasher/"):
+                response.headers["Access-Control-Allow-Origin"] = "*"
+                response.headers["Cross-Origin-Resource-Policy"] = "cross-origin"
+            if path.startswith("/rnode-flasher/"):
+                # Standalone RNode Flasher uses Vue in-DOM templates; compileToFunction
+                # relies on new Function(), which requires unsafe-eval.
+                script_sources = [
+                    "'self'",
+                    "'unsafe-inline'",
+                    "'unsafe-eval'",
+                    "'wasm-unsafe-eval'",
+                    "blob:",
+                ]
+            elif path.startswith("/reticulum-docs/"):
                 # blob: AudioWorklet addModule(blob:...) and similar dynamic scripts
                 script_sources = [
                     "'self'",
@@ -12086,6 +12230,51 @@ class ReticulumMeshChat:
 
             # Sleep for 12 hours
             await asyncio.sleep(12 * 3600)
+
+    async def local_message_retention_loop(self, session_id, context=None):
+        from meshchatx.src.backend import local_message_retention as lmr
+
+        ctx = context or self.current_context
+        if not ctx:
+            return
+        await asyncio.sleep(lmr.LOCAL_RETENTION_STARTUP_GRACE_SECONDS)
+        while self.running and ctx.running and ctx.session_id == session_id:
+            try:
+                if not ctx.config.local_message_auto_delete_enabled.get():
+                    await asyncio.sleep(300)
+                    continue
+                now = time.time()
+                if not interval_action_due(
+                    True,
+                    ctx.config.local_message_auto_delete_last_run_at.get(),
+                    lmr.RETENTION_CHECK_INTERVAL_SECONDS,
+                    now,
+                ):
+                    await asyncio.sleep(60)
+                    continue
+                v = ctx.config.local_message_auto_delete_value.get() or 30
+                u = ctx.config.local_message_auto_delete_unit.get() or "days"
+                if ctx.message_router is not None:
+
+                    def _cancel(h):
+                        try:
+                            ctx.message_router.cancel_outbound(h)
+                        except Exception:
+                            pass
+
+                else:
+                    _cancel = None
+                lmr.apply_local_message_retention(
+                    ctx.database.messages,
+                    _cancel,
+                    value=int(v),
+                    unit=str(u),
+                    now=now,
+                )
+                ctx.config.local_message_auto_delete_last_run_at.set(int(now))
+            except Exception as e:
+                print(f"local_message_retention_loop failed: {e}")
+            await asyncio.sleep(60)
 
     async def telemetry_tracking_loop(self, session_id, context=None):
         ctx = context or self.current_context
@@ -12525,6 +12714,40 @@ class ReticulumMeshChat:
                     ):
                         self.config.nomad_default_page_path.set(s)
 
+        if "local_message_auto_delete_enabled" in data:
+            self.config.local_message_auto_delete_enabled.set(
+                self._parse_bool(data["local_message_auto_delete_enabled"]),
+            )
+        if (
+            "local_message_auto_delete_value" in data
+            or "local_message_auto_delete_unit" in data
+        ):
+            from meshchatx.src.backend.local_message_retention import (
+                MAX_VALUE_DAYS,
+                MAX_VALUE_MONTHS,
+                normalize_unit,
+            )
+
+            u_str = str(
+                data.get("local_message_auto_delete_unit")
+                or self.config.local_message_auto_delete_unit.get()
+                or "days",
+            )
+            u_norm = normalize_unit(u_str)
+            if "local_message_auto_delete_unit" in data:
+                self.config.local_message_auto_delete_unit.set(u_norm)
+            v_raw = data.get(
+                "local_message_auto_delete_value",
+                self.config.local_message_auto_delete_value.get(),
+            )
+            try:
+                v = int(v_raw)
+            except (TypeError, ValueError):
+                v = 30
+            v = max(1, v)
+            v = min(v, MAX_VALUE_MONTHS if u_norm == "months" else MAX_VALUE_DAYS)
+            self.config.local_message_auto_delete_value.set(v)
+
         if "block_attachments_from_strangers" in data:
             self.config.block_attachments_from_strangers.set(
                 self._parse_bool(data["block_attachments_from_strangers"]),
@@ -12639,6 +12862,16 @@ class ReticulumMeshChat:
             value = self._parse_bool(data["blackhole_integration_enabled"])
             self.config.blackhole_integration_enabled.set(value)
 
+        for _k in (
+            "announce_store_lxmf_delivery",
+            "announce_store_lxst_telephony",
+            "announce_store_nomadnetwork_node",
+            "announce_store_lxmf_propagation",
+            "announce_store_git_repositories",
+        ):
+            if _k in data:
+                getattr(self.config, _k).set(self._parse_bool(data[_k]))
+
         # update csp extra sources
         if "csp_extra_connect_src" in data:
             self.config.csp_extra_connect_src.set(data["csp_extra_connect_src"])
@@ -12745,11 +12978,26 @@ class ReticulumMeshChat:
                 self._parse_bool(data["telephone_web_audio_allow_fallback"]),
             )
 
-        if "translator_enabled" in data:
-            value = self._parse_bool(data["translator_enabled"])
-            self.config.translator_enabled.set(value)
+        if "translator_argos_enabled" in data:
+            v = self._parse_bool(data["translator_argos_enabled"])
+            self.config.translator_argos_enabled.set(v)
             if hasattr(self, "translator_handler"):
-                self.translator_handler.enabled = value
+                self.translator_handler.translator_argos_enabled = v
+
+        if "translator_libretranslate_enabled" in data:
+            v = self._parse_bool(data["translator_libretranslate_enabled"])
+            self.config.translator_libretranslate_enabled.set(v)
+            if hasattr(self, "translator_handler"):
+                self.translator_handler.translator_libretranslate_enabled = v
+
+        if "translator_enabled" in data:
+            v = self._parse_bool(data["translator_enabled"])
+            self.config.translator_argos_enabled.set(v)
+            self.config.translator_libretranslate_enabled.set(v)
+            if hasattr(self, "translator_handler"):
+                th = self.translator_handler
+                th.translator_argos_enabled = v
+                th.translator_libretranslate_enabled = v
 
         if "libretranslate_url" in data:
             value = data["libretranslate_url"]
@@ -13846,11 +14094,17 @@ class ReticulumMeshChat:
             "message_inbound_bubble_color": ctx.config.message_inbound_bubble_color.get(),
             "message_failed_bubble_color": ctx.config.message_failed_bubble_color.get(),
             "message_waiting_bubble_color": ctx.config.message_waiting_bubble_color.get(),
-            "translator_enabled": ctx.config.translator_enabled.get(),
+            "translator_argos_enabled": ctx.config.translator_argos_enabled.get(),
+            "translator_libretranslate_enabled": ctx.config.translator_libretranslate_enabled.get(),
             "libretranslate_url": ctx.config.libretranslate_url.get(),
             "desktop_open_calls_in_separate_window": ctx.config.desktop_open_calls_in_separate_window.get(),
             "desktop_hardware_acceleration_enabled": ctx.config.desktop_hardware_acceleration_enabled.get(),
             "blackhole_integration_enabled": ctx.config.blackhole_integration_enabled.get(),
+            "announce_store_lxmf_delivery": ctx.config.announce_store_lxmf_delivery.get(),
+            "announce_store_lxst_telephony": ctx.config.announce_store_lxst_telephony.get(),
+            "announce_store_nomadnetwork_node": ctx.config.announce_store_nomadnetwork_node.get(),
+            "announce_store_lxmf_propagation": ctx.config.announce_store_lxmf_propagation.get(),
+            "announce_store_git_repositories": ctx.config.announce_store_git_repositories.get(),
             "announce_max_stored_lxmf_delivery": ctx.config.announce_max_stored_lxmf_delivery.get(),
             "announce_max_stored_nomadnetwork_node": ctx.config.announce_max_stored_nomadnetwork_node.get(),
             "announce_max_stored_lxmf_propagation": ctx.config.announce_max_stored_lxmf_propagation.get(),
@@ -13875,6 +14129,10 @@ class ReticulumMeshChat:
             "nomad_render_html_enabled": ctx.config.nomad_render_html_enabled.get(),
             "nomad_render_plaintext_enabled": ctx.config.nomad_render_plaintext_enabled.get(),
             "nomad_default_page_path": ctx.config.nomad_default_page_path.get(),
+            "local_message_auto_delete_enabled": ctx.config.local_message_auto_delete_enabled.get(),
+            "local_message_auto_delete_value": ctx.config.local_message_auto_delete_value.get(),
+            "local_message_auto_delete_unit": ctx.config.local_message_auto_delete_unit.get()
+            or "days",
         }
 
     # try and get a name for the provided identity hash
@@ -14675,6 +14933,7 @@ class ReticulumMeshChat:
                 attachments_stripped=attachments_stripped,
                 context=ctx,
             )
+            self._maybe_store_path_at_send_for_lxmf(ctx, lxmf_message)
 
             # handle forwarding
             self.handle_forwarding(lxmf_message, context=ctx)
@@ -14800,6 +15059,9 @@ class ReticulumMeshChat:
                 lxmf_message,
                 include_attachments=False,
                 reticulum=self.reticulum,
+            )
+            self._merge_stored_path_fields_from_db(
+                ctx, lxmf_message.hash.hex(), msg_dict
             )
 
             suppress_notifications = self._lxmf_sieve_suppresses_notifications(
@@ -14937,6 +15199,104 @@ class ReticulumMeshChat:
 
             traceback.print_exc()
 
+    def _merge_stored_path_fields_from_db(self, ctx, msg_hash_hex, msg_dict):
+        try:
+            row = ctx.database.messages.get_lxmf_message_by_hash(msg_hash_hex)
+            if not row:
+                return
+
+            def _scalar_row_value(key):
+                try:
+                    if hasattr(row, "get"):
+                        v = row.get(key)
+                    elif hasattr(row, "keys") and key in row.keys():
+                        v = row[key]
+                    else:
+                        return None
+                except Exception:
+                    return None
+                if isinstance(v, (bool, int, float, str)):
+                    return v
+                return None
+
+            hops = _scalar_row_value("path_hops_at_send")
+            if hops is not None:
+                msg_dict["path_hops_at_send"] = hops
+            iface = _scalar_row_value("path_interface_at_send")
+            if iface is not None:
+                msg_dict["path_interface_at_send"] = iface
+            pfm = _scalar_row_value("path_finding_measure")
+            if pfm is not None:
+                msg_dict["path_finding_measure"] = pfm
+            prh = _scalar_row_value("path_row_hash_hex")
+            if prh is not None:
+                msg_dict["path_row_hash_hex"] = prh
+        except Exception:
+            pass
+
+    def _reticulum_path_hops_and_interface_to_identity(self, ctx, identity_hash_bytes):
+        if not identity_hash_bytes:
+            return None, None
+        try:
+            destination_hash = (
+                identity_hash_bytes
+                if isinstance(identity_hash_bytes, (bytes, bytearray))
+                else bytes.fromhex(str(identity_hash_bytes))
+            )
+        except Exception:
+            return None, None
+        destination_hash_hex = destination_hash.hex()
+        local_hashes: set[str] = set()
+        with contextlib.suppress(Exception):
+            if ctx and ctx.identity:
+                local_hashes.add(ctx.identity.hash.hex())
+        with contextlib.suppress(Exception):
+            if self.local_lxmf_destination is not None:
+                local_hashes.add(self.local_lxmf_destination.hash.hex())
+        with contextlib.suppress(Exception):
+            if ctx and ctx.message_router:
+                pdest = ctx.message_router.propagation_destination
+                if pdest is not None and getattr(pdest, "hash", None):
+                    local_hashes.add(pdest.hash.hex())
+
+        if destination_hash_hex in local_hashes:
+            return 0, "Local"
+        if not RNS.Transport.has_path(destination_hash):
+            return None, None
+        hops = RNS.Transport.hops_to(destination_hash)
+        next_hop_bytes = None
+        if hasattr(self, "reticulum") and self.reticulum:
+            next_hop_bytes = self.reticulum.get_next_hop(destination_hash)
+        if next_hop_bytes is None:
+            return None, None
+        iface = (
+            self.reticulum.get_next_hop_if_name(destination_hash)
+            if hasattr(self, "reticulum") and self.reticulum
+            else None
+        )
+        return hops, iface
+
+    def _maybe_store_path_at_send_for_lxmf(self, ctx, lxmf_message):
+        try:
+            msg_hash = lxmf_message.hash.hex()
+            row = ctx.database.messages.get_lxmf_message_by_hash(msg_hash)
+            if not row or row.get("path_hops_at_send") is not None:
+                return
+            if getattr(lxmf_message, "incoming", False):
+                dest_bytes = lxmf_message.source_hash
+            else:
+                dest_bytes = lxmf_message.destination_hash
+            hops, iface = self._reticulum_path_hops_and_interface_to_identity(
+                ctx, dest_bytes
+            )
+            if hops is None:
+                return
+            ctx.database.messages.set_lxmf_message_path_at_send_if_unset(
+                msg_hash, hops, iface
+            )
+        except Exception:
+            pass
+
     def on_lxmf_sending_state_updated(self, lxmf_message, context=None):
         ctx = context or self.current_context
         if not ctx or not ctx.database:
@@ -14969,17 +15329,21 @@ class ReticulumMeshChat:
             quality=quality,
             method=convert_lxmf_method_to_string(lxmf_message),
         )
+        self._maybe_store_path_at_send_for_lxmf(ctx, lxmf_message)
+
+        msg_dict = convert_lxmf_message_to_dict(
+            lxmf_message,
+            include_attachments=False,
+            reticulum=self.reticulum,
+        )
+        self._merge_stored_path_fields_from_db(ctx, lxmf_message.hash.hex(), msg_dict)
 
         AsyncUtils.run_async(
             self.websocket_broadcast(
                 json.dumps(
                     {
                         "type": "lxmf_message_state_updated",
-                        "lxmf_message": convert_lxmf_message_to_dict(
-                            lxmf_message,
-                            include_attachments=False,
-                            reticulum=self.reticulum,
-                        ),
+                        "lxmf_message": msg_dict,
                     },
                 ),
             ),
@@ -15036,6 +15400,8 @@ class ReticulumMeshChat:
         is_spam: bool = False,
         attachments_stripped: bool = False,
         context=None,
+        path_finding_measure: str | None = None,
+        path_row_hash_hex: str | None = None,
     ):
         ctx = context or self.current_context
         if not ctx:
@@ -15048,6 +15414,10 @@ class ReticulumMeshChat:
         )
         lxmf_message_dict["is_spam"] = 1 if is_spam else 0
         lxmf_message_dict["attachments_stripped"] = 1 if attachments_stripped else 0
+        if path_finding_measure is not None:
+            lxmf_message_dict["path_finding_measure"] = path_finding_measure
+        if path_row_hash_hex is not None:
+            lxmf_message_dict["path_row_hash_hex"] = path_row_hash_hex
 
         # calculate peer hash
         local_hash = ctx.local_lxmf_destination.hexhash
@@ -15059,31 +15429,14 @@ class ReticulumMeshChat:
         ctx.database.messages.upsert_lxmf_message(lxmf_message_dict)
 
     def _lxmf_path_wait_seconds(self):
-        try:
-            base = float(RNS.Transport.PATH_REQUEST_TIMEOUT)
-        except Exception:
-            base = 30.0
-        return max(30.0, min(base, 120.0))
+        return reticulum_pathfinding.lxmf_path_wait_cap_seconds()
 
-    async def _await_transport_path(self, destination_hash_bytes: bytes) -> bool:
-        deadline = time.time() + self._lxmf_path_wait_seconds()
-        if not RNS.Transport.has_path(destination_hash_bytes):
-            RNS.Transport.request_path(destination_hash_bytes)
-        while (
-            not RNS.Transport.has_path(destination_hash_bytes)
-            and time.time() < deadline
-        ):
-            await asyncio.sleep(0.1)
-        if RNS.Transport.has_path(destination_hash_bytes):
-            return True
-        RNS.Transport.request_path(destination_hash_bytes)
-        deadline = time.time() + max(15.0, self._lxmf_path_wait_seconds() * 0.5)
-        while (
-            not RNS.Transport.has_path(destination_hash_bytes)
-            and time.time() < deadline
-        ):
-            await asyncio.sleep(0.1)
-        return RNS.Transport.has_path(destination_hash_bytes)
+    async def _await_transport_path(self, destination_hash_bytes: bytes):
+        r = self.reticulum if hasattr(self, "reticulum") else None
+        return await reticulum_pathfinding.await_transport_path_for_outbound_lxmf(
+            r,
+            destination_hash_bytes,
+        )
 
     # upserts the provided announce to the database
     # handle sending an lxmf message to reticulum
@@ -15133,7 +15486,7 @@ class ReticulumMeshChat:
 
         # Reticulum keeps a live path table; entries expire when peers move or links drop.
         # We cannot replay "old" paths from the app layer — Transport.request_path refreshes discovery.
-        await self._await_transport_path(destination_hash_bytes)
+        path_outcome = await self._await_transport_path(destination_hash_bytes)
 
         # find destination identity from hash
         destination_identity = RNS.Identity.recall(destination_hash_bytes)
@@ -15309,7 +15662,16 @@ class ReticulumMeshChat:
 
         # upsert lxmf message to database
         if not no_display:
-            self.db_upsert_lxmf_message(lxmf_message, context=ctx)
+            self.db_upsert_lxmf_message(
+                lxmf_message,
+                context=ctx,
+                path_finding_measure=reticulum_pathfinding.format_outbound_path_finding_measure(
+                    path_outcome,
+                ),
+                path_row_hash_hex=destination_hash.lower()
+                if path_outcome.path_available
+                else None,
+            )
 
         # tell all websocket clients that old failed message was deleted so it can remove from ui
         if not no_display:
@@ -15495,16 +15857,22 @@ class ReticulumMeshChat:
                 ),
                 method=convert_lxmf_method_to_string(lxmf_message),
             )
+            self._maybe_store_path_at_send_for_lxmf(ctx, lxmf_message)
+
+            msg_dict = convert_lxmf_message_to_dict(
+                lxmf_message,
+                include_attachments=False,
+                reticulum=self.reticulum,
+            )
+            self._merge_stored_path_fields_from_db(
+                ctx, lxmf_message.hash.hex(), msg_dict
+            )
 
             await self.websocket_broadcast(
                 json.dumps(
                     {
                         "type": "lxmf_message_state_updated",
-                        "lxmf_message": convert_lxmf_message_to_dict(
-                            lxmf_message,
-                            include_attachments=False,
-                            reticulum=self.reticulum,
-                        ),
+                        "lxmf_message": msg_dict,
                     },
                 ),
             )
@@ -15543,6 +15911,9 @@ class ReticulumMeshChat:
             print(f"Dropping telephone announce from blocked source: {identity_hash}")
             if hasattr(self, "reticulum") and self.reticulum:
                 self.reticulum.drop_path(destination_hash)
+            return
+
+        if not ctx.announce_manager.is_storing_announce_for_aspect(aspect):
             return
 
         # log received announce
@@ -15611,6 +15982,9 @@ class ReticulumMeshChat:
                 self.reticulum.drop_path(destination_hash)
             return
 
+        if not ctx.announce_manager.is_storing_announce_for_aspect(aspect):
+            return
+
         # log received announce
         print(
             "Received an announce from "
@@ -15674,6 +16048,9 @@ class ReticulumMeshChat:
         """Handle lxmf.propagation announces (synchronous Reticulum callback)."""
         ctx = context or self.current_context
         if not ctx or not ctx.running or not ctx.announce_manager or not ctx.database:
+            return
+
+        if not ctx.announce_manager.is_storing_announce_for_aspect(aspect):
             return
 
         # log received announce
@@ -15901,6 +16278,9 @@ class ReticulumMeshChat:
                 self.reticulum.drop_path(destination_hash)
             return
 
+        if not ctx.announce_manager.is_storing_announce_for_aspect(aspect):
+            return
+
         print(
             "Received an announce from "
             + RNS.prettyhexrep(destination_hash)
@@ -15955,6 +16335,9 @@ class ReticulumMeshChat:
                 self.reticulum.drop_path(destination_hash)
             return
 
+        if not ctx.announce_manager.is_storing_announce_for_aspect(aspect):
+            return
+
         # log received announce
         print(
             "Received an announce from "
@@ -15978,23 +16361,6 @@ class ReticulumMeshChat:
         # find announce from database
         announce = ctx.database.announces.get_announce_by_hash(destination_hash.hex())
         if not announce:
-            return
-
-        # send database announce to all websocket clients
-        AsyncUtils.run_async(
-            self.websocket_broadcast(
-                json.dumps(
-                    {
-                        "type": "announce",
-                        "announce": self.convert_db_announce_to_dict(announce),
-                    },
-                ),
-            ),
-        )
-
-        # find announce from database
-        announce = self.database.announces.get_announce_by_hash(destination_hash.hex())
-        if announce is None:
             return
 
         # send database announce to all websocket clients
@@ -16075,6 +16441,7 @@ class ReticulumMeshChat:
             aspect,
             app_data,
             None,
+            force_store=True,
         )
         announce = ctx.database.announces.get_announce_by_hash(destination_hash.hex())
         if announce:
