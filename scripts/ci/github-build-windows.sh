@@ -22,3 +22,5 @@ if [[ "${MESHCHATX_FRONTEND_PREBUILT:-0}" == "1" ]]; then
 else
     pnpm run dist:windows
 fi
+
+bash scripts/ci/github-prune-electron-dist-staging.sh

@@ -8,3 +8,5 @@ cd "$ROOT"
 export CSC_IDENTITY_AUTO_DISCOVERY=false
 
 pnpm run dist:mac-universal
+
+bash scripts/ci/github-prune-electron-dist-staging.sh

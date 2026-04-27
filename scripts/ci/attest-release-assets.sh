@@ -27,7 +27,15 @@ trap 'rm -f "$PRED"' EXIT INT
 
 python3 scripts/ci/slsa-predicate.py > "$PRED"
 
-find "$DIR" -type f ! -name '*.cosign.bundle' ! -name '*.sha256' ! -name '*.intoto.jsonl' | while IFS= read -r f; do
+find "$DIR" -type f ! -name '*.cosign.bundle' ! -name '*.sha256' ! -name '*.intoto.jsonl' \
+    ! -path '*/win-unpacked/*' \
+    ! -path '*/linux-unpacked/*' \
+    ! -path '*/mac-universal/*' \
+    ! -path '*/mac-arm64/*' \
+    ! -path '*/mac-x64/*' \
+    ! -path '*/mac/*.app/*' \
+    ! -path '*/mac/*.app' \
+    | while IFS= read -r f; do
     case "$f" in
         */.git/*) continue ;;
     esac
