@@ -60,8 +60,11 @@ export function lxmfConversationListPreview(msg, { myLxmfAddressHash, peerDispla
 }
 
 export function mergeLxmfReactionRowsIntoMessages(messages) {
-    if (!Array.isArray(messages) || messages.length === 0) {
-        return messages;
+    if (!Array.isArray(messages)) {
+        return [];
+    }
+    if (messages.length === 0) {
+        return [];
     }
     const parents = [];
     const reactions = [];
@@ -75,13 +78,13 @@ export function mergeLxmfReactionRowsIntoMessages(messages) {
             parents.push({ ...m, reactions: [] });
         }
     }
-    const byHash = new Map(parents.map((p) => [p.hash, p]));
+    const byHash = new Map(parents.map((p) => [String(p.hash || "").toLowerCase(), p]));
     for (const r of reactions) {
         const targetId = r.reaction_to;
         if (!targetId) {
             continue;
         }
-        const parent = byHash.get(targetId);
+        const parent = byHash.get(String(targetId).toLowerCase());
         if (!parent) {
             continue;
         }

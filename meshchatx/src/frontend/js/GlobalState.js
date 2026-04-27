@@ -6,6 +6,7 @@ const globalState = reactive({
     authEnabled: false,
     authenticated: false,
     detailedOutboundSendStatus: false,
+    messageTimestampGroupingEnabled: true,
     unreadConversationsCount: 0,
     activeCallTab: "phone",
     blockedDestinations: [],

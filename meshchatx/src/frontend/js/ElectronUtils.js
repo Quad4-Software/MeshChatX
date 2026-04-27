@@ -1,3 +1,5 @@
+import { copyTextToClipboard as copyTextToClipboardWeb } from "./clipboardUtils.js";
+
 class ElectronUtils {
     static isElectron() {
         return window.electron != null;
@@ -50,32 +52,7 @@ class ElectronUtils {
     }
 
     static async copyTextToClipboard(text) {
-        if (text == null || text === "") {
-            return false;
-        }
-        const s = String(text);
-        try {
-            if (navigator.clipboard?.writeText) {
-                await navigator.clipboard.writeText(s);
-                return true;
-            }
-        } catch {
-            // fall through to execCommand
-        }
-        try {
-            const ta = document.createElement("textarea");
-            ta.value = s;
-            ta.setAttribute("readonly", "");
-            ta.style.position = "fixed";
-            ta.style.left = "-9999px";
-            document.body.appendChild(ta);
-            ta.select();
-            const ok = document.execCommand("copy");
-            document.body.removeChild(ta);
-            return ok;
-        } catch {
-            return false;
-        }
+        return copyTextToClipboardWeb(text);
     }
 
     static async revealPathInFolderOrCopy(path, onCopiedWeb) {

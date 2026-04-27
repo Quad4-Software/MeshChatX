@@ -49,7 +49,7 @@ export default class MarkdownRenderer {
         // Inline code
         text = text.replace(
             /`([^`]+)`/g,
-            '<code class="bg-black/10 dark:bg-white/10 px-1 rounded font-mono text-[0.9em]">$1</code>'
+            '<code class="bg-black/10 dark:bg-white/10 px-1 rounded-sm font-mono text-[0.9em]">$1</code>'
         );
 
         // Links
