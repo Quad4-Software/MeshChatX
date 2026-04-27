@@ -63,7 +63,7 @@
                         <input
                             v-model="search"
                             type="text"
-                            class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-zinc-600 rounded-md leading-5 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                            class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-zinc-600 rounded-md leading-5 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-hidden focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             :placeholder="$t('debug.search_logs_placeholder')"
                             @input="debouncedSearch"
                         />
@@ -71,7 +71,7 @@
 
                     <select
                         v-model="level"
-                        class="block pl-3 pr-10 py-2 text-base border-gray-300 dark:border-zinc-600 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md bg-white dark:bg-zinc-900 text-gray-900 dark:text-white"
+                        class="block pl-3 pr-10 py-2 text-base border-gray-300 dark:border-zinc-600 focus:outline-hidden focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md bg-white dark:bg-zinc-900 text-gray-900 dark:text-white"
                         @change="refreshLogs"
                     >
                         <option value="">{{ $t("debug.level_all") }}</option>
@@ -106,14 +106,14 @@
                         <input
                             v-model="accessSearch"
                             type="text"
-                            class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-zinc-600 rounded-md leading-5 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                            class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-zinc-600 rounded-md leading-5 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-hidden focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                             :placeholder="$t('debug.search_access_placeholder')"
                             @input="debouncedAccessSearch"
                         />
                     </div>
                     <select
                         v-model="accessOutcome"
-                        class="block pl-3 pr-10 py-2 text-base border-gray-300 dark:border-zinc-600 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md bg-white dark:bg-zinc-900 text-gray-900 dark:text-white"
+                        class="block pl-3 pr-10 py-2 text-base border-gray-300 dark:border-zinc-600 focus:outline-hidden focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md bg-white dark:bg-zinc-900 text-gray-900 dark:text-white"
                         @change="refreshAccessAttempts"
                     >
                         <option value="">{{ $t("debug.outcome_all") }}</option>
@@ -130,7 +130,7 @@
                 </div>
             </div>
 
-            <div class="flex-1 overflow-hidden glass-card max-w-6xl mx-auto w-full p-0 flex flex-col rounded-sm">
+            <div class="flex-1 overflow-hidden glass-card max-w-6xl mx-auto w-full p-0 flex flex-col rounded-xs">
                 <div
                     v-if="activeTab === 'logs'"
                     class="flex-1 overflow-auto p-3 sm:p-4 font-mono text-xs leading-relaxed select-text bg-white dark:bg-zinc-950"
@@ -153,7 +153,7 @@
                         <span class="text-blue-500 shrink-0 w-20 sm:w-24 overflow-hidden text-ellipsis italic"
                             >[{{ log.module }}]</span
                         >
-                        <span class="text-gray-800 dark:text-gray-200 break-words flex-1">
+                        <span class="text-gray-800 dark:text-gray-200 wrap-break-word flex-1">
                             {{ log.message }}
                             <span
                                 v-if="log.is_anomaly"

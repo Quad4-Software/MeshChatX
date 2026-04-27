@@ -28,7 +28,7 @@
                     v-model="searchQuery"
                     type="text"
                     placeholder="Search nodes or content..."
-                    class="w-full pl-9 pr-3 py-1.5 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-xs text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
+                    class="w-full pl-9 pr-3 py-1.5 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-xs text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-zinc-500 focus:outline-hidden focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
                     @input="$emit('update:search-query', searchQuery)"
                 />
                 <button

@@ -3,7 +3,7 @@
 <template>
     <div
         v-if="activeCall || initiationStatus || isEnded || wasDeclined"
-        class="fixed bottom-4 right-4 z-[100] w-80 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden transition-all duration-300"
+        class="fixed bottom-4 right-4 z-100 w-80 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden transition-all duration-300"
         :class="{ 'ring-2 ring-red-500 ring-opacity-50': isEnded || wasDeclined }"
     >
         <!-- Header -->
@@ -221,7 +221,7 @@
                     class="p-2.5 rounded-full bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-600/30 transition-all duration-200"
                     @click="hangupCall(null)"
                 >
-                    <MaterialDesignIcon icon-name="phone-hangup" class="size-5 rotate-[135deg]" />
+                    <MaterialDesignIcon icon-name="phone-hangup" class="size-5 rotate-135" />
                 </button>
 
                 <!-- Send to Voicemail (if incoming) -->
@@ -290,7 +290,7 @@
             <div class="flex items-center space-x-1">
                 <button
                     type="button"
-                    class="p-1.5 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded transition-colors"
+                    class="p-1.5 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-sm transition-colors"
                     @click="toggleMicrophone"
                 >
                     <MaterialDesignIcon
@@ -301,10 +301,10 @@
                 </button>
                 <button
                     type="button"
-                    class="p-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors"
+                    class="p-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-sm transition-colors"
                     @click="hangupCall"
                 >
-                    <MaterialDesignIcon icon-name="phone-hangup" class="size-4 text-red-500 rotate-[135deg]" />
+                    <MaterialDesignIcon icon-name="phone-hangup" class="size-4 text-red-500 rotate-135" />
                 </button>
             </div>
         </div>

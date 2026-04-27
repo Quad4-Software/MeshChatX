@@ -4,7 +4,7 @@
     <div class="flex flex-col h-full w-full bg-white dark:bg-zinc-950 overflow-hidden">
         <!-- header -->
         <div
-            class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-0 px-3 py-2 sm:px-4 border-b border-gray-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur z-10 relative"
+            class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-0 px-3 py-2 sm:px-4 border-b border-gray-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm z-10 relative"
         >
             <div class="hidden sm:flex items-center min-w-0 gap-2">
                 <v-icon icon="mdi-map" class="text-blue-500 dark:text-blue-400 shrink-0" size="24"></v-icon>
@@ -21,7 +21,7 @@
                     <button
                         :class="
                             discoveredVisible
-                                ? 'bg-white dark:bg-zinc-700 shadow-sm text-emerald-600 dark:text-emerald-400'
+                                ? 'bg-white dark:bg-zinc-700 shadow-xs text-emerald-600 dark:text-emerald-400'
                                 : 'text-gray-500 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-zinc-700'
                         "
                         class="p-1.5 sm:p-2 rounded-lg transition-colors shrink-0"
@@ -34,7 +34,7 @@
                     <button
                         :class="
                             !offlineEnabled
-                                ? 'bg-white dark:bg-zinc-700 shadow-sm text-blue-600 dark:text-blue-400'
+                                ? 'bg-white dark:bg-zinc-700 shadow-xs text-blue-600 dark:text-blue-400'
                                 : 'text-gray-500 dark:text-gray-300'
                         "
                         class="px-2 py-1 text-xs sm:px-3 sm:text-sm font-medium rounded-md transition-all shrink-0"
@@ -45,7 +45,7 @@
                     <button
                         :class="
                             offlineEnabled
-                                ? 'bg-white dark:bg-zinc-700 shadow-sm text-blue-600 dark:text-blue-400'
+                                ? 'bg-white dark:bg-zinc-700 shadow-xs text-blue-600 dark:text-blue-400'
                                 : 'text-gray-500 dark:text-gray-300'
                         "
                         class="px-2 py-1 text-xs sm:px-3 sm:text-sm font-medium rounded-md transition-all shrink-0"
@@ -59,7 +59,7 @@
                 <!-- upload: icon on mobile, full label from sm -->
                 <button
                     type="button"
-                    class="inline-flex items-center justify-center sm:gap-1 p-2 sm:px-3 sm:py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg shadow-sm transition-colors text-sm font-medium shrink-0"
+                    class="inline-flex items-center justify-center sm:gap-1 p-2 sm:px-3 sm:py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg shadow-xs transition-colors text-sm font-medium shrink-0"
                     :title="$t('map.upload_mbtiles')"
                     @click="$refs.fileInput.click()"
                 >
@@ -160,7 +160,7 @@
                         (hoveredFeature.get('telemetry') && hoveredFeature.get('telemetry').note)) &&
                     !editingFeature
                 "
-                class="absolute pointer-events-none z-50 bg-white/90 dark:bg-zinc-900/90 backdrop-blur border border-gray-200 dark:border-zinc-700 rounded-lg shadow-xl p-2 text-sm text-gray-900 dark:text-zinc-100 max-w-xs transform -translate-x-1/2 -translate-y-full mb-4"
+                class="absolute pointer-events-none z-50 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-sm border border-gray-200 dark:border-zinc-700 rounded-lg shadow-xl p-2 text-sm text-gray-900 dark:text-zinc-100 max-w-xs transform -translate-x-1/2 -translate-y-full mb-4"
                 :style="{
                     left: map.getPixelFromCoordinate(hoveredFeature.getGeometry().getCoordinates())[0] + 'px',
                     top: map.getPixelFromCoordinate(hoveredFeature.getGeometry().getCoordinates())[1] + 'px',
@@ -172,7 +172,7 @@
                         hoveredFeature.get("telemetry") ? hoveredFeature.get("peer")?.display_name || "Peer" : "Note"
                     }}</span>
                 </div>
-                <div class="whitespace-pre-wrap break-words">
+                <div class="whitespace-pre-wrap wrap-break-word">
                     {{ hoveredFeature.get("note") || hoveredFeature.get("telemetry")?.note }}
                 </div>
             </div>
@@ -197,7 +197,7 @@
                     </div>
                     <textarea
                         v-model="noteText"
-                        class="w-full h-24 p-2 text-sm bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none resize-none text-gray-900 dark:text-zinc-100"
+                        class="w-full h-24 p-2 text-sm bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-hidden resize-none text-gray-900 dark:text-zinc-100"
                         placeholder="Type your note here..."
                     ></textarea>
                     <div class="flex justify-between mt-3">
@@ -209,7 +209,7 @@
                             Delete
                         </button>
                         <button
-                            class="px-3 py-1.5 text-xs font-semibold bg-amber-500 text-white hover:bg-amber-600 rounded-lg shadow-sm transition-colors"
+                            class="px-3 py-1.5 text-xs font-semibold bg-amber-500 text-white hover:bg-amber-600 rounded-lg shadow-xs transition-colors"
                             @click="saveNote"
                         >
                             Save
@@ -218,17 +218,17 @@
                 </div>
             </div>
 
-            <div ref="drawFeatureInfoElement" class="absolute z-[45] pointer-events-none">
+            <div ref="drawFeatureInfoElement" class="absolute z-45 pointer-events-none">
                 <div
                     v-show="drawFeatureInfoPayload"
-                    class="pointer-events-auto min-w-[11rem] max-w-[min(18rem,calc(100vw-2rem))] rounded-xl border border-gray-200 dark:border-zinc-700 bg-white/95 dark:bg-zinc-900/95 backdrop-blur shadow-xl px-3 py-2.5 transform -translate-x-1/2 -translate-y-full mb-2"
+                    class="pointer-events-auto min-w-44 max-w-[min(18rem,calc(100vw-2rem))] rounded-xl border border-gray-200 dark:border-zinc-700 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm shadow-xl px-3 py-2.5 transform -translate-x-1/2 -translate-y-full mb-2"
                 >
                     <template v-if="drawFeatureInfoPayload">
                         <div v-if="drawFeatureInfoPayload.iconSrc" class="flex justify-center mb-2">
                             <img
                                 :src="drawFeatureInfoPayload.iconSrc"
                                 alt=""
-                                class="max-h-12 max-w-[4.5rem] object-contain rounded border border-gray-100 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-800/50"
+                                class="max-h-12 max-w-18 object-contain rounded-sm border border-gray-100 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-800/50"
                             />
                         </div>
                         <div
@@ -239,7 +239,7 @@
                         </div>
                         <div
                             v-if="drawFeatureInfoPayload.description && !drawFeatureInfoPayload.descriptionIsHtml"
-                            class="text-[11px] text-gray-600 dark:text-zinc-400 whitespace-pre-wrap break-words leading-snug"
+                            class="text-[11px] text-gray-600 dark:text-zinc-400 whitespace-pre-wrap wrap-break-word leading-snug"
                         >
                             {{ drawFeatureInfoPayload.description }}
                         </div>
@@ -262,7 +262,9 @@
                                     >
                                         {{ row.key }}
                                     </dt>
-                                    <dd class="text-gray-800 dark:text-zinc-200 break-words m-0">{{ row.value }}</dd>
+                                    <dd class="text-gray-800 dark:text-zinc-200 wrap-break-word m-0">
+                                        {{ row.value }}
+                                    </dd>
                                 </div>
                             </template>
                         </dl>
@@ -275,7 +277,7 @@
                 :show="showContextMenu"
                 :x="contextMenuPos.x"
                 :y="contextMenuPos.y"
-                panel-class="z-[120] overflow-hidden text-sm"
+                panel-class="z-120 overflow-hidden text-sm"
             >
                 <template #header>
                     <div
@@ -369,7 +371,7 @@
 
             <div
                 v-if="showMapPingModal"
-                class="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 p-4"
+                class="fixed inset-0 z-200 flex items-center justify-center bg-black/40 p-4"
                 role="dialog"
                 aria-modal="true"
                 @click.self="showMapPingModal = false"
@@ -424,7 +426,7 @@
             <div
                 v-show="!isMobileScreen"
                 ref="scaleLineMount"
-                class="ol-scale-line-host absolute z-10 bottom-4 right-4 sm:bottom-4 max-sm:bottom-[5.5rem] pointer-events-auto min-w-[120px] max-w-[min(55vw,14rem)]"
+                class="ol-scale-line-host absolute z-10 bottom-4 right-4 sm:bottom-4 max-sm:bottom-22 pointer-events-auto min-w-[120px] max-w-[min(55vw,14rem)]"
                 :class="{ 'ol-scale-line-host--dark-basemap': isDarkRasterBasemap }"
             ></div>
 
@@ -433,7 +435,7 @@
                 class="absolute bottom-4 left-4 z-10 flex flex-col gap-2 pointer-events-none max-w-[min(100vw-2rem,22rem)]"
             >
                 <div
-                    class="flex flex-col items-center justify-end text-gray-800 dark:text-zinc-100 bg-white/80 dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-800 rounded-lg px-2 py-1 shadow-sm pointer-events-auto w-fit"
+                    class="flex flex-col items-center justify-end text-gray-800 dark:text-zinc-100 bg-white/80 dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-800 rounded-lg px-2 py-1 shadow-xs pointer-events-auto w-fit"
                     :title="$t('map.north_up')"
                 >
                     <div
@@ -449,7 +451,7 @@
                 </div>
                 <div
                     v-if="metadata && metadata.name && !metadata.name.startsWith('Map Export')"
-                    class="bg-white/80 dark:bg-zinc-900/80 backdrop-blur border border-gray-200 dark:border-zinc-800 p-2 rounded-lg text-xs text-gray-600 dark:text-zinc-400 pointer-events-auto shadow-sm"
+                    class="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border border-gray-200 dark:border-zinc-800 p-2 rounded-lg text-xs text-gray-600 dark:text-zinc-400 pointer-events-auto shadow-xs"
                 >
                     <div class="font-semibold text-gray-900 dark:text-zinc-100 mb-1">
                         {{ metadata.name }}
@@ -465,7 +467,7 @@
 
                 <!-- Lat/Lon Box -->
                 <div
-                    class="bg-white/80 dark:bg-zinc-900/80 backdrop-blur border border-gray-200 dark:border-zinc-800 p-2 rounded-lg text-[10px] font-mono text-gray-600 dark:text-zinc-400 pointer-events-auto shadow-sm flex flex-col space-y-0.5"
+                    class="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border border-gray-200 dark:border-zinc-800 p-2 rounded-lg text-[10px] font-mono text-gray-600 dark:text-zinc-400 pointer-events-auto shadow-xs flex flex-col space-y-0.5"
                 >
                     <div class="flex justify-between space-x-4">
                         <span class="opacity-50 uppercase tracking-tighter">Lat</span>
@@ -482,7 +484,7 @@
             <div
                 v-if="isSettingsOpen"
                 ref="settingsPanel"
-                class="absolute z-20 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm rounded-xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden flex flex-col min-h-0 animate-in fade-in zoom-in-95 duration-200"
+                class="absolute z-20 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xs rounded-xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden flex flex-col min-h-0 animate-in fade-in zoom-in-95 duration-200"
                 :class="
                     settingsPanelPos
                         ? 'w-96 max-w-[min(100vw-2rem,28rem)] max-h-full'
@@ -524,7 +526,7 @@
                     <!-- Quick Actions -->
                     <div class="grid grid-cols-2 gap-2">
                         <button
-                            class="flex items-center justify-center space-x-1.5 px-2 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-all text-[10px] font-bold uppercase tracking-tight shadow-sm active:scale-95"
+                            class="flex items-center justify-center space-x-1.5 px-2 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-all text-[10px] font-bold uppercase tracking-tight shadow-xs active:scale-95"
                             @click="setAsDefaultView"
                         >
                             <MaterialDesignIcon icon-name="pin" class="size-3" />
@@ -578,7 +580,7 @@
                                     (style.id === 'carto-voyager' && tileServerUrl.includes('rastertiles/voyager')) ||
                                     (style.id === 'carto-light' &&
                                         tileServerUrl.includes('basemaps.cartocdn.com/light_all'))
-                                        ? 'bg-blue-500 border-blue-600 text-white shadow-sm ring-2 ring-blue-500/20'
+                                        ? 'bg-blue-500 border-blue-600 text-white shadow-xs ring-2 ring-blue-500/20'
                                         : 'bg-white dark:bg-zinc-900 border-gray-200 dark:border-zinc-800 text-gray-500 dark:text-zinc-400 hover:bg-gray-50 dark:hover:bg-zinc-800'
                                 "
                                 @click="setTileServer(style.id)"
@@ -597,7 +599,7 @@
                             <input
                                 v-model="tileServerUrl"
                                 type="text"
-                                class="w-full bg-gray-50/50 dark:bg-zinc-950/50 border border-gray-200 dark:border-zinc-800 rounded-lg px-2 py-1.5 text-[10px] dark:text-zinc-100 font-mono focus:ring-1 focus:ring-blue-500 transition-all outline-none"
+                                class="w-full bg-gray-50/50 dark:bg-zinc-950/50 border border-gray-200 dark:border-zinc-800 rounded-lg px-2 py-1.5 text-[10px] dark:text-zinc-100 font-mono focus:ring-1 focus:ring-blue-500 transition-all outline-hidden"
                                 :placeholder="$t('map.tile_server_url_placeholder')"
                                 @blur="saveTileServerUrl"
                             />
@@ -613,7 +615,7 @@
                             <input
                                 v-model="nominatimApiUrl"
                                 type="text"
-                                class="w-full bg-gray-50/50 dark:bg-zinc-950/50 border border-gray-200 dark:border-zinc-800 rounded-lg px-2 py-1.5 text-[10px] dark:text-zinc-100 font-mono focus:ring-1 focus:ring-blue-500 transition-all outline-none"
+                                class="w-full bg-gray-50/50 dark:bg-zinc-950/50 border border-gray-200 dark:border-zinc-800 rounded-lg px-2 py-1.5 text-[10px] dark:text-zinc-100 font-mono focus:ring-1 focus:ring-blue-500 transition-all outline-hidden"
                                 :placeholder="$t('map.nominatim_api_url_placeholder')"
                                 @blur="saveNominatimApiUrl"
                             />
@@ -688,7 +690,7 @@
                             <input
                                 v-model="mbtilesDir"
                                 type="text"
-                                class="w-full bg-gray-50/50 dark:bg-zinc-950/50 border border-gray-200 dark:border-zinc-800 rounded-lg px-2 py-1.5 text-[10px] dark:text-zinc-100 font-mono focus:ring-1 focus:ring-blue-500 transition-all outline-none"
+                                class="w-full bg-gray-50/50 dark:bg-zinc-950/50 border border-gray-200 dark:border-zinc-800 rounded-lg px-2 py-1.5 text-[10px] dark:text-zinc-100 font-mono focus:ring-1 focus:ring-blue-500 transition-all outline-hidden"
                                 placeholder="Default storage"
                                 @blur="saveMBTilesDir"
                             />
@@ -710,7 +712,7 @@
                                     :class="
                                         file.is_active
                                             ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50'
-                                            : 'bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 shadow-sm'
+                                            : 'bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 shadow-xs'
                                     "
                                 >
                                     <div class="flex flex-col min-w-0 flex-1 mr-2">
@@ -845,7 +847,7 @@
             <!-- onboarding tooltip -->
             <div
                 v-if="showOnboardingTooltip"
-                class="fixed inset-0 z-[100] pointer-events-none"
+                class="fixed inset-0 z-100 pointer-events-none"
                 @click="dismissOnboardingTooltip"
             >
                 <div class="absolute inset-0 bg-black/50 pointer-events-auto"></div>
@@ -897,7 +899,7 @@
         <!-- save drawing modal -->
         <div
             v-if="showSaveDrawingModal"
-            class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+            class="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs"
         >
             <div
                 class="bg-white dark:bg-zinc-900 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200"
@@ -949,7 +951,7 @@
         <!-- load drawing modal -->
         <div
             v-if="showLoadDrawingModal"
-            class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+            class="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs"
         >
             <div
                 class="bg-white dark:bg-zinc-900 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200"
@@ -1023,7 +1025,7 @@
         <transition name="fade">
             <div
                 v-if="showNoteModal"
-                class="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+                class="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
                 @click.self="closeNoteEditor"
             >
                 <div
@@ -1044,7 +1046,7 @@
                     <div class="p-4">
                         <textarea
                             v-model="noteText"
-                            class="w-full h-40 p-4 text-base bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none resize-none text-gray-900 dark:text-zinc-100"
+                            class="w-full h-40 p-4 text-base bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-hidden resize-none text-gray-900 dark:text-zinc-100"
                             placeholder="Type your note here..."
                             autofocus
                         ></textarea>
@@ -1058,7 +1060,7 @@
                             Delete
                         </button>
                         <button
-                            class="flex-[2] px-4 py-3 text-sm font-bold bg-amber-500 text-white hover:bg-amber-600 rounded-xl shadow-lg shadow-amber-500/30 transition-colors"
+                            class="flex-2 px-4 py-3 text-sm font-bold bg-amber-500 text-white hover:bg-amber-600 rounded-xl shadow-lg shadow-amber-500/30 transition-colors"
                             @click="saveNote"
                         >
                             Save Note

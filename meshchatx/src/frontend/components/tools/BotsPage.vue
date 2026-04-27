@@ -6,14 +6,25 @@
             class="flex-1 overflow-y-auto w-full px-3 sm:px-4 md:px-5 lg:px-8 py-4 sm:py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
         >
             <div class="space-y-8 w-full max-w-4xl mx-auto">
-                <div class="space-y-2 border-b border-gray-200 dark:border-zinc-800 pb-6">
-                    <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                        {{ $t("bots.bot_framework") }}
+                <div
+                    class="flex flex-wrap items-start justify-between gap-3 border-b border-gray-200 dark:border-zinc-800 pb-6"
+                >
+                    <div class="space-y-2 min-w-0">
+                        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                            {{ $t("bots.bot_framework") }}
+                        </div>
+                        <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $t("bots.title") }}</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-300">
+                            {{ $t("bots.description") }}
+                        </div>
                     </div>
-                    <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $t("bots.title") }}</div>
-                    <div class="text-sm text-gray-600 dark:text-gray-300">
-                        {{ $t("bots.description") }}
-                    </div>
+                    <RouterLink
+                        to="/tools"
+                        class="inline-flex items-center gap-2 text-sm text-blue-600 dark:text-blue-300 hover:underline shrink-0"
+                    >
+                        <MaterialDesignIcon icon-name="arrow-left" class="size-4" />
+                        {{ $t("tools.back_to_tools") }}
+                    </RouterLink>
                 </div>
 
                 <div class="space-y-6">
@@ -159,7 +170,7 @@
                                                 <input
                                                     v-model="editingNameDraft"
                                                     type="text"
-                                                    class="input-field text-xs py-1 h-8 px-2 min-w-0 flex-1 max-w-[10rem] sm:max-w-[12rem]"
+                                                    class="input-field text-xs py-1 h-8 px-2 min-w-0 flex-1 max-w-40 sm:max-w-48"
                                                     maxlength="256"
                                                     @keydown.enter.prevent="saveBotName(bot)"
                                                     @keydown.escape="cancelEditName"
@@ -246,7 +257,7 @@
 
         <div
             v-if="selectedTemplate"
-            class="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50"
+            class="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50"
             @click.self="selectedTemplate = null"
         >
             <div
@@ -539,6 +550,7 @@ export default {
 </script>
 
 <style scoped>
+@reference "../../style.css";
 .glass-label {
     @apply block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1;
 }

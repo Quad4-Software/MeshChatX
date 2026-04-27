@@ -86,7 +86,7 @@
                         class="flex-1 flex flex-col items-center justify-center py-12 px-4"
                     >
                         <div
-                            class="w-full max-w-md border-b border-gray-200 dark:border-zinc-800 !p-8 flex flex-col items-center text-center relative overflow-hidden"
+                            class="w-full max-w-md border-b border-gray-200 dark:border-zinc-800 p-8! flex flex-col items-center text-center relative overflow-hidden"
                         >
                             <!-- Status pulse background -->
                             <div
@@ -279,7 +279,7 @@
                                 <div class="flex flex-col gap-4">
                                     <select
                                         v-model="selectedAudioProfileId"
-                                        class="input-field !rounded-xl !py-2 shadow-sm"
+                                        class="input-field rounded-xl! py-2! shadow-xs"
                                         @change="switchAudioProfile(selectedAudioProfileId)"
                                     >
                                         <option
@@ -375,7 +375,7 @@
                                     class="w-full flex items-center justify-center gap-2 rounded-2xl bg-red-600 py-4 text-sm font-bold text-white shadow-xl shadow-red-600/20 hover:bg-red-500 transition-all duration-200"
                                     @click="hangupCall"
                                 >
-                                    <MaterialDesignIcon icon-name="phone-hangup" class="size-5 rotate-[135deg]" />
+                                    <MaterialDesignIcon icon-name="phone-hangup" class="size-5 rotate-135" />
                                     <span>{{
                                         activeCall && activeCall.is_incoming && activeCall.status === 4
                                             ? $t("call.decline")
@@ -549,7 +549,7 @@
                                             <select
                                                 v-if="config"
                                                 v-model="config.telephone_audio_profile_id"
-                                                class="input-field min-w-0 !rounded-lg !border-gray-200 !py-1 !px-2 !text-xs dark:!border-zinc-800 lg:min-w-[120px]"
+                                                class="input-field min-w-0 rounded-lg! border-gray-200! py-1! px-2! text-xs! dark:border-zinc-800! lg:min-w-[120px]"
                                                 @change="
                                                     updateConfig({
                                                         telephone_audio_profile_id: config.telephone_audio_profile_id,
@@ -579,7 +579,7 @@
                                                 </div>
                                                 <select
                                                     v-model="selectedAudioInputId"
-                                                    class="input-field !py-1 !px-2 !text-[10px] !rounded-lg !border-gray-200 dark:!border-zinc-800 min-w-[120px]"
+                                                    class="input-field py-1! px-2! text-[10px]! rounded-lg! border-gray-200! dark:border-zinc-800! min-w-[120px]"
                                                     @change="
                                                         stopWebAudio();
                                                         startWebAudio();
@@ -602,7 +602,7 @@
                                                 </div>
                                                 <select
                                                     v-model="selectedAudioOutputId"
-                                                    class="input-field !py-1 !px-2 !text-[10px] !rounded-lg !border-gray-200 dark:!border-zinc-800 min-w-[120px]"
+                                                    class="input-field py-1! px-2! text-[10px]! rounded-lg! border-gray-200! dark:border-zinc-800! min-w-[120px]"
                                                     @change="
                                                         stopWebAudio();
                                                         startWebAudio();
@@ -636,7 +636,7 @@
                         v-if="callHistory.length > 0 && !activeCall && !isCallEnded"
                         class="space-y-4 max-w-3xl mx-auto w-full"
                     >
-                        <div class="w-full border-b border-gray-200 dark:border-zinc-800 !p-0 overflow-hidden">
+                        <div class="w-full border-b border-gray-200 dark:border-zinc-800 p-0! overflow-hidden">
                             <div
                                 class="px-5 py-4 border-b border-gray-100 dark:border-zinc-800 flex flex-col gap-4 bg-transparent"
                             >
@@ -667,7 +667,7 @@
                                         v-model="callHistorySearch"
                                         type="text"
                                         :placeholder="$t('call.search_history')"
-                                        class="input-field !py-2 !pl-10"
+                                        class="input-field py-2! pl-10!"
                                         @input="onCallHistorySearchInput"
                                     />
                                     <MaterialDesignIcon
@@ -699,7 +699,7 @@
                                                 icon-class="size-10"
                                             />
                                             <div
-                                                class="absolute -bottom-1 -right-1 bg-white dark:bg-zinc-900 rounded-full p-0.5 shadow-sm border border-gray-100 dark:border-zinc-800 shrink-0 flex items-center justify-center size-5"
+                                                class="absolute -bottom-1 -right-1 bg-white dark:bg-zinc-900 rounded-full p-0.5 shadow-xs border border-gray-100 dark:border-zinc-800 shrink-0 flex items-center justify-center size-5"
                                             >
                                                 <MaterialDesignIcon
                                                     :icon-name="entry.is_incoming ? 'phone-incoming' : 'phone-outgoing'"
@@ -762,7 +762,7 @@
                                                 </div>
 
                                                 <div
-                                                    class="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-4"
+                                                    class="flex items-center gap-1.5 opacity-100 transition-opacity shrink-0 ml-4 lg:opacity-0 lg:group-hover:opacity-100"
                                                 >
                                                     <button
                                                         v-if="!entry.is_contact"
@@ -837,7 +837,7 @@
                                 v-model="discoverySearch"
                                 type="text"
                                 :placeholder="`Search phonebook (${totalDiscoveryCount})...`"
-                                class="block w-full rounded-lg border-0 py-2 pl-10 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
+                                class="block w-full rounded-lg border-0 py-2 pl-10 text-gray-900 dark:text-white shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
                                 @input="onDiscoverySearchInput"
                             />
                             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -953,7 +953,7 @@
                                 v-model="voicemailSearch"
                                 type="text"
                                 placeholder="Search voicemails..."
-                                class="block w-full rounded-lg border-0 py-2 pl-10 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
+                                class="block w-full rounded-lg border-0 py-2 pl-10 text-gray-900 dark:text-white shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
                                 @input="onVoicemailSearchInput"
                             />
                             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -1012,7 +1012,7 @@
                                 </div>
                                 <button
                                     :disabled="!voicemailStatus.has_espeak"
-                                    class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                    class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden disabled:opacity-50 disabled:cursor-not-allowed"
                                     :class="config.voicemail_enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-zinc-700'"
                                     @click="
                                         config.voicemail_enabled = !config.voicemail_enabled;
@@ -1020,7 +1020,7 @@
                                     "
                                 >
                                     <span
-                                        class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                                        class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out"
                                         :class="config.voicemail_enabled ? 'translate-x-5' : 'translate-x-0'"
                                     ></span>
                                 </button>
@@ -1035,7 +1035,7 @@
                                 <textarea
                                     v-model="config.voicemail_greeting"
                                     rows="3"
-                                    class="block w-full rounded-lg border-0 py-2 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 dark:bg-zinc-900"
+                                    class="block w-full rounded-lg border-0 py-2 text-gray-900 dark:text-white shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 dark:bg-zinc-900"
                                     placeholder="Enter greeting text..."
                                 ></textarea>
 
@@ -1051,7 +1051,7 @@
                                             type="number"
                                             min="80"
                                             max="450"
-                                            class="block w-full rounded-lg border-0 py-1 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 focus:ring-2 focus:ring-inset focus:ring-blue-600 text-xs dark:bg-zinc-900"
+                                            class="block w-full rounded-lg border-0 py-1 text-gray-900 dark:text-white shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 focus:ring-2 focus:ring-inset focus:ring-blue-600 text-xs dark:bg-zinc-900"
                                             @change="updateConfig({ voicemail_tts_speed: config.voicemail_tts_speed })"
                                         />
                                     </div>
@@ -1065,7 +1065,7 @@
                                             type="number"
                                             min="0"
                                             max="99"
-                                            class="block w-full rounded-lg border-0 py-1 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 focus:ring-2 focus:ring-inset focus:ring-blue-600 text-xs dark:bg-zinc-900"
+                                            class="block w-full rounded-lg border-0 py-1 text-gray-900 dark:text-white shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 focus:ring-2 focus:ring-inset focus:ring-blue-600 text-xs dark:bg-zinc-900"
                                             @change="updateConfig({ voicemail_tts_pitch: config.voicemail_tts_pitch })"
                                         />
                                     </div>
@@ -1079,7 +1079,7 @@
                                             type="number"
                                             min="0"
                                             max="100"
-                                            class="block w-full rounded-lg border-0 py-1 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 focus:ring-2 focus:ring-inset focus:ring-blue-600 text-xs dark:bg-zinc-900"
+                                            class="block w-full rounded-lg border-0 py-1 text-gray-900 dark:text-white shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 focus:ring-2 focus:ring-inset focus:ring-blue-600 text-xs dark:bg-zinc-900"
                                             @change="
                                                 updateConfig({ voicemail_tts_word_gap: config.voicemail_tts_word_gap })
                                             "
@@ -1093,7 +1093,7 @@
                                         <input
                                             v-model="config.voicemail_tts_voice"
                                             type="text"
-                                            class="block w-full rounded-lg border-0 py-1 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 focus:ring-2 focus:ring-inset focus:ring-blue-600 text-xs dark:bg-zinc-900"
+                                            class="block w-full rounded-lg border-0 py-1 text-gray-900 dark:text-white shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 focus:ring-2 focus:ring-inset focus:ring-blue-600 text-xs dark:bg-zinc-900"
                                             @change="updateConfig({ voicemail_tts_voice: config.voicemail_tts_voice })"
                                         />
                                     </div>
@@ -1202,7 +1202,7 @@
                                         type="number"
                                         min="1"
                                         max="120"
-                                        class="block w-full rounded-lg border-0 py-1.5 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
+                                        class="block w-full rounded-lg border-0 py-1.5 text-gray-900 dark:text-white shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
                                         @change="
                                             updateConfig({
                                                 voicemail_auto_answer_delay_seconds:
@@ -1221,7 +1221,7 @@
                                         type="number"
                                         min="5"
                                         max="600"
-                                        class="block w-full rounded-lg border-0 py-1.5 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
+                                        class="block w-full rounded-lg border-0 py-1.5 text-gray-900 dark:text-white shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
                                         @change="
                                             updateConfig({
                                                 voicemail_max_recording_seconds: config.voicemail_max_recording_seconds,
@@ -1373,7 +1373,7 @@
                                 v-model="contactsSearch"
                                 type="text"
                                 placeholder="Search contacts..."
-                                class="block w-full rounded-lg border-0 py-2 pl-10 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
+                                class="block w-full rounded-lg border-0 py-2 pl-10 text-gray-900 dark:text-white shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
                                 @input="onContactsSearchInput"
                             />
                             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -1382,7 +1382,7 @@
                         </div>
                         <button
                             type="button"
-                            class="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 transition-colors flex items-center gap-2"
+                            class="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-blue-500 transition-colors flex items-center gap-2"
                             @click="openAddContactModal"
                         >
                             <MaterialDesignIcon icon-name="plus" class="size-5" />
@@ -1428,7 +1428,7 @@
                                                 <div class="flex items-center gap-2">
                                                     <span
                                                         v-if="contact.preferred_ringtone_id"
-                                                        class="text-[9px] px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-800/50 flex items-center gap-1"
+                                                        class="text-[9px] px-1.5 py-0.5 rounded-sm bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-800/50 flex items-center gap-1"
                                                         title="Custom Ringtone Set"
                                                     >
                                                         <MaterialDesignIcon icon-name="music" class="size-2.5" />
@@ -1528,7 +1528,7 @@
                                                 {{ $t("call.enable_custom_ringtone") }}
                                             </div>
                                             <button
-                                                class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
+                                                class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden"
                                                 :class="
                                                     config.custom_ringtone_enabled
                                                         ? 'bg-blue-600'
@@ -1542,7 +1542,7 @@
                                                 "
                                             >
                                                 <span
-                                                    class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                                                    class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out"
                                                     :class="
                                                         config.custom_ringtone_enabled
                                                             ? 'translate-x-5'
@@ -1588,7 +1588,7 @@
                                                 Tone Generator
                                             </div>
                                             <button
-                                                class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
+                                                class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden"
                                                 :class="
                                                     config.telephone_tone_generator_enabled
                                                         ? 'bg-blue-600'
@@ -1604,7 +1604,7 @@
                                                 "
                                             >
                                                 <span
-                                                    class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                                                    class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out"
                                                     :class="
                                                         config.telephone_tone_generator_enabled
                                                             ? 'translate-x-5'
@@ -1660,7 +1660,7 @@
                                         </div>
                                         <select
                                             v-model="config.ringtone_preferred_id"
-                                            class="input-field !py-1.5 !px-3 !text-sm !rounded-xl !border-gray-200 dark:!border-zinc-800 min-w-[200px]"
+                                            class="input-field py-1.5! px-3! text-sm! rounded-xl! border-gray-200! dark:border-zinc-800! min-w-[200px]"
                                             @change="
                                                 updateConfig({ ringtone_preferred_id: config.ringtone_preferred_id })
                                             "
@@ -1716,7 +1716,7 @@
                                                 >
                                                     <input
                                                         v-model="editingRingtoneName"
-                                                        class="text-sm bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded px-2 py-1 flex-1 min-w-0"
+                                                        class="text-sm bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-sm px-2 py-1 flex-1 min-w-0"
                                                         @keyup.enter="saveRingtoneName"
                                                         @blur="saveRingtoneName"
                                                     />
@@ -1730,7 +1730,7 @@
                                                     </span>
                                                     <span
                                                         v-if="ringtone.is_primary"
-                                                        class="shrink-0 text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 rounded"
+                                                        class="shrink-0 text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 rounded-sm"
                                                     >
                                                         Primary
                                                     </span>
@@ -1826,7 +1826,7 @@
                                 v-model="recordingSearch"
                                 type="text"
                                 placeholder="Search recordings..."
-                                class="block w-full rounded-lg border-0 py-2 pl-10 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
+                                class="block w-full rounded-lg border-0 py-2 pl-10 text-gray-900 dark:text-white shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
                                 @input="onRecordingSearchInput"
                             />
                             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -1962,7 +1962,7 @@
     <!-- Contact Modal -->
     <div
         v-if="isContactModalOpen"
-        class="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity"
+        class="fixed inset-0 z-150 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs transition-opacity"
         @click.self="isContactModalOpen = false"
     >
         <div
@@ -2106,7 +2106,7 @@
                     </button>
                     <button
                         type="button"
-                        class="flex-[2] px-6 py-3 rounded-2xl bg-blue-600 text-white font-bold shadow-lg shadow-blue-600/20 hover:bg-blue-500 transition-all active:scale-95"
+                        class="flex-2 px-6 py-3 rounded-2xl bg-blue-600 text-white font-bold shadow-lg shadow-blue-600/20 hover:bg-blue-500 transition-all active:scale-95"
                         @click="saveContact(contactForm)"
                     >
                         {{ $t("call.save_contact") }}

@@ -237,7 +237,7 @@
                     <div class="flex flex-wrap gap-2">
                         <button
                             type="button"
-                            class="inline-flex items-center gap-x-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors disabled:opacity-40"
+                            class="inline-flex items-center gap-x-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-xs transition-colors disabled:opacity-40"
                             :disabled="!localPropagationNode"
                             @click="useLocalPropagationNode"
                         >
@@ -257,11 +257,11 @@
                 v-model="searchTerm"
                 type="text"
                 :placeholder="`Search ${propagationNodes.length} Propagation Nodes...`"
-                class="flex-1 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 px-4 py-2 shadow-sm transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500"
+                class="flex-1 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 px-4 py-2 shadow-xs transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500"
             />
             <select
                 v-model="sortBy"
-                class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 px-4 py-2 shadow-sm transition-all min-w-[180px]"
+                class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 px-4 py-2 shadow-xs transition-all min-w-[180px]"
             >
                 <option value="name">Sort by Name</option>
                 <option value="name-desc">Sort by Name (Z-A)</option>
@@ -277,7 +277,7 @@
                 <div
                     v-for="propagationNode of paginatedNodes"
                     :key="propagationNode.destination_hash"
-                    class="border border-gray-200 dark:border-zinc-800 rounded-2xl bg-white dark:bg-zinc-900 shadow-sm hover:shadow-md transition-shadow overflow-hidden"
+                    class="border border-gray-200 dark:border-zinc-800 rounded-2xl bg-white dark:bg-zinc-900 shadow-xs hover:shadow-md transition-shadow overflow-hidden"
                     :class="{
                         'ring-2 ring-blue-500 dark:ring-blue-400':
                             config.lxmf_preferred_propagation_node_destination_hash ===
@@ -360,14 +360,14 @@
                                 <span>TX {{ formatByteSize(propagationNode.local_node_stats.tx_bytes) }}</span>
                             </div>
                         </div>
-                        <div class="flex-shrink-0">
+                        <div class="shrink-0">
                             <button
                                 v-if="
                                     config.lxmf_preferred_propagation_node_destination_hash ===
                                     propagationNode.destination_hash
                                 "
                                 type="button"
-                                class="inline-flex items-center gap-x-1.5 rounded-xl bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
+                                class="inline-flex items-center gap-x-1.5 rounded-xl bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 px-4 py-2 text-sm font-semibold text-white shadow-xs transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
                                 @click="stopUsingPropagationNode"
                             >
                                 Stop Using
@@ -375,7 +375,7 @@
                             <button
                                 v-else
                                 type="button"
-                                class="inline-flex items-center gap-x-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+                                class="inline-flex items-center gap-x-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-xs transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
                                 @click="usePropagationNode(propagationNode.destination_hash)"
                             >
                                 Set as Preferred
@@ -397,7 +397,7 @@
                     <button
                         :disabled="currentPage === 1"
                         type="button"
-                        class="inline-flex items-center gap-x-1.5 rounded-xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2 text-sm font-medium text-gray-700 dark:text-zinc-300 shadow-sm transition-colors"
+                        class="inline-flex items-center gap-x-1.5 rounded-xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2 text-sm font-medium text-gray-700 dark:text-zinc-300 shadow-xs transition-colors"
                         @click="currentPage = Math.max(1, currentPage - 1)"
                     >
                         <svg
@@ -422,7 +422,7 @@
                                     ? 'bg-blue-600 text-white dark:bg-blue-600'
                                     : 'bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800',
                             ]"
-                            class="w-10 h-10 rounded-xl border border-gray-200 dark:border-zinc-800 text-sm font-medium shadow-sm transition-colors"
+                            class="w-10 h-10 rounded-xl border border-gray-200 dark:border-zinc-800 text-sm font-medium shadow-xs transition-colors"
                             @click="currentPage = page"
                         >
                             {{ page }}
@@ -431,7 +431,7 @@
                     <button
                         :disabled="currentPage === totalPages"
                         type="button"
-                        class="inline-flex items-center gap-x-1.5 rounded-xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2 text-sm font-medium text-gray-700 dark:text-zinc-300 shadow-sm transition-colors"
+                        class="inline-flex items-center gap-x-1.5 rounded-xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2 text-sm font-medium text-gray-700 dark:text-zinc-300 shadow-xs transition-colors"
                         @click="currentPage = Math.min(totalPages, currentPage + 1)"
                     >
                         Next
@@ -474,7 +474,7 @@
                         <div class="mt-4">
                             <button
                                 type="button"
-                                class="inline-flex items-center gap-x-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+                                class="inline-flex items-center gap-x-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-xs transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
                                 @click="loadPropagationNodes"
                             >
                                 Reload
@@ -513,6 +513,7 @@
 import Utils from "../../js/Utils";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import ToastUtils from "../../js/ToastUtils";
+import { getDestinationPath } from "../../js/reticulumPathfinding.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import {
     incomingDeliveryBytesFromCustom,
@@ -855,8 +856,9 @@ export default {
                 return;
             }
             try {
-                const response = await window.api.get(`/api/v1/destination/${hash}/path`, {
-                    params: { request: "1", timeout: 4 },
+                const response = await getDestinationPath(window.api, hash, {
+                    request: "1",
+                    timeout: 4,
                 });
                 this.nodePathsByHash = {
                     ...this.nodePathsByHash,

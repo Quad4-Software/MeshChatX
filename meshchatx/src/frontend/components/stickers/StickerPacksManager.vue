@@ -77,7 +77,7 @@
                         :src="stickerImageUrl(s.id)"
                         :image-type="s.image_type"
                         size="xs"
-                        class="rounded border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-900"
+                        class="rounded-sm border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-900"
                     />
                 </div>
                 <div v-else class="text-xs text-gray-500 dark:text-zinc-400 italic mt-1">
@@ -88,7 +88,7 @@
 
         <div
             v-if="createOpen"
-            class="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 p-4"
+            class="fixed inset-0 z-150 flex items-center justify-center bg-black/60 p-4"
             @click.self="createOpen = false"
         >
             <div

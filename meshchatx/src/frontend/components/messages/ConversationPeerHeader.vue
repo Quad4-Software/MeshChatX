@@ -4,7 +4,7 @@
     <div
         class="relative z-20 flex flex-wrap items-center gap-y-2 px-3 sm:px-4 py-3 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950"
     >
-        <div class="flex-shrink-0 mr-3">
+        <div class="shrink-0 mr-3">
             <LxmfUserIcon
                 :custom-image="selectedPeer.contact_image"
                 :icon-name="selectedPeer.lxmf_user_icon ? selectedPeer.lxmf_user_icon.icon_name : ''"

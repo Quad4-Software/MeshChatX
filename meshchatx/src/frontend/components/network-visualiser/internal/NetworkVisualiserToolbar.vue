@@ -86,7 +86,7 @@
                 v-show="isShowingControls"
                 class="px-5 pb-5 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300"
             >
-                <div class="h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-zinc-800 to-transparent"></div>
+                <div class="h-px bg-linear-to-r from-transparent via-gray-200 dark:via-zinc-800 to-transparent"></div>
 
                 <div class="flex items-center justify-between">
                     <label
@@ -128,7 +128,7 @@
                             autocomplete="off"
                             maxlength="4"
                             :aria-label="$t('visualiser.max_hops_filter')"
-                            class="w-[3.25rem] shrink-0 rounded-lg border border-gray-200 bg-white px-1.5 py-1 text-center text-xs font-bold text-blue-600 tabular-nums shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/40 dark:border-zinc-600 dark:bg-zinc-800 dark:text-blue-400 dark:focus:border-blue-500"
+                            class="w-13 shrink-0 rounded-lg border border-gray-200 bg-white px-1.5 py-1 text-center text-xs font-bold text-blue-600 tabular-nums shadow-xs focus:border-blue-500 focus:outline-hidden focus:ring-1 focus:ring-blue-500/40 dark:border-zinc-600 dark:bg-zinc-800 dark:text-blue-400 dark:focus:border-blue-500"
                             :value="hopMaxInputShown"
                             :placeholder="$t('visualiser.all')"
                             @focus="onHopMaxInputFocus"
@@ -213,7 +213,7 @@
                     :value="searchQuery"
                     type="text"
                     :placeholder="`Search nodes (${nodeCount})...`"
-                    class="block w-full sm:w-64 pl-9 pr-10 py-2.5 sm:py-3 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl border border-gray-200/50 dark:border-zinc-800/50 rounded-2xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500/50 sm:focus:w-80 md:max-lg:focus:w-72 lg:focus:w-80 transition-all dark:text-zinc-100 shadow-sm"
+                    class="block w-full sm:w-64 pl-9 pr-10 py-2.5 sm:py-3 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl border border-gray-200/50 dark:border-zinc-800/50 rounded-2xl text-xs font-semibold focus:outline-hidden focus:ring-2 focus:ring-blue-500/50 sm:focus:w-80 md:max-lg:focus:w-72 lg:focus:w-80 transition-all dark:text-zinc-100 shadow-xs"
                     @input="$emit('update:searchQuery', $event.target.value)"
                 />
                 <button

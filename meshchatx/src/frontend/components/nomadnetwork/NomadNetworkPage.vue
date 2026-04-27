@@ -39,7 +39,7 @@
                     :style="{ background: GlobalState.config.banished_color + '33' }"
                 >
                     <span
-                        class="banished-text !opacity-100 !text-white !shadow-lg !bg-red-600 !px-4 !py-2 !rounded-xl !border-2 !tracking-widest"
+                        class="banished-text opacity-100! text-white! shadow-lg! bg-red-600! px-4! py-2! rounded-xl! border-2! tracking-widest!"
                         :style="{
                             'background-color': GlobalState.config.banished_color,
                             'border-color': GlobalState.config.banished_color,
@@ -81,7 +81,7 @@
                         >
                         <span
                             v-if="selectedNodePath"
-                            class="text-sm cursor-pointer whitespace-nowrap flex-shrink-0 hidden sm:inline"
+                            class="text-sm cursor-pointer whitespace-nowrap shrink-0 hidden sm:inline"
                             @click="onDestinationPathClick(selectedNodePath)"
                         >
                             - {{ selectedNodePath.hops }}
@@ -286,7 +286,7 @@
                 <!-- page content: capture-phase clicks so <a href> is handled before browser default navigation -->
                 <div
                     :class="[
-                        'flex-1 overflow-y-auto nodeContainer relative [contain:layout_paint]',
+                        'flex-1 overflow-y-auto nodeContainer relative contain-[layout_paint]',
                         nomadRenderedShellFullBleed
                             ? 'p-0 bg-transparent text-gray-900 dark:text-gray-100'
                             : 'p-3 bg-black text-white',
@@ -297,7 +297,7 @@
                     <div
                         v-if="isShowingArchivedVersion"
                         :class="[
-                            'mb-4 p-2 bg-yellow-900/40 border border-yellow-700/50 rounded flex items-center justify-between text-yellow-200',
+                            'mb-4 p-2 bg-yellow-900/40 border border-yellow-700/50 rounded-sm flex items-center justify-between text-yellow-200',
                             nomadRenderedShellFullBleed ? 'mx-3 mt-3' : '',
                         ]"
                     >
@@ -311,7 +311,7 @@
                             }}</span>
                         </div>
                         <button
-                            class="text-xs bg-yellow-700/50 hover:bg-yellow-700 px-2 py-1 rounded transition"
+                            class="text-xs bg-yellow-700/50 hover:bg-yellow-700 px-2 py-1 rounded-sm transition"
                             @click="reloadNodePage"
                         >
                             {{ $t("nomadnet.load_live") }}
@@ -344,7 +344,7 @@
                         <div class="my-auto flex-1">{{ nomadnetPageLoadingLine }}</div>
                         <button
                             type="button"
-                            class="my-auto text-white bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 rounded px-3 py-1 text-sm font-semibold cursor-pointer ml-3"
+                            class="my-auto text-white bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 rounded-sm px-3 py-1 text-sm font-semibold cursor-pointer ml-3"
                             @click="cancelPageDownload"
                         >
                             {{ $t("common.cancel") }}
@@ -360,7 +360,7 @@
                         <div v-if="hasArchivesForCurrentPage" class="space-y-2">
                             <div class="text-sm text-gray-300">{{ $t("nomadnet.archived_version_available") }}</div>
                             <button
-                                class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-blue-500 transition"
+                                class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 transition"
                                 @click="toggleArchiveDropdown"
                             >
                                 <MaterialDesignIcon icon-name="archive" class="size-4" />
@@ -413,7 +413,7 @@
                     </div>
                     <button
                         type="button"
-                        class="my-auto text-white bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 rounded px-3 py-1 text-sm font-semibold cursor-pointer"
+                        class="my-auto text-white bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 rounded-sm px-3 py-1 text-sm font-semibold cursor-pointer"
                         @click="cancelFileDownload"
                     >
                         {{ $t("common.cancel") }}
@@ -431,7 +431,7 @@
                 <div class="mx-auto mt-2">
                     <button
                         type="button"
-                        class="my-auto inline-flex items-center gap-x-1 rounded-md bg-gray-500 px-2 py-1 text-sm font-semibold text-white shadow-sm hover:bg-gray-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700 dark:focus-visible:outline-zinc-500"
+                        class="my-auto inline-flex items-center gap-x-1 rounded-md bg-gray-500 px-2 py-1 text-sm font-semibold text-white shadow-xs hover:bg-gray-400 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700 dark:focus-visible:outline-zinc-500"
                         @click.stop="openUrl"
                     >
                         {{ $t("nomadnet.open_nomadnet_url") }}
@@ -452,6 +452,7 @@ import NomadNetworkSidebar from "./NomadNetworkSidebar.vue";
 import Utils from "../../js/Utils";
 import DownloadUtils from "../../js/DownloadUtils";
 import ToastUtils from "../../js/ToastUtils";
+import { getDestinationPath, runDestinationPathFinder } from "../../js/reticulumPathfinding.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import IconButton from "../IconButton.vue";
 import DropDownMenu from "../DropDownMenu.vue";
@@ -620,14 +621,14 @@ export default {
         },
         nomadPageContentClasses() {
             if (!this.nodePagePath || this.isShowingNodePageSource) {
-                return ["h-full", "break-words", "whitespace-pre-wrap", "text-gray-100"];
+                return ["h-full", "wrap-break-word", "whitespace-pre-wrap", "text-gray-100"];
             }
             const [p] = this.nodePagePath.split("`");
             const pl = (p || "").toLowerCase();
             const isRich = pl.endsWith(".mu") || pl.endsWith(".md") || pl.endsWith(".html");
             const isHtml = pl.endsWith(".html");
             const isMd = pl.endsWith(".md");
-            const classes = ["h-full", "break-words"];
+            const classes = ["h-full", "wrap-break-word"];
             if (this.nomadRenderedShellFullBleed && !isHtml) {
                 classes.push("px-3", "py-3");
             }
@@ -1463,7 +1464,7 @@ export default {
             if (!hash || this.pathfinderInProgress) return;
             this.pathfinderInProgress = true;
             try {
-                await window.api.post(`/api/v1/destination/${hash}/request-path`);
+                await runDestinationPathFinder(window.api, hash, "quick");
                 ToastUtils.success(this.$t("nomadnet.path_finder_request_sent"));
                 await this.reloadNodePage();
             } catch (e) {
@@ -1478,10 +1479,10 @@ export default {
             if (!hash || this.pathfinderInProgress) return;
             this.pathfinderInProgress = true;
             try {
-                const response = await window.api.get(`/api/v1/destination/${hash}/path`, {
-                    params: { request: "1", timeout: 15 },
+                const { path } = await runDestinationPathFinder(window.api, hash, "force", {
+                    forceTimeout: 15,
                 });
-                if (response?.data?.path) {
+                if (path) {
                     ToastUtils.success(this.$t("nomadnet.path_finder_found"));
                     await this.reloadNodePage();
                 } else {
@@ -1499,12 +1500,9 @@ export default {
             if (!hash || this.pathfinderInProgress) return;
             this.pathfinderInProgress = true;
             try {
-                try {
-                    await window.api.post(`/api/v1/destination/${hash}/drop-path`);
-                } catch (e) {
-                    console.warn("drop-path failed (continuing)", e);
-                }
-                await window.api.post(`/api/v1/destination/${hash}/request-path`);
+                await runDestinationPathFinder(window.api, hash, "drop_then_request", {
+                    onDropPathError: (e) => console.warn("drop-path failed (continuing)", e),
+                });
                 ToastUtils.success(this.$t("nomadnet.path_finder_dropped_and_requested"));
                 await this.reloadNodePage();
             } catch (e) {
@@ -1908,14 +1906,11 @@ export default {
             return `${m}m ${rs}s`;
         },
         async getNodePath(destinationHash) {
-            // clear previous known path
             this.selectedNodePath = null;
 
             try {
-                // get path to destination
-                const response = await window.api.get(`/api/v1/destination/${destinationHash}/path`);
+                const response = await getDestinationPath(window.api, destinationHash, {});
 
-                // update ui
                 this.selectedNodePath = response.data.path;
             } catch (e) {
                 console.log(e);

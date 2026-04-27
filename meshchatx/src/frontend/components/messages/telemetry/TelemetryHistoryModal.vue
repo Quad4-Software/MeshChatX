@@ -4,7 +4,7 @@
     <Teleport to="body">
         <div
             v-if="modelValue"
-            class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            class="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
             @click.self="close"
         >
             <div
@@ -56,7 +56,7 @@
                             <input
                                 :checked="showTelemetryInChat"
                                 type="checkbox"
-                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 shrink-0"
+                                class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500 shrink-0"
                                 @change="onShowTelemetryChange"
                             />
                             <span
@@ -66,7 +66,7 @@
                         </label>
                         <button
                             type="button"
-                            class="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-sm shrink-0"
+                            class="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-xs shrink-0"
                             @click="close"
                         >
                             {{ $t("messages.telemetry_history_done") }}

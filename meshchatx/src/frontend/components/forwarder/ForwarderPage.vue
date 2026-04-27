@@ -29,7 +29,7 @@
                                 v-model="newRule.name"
                                 type="text"
                                 :placeholder="$t('forwarder.name_placeholder')"
-                                class="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                                class="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 transition-all outline-hidden"
                             />
                         </div>
                         <div class="space-y-1">
@@ -41,7 +41,7 @@
                                 v-model="newRule.forward_to_hash"
                                 type="text"
                                 :placeholder="$t('forwarder.destination_placeholder')"
-                                class="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                                class="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 transition-all outline-hidden"
                             />
                         </div>
                         <div class="space-y-1">
@@ -53,7 +53,7 @@
                                 v-model="newRule.source_filter_hash"
                                 type="text"
                                 :placeholder="$t('forwarder.source_filter_placeholder')"
-                                class="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                                class="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 transition-all outline-hidden"
                             />
                         </div>
                     </div>
@@ -87,7 +87,7 @@
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2 mb-1">
                                 <div
-                                    class="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"
+                                    class="px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wider"
                                     :class="
                                         rule.is_active
                                             ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'

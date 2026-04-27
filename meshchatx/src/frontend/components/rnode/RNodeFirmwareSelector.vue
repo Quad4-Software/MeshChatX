@@ -55,7 +55,7 @@
                 type="file"
                 accept=".zip"
                 data-testid="rnode-firmware-file"
-                class="block w-full text-sm text-gray-900 dark:text-zinc-100 border border-gray-200 dark:border-zinc-800 rounded-xl cursor-pointer bg-white dark:bg-zinc-900 focus:outline-none file:mr-4 file:py-2.5 file:px-4 file:border-0 file:text-sm file:font-bold file:bg-zinc-200 dark:file:bg-zinc-700 file:text-zinc-700 dark:file:text-zinc-200 hover:file:bg-zinc-300 dark:hover:file:bg-zinc-600"
+                class="block w-full text-sm text-gray-900 dark:text-zinc-100 border border-gray-200 dark:border-zinc-800 rounded-xl cursor-pointer bg-white dark:bg-zinc-900 focus:outline-hidden file:mr-4 file:py-2.5 file:px-4 file:border-0 file:text-sm file:font-bold file:bg-zinc-200 dark:file:bg-zinc-700 file:text-zinc-700 dark:file:text-zinc-200 hover:file:bg-zinc-300 dark:hover:file:bg-zinc-600"
                 @change="onFileChange"
             />
         </div>
@@ -121,6 +121,7 @@ export default {
 </script>
 
 <style scoped>
+@reference "../../style.css";
 .rnf-label {
     @apply text-xs font-semibold text-gray-500 dark:text-zinc-500 uppercase tracking-wider;
 }

@@ -34,7 +34,7 @@
                         {{ selectedNode.node_name }}
                     </h2>
                     <div
-                        class="text-[10px] font-bold px-1.5 py-0.5 bg-gray-200 dark:bg-zinc-700 text-gray-600 dark:text-gray-400 rounded"
+                        class="text-[10px] font-bold px-1.5 py-0.5 bg-gray-200 dark:bg-zinc-700 text-gray-600 dark:text-gray-400 rounded-sm"
                     >
                         {{ selectedNode.archives.length }}
                     </div>
@@ -46,7 +46,7 @@
                         <label class="flex items-center gap-2 cursor-pointer group">
                             <input
                                 type="checkbox"
-                                class="rounded border-gray-300 dark:border-zinc-700 text-blue-500 focus:ring-blue-500/20 bg-white dark:bg-zinc-800"
+                                class="rounded-sm border-gray-300 dark:border-zinc-700 text-blue-500 focus:ring-blue-500/20 bg-white dark:bg-zinc-800"
                                 :checked="isAllSelected"
                                 @change="toggleSelectAll"
                             />
@@ -95,7 +95,7 @@
                         <input
                             v-model="selectedArchives"
                             type="checkbox"
-                            class="rounded border-gray-300 dark:border-zinc-700 text-blue-500 focus:ring-blue-500/20 bg-white dark:bg-zinc-800"
+                            class="rounded-sm border-gray-300 dark:border-zinc-700 text-blue-500 focus:ring-blue-500/20 bg-white dark:bg-zinc-800"
                             :value="archive.id"
                         />
                     </div>
@@ -155,7 +155,7 @@
 
                 <div class="flex items-center gap-1">
                     <button
-                        class="hidden rounded p-2 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800 sm:block"
+                        class="hidden rounded-sm p-2 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800 sm:block"
                         :class="{
                             'text-blue-600 dark:text-blue-400': !isSidebar1Hidden,
                             'text-gray-400 dark:text-zinc-500': isSidebar1Hidden,
@@ -166,7 +166,7 @@
                         <MaterialDesignIcon icon-name="page-layout-sidebar-left" class="size-4" />
                     </button>
                     <button
-                        class="hidden rounded p-2 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800 sm:block"
+                        class="hidden rounded-sm p-2 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800 sm:block"
                         :class="{
                             'text-blue-600 dark:text-blue-400': !isSidebar2Hidden,
                             'text-gray-400 dark:text-zinc-500': isSidebar2Hidden,
@@ -178,7 +178,7 @@
                     </button>
                     <div class="mx-1 hidden h-6 w-px bg-gray-200 dark:bg-zinc-800 sm:block"></div>
                     <button
-                        class="flex items-center gap-2 rounded p-2 text-gray-700 transition-colors hover:bg-gray-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                        class="flex items-center gap-2 rounded-sm p-2 text-gray-700 transition-colors hover:bg-gray-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
                         :title="$t('archives.export_mu')"
                         @click="exportArchiveAsMu(viewingArchive)"
                     >
@@ -189,7 +189,7 @@
                     </button>
                     <div class="mx-1 hidden h-6 w-px bg-gray-200 dark:bg-zinc-800 xs:block"></div>
                     <button
-                        class="flex items-center gap-2 rounded p-2 text-blue-600 transition-colors hover:bg-gray-100 dark:text-blue-400 dark:hover:bg-zinc-800"
+                        class="flex items-center gap-2 rounded-sm p-2 text-blue-600 transition-colors hover:bg-gray-100 dark:text-blue-400 dark:hover:bg-zinc-800"
                         @click="openInNomadnet(viewingArchive)"
                     >
                         <MaterialDesignIcon icon-name="open-in-new" class="size-4" />
@@ -197,7 +197,7 @@
                     </button>
                     <div class="mx-1 hidden h-6 w-px bg-gray-200 dark:bg-zinc-800 xs:block"></div>
                     <button
-                        class="hidden rounded p-2 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800 sm:block"
+                        class="hidden rounded-sm p-2 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800 sm:block"
                         title="Close"
                         @click="viewingArchive = null"
                     >
@@ -284,13 +284,13 @@ export default {
         archiveViewerClasses() {
             const a = this.viewingArchive;
             if (!a?.page_path) {
-                return ["break-words", "whitespace-pre-wrap", "text-gray-100"];
+                return ["wrap-break-word", "whitespace-pre-wrap", "text-gray-100"];
             }
             const pl = (a.page_path || "").split("`")[0].toLowerCase();
             const isRich = pl.endsWith(".mu") || pl.endsWith(".md") || pl.endsWith(".html");
             const isHtml = pl.endsWith(".html");
             const isMd = pl.endsWith(".md");
-            const classes = ["break-words"];
+            const classes = ["wrap-break-word"];
             if (isRich) {
                 classes.push("nomad-page-rich");
             } else {

@@ -3,9 +3,9 @@
 <template>
     <div class="flex flex-col flex-1 h-full min-w-0 overflow-hidden bg-slate-50 dark:bg-zinc-950">
         <!-- header -->
-        <div class="bg-slate-50 dark:bg-zinc-950 border-b border-gray-200 dark:border-zinc-800 shadow-sm z-10">
+        <div class="bg-slate-50 dark:bg-zinc-950 border-b border-gray-200 dark:border-zinc-800 shadow-xs z-10">
             <div class="px-4 py-3 md:px-6 md:py-4 flex flex-wrap items-center justify-between gap-3 md:gap-4 min-w-0">
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-3 min-w-0">
                     <div class="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl shrink-0">
                         <MaterialDesignIcon
                             icon-name="map-marker-path"
@@ -22,7 +22,14 @@
                     </div>
                 </div>
 
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 shrink-0">
+                    <RouterLink
+                        to="/tools"
+                        class="inline-flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-300 hover:underline"
+                    >
+                        <MaterialDesignIcon icon-name="arrow-left" class="size-4" />
+                        {{ $t("tools.back_to_tools") }}
+                    </RouterLink>
                     <button
                         v-if="traceResult"
                         class="p-2 text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors shrink-0"
@@ -49,7 +56,7 @@
                                 v-model="destinationHash"
                                 type="text"
                                 placeholder="input destination hash"
-                                class="w-full pl-4 pr-12 py-3 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm md:text-base font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all dark:text-white"
+                                class="w-full pl-4 pr-12 py-3 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-sm md:text-base font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-hidden transition-all dark:text-white"
                                 @keyup.enter="runTrace"
                             />
                             <div
@@ -60,7 +67,7 @@
                         </div>
                         <button
                             type="button"
-                            class="w-full sm:w-auto sm:min-w-[3rem] h-12 sm:h-14 px-4 sm:px-0 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg flex items-center justify-center gap-2 transition active:scale-95 disabled:opacity-50 shrink-0"
+                            class="w-full sm:w-auto sm:min-w-12 h-12 sm:h-14 px-4 sm:px-0 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg flex items-center justify-center gap-2 transition active:scale-95 disabled:opacity-50 shrink-0"
                             :disabled="!isValidHash || isLoading"
                             title="Trace Path"
                             @click="runTrace"
@@ -211,7 +218,7 @@
                                             v-if="
                                                 traceResult.path[idx + 1].type !== 'unknown' && node.type !== 'unknown'
                                             "
-                                            class="absolute right-0 -top-1 w-2 h-2 rounded-full bg-indigo-500 shadow-sm shadow-indigo-500/50"
+                                            class="absolute right-0 -top-1 w-2 h-2 rounded-full bg-indigo-500 shadow-xs shadow-indigo-500/50"
                                         ></div>
                                     </div>
                                 </template>
@@ -259,7 +266,7 @@
                                             </div>
                                             <div
                                                 v-if="node.interface"
-                                                class="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded text-[9px] font-bold uppercase tracking-wider"
+                                                class="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-sm text-[9px] font-bold uppercase tracking-wider"
                                             >
                                                 <MaterialDesignIcon icon-name="router-wireless" class="size-3" />
                                                 {{ node.interface }}

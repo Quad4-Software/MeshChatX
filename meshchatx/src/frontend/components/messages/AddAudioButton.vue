@@ -5,7 +5,7 @@
         <button
             v-if="isRecordingAudioAttachment"
             type="button"
-            class="my-auto inline-flex items-center gap-x-1 rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 shadow-sm hover:border-red-400 transition dark:border-red-500/40 dark:bg-red-900/30 dark:text-red-100"
+            class="my-auto inline-flex items-center gap-x-1 rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 shadow-xs hover:border-red-400 transition dark:border-red-500/40 dark:bg-red-900/30 dark:text-red-100"
             @click="stopRecordingAudioAttachment"
         >
             <MaterialDesignIcon icon-name="microphone" class="w-4 h-4" />
@@ -35,7 +35,7 @@
                 <div
                     v-if="isShowingMenu"
                     v-click-outside="hideMenu"
-                    class="absolute bottom-0 -ml-11 sm:right-0 sm:ml-0 z-10 mb-10 rounded-xl bg-white dark:bg-zinc-900 shadow-lg ring-1 ring-gray-200 dark:ring-zinc-800 focus:outline-none"
+                    class="absolute bottom-0 -ml-11 sm:right-0 sm:ml-0 z-10 mb-10 rounded-xl bg-white dark:bg-zinc-900 shadow-lg ring-1 ring-gray-200 dark:ring-zinc-800 focus:outline-hidden"
                 >
                     <div class="py-1">
                         <button

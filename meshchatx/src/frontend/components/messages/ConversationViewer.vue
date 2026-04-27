@@ -13,7 +13,7 @@
             :style="{ background: (GlobalState?.config?.banished_color || '#dc2626') + '33' }"
         >
             <span
-                class="banished-text !opacity-100 !text-white !shadow-lg !bg-red-600 !px-4 !py-2 !rounded-xl !border-2 !tracking-widest"
+                class="banished-text opacity-100! text-white! shadow-lg! bg-red-600! px-4! py-2! rounded-xl! border-2! tracking-widest!"
                 :style="{
                     'background-color': GlobalState?.config?.banished_color || '#dc2626',
                     'border-color': GlobalState?.config?.banished_color || '#dc2626',
@@ -57,7 +57,7 @@
         <!-- Share Contact Modal -->
         <div
             v-if="isShareContactModalOpen"
-            class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            class="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
             @click.self="isShareContactModalOpen = false"
         >
             <div class="w-full max-w-md bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden">
@@ -80,7 +80,7 @@
                                 v-model="contactsSearch"
                                 type="text"
                                 :placeholder="$t('messages.share_contact_search_placeholder')"
-                                class="block w-full rounded-lg border-0 py-2 pl-10 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
+                                class="block w-full rounded-lg border-0 py-2 pl-10 text-gray-900 dark:text-white shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
                             />
                             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                                 <MaterialDesignIcon icon-name="magnify" class="size-5 text-gray-400" />
@@ -133,7 +133,7 @@
         >
             <div
                 v-show="composerImageDropActive"
-                class="pointer-events-none absolute inset-0 z-[5] border-2 border-dashed border-blue-400/70 bg-blue-500/[0.06] dark:bg-blue-400/[0.08]"
+                class="pointer-events-none absolute inset-0 z-5 border-2 border-dashed border-blue-400/70 bg-blue-500/6 dark:bg-blue-400/8"
                 aria-hidden="true"
             />
 
@@ -148,7 +148,7 @@
                     viewBox="0 0 24 24"
                     stroke-width="1.5"
                     stroke="currentColor"
-                    class="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0"
+                    class="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0"
                 >
                     <path
                         stroke-linecap="round"
@@ -191,7 +191,10 @@
                 >
                     <template v-if="!useVirtualMessageList">
                         <div class="flex flex-col flex-col-reverse min-w-0">
-                            <template v-for="entry in selectedPeerChatDisplayGroups" :key="entry.key">
+                            <template
+                                v-for="entry in selectedPeerChatDisplayGroupsNewestFirstAugmented"
+                                :key="entry.key"
+                            >
                                 <ConversationMessageEntry :entry="entry" :cv="conversationViewerSelf" />
                             </template>
                             <!-- load previous -->
@@ -199,7 +202,7 @@
                                 v-show="!isLoadingPrevious && hasMorePrevious"
                                 id="load-previous"
                                 type="button"
-                                class="flex items-center gap-2 mx-auto mt-4 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 px-4 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-full shadow-sm text-sm font-medium text-gray-700 dark:text-zinc-300 transition-colors"
+                                class="flex items-center gap-2 mx-auto mt-4 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 px-4 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-full shadow-xs text-sm font-medium text-gray-700 dark:text-zinc-300 transition-colors"
                                 @click="loadPrevious"
                             >
                                 <svg
@@ -225,7 +228,7 @@
                             v-show="!isLoadingPrevious && hasMorePrevious"
                             id="load-previous"
                             type="button"
-                            class="absolute top-2 left-1/2 z-20 -translate-x-1/2 flex items-center gap-2 bg-white/95 dark:bg-zinc-950/95 backdrop-blur border border-gray-200 dark:border-zinc-800 px-4 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-full shadow-sm text-sm font-medium text-gray-700 dark:text-zinc-300 transition-colors"
+                            class="absolute top-2 left-1/2 z-20 -translate-x-1/2 flex items-center gap-2 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-sm border border-gray-200 dark:border-zinc-800 px-4 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-full shadow-xs text-sm font-medium text-gray-700 dark:text-zinc-300 transition-colors"
                             @click="loadPrevious"
                         >
                             <svg
@@ -246,7 +249,7 @@
                         </button>
                         <ConversationMessageListVirtual
                             ref="messageListVirtual"
-                            :groups="selectedPeerChatDisplayGroupsOldestFirst"
+                            :groups="selectedPeerChatDisplayGroupsOldestFirstAugmented"
                             :get-scroll-element="getMessagesScrollElement"
                             :cv="conversationViewerSelf"
                         />
@@ -261,7 +264,7 @@
                 >
                     <button
                         type="button"
-                        class="flex items-center justify-center size-8 rounded-full bg-white/90 dark:bg-zinc-800/90 backdrop-blur border border-gray-200 dark:border-zinc-700 shadow text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700 hover:text-gray-700 dark:hover:text-zinc-200 transition-colors"
+                        class="flex items-center justify-center size-8 rounded-full bg-white/90 dark:bg-zinc-800/90 backdrop-blur-sm border border-gray-200 dark:border-zinc-700 shadow-sm text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700 hover:text-gray-700 dark:hover:text-zinc-200 transition-colors"
                         title="Scroll to bottom"
                         @click="scrollMessagesToBottom"
                     >
@@ -287,7 +290,7 @@
                             }}</span>
                             <button
                                 type="button"
-                                class="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-400 dark:text-zinc-500"
+                                class="p-0.5 rounded-sm hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-400 dark:text-zinc-500"
                                 @click="closeReactionPicker"
                             >
                                 <MaterialDesignIcon icon-name="close" class="size-4" />
@@ -319,7 +322,7 @@
                             viewBox="0 0 24 24"
                             stroke-width="2"
                             stroke="currentColor"
-                            class="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0"
+                            class="w-5 h-5 text-yellow-600 dark:text-yellow-400 shrink-0"
                         >
                             <path
                                 stroke-linecap="round"
@@ -338,12 +341,12 @@
                             <!-- image attachments (mosaic, separate from text field) -->
                             <div
                                 v-if="newMessageImages.length > 0"
-                                class="w-full max-w-[min(280px,100%)] rounded-xl overflow-hidden ring-1 ring-black/10 dark:ring-white/10 shadow-sm bg-black/5 dark:bg-white/5"
+                                class="w-full max-w-[min(280px,100%)] rounded-xl overflow-hidden ring-1 ring-black/10 dark:ring-white/10 shadow-xs bg-black/5 dark:bg-white/5"
                             >
                                 <div v-if="newMessageImages.length === 1" class="relative group">
                                     <button
                                         type="button"
-                                        class="block w-full overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+                                        class="block w-full overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500/60"
                                         @click.stop="openImage(newMessageImageUrls[0], newMessageImageUrls)"
                                     >
                                         <img
@@ -364,7 +367,7 @@
                                     <div v-for="(image, index) in newMessageImages" :key="index" class="relative group">
                                         <button
                                             type="button"
-                                            class="relative block aspect-square min-h-[88px] w-full overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+                                            class="relative block aspect-square min-h-[88px] w-full overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500/60"
                                             @click.stop="openImage(newMessageImageUrls[index], newMessageImageUrls)"
                                         >
                                             <img
@@ -386,7 +389,7 @@
                                     <div v-for="index in [0, 1]" :key="index" class="relative group">
                                         <button
                                             type="button"
-                                            class="relative block aspect-square min-h-[88px] w-full overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+                                            class="relative block aspect-square min-h-[88px] w-full overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500/60"
                                             @click.stop="openImage(newMessageImageUrls[index], newMessageImageUrls)"
                                         >
                                             <img
@@ -406,7 +409,7 @@
                                     <div class="relative group col-span-2">
                                         <button
                                             type="button"
-                                            class="relative block aspect-[2/1] max-h-44 w-full min-h-[72px] overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+                                            class="relative block aspect-2/1 max-h-44 w-full min-h-[72px] overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500/60"
                                             @click.stop="openImage(newMessageImageUrls[2], newMessageImageUrls)"
                                         >
                                             <img
@@ -432,7 +435,7 @@
                                     >
                                         <button
                                             type="button"
-                                            class="relative block aspect-square min-h-[88px] w-full overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/60"
+                                            class="relative block aspect-square min-h-[88px] w-full overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500/60"
                                             @click.stop="openImage(newMessageImageUrls[slot - 1], newMessageImageUrls)"
                                         >
                                             <img
@@ -513,7 +516,7 @@
                                     ref="message-input"
                                     v-model="newMessageText"
                                     :readonly="isTranslatingMessage"
-                                    class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 block w-full min-w-0 pl-3 sm:pl-4 pr-[76px] py-2.5 resize-none shadow-sm transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500 min-h-[44px] max-h-[200px] overflow-y-auto leading-snug"
+                                    class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 block w-full min-w-0 pl-3 sm:pl-4 pr-[76px] py-2.5 resize-none shadow-xs transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500 min-h-[44px] max-h-[200px] overflow-y-auto leading-snug"
                                     rows="1"
                                     spellcheck="true"
                                     :placeholder="$t('messages.send_placeholder')"
@@ -812,6 +815,62 @@
                             </button>
                         </div>
 
+                        <!-- inline translate: target language (compose) -->
+                        <div
+                            v-show="translateTargetBarOpen && translateTargetModalContext?.type === 'compose'"
+                            class="mt-2 flex flex-wrap items-stretch sm:items-center gap-2 rounded-xl border border-indigo-200/60 dark:border-indigo-500/30 bg-indigo-50/80 dark:bg-indigo-950/25 px-2.5 py-2"
+                        >
+                            <MaterialDesignIcon
+                                icon-name="translate"
+                                class="size-4 text-indigo-600 dark:text-indigo-400 shrink-0 self-center"
+                            />
+                            <label
+                                class="text-xs font-semibold text-indigo-900/90 dark:text-indigo-200/90 shrink-0 self-center"
+                                >{{ $t("messages.translate_select_target") }}</label
+                            >
+                            <select
+                                v-model="translateTargetModalValue"
+                                class="flex-1 min-w-0 min-h-[2.25rem] sm:min-h-0 text-sm rounded-lg border border-gray-200/90 dark:border-zinc-600 bg-white dark:bg-zinc-900 px-2.5 py-1.5 text-gray-900 dark:text-zinc-100"
+                                :aria-label="$t('messages.translate_select_target')"
+                            >
+                                <option
+                                    v-for="opt in translateTargetSelectOptions"
+                                    :key="`c-${opt.value}`"
+                                    :value="opt.value"
+                                >
+                                    {{ opt.label }}
+                                </option>
+                            </select>
+                            <button
+                                type="button"
+                                class="primary-chip text-xs px-3.5 py-1.5 shrink-0"
+                                :disabled="!translateTargetSelectOptions.length || isTranslateTargetModalWorking"
+                                @click="confirmTranslateTargetModal"
+                            >
+                                <span
+                                    v-if="isTranslateTargetModalWorking"
+                                    class="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin align-[-0.1em] mr-1.5"
+                                ></span>
+                                {{ $t("translator.translate") }}
+                            </button>
+                            <button
+                                type="button"
+                                class="p-1.5 shrink-0 rounded-lg text-zinc-500 hover:bg-black/5 dark:hover:bg-white/10 self-center"
+                                :title="$t('common.close')"
+                                :disabled="isTranslateTargetModalWorking"
+                                @click="closeTranslateTargetModal"
+                            >
+                                <MaterialDesignIcon icon-name="close" class="size-4" />
+                            </button>
+                            <p
+                                v-if="!translateTargetSelectOptions.length"
+                                class="w-full text-xs text-amber-700/90 dark:text-amber-300/90 -mt-0.5"
+                            >
+                                No translation languages available yet. Open the Translator tool or enable a backend,
+                                then return here.
+                            </p>
+                        </div>
+
                         <!-- action button -->
                         <div class="flex flex-wrap gap-2 items-center mt-2">
                             <button type="button" class="attachment-action-button" @click="addFilesToMessage">
@@ -868,8 +927,12 @@
                                 v-if="hasTranslator && newMessageText"
                                 type="button"
                                 class="attachment-action-button"
+                                :class="{
+                                    'ring-1 ring-indigo-400/60 dark:ring-indigo-500/40':
+                                        translateTargetBarOpen && translateTargetModalContext?.type === 'compose',
+                                }"
                                 :title="$t('translator.translate')"
-                                @click="translateMessage"
+                                @click="toggleComposeTranslateTargetBar"
                             >
                                 <MaterialDesignIcon icon-name="translate" class="w-4 h-4" />
                                 <span class="hidden sm:inline">{{ $t("translator.translate") }}</span>
@@ -902,7 +965,7 @@
                 :show="messageContextMenu.show"
                 :x="messageContextMenu.x"
                 :y="messageContextMenu.y"
-                panel-class="z-[200]"
+                panel-class="z-200"
             >
                 <ContextMenuItem @click="replyToMessage(messageContextMenu.chatItem)">
                     <MaterialDesignIcon icon-name="reply" class="size-4 text-indigo-500" />
@@ -914,6 +977,13 @@
                 >
                     <MaterialDesignIcon icon-name="content-copy" class="size-4 text-gray-500 dark:text-zinc-400" />
                     {{ $t("messages.copy_message") }}
+                </ContextMenuItem>
+                <ContextMenuItem
+                    v-if="hasTranslator && canTranslateMessageBubbleFromMenu(messageContextMenu.chatItem)"
+                    @click="openBubbleTranslateFromContextMenu"
+                >
+                    <MaterialDesignIcon icon-name="translate" class="size-4 text-indigo-500" />
+                    {{ $t("messages.translate_message") }}
                 </ContextMenuItem>
                 <div
                     v-if="messageContextMenu.chatItem && !messageContextMenu.chatItem.lxmf_message?.is_reaction"
@@ -1105,7 +1175,7 @@
                         class="group cursor-pointer p-4 bg-white dark:bg-zinc-900 border border-gray-100 dark:border-zinc-800 rounded-3xl hover:border-blue-500/50 hover:shadow-xl transition-all flex items-center gap-4"
                         @click="$emit('update:selectedPeer', chat)"
                     >
-                        <div class="flex-shrink-0">
+                        <div class="shrink-0">
                             <LxmfUserIcon
                                 :custom-image="chat.contact_image"
                                 :icon-name="
@@ -1158,7 +1228,7 @@
                         v-model="composeAddress"
                         :readonly="isTranslatingMessage"
                         type="text"
-                        class="w-full bg-white dark:bg-zinc-900 border-2 border-gray-100 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-base rounded-3xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 pl-12 pr-4 py-4 shadow-sm transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-600 font-medium"
+                        class="w-full bg-white dark:bg-zinc-900 border-2 border-gray-100 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-base rounded-3xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 pl-12 pr-4 py-4 shadow-xs transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-600 font-medium"
                         placeholder="Enter LXMF address to start a conversation..."
                         @keydown.enter.exact.prevent="onComposeEnterPressed"
                         @keydown.up.prevent="handleComposeInputUp"
@@ -1231,7 +1301,7 @@
             v-if="imageModalUrl"
             ref="imageModalOverlay"
             tabindex="0"
-            class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 dark:bg-black/90 backdrop-blur-sm p-4 outline-none"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 dark:bg-black/90 backdrop-blur-xs p-4 outline-hidden"
             @click="closeImageModal"
             @keydown.left.prevent="imageModalNavigate(-1)"
             @keydown.right.prevent="imageModalNavigate(1)"
@@ -1291,6 +1361,81 @@
         "
     />
 
+    <Teleport to="body">
+        <Transition
+            enter-active-class="transition duration-200 ease-out"
+            enter-from-class="opacity-0 translate-y-2"
+            enter-to-class="opacity-100 translate-y-0"
+            leave-active-class="transition duration-150 ease-in"
+            leave-from-class="opacity-100 translate-y-0"
+            leave-to-class="opacity-0 translate-y-2"
+        >
+            <div
+                v-show="translateTargetBarOpen && translateTargetModalContext?.type === 'bubble'"
+                v-click-outside="{
+                    handler: onTranslateTargetBarClickOutside,
+                    capture: true,
+                }"
+                class="translate-bubble-bar fixed z-200 w-[min(calc(100%-1.25rem),24rem)] left-1/2 -translate-x-1/2 bottom-4 sm:bottom-5 pb-[max(0.25rem,env(safe-area-inset-bottom))] pointer-events-auto"
+            >
+                <div
+                    class="flex flex-col gap-2 rounded-2xl border border-indigo-200/60 dark:border-indigo-500/30 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md shadow-xl shadow-indigo-900/5 dark:shadow-black/30 px-3 py-2.5"
+                >
+                    <div class="flex items-center gap-1.5 text-indigo-700/90 dark:text-indigo-300/90">
+                        <MaterialDesignIcon icon-name="translate" class="size-4 shrink-0" />
+                        <span class="text-sm font-semibold leading-none">{{
+                            $t("messages.translate_select_target")
+                        }}</span>
+                    </div>
+                    <div class="flex flex-wrap sm:flex-nowrap items-stretch gap-2">
+                        <select
+                            v-model="translateTargetModalValue"
+                            class="flex-1 min-w-0 min-h-[2.5rem] text-sm rounded-lg border border-gray-200/90 dark:border-zinc-600 bg-white dark:bg-zinc-900/90 px-2.5 py-1.5 text-gray-900 dark:text-zinc-100"
+                            :aria-label="$t('messages.translate_select_target')"
+                        >
+                            <option
+                                v-for="opt in translateTargetSelectOptions"
+                                :key="`b-${opt.value}`"
+                                :value="opt.value"
+                            >
+                                {{ opt.label }}
+                            </option>
+                        </select>
+                        <div class="flex items-center gap-1.5 w-full sm:w-auto justify-end sm:justify-start">
+                            <button
+                                type="button"
+                                class="primary-chip text-xs px-3.5 py-2"
+                                :disabled="!translateTargetSelectOptions.length || isTranslateTargetModalWorking"
+                                @click="confirmTranslateTargetModal"
+                            >
+                                <span
+                                    v-if="isTranslateTargetModalWorking"
+                                    class="inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin align-[-0.1em] mr-1.5"
+                                ></span>
+                                {{ $t("translator.translate") }}
+                            </button>
+                            <button
+                                type="button"
+                                class="p-2 rounded-lg text-zinc-500 hover:bg-black/5 dark:hover:bg-white/10"
+                                :title="$t('common.close')"
+                                :disabled="isTranslateTargetModalWorking"
+                                @click="closeTranslateTargetModal"
+                            >
+                                <MaterialDesignIcon icon-name="close" class="size-4" />
+                            </button>
+                        </div>
+                    </div>
+                    <p
+                        v-if="!translateTargetSelectOptions.length"
+                        class="text-xs text-amber-700/90 dark:text-amber-300/90 -mt-0.5"
+                    >
+                        No translation languages available yet. Check the translator tool in Tools.
+                    </p>
+                </div>
+            </div>
+        </Transition>
+    </Teleport>
+
     <!-- Raw Message Modal -->
     <Transition
         enter-active-class="transition ease-out duration-200"
@@ -1302,7 +1447,7 @@
     >
         <div
             v-if="isRawMessageModalOpen"
-            class="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            class="fixed inset-0 z-150 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
             @click.self="isRawMessageModalOpen = false"
         >
             <div
@@ -1320,7 +1465,7 @@
                         <MaterialDesignIcon icon-name="close" class="size-6" />
                     </button>
                 </div>
-                <div class="p-0 overflow-y-auto bg-gray-50 dark:bg-zinc-950 flex-grow">
+                <div class="p-0 overflow-y-auto bg-gray-50 dark:bg-zinc-950 grow">
                     <div class="p-6 space-y-6">
                         <!-- header / status info -->
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -1363,7 +1508,7 @@
                                 >Message Hash</label
                             >
                             <div
-                                class="text-sm font-mono break-all text-gray-900 dark:text-zinc-200 bg-white dark:bg-zinc-900 p-2 rounded border border-gray-100 dark:border-zinc-800"
+                                class="text-sm font-mono break-all text-gray-900 dark:text-zinc-200 bg-white dark:bg-zinc-900 p-2 rounded-sm border border-gray-100 dark:border-zinc-800"
                             >
                                 {{ rawMessageData.hash }}
                             </div>
@@ -1386,6 +1531,73 @@
                                 >
                                 <div class="text-xs font-mono break-all text-gray-900 dark:text-zinc-200">
                                     {{ rawMessageData.destination_hash }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div v-if="rawMessageHasStoredPath" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div class="space-y-1">
+                                <label
+                                    class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                                    >{{ $t("messages.raw_path_interface_at_send") }}</label
+                                >
+                                <div class="text-sm text-gray-900 dark:text-zinc-200 wrap-break-word">
+                                    {{
+                                        rawMessageData.path_interface_at_send != null &&
+                                        rawMessageData.path_interface_at_send !== ""
+                                            ? rawMessageData.path_interface_at_send
+                                            : $t("messages.raw_path_value_unknown")
+                                    }}
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <label
+                                    class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                                    >{{ $t("messages.raw_path_hops_at_send") }}</label
+                                >
+                                <div class="text-sm text-gray-900 dark:text-zinc-200">
+                                    {{
+                                        rawMessageData.path_hops_at_send != null
+                                            ? rawMessageData.path_hops_at_send
+                                            : $t("messages.raw_path_value_unknown")
+                                    }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div
+                            v-if="rawMessageData.path_finding_measure || rawMessageData.path_row_hash_hex"
+                            class="grid grid-cols-1 sm:grid-cols-2 gap-4"
+                        >
+                            <div class="space-y-1">
+                                <label
+                                    class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                                    >{{ $t("messages.raw_path_finding_measure") }}</label
+                                >
+                                <div class="text-sm font-mono text-gray-900 dark:text-zinc-200 wrap-break-word">
+                                    {{ rawMessageData.path_finding_measure || $t("messages.raw_path_value_unknown") }}
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <label
+                                    class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500"
+                                    >{{ $t("messages.raw_path_row_hash_rnpath") }}</label
+                                >
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <div class="text-xs font-mono break-all text-gray-900 dark:text-zinc-200">
+                                        {{ rawMessageData.path_row_hash_hex || $t("messages.raw_path_value_unknown") }}
+                                    </div>
+                                    <button
+                                        v-if="rawMessageData.path_row_hash_hex"
+                                        type="button"
+                                        class="text-xs text-blue-600 dark:text-blue-400 hover:underline shrink-0"
+                                        @click="copyHash(rawMessageData.path_row_hash_hex)"
+                                    >
+                                        {{ $t("messages.copy_hash") }}
+                                    </button>
+                                </div>
+                                <div class="text-[10px] text-gray-500 dark:text-zinc-500">
+                                    {{ $t("messages.raw_path_row_hash_rnpath_hint") }}
                                 </div>
                             </div>
                         </div>
@@ -1435,9 +1647,30 @@
                                 >Content / App Data</label
                             >
                             <div
-                                class="text-xs font-mono bg-white dark:bg-zinc-900 p-3 rounded border border-gray-100 dark:border-zinc-800 whitespace-pre-wrap break-all text-gray-800 dark:text-zinc-300"
+                                v-if="!isRawMessageBodyOversized"
+                                class="text-xs font-mono bg-white dark:bg-zinc-900 p-3 rounded-sm border border-gray-100 dark:border-zinc-800 whitespace-pre-wrap break-all text-gray-800 dark:text-zinc-300"
                             >
                                 {{ rawMessageData.content }}
+                            </div>
+                            <div
+                                v-else
+                                class="rounded-lg border border-amber-200/90 dark:border-amber-800/50 bg-amber-50/90 dark:bg-amber-950/25 p-3 space-y-2"
+                            >
+                                <p class="text-xs text-amber-950 dark:text-amber-100/90 leading-relaxed">
+                                    {{
+                                        $t("messages.oversized_body_notice", {
+                                            count: rawMessageBodyCharCount,
+                                        })
+                                    }}
+                                </p>
+                                <button
+                                    type="button"
+                                    class="inline-flex items-center gap-2 rounded-lg bg-amber-700 hover:bg-amber-800 dark:bg-amber-700 dark:hover:bg-amber-600 px-3 py-2 text-xs font-semibold text-white transition-colors"
+                                    @click="copyRawMessageModalContent"
+                                >
+                                    <MaterialDesignIcon icon-name="content-copy" class="size-4 shrink-0" />
+                                    {{ $t("messages.oversized_body_copy") }}
+                                </button>
                             </div>
                         </div>
 
@@ -1447,7 +1680,7 @@
                                 >Raw LXMF URI</label
                             >
                             <div
-                                class="text-[10px] font-mono bg-white dark:bg-zinc-900 p-2 rounded border border-gray-100 dark:border-zinc-800 break-all text-gray-600 dark:text-zinc-400"
+                                class="text-[10px] font-mono bg-white dark:bg-zinc-900 p-2 rounded-sm border border-gray-100 dark:border-zinc-800 break-all text-gray-600 dark:text-zinc-400"
                             >
                                 {{ rawMessageData.raw_uri }}
                             </div>
@@ -1466,7 +1699,7 @@
                             </summary>
                             <div class="mt-2 p-4 bg-black/5 dark:bg-black/20 rounded-lg overflow-x-auto">
                                 <pre class="text-[10px] font-mono text-gray-600 dark:text-zinc-400">{{
-                                    JSON.stringify(rawMessageData, null, 2)
+                                    rawMessageJsonPreviewPretty
                                 }}</pre>
                             </div>
                         </details>
@@ -1488,6 +1721,9 @@
 
 <script>
 import Utils from "../../js/Utils";
+import { copyTextToClipboard, readTextFromClipboard } from "../../js/clipboardUtils.js";
+import { MESSAGE_BODY_MAX_DISPLAY_CHARS, isStringTooLargeForInlineDisplay } from "../../js/messageDisplayLimits.js";
+import { buildTimestampGroupedOldestFirst } from "../../js/messageTimestampGrouping.js";
 import DownloadUtils from "../../js/DownloadUtils";
 import { clampFloatingToViewport } from "../../js/clampFloatingToViewport.js";
 import { isNearBottom, scrollContainerToBottom, shouldLoadPreviousMessages } from "./conversationScroll.js";
@@ -1503,6 +1739,7 @@ import ConversationMessageEntry from "./ConversationMessageEntry.vue";
 import ConversationMessageListVirtual from "./ConversationMessageListVirtual.vue";
 import { displayGroupsOldestFirst, MIN_VIRTUAL_DISPLAY_GROUPS } from "./messageListVirtual.js";
 import DialogUtils from "../../js/DialogUtils";
+import { getDestinationPath, postRequestPath } from "../../js/reticulumPathfinding.js";
 import MicrophoneRecorder from "../../js/MicrophoneRecorder";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import AddAudioButton from "./AddAudioButton.vue";
@@ -1643,6 +1880,12 @@ export default {
             rawMessageData: null,
             hasTranslator: false,
             translatorLanguages: [],
+            translateTargetBarOpen: false,
+            translateTargetModalValue: "en",
+            translateTargetModalContext: null,
+            isTranslateTargetModalWorking: false,
+            bubbleTranslateBarIgnoreOutsideUntil: 0,
+            messageBubbleTranslation: {},
             propagationNodeStatus: null,
             propagationStatusInterval: null,
 
@@ -1717,6 +1960,37 @@ export default {
                 transform: "translateX(-50%)",
             };
         },
+        isRawMessageBodyOversized() {
+            return isStringTooLargeForInlineDisplay(this.rawMessageData?.content);
+        },
+        rawMessageBodyCharCount() {
+            const c = this.rawMessageData?.content;
+            return typeof c === "string" ? c.length : 0;
+        },
+        rawMessageJsonPreviewPretty() {
+            if (!this.rawMessageData) {
+                return "";
+            }
+            const d = { ...this.rawMessageData };
+            const c = d.content;
+            if (typeof c === "string" && c.length > MESSAGE_BODY_MAX_DISPLAY_CHARS) {
+                d.content = `[Omitted ${c.length} characters — use Copy full text above]`;
+            }
+            try {
+                return JSON.stringify(d, null, 2);
+            } catch {
+                return "";
+            }
+        },
+        rawMessageHasStoredPath() {
+            const d = this.rawMessageData;
+            if (!d) {
+                return false;
+            }
+            const hops = d.path_hops_at_send;
+            const iface = d.path_interface_at_send;
+            return hops != null || (iface != null && iface !== "");
+        },
         usesThemeOutboundBubbleColor() {
             const c = GlobalState?.config?.message_outbound_bubble_color;
             if (c == null || String(c).trim() === "") {
@@ -1726,6 +2000,7 @@ export default {
         },
         bubbleStyles() {
             void GlobalState.detailedOutboundSendStatus;
+            void GlobalState.messageTimestampGroupingEnabled;
             void this.sendStatusUiMs;
             void this.usesThemeOutboundBubbleColor;
             void GlobalState.config?.theme;
@@ -1880,12 +2155,13 @@ export default {
         selectedPeerChatItems() {
             // get all chat items related to the selected peer
             if (this.selectedPeer) {
+                const peer = (this.selectedPeer.destination_hash || "").toLowerCase();
                 return this.chatItems.filter((chatItem) => {
                     if (chatItem.type === "lxmf_message") {
-                        const isFromSelectedPeer =
-                            chatItem.lxmf_message.source_hash === this.selectedPeer.destination_hash;
-                        const isToSelectedPeer =
-                            chatItem.lxmf_message.destination_hash === this.selectedPeer.destination_hash;
+                        const src = (chatItem.lxmf_message.source_hash || "").toLowerCase();
+                        const dst = (chatItem.lxmf_message.destination_hash || "").toLowerCase();
+                        const isFromSelectedPeer = src === peer;
+                        const isToSelectedPeer = dst === peer;
 
                         if (!(isFromSelectedPeer || isToSelectedPeer)) return false;
 
@@ -1914,13 +2190,14 @@ export default {
         },
         selectedPeerTelemetryItems() {
             if (!this.selectedPeer) return [];
+            const peer = (this.selectedPeer.destination_hash || "").toLowerCase();
             return this.chatItems
                 .filter((chatItem) => {
                     if (chatItem.type === "lxmf_message") {
-                        const isFromSelectedPeer =
-                            chatItem.lxmf_message.source_hash === this.selectedPeer.destination_hash;
-                        const isToSelectedPeer =
-                            chatItem.lxmf_message.destination_hash === this.selectedPeer.destination_hash;
+                        const src = (chatItem.lxmf_message.source_hash || "").toLowerCase();
+                        const dst = (chatItem.lxmf_message.destination_hash || "").toLowerCase();
+                        const isFromSelectedPeer = src === peer;
+                        const isToSelectedPeer = dst === peer;
 
                         if (!(isFromSelectedPeer || isToSelectedPeer)) return false;
 
@@ -1969,6 +2246,21 @@ export default {
         selectedPeerChatDisplayGroupsOldestFirst() {
             return displayGroupsOldestFirst(this.selectedPeerChatDisplayGroups);
         },
+        selectedPeerChatDisplayGroupsOldestFirstAugmented() {
+            void GlobalState.messageTimestampGroupingEnabled;
+            const base = this.selectedPeerChatDisplayGroupsOldestFirst;
+            if (!GlobalState.messageTimestampGroupingEnabled) {
+                return buildTimestampGroupedOldestFirst(base, { groupingEnabled: false });
+            }
+            return buildTimestampGroupedOldestFirst(base);
+        },
+        selectedPeerChatDisplayGroupsNewestFirstAugmented() {
+            const a = this.selectedPeerChatDisplayGroupsOldestFirstAugmented;
+            if (!a?.length) {
+                return [];
+            }
+            return a.slice().reverse();
+        },
         conversationViewerSelf() {
             return this;
         },
@@ -1980,11 +2272,30 @@ export default {
             return GlobalState?.config?.message_list_virtualization !== false;
         },
         oldestMessageId() {
-            if (this.selectedPeerChatItems.length > 0) {
-                return this.selectedPeerChatItems[0].lxmf_message.id;
+            if (!this.selectedPeer) {
+                return null;
             }
-
-            return null;
+            const peer = (this.selectedPeer.destination_hash || "").toLowerCase();
+            let minId = null;
+            for (const chatItem of this.chatItems) {
+                if (chatItem.type !== "lxmf_message") {
+                    continue;
+                }
+                const m = chatItem.lxmf_message;
+                const src = (m.source_hash || "").toLowerCase();
+                const dst = (m.destination_hash || "").toLowerCase();
+                if (src !== peer && dst !== peer) {
+                    continue;
+                }
+                const id = m.id;
+                if (id == null) {
+                    continue;
+                }
+                if (minId == null || id < minId) {
+                    minId = id;
+                }
+            }
+            return minId;
         },
         hasFailedOrCancelledMessages() {
             return this.selectedPeerChatItems.some(
@@ -1995,10 +2306,26 @@ export default {
             const h = this.selectedPeer?.destination_hash || "default";
             return h.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 24) || "default";
         },
+        translateTargetSelectOptions() {
+            const seen = new Map();
+            for (const l of this.translatorLanguages || []) {
+                if (l && l.code) {
+                    const c = String(l.code).toLowerCase().slice(0, 8);
+                    if (!seen.has(c)) {
+                        const name = l.name || c;
+                        seen.set(c, { value: c, label: `${name} (${c})` });
+                    }
+                }
+            }
+            return Array.from(seen.values()).sort((a, b) =>
+                a.label.localeCompare(b.label, undefined, { sensitivity: "base" })
+            );
+        },
     },
     watch: {
         selectedPeer: {
             handler(newPeer, oldPeer) {
+                this.messageBubbleTranslation = {};
                 if (oldPeer) {
                     this.saveDraft(oldPeer.destination_hash);
                 }
@@ -2165,6 +2492,9 @@ export default {
             if (!c) {
                 return false;
             }
+            if (this.isMessageBodyTooLargeForDisplay(chatItem)) {
+                return false;
+            }
             if (this.getParsedItems(chatItem)?.isOnlyPaperMessage) {
                 return false;
             }
@@ -2254,12 +2584,11 @@ export default {
             GlobalEmitter.emit("sync-propagation-node");
         },
         async copyMyAddress() {
-            try {
-                await navigator.clipboard.writeText(this.myLxmfAddressHash);
+            const ok = await copyTextToClipboard(this.myLxmfAddressHash);
+            if (ok) {
                 ToastUtils.success(this.$t("messages.address_copied"));
-            } catch (e) {
-                console.error(e);
-                ToastUtils.error(this.$t("messages.failed_copy_address"));
+            } else {
+                ToastUtils.error(this.$t("messages.clipboard_write_unavailable"));
             }
         },
         focusComposeInput() {
@@ -2279,31 +2608,246 @@ export default {
             }
         },
         async checkTranslator() {
-            if (!this.config?.translator_enabled) {
+            const argosOn = this.config?.translator_argos_enabled;
+            const libreOn = this.config?.translator_libretranslate_enabled;
+            if (!argosOn && !libreOn) {
                 this.hasTranslator = false;
+                this.translatorLanguages = [];
                 return;
             }
             try {
                 const response = await window.api.get("/api/v1/translator/languages");
-                this.translatorLanguages = response.data.languages || [];
+                const raw = response.data.languages || [];
+                this.translatorLanguages = raw.filter(
+                    (lang) => (lang.source === "argos" && argosOn) || (lang.source === "libretranslate" && libreOn)
+                );
                 this.hasTranslator = this.translatorLanguages.length > 0;
             } catch (e) {
                 console.log("Failed to check translator:", e);
                 this.hasTranslator = false;
             }
         },
-        async translateMessage() {
-            if (!this.newMessageText || this.isTranslatingMessage) return;
-
+        normalizedLocaleCode(loc) {
+            if (loc == null) {
+                return "en";
+            }
+            const s = String(loc);
+            const t = s.split(/[-_]/)[0] || s;
+            const c = t.toLowerCase();
+            if (c.length < 2) {
+                return "en";
+            }
+            return c.slice(0, 2);
+        },
+        composeSourceLangForTranslate() {
+            const cfg = this.config;
+            const a = cfg?.translator_argos_enabled;
+            const l = cfg?.translator_libretranslate_enabled;
+            const onlyLibre = Boolean(l) && !a;
+            if (onlyLibre) {
+                return "auto";
+            }
+            return this.normalizedLocaleCode(cfg?.language || this.$i18n.locale) || "en";
+        },
+        _readSavedTranslateTargetLang() {
+            let v = null;
             try {
-                this.isTranslatingMessage = true;
-                const targetLang = this.$i18n.locale || "en";
+                v =
+                    localStorage.getItem("meshchatx.translateTargetLang") ||
+                    localStorage.getItem("meshchatx.composeTranslateTargetLang");
+            } catch {
+                v = null;
+            }
+            if (!v) {
+                return null;
+            }
+            return String(v).toLowerCase().slice(0, 8);
+        },
+        _persistTranslateTargetLang(targetLang) {
+            const t = String(targetLang || "")
+                .toLowerCase()
+                .slice(0, 8);
+            if (!t) {
+                return;
+            }
+            try {
+                localStorage.setItem("meshchatx.translateTargetLang", t);
+                localStorage.setItem("meshchatx.composeTranslateTargetLang", t);
+            } catch {
+                /* empty */
+            }
+        },
+        defaultTranslateTargetForModal() {
+            const source = String(this.composeSourceLangForTranslate() || "").toLowerCase();
+            const opts = this.translateTargetSelectOptions;
+            if (!opts.length) {
+                return "en";
+            }
+            const fromStorage = this._readSavedTranslateTargetLang();
+            if (fromStorage && opts.some((o) => o.value === fromStorage) && fromStorage !== source) {
+                return fromStorage;
+            }
+            const diff = opts.find((o) => o.value !== source);
+            if (diff) {
+                return diff.value;
+            }
+            return opts[0].value;
+        },
+        defaultBubbleTranslateTargetForModal() {
+            const source = this._bubbleTranslateSourcePreview();
+            const opts = this.translateTargetSelectOptions;
+            if (!opts.length) {
+                return "en";
+            }
+            const fromStorage = this._readSavedTranslateTargetLang();
+            if (fromStorage && opts.some((o) => o.value === fromStorage)) {
+                if (String(source).toLowerCase() === "auto") {
+                    return fromStorage;
+                }
+                const s2 = String(source).toLowerCase().slice(0, 2);
+                if (fromStorage !== s2) {
+                    return fromStorage;
+                }
+            }
+            if (String(source).toLowerCase() === "auto") {
+                return opts[0].value;
+            }
+            const s2 = String(source).toLowerCase().slice(0, 2);
+            const diff = opts.find((o) => o.value !== s2);
+            return diff ? diff.value : opts[0].value;
+        },
+        _bubbleTranslateSourcePreview() {
+            const cfg = this.config;
+            const a = cfg?.translator_argos_enabled;
+            const l = cfg?.translator_libretranslate_enabled;
+            if (l && !a) {
+                return "auto";
+            }
+            return this.normalizedLocaleCode(cfg?.language || this.$i18n.locale) || "en";
+        },
+        onTranslateTargetBarClickOutside() {
+            if (this.isTranslateTargetModalWorking) {
+                return;
+            }
+            const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+            if (now < this.bubbleTranslateBarIgnoreOutsideUntil) {
+                return;
+            }
+            if (this.translateTargetModalContext?.type === "bubble") {
+                this.closeTranslateTargetModal();
+            }
+        },
+        async toggleComposeTranslateTargetBar() {
+            if (this.translateTargetBarOpen && this.translateTargetModalContext?.type === "compose") {
+                this.closeTranslateTargetModal();
+                return;
+            }
+            if (!this.newMessageText?.trim() || this.isTranslatingMessage) {
+                return;
+            }
+            if (!this.translatorLanguages || this.translatorLanguages.length === 0) {
+                await this.checkTranslator();
+            }
+            this.translateTargetModalContext = { type: "compose" };
+            this.translateTargetModalValue = this.defaultTranslateTargetForModal();
+            this.translateTargetBarOpen = true;
+        },
+        openBubbleTranslateFromContextMenu() {
+            const chatItem = this.messageContextMenu.chatItem;
+            this.messageContextMenu.show = false;
+            if (!chatItem || !this.canTranslateMessageBubbleFromMenu(chatItem)) {
+                return;
+            }
+            const doOpen = async () => {
+                if (!this.translatorLanguages || this.translatorLanguages.length === 0) {
+                    await this.checkTranslator();
+                }
+                if (!this.canTranslateMessageBubbleFromMenu(chatItem)) {
+                    return;
+                }
+                const t = typeof performance !== "undefined" ? performance.now() : Date.now();
+                this.bubbleTranslateBarIgnoreOutsideUntil = t + 500;
+                this.translateTargetModalContext = { type: "bubble", chatItem };
+                this.translateTargetModalValue = this.defaultBubbleTranslateTargetForModal();
+                this.translateTargetBarOpen = true;
+            };
+            queueMicrotask(() => {
+                void doOpen();
+            });
+        },
+        closeTranslateTargetModal() {
+            if (this.isTranslateTargetModalWorking) {
+                return;
+            }
+            this.translateTargetBarOpen = false;
+            this.translateTargetModalContext = null;
+        },
+        async confirmTranslateTargetModal() {
+            if (this.isTranslateTargetModalWorking || !this.translateTargetSelectOptions.length) {
+                return;
+            }
+            const targetLang = this.translateTargetModalValue;
+            const ctx = this.translateTargetModalContext;
+            if (!ctx) {
+                return;
+            }
+            this.isTranslateTargetModalWorking = true;
+            try {
+                this._persistTranslateTargetLang(targetLang);
+                if (ctx.type === "compose") {
+                    await this.applyComposeTranslation(targetLang);
+                } else if (ctx.type === "bubble" && ctx.chatItem) {
+                    await this.applyBubbleMessageTranslation(ctx.chatItem, targetLang);
+                }
+                this.translateTargetBarOpen = false;
+                this.translateTargetModalContext = null;
+            } catch (e) {
+                console.error(e);
+            } finally {
+                this.isTranslateTargetModalWorking = false;
+            }
+        },
+        canTranslateMessageBubbleFromMenu(chatItem) {
+            if (!this.hasTranslator || !chatItem || chatItem.lxmf_message?.is_reaction) {
+                return false;
+            }
+            const t = this.copyableMessagePlainText(chatItem);
+            if (!t) {
+                return false;
+            }
+            if (this.isMessageBodyTooLargeForDisplay(chatItem)) {
+                return false;
+            }
+            return true;
+        },
+        async applyComposeTranslation(targetLang) {
+            if (!this.newMessageText?.trim()) {
+                return;
+            }
+            const cfg = this.config;
+            const a = cfg?.translator_argos_enabled;
+            const l = cfg?.translator_libretranslate_enabled;
+            if (!a && !l) {
+                return;
+            }
+            const useArgos = Boolean(a) && !l;
+            const onlyLibre = Boolean(l) && !a;
+            const target = String(targetLang).toLowerCase().slice(0, 8);
+            const source_lang = onlyLibre
+                ? "auto"
+                : this.normalizedLocaleCode(cfg?.language || this.$i18n.locale) || "en";
+            if (useArgos && source_lang && target && source_lang === target) {
+                ToastUtils.error(this.$t("messages.translate_target_invalid"));
+                throw new Error("target");
+            }
+            this.isTranslatingMessage = true;
+            try {
                 const response = await window.api.post("/api/v1/translator/translate", {
                     text: this.newMessageText,
-                    source_lang: "auto",
-                    target_lang: targetLang,
+                    source_lang,
+                    target_lang: target,
+                    use_argos: useArgos,
                 });
-
                 if (response.data.translated_text) {
                     this.newMessageText = response.data.translated_text;
                     this.$nextTick(() => {
@@ -2311,11 +2855,119 @@ export default {
                     });
                 }
             } catch (e) {
-                console.error("Translation failed:", e);
-                ToastUtils.error(this.$t("messages.translation_failed"));
+                if (e?.message !== "target") {
+                    console.error("Translation failed:", e);
+                    ToastUtils.error(this.$t("messages.translation_failed"));
+                }
+                throw e;
             } finally {
                 this.isTranslatingMessage = false;
             }
+        },
+        async applyBubbleMessageTranslation(chatItem, targetLang) {
+            const hash = chatItem?.lxmf_message?.hash;
+            const text = this.copyableMessagePlainText(chatItem);
+            if (!hash || !text) {
+                return;
+            }
+            const cfg = this.config;
+            const a = cfg?.translator_argos_enabled;
+            const l = cfg?.translator_libretranslate_enabled;
+            if (!a && !l) {
+                return;
+            }
+            const useArgos = Boolean(a) && !l;
+            const onlyLibre = Boolean(l) && !a;
+            const target = String(targetLang).toLowerCase().slice(0, 8);
+            const source_lang = onlyLibre
+                ? "auto"
+                : this.normalizedLocaleCode(cfg?.language || this.$i18n.locale) || "en";
+            if (useArgos && source_lang && target && source_lang === target) {
+                ToastUtils.error(this.$t("messages.translate_target_invalid"));
+                return;
+            }
+            this.messageBubbleTranslation[hash] = {
+                loading: true,
+                showOriginal: false,
+                translatedText: "",
+                resolvedSourceLang: "",
+                targetLang: target,
+                source: "",
+            };
+            try {
+                const response = await window.api.post("/api/v1/translator/translate", {
+                    text,
+                    source_lang,
+                    target_lang: target,
+                    use_argos: useArgos,
+                });
+                const data = response.data;
+                this.messageBubbleTranslation[hash] = {
+                    loading: false,
+                    showOriginal: false,
+                    translatedText: data.translated_text || "",
+                    resolvedSourceLang: data.source_lang || source_lang,
+                    targetLang: data.target_lang || target,
+                    source: data.source || "",
+                };
+            } catch (e) {
+                delete this.messageBubbleTranslation[hash];
+                console.error("Translation failed:", e);
+                ToastUtils.error(this.$t("messages.translation_failed"));
+            }
+        },
+        setBubbleMessageShowOriginal(hash, show) {
+            const t = this.messageBubbleTranslation[hash];
+            if (!t || !t.translatedText) {
+                return;
+            }
+            this.messageBubbleTranslation[hash] = {
+                ...t,
+                showOriginal: show,
+            };
+        },
+        bubbleViewModel(chatItem) {
+            const c = chatItem.lxmf_message?.content;
+            if (!c) {
+                return { kind: "html", textForRender: "", singleEmoji: false, showFooter: false };
+            }
+            const h = chatItem.lxmf_message.hash;
+            const tr = this.messageBubbleTranslation[h];
+            if (tr?.loading) {
+                return { kind: "loading" };
+            }
+            const hasTr = tr && tr.translatedText;
+            const showingTranslated = hasTr && !tr.showOriginal;
+            const textForRender = showingTranslated ? tr.translatedText : c;
+            let singleEmoji = this.messageMarkdownSingleEmoji(chatItem);
+            if (showingTranslated) {
+                singleEmoji =
+                    !this.isMessageBodyTooLargeForDisplay(chatItem) &&
+                    MarkdownRenderer.isSingleEmojiMessage(tr.translatedText);
+            }
+            return {
+                kind: "html",
+                textForRender,
+                isTranslatedView: showingTranslated,
+                showFooter: Boolean(hasTr),
+                showOriginalLink: hasTr && !tr.showOriginal,
+                showTranslationLink: hasTr && tr.showOriginal,
+                fromCode: (tr && tr.resolvedSourceLang) || "–",
+                toCode: (tr && tr.targetLang) || "–",
+                messageHash: h,
+                singleEmoji,
+            };
+        },
+        bubbleMessageBodyFontSizePx(vm) {
+            const base = Number(this.config?.message_font_size) || 14;
+            if (vm && vm.singleEmoji) {
+                return Math.round(base * 2.75);
+            }
+            return base;
+        },
+        async translateMessage() {
+            this.translateTargetModalValue = this.defaultTranslateTargetForModal();
+            await this.applyComposeTranslation(this.translateTargetModalValue);
         },
         adjustTextareaHeight() {
             const textarea = this.$refs["message-input"];
@@ -2484,11 +3136,14 @@ export default {
 
                 // convert lxmf messages to chat items
                 const chatItems = [];
-                const lxmfMessages = mergeLxmfReactionRowsIntoMessages(response.data.lxmf_messages);
+                const rawList = response.data?.lxmf_messages;
+                const lxmfMessages = mergeLxmfReactionRowsIntoMessages(Array.isArray(rawList) ? rawList : []);
+                const myHash = (this.myLxmfAddressHash || "").toLowerCase();
                 for (const lxmfMessage of lxmfMessages) {
+                    const src = (lxmfMessage.source_hash || "").toLowerCase();
                     chatItems.push({
                         type: "lxmf_message",
-                        is_outbound: this.myLxmfAddressHash === lxmfMessage.source_hash,
+                        is_outbound: myHash !== "" && myHash === src,
                         lxmf_message: lxmfMessage,
                     });
                 }
@@ -2503,7 +3158,17 @@ export default {
                 const prevScrollHeight = scrollEl ? scrollEl.scrollHeight : 0;
                 const prevScrollTop = scrollEl ? scrollEl.scrollTop : 0;
 
+                const seenHashes = new Set(
+                    this.chatItems.map((c) => c.lxmf_message?.hash).filter((h) => h != null && h !== "")
+                );
                 for (const chatItem of chatItems) {
+                    const h = chatItem.lxmf_message?.hash;
+                    if (h && seenHashes.has(h)) {
+                        continue;
+                    }
+                    if (h) {
+                        seenHashes.add(h);
+                    }
                     this.chatItems.unshift(chatItem);
                 }
 
@@ -2775,8 +3440,11 @@ export default {
             }
             return normalized;
         },
+        _hexEqual(a, b) {
+            return (a || "").toLowerCase() === (b || "").toLowerCase();
+        },
         onLxmfMessageReceived(lxmfMessage) {
-            if (lxmfMessage.source_hash !== this.selectedPeer?.destination_hash) {
+            if (!this._hexEqual(lxmfMessage.source_hash, this.selectedPeer?.destination_hash)) {
                 return;
             }
 
@@ -2803,7 +3471,7 @@ export default {
             this.autoLoadAudioAttachments();
         },
         onLxmfMessageCreated(lxmfMessage) {
-            if (lxmfMessage.destination_hash !== this.selectedPeer?.destination_hash) {
+            if (!this._hexEqual(lxmfMessage.destination_hash, this.selectedPeer?.destination_hash)) {
                 return;
             }
 
@@ -2821,8 +3489,8 @@ export default {
         },
         onLxmfMessageUpdated(lxmfMessage) {
             const lxmfMessageHash = lxmfMessage.hash;
-            const chatItemIndex = this.chatItems.findIndex(
-                (chatItem) => chatItem.lxmf_message?.hash === lxmfMessageHash
+            const chatItemIndex = this.chatItems.findIndex((chatItem) =>
+                this._hexEqual(chatItem.lxmf_message?.hash, lxmfMessageHash)
             );
             if (chatItemIndex === -1) {
                 return;
@@ -2835,26 +3503,18 @@ export default {
         },
         onLxmfMessageDeleted(hash) {
             if (hash) {
-                // remove existing chat item by lxmf message hash
                 this.chatItems = this.chatItems.filter((item) => {
-                    return item.lxmf_message?.hash !== hash;
+                    return !this._hexEqual(item.lxmf_message?.hash, hash);
                 });
             }
         },
         async getPeerPath() {
             if (this.selectedPeer) {
                 try {
-                    // get path to destination
-                    const response = await window.api.get(
-                        `/api/v1/destination/${this.selectedPeer.destination_hash}/path`
-                    );
-
-                    // update ui
+                    const response = await getDestinationPath(window.api, this.selectedPeer.destination_hash, {});
                     this.selectedPeerPath = response.data.path;
                 } catch (e) {
                     console.log(e);
-
-                    // clear previous known path
                     this.selectedPeerPath = null;
                 }
             }
@@ -2961,18 +3621,25 @@ export default {
                         }
                         scrollContainerToBottom(container);
                     };
-                    pump();
+                    const safePump = () => {
+                        try {
+                            pump();
+                        } catch (e) {
+                            console.error(e);
+                        }
+                    };
+                    safePump();
                     if (!this.useVirtualMessageList) {
                         requestAnimationFrame(() => {
                             if (stale()) return;
-                            pump();
+                            safePump();
                             this.messagesViewportReady = true;
                         });
                     } else {
                         let passes = 0;
                         const settle = () => {
                             if (stale()) return;
-                            pump();
+                            safePump();
                             passes++;
                             if (isNearBottom(container) || passes >= 6) {
                                 this.messagesViewportReady = true;
@@ -2987,7 +3654,7 @@ export default {
         },
 
         isLxmfMessageInUi: function (hash) {
-            return this.chatItems.findIndex((chatItem) => chatItem.lxmf_message?.hash === hash) !== -1;
+            return this.chatItems.findIndex((chatItem) => this._hexEqual(chatItem.lxmf_message?.hash, hash)) !== -1;
         },
         async getCustomDisplayName() {
             if (this.selectedPeer) {
@@ -3106,12 +3773,43 @@ export default {
             if (!text) {
                 return;
             }
-            try {
-                await navigator.clipboard.writeText(text);
+            const ok = await copyTextToClipboard(text);
+            if (ok) {
                 ToastUtils.success(this.$t("messages.message_copied"));
                 this.messageContextMenu.show = false;
-            } catch {
-                ToastUtils.error(this.$t("messages.failed_copy_message"));
+            } else {
+                ToastUtils.error(this.$t("messages.clipboard_write_unavailable"));
+            }
+        },
+        isMessageBodyTooLargeForDisplay(chatItem) {
+            return isStringTooLargeForInlineDisplay(chatItem?.lxmf_message?.content);
+        },
+        messageBodyCharCount(chatItem) {
+            const c = chatItem?.lxmf_message?.content;
+            return typeof c === "string" ? c.length : 0;
+        },
+        async copyOversizedMessageBody(chatItem) {
+            const text = this.copyableMessagePlainText(chatItem);
+            if (!text) {
+                return;
+            }
+            const ok = await copyTextToClipboard(text);
+            if (ok) {
+                ToastUtils.success(this.$t("messages.oversized_body_copied"));
+            } else {
+                ToastUtils.error(this.$t("messages.clipboard_write_unavailable"));
+            }
+        },
+        async copyRawMessageModalContent() {
+            const c = this.rawMessageData?.content;
+            if (typeof c !== "string" || c.length === 0) {
+                return;
+            }
+            const ok = await copyTextToClipboard(c);
+            if (ok) {
+                ToastUtils.success(this.$t("messages.oversized_body_copied"));
+            } else {
+                ToastUtils.error(this.$t("messages.clipboard_write_unavailable"));
             }
         },
         replyToMessage(chatItem) {
@@ -3320,17 +4018,16 @@ export default {
             });
         },
         async showRawMessage(chatItem) {
-            try {
-                // we'll try to get the URI first as it contains the raw signed message
-                const response = await window.api.get(`/api/v1/lxmf-messages/${chatItem.lxmf_message.hash}/uri`);
-                this.rawMessageData = {
-                    ...chatItem.lxmf_message,
-                    raw_uri: response.data.uri,
-                };
-            } catch {
-                // if URI is not available (message no longer in router), we show what we have
-                this.rawMessageData = { ...chatItem.lxmf_message };
-            }
+            const base = { ...chatItem.lxmf_message };
+            const uriPromise = window.api
+                .get(`/api/v1/lxmf-messages/${chatItem.lxmf_message.hash}/uri`)
+                .then((r) => r.data?.uri ?? null)
+                .catch(() => null);
+            const rawUri = await uriPromise;
+            this.rawMessageData = {
+                ...base,
+                raw_uri: rawUri ?? undefined,
+            };
             this.isRawMessageModalOpen = true;
         },
         async downloadAndDecodeAudio(chatItem) {
@@ -3647,9 +4344,9 @@ export default {
                 return "";
             }
             if (!this.usesThemeOutboundBubbleColor) {
-                return "shadow-sm";
+                return "shadow-xs";
             }
-            return "shadow-sm bg-sky-100 text-slate-900 border border-sky-200/90 dark:bg-sky-950/45 dark:text-sky-50 dark:border-sky-800/55";
+            return "shadow-xs bg-sky-100 text-slate-900 border border-sky-200/90 dark:bg-sky-950/45 dark:text-sky-50 dark:border-sky-800/55";
         },
         outboundBubbleFooterTimeClass(chatItem) {
             if (!chatItem.is_outbound) {
@@ -3801,7 +4498,7 @@ export default {
                 return;
             }
             try {
-                await window.api.post(`/api/v1/destination/${this.selectedPeer.destination_hash}/request-path`);
+                await postRequestPath(window.api, this.selectedPeer.destination_hash);
             } catch (e) {
                 console.log(e);
             }
@@ -4408,12 +5105,11 @@ export default {
             if (!uri) {
                 return;
             }
-            try {
-                await navigator.clipboard.writeText(uri);
+            const ok = await copyTextToClipboard(uri);
+            if (ok) {
                 ToastUtils.success(this.$t("messages.map_link_copied"));
-            } catch (e) {
-                console.error(e);
-                ToastUtils.error(this.$t("messages.failed_copy_address"));
+            } else {
+                ToastUtils.error(this.$t("messages.clipboard_write_unavailable"));
             }
         },
         isTelemetryOnly(msg) {
@@ -4447,16 +5143,53 @@ export default {
             // Using this.now ensures the computed value updates when the timer ticks
             return this.now ? Utils.formatTimeAgo(datetimeString) : Utils.formatTimeAgo(datetimeString);
         },
+        formatDateDividerLabel(dayKey) {
+            if (!dayKey || typeof dayKey !== "string") {
+                return "";
+            }
+            const p = dayKey.split("-").map((x) => parseInt(x, 10));
+            if (p.length !== 3 || p.some((n) => Number.isNaN(n))) {
+                return dayKey;
+            }
+            const d = new Date(p[0], p[1] - 1, p[2]);
+            if (Number.isNaN(d.getTime())) {
+                return dayKey;
+            }
+            const startOf = (dt) => {
+                const x = new Date(dt);
+                x.setHours(0, 0, 0, 0);
+                return x.getTime();
+            };
+            const today = new Date();
+            if (startOf(d) === startOf(today)) {
+                return this.$t("messages.date_divider_today");
+            }
+            const y = new Date(today);
+            y.setDate(y.getDate() - 1);
+            if (startOf(d) === startOf(y)) {
+                return this.$t("messages.date_divider_yesterday");
+            }
+            try {
+                const loc = typeof this.$i18n?.locale === "string" ? this.$i18n.locale : "en";
+                return new Intl.DateTimeFormat(loc, {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                }).format(d);
+            } catch {
+                return dayKey;
+            }
+        },
         formatDestinationHash(hash) {
             return Utils.formatDestinationHash(hash);
         },
         async copyHash(hash) {
-            try {
-                await navigator.clipboard.writeText(hash);
+            const ok = await copyTextToClipboard(hash);
+            if (ok) {
                 ToastUtils.success(this.$t("messages.hash_copied"));
-            } catch (e) {
-                console.error(e);
-                ToastUtils.error(this.$t("messages.failed_to_copy_hash"));
+            } else {
+                ToastUtils.error(this.$t("messages.clipboard_write_unavailable"));
             }
         },
         formatBytes: function (bytes) {
@@ -4539,28 +5272,35 @@ export default {
             this.attachPastedOrDroppedImageFiles(imageFiles, "drop");
         },
         async pasteFromClipboard() {
-            try {
-                const text = await navigator.clipboard.readText();
-                if (text) {
-                    const input = this.$refs["message-input"];
-                    const start = input.selectionStart;
-                    const end = input.selectionEnd;
-                    const currentText = this.newMessageText || "";
-                    this.newMessageText = currentText.substring(0, start) + text + currentText.substring(end);
-
-                    this.$nextTick(() => {
-                        input.focus();
-                        const newCursorPos = start + text.length;
-                        input.setSelectionRange(newCursorPos, newCursorPos);
-                        // adjust height
-                        input.style.height = "auto";
-                        input.style.height = Math.min(input.scrollHeight, 200) + "px";
-                    });
+            const result = await readTextFromClipboard();
+            if (!result.ok) {
+                if (result.code === "insecure_context") {
+                    ToastUtils.error(this.$t("messages.clipboard_read_requires_secure_context"));
+                } else {
+                    ToastUtils.error(this.$t("messages.failed_read_clipboard"));
                 }
-            } catch (err) {
-                console.error("Failed to read clipboard contents: ", err);
-                ToastUtils.error(this.$t("messages.failed_read_clipboard"));
+                return;
             }
+            const text = result.text;
+            if (!text) {
+                return;
+            }
+            const input = this.$refs["message-input"];
+            if (!input) {
+                return;
+            }
+            const start = input.selectionStart;
+            const end = input.selectionEnd;
+            const currentText = this.newMessageText || "";
+            this.newMessageText = currentText.substring(0, start) + text + currentText.substring(end);
+
+            this.$nextTick(() => {
+                input.focus();
+                const newCursorPos = start + text.length;
+                input.setSelectionRange(newCursorPos, newCursorPos);
+                input.style.height = "auto";
+                input.style.height = Math.min(input.scrollHeight, 200) + "px";
+            });
         },
         onFileInputChange: function (event) {
             const selectedFiles = Array.from(event.target.files || []);
@@ -5422,6 +6162,7 @@ export default {
 </script>
 
 <style scoped>
+@reference "../../style.css";
 .attachment-card {
     @apply relative flex gap-3 border border-gray-200 dark:border-zinc-800 rounded-2xl p-3 shadow-sm;
     background-color: white;
@@ -5455,16 +6196,16 @@ export default {
     @apply inline-flex items-center justify-center text-gray-500 dark:text-gray-300 hover:text-red-500;
 }
 .attachment-action-button {
-    @apply inline-flex items-center gap-1 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-700 bg-white shadow-sm transition-all !important;
+    @apply inline-flex items-center gap-1 rounded-full border border-gray-200 px-3 py-1.5 text-xs font-bold text-gray-700 bg-white shadow-xs transition-all;
 }
 .attachment-action-button:hover {
-    @apply bg-gray-50 text-gray-900 border-blue-400 !important;
+    @apply bg-gray-50 text-gray-900 border-blue-400;
 }
 .dark .attachment-action-button {
-    @apply border-zinc-700 text-zinc-100 bg-zinc-900 !important;
+    @apply border-zinc-700 text-zinc-100 bg-zinc-900;
 }
 .dark .attachment-action-button:hover {
-    @apply bg-zinc-800 text-white border-blue-500 !important;
+    @apply bg-zinc-800 text-white border-blue-500;
 }
 
 .compose-emoji-picker {

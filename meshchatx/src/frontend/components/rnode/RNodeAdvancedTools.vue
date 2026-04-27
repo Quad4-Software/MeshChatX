@@ -57,6 +57,7 @@ export default {
 </script>
 
 <style scoped>
+@reference "../../style.css";
 .rnf-action-btn {
     @apply inline-flex items-center justify-center gap-1.5 rounded-xl bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 dark:hover:bg-zinc-700 px-3 py-2.5 text-[11px] font-bold text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-700 transition-all active:scale-95;
 }

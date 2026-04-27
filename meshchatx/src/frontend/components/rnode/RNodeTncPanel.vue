@@ -55,7 +55,7 @@
             </div>
             <div class="grid grid-cols-2 gap-2">
                 <button
-                    class="rnf-action-btn bg-green-600 !text-white !border-none hover:bg-green-700"
+                    class="rnf-action-btn bg-green-600 text-white! border-none! hover:bg-green-700"
                     @click="$emit('action', 'enable-tnc')"
                 >
                     {{ $t("tools.rnode_flasher.enable") }}
@@ -94,6 +94,7 @@ export default {
 </script>
 
 <style scoped>
+@reference "../../style.css";
 .rnf-input-label {
     @apply text-[10px] font-bold text-zinc-400 uppercase tracking-widest;
 }

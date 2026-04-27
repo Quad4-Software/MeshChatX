@@ -2,7 +2,7 @@
 
 <template>
     <div
-        class="flex flex-col flex-1 overflow-hidden min-w-0 bg-gradient-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
+        class="flex flex-col flex-1 overflow-hidden min-w-0 bg-linear-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
     >
         <div class="flex-1 overflow-y-auto w-full px-4 md:px-5 lg:px-8 py-6">
             <div class="space-y-6 w-full max-w-4xl mx-auto">
@@ -19,7 +19,7 @@
                     <div class="flex flex-row gap-2 sm:flex-wrap sm:items-stretch sm:justify-end">
                         <button
                             type="button"
-                            class="inline-flex items-center justify-center gap-x-2 rounded-xl bg-blue-600 p-2.5 sm:px-4 sm:py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 transition-all active:scale-[0.98] sm:rounded-2xl"
+                            class="inline-flex items-center justify-center gap-x-2 rounded-xl bg-blue-600 p-2.5 sm:px-4 sm:py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-blue-500 transition-all active:scale-[0.98] sm:rounded-2xl"
                             :title="$t('identities.new_identity')"
                             @click="showCreateModal = true"
                         >
@@ -65,8 +65,8 @@
                         >
                             <div class="w-14 h-14 rounded-2xl bg-gray-200 dark:bg-zinc-700 animate-pulse shrink-0" />
                             <div class="flex-1 min-w-0 space-y-2">
-                                <div class="h-5 w-32 bg-gray-200 dark:bg-zinc-700 rounded animate-pulse" />
-                                <div class="h-3 w-48 bg-gray-100 dark:bg-zinc-800 rounded animate-pulse" />
+                                <div class="h-5 w-32 bg-gray-200 dark:bg-zinc-700 rounded-sm animate-pulse" />
+                                <div class="h-3 w-48 bg-gray-100 dark:bg-zinc-800 rounded-sm animate-pulse" />
                             </div>
                         </div>
                     </template>
@@ -99,9 +99,9 @@
                                         class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shadow-inner overflow-hidden transition-all duration-500"
                                         :class="
                                             identity.is_current && !identity.icon_background_colour
-                                                ? 'bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/50 dark:to-indigo-900/50'
+                                                ? 'bg-linear-to-br from-blue-100 to-indigo-100 dark:from-blue-900/50 dark:to-indigo-900/50'
                                                 : !identity.icon_background_colour
-                                                  ? 'bg-gradient-to-br from-gray-100 to-slate-100 dark:from-zinc-800 dark:to-zinc-800/50'
+                                                  ? 'bg-linear-to-br from-gray-100 to-slate-100 dark:from-zinc-800 dark:to-zinc-800/50'
                                                   : ''
                                         "
                                         :style="
@@ -129,14 +129,14 @@
                                     </div>
                                     <div
                                         v-if="identity.is_current"
-                                        class="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white dark:border-zinc-900 shadow-sm"
+                                        class="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white dark:border-zinc-900 shadow-xs"
                                     ></div>
                                 </div>
 
                                 <!-- info -->
                                 <div class="flex-1 min-w-0">
                                     <div class="flex flex-wrap items-center gap-2">
-                                        <h3 class="font-bold text-gray-900 dark:text-white break-words sm:truncate">
+                                        <h3 class="font-bold text-gray-900 dark:text-white wrap-break-word sm:truncate">
                                             {{ identity.display_name }}
                                         </h3>
                                         <span
@@ -242,7 +242,7 @@
         <!-- create modal -->
         <div
             v-if="showCreateModal"
-            class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+            class="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs"
         >
             <div class="glass-card w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200">
                 <div class="p-6">
@@ -292,7 +292,7 @@
                 <!-- import modal -->
                 <div
                     v-if="showImportModal"
-                    class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+                    class="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs"
                     @click.self="showImportModal = false"
                 >
                     <div class="glass-card w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200">
@@ -605,8 +605,9 @@ export default {
 </script>
 
 <style scoped>
+@reference "../../style.css";
 .glass-card {
-    @apply bg-white/90 dark:bg-zinc-900/80 backdrop-blur border border-gray-200 dark:border-zinc-800 rounded-3xl shadow-lg;
+    @apply bg-white/90 dark:bg-zinc-900/80 backdrop-blur-sm border border-gray-200 dark:border-zinc-800 rounded-3xl shadow-lg;
 }
 .input-field {
     @apply bg-gray-50/90 dark:bg-zinc-800/80 border border-gray-200 dark:border-zinc-700 text-sm rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 dark:focus:ring-blue-500 dark:focus:border-blue-500 block w-full p-3 text-gray-900 dark:text-gray-100 transition;

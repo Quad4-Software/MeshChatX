@@ -3,7 +3,7 @@
 <template>
     <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
         <div
-            class="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2 border-b border-gray-200 dark:border-zinc-800 bg-slate-50/95 dark:bg-zinc-950/95 backdrop-blur-sm shrink-0 min-w-0"
+            class="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2 border-b border-gray-200 dark:border-zinc-800 bg-slate-50/95 dark:bg-zinc-950/95 backdrop-blur-xs shrink-0 min-w-0"
         >
             <div class="flex items-center gap-2 sm:gap-3 min-w-0">
                 <div class="bg-blue-100 dark:bg-blue-900/30 p-1.5 rounded-xl shrink-0">
@@ -25,13 +25,20 @@
                 </div>
             </div>
             <div class="flex items-center gap-2 flex-wrap">
-                <button type="button" class="secondary-chip !py-1 !px-3" :disabled="loading" @click="loadConfig">
+                <RouterLink
+                    to="/tools"
+                    class="inline-flex items-center gap-2 text-sm text-blue-600 dark:text-blue-300 hover:underline"
+                >
+                    <MaterialDesignIcon icon-name="arrow-left" class="size-4" />
+                    {{ $t("tools.back_to_tools") }}
+                </RouterLink>
+                <button type="button" class="secondary-chip py-1! px-3!" :disabled="loading" @click="loadConfig">
                     <MaterialDesignIcon icon-name="refresh" class="w-3.5 h-3.5" />
                     <span class="hidden sm:inline">{{ $t("tools.reticulum_config_editor.reload") }}</span>
                 </button>
                 <button
                     type="button"
-                    class="secondary-chip !py-1 !px-3 !text-red-500 hover:!bg-red-50 dark:hover:!bg-red-900/20"
+                    class="secondary-chip py-1! px-3! text-red-500! hover:bg-red-50! dark:hover:bg-red-900/20!"
                     :disabled="loading || resetting"
                     @click="restoreDefaults"
                 >
@@ -40,7 +47,7 @@
                 </button>
                 <button
                     type="button"
-                    class="secondary-chip !py-1 !px-3"
+                    class="secondary-chip py-1! px-3!"
                     :disabled="!isDirty || saving"
                     @click="discardChanges"
                 >
@@ -49,7 +56,7 @@
                 </button>
                 <button
                     type="button"
-                    class="primary-chip !py-1 !px-3"
+                    class="primary-chip py-1! px-3!"
                     :disabled="!isDirty || saving"
                     @click="saveConfig"
                 >
@@ -82,7 +89,7 @@
                     </div>
                     <button
                         type="button"
-                        class="ml-auto inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-sm font-bold text-amber-600 hover:bg-white/90 transition shadow-sm disabled:opacity-50"
+                        class="ml-auto inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-sm font-bold text-amber-600 hover:bg-white/90 transition shadow-xs disabled:opacity-50"
                         :disabled="reloadingRns"
                         :class="reloadingRns ? '' : 'animate-pulse motion-reduce:animate-none'"
                         @click="reloadRns"
@@ -114,7 +121,7 @@
                         autocomplete="off"
                         autocorrect="off"
                         :placeholder="loading ? $t('tools.reticulum_config_editor.loading') : ''"
-                        class="w-full bg-white dark:bg-zinc-900 text-gray-900 dark:text-white p-4 font-mono text-xs sm:text-sm resize-none focus:outline-none min-h-[420px] sm:min-h-[60vh]"
+                        class="w-full bg-white dark:bg-zinc-900 text-gray-900 dark:text-white p-4 font-mono text-xs sm:text-sm resize-none focus:outline-hidden min-h-[420px] sm:min-h-[60vh]"
                         @keydown.tab.prevent="insertTab"
                     ></textarea>
                 </div>

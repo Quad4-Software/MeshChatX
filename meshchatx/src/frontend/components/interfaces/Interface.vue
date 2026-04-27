@@ -49,7 +49,7 @@
                         }}</span>
                         <span v-if="isDiscoverable()" class="discoverable-chip shrink-0">Discoverable</span>
                     </div>
-                    <div class="text-sm text-gray-600 dark:text-gray-300 break-words min-w-0">
+                    <div class="text-sm text-gray-600 dark:text-gray-300 wrap-break-word min-w-0">
                         {{ description }}
                     </div>
                     <div class="flex flex-wrap gap-2 text-xs text-gray-600 dark:text-gray-300">
@@ -303,8 +303,9 @@ export default {
 </script>
 
 <style scoped>
+@reference "../../style.css";
 .interface-card {
-    @apply relative bg-white/95 dark:bg-zinc-900/85 backdrop-blur border border-gray-200 dark:border-zinc-800 rounded-3xl shadow-lg p-4 space-y-3 hover:z-10 min-w-0;
+    @apply relative bg-white/95 dark:bg-zinc-900/85 backdrop-blur-sm border border-gray-200 dark:border-zinc-800 rounded-3xl shadow-lg p-4 space-y-3 hover:z-10 min-w-0;
     overflow: visible;
 }
 .interface-card__icon {

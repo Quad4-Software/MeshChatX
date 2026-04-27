@@ -30,7 +30,7 @@
                         class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all"
                         :class="
                             activeTab === 'meshchatx'
-                                ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                                ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-xs'
                                 : 'text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300'
                         "
                         @click="activeTab = 'meshchatx'"
@@ -41,7 +41,7 @@
                         class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all"
                         :class="
                             activeTab === 'reticulum'
-                                ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                                ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-xs'
                                 : 'text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300'
                         "
                         @click="activeTab = 'reticulum'"
@@ -58,7 +58,7 @@
                     <input
                         v-model="searchQuery"
                         type="text"
-                        class="block w-full pl-8 pr-8 py-1.5 border border-gray-200 dark:border-zinc-700 rounded-lg bg-gray-50 dark:bg-zinc-800 text-gray-900 dark:text-zinc-100 text-[11px] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                        class="block w-full pl-8 pr-8 py-1.5 border border-gray-200 dark:border-zinc-700 rounded-lg bg-gray-50 dark:bg-zinc-800 text-gray-900 dark:text-zinc-100 text-[11px] focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                         placeholder="Search documentation..."
                         @input="debounceSearch"
                     />
@@ -222,7 +222,7 @@
                     v-if="status.has_docs"
                     :href="localDocsUrl"
                     target="_blank"
-                    class="hidden sm:flex items-center px-2.5 py-1.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg hover:opacity-90 transition-opacity font-bold text-[10px] shadow-sm"
+                    class="hidden sm:flex items-center px-2.5 py-1.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg hover:opacity-90 transition-opacity font-bold text-[10px] shadow-xs"
                 >
                     <MaterialDesignIcon icon-name="open-in-new" class="w-3 h-3 mr-1.5" />
                     Open
@@ -242,7 +242,7 @@
                         class="flex-1 md:flex-none px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all"
                         :class="
                             activeTab === 'meshchatx'
-                                ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                                ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-xs'
                                 : 'text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300'
                         "
                         @click="activeTab = 'meshchatx'"
@@ -253,7 +253,7 @@
                         class="flex-1 md:flex-none px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all"
                         :class="
                             activeTab === 'reticulum'
-                                ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-sm'
+                                ? 'bg-white dark:bg-zinc-700 text-blue-600 dark:text-blue-400 shadow-xs'
                                 : 'text-gray-500 hover:text-gray-700 dark:hover:text-zinc-300'
                         "
                         @click="activeTab = 'reticulum'"
@@ -270,7 +270,7 @@
                     <input
                         v-model="searchQuery"
                         type="text"
-                        class="block w-full pl-9 pr-9 py-2 border border-gray-200 dark:border-zinc-700 rounded-lg bg-gray-50 dark:bg-zinc-800 text-gray-900 dark:text-zinc-100 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                        class="block w-full pl-9 pr-9 py-2 border border-gray-200 dark:border-zinc-700 rounded-lg bg-gray-50 dark:bg-zinc-800 text-gray-900 dark:text-zinc-100 text-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                         placeholder="Search all documentation..."
                         @input="debounceSearch"
                     />
@@ -330,7 +330,7 @@
                                 </div>
                                 <div class="flex items-center space-x-2">
                                     <span
-                                        class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-zinc-800 text-[8px] font-bold text-gray-500 uppercase tracking-tighter"
+                                        class="px-1.5 py-0.5 rounded-sm bg-gray-100 dark:bg-zinc-800 text-[8px] font-bold text-gray-500 uppercase tracking-tighter"
                                     >
                                         {{ result.source }}
                                     </span>
@@ -370,7 +370,7 @@
 
             <div
                 v-if="status.last_error"
-                class="absolute inset-0 z-10 flex items-center justify-center p-6 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-sm"
+                class="absolute inset-0 z-10 flex items-center justify-center p-6 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xs"
             >
                 <div
                     class="max-w-md w-full p-6 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 rounded-2xl text-red-600 dark:text-red-400 text-center shadow-xl"
@@ -436,7 +436,7 @@
                             class="w-full text-left px-3 py-2 rounded-xl text-xs transition-all flex items-center space-x-3"
                             :class="
                                 selectedDocPath === doc.path
-                                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold shadow-sm'
+                                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold shadow-xs'
                                     : 'text-gray-600 dark:text-zinc-400 hover:bg-white dark:hover:bg-zinc-800'
                             "
                             @click="selectDoc(doc.path)"
@@ -467,7 +467,7 @@
 
                     <div v-if="selectedDocContent" class="flex-1 overflow-y-auto p-6 md:p-10 scroll-smooth">
                         <div class="max-w-3xl mx-auto">
-                            <div class="max-w-none break-words" v-html="selectedDocContent.html"></div>
+                            <div class="max-w-none wrap-break-word" v-html="selectedDocContent.html"></div>
                         </div>
                     </div>
                     <div
@@ -786,7 +786,7 @@ export default {
             const regex = new RegExp(`(${query})`, "gi");
             return escapedText.replace(
                 regex,
-                '<span class="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-0.5 rounded">$1</span>'
+                '<span class="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-0.5 rounded-sm">$1</span>'
             );
         },
     },

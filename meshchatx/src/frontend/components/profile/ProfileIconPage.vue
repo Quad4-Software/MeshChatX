@@ -5,7 +5,7 @@
         <div class="overflow-y-auto">
             <div class="max-w-4xl mx-auto p-4 space-y-6">
                 <!-- Header with Preview -->
-                <div class="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-800">
+                <div class="bg-white dark:bg-zinc-900 rounded-xl shadow-xs border border-gray-200 dark:border-zinc-800">
                     <div class="p-6 border-b border-gray-200 dark:border-zinc-800">
                         <div class="flex items-center justify-between">
                             <div>
@@ -66,7 +66,7 @@
                 </div>
 
                 <!-- Color Selection -->
-                <div class="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-800">
+                <div class="bg-white dark:bg-zinc-900 rounded-xl shadow-xs border border-gray-200 dark:border-zinc-800">
                     <div class="p-4 border-b border-gray-200 dark:border-zinc-800">
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Colors</h3>
                     </div>
@@ -112,7 +112,7 @@
 
                 <!-- Icon Selection -->
                 <div
-                    class="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-800 overflow-hidden"
+                    class="bg-white dark:bg-zinc-900 rounded-xl shadow-xs border border-gray-200 dark:border-zinc-800 overflow-hidden"
                 >
                     <div class="p-4 border-b border-gray-200 dark:border-zinc-800">
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Icon</h3>
@@ -183,7 +183,7 @@
 
                 <!-- Remove Icon Section -->
                 <div
-                    class="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-gray-200 dark:border-zinc-800 overflow-hidden"
+                    class="bg-white dark:bg-zinc-900 rounded-xl shadow-xs border border-gray-200 dark:border-zinc-800 overflow-hidden"
                 >
                     <div class="p-4 border-b border-gray-200 dark:border-zinc-800">
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Remove Icon</h3>

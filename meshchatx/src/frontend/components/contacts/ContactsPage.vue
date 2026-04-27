@@ -54,7 +54,7 @@
                             v-model="contactsSearch"
                             type="text"
                             :placeholder="$t('contacts.search_placeholder')"
-                            class="input-field !pl-11"
+                            class="input-field pl-11!"
                             @input="onContactsSearchInput"
                         />
                     </div>
@@ -71,8 +71,8 @@
                                 class="size-10 sm:size-12 rounded-full bg-gray-200 dark:bg-zinc-700 animate-pulse shrink-0"
                             />
                             <div class="flex-1 min-w-0 space-y-2">
-                                <div class="h-4 w-32 bg-gray-200 dark:bg-zinc-700 rounded animate-pulse" />
-                                <div class="h-3 w-48 bg-gray-100 dark:bg-zinc-800 rounded animate-pulse" />
+                                <div class="h-4 w-32 bg-gray-200 dark:bg-zinc-700 rounded-sm animate-pulse" />
+                                <div class="h-3 w-48 bg-gray-100 dark:bg-zinc-800 rounded-sm animate-pulse" />
                             </div>
                         </div>
                     </template>
@@ -89,7 +89,7 @@
                             class="group flex cursor-default items-center gap-3 px-1 py-3 transition-colors hover:bg-gray-50/80 dark:hover:bg-zinc-900/70"
                             @contextmenu.prevent="openContextMenu($event, contact)"
                         >
-                            <div class="flex-shrink-0">
+                            <div class="shrink-0">
                                 <LxmfUserIcon
                                     :custom-image="contact.custom_image"
                                     :icon-name="contact.remote_icon ? contact.remote_icon.icon_name : ''"
@@ -110,7 +110,9 @@
                                     {{ contact.lxmf_address || contact.remote_identity_hash }}
                                 </div>
                             </div>
-                            <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div
+                                class="flex items-center gap-1 opacity-100 transition-opacity lg:opacity-0 lg:group-hover:opacity-100"
+                            >
                                 <button
                                     type="button"
                                     class="p-1.5 rounded-lg text-gray-500 dark:text-zinc-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
@@ -154,7 +156,7 @@
 
         <button
             type="button"
-            class="sm:hidden fixed bottom-5 right-4 z-[180] flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg ring-1 ring-blue-400/30 transition active:scale-95"
+            class="sm:hidden fixed bottom-5 right-4 z-180 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg ring-1 ring-blue-400/30 transition active:scale-95"
             :title="$t('contacts.add_contact')"
             @click="openAddDialog"
         >
@@ -162,7 +164,7 @@
         </button>
 
         <!-- Contact context menu -->
-        <ContextMenuPanel :show="contextMenu.visible" :x="contextMenu.x" :y="contextMenu.y" panel-class="z-[210]">
+        <ContextMenuPanel :show="contextMenu.visible" :x="contextMenu.x" :y="contextMenu.y" panel-class="z-210">
             <ContextMenuItem @click="openConversation(contextMenu.contact)">
                 <MaterialDesignIcon icon-name="message-text-outline" class="size-4" />
                 {{ $t("contacts.send_message") }}
@@ -194,7 +196,7 @@
         <!-- Add contact dialog -->
         <div
             v-if="isAddDialogOpen"
-            class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            class="fixed inset-0 z-200 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
             @click.self="closeAddDialog"
         >
             <div class="w-full max-w-lg rounded-2xl bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden">
@@ -229,7 +231,7 @@
                                 v-model="newContactInput"
                                 type="text"
                                 class="input-field font-mono"
-                                :class="cameraSupported ? '!pr-12' : ''"
+                                :class="cameraSupported ? 'pr-12!' : ''"
                                 :placeholder="$t('contacts.hash_or_uri_placeholder')"
                                 @keydown.enter.prevent="submitAddContact"
                             />
@@ -279,7 +281,7 @@
         <!-- Scanner dialog -->
         <div
             v-if="isScannerDialogOpen"
-            class="fixed inset-0 z-[220] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+            class="fixed inset-0 z-220 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs"
             @click.self="closeScannerDialog"
         >
             <div class="w-full max-w-xl rounded-2xl bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden">
@@ -311,7 +313,7 @@
         <!-- Import contacts dialog -->
         <div
             v-if="isImportDialogOpen"
-            class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            class="fixed inset-0 z-200 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
             @click.self="closeImportDialog"
         >
             <div class="w-full max-w-lg rounded-2xl bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden">
@@ -354,7 +356,7 @@
         <!-- My identity dialog -->
         <div
             v-if="isMyIdentityDialogOpen"
-            class="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            class="fixed inset-0 z-200 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
             @click.self="isMyIdentityDialogOpen = false"
         >
             <div class="w-full max-w-md rounded-2xl bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden">
@@ -923,8 +925,9 @@ export default {
 </script>
 
 <style scoped>
+@reference "../../style.css";
 .glass-card {
-    @apply bg-white/95 dark:bg-zinc-900/85 backdrop-blur border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-sm p-4;
+    @apply bg-white/95 dark:bg-zinc-900/85 backdrop-blur-sm border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xs p-4;
 }
 
 .input-field {

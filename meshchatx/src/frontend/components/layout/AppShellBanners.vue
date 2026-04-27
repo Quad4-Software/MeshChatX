@@ -4,7 +4,7 @@
     <div>
         <div
             v-if="showEmergency"
-            class="relative z-[100] bg-red-600 text-white px-4 py-2 text-center text-sm font-bold shadow-md animate-pulse"
+            class="relative z-100 bg-red-600 text-white px-4 py-2 text-center text-sm font-bold shadow-md animate-pulse"
         >
             <div class="flex items-center justify-center gap-2">
                 <MaterialDesignIcon icon-name="alert-decagram" class="size-5" />
@@ -14,7 +14,7 @@
 
         <div
             v-if="showWsDisconnected"
-            class="relative z-[100] bg-red-700 text-white px-4 py-2 text-center text-sm font-medium shadow-md border-b border-red-800/80"
+            class="relative z-100 bg-red-700 text-white px-4 py-2 text-center text-sm font-medium shadow-md border-b border-red-800/80"
             role="status"
             aria-live="polite"
         >
@@ -22,7 +22,7 @@
         </div>
         <div
             v-if="showWsReconnected"
-            class="relative z-[100] bg-emerald-700 text-white px-4 py-2 text-center text-sm font-medium shadow-md border-b border-emerald-800/80 transition-opacity duration-300"
+            class="relative z-100 bg-emerald-700 text-white px-4 py-2 text-center text-sm font-medium shadow-md border-b border-emerald-800/80 transition-opacity duration-300"
             role="status"
             aria-live="polite"
         >

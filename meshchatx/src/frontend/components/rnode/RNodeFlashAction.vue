@@ -11,7 +11,7 @@
                 icon-name="alert-circle"
                 class="size-4 mt-0.5 text-red-600 dark:text-red-400 shrink-0"
             />
-            <span class="text-xs text-red-600 dark:text-red-400 break-words">{{ errorMessage }}</span>
+            <span class="text-xs text-red-600 dark:text-red-400 wrap-break-word">{{ errorMessage }}</span>
         </div>
 
         <button

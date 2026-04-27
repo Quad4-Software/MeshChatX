@@ -7,7 +7,7 @@
                 ref="inputEl"
                 :value="modelValue"
                 type="text"
-                class="flex-1 px-4 py-2.5 bg-transparent text-gray-900 dark:text-zinc-100 placeholder-gray-400 focus:outline-none focus:ring-0 border-0 text-sm"
+                class="flex-1 px-4 py-2.5 bg-transparent text-gray-900 dark:text-zinc-100 placeholder-gray-400 focus:outline-hidden focus:ring-0 border-0 text-sm"
                 :placeholder="$t('map.search_placeholder')"
                 @input="onInput"
                 @keydown.enter="$emit('search')"

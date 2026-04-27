@@ -9,7 +9,7 @@
         <div ref="dropdown-button" @click.stop="toggleMenu">
             <slot>
                 <div
-                    class="size-8 border border-gray-300 dark:border-zinc-700 rounded shadow cursor-pointer"
+                    class="size-8 border border-gray-300 dark:border-zinc-700 rounded-sm shadow-sm cursor-pointer"
                     :style="{ 'background-color': colour }"
                 ></div>
             </slot>
@@ -24,7 +24,7 @@
             leave-from-class="transform opacity-100 scale-100"
             leave-to-class="transform opacity-0 scale-95"
         >
-            <div v-if="isShowingMenu" class="absolute left-0 z-[100] mt-2">
+            <div v-if="isShowingMenu" class="absolute left-0 z-100 mt-2">
                 <v-color-picker
                     v-model="colourPickerValue"
                     :modes="['hex']"

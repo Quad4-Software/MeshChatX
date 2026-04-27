@@ -2,7 +2,7 @@
 
 <template>
     <div class="flex flex-col flex-1 h-full min-w-0 overflow-hidden bg-slate-50 dark:bg-zinc-950">
-        <div class="bg-slate-50 dark:bg-zinc-950 border-b border-gray-200 dark:border-zinc-800 shadow-sm z-10">
+        <div class="bg-slate-50 dark:bg-zinc-950 border-b border-gray-200 dark:border-zinc-800 shadow-xs z-10">
             <div class="px-4 py-3 md:px-6 md:py-4 flex flex-wrap items-center justify-between gap-3 min-w-0">
                 <div class="flex items-center gap-3 min-w-0">
                     <div class="p-2 bg-teal-100 dark:bg-teal-900/30 rounded-xl shrink-0">
@@ -25,7 +25,7 @@
                     class="inline-flex items-center gap-2 text-sm text-teal-600 dark:text-teal-300 hover:underline shrink-0"
                 >
                     <MaterialDesignIcon icon-name="arrow-left" class="size-4" />
-                    {{ $t("rngit_explorer.back_tools") }}
+                    {{ $t("tools.back_to_tools") }}
                 </RouterLink>
             </div>
         </div>
@@ -123,7 +123,7 @@
                             <input
                                 v-model="forPush"
                                 type="checkbox"
-                                class="rounded border-gray-300 shrink-0 mt-0.5"
+                                class="rounded-sm border-gray-300 shrink-0 mt-0.5"
                                 :disabled="busy"
                             />
                             <span>{{ $t("rngit_explorer.for_push") }}</span>
@@ -204,7 +204,7 @@
                         </div>
                         <div class="flex flex-wrap gap-2 items-start">
                             <pre
-                                class="flex-1 min-w-0 p-2 rounded bg-gray-100 dark:bg-zinc-900 text-xs font-mono text-gray-800 dark:text-zinc-200 overflow-x-auto whitespace-pre-wrap break-all"
+                                class="flex-1 min-w-0 p-2 rounded-sm bg-gray-100 dark:bg-zinc-900 text-xs font-mono text-gray-800 dark:text-zinc-200 overflow-x-auto whitespace-pre-wrap break-all"
                                 >{{ selected.clone_command }}</pre
                             >
                             <button
@@ -227,7 +227,7 @@
                             }}</span>
                         </div>
                         <pre
-                            class="p-2 rounded bg-gray-100 dark:bg-zinc-900 text-xs font-mono text-gray-800 dark:text-zinc-200 max-h-48 overflow-y-auto whitespace-pre-wrap break-all"
+                            class="p-2 rounded-sm bg-gray-100 dark:bg-zinc-900 text-xs font-mono text-gray-800 dark:text-zinc-200 max-h-48 overflow-y-auto whitespace-pre-wrap break-all"
                             >{{ selected.refs_preview }}</pre
                         >
                     </div>

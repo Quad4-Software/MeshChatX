@@ -4,7 +4,7 @@
     <div class="p-3 rounded-xl border border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/30">
         <div class="flex justify-between items-start mb-2">
             <span
-                class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-gray-200 dark:bg-zinc-800 text-gray-600 dark:text-zinc-400"
+                class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-sm bg-gray-200 dark:bg-zinc-800 text-gray-600 dark:text-zinc-400"
             >
                 {{ item.is_outbound ? $t("messages.telemetry_label_sent") : $t("messages.telemetry_label_received") }}
             </span>

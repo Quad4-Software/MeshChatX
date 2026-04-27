@@ -2,10 +2,10 @@
 
 <template>
     <div
-        class="absolute top-[calc(0.5rem+2.75rem+0.5rem+2.75rem)] left-1/2 -translate-x-1/2 z-[19] w-[min(100vw-2rem,24rem)] pointer-events-auto"
+        class="absolute top-[calc(0.5rem+2.75rem+0.5rem+2.75rem)] left-1/2 -translate-x-1/2 z-19 w-[min(100vw-2rem,24rem)] pointer-events-auto"
     >
         <div
-            class="bg-white/95 dark:bg-zinc-900/95 backdrop-blur border border-gray-200 dark:border-zinc-700 rounded-xl shadow-lg px-3 py-2 text-xs text-gray-800 dark:text-zinc-200"
+            class="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm border border-gray-200 dark:border-zinc-700 rounded-xl shadow-lg px-3 py-2 text-xs text-gray-800 dark:text-zinc-200"
         >
             <p class="font-medium text-center" :class="showFromHere ? 'mb-2' : ''">{{ instructionText }}</p>
             <button

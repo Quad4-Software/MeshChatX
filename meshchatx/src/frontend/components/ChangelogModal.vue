@@ -12,7 +12,7 @@
         @update:model-value="onVisibleUpdate"
     >
         <v-card
-            class="flex min-h-0 flex-1 flex-col bg-white dark:bg-zinc-900 border-0 overflow-hidden h-full max-h-[100dvh]"
+            class="flex min-h-0 flex-1 flex-col bg-white dark:bg-zinc-900 border-0 overflow-hidden h-full max-h-dvh"
         >
             <!-- Header -->
             <v-toolbar flat color="transparent" class="px-3 sm:px-4 border-b dark:border-zinc-800 shrink-0">
@@ -25,7 +25,7 @@
                     </v-toolbar-title>
                     <span
                         v-if="version"
-                        class="ml-3 font-black text-[10px] px-2 h-5 tracking-tighter uppercase rounded-sm bg-blue-600 text-white inline-flex items-center"
+                        class="ml-3 font-black text-[10px] px-2 h-5 tracking-tighter uppercase rounded-xs bg-blue-600 text-white inline-flex items-center"
                     >
                         v{{ version }}
                     </span>
@@ -50,7 +50,7 @@
                 <div v-else-if="error" class="flex flex-col items-center justify-center h-full text-center space-y-4">
                     <v-icon icon="mdi-alert-circle-outline" size="64" color="red"></v-icon>
                     <div class="text-red-500 font-bold text-lg">{{ error }}</div>
-                    <button type="button" class="primary-chip !px-6" @click="fetchChangelog">Retry</button>
+                    <button type="button" class="primary-chip px-6!" @click="fetchChangelog">Retry</button>
                 </div>
 
                 <div
@@ -86,7 +86,7 @@
                     ></v-checkbox>
                 </div>
                 <v-spacer></v-spacer>
-                <button type="button" class="primary-chip !px-8 !h-10 !rounded-xl" @click="close">
+                <button type="button" class="primary-chip px-8! h-10! rounded-xl!" @click="close">
                     {{ $t("common.close", "Close") }}
                 </button>
             </v-card-actions>
@@ -106,7 +106,7 @@
                         </h1>
                         <div class="flex items-center gap-2">
                             <span
-                                class="font-black text-[10px] px-2 h-5 rounded-sm bg-blue-600 text-white inline-flex items-center"
+                                class="font-black text-[10px] px-2 h-5 rounded-xs bg-blue-600 text-white inline-flex items-center"
                             >
                                 v{{ version }}
                             </span>
@@ -122,7 +122,7 @@
                 <div v-else-if="error" class="flex flex-col items-center justify-center py-20 text-center space-y-4">
                     <v-icon icon="mdi-alert-circle-outline" size="64" color="red"></v-icon>
                     <div class="text-red-500 font-bold text-lg">{{ error }}</div>
-                    <button type="button" class="primary-chip !px-6" @click="fetchChangelog">Retry</button>
+                    <button type="button" class="primary-chip px-6!" @click="fetchChangelog">Retry</button>
                 </div>
 
                 <div v-else class="changelog-content max-w-none prose dark:prose-invert pb-20">
@@ -250,6 +250,7 @@ export default {
 </script>
 
 <style>
+@reference "../style.css";
 .changelog-dialog .v-overlay__content {
     border-radius: 0.5rem !important;
     overflow: hidden;
@@ -265,54 +266,54 @@ export default {
 }
 
 .changelog-content {
-    @apply leading-relaxed !important;
+    @apply leading-relaxed;
 }
 
 .changelog-content h1 {
-    @apply text-3xl font-black mt-2 mb-6 text-gray-900 dark:text-white tracking-tight uppercase border-b-2 border-gray-100 dark:border-zinc-800 pb-2 !important;
+    @apply text-3xl font-black mt-2 mb-6 text-gray-900 dark:text-white tracking-tight uppercase border-b-2 border-gray-100 dark:border-zinc-800 pb-2;
 }
 
 .changelog-content h2 {
-    @apply flex items-center gap-3 text-xl font-bold mt-8 mb-4 text-gray-900 dark:text-white !important;
+    @apply flex items-center gap-3 text-xl font-bold mt-8 mb-4 text-gray-900 dark:text-white;
 }
 
 /* Style for [v4.0.0] style headers in markdown */
 .changelog-content h2::before {
     content: "VERSION";
-    @apply text-[10px] font-black bg-blue-500 text-white px-1.5 py-0.5 rounded-sm tracking-tighter !important;
+    @apply text-[10px] font-black bg-blue-500 text-white px-1.5 py-0.5 rounded-xs tracking-tighter;
 }
 
 .changelog-content h3 {
-    @apply text-lg font-bold mt-6 mb-3 text-blue-600 dark:text-blue-400 flex items-center gap-2 !important;
+    @apply text-lg font-bold mt-6 mb-3 text-blue-600 dark:text-blue-400 flex items-center gap-2;
 }
 
 .changelog-content h3::before {
     content: "•";
-    @apply text-blue-500 font-black !important;
+    @apply text-blue-500 font-black;
 }
 
 .changelog-content p {
-    @apply my-4 text-gray-700 dark:text-zinc-300 leading-relaxed !important;
+    @apply my-4 text-gray-700 dark:text-zinc-300 leading-relaxed;
 }
 
 .changelog-content ul {
-    @apply my-6 space-y-3 list-disc pl-6 !important;
+    @apply my-6 space-y-3 list-disc pl-6;
 }
 
 .changelog-content li {
-    @apply text-gray-600 dark:text-zinc-400 transition-colors hover:text-gray-900 dark:hover:text-white !important;
+    @apply text-gray-600 dark:text-zinc-400 transition-colors hover:text-gray-900 dark:hover:text-white;
 }
 
 .changelog-content strong {
-    @apply font-bold text-gray-900 dark:text-zinc-100 !important;
+    @apply font-bold text-gray-900 dark:text-zinc-100;
 }
 
 .changelog-content code {
-    @apply bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded-sm text-blue-700 dark:text-blue-300 font-mono text-[0.85em] border border-blue-100 dark:border-blue-800/30 !important;
+    @apply bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded-xs text-blue-700 dark:text-blue-300 font-mono text-[0.85em] border border-blue-100 dark:border-blue-800/30;
 }
 
 .changelog-content hr {
-    @apply my-10 border-gray-100 dark:border-zinc-800 !important;
+    @apply my-10 border-gray-100 dark:border-zinc-800;
 }
 
 /* Highlight tags like [4.0.0] if they are inside the text */
@@ -321,10 +322,10 @@ export default {
 }
 
 .changelog-content h2 {
-    @apply py-2 px-4 bg-gray-50 dark:bg-zinc-800/50 rounded-md border border-gray-100 dark:border-zinc-800 !important;
+    @apply py-2 px-4 bg-gray-50 dark:bg-zinc-800/50 rounded-md border border-gray-100 dark:border-zinc-800;
 }
 
 .changelog-content .version-tag {
-    @apply bg-blue-600 text-white px-2 py-0.5 rounded-sm font-black text-sm tracking-tighter !important;
+    @apply bg-blue-600 text-white px-2 py-0.5 rounded-xs font-black text-sm tracking-tighter;
 }
 </style>

@@ -8,7 +8,7 @@
             }}</span>
         </div>
         <label class="flex items-center gap-2 text-[10px] text-gray-600 dark:text-zinc-400 cursor-pointer select-none">
-            <input v-model="mergeImport" type="checkbox" class="rounded border-gray-300 dark:border-zinc-600" />
+            <input v-model="mergeImport" type="checkbox" class="rounded-sm border-gray-300 dark:border-zinc-600" />
             {{ $t("map.vector_exchange_merge") }}
         </label>
         <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -38,7 +38,7 @@
             </button>
             <button
                 type="button"
-                class="flex items-center justify-center px-2 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-all text-[10px] font-bold uppercase tracking-tight shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="flex items-center justify-center px-2 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-all text-[10px] font-bold uppercase tracking-tight shadow-xs active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 :disabled="disabled || !hasFeatures"
                 @click="$emit('export-geojson')"
             >
@@ -46,7 +46,7 @@
             </button>
             <button
                 type="button"
-                class="flex items-center justify-center px-2 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-all text-[10px] font-bold uppercase tracking-tight shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="flex items-center justify-center px-2 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-all text-[10px] font-bold uppercase tracking-tight shadow-xs active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 :disabled="disabled || !hasFeatures"
                 @click="$emit('export-kml')"
             >
@@ -54,7 +54,7 @@
             </button>
             <button
                 type="button"
-                class="flex items-center justify-center px-2 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-all text-[10px] font-bold uppercase tracking-tight shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="flex items-center justify-center px-2 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-all text-[10px] font-bold uppercase tracking-tight shadow-xs active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 :disabled="disabled || !hasFeatures"
                 @click="$emit('export-kmz')"
             >

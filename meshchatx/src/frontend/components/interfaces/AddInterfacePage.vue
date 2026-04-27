@@ -155,7 +155,7 @@
                                         <div class="mt-3">
                                             <select
                                                 v-model="newInterfaceType"
-                                                class="input-field appearance-none pr-10 !py-1.5 !text-[11px] opacity-70 hover:opacity-100"
+                                                class="input-field appearance-none pr-10 py-1.5! text-[11px]! opacity-70 hover:opacity-100"
                                             >
                                                 <option :value="null">More options...</option>
                                                 <option value="AX25KISSInterface">AX.25 KISS (Amateur Radio)</option>
@@ -218,7 +218,7 @@
                                                     id="tcp-kiss-framing"
                                                     v-model="newInterfaceKISSFramingEnabled"
                                                 />
-                                                <FormLabel for="tcp-kiss-framing" class="cursor-pointer !mb-0 text-sm"
+                                                <FormLabel for="tcp-kiss-framing" class="cursor-pointer mb-0! text-sm"
                                                     >Use KISS framing (legacy compatibility)</FormLabel
                                                 >
                                             </div>
@@ -227,9 +227,24 @@
                                                     id="tcp-i2p-tunneled"
                                                     v-model="newInterfaceI2PTunnelingEnabled"
                                                 />
-                                                <FormLabel for="tcp-i2p-tunneled" class="cursor-pointer !mb-0 text-sm"
+                                                <FormLabel for="tcp-i2p-tunneled" class="cursor-pointer mb-0! text-sm"
                                                     >I2P Tunneled (target is an I2P b32)</FormLabel
                                                 >
+                                            </div>
+                                            <div class="flex items-start gap-2">
+                                                <Toggle id="tcp-bootstrap-only" v-model="newInterfaceBootstrapOnly" />
+                                                <div class="min-w-0">
+                                                    <FormLabel
+                                                        for="tcp-bootstrap-only"
+                                                        class="cursor-pointer mb-0! text-sm block"
+                                                        >{{
+                                                            $t("interfaces.discovery_default_bootstrap_only")
+                                                        }}</FormLabel
+                                                    >
+                                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                                        {{ $t("interfaces.discovery_default_bootstrap_only_hint") }}
+                                                    </p>
+                                                </div>
                                             </div>
                                             <div class="grid grid-cols-3 gap-3">
                                                 <div>
@@ -273,7 +288,7 @@
                                                 />
                                                 <FormLabel
                                                     for="backbone-listen-mode"
-                                                    class="cursor-pointer !mb-0 text-sm"
+                                                    class="cursor-pointer mb-0! text-sm"
                                                     >Listener mode (host this backbone)</FormLabel
                                                 >
                                             </div>
@@ -304,6 +319,24 @@
                                                         placeholder="32 hex chars from the directory"
                                                         class="input-field font-mono text-xs"
                                                     />
+                                                </div>
+                                                <div class="flex items-start gap-2">
+                                                    <Toggle
+                                                        id="backbone-bootstrap-only"
+                                                        v-model="newInterfaceBootstrapOnly"
+                                                    />
+                                                    <div class="min-w-0">
+                                                        <FormLabel
+                                                            for="backbone-bootstrap-only"
+                                                            class="cursor-pointer mb-0! text-sm block"
+                                                            >{{
+                                                                $t("interfaces.discovery_default_bootstrap_only")
+                                                            }}</FormLabel
+                                                        >
+                                                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                                            {{ $t("interfaces.discovery_default_bootstrap_only_hint") }}
+                                                        </p>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div v-else class="space-y-4">
@@ -341,7 +374,7 @@
                                                     />
                                                     <FormLabel
                                                         for="backbone-listen-ipv6"
-                                                        class="cursor-pointer !mb-0 text-sm"
+                                                        class="cursor-pointer mb-0! text-sm"
                                                         >Prefer IPv6</FormLabel
                                                     >
                                                 </div>
@@ -388,7 +421,7 @@
                                                     <Toggle id="tcp-server-ipv6" v-model="newInterfacePreferIPV6" />
                                                     <FormLabel
                                                         for="tcp-server-ipv6"
-                                                        class="cursor-pointer !mb-0 text-sm"
+                                                        class="cursor-pointer mb-0! text-sm"
                                                         >Prefer IPv6</FormLabel
                                                     >
                                                 </div>
@@ -397,7 +430,7 @@
                                                         id="tcp-server-i2p"
                                                         v-model="newInterfaceI2PTunnelingEnabled"
                                                     />
-                                                    <FormLabel for="tcp-server-i2p" class="cursor-pointer !mb-0 text-sm"
+                                                    <FormLabel for="tcp-server-i2p" class="cursor-pointer mb-0! text-sm"
                                                         >I2P Tunneled</FormLabel
                                                     >
                                                 </div>
@@ -436,7 +469,7 @@
                                             </div>
                                             <div class="flex items-center gap-2">
                                                 <Toggle id="i2p-connectable" v-model="newInterfaceConnectable" />
-                                                <FormLabel for="i2p-connectable" class="cursor-pointer !mb-0 text-sm"
+                                                <FormLabel for="i2p-connectable" class="cursor-pointer mb-0! text-sm"
                                                     >Allow incoming peers (connectable)</FormLabel
                                                 >
                                             </div>
@@ -467,7 +500,7 @@
                                                     </div>
                                                     <button
                                                         type="button"
-                                                        class="secondary-chip !py-1 !px-3 !text-[10px]"
+                                                        class="secondary-chip py-1! px-3! text-[10px]!"
                                                         @click="addI2PPeer('')"
                                                     >
                                                         <MaterialDesignIcon icon-name="plus" class="size-3" /> Add Peer
@@ -494,7 +527,7 @@
                                                 class="flex items-center gap-2 pb-2"
                                             >
                                                 <Toggle id="rnode-use-ip" v-model="newInterfaceRNodeUseIP" />
-                                                <FormLabel for="rnode-use-ip" class="cursor-pointer !mb-0 text-sm"
+                                                <FormLabel for="rnode-use-ip" class="cursor-pointer mb-0! text-sm"
                                                     >Connect over network (IP)</FormLabel
                                                 >
                                             </div>
@@ -655,7 +688,7 @@
                                             </div>
                                             <div class="flex items-center gap-2">
                                                 <Toggle id="rnode-flow-control" v-model="newInterfaceFlowControl" />
-                                                <FormLabel for="rnode-flow-control" class="cursor-pointer !mb-0 text-sm"
+                                                <FormLabel for="rnode-flow-control" class="cursor-pointer mb-0! text-sm"
                                                     >Hardware flow control</FormLabel
                                                 >
                                             </div>
@@ -810,7 +843,7 @@
                                             </div>
                                             <div class="flex items-center gap-2">
                                                 <Toggle id="kiss-flow-control" v-model="newInterfaceFlowControl" />
-                                                <FormLabel for="kiss-flow-control" class="cursor-pointer !mb-0 text-sm"
+                                                <FormLabel for="kiss-flow-control" class="cursor-pointer mb-0! text-sm"
                                                     >Hardware flow control</FormLabel
                                                 >
                                             </div>
@@ -1003,7 +1036,7 @@
                                 <!-- RNode Advanced Tools -->
                                 <ExpandingSection
                                     v-if="['RNodeInterface', 'RNodeIPInterface'].includes(newInterfaceType)"
-                                    class="glass-card !p-0 overflow-hidden"
+                                    class="glass-card p-0! overflow-hidden"
                                 >
                                     <template #title
                                         ><span class="text-sm font-bold">Calculated Parameters</span></template
@@ -1055,7 +1088,7 @@
                                 </ExpandingSection>
 
                                 <!-- Interface Discovery Settings -->
-                                <ExpandingSection class="glass-card !p-0 overflow-hidden">
+                                <ExpandingSection class="glass-card p-0! overflow-hidden">
                                     <template #title
                                         ><span class="text-sm font-bold">Interface Discovery</span></template
                                     >
@@ -1063,7 +1096,7 @@
                                         <div class="p-6 space-y-6">
                                             <div class="flex items-center justify-between">
                                                 <div class="max-w-md">
-                                                    <FormLabel class="glass-label !mb-0"
+                                                    <FormLabel class="glass-label mb-0!"
                                                         >Publish Discovery Announce</FormLabel
                                                     >
                                                     <p class="text-xs text-gray-400">
@@ -1157,13 +1190,13 @@
                                                 </div>
                                                 <div class="flex flex-wrap items-center justify-between gap-4">
                                                     <div class="flex items-center justify-between gap-4 max-w-md">
-                                                        <FormLabel class="glass-label !mb-0"
+                                                        <FormLabel class="glass-label mb-0!"
                                                             >Encrypt discovery</FormLabel
                                                         >
                                                         <Toggle v-model="discovery.discovery_encrypt" />
                                                     </div>
                                                     <div class="flex items-center justify-between gap-4 max-w-md">
-                                                        <FormLabel class="glass-label !mb-0"
+                                                        <FormLabel class="glass-label mb-0!"
                                                             >Publish IFAC in announce</FormLabel
                                                         >
                                                         <Toggle v-model="discovery.publish_ifac" />
@@ -1175,7 +1208,7 @@
                                 </ExpandingSection>
 
                                 <!-- Global Discovery Settings -->
-                                <ExpandingSection class="glass-card !p-0 overflow-hidden">
+                                <ExpandingSection class="glass-card p-0! overflow-hidden">
                                     <template #title
                                         ><span class="text-sm font-bold">Discovery Listener (Peer)</span></template
                                     >
@@ -1183,7 +1216,7 @@
                                         <div class="p-6 space-y-6">
                                             <div class="flex items-center justify-between">
                                                 <div class="max-w-md">
-                                                    <FormLabel class="glass-label !mb-0"
+                                                    <FormLabel class="glass-label mb-0!"
                                                         >Enable Discovery Listener</FormLabel
                                                     >
                                                     <p class="text-xs text-gray-400">
@@ -1191,6 +1224,19 @@
                                                     </p>
                                                 </div>
                                                 <Toggle v-model="reticulumDiscovery.discover_interfaces" />
+                                            </div>
+                                            <div
+                                                class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between pt-2"
+                                            >
+                                                <div class="max-w-xl min-w-0">
+                                                    <FormLabel class="glass-label mb-0! text-sm">{{
+                                                        $t("interfaces.discovery_default_bootstrap_only")
+                                                    }}</FormLabel>
+                                                    <p class="text-xs text-gray-400">
+                                                        {{ $t("interfaces.discovery_default_bootstrap_only_hint") }}
+                                                    </p>
+                                                </div>
+                                                <Toggle v-model="reticulumDiscovery.default_bootstrap_only" />
                                             </div>
                                             <div
                                                 v-if="reticulumDiscovery.discover_interfaces"
@@ -1213,7 +1259,7 @@
                                                 <div class="flex justify-end">
                                                     <button
                                                         type="button"
-                                                        class="primary-chip !text-[10px]"
+                                                        class="primary-chip text-[10px]!"
                                                         :disabled="savingDiscovery"
                                                         @click="saveReticulumDiscoveryConfig"
                                                     >
@@ -1227,7 +1273,7 @@
                                 </ExpandingSection>
 
                                 <!-- Shared Advanced Settings -->
-                                <ExpandingSection class="glass-card !p-0 overflow-hidden">
+                                <ExpandingSection class="glass-card p-0! overflow-hidden">
                                     <template #title
                                         ><span class="text-sm font-bold"
                                             >Advanced Parameters (IFAC, Mode)</span
@@ -1285,14 +1331,14 @@
                             >
                                 <button
                                     type="button"
-                                    class="secondary-chip !px-10 !py-3 !text-sm"
+                                    class="secondary-chip px-10! py-3! text-sm!"
                                     @click="$router.push({ name: 'interfaces' })"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="button"
-                                    class="primary-chip !px-16 !py-3 !text-sm"
+                                    class="primary-chip px-16! py-3! text-sm!"
                                     :disabled="isSaving"
                                     @click="saveInterface"
                                 >
@@ -1313,7 +1359,7 @@
                     >
                         <div
                             v-if="!isEditingInterface && communityPresetsEnabled && communityInterfaces.length > 0"
-                            class="glass-card !p-0 overflow-hidden"
+                            class="glass-card p-0! overflow-hidden"
                         >
                             <div
                                 class="bg-gray-50/50 dark:bg-zinc-800/50 p-4 border-b border-gray-200 dark:border-zinc-800 flex items-center justify-between gap-2"
@@ -1327,14 +1373,30 @@
                                         {{ $t("interfaces.community_quick_start_hint") }}
                                     </p>
                                 </div>
-                                <button
-                                    type="button"
-                                    class="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-200 transition-colors p-1 shrink-0"
-                                    :title="$t('interfaces.community_quick_start_hide')"
-                                    @click="updateConfig({ show_suggested_community_interfaces: false })"
-                                >
-                                    <MaterialDesignIcon icon-name="close" class="size-5" />
-                                </button>
+                                <div class="flex items-center gap-0.5 shrink-0">
+                                    <button
+                                        type="button"
+                                        class="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-200 transition-colors p-1 rounded-full"
+                                        :disabled="refreshingCommunityPresets"
+                                        :title="$t('interfaces.community_presets_refresh')"
+                                        :aria-label="$t('interfaces.community_presets_refresh')"
+                                        @click="refreshCommunityPresets"
+                                    >
+                                        <MaterialDesignIcon
+                                            icon-name="refresh"
+                                            class="size-5"
+                                            :class="{ 'animate-spin-reverse': refreshingCommunityPresets }"
+                                        />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-200 transition-colors p-1 shrink-0"
+                                        :title="$t('interfaces.community_quick_start_hide')"
+                                        @click="updateConfig({ show_suggested_community_interfaces: false })"
+                                    >
+                                        <MaterialDesignIcon icon-name="close" class="size-5" />
+                                    </button>
+                                </div>
                             </div>
 
                             <div
@@ -1383,7 +1445,7 @@
                                     </div>
                                     <button
                                         type="button"
-                                        class="primary-chip !py-1.5 !px-2 !text-[10px] shrink-0"
+                                        class="primary-chip py-1.5! px-2! text-[10px]! shrink-0"
                                         @click="quickAddInterfaceFromConfig(communityIface)"
                                     >
                                         {{ $t("interfaces.community_use_preset") }}
@@ -1403,7 +1465,7 @@
                             </p>
                             <button
                                 type="button"
-                                class="primary-chip !py-2 !px-4 !text-xs w-full"
+                                class="primary-chip py-2! px-4! text-xs! w-full"
                                 @click="updateConfig({ show_suggested_community_interfaces: true })"
                             >
                                 {{ $t("interfaces.community_presets_show_again") }}
@@ -1440,14 +1502,14 @@
                                             href="https://directory.rns.recipes/"
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            class="secondary-chip !py-1 !px-2 !text-[9px]"
+                                            class="secondary-chip py-1! px-2! text-[9px]!"
                                             >rns.recipes</a
                                         >
                                         <a
                                             href="https://rmap.world/"
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            class="secondary-chip !py-1 !px-2 !text-[9px]"
+                                            class="secondary-chip py-1! px-2! text-[9px]!"
                                             >rmap.world</a
                                         >
                                     </div>
@@ -1455,7 +1517,7 @@
                             </div>
 
                             <div
-                                class="glass-card flex flex-col gap-2 !p-4 bg-emerald-50/20 dark:bg-emerald-900/5 border-emerald-100 dark:border-emerald-900/20"
+                                class="glass-card flex flex-col gap-2 p-4! bg-emerald-50/20 dark:bg-emerald-900/5 border-emerald-100 dark:border-emerald-900/20"
                             >
                                 <div class="flex items-center justify-between gap-2">
                                     <h3
@@ -1471,7 +1533,7 @@
                                 <textarea
                                     v-model="rawConfigInput"
                                     :placeholder="$t('interfaces.quick_import_placeholder')"
-                                    class="w-full h-20 bg-white/50 dark:bg-zinc-900/50 border border-emerald-100/50 dark:border-emerald-900/30 rounded-xl p-2 text-[10px] font-mono focus:ring-1 focus:ring-emerald-500 outline-none transition"
+                                    class="w-full h-20 bg-white/50 dark:bg-zinc-900/50 border border-emerald-100/50 dark:border-emerald-900/30 rounded-xl p-2 text-[10px] font-mono focus:ring-1 focus:ring-emerald-500 outline-hidden transition"
                                     @input="handleRawConfigInput"
                                 ></textarea>
 
@@ -1551,6 +1613,7 @@ export default {
             newInterfaceConnectTimeout: null,
             newInterfaceMaxReconnectTries: null,
             newInterfaceFixedMTU: null,
+            newInterfaceBootstrapOnly: true,
             newInterfaceConfiguredBitrate: null,
             newInterfaceConnectable: true,
             newInterfaceBackboneListenMode: false,
@@ -1589,10 +1652,12 @@ export default {
                 interface_discovery_blacklist: "",
                 required_discovery_value: null,
                 autoconnect_discovered_interfaces: 0,
+                default_bootstrap_only: true,
                 network_identity: "",
             },
 
             savingDiscovery: false,
+            refreshingCommunityPresets: false,
 
             newInterfaceForwardIp: null,
             newInterfaceForwardPort: null,
@@ -1774,6 +1839,12 @@ export default {
                 this.reticulumDiscovery.discover_interfaces = this.parseBool(discovery.discover_interfaces);
                 this.reticulumDiscovery.interface_discovery_whitelist = discovery.interface_discovery_whitelist ?? "";
                 this.reticulumDiscovery.interface_discovery_blacklist = discovery.interface_discovery_blacklist ?? "";
+                this.reticulumDiscovery.default_bootstrap_only = this.parseBool(
+                    discovery.default_bootstrap_only ?? true
+                );
+                if (!this.isEditingInterface) {
+                    this.newInterfaceBootstrapOnly = this.reticulumDiscovery.default_bootstrap_only;
+                }
             } catch (e) {
                 console.log(e);
             }
@@ -1786,6 +1857,7 @@ export default {
                     discover_interfaces: this.reticulumDiscovery.discover_interfaces,
                     interface_discovery_whitelist: this.reticulumDiscovery.interface_discovery_whitelist || null,
                     interface_discovery_blacklist: this.reticulumDiscovery.interface_discovery_blacklist || null,
+                    default_bootstrap_only: this.reticulumDiscovery.default_bootstrap_only,
                 };
                 await window.api.patch(`/api/v1/reticulum/discovery`, payload);
                 ToastUtils.success("Discovery listener preferences saved.");
@@ -1813,6 +1885,22 @@ export default {
                 this.communityInterfaces = [];
             } finally {
                 this.communityInterfacesFetchDone = true;
+            }
+        },
+        async refreshCommunityPresets() {
+            if (this.refreshingCommunityPresets) return;
+            this.refreshingCommunityPresets = true;
+            try {
+                const r = await window.api.post("/api/v1/community-interfaces/refresh", {});
+                const n = r.data?.count ?? 0;
+                ToastUtils.success(this.$t("interfaces.community_presets_refreshed", { count: n }));
+                await this.loadCommunityInterfaces();
+            } catch (e) {
+                const msg = e.response?.data?.message || this.$t("interfaces.community_presets_refresh_failed");
+                ToastUtils.error(msg);
+                console.log(e);
+            } finally {
+                this.refreshingCommunityPresets = false;
             }
         },
         async loadInterfaceToEdit(interfaceName) {
@@ -1853,6 +1941,18 @@ export default {
                     this.newInterfaceBackboneListenIp = iface.listen_ip ?? null;
                     this.newInterfaceBackboneListenPort = iface.listen_port ?? null;
                     this.newInterfaceBackboneListenDevice = iface.device ?? null;
+                }
+
+                if (
+                    iface.type === "TCPClientInterface" ||
+                    (iface.type === "BackboneInterface" && !(iface.listen_port != null && iface.listen_port !== ""))
+                ) {
+                    this.newInterfaceBootstrapOnly =
+                        iface.bootstrap_only !== undefined &&
+                        iface.bootstrap_only !== null &&
+                        iface.bootstrap_only !== ""
+                            ? this.parseBool(iface.bootstrap_only)
+                            : false;
                 }
 
                 this.newInterfaceGroupID = iface.group_id ?? null;
@@ -2059,6 +2159,9 @@ export default {
             if (config.connect_timeout) this.newInterfaceConnectTimeout = Number(config.connect_timeout);
             if (config.max_reconnect_tries) this.newInterfaceMaxReconnectTries = Number(config.max_reconnect_tries);
             if (config.fixed_mtu) this.newInterfaceFixedMTU = Number(config.fixed_mtu);
+            if (config.bootstrap_only !== undefined && config.bootstrap_only !== null && config.bootstrap_only !== "") {
+                this.newInterfaceBootstrapOnly = this.parseBool(config.bootstrap_only);
+            }
             if (config.device) this.newInterfaceNetworkDevice = config.device;
             if (config.prefer_ipv6 !== undefined) this.newInterfacePreferIPV6 = this.parseBool(config.prefer_ipv6);
             if (config.connectable !== undefined) this.newInterfaceConnectable = this.parseBool(config.connectable);
@@ -2099,6 +2202,20 @@ export default {
                 config.discoverable !== undefined && config.discoverable !== null && config.discoverable !== ""
                     ? this.parseBool(config.discoverable)
                     : false;
+            const backboneConnector =
+                config.type === "BackboneInterface" &&
+                Boolean(config.remote || config.target_host) &&
+                !(config.listen_port != null && String(config.listen_port).trim() !== "");
+            let bootstrapOnlyPayload;
+            if (config.type === "TCPClientInterface" || backboneConnector) {
+                if (
+                    config.bootstrap_only !== undefined &&
+                    config.bootstrap_only !== null &&
+                    config.bootstrap_only !== ""
+                ) {
+                    bootstrapOnlyPayload = this.parseBool(config.bootstrap_only);
+                }
+            }
             const i2pPeers =
                 config.type === "I2PInterface"
                     ? Array.isArray(config.i2p_peers)
@@ -2200,6 +2317,7 @@ export default {
                     config.flow_control !== undefined && config.flow_control !== null && config.flow_control !== ""
                         ? this.parseBool(config.flow_control)
                         : null,
+                bootstrap_only: bootstrapOnlyPayload,
             };
         },
         applyDiscoveredInterfacePrefill() {
@@ -2306,6 +2424,11 @@ export default {
                     connect_timeout: this.numOrNull(this.newInterfaceConnectTimeout),
                     max_reconnect_tries: this.numOrNull(this.newInterfaceMaxReconnectTries),
                     fixed_mtu: this.numOrNull(this.newInterfaceFixedMTU),
+                    bootstrap_only:
+                        this.newInterfaceType === "TCPClientInterface" ||
+                        (this.newInterfaceType === "BackboneInterface" && !this.newInterfaceBackboneListenMode)
+                            ? this.newInterfaceBootstrapOnly === true
+                            : undefined,
                     connectable:
                         this.newInterfaceType === "I2PInterface" ? this.newInterfaceConnectable === true : null,
                     port: this.newInterfaceRNodeUseIP
@@ -2437,8 +2560,9 @@ export default {
 </script>
 
 <style scoped>
+@reference "../../style.css";
 .glass-card {
-    @apply bg-white/95 dark:bg-zinc-900/85 backdrop-blur border border-gray-200 dark:border-zinc-800 rounded-3xl shadow-xl p-6;
+    @apply bg-white/95 dark:bg-zinc-900/85 backdrop-blur-sm border border-gray-200 dark:border-zinc-800 rounded-3xl shadow-xl p-6;
 }
 .input-field {
     @apply bg-gray-50/90 dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-700 text-sm rounded-2xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 dark:focus:ring-blue-500 dark:focus:border-blue-500 block w-full p-2.5 text-gray-900 dark:text-gray-100 transition;

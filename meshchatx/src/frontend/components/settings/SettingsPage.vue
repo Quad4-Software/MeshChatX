@@ -3,10 +3,10 @@
 <template>
     <div
         v-if="config"
-        class="flex flex-col flex-1 overflow-hidden min-w-0 bg-gradient-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
+        class="flex flex-col flex-1 overflow-hidden min-w-0 bg-linear-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
     >
         <div class="flex-1 overflow-y-auto overflow-x-hidden w-full min-w-0 px-3 sm:px-5 md:px-5 lg:px-8 py-4 sm:py-6">
-            <div class="space-y-0 w-full max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto min-w-0">
+            <div class="space-y-0 w-full max-w-6xl xl:max-w-7xl 2xl:max-w-360 mx-auto min-w-0">
                 <div class="settings-section settings-section--hero">
                     <div class="flex flex-col lg:flex-row lg:items-center gap-4">
                         <div class="flex-1 space-y-1">
@@ -19,7 +19,7 @@
                                         v-model="config.display_name"
                                         type="text"
                                         :placeholder="$t('app.display_name_placeholder')"
-                                        class="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-base font-semibold text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/60 focus:border-blue-500 outline-none transition"
+                                        class="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-base font-semibold text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/60 focus:border-blue-500 outline-hidden transition"
                                         @input="onDisplayNameChange"
                                     />
                                 </div>
@@ -42,7 +42,7 @@
                         class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 mt-4 text-sm text-gray-600 dark:text-gray-300"
                     >
                         <div
-                            class="border border-gray-200/70 dark:border-zinc-800/80 py-3 px-3 sm:rounded-xl sm:bg-black/[0.02] dark:sm:bg-white/[0.02]"
+                            class="border border-gray-200/70 dark:border-zinc-800/80 py-3 px-3 sm:rounded-xl sm:bg-black/2 dark:sm:bg-white/2"
                         >
                             <div class="text-xs uppercase tracking-wide">{{ $t("app.theme") }}</div>
                             <div class="font-semibold text-gray-900 dark:text-white capitalize">
@@ -50,7 +50,7 @@
                             </div>
                         </div>
                         <div
-                            class="border border-gray-200/70 dark:border-zinc-800/80 py-3 px-3 sm:rounded-xl sm:bg-black/[0.02] dark:sm:bg-white/[0.02]"
+                            class="border border-gray-200/70 dark:border-zinc-800/80 py-3 px-3 sm:rounded-xl sm:bg-black/2 dark:sm:bg-white/2"
                         >
                             <div class="text-xs uppercase tracking-wide">{{ $t("app.transport") }}</div>
                             <div class="font-semibold text-gray-900 dark:text-white">
@@ -58,7 +58,7 @@
                             </div>
                         </div>
                         <div
-                            class="border border-gray-200/70 dark:border-zinc-800/80 py-3 px-3 sm:rounded-xl sm:bg-black/[0.02] dark:sm:bg-white/[0.02]"
+                            class="border border-gray-200/70 dark:border-zinc-800/80 py-3 px-3 sm:rounded-xl sm:bg-black/2 dark:sm:bg-white/2"
                         >
                             <div class="text-xs uppercase tracking-wide">{{ $t("app.propagation") }}</div>
                             <div class="font-semibold text-gray-900 dark:text-white">
@@ -102,20 +102,30 @@
                 <div
                     class="sticky top-0 z-10 py-3 sm:py-4 mb-2 border-b border-gray-200/50 dark:border-zinc-800/50 bg-transparent min-w-0"
                 >
-                    <div class="relative w-full max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto min-w-0 px-0">
+                    <div class="relative w-full max-w-6xl xl:max-w-7xl 2xl:max-w-360 mx-auto min-w-0 px-0">
                         <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                             <MaterialDesignIcon icon-name="magnify" class="size-5 text-gray-400" />
                         </div>
                         <input
-                            v-model="searchQuery"
-                            type="text"
-                            class="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl py-3 pl-12 pr-4 text-sm focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-none transition-all shadow-sm"
+                            :value="searchQuery"
+                            type="search"
+                            inputmode="search"
+                            enterkeyhint="search"
+                            autocomplete="off"
+                            autocorrect="off"
+                            autocapitalize="none"
+                            spellcheck="false"
+                            class="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl py-3 pl-12 pr-4 text-sm focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 outline-hidden transition-all shadow-xs"
                             :placeholder="$t('app.search_settings') || 'Search settings...'"
+                            @input="onSettingsSearchInput"
+                            @change="onSettingsSearchInput"
+                            @compositionend="onSettingsSearchCompositionEnd"
                         />
                         <button
-                            v-if="searchQuery"
+                            v-if="settingsSearchActive"
+                            type="button"
                             class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-                            @click="searchQuery = ''"
+                            @click="clearSettingsSearch"
                         >
                             <MaterialDesignIcon icon-name="close-circle" class="size-5" />
                         </button>
@@ -124,7 +134,7 @@
 
                 <!-- no results -->
                 <div
-                    v-if="searchQuery && !hasSearchResults"
+                    v-if="settingsSearchActive && !hasSearchResults"
                     class="flex flex-col items-center justify-center py-12 text-center"
                 >
                     <div
@@ -133,10 +143,11 @@
                         <MaterialDesignIcon icon-name="magnify-close" class="size-8 text-gray-400" />
                     </div>
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white">No results found</h3>
-                    <p class="text-gray-500 dark:text-gray-400">No settings match "{{ searchQuery }}"</p>
+                    <p class="text-gray-500 dark:text-gray-400">No settings match "{{ settingsSearchDisplay }}"</p>
                     <button
+                        type="button"
                         class="mt-4 px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition font-semibold text-sm"
-                        @click="searchQuery = ''"
+                        @click="clearSettingsSearch"
                     >
                         Clear search
                     </button>
@@ -148,9 +159,7 @@
                     class="columns-1 md:columns-2 xl:columns-2 2xl:columns-3 gap-x-8 gap-y-0"
                 >
                     <SettingsSectionBlock
-                        v-show="
-                            matchesSearch('stranger', 'attachments', 'trust', 'block', 'banner', 'unknown', 'contact')
-                        "
+                        v-show="matchesSearch(...sectionKeywords.strangerProtection)"
                         eyebrow="Security"
                         :title="$t('app.stranger_protection')"
                         :description="$t('app.stranger_protection_description')"
@@ -296,7 +305,7 @@
                             <label
                                 class="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 cursor-pointer"
                             >
-                                <input v-model="stickerImportReplaceDuplicates" type="checkbox" class="rounded" />
+                                <input v-model="stickerImportReplaceDuplicates" type="checkbox" class="rounded-sm" />
                                 {{ $t("stickers.replace_duplicates") }}
                             </label>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -360,7 +369,7 @@
                             <label
                                 class="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 cursor-pointer"
                             >
-                                <input v-model="gifImportReplaceDuplicates" type="checkbox" class="rounded" />
+                                <input v-model="gifImportReplaceDuplicates" type="checkbox" class="rounded-sm" />
                                 {{ $t("gifs.replace_duplicates") }}
                             </label>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1120,7 +1129,7 @@
                                     <input
                                         id="detailed-outbound-send-status"
                                         type="checkbox"
-                                        class="mt-1 rounded border-gray-300 dark:border-zinc-600"
+                                        class="mt-1 rounded-sm border-gray-300 dark:border-zinc-600"
                                         :checked="GlobalState.detailedOutboundSendStatus"
                                         @change="onDetailedOutboundSendStatusChange"
                                     />
@@ -1130,6 +1139,26 @@
                                         </div>
                                         <div class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
                                             {{ $t("app.detailed_outbound_send_status_description") }}
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <div
+                                    class="flex items-start gap-3 rounded-xl border border-gray-200 dark:border-zinc-700 px-3 py-2.5"
+                                >
+                                    <input
+                                        id="message-timestamp-grouping"
+                                        type="checkbox"
+                                        class="mt-1 rounded-sm border-gray-300 dark:border-zinc-600"
+                                        :checked="GlobalState.messageTimestampGroupingEnabled"
+                                        @change="onMessageTimestampGroupingChange"
+                                    />
+                                    <label for="message-timestamp-grouping" class="min-w-0 cursor-pointer">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            {{ $t("app.message_timestamp_grouping") }}
+                                        </div>
+                                        <div class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
+                                            {{ $t("app.message_timestamp_grouping_description") }}
                                         </div>
                                     </label>
                                 </div>
@@ -1289,21 +1318,23 @@
                         </div>
                     </section>
 
-                    <!-- Location -->
+                    <!-- Location (map & coordinates) -->
                     <section
                         v-show="matchesSearch(...sectionKeywords.location)"
                         class="settings-section break-inside-avoid"
                     >
                         <header class="settings-section__header">
                             <div>
-                                <div class="settings-section__eyebrow">Privacy</div>
-                                <h2>Location</h2>
-                                <p>Manage how your location is shared.</p>
+                                <div class="settings-section__eyebrow">{{ $t("app.settings_map_eyebrow") }}</div>
+                                <h2>{{ $t("app.location") }}</h2>
+                                <p>{{ $t("app.location_manage_desc") }}</p>
                             </div>
                         </header>
                         <div class="settings-section__body space-y-4">
                             <div class="space-y-2">
-                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Location Source</div>
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    {{ $t("app.location_source") }}
+                                </div>
                                 <select
                                     v-model="config.location_source"
                                     class="input-field"
@@ -1311,21 +1342,20 @@
                                         updateConfig({ location_source: config.location_source }, 'location_source')
                                     "
                                 >
-                                    <option value="browser">Automatic (Browser)</option>
-                                    <option value="manual">Manual</option>
+                                    <option value="browser">{{ $t("app.location_source_browser") }}</option>
+                                    <option value="manual">{{ $t("app.location_source_manual") }}</option>
                                 </select>
                                 <div
                                     v-if="config.location_source === 'browser'"
                                     class="text-xs text-gray-600 dark:text-gray-400"
                                 >
-                                    Uses your browser's geolocation API. Note: In the desktop app, this can use Google
-                                    services, which is blocked by CORS so you would need to specifically allow it.
+                                    {{ $t("app.location_source_browser_desc") }}
                                 </div>
                                 <div
                                     v-if="config.location_source === 'manual'"
                                     class="text-xs text-gray-600 dark:text-gray-400"
                                 >
-                                    Use manually entered coordinates for maximum privacy.
+                                    {{ $t("app.location_source_manual_desc") }}
                                 </div>
                             </div>
 
@@ -1385,69 +1415,6 @@
                                     />
                                 </div>
                             </div>
-
-                            <div class="pt-4 border-t border-gray-100 dark:border-zinc-800 space-y-4">
-                                <label class="setting-toggle">
-                                    <Toggle
-                                        id="telemetry-enabled"
-                                        v-model="config.telemetry_enabled"
-                                        @update:model-value="
-                                            updateConfig(
-                                                { telemetry_enabled: config.telemetry_enabled },
-                                                'telemetry_enabled'
-                                            )
-                                        "
-                                    />
-                                    <span class="setting-toggle__label">
-                                        <span class="setting-toggle__title">{{ $t("app.telemetry_enabled") }}</span>
-                                        <span class="setting-toggle__description">{{
-                                            $t("app.telemetry_description")
-                                        }}</span>
-                                    </span>
-                                </label>
-                            </div>
-
-                            <div
-                                v-if="config.telemetry_enabled"
-                                class="pt-4 border-t border-gray-100 dark:border-zinc-800 space-y-4"
-                            >
-                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    {{ $t("app.telemetry_trusted_peers") }}
-                                </div>
-                                <div v-if="trustedTelemetryPeers.length === 0" class="text-xs text-gray-500 italic">
-                                    {{ $t("app.telemetry_no_trusted_peers") }}
-                                </div>
-                                <div v-else class="space-y-2">
-                                    <div
-                                        v-for="peer in trustedTelemetryPeers"
-                                        :key="peer.id"
-                                        class="flex items-center justify-between p-2 rounded-xl bg-gray-50 dark:bg-zinc-800 border border-gray-100 dark:border-zinc-700"
-                                    >
-                                        <div class="flex items-center gap-3">
-                                            <div
-                                                class="size-8 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-500 flex items-center justify-center"
-                                            >
-                                                <MaterialDesignIcon icon-name="account" class="size-5" />
-                                            </div>
-                                            <div class="min-w-0">
-                                                <div class="text-sm font-bold text-gray-900 dark:text-white truncate">
-                                                    {{ peer.name }}
-                                                </div>
-                                                <div class="text-[10px] text-gray-500 font-mono truncate">
-                                                    {{ peer.remote_identity_hash }}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <button
-                                            class="p-2 text-gray-400 hover:text-red-500 transition-colors"
-                                            :title="$t('app.telemetry_revoke_trust')"
-                                            @click="revokeTelemetryTrust(peer)"
-                                        >
-                                            <MaterialDesignIcon icon-name="shield-off-outline" class="size-5" />
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </section>
 
@@ -1490,7 +1457,13 @@
                                 'Network Security',
                                 'app.blackhole_integration_enabled',
                                 'app.blackhole_integration_description',
-                                'app.announce_limits'
+                                'app.announce_limits',
+                                'app.announce_store_heading',
+                                'app.announce_store_lxmf',
+                                'app.announce_store_lxst',
+                                'app.announce_store_nomad',
+                                'app.announce_store_prop',
+                                'app.announce_store_git'
                             )
                         "
                         class="settings-section break-inside-avoid"
@@ -1530,6 +1503,79 @@
                                 </div>
                                 <div class="text-xs text-gray-600 dark:text-gray-400">
                                     {{ $t("app.announce_limits_description") }}
+                                </div>
+                                <div class="text-xs font-medium text-gray-800 dark:text-gray-200">
+                                    {{ $t("app.announce_store_heading") }}
+                                </div>
+                                <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    {{ $t("app.announce_store_description") }}
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <label class="setting-toggle">
+                                        <Toggle
+                                            :model-value="config.announce_store_lxmf_delivery"
+                                            @update:model-value="
+                                                (v) => onAnnounceStoreToggle('announce_store_lxmf_delivery', v)
+                                            "
+                                        />
+                                        <span class="setting-toggle__label">
+                                            <span class="setting-toggle__title">{{
+                                                $t("app.announce_store_lxmf")
+                                            }}</span>
+                                        </span>
+                                    </label>
+                                    <label class="setting-toggle">
+                                        <Toggle
+                                            :model-value="config.announce_store_lxst_telephony"
+                                            @update:model-value="
+                                                (v) => onAnnounceStoreToggle('announce_store_lxst_telephony', v)
+                                            "
+                                        />
+                                        <span class="setting-toggle__label">
+                                            <span class="setting-toggle__title">{{
+                                                $t("app.announce_store_lxst")
+                                            }}</span>
+                                        </span>
+                                    </label>
+                                    <label class="setting-toggle">
+                                        <Toggle
+                                            :model-value="config.announce_store_nomadnetwork_node"
+                                            @update:model-value="
+                                                (v) => onAnnounceStoreToggle('announce_store_nomadnetwork_node', v)
+                                            "
+                                        />
+                                        <span class="setting-toggle__label">
+                                            <span class="setting-toggle__title">{{
+                                                $t("app.announce_store_nomad")
+                                            }}</span>
+                                        </span>
+                                    </label>
+                                    <label class="setting-toggle">
+                                        <Toggle
+                                            :model-value="config.announce_store_lxmf_propagation"
+                                            @update:model-value="
+                                                (v) => onAnnounceStoreToggle('announce_store_lxmf_propagation', v)
+                                            "
+                                        />
+                                        <span class="setting-toggle__label">
+                                            <span class="setting-toggle__title">{{
+                                                $t("app.announce_store_prop")
+                                            }}</span>
+                                        </span>
+                                    </label>
+                                    <label class="setting-toggle sm:col-span-2">
+                                        <Toggle
+                                            :model-value="config.announce_store_git_repositories"
+                                            @update:model-value="
+                                                (v) => onAnnounceStoreToggle('announce_store_git_repositories', v)
+                                            "
+                                        />
+                                        <span class="setting-toggle__label">
+                                            <span class="setting-toggle__title">{{
+                                                $t("app.announce_store_git")
+                                            }}</span>
+                                        </span>
+                                    </label>
                                 </div>
                                 <div
                                     class="text-xs font-semibold text-gray-700 dark:text-zinc-300 uppercase tracking-wide"
@@ -1705,7 +1751,7 @@
 
                     <!-- Blocked -->
                     <section
-                        v-show="matchesSearch('Privacy', 'Banished', 'Manage Banished users and nodes')"
+                        v-show="matchesSearch(...sectionKeywords.blocked)"
                         class="settings-section break-inside-avoid"
                     >
                         <header class="settings-section__header">
@@ -1723,6 +1769,138 @@
                             </p>
                         </div>
                     </section>
+
+                    <SettingsSectionBlock
+                        v-show="matchesSearch(...sectionKeywords.privacyData)"
+                        :eyebrow="$t('app.privacy_eyebrow')"
+                        :title="$t('app.privacy_data_title')"
+                        :description="$t('app.privacy_data_description')"
+                        body-class="space-y-4"
+                    >
+                        <div class="space-y-3">
+                            <div
+                                class="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-400"
+                            >
+                                {{ $t("app.privacy_subsection_device") }}
+                            </div>
+                            <label class="setting-toggle">
+                                <Toggle
+                                    id="local-message-auto-delete"
+                                    v-model="config.local_message_auto_delete_enabled"
+                                    @update:model-value="onLocalMessageAutoDeleteEnabledChange"
+                                />
+                                <span class="setting-toggle__label">
+                                    <span class="setting-toggle__title">{{
+                                        $t("app.local_message_auto_delete_title")
+                                    }}</span>
+                                    <span class="setting-toggle__description">{{
+                                        $t("app.local_message_auto_delete_description")
+                                    }}</span>
+                                </span>
+                            </label>
+                            <div
+                                v-if="config.local_message_auto_delete_enabled"
+                                class="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-0 sm:pl-1"
+                            >
+                                <div class="space-y-1">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("app.local_message_auto_delete_age") }}
+                                    </div>
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <input
+                                            v-model.number="config.local_message_auto_delete_value"
+                                            type="number"
+                                            min="1"
+                                            :max="config.local_message_auto_delete_unit === 'months' ? 120 : 10000"
+                                            class="input-field w-24"
+                                            :aria-label="$t('app.local_message_auto_delete_age')"
+                                            @input="onLocalMessageAutoDeleteParamsChange"
+                                        />
+                                        <select
+                                            v-model="config.local_message_auto_delete_unit"
+                                            class="input-field min-w-[7rem]"
+                                            :aria-label="$t('app.local_message_auto_delete_unit_aria')"
+                                            @change="onLocalMessageAutoDeleteParamsChange"
+                                        >
+                                            <option value="days">
+                                                {{ $t("app.local_message_auto_delete_unit_days") }}
+                                            </option>
+                                            <option value="months">
+                                                {{ $t("app.local_message_auto_delete_unit_months") }}
+                                            </option>
+                                        </select>
+                                    </div>
+                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                        {{ $t("app.local_message_auto_delete_month_note") }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-gray-200 dark:border-zinc-800 pt-4 space-y-4">
+                            <div
+                                class="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-400"
+                            >
+                                {{ $t("app.privacy_subsection_telemetry") }}
+                            </div>
+                            <label class="setting-toggle">
+                                <Toggle
+                                    id="telemetry-enabled"
+                                    v-model="config.telemetry_enabled"
+                                    @update:model-value="
+                                        updateConfig(
+                                            { telemetry_enabled: config.telemetry_enabled },
+                                            'telemetry_enabled'
+                                        )
+                                    "
+                                />
+                                <span class="setting-toggle__label">
+                                    <span class="setting-toggle__title">{{ $t("app.telemetry_enabled") }}</span>
+                                    <span class="setting-toggle__description">{{
+                                        $t("app.telemetry_description")
+                                    }}</span>
+                                </span>
+                            </label>
+                            <div v-if="config.telemetry_enabled" class="space-y-4">
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    {{ $t("app.telemetry_trusted_peers") }}
+                                </div>
+                                <div v-if="trustedTelemetryPeers.length === 0" class="text-xs text-gray-500 italic">
+                                    {{ $t("app.telemetry_no_trusted_peers") }}
+                                </div>
+                                <div v-else class="space-y-2">
+                                    <div
+                                        v-for="peer in trustedTelemetryPeers"
+                                        :key="peer.id"
+                                        class="flex items-center justify-between p-2 rounded-xl bg-gray-50 dark:bg-zinc-800 border border-gray-100 dark:border-zinc-700"
+                                    >
+                                        <div class="flex items-center gap-3">
+                                            <div
+                                                class="size-8 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-500 flex items-center justify-center"
+                                            >
+                                                <MaterialDesignIcon icon-name="account" class="size-5" />
+                                            </div>
+                                            <div class="min-w-0">
+                                                <div class="text-sm font-bold text-gray-900 dark:text-white truncate">
+                                                    {{ peer.name }}
+                                                </div>
+                                                <div class="text-[10px] text-gray-500 font-mono truncate">
+                                                    {{ peer.remote_identity_hash }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            class="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                                            :title="$t('app.telemetry_revoke_trust')"
+                                            @click="revokeTelemetryTrust(peer)"
+                                        >
+                                            <MaterialDesignIcon icon-name="shield-off-outline" class="size-5" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </SettingsSectionBlock>
 
                     <!-- Authentication -->
                     <section
@@ -1755,51 +1933,6 @@
                                     Authentication is currently enabled. You will be asked for your password when
                                     accessing the web interface.
                                 </p>
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- Translator -->
-                    <section
-                        v-show="matchesSearch(...sectionKeywords.translator)"
-                        class="settings-section break-inside-avoid"
-                    >
-                        <header class="settings-section__header">
-                            <div>
-                                <div class="settings-section__eyebrow">i18n</div>
-                                <h2>{{ $t("app.translator") }}</h2>
-                                <p>{{ $t("translator.description") }}</p>
-                            </div>
-                        </header>
-                        <div class="settings-section__body space-y-4">
-                            <label class="setting-toggle">
-                                <Toggle
-                                    id="translator-enabled"
-                                    v-model="config.translator_enabled"
-                                    @update:model-value="onTranslatorEnabledChange"
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">{{ $t("app.translator_enabled") }}</span>
-                                    <span class="setting-toggle__description">{{
-                                        $t("app.translator_description")
-                                    }}</span>
-                                </span>
-                            </label>
-
-                            <div v-if="config.translator_enabled" class="space-y-2">
-                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    {{ $t("app.libretranslate_url") }}
-                                </div>
-                                <input
-                                    v-model="config.libretranslate_url"
-                                    type="text"
-                                    placeholder="http://localhost:5000"
-                                    class="input-field"
-                                    @input="onTranslatorConfigChange"
-                                />
-                                <div class="text-xs text-gray-600 dark:text-gray-400">
-                                    {{ $t("app.libretranslate_url_description") }}
-                                </div>
                             </div>
                         </div>
                     </section>
@@ -1925,14 +2058,14 @@
                         </div>
                     </section>
 
-                    <!-- Messages -->
+                    <!-- Messages (LXMF delivery, retries, inbound stamps) -->
                     <section
                         v-show="matchesSearch(...sectionKeywords.messages)"
                         class="settings-section break-inside-avoid"
                     >
                         <header class="settings-section__header">
                             <div>
-                                <div class="settings-section__eyebrow">{{ $t("app.reliability") }}</div>
+                                <div class="settings-section__eyebrow">{{ $t("app.lxmf_settings_eyebrow") }}</div>
                                 <h2>{{ $t("app.messages") }}</h2>
                                 <p>{{ $t("app.messages_description") }}</p>
                             </div>
@@ -2150,12 +2283,12 @@
                                         type="number"
                                         min="0.001"
                                         step="any"
-                                        class="input-field max-w-[10rem]"
+                                        class="input-field max-w-40"
                                         @input="onLxmfIncomingDeliveryCustomChange"
                                     />
                                     <select
                                         v-model="lxmfIncomingDeliveryCustomUnit"
-                                        class="input-field max-w-[8rem]"
+                                        class="input-field max-w-32"
                                         @change="onLxmfIncomingDeliveryCustomChange"
                                     >
                                         <option value="mb">{{ $t("app.incoming_message_size_unit_mb") }}</option>
@@ -2337,6 +2470,8 @@ import {
     incomingDeliveryBytesFromPresetKey,
     syncIncomingDeliveryFieldsFromBytes,
 } from "../../js/settings/incomingDeliveryLimit";
+import { normalizeRetentionValue } from "../../js/localMessageRetention";
+import { matchesSettingSearch, normalizeSearchString } from "../../js/settingsSearchUtils";
 
 export default {
     name: "SettingsPage",
@@ -2379,6 +2514,11 @@ export default {
                 banished_text: "BANISHED",
                 banished_color: "#dc2626",
                 blackhole_integration_enabled: true,
+                announce_store_lxmf_delivery: true,
+                announce_store_lxst_telephony: true,
+                announce_store_nomadnetwork_node: true,
+                announce_store_lxmf_propagation: true,
+                announce_store_git_repositories: true,
                 announce_max_stored_lxmf_delivery: 1000,
                 announce_max_stored_nomadnetwork_node: 1000,
                 announce_max_stored_lxmf_propagation: 1000,
@@ -2413,6 +2553,9 @@ export default {
                 nomad_render_html_enabled: true,
                 nomad_render_plaintext_enabled: true,
                 nomad_default_page_path: "/page/index.mu",
+                local_message_auto_delete_enabled: false,
+                local_message_auto_delete_value: 30,
+                local_message_auto_delete_unit: "days",
             },
             saveTimeouts: {},
             lxmfIncomingDeliveryPreset: "10mb",
@@ -2433,6 +2576,27 @@ export default {
             visualiserShowDisabledInterfaces: false,
             visualiserShowDiscoveredInterfaces: false,
             sectionKeywords: {
+                strangerProtection: [
+                    "Security",
+                    "app.stranger_protection",
+                    "app.stranger_protection_description",
+                    "app.block_stranger_attachments",
+                    "app.block_stranger_attachments_description",
+                    "app.block_all_from_strangers",
+                    "app.block_all_from_strangers_description",
+                    "app.show_unknown_contact_banner",
+                    "app.show_unknown_contact_banner_description",
+                    "app.warn_on_stranger_links",
+                    "app.warn_on_stranger_links_description",
+                    "stranger",
+                    "attachments",
+                    "trust",
+                    "block",
+                    "banner",
+                    "unknown",
+                    "contact",
+                    "links",
+                ],
                 visualiser: [
                     "Visualiser",
                     "Network Visualiser",
@@ -2578,6 +2742,12 @@ export default {
                     "app.blackhole_integration_enabled",
                     "app.blackhole_integration_description",
                     "app.announce_limits",
+                    "app.announce_store_heading",
+                    "app.announce_store_lxmf",
+                    "app.announce_store_lxst",
+                    "app.announce_store_nomad",
+                    "app.announce_store_prop",
+                    "app.announce_store_git",
                     "app.announce_limit_lxmf",
                     "app.announce_limit_nomadnet",
                     "app.announce_limit_prop",
@@ -2601,18 +2771,9 @@ export default {
                 ],
                 blocked: ["Privacy", "Banished", "Manage Banished users and nodes"],
                 auth: ["Security", "Authentication", "password", "Protect your instance with a password"],
-                translator: [
-                    "i18n",
-                    "app.translator",
-                    "translator.description",
-                    "app.translator_enabled",
-                    "app.translator_description",
-                    "app.libretranslate_url",
-                    "app.libretranslate_url_description",
-                ],
                 infrastructure: ["Infrastructure", "Sources & Mirroring", "gitea", "documentation", "download", "urls"],
                 messages: [
-                    "reliability",
+                    "app.lxmf_settings_eyebrow",
                     "app.messages",
                     "app.messages_description",
                     "app.auto_resend_title",
@@ -2645,24 +2806,46 @@ export default {
                     "app.propagation_stamp_description",
                 ],
                 location: [
+                    "app.location",
+                    "app.location_manage_desc",
+                    "app.location_source",
+                    "Map",
                     "Location",
                     "GPS",
-                    "Privacy",
                     "manual",
                     "latitude",
                     "longitude",
                     "altitude",
-                    "telemetry",
-                    "trusted peers",
+                ],
+                privacyData: [
+                    "app.privacy_data_title",
+                    "app.privacy_data_description",
+                    "app.local_message_auto_delete_title",
+                    "app.local_message_auto_delete_description",
+                    "app.local_message_auto_delete_age",
+                    "app.telemetry_enabled",
+                    "app.telemetry_description",
+                    "app.telemetry_trusted_peers",
+                    "ephemeral",
+                    "retention",
+                    "Privacy",
                 ],
                 shortcuts: ["Keyboard Shortcuts", "actions", "workflow"],
             },
         };
     },
     computed: {
+        settingsSearchActive() {
+            return normalizeSearchString(this.searchQuery).length > 0;
+        },
+        settingsSearchDisplay() {
+            return normalizeSearchString(this.searchQuery) || this.searchQuery;
+        },
         hasSearchResults() {
-            if (!this.searchQuery) return true;
-            return Object.values(this.sectionKeywords).some((keywords) => this.matchesSearch(...keywords));
+            if (!normalizeSearchString(this.searchQuery)) return true;
+            return Object.values(this.sectionKeywords).some((keywords) =>
+                matchesSettingSearch(keywords, (k) => this.$t(k), this.searchQuery)
+            );
         },
         safeConfig() {
             if (!this.config) {
@@ -2747,15 +2930,21 @@ export default {
                 console.error(e);
             }
         },
+        onSettingsSearchInput(e) {
+            const el = e?.target;
+            if (!el || el.tagName !== "INPUT") return;
+            this.searchQuery = el.value;
+        },
+        onSettingsSearchCompositionEnd(e) {
+            const el = e?.target;
+            if (!el || el.tagName !== "INPUT") return;
+            this.searchQuery = el.value;
+        },
+        clearSettingsSearch() {
+            this.searchQuery = "";
+        },
         matchesSearch(...texts) {
-            if (!this.searchQuery) return true;
-            const query = this.searchQuery.toLowerCase();
-            return texts.some((text) => {
-                if (!text) return false;
-                // If it looks like a translation key, translate it
-                const content = text.includes(".") ? this.$t(text) : text;
-                return content.toLowerCase().includes(query);
-            });
+            return matchesSettingSearch(texts, (k) => this.$t(k), this.searchQuery);
         },
         async onWebsocketMessage(message) {
             const json = JSON.parse(message.data);
@@ -2896,6 +3085,10 @@ export default {
                 "announce_limits"
             );
         },
+        async onAnnounceStoreToggle(key, value) {
+            this.config[key] = value;
+            await this.updateConfig({ [key]: value }, key);
+        },
         async copyValue(value, label) {
             if (!value) {
                 ToastUtils.warning(`Nothing to copy for ${label}`);
@@ -3026,6 +3219,15 @@ export default {
             GlobalState.detailedOutboundSendStatus = checked;
             try {
                 localStorage.setItem("meshchatx_detailed_outbound_send_status", checked ? "true" : "false");
+            } catch {
+                // ignore
+            }
+        },
+        onMessageTimestampGroupingChange(event) {
+            const checked = event.target.checked;
+            GlobalState.messageTimestampGroupingEnabled = checked;
+            try {
+                localStorage.setItem("meshchatx_message_timestamp_grouping_enabled", checked ? "true" : "false");
             } catch {
                 // ignore
             }
@@ -3312,6 +3514,30 @@ export default {
             this.config.warn_on_stranger_links = value;
             await this.updateConfig({ warn_on_stranger_links: value }, "stranger_protection");
         },
+        async onLocalMessageAutoDeleteEnabledChange(value) {
+            this.config.local_message_auto_delete_enabled = value;
+            await this.updateConfig({ local_message_auto_delete_enabled: value }, "privacy_data");
+        },
+        onLocalMessageAutoDeleteParamsChange() {
+            if (this.saveTimeouts.localMessageAutoDelete) {
+                clearTimeout(this.saveTimeouts.localMessageAutoDelete);
+            }
+            this.saveTimeouts.localMessageAutoDelete = setTimeout(async () => {
+                const { value: v, unit: u } = normalizeRetentionValue(
+                    this.config.local_message_auto_delete_value,
+                    this.config.local_message_auto_delete_unit
+                );
+                this.config.local_message_auto_delete_value = v;
+                this.config.local_message_auto_delete_unit = u;
+                await this.updateConfig(
+                    {
+                        local_message_auto_delete_value: v,
+                        local_message_auto_delete_unit: u,
+                    },
+                    "privacy_data"
+                );
+            }, 400);
+        },
         async onBanishedEffectEnabledChange(value) {
             this.config.banished_effect_enabled = value;
             await this.updateConfig(
@@ -3385,26 +3611,6 @@ export default {
                 // or just to auth page in general
                 this.$router.push({ name: "auth" });
             }
-        },
-        async onTranslatorEnabledChange(value) {
-            this.config.translator_enabled = value;
-            await this.updateConfig(
-                {
-                    translator_enabled: value,
-                },
-                "translator"
-            );
-        },
-        async onTranslatorConfigChange() {
-            if (this.saveTimeouts.translator) clearTimeout(this.saveTimeouts.translator);
-            this.saveTimeouts.translator = setTimeout(async () => {
-                await this.updateConfig(
-                    {
-                        libretranslate_url: this.config.libretranslate_url,
-                    },
-                    "translator"
-                );
-            }, 1000);
         },
         async onGiteaConfigChange() {
             if (this.saveTimeouts.gitea) clearTimeout(this.saveTimeouts.gitea);
@@ -3914,6 +4120,7 @@ export default {
 </script>
 
 <style scoped>
+@reference "../../style.css";
 .settings-section {
     @apply w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-6 sm:py-8 flex flex-col break-inside-avoid;
 }
@@ -3969,13 +4176,13 @@ export default {
     font-family: "Roboto Mono", monospace;
 }
 .address-card {
-    @apply relative border border-gray-200/70 dark:border-zinc-800/80 py-3 px-3 sm:rounded-xl sm:bg-black/[0.02] dark:sm:bg-white/[0.02] space-y-2;
+    @apply relative border border-gray-200/70 dark:border-zinc-800/80 py-3 px-3 sm:rounded-xl sm:bg-black/2 dark:sm:bg-white/2 space-y-2;
 }
 .address-card__label {
     @apply text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400;
 }
 .address-card__value {
-    @apply text-sm text-gray-900 dark:text-white break-words pr-16;
+    @apply text-sm text-gray-900 dark:text-white wrap-break-word pr-16;
 }
 .address-card__action {
     @apply absolute top-3 right-3 inline-flex items-center gap-1 rounded-full border border-gray-200 dark:border-zinc-700 px-3 py-1 text-xs font-semibold text-gray-700 dark:text-gray-100 bg-white/70 dark:bg-zinc-900/60 hover:border-blue-400 dark:hover:border-blue-500 transition;

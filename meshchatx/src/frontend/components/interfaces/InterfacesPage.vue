@@ -2,10 +2,10 @@
 
 <template>
     <div
-        class="flex flex-col flex-1 overflow-hidden min-w-0 bg-gradient-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
+        class="flex flex-col flex-1 overflow-hidden min-w-0 bg-linear-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
     >
         <div class="flex-1 overflow-y-auto overflow-x-hidden w-full px-3 sm:px-5 md:px-5 lg:px-8 py-4 sm:py-6">
-            <div class="space-y-0 w-full min-w-0 max-w-6xl xl:max-w-7xl 2xl:max-w-[90rem] mx-auto flex-1">
+            <div class="space-y-0 w-full min-w-0 max-w-6xl xl:max-w-7xl 2xl:max-w-360 mx-auto flex-1">
                 <div
                     v-if="showRestartReminder"
                     class="bg-amber-600 text-white border border-amber-500/30 p-4 sm:rounded-xl flex flex-wrap gap-3 items-center mb-4 sm:mb-6"
@@ -20,7 +20,7 @@
                     <button
                         v-if="isElectron"
                         type="button"
-                        class="ml-auto inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-sm font-bold text-amber-600 hover:bg-white/90 transition shadow-sm"
+                        class="ml-auto inline-flex items-center gap-2 rounded-full bg-white px-4 py-1.5 text-sm font-bold text-amber-600 hover:bg-white/90 transition shadow-xs"
                         @click="relaunch"
                     >
                         <MaterialDesignIcon icon-name="restart" class="w-4 h-4" />
@@ -71,6 +71,20 @@
                                 <MaterialDesignIcon icon-name="restart" class="w-4 h-4" />
                                 <span>{{ reloadingRns ? $t("app.reloading_rns") : "Restart RNS" }}</span>
                             </button>
+                            <button
+                                type="button"
+                                class="secondary-chip text-sm min-h-[44px] sm:min-h-0 inline-flex items-center justify-center gap-1.5"
+                                :disabled="refreshingCommunityInterfaces"
+                                :title="$t('interfaces.community_presets_refresh')"
+                                :aria-label="$t('interfaces.community_presets_refresh')"
+                                @click="refreshCommunityInterfaces"
+                            >
+                                <MaterialDesignIcon
+                                    icon-name="refresh"
+                                    class="w-4 h-4"
+                                    :class="{ 'animate-spin-reverse': refreshingCommunityInterfaces }"
+                                />
+                            </button>
                         </div>
                     </div>
 
@@ -84,7 +98,7 @@
                                 v-model="searchTerm"
                                 type="text"
                                 :placeholder="$t('interfaces.search_placeholder')"
-                                class="w-full pl-12 pr-4 py-3 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 shadow-sm"
+                                class="w-full pl-12 pr-4 py-3 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 shadow-xs"
                             />
                             <button
                                 v-if="searchTerm"
@@ -97,7 +111,7 @@
                         <div>
                             <select
                                 v-model="typeFilter"
-                                class="w-full px-4 py-2.5 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-gray-900 dark:text-white"
+                                class="w-full px-4 py-2.5 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-700 rounded-xl text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500/50 text-gray-900 dark:text-white"
                             >
                                 <option value="all">{{ $t("interfaces.all_types") }}</option>
                                 <option v-for="type in sortedInterfaceTypes" :key="type" :value="type">
@@ -142,7 +156,7 @@
                                     <button
                                         type="button"
                                         :class="filterChipClass(statusFilter === 'all')"
-                                        class="!py-1 !px-3"
+                                        class="py-1! px-3!"
                                         @click="setStatusFilter('all')"
                                     >
                                         {{ $t("interfaces.all") }}
@@ -150,7 +164,7 @@
                                     <button
                                         type="button"
                                         :class="filterChipClass(statusFilter === 'enabled')"
-                                        class="!py-1 !px-3"
+                                        class="py-1! px-3!"
                                         @click="setStatusFilter('enabled')"
                                     >
                                         {{ $t("app.enabled") }}
@@ -158,7 +172,7 @@
                                     <button
                                         type="button"
                                         :class="filterChipClass(statusFilter === 'disabled')"
-                                        class="!py-1 !px-3"
+                                        class="py-1! px-3!"
                                         @click="setStatusFilter('disabled')"
                                     >
                                         {{ $t("app.disabled") }}
@@ -215,7 +229,7 @@
                                         <button
                                             type="button"
                                             :class="filterChipClass(discoveredStatusFilter === 'all')"
-                                            class="!py-1 !px-3"
+                                            class="py-1! px-3!"
                                             @click="discoveredStatusFilter = 'all'"
                                         >
                                             {{ $t("interfaces.all") }}
@@ -223,7 +237,7 @@
                                         <button
                                             type="button"
                                             :class="filterChipClass(discoveredStatusFilter === 'connected')"
-                                            class="!py-1 !px-3"
+                                            class="py-1! px-3!"
                                             @click="discoveredStatusFilter = 'connected'"
                                         >
                                             {{ $t("interfaces.connected_only") }}
@@ -465,7 +479,7 @@
                                             <div class="relative">
                                                 <button
                                                     type="button"
-                                                    class="secondary-chip !p-2 !rounded-xl"
+                                                    class="secondary-chip p-2! rounded-xl!"
                                                     title="Discovery actions"
                                                     @click="toggleDiscoveryActionsMenu(iface)"
                                                 >
@@ -513,7 +527,7 @@
                                             <button
                                                 v-if="iface.latitude != null && iface.longitude != null"
                                                 type="button"
-                                                class="secondary-chip !p-2 !rounded-xl"
+                                                class="secondary-chip p-2! rounded-xl!"
                                                 :title="$t('map.title')"
                                                 @click="goToMap(iface)"
                                             >
@@ -633,6 +647,24 @@
                                                 0 disables auto-connect.
                                             </div>
                                         </div>
+                                        <div class="sm:col-span-2">
+                                            <div
+                                                class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+                                            >
+                                                <div class="min-w-0 pr-0 sm:pr-4">
+                                                    <div class="text-sm font-semibold text-gray-900 dark:text-white">
+                                                        {{ $t("interfaces.discovery_default_bootstrap_only") }}
+                                                    </div>
+                                                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                                                        {{ $t("interfaces.discovery_default_bootstrap_only_hint") }}
+                                                    </div>
+                                                </div>
+                                                <Toggle
+                                                    v-model="discoveryConfig.default_bootstrap_only"
+                                                    class="shrink-0 sm:my-auto"
+                                                />
+                                            </div>
+                                        </div>
                                         <div>
                                             <div class="text-xs font-semibold text-gray-700 dark:text-gray-200">
                                                 Network Identity Path
@@ -671,7 +703,7 @@
 
     <RouterLink
         :to="{ name: 'interfaces.add' }"
-        class="sm:hidden fixed bottom-5 right-4 z-[60] flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg ring-1 ring-blue-400/30 transition active:scale-95"
+        class="sm:hidden fixed bottom-5 right-4 z-60 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg ring-1 ring-blue-400/30 transition active:scale-95"
         :title="$t('interfaces.add_interface')"
     >
         <MaterialDesignIcon icon-name="plus" class="w-7 h-7" />
@@ -717,6 +749,7 @@ export default {
                 interface_discovery_blacklist: "",
                 required_discovery_value: null,
                 autoconnect_discovered_interfaces: 0,
+                default_bootstrap_only: true,
                 network_identity: "",
             },
             savingDiscovery: false,
@@ -727,6 +760,7 @@ export default {
             discoveredStatusFilter: "all",
             discoveryInterval: null,
             activeTab: "overview",
+            refreshingCommunityInterfaces: false,
         };
     },
     computed: {
@@ -1175,6 +1209,7 @@ export default {
                     discovery.autoconnect_discovered_interfaces !== ""
                         ? Number(discovery.autoconnect_discovered_interfaces)
                         : 0;
+                this.discoveryConfig.default_bootstrap_only = this.parseBool(discovery.default_bootstrap_only ?? true);
                 this.discoveryConfig.network_identity = discovery.network_identity ?? "";
             } catch (e) {
                 console.log(e);
@@ -1199,6 +1234,7 @@ export default {
                         this.discoveryConfig.autoconnect_discovered_interfaces === ""
                             ? 0
                             : Number(this.discoveryConfig.autoconnect_discovered_interfaces),
+                    default_bootstrap_only: this.discoveryConfig.default_bootstrap_only,
                     network_identity: this.discoveryConfig.network_identity || null,
                 };
 
@@ -1438,6 +1474,21 @@ export default {
         filterChipClass(isActive) {
             return isActive ? "primary-chip text-xs" : "secondary-chip text-xs";
         },
+        async refreshCommunityInterfaces() {
+            if (this.refreshingCommunityInterfaces) return;
+            this.refreshingCommunityInterfaces = true;
+            try {
+                const r = await window.api.post("/api/v1/community-interfaces/refresh", {});
+                const n = r.data?.count ?? 0;
+                ToastUtils.success(this.$t("interfaces.community_presets_refreshed", { count: n }));
+            } catch (e) {
+                const msg = e.response?.data?.message || this.$t("interfaces.community_presets_refresh_failed");
+                ToastUtils.error(msg);
+                console.error(e);
+            } finally {
+                this.refreshingCommunityInterfaces = false;
+            }
+        },
         async reloadRns() {
             if (this.reloadingRns) return;
 
@@ -1462,6 +1513,7 @@ export default {
 </script>
 
 <style scoped>
+@reference "../../style.css";
 .interfaces-section {
     @apply w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-6 sm:py-8;
 }

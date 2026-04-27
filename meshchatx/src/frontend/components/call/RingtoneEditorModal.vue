@@ -1,8 +1,8 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
-        <div class="absolute inset-0 bg-zinc-900/80 backdrop-blur-sm" @click="$emit('close')"></div>
+    <div class="fixed inset-0 z-100 flex items-center justify-center p-4 sm:p-6">
+        <div class="absolute inset-0 bg-zinc-900/80 backdrop-blur-xs" @click="$emit('close')"></div>
         <div
             class="relative w-full max-w-4xl bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
         >
@@ -131,7 +131,7 @@
                         id="saveAsNew"
                         v-model="saveAsNew"
                         type="checkbox"
-                        class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                     <label for="saveAsNew" class="text-sm text-gray-600 dark:text-zinc-400 cursor-pointer"
                         >Save as new ringtone</label

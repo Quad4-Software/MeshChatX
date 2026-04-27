@@ -51,7 +51,7 @@
                     v-for="fav in collapsedFavouritePreview"
                     :key="fav.destination_hash"
                     type="button"
-                    class="shrink-0 p-1 rounded-xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    class="shrink-0 p-1 rounded-xl transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500"
                     :class="
                         fav.destination_hash === selectedDestinationHash
                             ? 'ring-2 ring-blue-500 ring-offset-1 ring-offset-white dark:ring-offset-zinc-950'
@@ -71,7 +71,7 @@
                     v-for="node in collapsedAnnounceNodesPreview"
                     :key="node.destination_hash"
                     type="button"
-                    class="shrink-0 p-1 rounded-xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                    class="shrink-0 p-1 rounded-xl transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500"
                     :class="
                         node.destination_hash === selectedDestinationHash
                             ? 'ring-2 ring-blue-500 ring-offset-1 ring-offset-white dark:ring-offset-zinc-950'
@@ -182,7 +182,7 @@
                                             :ref="`sectionInput-${section.id}`"
                                             v-model="editingSectionName"
                                             type="text"
-                                            class="flex-1 bg-transparent border-b border-blue-500 text-xs font-semibold uppercase tracking-wide text-gray-900 dark:text-white focus:outline-none min-w-0"
+                                            class="flex-1 bg-transparent border-b border-blue-500 text-xs font-semibold uppercase tracking-wide text-gray-900 dark:text-white focus:outline-hidden min-w-0"
                                             @click.stop
                                             @keydown.enter="saveSectionName"
                                             @keydown.esc="cancelEditingSection"
@@ -242,13 +242,13 @@
                                         :style="{ background: GlobalState.config.banished_color + '33' }"
                                     >
                                         <span
-                                            class="banished-text !text-[10px] !opacity-100 !tracking-widest !border !px-1 !py-0.5 !text-white !shadow-lg"
+                                            class="banished-text text-[10px]! opacity-100! tracking-widest! border! px-1! py-0.5! text-white! shadow-lg!"
                                             :style="{ 'background-color': GlobalState.config.banished_color }"
                                             >{{ GlobalState.config.banished_text }}</span
                                         >
                                     </div>
 
-                                    <div class="favourite-card__icon flex-shrink-0">
+                                    <div class="favourite-card__icon shrink-0">
                                         <MaterialDesignIcon icon-name="server-network" class="w-5 h-5" />
                                     </div>
                                     <div class="min-w-0 flex-1">
@@ -267,7 +267,7 @@
                                         </div>
                                     </div>
                                     <IconButton
-                                        class="flex-shrink-0 text-gray-500 dark:text-gray-300"
+                                        class="shrink-0 text-gray-500 dark:text-gray-300"
                                         @click.stop="openFavouriteContextMenu($event, favourite, section.id)"
                                     >
                                         <MaterialDesignIcon icon-name="dots-vertical" class="w-5 h-5" />
@@ -301,7 +301,7 @@
                         :show="favouriteContextMenu.show"
                         :x="favouriteContextMenu.x"
                         :y="favouriteContextMenu.y"
-                        panel-class="z-[200] min-w-56"
+                        panel-class="z-200 min-w-56"
                     >
                         <ContextMenuItem @click="renameFavouriteFromContext">
                             <MaterialDesignIcon icon-name="pencil" class="size-4 text-gray-400" />
@@ -352,7 +352,7 @@
                         :show="sectionContextMenu.show"
                         :x="sectionContextMenu.x"
                         :y="sectionContextMenu.y"
-                        panel-class="z-[200]"
+                        panel-class="z-200"
                     >
                         <ContextMenuItem @click="renameSectionFromContext">
                             <MaterialDesignIcon icon-name="pencil" class="size-4 text-gray-400" />
@@ -405,7 +405,7 @@
                                 :style="{ background: GlobalState.config.banished_color + '33' }"
                             >
                                 <span
-                                    class="banished-text !text-[10px] !opacity-100 !tracking-widest !border !px-1 !py-0.5 !text-white !shadow-lg"
+                                    class="banished-text text-[10px]! opacity-100! tracking-widest! border! px-1! py-0.5! text-white! shadow-lg!"
                                     :style="{ 'background-color': GlobalState.config.banished_color }"
                                     >{{ GlobalState.config.banished_text }}</span
                                 >
@@ -415,7 +415,7 @@
                                 class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
                                 @click="onNodeClick(node)"
                             >
-                                <div class="announce-card__icon flex-shrink-0">
+                                <div class="announce-card__icon shrink-0">
                                     <MaterialDesignIcon icon-name="satellite-uplink" class="w-5 h-5" />
                                 </div>
                                 <div class="min-w-0 flex-1">
@@ -441,7 +441,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="flex-shrink-0">
+                            <div class="shrink-0">
                                 <DropDownMenu>
                                     <template #button>
                                         <IconButton>
@@ -494,7 +494,7 @@
                         :show="announceContextMenu.show"
                         :x="announceContextMenu.x"
                         :y="announceContextMenu.y"
-                        panel-class="z-[200]"
+                        panel-class="z-200"
                     >
                         <ContextMenuItem
                             v-if="!isFavourite(announceContextMenu.node?.destination_hash)"
@@ -1304,6 +1304,7 @@ export default {
 </script>
 
 <style scoped>
+@reference "../../style.css";
 .sidebar-tab {
     @apply flex h-full w-1/2 items-center justify-center text-sm font-semibold text-gray-500 dark:text-gray-400 border-b-2 border-transparent transition;
 }

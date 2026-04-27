@@ -2,10 +2,7 @@
 
 <template>
     <transition name="slide-down">
-        <div
-            v-if="isOpen"
-            class="fixed inset-x-0 top-0 z-[200] flex items-start justify-center p-4 pointer-events-none"
-        >
+        <div v-if="isOpen" class="fixed inset-x-0 top-0 z-200 flex items-start justify-center p-4 pointer-events-none">
             <div
                 v-click-outside="close"
                 class="w-full max-w-2xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden flex flex-col max-h-[70vh] pointer-events-auto mt-2 sm:mt-8"
@@ -26,7 +23,7 @@
                     />
                     <div class="flex items-center gap-1 ml-2">
                         <kbd
-                            class="px-2 py-1 text-xs font-semibold text-gray-500 bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg shadow-sm"
+                            class="px-2 py-1 text-xs font-semibold text-gray-500 bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg shadow-xs"
                             >ESC</kbd
                         >
                     </div>
@@ -93,14 +90,14 @@
                 >
                     <div class="flex items-center gap-1.5">
                         <kbd
-                            class="px-1.5 py-0.5 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded shadow-sm"
+                            class="px-1.5 py-0.5 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-sm shadow-xs"
                             >↑↓</kbd
                         >
                         <span>{{ $t("command_palette.footer_navigate") }}</span>
                     </div>
                     <div class="flex items-center gap-1.5">
                         <kbd
-                            class="px-1.5 py-0.5 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded shadow-sm"
+                            class="px-1.5 py-0.5 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-sm shadow-xs"
                             >Enter</kbd
                         >
                         <span>{{ $t("command_palette.footer_select") }}</span>

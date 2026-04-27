@@ -21,6 +21,13 @@
             </div>
 
             <div class="ml-auto flex flex-wrap items-center justify-end gap-1 sm:gap-2 shrink-0">
+                <RouterLink
+                    to="/tools"
+                    class="inline-flex items-center gap-2 text-sm text-violet-600 dark:text-violet-300 hover:underline"
+                >
+                    <MaterialDesignIcon icon-name="arrow-left" class="size-4" />
+                    {{ $t("tools.back_to_tools") }}
+                </RouterLink>
                 <button
                     class="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
                     @click="showAdvanced = !showAdvanced"
@@ -39,12 +46,6 @@
                     <MaterialDesignIcon icon-name="open-in-new" class="size-5" />
                     <span class="hidden sm:inline">{{ $t("tools.rnode_flasher.original") }}</span>
                 </a>
-                <button
-                    class="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-                    @click="$router.push({ name: 'tools' })"
-                >
-                    <MaterialDesignIcon icon-name="close" class="size-5" />
-                </button>
             </div>
         </div>
 
@@ -150,15 +151,15 @@
                 <div class="flex items-center gap-4">
                     <a
                         target="_blank"
-                        :href="`${giteaBaseUrl}/Reticulum/rnode-flasher`"
+                        href="https://github.com/liamcottle/rnode-flasher"
                         class="text-blue-500 hover:underline text-sm font-bold"
-                        >RNode Flasher GH</a
+                        >RNode Flasher</a
                     >
                     <a
                         target="_blank"
-                        :href="`${giteaBaseUrl}/Reticulum/RNode_Firmware`"
+                        href="https://github.com/markqvist/RNode_Firmware"
                         class="text-blue-500 hover:underline text-sm font-bold"
-                        >RNode Firmware GH</a
+                        >RNode Firmware</a
                     >
                 </div>
             </div>
@@ -198,7 +199,6 @@ import WifiTransport from "../../js/rnode/transports/WifiTransport.js";
 import { diagnose } from "../../js/rnode/Diagnostics.js";
 
 import ToastUtils from "../../js/ToastUtils.js";
-import GlobalState from "../../js/GlobalState";
 
 export default {
     name: "RNodeFlasherPage",
@@ -249,9 +249,6 @@ export default {
         recommendedFirmwareFilename() {
             return this.selectedModel?.firmware_filename ?? this.selectedProduct?.firmware_filename;
         },
-        giteaBaseUrl() {
-            return GlobalState.config?.gitea_base_url || "https://git.quad4.io";
-        },
         canFlash() {
             if (this.connectionMethod === TRANSPORT_WIFI) {
                 return Boolean(this.wifiHost && this.firmwareFile);
@@ -299,7 +296,7 @@ export default {
         },
         async fetchLatestRelease() {
             try {
-                const response = await fetch("/api/v1/tools/rnode/latest_release?repo=Reticulum/RNode_Firmware");
+                const response = await fetch("/api/v1/tools/rnode/latest_release");
                 if (response.ok) {
                     this.latestRelease = await response.json();
                 }
@@ -314,8 +311,7 @@ export default {
             if (asset?.browser_download_url) {
                 return asset.browser_download_url;
             }
-            const base = (this.giteaBaseUrl || "https://git.quad4.io").replace(/\/$/, "");
-            return `${base}/Reticulum/RNode_Firmware/releases/latest/download/${filename}`;
+            return `https://github.com/markqvist/RNode_Firmware/releases/latest/download/${filename}`;
         },
         async downloadRecommendedFirmware() {
             const assetUrl = this._resolveRecommendedAssetUrl();

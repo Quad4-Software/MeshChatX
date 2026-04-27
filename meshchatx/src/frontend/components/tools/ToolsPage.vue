@@ -26,7 +26,7 @@
                                 v-model="searchQuery"
                                 type="text"
                                 :placeholder="$t('common.search')"
-                                class="w-full pl-10 pr-10 py-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-sm"
+                                class="w-full pl-10 pr-10 py-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-sm"
                             />
                             <button
                                 v-if="searchQuery"
@@ -41,7 +41,7 @@
                 </div>
             </div>
 
-            <div class="p-4 md:p-6 xl:p-8 w-full max-w-6xl xl:max-w-7xl 2xl:max-w-[96rem] mx-auto">
+            <div class="p-4 md:p-6 xl:p-8 w-full max-w-6xl xl:max-w-7xl 2xl:max-w-384 mx-auto">
                 <div
                     class="rounded-lg overflow-hidden border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950"
                 >
@@ -75,7 +75,7 @@
                                     <div class="tool-card__title">{{ tool.title }}</div>
                                     <span
                                         v-if="tool.comingSoon"
-                                        class="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-gray-400 rounded border border-gray-200 dark:border-zinc-700"
+                                        class="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-gray-400 rounded-sm border border-gray-200 dark:border-zinc-700"
                                     >
                                         Soon
                                     </span>
@@ -340,8 +340,9 @@ export default {
 </script>
 
 <style scoped>
+@reference "../../style.css";
 .tool-row {
-    @apply flex items-start sm:items-center gap-3 sm:gap-4 px-4 py-3.5 min-h-[4.25rem] transition-colors;
+    @apply flex items-start sm:items-center gap-3 sm:gap-4 px-4 py-3.5 min-h-17 transition-colors;
     @apply hover:bg-gray-50 dark:hover:bg-zinc-900/80 active:bg-gray-100 dark:active:bg-zinc-800/80;
 }
 .tool-card__icon {

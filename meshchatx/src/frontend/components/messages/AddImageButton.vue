@@ -4,7 +4,7 @@
     <div class="inline-flex">
         <button
             type="button"
-            class="my-auto inline-flex items-center gap-x-1 rounded-full border border-gray-200 dark:border-zinc-700 bg-white/90 dark:bg-zinc-900/80 px-3 py-1.5 text-xs font-semibold text-gray-800 dark:text-gray-100 shadow-sm hover:border-blue-400 dark:hover:border-blue-500 transition"
+            class="my-auto inline-flex items-center gap-x-1 rounded-full border border-gray-200 dark:border-zinc-700 bg-white/90 dark:bg-zinc-900/80 px-3 py-1.5 text-xs font-semibold text-gray-800 dark:text-gray-100 shadow-xs hover:border-blue-400 dark:hover:border-blue-500 transition"
             @click="showMenu"
         >
             <MaterialDesignIcon icon-name="image-plus" class="w-4 h-4" />
@@ -23,7 +23,7 @@
                 <div
                     v-if="isShowingMenu"
                     v-click-outside="hideMenu"
-                    class="absolute bottom-0 -ml-11 sm:right-0 sm:ml-0 z-10 mb-10 rounded-xl bg-white dark:bg-zinc-900 shadow-lg ring-1 ring-gray-200 dark:ring-zinc-800 focus:outline-none"
+                    class="absolute bottom-0 -ml-11 sm:right-0 sm:ml-0 z-10 mb-10 rounded-xl bg-white dark:bg-zinc-900 shadow-lg ring-1 ring-gray-200 dark:ring-zinc-800 focus:outline-hidden"
                 >
                     <div class="py-1">
                         <button

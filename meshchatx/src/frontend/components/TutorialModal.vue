@@ -13,7 +13,7 @@
         @update:model-value="onVisibleUpdate"
     >
         <v-card
-            class="flex min-h-0 flex-1 flex-col bg-white dark:bg-zinc-950 border-0 overflow-hidden relative h-full max-h-[100dvh]"
+            class="flex min-h-0 flex-1 flex-col bg-white dark:bg-zinc-950 border-0 overflow-hidden relative h-full max-h-dvh"
         >
             <!-- Settings Controls -->
             <div class="absolute top-4 left-4 z-50 flex items-center gap-1">
@@ -39,7 +39,7 @@
                     class="h-full transition-all duration-500 ease-out"
                     :class="[
                         currentStep >= step ? 'bg-blue-500' : 'bg-transparent',
-                        currentStep === step ? 'flex-[2]' : 'flex-1',
+                        currentStep === step ? 'flex-2' : 'flex-1',
                     ]"
                     :style="{ borderRight: step < totalSteps ? '1px solid rgba(0,0,0,0.05)' : 'none' }"
                 ></div>
@@ -282,103 +282,218 @@
                             </p>
                         </div>
 
+                        <div
+                            class="flex items-start gap-3 sm:gap-4 rounded-2xl border border-gray-200 dark:border-zinc-700 bg-white/80 dark:bg-zinc-900/60 p-3.5 sm:p-4"
+                        >
+                            <div class="shrink-0 pr-0.5 pt-0.5 sm:pt-1 sm:pr-1 flex items-start">
+                                <Toggle
+                                    v-model="defaultBootstrapOnly"
+                                    @update:model-value="persistDefaultBootstrapOnly"
+                                />
+                            </div>
+                            <div class="min-w-0 flex-1 pl-0.5 sm:pl-0 sm:pt-0.5">
+                                <div class="text-sm font-semibold text-gray-900 dark:text-white leading-snug">
+                                    {{ $t("tutorial.bootstrap_only_label") }}
+                                </div>
+                                <p class="text-xs text-gray-500 dark:text-zinc-400 mt-1.5 leading-relaxed">
+                                    {{ $t("tutorial.bootstrap_only_hint") }}
+                                </p>
+                            </div>
+                        </div>
+
                         <div class="space-y-4">
                             <div
-                                v-if="sortedDiscoveredInterfaces.length > 0"
-                                class="bg-emerald-500/5 dark:bg-emerald-500/10 rounded-3xl p-4 border border-emerald-500/20"
+                                v-if="hasAnyBootstrapsToShow"
+                                class="w-full max-w-6xl mx-auto flex items-center gap-2 border-0 border-b border-gray-200/90 dark:border-zinc-600/90 py-1.5"
                             >
-                                <div class="flex items-center gap-2 mb-3 px-1 text-sm">
-                                    <v-icon icon="mdi-radar" color="emerald"></v-icon>
-                                    <span class="font-bold text-gray-900 dark:text-white">{{
-                                        $t("tutorial.bootstrap_discovered")
-                                    }}</span>
-                                </div>
-                                <div class="space-y-2 max-h-[260px] overflow-y-auto pr-2 custom-scrollbar">
-                                    <label
-                                        v-for="iface in sortedDiscoveredInterfaces"
-                                        :key="iface.discovery_hash || iface.name"
-                                        class="flex items-center gap-3 p-3 bg-white dark:bg-zinc-800 rounded-xl border cursor-pointer transition-all"
-                                        :class="[
-                                            isBootstrapSelected(`disc:${iface.discovery_hash || iface.name}`)
-                                                ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
-                                                : 'border-gray-100 dark:border-zinc-700 hover:border-emerald-400',
-                                        ]"
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            class="w-4 h-4 accent-emerald-500"
-                                            :checked="isBootstrapSelected(`disc:${iface.discovery_hash || iface.name}`)"
-                                            @change="toggleBootstrap(`disc:${iface.discovery_hash || iface.name}`)"
-                                        />
+                                <v-icon icon="mdi-magnify" size="20" class="shrink-0 text-gray-400" />
+                                <input
+                                    v-model="bootstrapListSearch"
+                                    type="search"
+                                    autocomplete="off"
+                                    :placeholder="$t('tutorial.bootstrap_search_placeholder')"
+                                    class="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-gray-900 shadow-none ring-0 outline-hidden focus:ring-0 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500"
+                                />
+                                <button
+                                    v-if="bootstrapListSearch"
+                                    type="button"
+                                    class="shrink-0 rounded p-1 text-gray-400 transition-colors hover:text-gray-700 dark:hover:text-zinc-200"
+                                    :title="$t('tutorial.bootstrap_search_clear')"
+                                    :aria-label="$t('tutorial.bootstrap_search_clear')"
+                                    @click="bootstrapListSearch = ''"
+                                >
+                                    <v-icon icon="mdi-close" size="18" />
+                                </button>
+                            </div>
+
+                            <div
+                                v-if="sortedDiscoveredInterfaces.length > 0"
+                                class="h-fit min-w-0 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-3xl border border-emerald-500/20"
+                            >
+                                <button
+                                    type="button"
+                                    class="flex w-full items-center justify-between gap-2 p-4 text-left sm:px-4"
+                                    :aria-expanded="bootstrapDiscoveredSectionOpen"
+                                    @click="bootstrapDiscoveredSectionOpen = !bootstrapDiscoveredSectionOpen"
+                                >
+                                    <div class="flex min-w-0 items-center gap-2 text-sm">
                                         <MaterialDesignIcon
-                                            :icon-name="getDiscoveryIcon(iface)"
-                                            class="w-5 h-5 text-emerald-500 shrink-0"
+                                            :icon-name="bootstrapDiscoveredSectionOpen ? 'chevron-up' : 'chevron-down'"
+                                            class="size-4 shrink-0 text-gray-500"
                                         />
-                                        <div class="flex-1 min-w-0">
-                                            <div class="text-sm font-bold text-gray-900 dark:text-white truncate">
-                                                {{ iface.name }}
-                                            </div>
-                                            <div
-                                                class="text-[10px] font-mono text-gray-500 dark:text-zinc-400 truncate"
-                                            >
-                                                <span v-if="iface.reachable_on"
-                                                    >{{ iface.reachable_on
-                                                    }}<span v-if="iface.port">:{{ iface.port }}</span></span
+                                        <v-icon icon="mdi-radar" color="emerald"></v-icon>
+                                        <span class="font-bold text-gray-900 dark:text-white">{{
+                                            $t("tutorial.bootstrap_discovered")
+                                        }}</span>
+                                    </div>
+                                </button>
+                                <div v-show="bootstrapDiscoveredSectionOpen" class="px-4 pb-4">
+                                    <p
+                                        v-if="
+                                            bootstrapListSearch &&
+                                            sortedDiscoveredInterfaces.length > 0 &&
+                                            filteredDiscoveredForBootstrap.length === 0
+                                        "
+                                        class="text-xs text-gray-500 dark:text-zinc-400"
+                                    >
+                                        {{ $t("tutorial.bootstrap_search_no_match") }}
+                                    </p>
+                                    <div
+                                        v-else
+                                        class="space-y-2 max-h-[260px] overflow-y-auto pr-2 pt-1 custom-scrollbar"
+                                    >
+                                        <label
+                                            v-for="iface in filteredDiscoveredForBootstrap"
+                                            :key="iface.discovery_hash || iface.name"
+                                            class="flex cursor-pointer items-center gap-3 rounded-xl border bg-white p-3 transition-all dark:bg-zinc-800"
+                                            :class="[
+                                                isBootstrapSelected(`disc:${iface.discovery_hash || iface.name}`)
+                                                    ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
+                                                    : 'border-gray-100 dark:border-zinc-700 hover:border-emerald-400',
+                                            ]"
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                class="h-4 w-4 accent-emerald-500"
+                                                :checked="
+                                                    isBootstrapSelected(`disc:${iface.discovery_hash || iface.name}`)
+                                                "
+                                                @change="toggleBootstrap(`disc:${iface.discovery_hash || iface.name}`)"
+                                            />
+                                            <MaterialDesignIcon
+                                                :icon-name="getDiscoveryIcon(iface)"
+                                                class="h-5 w-5 shrink-0 text-emerald-500"
+                                            />
+                                            <div class="min-w-0 flex-1">
+                                                <div class="truncate text-sm font-bold text-gray-900 dark:text-white">
+                                                    {{ iface.name }}
+                                                </div>
+                                                <div
+                                                    class="truncate font-mono text-[10px] text-gray-500 dark:text-zinc-400"
                                                 >
-                                                <span v-else>{{ iface.type }}</span>
-                                                <span class="ml-2 capitalize">{{ iface.status }}</span>
+                                                    <span v-if="iface.reachable_on"
+                                                        >{{ iface.reachable_on
+                                                        }}<span v-if="iface.port">:{{ iface.port }}</span></span
+                                                    >
+                                                    <span v-else>{{ iface.type }}</span>
+                                                    <span class="ml-2 capitalize">{{ iface.status }}</span>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </label>
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
 
                             <div
-                                class="bg-gray-50 dark:bg-zinc-900 rounded-3xl p-4 border border-gray-100 dark:border-zinc-800"
+                                class="h-fit min-w-0 rounded-3xl border border-gray-100 bg-gray-50 p-0 dark:border-zinc-800 dark:bg-zinc-900"
                             >
-                                <div class="flex items-center gap-2 mb-3 px-1 text-sm">
-                                    <v-icon icon="mdi-web" color="blue"></v-icon>
-                                    <span class="font-bold text-gray-900 dark:text-white">{{
-                                        $t("tutorial.bootstrap_community")
-                                    }}</span>
-                                </div>
-                                <div class="space-y-2 max-h-[260px] overflow-y-auto pr-2 custom-scrollbar">
-                                    <label
-                                        v-for="iface in communityInterfaces"
-                                        :key="iface.name"
-                                        class="flex items-center gap-3 p-3 bg-white dark:bg-zinc-800 rounded-xl border cursor-pointer transition-all"
-                                        :class="[
-                                            isBootstrapSelected(`comm:${iface.name}`)
-                                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                                                : 'border-gray-100 dark:border-zinc-700 hover:border-blue-400',
-                                        ]"
+                                <div class="flex items-center justify-between gap-2 p-4 pr-2 sm:px-4">
+                                    <button
+                                        type="button"
+                                        class="flex min-w-0 flex-1 items-center gap-2 text-left text-sm"
+                                        :aria-expanded="bootstrapCommunitySectionOpen"
+                                        @click="bootstrapCommunitySectionOpen = !bootstrapCommunitySectionOpen"
                                     >
-                                        <input
-                                            type="checkbox"
-                                            class="w-4 h-4 accent-blue-500"
-                                            :checked="isBootstrapSelected(`comm:${iface.name}`)"
-                                            @change="toggleBootstrap(`comm:${iface.name}`)"
+                                        <MaterialDesignIcon
+                                            :icon-name="bootstrapCommunitySectionOpen ? 'chevron-up' : 'chevron-down'"
+                                            class="size-4 shrink-0 text-gray-500"
                                         />
-                                        <v-icon icon="mdi-server-network" color="blue" size="20"></v-icon>
-                                        <div class="flex-1 min-w-0">
-                                            <div class="text-sm font-bold text-gray-900 dark:text-white truncate">
-                                                {{ iface.name }}
-                                            </div>
-                                            <div
-                                                class="text-[10px] font-mono text-gray-500 dark:text-zinc-400 truncate"
-                                            >
-                                                {{ iface.target_host
-                                                }}<span v-if="iface.target_port">:{{ iface.target_port }}</span>
-                                            </div>
-                                        </div>
-                                        <span
-                                            v-if="iface.online"
-                                            class="text-[9px] font-bold text-green-500 uppercase tracking-widest shrink-0"
-                                            >{{ $t("tutorial.online") }}</span
+                                        <v-icon icon="mdi-web" color="blue"></v-icon>
+                                        <span class="font-bold text-gray-900 dark:text-white">{{
+                                            $t("tutorial.bootstrap_community")
+                                        }}</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="shrink-0 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-blue-600 disabled:opacity-50 dark:hover:bg-zinc-800 dark:hover:text-blue-400"
+                                        :disabled="refreshingCommunityPresets"
+                                        :title="$t('interfaces.community_presets_refresh')"
+                                        :aria-label="$t('interfaces.community_presets_refresh')"
+                                        @click.stop="refreshCommunityPresets"
+                                    >
+                                        <v-icon
+                                            icon="mdi-refresh"
+                                            size="20"
+                                            :class="{ 'animate-spin': refreshingCommunityPresets }"
+                                        />
+                                    </button>
+                                </div>
+                                <div v-show="bootstrapCommunitySectionOpen" class="px-4 pb-4">
+                                    <p
+                                        v-if="
+                                            bootstrapListSearch &&
+                                            communityInterfaces.length > 0 &&
+                                            filteredCommunityForBootstrap.length === 0
+                                        "
+                                        class="text-xs text-gray-500 dark:text-zinc-400"
+                                    >
+                                        {{ $t("tutorial.bootstrap_search_no_match") }}
+                                    </p>
+                                    <div
+                                        v-else
+                                        class="space-y-2 max-h-[260px] overflow-y-auto pr-2 pt-1 custom-scrollbar"
+                                    >
+                                        <label
+                                            v-for="iface in filteredCommunityForBootstrap"
+                                            :key="iface.name"
+                                            class="flex cursor-pointer items-center gap-3 rounded-xl border border-gray-100 bg-white p-3 transition-all dark:border-zinc-700 dark:bg-zinc-800"
+                                            :class="[
+                                                isBootstrapSelected(`comm:${iface.name}`)
+                                                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                                    : 'hover:border-blue-400',
+                                            ]"
                                         >
-                                    </label>
-                                    <div v-if="loadingInterfaces" class="flex justify-center py-3">
-                                        <v-progress-circular indeterminate color="blue" size="24"></v-progress-circular>
+                                            <input
+                                                type="checkbox"
+                                                class="h-4 w-4 accent-blue-500"
+                                                :checked="isBootstrapSelected(`comm:${iface.name}`)"
+                                                @change="toggleBootstrap(`comm:${iface.name}`)"
+                                            />
+                                            <v-icon icon="mdi-server-network" color="blue" size="20"></v-icon>
+                                            <div class="min-w-0 flex-1">
+                                                <div class="truncate text-sm font-bold text-gray-900 dark:text-white">
+                                                    {{ iface.name }}
+                                                </div>
+                                                <div
+                                                    class="truncate font-mono text-[10px] text-gray-500 dark:text-zinc-400"
+                                                >
+                                                    {{ iface.target_host
+                                                    }}<span v-if="iface.target_port">:{{ iface.target_port }}</span>
+                                                </div>
+                                            </div>
+                                            <span
+                                                v-if="iface.online"
+                                                class="shrink-0 text-[9px] font-bold uppercase tracking-widest text-green-500"
+                                                >{{ $t("tutorial.online") }}</span
+                                            >
+                                        </label>
+                                        <div v-if="loadingInterfaces" class="flex justify-center py-3">
+                                            <v-progress-circular
+                                                indeterminate
+                                                color="blue"
+                                                size="24"
+                                            ></v-progress-circular>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -401,7 +516,7 @@
                                     </button>
                                     <button
                                         type="button"
-                                        class="px-5 py-2 text-xs rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow transition-all"
+                                        class="px-5 py-2 text-xs rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-sm transition-all"
                                         :disabled="
                                             addingBootstraps || reloadingReticulum || selectedBootstrapCount === 0
                                         "
@@ -434,7 +549,7 @@
 
                         <div class="flex flex-col items-center gap-6 py-4">
                             <div
-                                class="bg-blue-500/10 dark:bg-blue-500/20 p-6 rounded-[2rem] text-center space-y-4 border border-blue-500/20 max-w-md"
+                                class="bg-blue-500/10 dark:bg-blue-500/20 p-6 rounded-4xl text-center space-y-4 border border-blue-500/20 max-w-md"
                             >
                                 <v-icon icon="mdi-server-network" color="blue" size="48"></v-icon>
                                 <div class="text-lg font-bold text-gray-900 dark:text-white">
@@ -461,7 +576,7 @@
                                     </button>
                                     <button
                                         type="button"
-                                        class="w-full px-6 py-3 rounded-2xl border-2 border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-bold shadow-sm transition-all transform hover:scale-[1.02]"
+                                        class="w-full px-6 py-3 rounded-2xl border-2 border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-bold shadow-xs transition-all transform hover:scale-[1.02]"
                                         @click="nextStep"
                                     >
                                         {{ $t("tutorial.propagation_skip_auto") }}
@@ -506,14 +621,14 @@
                                         <a
                                             href="/meshchatx-docs/index.html"
                                             target="_blank"
-                                            class="px-3 py-1 text-[10px] rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-sm transition-all inline-block"
+                                            class="px-3 py-1 text-[10px] rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-xs transition-all inline-block"
                                         >
                                             {{ $t("tutorial.meshchatx_docs") }}
                                         </a>
                                         <a
                                             :href="reticulumBundledDocsUrl"
                                             target="_blank"
-                                            class="px-3 py-1 text-[10px] rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold shadow-sm transition-all hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-blue-400 dark:hover:border-blue-500 inline-block"
+                                            class="px-3 py-1 text-[10px] rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold shadow-xs transition-all hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-blue-400 dark:hover:border-blue-500 inline-block"
                                         >
                                             {{ $t("tutorial.reticulum_docs") }}
                                         </a>
@@ -534,7 +649,7 @@
                                     </div>
                                     <button
                                         type="button"
-                                        class="px-3 py-1 text-[10px] rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold shadow-sm transition-all hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-blue-400 dark:hover:border-blue-500"
+                                        class="px-3 py-1 text-[10px] rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold shadow-xs transition-all hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-blue-400 dark:hover:border-blue-500"
                                         @click="gotoRoute('micron-editor')"
                                     >
                                         {{ $t("tutorial.open_micron_editor") }}
@@ -643,7 +758,7 @@
                 <button
                     v-if="currentStep > 1 && currentStep < totalSteps"
                     type="button"
-                    class="px-6 py-2.5 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold text-sm shadow-sm transition-all hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-blue-400 dark:hover:border-blue-500"
+                    class="px-6 py-2.5 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold text-sm shadow-xs transition-all hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-blue-400 dark:hover:border-blue-500"
                     @click="previousStep"
                 >
                     {{ $t("tutorial.back") }}
@@ -654,7 +769,7 @@
                     <button
                         v-if="currentStep < totalSteps"
                         type="button"
-                        class="px-6 py-2.5 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold text-sm shadow-sm transition-all opacity-50 hover:opacity-100 hover:bg-gray-50 dark:hover:bg-zinc-700"
+                        class="px-6 py-2.5 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold text-sm shadow-xs transition-all opacity-50 hover:opacity-100 hover:bg-gray-50 dark:hover:bg-zinc-700"
                         @click="skipTutorial"
                     >
                         {{ $t("tutorial.skip") }}
@@ -663,7 +778,7 @@
                     <button
                         v-if="currentStep < totalSteps"
                         type="button"
-                        class="px-8 h-12 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm shadow-sm transition-all"
+                        class="px-8 h-12 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm shadow-xs transition-all"
                         @click="nextStep"
                     >
                         {{ $t("tutorial.next") }}
@@ -672,7 +787,7 @@
                     <button
                         v-else
                         type="button"
-                        class="px-8 h-12 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm shadow-sm transition-all"
+                        class="px-8 h-12 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm shadow-xs transition-all"
                         @click="finishTutorial"
                     >
                         {{ $t("tutorial.finish_setup") }}
@@ -707,7 +822,7 @@
                 class="h-full transition-all duration-500 ease-out"
                 :class="[
                     currentStep >= step ? 'bg-blue-500' : 'bg-transparent',
-                    currentStep === step ? 'flex-[2]' : 'flex-1',
+                    currentStep === step ? 'flex-2' : 'flex-1',
                 ]"
                 :style="{ borderRight: step < totalSteps ? '1px solid rgba(0,0,0,0.05)' : 'none' }"
             ></div>
@@ -950,104 +1065,223 @@
                             </p>
                         </div>
 
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 max-w-6xl mx-auto">
+                        <div
+                            class="flex items-start gap-3 sm:gap-5 max-w-3xl mx-auto rounded-2xl border border-gray-200 dark:border-zinc-700 bg-white/80 dark:bg-zinc-900/60 p-3.5 sm:p-5"
+                        >
+                            <div class="shrink-0 pr-0.5 pt-0.5 sm:pt-1.5 sm:pr-1 flex items-start">
+                                <Toggle
+                                    v-model="defaultBootstrapOnly"
+                                    @update:model-value="persistDefaultBootstrapOnly"
+                                />
+                            </div>
+                            <div class="min-w-0 flex-1 pl-0.5 sm:pl-0 sm:pt-0.5">
+                                <div
+                                    class="text-sm sm:text-base font-semibold text-gray-900 dark:text-white leading-snug"
+                                >
+                                    {{ $t("tutorial.bootstrap_only_label") }}
+                                </div>
+                                <p
+                                    class="text-xs sm:text-sm text-gray-500 dark:text-zinc-400 mt-1.5 sm:mt-2 leading-relaxed"
+                                >
+                                    {{ $t("tutorial.bootstrap_only_hint") }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div
+                            v-if="hasAnyBootstrapsToShow"
+                            class="flex w-full max-w-6xl mx-auto items-center gap-2 border-0 border-b border-gray-200/90 dark:border-zinc-600/90 py-1.5"
+                        >
+                            <v-icon icon="mdi-magnify" size="22" class="shrink-0 text-gray-400" />
+                            <input
+                                v-model="bootstrapListSearch"
+                                type="search"
+                                autocomplete="off"
+                                :placeholder="$t('tutorial.bootstrap_search_placeholder')"
+                                class="min-w-0 flex-1 border-0 bg-transparent p-0 text-base text-gray-900 shadow-none ring-0 outline-hidden focus:ring-0 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500"
+                            />
+                            <button
+                                v-if="bootstrapListSearch"
+                                type="button"
+                                class="shrink-0 rounded p-1.5 text-gray-400 transition-colors hover:text-gray-700 dark:hover:text-zinc-200"
+                                :title="$t('tutorial.bootstrap_search_clear')"
+                                :aria-label="$t('tutorial.bootstrap_search_clear')"
+                                @click="bootstrapListSearch = ''"
+                            >
+                                <v-icon icon="mdi-close" size="20" />
+                            </button>
+                        </div>
+
+                        <div class="grid max-w-6xl mx-auto grid-cols-1 items-start gap-6 lg:grid-cols-2">
                             <div
                                 v-if="sortedDiscoveredInterfaces.length > 0"
-                                class="bg-emerald-500/5 dark:bg-emerald-500/10 rounded-[1.5rem] p-5 border border-emerald-500/20"
+                                class="h-fit min-w-0 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-3xl border border-emerald-500/20"
                             >
-                                <div class="flex items-center gap-2 mb-4">
-                                    <v-icon icon="mdi-radar" color="emerald" size="22"></v-icon>
-                                    <span class="text-base font-bold text-gray-900 dark:text-white">{{
-                                        $t("tutorial.bootstrap_discovered")
-                                    }}</span>
-                                </div>
-                                <div class="space-y-2 max-h-[480px] overflow-y-auto pr-2 custom-scrollbar">
-                                    <label
-                                        v-for="iface in sortedDiscoveredInterfaces"
-                                        :key="iface.discovery_hash || iface.name"
-                                        class="flex items-center gap-3 p-3 bg-white dark:bg-zinc-800 rounded-xl border cursor-pointer transition-all"
-                                        :class="[
-                                            isBootstrapSelected(`disc:${iface.discovery_hash || iface.name}`)
-                                                ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
-                                                : 'border-gray-100 dark:border-zinc-700 hover:border-emerald-400',
-                                        ]"
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            class="w-4 h-4 accent-emerald-500"
-                                            :checked="isBootstrapSelected(`disc:${iface.discovery_hash || iface.name}`)"
-                                            @change="toggleBootstrap(`disc:${iface.discovery_hash || iface.name}`)"
-                                        />
+                                <button
+                                    type="button"
+                                    class="flex w-full items-center justify-between gap-2 p-4 text-left sm:px-5"
+                                    :aria-expanded="bootstrapDiscoveredSectionOpen"
+                                    @click="bootstrapDiscoveredSectionOpen = !bootstrapDiscoveredSectionOpen"
+                                >
+                                    <div class="flex min-w-0 items-center gap-2.5 text-base">
                                         <MaterialDesignIcon
-                                            :icon-name="getDiscoveryIcon(iface)"
-                                            class="w-5 h-5 text-emerald-500 shrink-0"
+                                            :icon-name="bootstrapDiscoveredSectionOpen ? 'chevron-up' : 'chevron-down'"
+                                            class="size-4 shrink-0 text-gray-500"
                                         />
-                                        <div class="flex-1 min-w-0">
-                                            <div class="text-sm font-bold text-gray-900 dark:text-white truncate">
-                                                {{ iface.name }}
-                                            </div>
-                                            <div
-                                                class="text-[10px] font-mono text-gray-500 dark:text-zinc-400 truncate"
-                                            >
-                                                <span v-if="iface.reachable_on"
-                                                    >{{ iface.reachable_on
-                                                    }}<span v-if="iface.port">:{{ iface.port }}</span></span
+                                        <v-icon icon="mdi-radar" color="emerald" size="22"></v-icon>
+                                        <span class="font-bold text-gray-900 dark:text-white">{{
+                                            $t("tutorial.bootstrap_discovered")
+                                        }}</span>
+                                    </div>
+                                </button>
+                                <div v-show="bootstrapDiscoveredSectionOpen" class="px-4 pb-5 sm:px-5">
+                                    <p
+                                        v-if="
+                                            bootstrapListSearch &&
+                                            sortedDiscoveredInterfaces.length > 0 &&
+                                            filteredDiscoveredForBootstrap.length === 0
+                                        "
+                                        class="text-sm text-gray-500 dark:text-zinc-400"
+                                    >
+                                        {{ $t("tutorial.bootstrap_search_no_match") }}
+                                    </p>
+                                    <div
+                                        v-else
+                                        class="max-h-[480px] space-y-2 overflow-y-auto pr-2 pt-1 custom-scrollbar"
+                                    >
+                                        <label
+                                            v-for="iface in filteredDiscoveredForBootstrap"
+                                            :key="iface.discovery_hash || iface.name"
+                                            class="flex cursor-pointer items-center gap-3 rounded-xl border border-gray-100 bg-white p-3 transition-all dark:border-zinc-700 dark:bg-zinc-800"
+                                            :class="[
+                                                isBootstrapSelected(`disc:${iface.discovery_hash || iface.name}`)
+                                                    ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
+                                                    : 'hover:border-emerald-400',
+                                            ]"
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                class="h-4 w-4 accent-emerald-500"
+                                                :checked="
+                                                    isBootstrapSelected(`disc:${iface.discovery_hash || iface.name}`)
+                                                "
+                                                @change="toggleBootstrap(`disc:${iface.discovery_hash || iface.name}`)"
+                                            />
+                                            <MaterialDesignIcon
+                                                :icon-name="getDiscoveryIcon(iface)"
+                                                class="h-5 w-5 shrink-0 text-emerald-500"
+                                            />
+                                            <div class="min-w-0 flex-1">
+                                                <div class="truncate text-sm font-bold text-gray-900 dark:text-white">
+                                                    {{ iface.name }}
+                                                </div>
+                                                <div
+                                                    class="truncate font-mono text-[10px] text-gray-500 dark:text-zinc-400"
                                                 >
-                                                <span v-else>{{ iface.type }}</span>
-                                                <span class="ml-2 capitalize">{{ iface.status }}</span>
+                                                    <span v-if="iface.reachable_on"
+                                                        >{{ iface.reachable_on
+                                                        }}<span v-if="iface.port">:{{ iface.port }}</span></span
+                                                    >
+                                                    <span v-else>{{ iface.type }}</span>
+                                                    <span class="ml-2 capitalize">{{ iface.status }}</span>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </label>
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
 
                             <div
-                                class="bg-gray-50 dark:bg-zinc-900 rounded-[1.5rem] p-5 border border-gray-100 dark:border-zinc-800"
+                                class="h-fit min-w-0 rounded-3xl border border-gray-100 bg-gray-50 p-0 dark:border-zinc-800 dark:bg-zinc-900"
                                 :class="[sortedDiscoveredInterfaces.length === 0 ? 'lg:col-span-2' : '']"
                             >
-                                <div class="flex items-center gap-2 mb-4">
-                                    <v-icon icon="mdi-web" color="blue" size="22"></v-icon>
-                                    <span class="text-base font-bold text-gray-900 dark:text-white">{{
-                                        $t("tutorial.bootstrap_community")
-                                    }}</span>
-                                </div>
-                                <div class="space-y-2 max-h-[480px] overflow-y-auto pr-2 custom-scrollbar">
-                                    <label
-                                        v-for="iface in communityInterfaces"
-                                        :key="iface.name"
-                                        class="flex items-center gap-3 p-3 bg-white dark:bg-zinc-800 rounded-xl border cursor-pointer transition-all"
-                                        :class="[
-                                            isBootstrapSelected(`comm:${iface.name}`)
-                                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                                                : 'border-gray-100 dark:border-zinc-700 hover:border-blue-400',
-                                        ]"
+                                <div class="flex items-center justify-between gap-2 p-4 pr-2 sm:px-5">
+                                    <button
+                                        type="button"
+                                        class="flex min-w-0 flex-1 items-center gap-2.5 text-left text-base"
+                                        :aria-expanded="bootstrapCommunitySectionOpen"
+                                        @click="bootstrapCommunitySectionOpen = !bootstrapCommunitySectionOpen"
                                     >
-                                        <input
-                                            type="checkbox"
-                                            class="w-4 h-4 accent-blue-500"
-                                            :checked="isBootstrapSelected(`comm:${iface.name}`)"
-                                            @change="toggleBootstrap(`comm:${iface.name}`)"
+                                        <MaterialDesignIcon
+                                            :icon-name="bootstrapCommunitySectionOpen ? 'chevron-up' : 'chevron-down'"
+                                            class="size-4 shrink-0 text-gray-500"
                                         />
-                                        <v-icon icon="mdi-server-network" color="blue" size="22"></v-icon>
-                                        <div class="flex-1 min-w-0">
-                                            <div class="text-sm font-bold text-gray-900 dark:text-white truncate">
-                                                {{ iface.name }}
-                                            </div>
-                                            <div
-                                                class="text-[10px] font-mono text-gray-500 dark:text-zinc-400 truncate"
-                                            >
-                                                {{ iface.target_host
-                                                }}<span v-if="iface.target_port">:{{ iface.target_port }}</span>
-                                            </div>
-                                        </div>
-                                        <span
-                                            v-if="iface.online"
-                                            class="text-[9px] font-bold text-green-500 uppercase tracking-widest shrink-0"
-                                            >{{ $t("tutorial.online") }}</span
+                                        <v-icon icon="mdi-web" color="blue" size="22"></v-icon>
+                                        <span class="font-bold text-gray-900 dark:text-white">{{
+                                            $t("tutorial.bootstrap_community")
+                                        }}</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="shrink-0 rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-blue-600 disabled:opacity-50 dark:hover:bg-zinc-800 dark:hover:text-blue-400"
+                                        :disabled="refreshingCommunityPresets"
+                                        :title="$t('interfaces.community_presets_refresh')"
+                                        :aria-label="$t('interfaces.community_presets_refresh')"
+                                        @click.stop="refreshCommunityPresets"
+                                    >
+                                        <v-icon
+                                            icon="mdi-refresh"
+                                            size="22"
+                                            :class="{ 'animate-spin': refreshingCommunityPresets }"
+                                        />
+                                    </button>
+                                </div>
+                                <div v-show="bootstrapCommunitySectionOpen" class="px-4 pb-5 sm:px-5">
+                                    <p
+                                        v-if="
+                                            bootstrapListSearch &&
+                                            communityInterfaces.length > 0 &&
+                                            filteredCommunityForBootstrap.length === 0
+                                        "
+                                        class="text-sm text-gray-500 dark:text-zinc-400"
+                                    >
+                                        {{ $t("tutorial.bootstrap_search_no_match") }}
+                                    </p>
+                                    <div
+                                        v-else
+                                        class="max-h-[480px] space-y-2 overflow-y-auto pr-2 pt-1 custom-scrollbar"
+                                    >
+                                        <label
+                                            v-for="iface in filteredCommunityForBootstrap"
+                                            :key="iface.name"
+                                            class="flex cursor-pointer items-center gap-3 rounded-xl border border-gray-100 bg-white p-3 transition-all dark:border-zinc-700 dark:bg-zinc-800"
+                                            :class="[
+                                                isBootstrapSelected(`comm:${iface.name}`)
+                                                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                                    : 'hover:border-blue-400',
+                                            ]"
                                         >
-                                    </label>
-                                    <div v-if="loadingInterfaces" class="flex justify-center py-3">
-                                        <v-progress-circular indeterminate color="blue" size="24"></v-progress-circular>
+                                            <input
+                                                type="checkbox"
+                                                class="h-4 w-4 accent-blue-500"
+                                                :checked="isBootstrapSelected(`comm:${iface.name}`)"
+                                                @change="toggleBootstrap(`comm:${iface.name}`)"
+                                            />
+                                            <v-icon icon="mdi-server-network" color="blue" size="22"></v-icon>
+                                            <div class="min-w-0 flex-1">
+                                                <div class="truncate text-sm font-bold text-gray-900 dark:text-white">
+                                                    {{ iface.name }}
+                                                </div>
+                                                <div
+                                                    class="truncate font-mono text-[10px] text-gray-500 dark:text-zinc-400"
+                                                >
+                                                    {{ iface.target_host
+                                                    }}<span v-if="iface.target_port">:{{ iface.target_port }}</span>
+                                                </div>
+                                            </div>
+                                            <span
+                                                v-if="iface.online"
+                                                class="shrink-0 text-[9px] font-bold uppercase tracking-widest text-green-500"
+                                                >{{ $t("tutorial.online") }}</span
+                                            >
+                                        </label>
+                                        <div v-if="loadingInterfaces" class="flex justify-center py-3">
+                                            <v-progress-circular
+                                                indeterminate
+                                                color="blue"
+                                                size="24"
+                                            ></v-progress-circular>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1161,7 +1395,7 @@
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div
-                                class="flex flex-col items-center gap-6 p-8 rounded-[2rem] bg-gray-50 dark:bg-zinc-900 text-center border border-gray-100 dark:border-zinc-800"
+                                class="flex flex-col items-center gap-6 p-8 rounded-4xl bg-gray-50 dark:bg-zinc-900 text-center border border-gray-100 dark:border-zinc-800"
                             >
                                 <v-icon icon="mdi-book-open-variant" color="blue" size="64"></v-icon>
                                 <div>
@@ -1175,14 +1409,14 @@
                                         <a
                                             href="/meshchatx-docs/index.html"
                                             target="_blank"
-                                            class="h-12 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-sm transition-all inline-flex items-center justify-center px-6"
+                                            class="h-12 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-xs transition-all inline-flex items-center justify-center px-6"
                                         >
                                             {{ $t("tutorial.read_meshchatx_docs") }}
                                         </a>
                                         <a
                                             :href="reticulumBundledDocsUrl"
                                             target="_blank"
-                                            class="h-12 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold shadow-sm transition-all hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-blue-400 dark:hover:border-blue-500 inline-flex items-center justify-center px-6"
+                                            class="h-12 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold shadow-xs transition-all hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-blue-400 dark:hover:border-blue-500 inline-flex items-center justify-center px-6"
                                         >
                                             {{ $t("tutorial.reticulum_manual") }}
                                         </a>
@@ -1191,7 +1425,7 @@
                             </div>
 
                             <div
-                                class="flex flex-col items-center gap-6 p-8 rounded-[2rem] bg-gray-50 dark:bg-zinc-900 text-center border border-gray-100 dark:border-zinc-800"
+                                class="flex flex-col items-center gap-6 p-8 rounded-4xl bg-gray-50 dark:bg-zinc-900 text-center border border-gray-100 dark:border-zinc-800"
                             >
                                 <v-icon icon="mdi-file-document-edit-outline" color="orange" size="64"></v-icon>
                                 <div>
@@ -1203,7 +1437,7 @@
                                     </p>
                                     <button
                                         type="button"
-                                        class="w-full h-12 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold shadow-sm transition-all"
+                                        class="w-full h-12 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold shadow-xs transition-all"
                                         @click="gotoRoute('micron-editor')"
                                     >
                                         {{ $t("tutorial.open_micron_editor") }}
@@ -1312,7 +1546,7 @@
                     <button
                         v-if="currentStep > 1 && currentStep < totalSteps"
                         type="button"
-                        class="px-8 h-12 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold text-sm shadow-sm transition-all hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-blue-400 dark:hover:border-blue-500"
+                        class="px-8 h-12 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold text-sm shadow-xs transition-all hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-blue-400 dark:hover:border-blue-500"
                         @click="previousStep"
                     >
                         {{ $t("tutorial.back") }}
@@ -1323,7 +1557,7 @@
                         <button
                             v-if="currentStep < totalSteps"
                             type="button"
-                            class="px-8 h-12 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold text-sm shadow-sm transition-all opacity-50 hover:opacity-100 hover:bg-gray-50 dark:hover:bg-zinc-700"
+                            class="px-8 h-12 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold text-sm shadow-xs transition-all opacity-50 hover:opacity-100 hover:bg-gray-50 dark:hover:bg-zinc-700"
                             @click="skipTutorial"
                         >
                             {{ $t("tutorial.skip_setup") }}
@@ -1332,7 +1566,7 @@
                         <button
                             v-if="currentStep < totalSteps"
                             type="button"
-                            class="px-12 h-14 text-lg rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-sm transition-all"
+                            class="px-12 h-14 text-lg rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-xs transition-all"
                             @click="nextStep"
                         >
                             {{ $t("tutorial.continue") }}
@@ -1341,7 +1575,7 @@
                         <button
                             v-else
                             type="button"
-                            class="px-12 h-14 text-lg rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-sm transition-all"
+                            class="px-12 h-14 text-lg rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-xs transition-all"
                             @click="finishTutorial"
                         >
                             {{ $t("tutorial.finish_setup") }}
@@ -1361,12 +1595,14 @@ import GlobalState from "../js/GlobalState";
 import { bundledReticulumDocsUrl } from "../js/reticulumDocsEntryUrl.js";
 import LanguageSelector from "./LanguageSelector.vue";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
+import Toggle from "./forms/Toggle.vue";
 
 export default {
     name: "TutorialModal",
     components: {
         LanguageSelector,
         MaterialDesignIcon,
+        Toggle,
     },
     data() {
         return {
@@ -1391,6 +1627,11 @@ export default {
             discoveryInterval: null,
             markingSeen: false,
             windowWidth: typeof window !== "undefined" ? window.innerWidth : 1024,
+            defaultBootstrapOnly: true,
+            refreshingCommunityPresets: false,
+            bootstrapListSearch: "",
+            bootstrapDiscoveredSectionOpen: true,
+            bootstrapCommunitySectionOpen: true,
         };
     },
     computed: {
@@ -1418,6 +1659,37 @@ export default {
         hasAnyBootstrapsToShow() {
             return this.communityInterfaces.length > 0 || this.sortedDiscoveredInterfaces.length > 0;
         },
+        filteredDiscoveredForBootstrap() {
+            const list = this.sortedDiscoveredInterfaces;
+            const q = (this.bootstrapListSearch || "").trim().toLowerCase();
+            if (!q) {
+                return list;
+            }
+            return list.filter((iface) => {
+                const parts = [
+                    iface.name,
+                    iface.type,
+                    iface.reachable_on,
+                    String(iface.port ?? ""),
+                    iface.status,
+                    iface.discovery_hash,
+                ].filter(Boolean);
+                return parts.join(" ").toLowerCase().includes(q);
+            });
+        },
+        filteredCommunityForBootstrap() {
+            const list = this.communityInterfaces;
+            const q = (this.bootstrapListSearch || "").trim().toLowerCase();
+            if (!q) {
+                return list;
+            }
+            return list.filter((iface) => {
+                const parts = [iface.name, iface.target_host, String(iface.target_port ?? ""), iface.type].filter(
+                    Boolean
+                );
+                return parts.join(" ").toLowerCase().includes(q);
+            });
+        },
         selectedBootstrapCount() {
             return this.selectedBootstrapKeys.length;
         },
@@ -1439,6 +1711,7 @@ export default {
         };
         window.addEventListener("resize", this.onWindowResize, { passive: true });
         if (this.isPage) {
+            this.loadDiscoveryBootstrapDefaults();
             this.loadCommunityInterfaces();
             this.loadDiscoveredInterfaces();
             this.discoveryInterval = setInterval(() => {
@@ -1476,6 +1749,10 @@ export default {
             this.connectionMode = null;
             this.selectedBootstrapKeys = [];
             this.addedBootstrapKeys = [];
+            this.bootstrapListSearch = "";
+            this.bootstrapDiscoveredSectionOpen = true;
+            this.bootstrapCommunitySectionOpen = true;
+            await this.loadDiscoveryBootstrapDefaults();
             await this.loadCommunityInterfaces();
             await this.loadDiscoveredInterfaces();
 
@@ -1495,6 +1772,21 @@ export default {
                 console.error("Failed to load community interfaces:", e);
             } finally {
                 this.loadingInterfaces = false;
+            }
+        },
+        async refreshCommunityPresets() {
+            if (this.refreshingCommunityPresets) return;
+            this.refreshingCommunityPresets = true;
+            try {
+                const r = await window.api.post("/api/v1/community-interfaces/refresh", {});
+                const n = r.data?.count ?? 0;
+                ToastUtils.success(this.$t("interfaces.community_presets_refreshed", { count: n }));
+                await this.loadCommunityInterfaces();
+            } catch (e) {
+                ToastUtils.error(e.response?.data?.message || this.$t("interfaces.community_presets_refresh_failed"));
+                console.error(e);
+            } finally {
+                this.refreshingCommunityPresets = false;
             }
         },
         async loadDiscoveredInterfaces() {
@@ -1532,11 +1824,16 @@ export default {
                 const payload = {
                     discover_interfaces: true,
                     autoconnect_discovered_interfaces: 3,
+                    default_bootstrap_only: true,
                 };
                 await window.api.patch(`/api/v1/reticulum/discovery`, payload);
+                this.defaultBootstrapOnly = true;
                 ToastUtils.success(this.$t("tutorial.discovery_enabled"));
                 this.connectionMode = "discovery";
                 this.currentStep = 3;
+                this.bootstrapListSearch = "";
+                this.bootstrapDiscoveredSectionOpen = true;
+                this.bootstrapCommunitySectionOpen = true;
             } catch (e) {
                 console.error("Failed to enable discovery:", e);
                 ToastUtils.error(this.$t("tutorial.failed_enable_discovery"));
@@ -1589,6 +1886,7 @@ export default {
                     name: iface.name || `Discovered ${iface.discovery_hash || ""}`.trim(),
                     type: iface.type === "BackboneInterface" ? "TCPClientInterface" : iface.type,
                     enabled: true,
+                    bootstrap_only: this.defaultBootstrapOnly === true,
                 };
                 if (iface.reachable_on) {
                     payload.target_host = iface.reachable_on;
@@ -1605,7 +1903,36 @@ export default {
                 target_host: iface.target_host,
                 target_port: iface.target_port,
                 enabled: true,
+                bootstrap_only: this.defaultBootstrapOnly === true,
             };
+        },
+        parseDiscoveryBool(value, defaultValue = true) {
+            if (value === undefined || value === null || value === "") {
+                return defaultValue;
+            }
+            if (typeof value === "string") {
+                return ["true", "yes", "1", "y", "on"].includes(value.toLowerCase());
+            }
+            return Boolean(value);
+        },
+        async loadDiscoveryBootstrapDefaults() {
+            try {
+                const response = await window.api.get("/api/v1/reticulum/discovery");
+                const d = response.data?.discovery ?? {};
+                this.defaultBootstrapOnly = this.parseDiscoveryBool(d.default_bootstrap_only, true);
+            } catch (e) {
+                console.error(e);
+                this.defaultBootstrapOnly = true;
+            }
+        },
+        async persistDefaultBootstrapOnly(value) {
+            try {
+                await window.api.patch("/api/v1/reticulum/discovery", {
+                    default_bootstrap_only: value === true,
+                });
+            } catch (e) {
+                console.error("Failed to save default_bootstrap_only:", e);
+            }
         },
         async confirmBootstraps() {
             if (this.addingBootstraps) return;
@@ -1761,6 +2088,11 @@ export default {
                 return;
             }
             this.currentStep++;
+            if (this.currentStep === 3) {
+                this.bootstrapListSearch = "";
+                this.bootstrapDiscoveredSectionOpen = true;
+                this.bootstrapCommunitySectionOpen = true;
+            }
         },
         previousStep() {
             if (this.currentStep <= 1) return;

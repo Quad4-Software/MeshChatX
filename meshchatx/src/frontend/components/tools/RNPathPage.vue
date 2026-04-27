@@ -4,7 +4,7 @@
     <div class="flex flex-col flex-1 h-full min-w-0 overflow-hidden bg-slate-50 dark:bg-zinc-950">
         <!-- header -->
         <div
-            class="flex flex-wrap items-center gap-2 px-3 sm:px-4 md:px-6 py-3 sm:py-4 bg-slate-50 dark:bg-zinc-950 border-b border-gray-200 dark:border-zinc-800"
+            class="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 md:px-6 py-3 sm:py-4 bg-slate-50 dark:bg-zinc-950 border-b border-gray-200 dark:border-zinc-800"
         >
             <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                 <div class="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg shrink-0">
@@ -21,7 +21,14 @@
                 </div>
             </div>
 
-            <div class="ml-auto flex items-center gap-2 shrink-0">
+            <div class="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
+                <RouterLink
+                    to="/tools"
+                    class="inline-flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-300 hover:underline shrink-0"
+                >
+                    <MaterialDesignIcon icon-name="arrow-left" class="size-4" />
+                    {{ $t("tools.back_to_tools") }}
+                </RouterLink>
                 <button
                     class="p-2 text-gray-500 hover:text-indigo-500 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors"
                     title="Refresh"
@@ -143,12 +150,12 @@
                                     {{ path.hash }}
                                 </span>
                                 <span
-                                    class="px-2 py-0.5 text-[10px] font-bold bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded uppercase tracking-wider"
+                                    class="px-2 py-0.5 text-[10px] font-bold bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-sm uppercase tracking-wider"
                                 >
                                     {{ path.hops }} {{ path.hops === 1 ? "hop" : "hops" }}
                                 </span>
                                 <span
-                                    class="px-2 py-0.5 text-[10px] font-bold rounded uppercase tracking-wider"
+                                    class="px-2 py-0.5 text-[10px] font-bold rounded-sm uppercase tracking-wider"
                                     :class="getStateColor(path.state)"
                                 >
                                     {{ getStateText(path.state) }}
@@ -236,7 +243,7 @@
                             </span>
                             <span
                                 v-if="rate.blocked_until > Date.now() / 1000"
-                                class="px-2 py-0.5 text-[10px] font-bold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded"
+                                class="px-2 py-0.5 text-[10px] font-bold bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-sm"
                             >
                                 RATE LIMITED
                             </span>
@@ -538,6 +545,7 @@ export default {
 </script>
 
 <style scoped>
+@reference "../../style.css";
 .input-field {
     @apply bg-gray-50/90 dark:bg-zinc-800/80 border border-gray-200 dark:border-zinc-700 text-sm rounded-xl focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 dark:focus:ring-indigo-500 dark:focus:border-indigo-500 block w-full p-3 text-gray-900 dark:text-gray-100 transition;
 }

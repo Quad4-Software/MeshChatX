@@ -4,7 +4,7 @@
     <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
         <!-- Compact Header -->
         <div
-            class="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2 border-b border-gray-200 dark:border-zinc-800 bg-slate-50/95 dark:bg-zinc-950/95 backdrop-blur-sm shrink-0 min-w-0"
+            class="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2 border-b border-gray-200 dark:border-zinc-800 bg-slate-50/95 dark:bg-zinc-950/95 backdrop-blur-xs shrink-0 min-w-0"
         >
             <div class="flex items-center gap-2 sm:gap-3 min-w-0">
                 <div class="bg-teal-100 dark:bg-teal-900/30 p-1.5 rounded-xl shrink-0">
@@ -27,20 +27,27 @@
                 </div>
             </div>
             <div class="flex items-center gap-2">
+                <RouterLink
+                    to="/tools"
+                    class="inline-flex items-center gap-2 text-sm text-teal-600 dark:text-teal-300 hover:underline shrink-0"
+                >
+                    <MaterialDesignIcon icon-name="arrow-left" class="size-4" />
+                    {{ $t("tools.back_to_tools") }}
+                </RouterLink>
                 <button
                     type="button"
-                    class="secondary-chip !py-1 !px-3 !text-red-500 hover:!bg-red-50 dark:hover:!bg-red-900/20"
+                    class="secondary-chip py-1! px-3! text-red-500! hover:bg-red-50! dark:hover:bg-red-900/20!"
                     @click="resetAll"
                 >
                     <MaterialDesignIcon icon-name="refresh" class="w-3.5 h-3.5" />
                     <span class="hidden sm:inline">{{ $t("tools.micron_editor.reset") }}</span>
                 </button>
-                <button type="button" class="secondary-chip !py-1 !px-3" @click="downloadFile">
+                <button type="button" class="secondary-chip py-1! px-3!" @click="downloadFile">
                     <MaterialDesignIcon icon-name="download" class="w-3.5 h-3.5" />
                     <span class="hidden sm:inline">{{ $t("tools.micron_editor.save") }}</span>
                 </button>
                 <div class="relative">
-                    <button type="button" class="primary-chip !py-1 !px-3" @click="togglePublishMenu">
+                    <button type="button" class="primary-chip py-1! px-3!" @click="togglePublishMenu">
                         <MaterialDesignIcon icon-name="publish" class="w-3.5 h-3.5" />
                         <span class="hidden sm:inline">Publish</span>
                     </button>
@@ -82,7 +89,7 @@
                         </div>
                     </div>
                 </div>
-                <button v-if="isMobileView" type="button" class="primary-chip !py-1 !px-3" @click="toggleView">
+                <button v-if="isMobileView" type="button" class="primary-chip py-1! px-3!" @click="toggleView">
                     <MaterialDesignIcon :icon-name="showEditor ? 'eye' : 'pencil'" class="w-3.5 h-3.5" />
                     {{ showEditor ? $t("tools.micron_editor.view_preview") : $t("tools.micron_editor.edit") }}
                 </button>
@@ -99,7 +106,7 @@
                 class="group flex items-center h-8 px-3 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap"
                 :class="[
                     activeTabIndex === index
-                        ? 'bg-white dark:bg-zinc-800 text-teal-600 dark:text-teal-400 shadow-sm'
+                        ? 'bg-white dark:bg-zinc-800 text-teal-600 dark:text-teal-400 shadow-xs'
                         : 'text-gray-500 hover:bg-white/50 dark:hover:bg-zinc-800/50 hover:text-gray-700 dark:hover:text-zinc-300',
                 ]"
                 @click="activeTabIndex = index"
@@ -143,7 +150,7 @@
                 <textarea
                     ref="editorRef"
                     v-model="tabs[activeTabIndex].content"
-                    class="flex-1 w-full bg-white dark:bg-zinc-900 text-gray-900 dark:text-white p-4 font-mono text-sm resize-none focus:outline-none"
+                    class="flex-1 w-full bg-white dark:bg-zinc-900 text-gray-900 dark:text-white p-4 font-mono text-sm resize-none focus:outline-hidden"
                     :placeholder="$t('tools.micron_editor.placeholder')"
                     @input="handleInput"
                 ></textarea>
@@ -159,7 +166,7 @@
                 <!-- eslint-disable vue/no-v-html -->
                 <div
                     ref="previewRef"
-                    class="flex-1 overflow-auto text-zinc-100 p-4 font-mono text-sm whitespace-pre-wrap break-words nodeContainer"
+                    class="flex-1 overflow-auto text-zinc-100 p-4 font-mono text-sm whitespace-pre-wrap wrap-break-word nodeContainer"
                     v-html="renderedContent"
                 ></div>
                 <!-- eslint-enable vue/no-v-html -->

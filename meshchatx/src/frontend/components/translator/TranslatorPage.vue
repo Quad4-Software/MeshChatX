@@ -17,33 +17,56 @@
                         </div>
                     </div>
 
-                    <div
-                        v-if="config && !config.translator_enabled"
-                        class="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-200/50 dark:border-amber-800/30"
-                    >
-                        <div class="flex items-start gap-3">
-                            <div class="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
-                                <MaterialDesignIcon
-                                    icon-name="alert-outline"
-                                    class="size-5 text-amber-600 dark:text-amber-400"
-                                />
-                            </div>
-                            <div class="flex-1 text-sm text-amber-800 dark:text-amber-200">
-                                <p class="font-bold mb-1">Translator is Disabled</p>
-                                <p class="opacity-90">
-                                    The translation service is currently disabled in your settings. You can enable it
-                                    under
-                                    <RouterLink :to="{ name: 'settings' }" class="font-bold underline"
-                                        >Settings</RouterLink
-                                    >.
-                                </p>
-                            </div>
-                        </div>
+                    <div v-if="config" class="space-y-3">
+                        <div class="text-sm font-semibold text-gray-800 dark:text-gray-200">Translation backends</div>
+                        <label
+                            v-if="hasArgos"
+                            class="flex items-start gap-3 cursor-pointer p-2 rounded-lg hover:bg-slate-100/80 dark:hover:bg-zinc-900/40"
+                        >
+                            <Toggle
+                                :model-value="config.translator_argos_enabled"
+                                @update:model-value="onArgosEnabledChange"
+                            />
+                            <span>
+                                <span class="block text-sm font-medium text-gray-900 dark:text-white"
+                                    >Argos Translate (local)</span
+                                >
+                                <span class="text-xs text-gray-500 dark:text-gray-400"
+                                    >Local packages when Argos is installed. Load languages to refresh this list.</span
+                                >
+                            </span>
+                        </label>
+                        <label
+                            v-if="libreClientAvailable"
+                            class="flex items-start gap-3 cursor-pointer p-2 rounded-lg hover:bg-slate-100/80 dark:hover:bg-zinc-900/40"
+                        >
+                            <Toggle
+                                :model-value="config.translator_libretranslate_enabled"
+                                @update:model-value="onLibreEnabledChange"
+                            />
+                            <span>
+                                <span class="block text-sm font-medium text-gray-900 dark:text-white"
+                                    >LibreTranslate (HTTP)</span
+                                >
+                                <span class="text-xs text-gray-500 dark:text-gray-400"
+                                    >Set the base URL below, then enable. Use Refresh languages after the server is
+                                    up.</span
+                                >
+                            </span>
+                        </label>
+                        <p
+                            v-if="libreClientAvailable && !libretranslateReachable"
+                            class="text-xs text-amber-800/90 dark:text-amber-200/80 px-2 -mt-1"
+                        >
+                            No response from the LibreTranslate URL yet. Check the address, start the service, and tap
+                            Refresh languages.
+                        </p>
                     </div>
 
                     <div class="border-b border-gray-200 dark:border-zinc-700">
-                        <div class="flex -mb-px">
+                        <div v-if="hasArgos || libreClientAvailable" class="flex -mb-px">
                             <button
+                                v-if="hasArgos"
                                 type="button"
                                 class="px-4 py-2 text-sm font-semibold border-b-2 transition-colors"
                                 :class="
@@ -56,6 +79,7 @@
                                 Argos Translate
                             </button>
                             <button
+                                v-if="libreClientAvailable"
                                 type="button"
                                 class="px-4 py-2 text-sm font-semibold border-b-2 transition-colors"
                                 :class="
@@ -139,7 +163,7 @@
                                             </button>
                                         </div>
                                         <div
-                                            class="bg-amber-100/50 dark:bg-black/30 p-2 rounded font-mono text-xs break-all"
+                                            class="bg-amber-100/50 dark:bg-black/30 p-2 rounded-sm font-mono text-xs break-all"
                                         >
                                             pip install argostranslate
                                         </div>
@@ -158,7 +182,7 @@
                                             </button>
                                         </div>
                                         <div
-                                            class="bg-amber-100/50 dark:bg-black/30 p-2 rounded font-mono text-xs break-all"
+                                            class="bg-amber-100/50 dark:bg-black/30 p-2 rounded-sm font-mono text-xs break-all"
                                         >
                                             pipx install argostranslate
                                         </div>
@@ -220,7 +244,7 @@
                                                 Install All
                                             </button>
                                             <div
-                                                class="bg-blue-100/50 dark:bg-black/30 p-2 rounded font-mono text-xs break-all flex-1"
+                                                class="bg-blue-100/50 dark:bg-black/30 p-2 rounded-sm font-mono text-xs break-all flex-1"
                                             >
                                                 argospm install translate
                                             </div>
@@ -240,7 +264,7 @@
                                             </button>
                                         </div>
                                         <div
-                                            class="bg-blue-100/50 dark:bg-black/30 p-2 rounded font-mono text-xs break-all"
+                                            class="bg-blue-100/50 dark:bg-black/30 p-2 rounded-sm font-mono text-xs break-all"
                                         >
                                             argospm install translate-en_de
                                         </div>
@@ -330,7 +354,7 @@
                         <span
                             v-for="lang in filteredLanguages"
                             :key="lang.code"
-                            class="px-2 py-1 rounded text-xs bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300"
+                            class="px-2 py-1 rounded-sm text-xs bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300"
                         >
                             {{ lang.name }} ({{ lang.code }})
                             <span class="text-gray-500 dark:text-gray-500">- {{ lang.source }}</span>
@@ -366,11 +390,13 @@
 import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import Toggle from "../forms/Toggle.vue";
 
 export default {
     name: "TranslatorPage",
     components: {
         MaterialDesignIcon,
+        Toggle,
     },
     data() {
         return {
@@ -381,7 +407,10 @@ export default {
             inputText: "",
             translationMode: "argos",
             libretranslateUrl: "http://localhost:5000",
-            hasArgos: true,
+            hasArgos: false,
+            libreClientAvailable: false,
+            libretranslateReachable: false,
+            saveLibreUrlTimer: null,
             isTranslating: false,
             isInstallingLanguages: false,
             translationResult: null,
@@ -390,8 +419,12 @@ export default {
     },
     computed: {
         canTranslate() {
+            const a = this.config?.translator_argos_enabled;
+            const l = this.config?.translator_libretranslate_enabled;
+            const argosOk = this.translationMode === "argos" && a;
+            const libreOk = this.translationMode === "libretranslate" && l;
             return (
-                this.config?.translator_enabled &&
+                (argosOk || libreOk) &&
                 this.inputText.trim().length > 0 &&
                 this.targetLang &&
                 this.targetLang !== this.sourceLang
@@ -421,6 +454,12 @@ export default {
             this.loadLanguages();
         },
         libretranslateUrl() {
+            if (this.saveLibreUrlTimer) {
+                clearTimeout(this.saveLibreUrlTimer);
+            }
+            this.saveLibreUrlTimer = setTimeout(() => {
+                this.persistLibreUrl();
+            }, 800);
             if (this.translationMode === "libretranslate") {
                 this.loadLanguages();
             }
@@ -434,15 +473,67 @@ export default {
             try {
                 const response = await window.api.get("/api/v1/config");
                 this.config = response.data.config;
-                if (this.config.translator_enabled) {
-                    this.loadLanguages();
+                if (this.config?.libretranslate_url) {
+                    this.libretranslateUrl = this.config.libretranslate_url;
                 }
+                this.loadLanguages();
             } catch (e) {
                 console.log(e);
             }
         },
+        syncTranslationModeFromBackends() {
+            const canArgos = this.hasArgos;
+            const canLibre = this.libreClientAvailable;
+            if (this.translationMode === "argos" && !canArgos && canLibre) {
+                this.translationMode = "libretranslate";
+                this.sourceLang = "auto";
+            } else if (this.translationMode === "libretranslate" && !canLibre && canArgos) {
+                this.translationMode = "argos";
+                if (this.sourceLang === "auto") {
+                    this.sourceLang = "";
+                }
+            } else if (canArgos && !canLibre) {
+                this.translationMode = "argos";
+            } else if (!canArgos && canLibre) {
+                this.translationMode = "libretranslate";
+                if (!this.sourceLang) {
+                    this.sourceLang = "auto";
+                }
+            }
+        },
+        async onArgosEnabledChange(value) {
+            if (this.config) {
+                this.config.translator_argos_enabled = value;
+            }
+            try {
+                await window.api.patch("/api/v1/config", { translator_argos_enabled: value });
+            } catch (e) {
+                console.error(e);
+            }
+        },
+        async onLibreEnabledChange(value) {
+            if (this.config) {
+                this.config.translator_libretranslate_enabled = value;
+            }
+            try {
+                await window.api.patch("/api/v1/config", { translator_libretranslate_enabled: value });
+            } catch (e) {
+                console.error(e);
+            }
+        },
+        async persistLibreUrl() {
+            if (!this.config || this.libretranslateUrl === (this.config.libretranslate_url || "")) {
+                return;
+            }
+            try {
+                await window.api.patch("/api/v1/config", { libretranslate_url: this.libretranslateUrl });
+                this.config.libretranslate_url = this.libretranslateUrl;
+            } catch (e) {
+                console.error(e);
+            }
+        },
         async loadLanguages() {
-            if (this.config && !this.config.translator_enabled) {
+            if (!this.config) {
                 return;
             }
             try {
@@ -453,6 +544,9 @@ export default {
                 const response = await window.api.get("/api/v1/translator/languages", { params });
                 this.languages = response.data.languages || [];
                 this.hasArgos = response.data.has_argos;
+                this.libreClientAvailable = Boolean(response.data.libre_client_available);
+                this.libretranslateReachable = Boolean(response.data.libretranslate_reachable);
+                this.syncTranslationModeFromBackends();
             } catch (e) {
                 console.error(e);
                 DialogUtils.alert(this.$t("translator.failed_load_languages"));

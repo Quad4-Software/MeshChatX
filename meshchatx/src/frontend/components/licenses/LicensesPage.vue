@@ -17,7 +17,7 @@
                         <div class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed max-w-2xl">
                             {{ $t("licenses.description") }}
                         </div>
-                        <p v-if="meta?.generated_at" class="text-xs text-gray-500 dark:text-zinc-500 break-words">
+                        <p v-if="meta?.generated_at" class="text-xs text-gray-500 dark:text-zinc-500 wrap-break-word">
                             {{ $t("licenses.generated_at", { time: meta.generated_at }) }}
                             <span v-if="meta.frontend_source" class="ml-2 inline-block sm:inline">
                                 ({{ $t("licenses.frontend_source", { source: meta.frontend_source }) }})
@@ -39,7 +39,7 @@
                                 enterkeyhint="search"
                                 autocomplete="off"
                                 :placeholder="$t('licenses.search_placeholder')"
-                                class="w-full min-h-[44px] sm:min-h-0 pl-10 pr-10 py-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-sm"
+                                class="w-full min-h-[44px] sm:min-h-0 pl-10 pr-10 py-3 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-base sm:text-sm"
                             />
                             <button
                                 v-if="searchQuery"
@@ -82,7 +82,7 @@
                             <summary
                                 class="cursor-pointer select-none px-3 sm:px-4 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 font-semibold text-sm sm:text-base text-gray-900 dark:text-white flex items-center justify-between gap-2 list-none touch-manipulation"
                             >
-                                <span class="min-w-0 break-words pr-2"
+                                <span class="min-w-0 wrap-break-word pr-2"
                                     >{{ $t("licenses.backend_section") }} ({{ filteredBackend.length }})</span
                                 >
                                 <MaterialDesignIcon
@@ -96,7 +96,7 @@
                                 <table class="min-w-full text-left border-collapse text-xs sm:text-sm">
                                     <thead>
                                         <tr
-                                            class="sticky top-0 z-[1] border-b border-gray-200 dark:border-zinc-800 bg-gray-50/95 dark:bg-zinc-900/95 backdrop-blur-sm text-gray-600 dark:text-zinc-400"
+                                            class="sticky top-0 z-1 border-b border-gray-200 dark:border-zinc-800 bg-gray-50/95 dark:bg-zinc-900/95 backdrop-blur-xs text-gray-600 dark:text-zinc-400"
                                         >
                                             <th class="py-2 px-2 sm:px-3 font-medium">
                                                 {{ $t("licenses.col_package") }}
@@ -129,13 +129,13 @@
                                                 {{ row.version }}
                                             </td>
                                             <td
-                                                class="py-2 px-2 sm:px-3 text-gray-700 dark:text-zinc-300 max-w-[10rem] sm:max-w-[14rem] truncate align-top"
+                                                class="py-2 px-2 sm:px-3 text-gray-700 dark:text-zinc-300 max-w-40 sm:max-w-56 truncate align-top"
                                                 :title="row.author"
                                             >
                                                 {{ row.author }}
                                             </td>
                                             <td
-                                                class="py-2 px-2 sm:px-3 text-gray-700 dark:text-zinc-300 max-w-[8rem] sm:max-w-xs align-top break-words"
+                                                class="py-2 px-2 sm:px-3 text-gray-700 dark:text-zinc-300 max-w-32 sm:max-w-xs align-top wrap-break-word"
                                             >
                                                 {{ row.license }}
                                             </td>
@@ -158,7 +158,7 @@
                             <summary
                                 class="cursor-pointer select-none px-3 sm:px-4 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 font-semibold text-sm sm:text-base text-gray-900 dark:text-white flex items-center justify-between gap-2 list-none touch-manipulation"
                             >
-                                <span class="min-w-0 break-words pr-2"
+                                <span class="min-w-0 wrap-break-word pr-2"
                                     >{{ $t("licenses.frontend_section") }} ({{ filteredFrontend.length }})</span
                                 >
                                 <MaterialDesignIcon
@@ -172,7 +172,7 @@
                                 <table class="min-w-full text-left border-collapse text-xs sm:text-sm">
                                     <thead>
                                         <tr
-                                            class="sticky top-0 z-[1] border-b border-gray-200 dark:border-zinc-800 bg-gray-50/95 dark:bg-zinc-900/95 backdrop-blur-sm text-gray-600 dark:text-zinc-400"
+                                            class="sticky top-0 z-1 border-b border-gray-200 dark:border-zinc-800 bg-gray-50/95 dark:bg-zinc-900/95 backdrop-blur-xs text-gray-600 dark:text-zinc-400"
                                         >
                                             <th class="py-2 px-2 sm:px-3 font-medium">
                                                 {{ $t("licenses.col_package") }}
@@ -205,13 +205,13 @@
                                                 {{ row.version }}
                                             </td>
                                             <td
-                                                class="py-2 px-2 sm:px-3 text-gray-700 dark:text-zinc-300 max-w-[10rem] sm:max-w-[14rem] truncate align-top"
+                                                class="py-2 px-2 sm:px-3 text-gray-700 dark:text-zinc-300 max-w-40 sm:max-w-56 truncate align-top"
                                                 :title="row.author"
                                             >
                                                 {{ row.author }}
                                             </td>
                                             <td
-                                                class="py-2 px-2 sm:px-3 text-gray-700 dark:text-zinc-300 max-w-[8rem] sm:max-w-xs align-top break-words"
+                                                class="py-2 px-2 sm:px-3 text-gray-700 dark:text-zinc-300 max-w-32 sm:max-w-xs align-top wrap-break-word"
                                             >
                                                 {{ row.license }}
                                             </td>

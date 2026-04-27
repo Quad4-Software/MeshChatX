@@ -16,7 +16,7 @@
                 v-if="isDropdownOpen"
                 ref="languageDropdown"
                 v-click-outside="closeDropdown"
-                class="fixed w-48 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xl z-[9999] overflow-x-hidden"
+                class="fixed w-48 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl shadow-xl z-9999 overflow-x-hidden"
                 :style="dropdownStyle"
             >
                 <div class="p-2">

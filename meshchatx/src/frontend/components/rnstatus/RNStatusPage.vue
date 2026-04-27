@@ -34,12 +34,12 @@
                             Refresh
                         </button>
                         <label class="secondary-chip inline-flex cursor-pointer items-center gap-2 px-4 py-2 text-sm">
-                            <input v-model="includeLinkStats" type="checkbox" class="rounded" />
+                            <input v-model="includeLinkStats" type="checkbox" class="rounded-sm" />
                             <span>Include Link Stats</span>
                         </label>
                         <div class="flex min-w-0 flex-wrap items-center gap-2">
                             <label class="shrink-0 text-sm text-gray-700 dark:text-gray-300">Sort by:</label>
-                            <select v-model="sorting" class="input-field min-w-[10rem] text-sm">
+                            <select v-model="sorting" class="input-field min-w-40 text-sm">
                                 <option value="">None</option>
                                 <option value="bitrate">Bitrate</option>
                                 <option value="rx">RX Bytes</option>
@@ -81,7 +81,7 @@
                         <div
                             v-for="source in blackholeSources"
                             :key="source"
-                            class="text-sm font-mono bg-gray-50 dark:bg-gray-800 p-2 rounded truncate"
+                            class="text-sm font-mono bg-gray-50 dark:bg-gray-800 p-2 rounded-sm truncate"
                         >
                             {{ source }}
                         </div>
@@ -106,7 +106,7 @@
                         <div class="min-w-0 flex-1 space-y-2">
                             <div class="flex flex-wrap items-center gap-2">
                                 <h3
-                                    class="break-words text-base font-semibold leading-snug text-gray-900 dark:text-white sm:text-lg"
+                                    class="wrap-break-word text-base font-semibold leading-snug text-gray-900 dark:text-white sm:text-lg"
                                 >
                                     {{ iface.name }}
                                 </h3>

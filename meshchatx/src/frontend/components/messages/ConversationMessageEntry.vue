@@ -33,7 +33,7 @@
                     :id="`message-${imgItem.lxmf_message.hash}`"
                     :key="imgItem.lxmf_message.hash"
                     type="button"
-                    class="relative aspect-square min-h-[96px] max-h-[220px] min-w-0 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                    class="relative aspect-square min-h-[96px] max-h-[220px] min-w-0 overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-white/80"
                     @click.stop="
                         cv.openImage(cv.lxmfImageUrl(imgItem.lxmf_message.hash), cv.imageGroupGalleryUrls(entry.items))
                     "
@@ -63,7 +63,7 @@
                     :id="`message-${imgItem.lxmf_message.hash}`"
                     :key="imgItem.lxmf_message.hash"
                     type="button"
-                    class="relative aspect-square min-h-[96px] max-h-[220px] min-w-0 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                    class="relative aspect-square min-h-[96px] max-h-[220px] min-w-0 overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-white/80"
                     @click.stop="
                         cv.openImage(cv.lxmfImageUrl(imgItem.lxmf_message.hash), cv.imageGroupGalleryUrls(entry.items))
                     "
@@ -86,7 +86,7 @@
                 <button
                     :id="`message-${cv.imageGroupSortedChron(entry.items)[2].lxmf_message.hash}`"
                     type="button"
-                    class="relative col-span-2 aspect-[2/1] max-h-52 min-h-[80px] w-full overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                    class="relative col-span-2 aspect-2/1 max-h-52 min-h-[80px] w-full overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-white/80"
                     @click.stop="
                         cv.openImage(
                             cv.lxmfImageUrl(cv.imageGroupSortedChron(entry.items)[2].lxmf_message.hash),
@@ -120,7 +120,7 @@
                     :id="`message-${cell.lxmf_message.hash}`"
                     :key="cell.lxmf_message.hash"
                     type="button"
-                    class="relative aspect-square min-h-[96px] max-h-[220px] min-w-0 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+                    class="relative aspect-square min-h-[96px] max-h-[220px] min-w-0 overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-white/80"
                     @click.stop="
                         cv.openImage(cv.lxmfImageUrl(cell.lxmf_message.hash), cv.imageGroupGalleryUrls(entry.items))
                     "
@@ -152,20 +152,24 @@
             class="relative rounded-2xl overflow-hidden transition-all duration-200 hover:shadow-md min-w-0 px-3 py-2"
             :class="[
                 ['cancelled', 'failed'].includes(entry.items[0].lxmf_message.state)
-                    ? 'shadow-sm'
+                    ? 'shadow-xs'
                     : entry.items[0].lxmf_message.is_spam
-                      ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-900 dark:text-yellow-100 border border-yellow-300 dark:border-yellow-700 shadow-sm'
+                      ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-900 dark:text-yellow-100 border border-yellow-300 dark:border-yellow-700 shadow-xs'
                       : cv.isOutboundWaitingBubble(entry.items[0])
-                        ? 'shadow-sm'
+                        ? 'shadow-xs'
                         : entry.items[0].is_outbound
                           ? cv.outboundBubbleSurfaceClass(entry.items[0])
-                          : 'bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 border border-gray-200/60 dark:border-zinc-800/60 shadow-sm',
+                          : 'bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 border border-gray-200/60 dark:border-zinc-800/60 shadow-xs',
             ]"
             :style="cv.bubbleStyles(entry.items[0])"
             @contextmenu.prevent.stop="cv.onMessageContextMenu($event, entry.items[0], true)"
         >
-            <div class="flex items-center justify-end gap-1.5 select-none h-3">
+            <div
+                v-if="entry.showTimestamp !== false || entry.items[0].is_outbound"
+                class="flex items-center justify-end gap-1.5 select-none h-3"
+            >
                 <span
+                    v-if="entry.showTimestamp !== false"
                     class="text-[9px] opacity-80 font-medium"
                     :class="cv.outboundBubbleFooterTimeClass(entry.items[0])"
                     :title="cv.getMessageInfoLines(entry.items[0].lxmf_message, entry.items[0].is_outbound).join('\n')"
@@ -193,7 +197,7 @@
                     <button
                         v-if="['failed', 'cancelled'].includes(entry.items[0].lxmf_message.state)"
                         type="button"
-                        class="ml-0.5 p-0.5 rounded hover:bg-white/20 transition-colors"
+                        class="ml-0.5 p-0.5 rounded-sm hover:bg-white/20 transition-colors"
                         title="Retry sending"
                         @click.stop="cv.retrySendingMessage(entry.items[0])"
                     >
@@ -272,21 +276,21 @@
             <div class="flex items-center gap-2">
                 <button
                     type="button"
-                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-600 transition-colors"
+                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-600 transition-colors"
                     @click.stop="cv.replyToMessage(entry.items[0])"
                 >
                     {{ $t("messages.reply") }}
                 </button>
                 <button
                     type="button"
-                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-red-600 transition-colors"
+                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-red-600 transition-colors"
                     @click.stop="cv.deleteChatItem(entry.items[0])"
                 >
                     Delete
                 </button>
                 <button
                     type="button"
-                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-gray-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-gray-700 transition-colors"
+                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-gray-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-gray-700 transition-colors"
                     @click.stop="cv.showRawMessage(entry.items[0])"
                 >
                     Raw LXM
@@ -316,7 +320,7 @@
             <span
                 v-for="(r, ridx) in entry.items[0].lxmf_message.reactions"
                 :key="r.reactionHash || ridx"
-                class="inline-flex min-h-[1.125rem] min-w-[1.125rem] cursor-default select-none items-center justify-center rounded-full border border-gray-200/90 bg-white px-1 py-0 text-sm leading-none shadow-sm dark:border-zinc-600/90 dark:bg-zinc-900"
+                class="inline-flex min-h-4.5 min-w-4.5 cursor-default select-none items-center justify-center rounded-full border border-gray-200/90 bg-white px-1 py-0 text-sm leading-none shadow-xs dark:border-zinc-600/90 dark:bg-zinc-900"
                 :style="{
                     order: entry.items[0].is_outbound ? ridx + 2 : ridx + 1,
                 }"
@@ -328,7 +332,7 @@
                 class="inline-flex items-center justify-center rounded-full border border-dashed border-gray-300 bg-transparent text-xs leading-none text-gray-400 hover:border-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:border-zinc-600 dark:text-zinc-500 dark:hover:border-zinc-500 dark:hover:text-zinc-300 dark:hover:bg-zinc-800 transition-colors opacity-0 group-hover:opacity-100"
                 :class="
                     (entry.items[0].lxmf_message.reactions?.length ?? 0) > 0
-                        ? 'min-h-[1.125rem] min-w-[1.125rem] px-1 py-0'
+                        ? 'min-h-4.5 min-w-4.5 px-1 py-0'
                         : 'h-4 w-4 min-h-0 p-0'
                 "
                 :style="{
@@ -340,6 +344,18 @@
                 <MaterialDesignIcon icon-name="emoticon-plus-outline" class="size-3" />
             </button>
         </div>
+    </div>
+    <div
+        v-else-if="entry.type === 'dateDivider'"
+        class="flex justify-center w-full max-w-full my-3 shrink-0"
+        role="separator"
+        :aria-label="cv.formatDateDividerLabel(entry.dayKey)"
+    >
+        <span
+            class="inline-flex items-center rounded-full border border-gray-200/90 bg-gray-50/95 px-3 py-1 text-[11px] font-medium tracking-wide text-gray-600 shadow-xs dark:border-zinc-700/90 dark:bg-zinc-800/90 dark:text-zinc-300"
+        >
+            {{ cv.formatDateDividerLabel(entry.dayKey) }}
+        </span>
     </div>
     <div
         v-for="chatItem in [entry.chatItem]"
@@ -387,7 +403,7 @@
                 />
             </template>
             <div
-                class="pointer-events-none absolute bottom-2 left-2 rounded-lg bg-black/60 px-2.5 py-1 text-xs text-white opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100 sm:opacity-100"
+                class="pointer-events-none absolute bottom-2 left-2 rounded-lg bg-black/60 px-2.5 py-1 text-xs text-white opacity-0 backdrop-blur-xs transition-opacity group-hover:opacity-100 sm:opacity-100"
             >
                 <span>{{ (chatItem.lxmf_message.fields.image.image_type ?? "image").toUpperCase() }}</span>
                 <span class="mx-1">·</span>
@@ -396,11 +412,11 @@
         </div>
         <!-- image-only: inline timestamp overlay (no bubble) -->
         <div
-            v-if="cv.isImageOnlyMessage(chatItem)"
+            v-if="cv.isImageOnlyMessage(chatItem) && (entry.showTimestamp !== false || chatItem.is_outbound)"
             class="flex items-center gap-1.5 select-none mt-0.5"
             :class="chatItem.is_outbound ? 'justify-end' : 'justify-start'"
         >
-            <span class="text-[9px] opacity-50 font-medium">
+            <span v-if="entry.showTimestamp !== false" class="text-[9px] opacity-50 font-medium">
                 {{ cv.formatTimeAgo(chatItem.lxmf_message.created_at) }}
             </span>
             <template v-if="chatItem.is_outbound">
@@ -429,14 +445,14 @@
             class="relative rounded-2xl overflow-hidden transition-all duration-200 hover:shadow-md min-w-0"
             :class="[
                 ['cancelled', 'failed'].includes(chatItem.lxmf_message.state)
-                    ? 'shadow-sm'
+                    ? 'shadow-xs'
                     : chatItem.lxmf_message.is_spam
-                      ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-900 dark:text-yellow-100 border border-yellow-300 dark:border-yellow-700 shadow-sm'
+                      ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-900 dark:text-yellow-100 border border-yellow-300 dark:border-yellow-700 shadow-xs'
                       : cv.isOutboundWaitingBubble(chatItem)
-                        ? 'shadow-sm'
+                        ? 'shadow-xs'
                         : chatItem.is_outbound
                           ? cv.outboundBubbleSurfaceClass(chatItem)
-                          : 'bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 border border-gray-200/60 dark:border-zinc-800/60 shadow-sm',
+                          : 'bg-white dark:bg-zinc-900 text-gray-900 dark:text-zinc-100 border border-gray-200/60 dark:border-zinc-800/60 shadow-xs',
             ]"
             :style="cv.bubbleStyles(chatItem)"
             @click="cv.onChatItemClick(chatItem)"
@@ -493,28 +509,107 @@
                 </div>
 
                 <!-- content -->
-                <!-- eslint-disable vue/no-v-html -->
                 <div
                     v-if="
                         chatItem.lxmf_message.content &&
                         !cv.getParsedItems(chatItem)?.isOnlyPaperMessage &&
                         !cv.getParsedItems(chatItem)?.isOnlyMapLink &&
+                        !cv.shouldHideAutoImageCaption(chatItem) &&
+                        cv.isMessageBodyTooLargeForDisplay(chatItem)
+                    "
+                    class="rounded-lg border border-amber-200/90 dark:border-amber-800/50 bg-amber-50/90 dark:bg-amber-950/25 px-3 py-2.5 space-y-2 min-w-0"
+                >
+                    <div class="flex items-start gap-2">
+                        <MaterialDesignIcon
+                            icon-name="text-box-outline"
+                            class="size-5 shrink-0 text-amber-800 dark:text-amber-300/90 mt-0.5"
+                        />
+                        <p class="text-xs text-amber-950 dark:text-amber-100/90 leading-relaxed min-w-0">
+                            {{
+                                $t("messages.oversized_body_notice", {
+                                    count: cv.messageBodyCharCount(chatItem),
+                                })
+                            }}
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        class="inline-flex items-center gap-2 rounded-lg bg-amber-700 hover:bg-amber-800 dark:bg-amber-700 dark:hover:bg-amber-600 px-3 py-2 text-xs font-semibold text-white transition-colors"
+                        @click.stop="cv.copyOversizedMessageBody(chatItem)"
+                    >
+                        <MaterialDesignIcon icon-name="content-copy" class="size-4 shrink-0" />
+                        {{ $t("messages.oversized_body_copy") }}
+                    </button>
+                </div>
+                <!-- eslint-disable vue/no-v-html -->
+                <div
+                    v-else-if="
+                        chatItem.lxmf_message.content &&
+                        !cv.getParsedItems(chatItem)?.isOnlyPaperMessage &&
+                        !cv.getParsedItems(chatItem)?.isOnlyMapLink &&
                         !cv.shouldHideAutoImageCaption(chatItem)
                     "
-                    class="leading-relaxed break-words [word-break:break-word] min-w-0 markdown-content"
-                    :class="{
-                        'markdown-content--outbound-theme': chatItem.is_outbound && cv.isThemeOutboundBubble(chatItem),
-                        'markdown-content--outbound-solid': chatItem.is_outbound && !cv.isThemeOutboundBubble(chatItem),
-                        'markdown-content--inbound': !chatItem.is_outbound,
-                        'markdown-content--single-emoji': cv.messageMarkdownSingleEmoji(chatItem),
-                    }"
-                    :style="{
-                        'font-family': 'inherit',
-                        'font-size': cv.messageMarkdownFontSizePx(chatItem) + 'px',
-                    }"
-                    @click="cv.handleMessageClick"
-                    v-html="cv.renderMarkdown(chatItem.lxmf_message.content)"
-                ></div>
+                    class="min-w-0"
+                >
+                    <div
+                        v-if="cv.bubbleViewModel(chatItem).kind === 'loading'"
+                        class="text-sm text-indigo-600/90 dark:text-indigo-300 py-0.5"
+                    >
+                        {{ $t("messages.translating_message") }}
+                    </div>
+                    <div v-else>
+                        <div
+                            class="leading-relaxed wrap-break-word [word-break:break-word] min-w-0 markdown-content"
+                            :class="{
+                                'markdown-content--outbound-theme':
+                                    chatItem.is_outbound && cv.isThemeOutboundBubble(chatItem),
+                                'markdown-content--outbound-solid':
+                                    chatItem.is_outbound && !cv.isThemeOutboundBubble(chatItem),
+                                'markdown-content--inbound': !chatItem.is_outbound,
+                                'markdown-content--single-emoji': cv.bubbleViewModel(chatItem).singleEmoji,
+                            }"
+                            :style="{
+                                'font-family': 'inherit',
+                                'font-size': cv.bubbleMessageBodyFontSizePx(cv.bubbleViewModel(chatItem)) + 'px',
+                            }"
+                            @click="cv.handleMessageClick"
+                            v-html="cv.renderMarkdown(cv.bubbleViewModel(chatItem).textForRender)"
+                        ></div>
+                        <div
+                            v-if="cv.bubbleViewModel(chatItem).showFooter"
+                            class="mt-1.5 pt-1.5 border-t border-black/5 dark:border-white/5 text-xs text-gray-500 dark:text-zinc-500"
+                        >
+                            <div v-if="cv.bubbleViewModel(chatItem).showOriginalLink" class="wrap-break-word">
+                                <span>{{
+                                    $t("messages.translated_from_to", {
+                                        source: String(cv.bubbleViewModel(chatItem).fromCode || "").toUpperCase(),
+                                        target: String(cv.bubbleViewModel(chatItem).toCode || "").toUpperCase(),
+                                    })
+                                }}</span>
+                                <button
+                                    type="button"
+                                    class="ml-1.5 text-indigo-600 dark:text-indigo-400 hover:underline"
+                                    @click.stop="
+                                        cv.setBubbleMessageShowOriginal(cv.bubbleViewModel(chatItem).messageHash, true)
+                                    "
+                                >
+                                    {{ $t("messages.show_original") }}
+                                </button>
+                            </div>
+                            <div v-else-if="cv.bubbleViewModel(chatItem).showTranslationLink">
+                                <button
+                                    type="button"
+                                    class="text-indigo-600 dark:text-indigo-400 hover:underline"
+                                    @click.stop="
+                                        cv.setBubbleMessageShowOriginal(cv.bubbleViewModel(chatItem).messageHash, false)
+                                    "
+                                >
+                                    {{ $t("messages.show_translation") }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <!-- eslint-enable vue/no-v-html -->
 
                 <!-- telemetry placeholder for empty content messages -->
@@ -600,7 +695,7 @@
                         </div>
                         <button
                             type="button"
-                            class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm"
+                            class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
                             @click="
                                 cv.addContact(
                                     cv.getParsedItems(chatItem).contact.name,
@@ -628,7 +723,7 @@
                         </p>
                         <button
                             type="button"
-                            class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm"
+                            class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
                             @click="cv.ingestPaperMessage(cv.getParsedItems(chatItem).paperMessage)"
                         >
                             Ingest Message
@@ -654,7 +749,7 @@
                         </div>
                         <button
                             type="button"
-                            class="w-full py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm"
+                            class="w-full py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
                             @click="cv.openMapShareFromParsed(cv.getParsedItems(chatItem).mapLink.parsed)"
                         >
                             {{ $t("messages.map_link_open") }}
@@ -851,8 +946,12 @@
                 </div>
 
                 <!-- message footer: timestamp and status icons -->
-                <div class="flex items-center justify-end gap-1.5 mt-1.5 select-none h-3">
+                <div
+                    v-if="entry.showTimestamp !== false || chatItem.is_outbound"
+                    class="flex items-center justify-end gap-1.5 mt-1.5 select-none h-3"
+                >
                     <span
+                        v-if="entry.showTimestamp !== false"
                         class="text-[9px] opacity-80 font-medium"
                         :class="cv.outboundBubbleFooterTimeClass(chatItem)"
                         :title="cv.getMessageInfoLines(chatItem.lxmf_message, chatItem.is_outbound).join('\n')"
@@ -882,7 +981,7 @@
                         <button
                             v-if="['failed', 'cancelled'].includes(chatItem.lxmf_message.state)"
                             type="button"
-                            class="ml-0.5 p-0.5 rounded hover:bg-white/20 transition-colors"
+                            class="ml-0.5 p-0.5 rounded-sm hover:bg-white/20 transition-colors"
                             title="Retry sending"
                             @click.stop="cv.retrySendingMessage(chatItem)"
                         >
@@ -965,21 +1064,21 @@
                 <div class="flex items-center gap-2">
                     <button
                         type="button"
-                        class="inline-flex items-center gap-x-1.5 rounded-lg bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-600 transition-colors"
+                        class="inline-flex items-center gap-x-1.5 rounded-lg bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-600 transition-colors"
                         @click.stop="cv.replyToMessage(chatItem)"
                     >
                         {{ $t("messages.reply") }}
                     </button>
                     <button
                         type="button"
-                        class="inline-flex items-center gap-x-1.5 rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-red-600 transition-colors"
+                        class="inline-flex items-center gap-x-1.5 rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-red-600 transition-colors"
                         @click.stop="cv.deleteChatItem(chatItem)"
                     >
                         Delete
                     </button>
                     <button
                         type="button"
-                        class="inline-flex items-center gap-x-1.5 rounded-lg bg-gray-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-gray-700 transition-colors"
+                        class="inline-flex items-center gap-x-1.5 rounded-lg bg-gray-600 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-gray-700 transition-colors"
                         @click.stop="cv.showRawMessage(chatItem)"
                     >
                         Raw LXM
@@ -999,7 +1098,7 @@
             <span
                 v-for="(r, ridx) in chatItem.lxmf_message.reactions"
                 :key="r.reactionHash || ridx"
-                class="inline-flex min-h-[1.125rem] min-w-[1.125rem] cursor-default select-none items-center justify-center rounded-full border border-gray-200/90 bg-white px-1 py-0 text-sm leading-none shadow-sm dark:border-zinc-600/90 dark:bg-zinc-900"
+                class="inline-flex min-h-4.5 min-w-4.5 cursor-default select-none items-center justify-center rounded-full border border-gray-200/90 bg-white px-1 py-0 text-sm leading-none shadow-xs dark:border-zinc-600/90 dark:bg-zinc-900"
                 :style="{
                     order: chatItem.is_outbound ? ridx + 2 : ridx + 1,
                 }"
@@ -1012,7 +1111,7 @@
                 class="inline-flex items-center justify-center rounded-full border border-dashed border-gray-300 bg-transparent text-xs leading-none text-gray-400 hover:border-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:border-zinc-600 dark:text-zinc-500 dark:hover:border-zinc-500 dark:hover:text-zinc-300 dark:hover:bg-zinc-800 transition-colors opacity-0 group-hover:opacity-100"
                 :class="
                     (chatItem.lxmf_message.reactions?.length ?? 0) > 0
-                        ? 'min-h-[1.125rem] min-w-[1.125rem] px-1 py-0'
+                        ? 'min-h-4.5 min-w-4.5 px-1 py-0'
                         : 'h-4 w-4 min-h-0 p-0'
                 "
                 :style="{

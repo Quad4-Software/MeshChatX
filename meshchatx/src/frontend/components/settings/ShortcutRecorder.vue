@@ -10,7 +10,7 @@
                 <kbd
                     v-for="key in keys"
                     :key="key"
-                    class="px-2 py-1 bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-xs font-bold text-gray-600 dark:text-zinc-300 shadow-sm uppercase"
+                    class="px-2 py-1 bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-lg text-xs font-bold text-gray-600 dark:text-zinc-300 shadow-xs uppercase"
                 >
                     {{ formatKey(key) }}
                 </kbd>
@@ -22,7 +22,7 @@
 
         <button
             type="button"
-            class="px-4 py-2 rounded-xl font-bold transition-all shadow-sm flex items-center gap-2"
+            class="px-4 py-2 rounded-xl font-bold transition-all shadow-xs flex items-center gap-2"
             :class="[
                 isRecording
                     ? 'bg-blue-600 text-white hover:bg-blue-700'

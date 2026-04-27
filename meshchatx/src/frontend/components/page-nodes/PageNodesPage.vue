@@ -70,35 +70,35 @@
                                 </span>
                                 <button
                                     v-if="!node.running"
-                                    class="primary-chip !py-1 !px-3 !text-xs"
+                                    class="primary-chip py-1! px-3! text-xs!"
                                     @click.stop="startNode(node.node_id)"
                                 >
                                     Start
                                 </button>
                                 <button
                                     v-else
-                                    class="secondary-chip !py-1 !px-3 !text-xs !text-red-500 hover:!bg-red-50 dark:hover:!bg-red-900/20"
+                                    class="secondary-chip py-1! px-3! text-xs! text-red-500! hover:bg-red-50! dark:hover:bg-red-900/20!"
                                     @click.stop="stopNode(node.node_id)"
                                 >
                                     Stop
                                 </button>
                                 <button
                                     v-if="node.running"
-                                    class="secondary-chip !py-1 !px-3 !text-xs"
+                                    class="secondary-chip py-1! px-3! text-xs!"
                                     @click.stop="announceNode(node.node_id)"
                                 >
                                     Announce
                                 </button>
                                 <button
                                     v-if="node.running && node.destination_hash"
-                                    class="secondary-chip !py-1 !px-3 !text-xs"
+                                    class="secondary-chip py-1! px-3! text-xs!"
                                     @click.stop="viewNode(node)"
                                 >
                                     <MaterialDesignIcon icon-name="eye" class="w-3.5 h-3.5" />
                                     View
                                 </button>
                                 <button
-                                    class="secondary-chip !py-1 !px-3 !text-xs !text-red-500 hover:!bg-red-50 dark:hover:!bg-red-900/20"
+                                    class="secondary-chip py-1! px-3! text-xs! text-red-500! hover:bg-red-50! dark:hover:bg-red-900/20!"
                                     @click.stop="deleteNode(node.node_id)"
                                 >
                                     <MaterialDesignIcon icon-name="delete" class="w-3.5 h-3.5" />
@@ -126,10 +126,10 @@
                             {{ selectedNode.name }}
                         </div>
                         <div class="flex items-center gap-2">
-                            <button class="secondary-chip !py-1 !px-3 !text-xs" @click="showRenameDialog = true">
+                            <button class="secondary-chip py-1! px-3! text-xs!" @click="showRenameDialog = true">
                                 Rename
                             </button>
-                            <button class="secondary-chip !py-1 !px-3 !text-xs" @click="selectedNode = null">
+                            <button class="secondary-chip py-1! px-3! text-xs!" @click="selectedNode = null">
                                 <MaterialDesignIcon icon-name="close" class="w-3.5 h-3.5" />
                             </button>
                         </div>
@@ -143,7 +143,7 @@
                             <div class="text-xs font-bold uppercase tracking-wider">Destination Hash</div>
                             <button
                                 v-if="selectedNode.running"
-                                class="primary-chip !py-0.5 !px-2 !text-xs"
+                                class="primary-chip py-0.5! px-2! text-xs!"
                                 @click="viewNode(selectedNode)"
                             >
                                 <MaterialDesignIcon icon-name="eye" class="w-3 h-3" />
@@ -189,7 +189,7 @@
                                 class="input-field flex-1"
                                 @keyup.enter="addPage"
                             />
-                            <button class="primary-chip !py-1 !px-3 !text-xs" @click="addPage">
+                            <button class="primary-chip py-1! px-3! text-xs!" @click="addPage">
                                 <MaterialDesignIcon icon-name="plus" class="w-3.5 h-3.5" />
                                 Add Page
                             </button>
@@ -212,11 +212,11 @@
                                 <span class="text-sm font-mono text-gray-900 dark:text-white">{{ page }}</span>
                             </div>
                             <div class="flex items-center gap-2">
-                                <button class="secondary-chip !py-0.5 !px-2 !text-xs" @click="editPage(page)">
+                                <button class="secondary-chip py-0.5! px-2! text-xs!" @click="editPage(page)">
                                     Edit
                                 </button>
                                 <button
-                                    class="secondary-chip !py-0.5 !px-2 !text-xs !text-red-500"
+                                    class="secondary-chip py-0.5! px-2! text-xs! text-red-500!"
                                     @click="deletePage(page)"
                                 >
                                     <MaterialDesignIcon icon-name="delete" class="w-3 h-3" />
@@ -231,15 +231,15 @@
                                     Editing: {{ editingPage }}
                                 </div>
                                 <div class="flex gap-2">
-                                    <button class="primary-chip !py-1 !px-3 !text-xs" @click="savePage">Save</button>
-                                    <button class="secondary-chip !py-1 !px-3 !text-xs" @click="editingPage = null">
+                                    <button class="primary-chip py-1! px-3! text-xs!" @click="savePage">Save</button>
+                                    <button class="secondary-chip py-1! px-3! text-xs!" @click="editingPage = null">
                                         Cancel
                                     </button>
                                 </div>
                             </div>
                             <textarea
                                 v-model="editingPageContent"
-                                class="w-full h-64 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white p-3 font-mono text-sm rounded-lg border border-gray-200 dark:border-zinc-700 resize-y focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                class="w-full h-64 bg-white dark:bg-zinc-900 text-gray-900 dark:text-white p-3 font-mono text-sm rounded-lg border border-gray-200 dark:border-zinc-700 resize-y focus:outline-hidden focus:ring-2 focus:ring-blue-500/50"
                             ></textarea>
                         </div>
                     </div>
@@ -248,7 +248,7 @@
                     <div v-if="detailTab === 'files'" class="space-y-3">
                         <div class="flex gap-2">
                             <input ref="fileInput" type="file" class="hidden" @change="uploadFile" />
-                            <button class="primary-chip !py-1 !px-3 !text-xs" @click="$refs.fileInput.click()">
+                            <button class="primary-chip py-1! px-3! text-xs!" @click="$refs.fileInput.click()">
                                 <MaterialDesignIcon icon-name="upload" class="w-3.5 h-3.5" />
                                 Upload File
                             </button>
@@ -274,7 +274,7 @@
                                 }}</span>
                             </div>
                             <button
-                                class="secondary-chip !py-0.5 !px-2 !text-xs !text-red-500"
+                                class="secondary-chip py-0.5! px-2! text-xs! text-red-500!"
                                 @click="deleteFile(file.name)"
                             >
                                 <MaterialDesignIcon icon-name="delete" class="w-3 h-3" />
@@ -304,10 +304,10 @@
                     />
                 </div>
                 <div class="flex justify-end gap-2">
-                    <button class="secondary-chip !py-1.5 !px-4 !text-sm" @click="showCreateDialog = false">
+                    <button class="secondary-chip py-1.5! px-4! text-sm!" @click="showCreateDialog = false">
                         Cancel
                     </button>
-                    <button class="primary-chip !py-1.5 !px-4 !text-sm" @click="createNode">Create</button>
+                    <button class="primary-chip py-1.5! px-4! text-sm!" @click="createNode">Create</button>
                 </div>
             </div>
         </div>
@@ -331,10 +331,10 @@
                     />
                 </div>
                 <div class="flex justify-end gap-2">
-                    <button class="secondary-chip !py-1.5 !px-4 !text-sm" @click="showRenameDialog = false">
+                    <button class="secondary-chip py-1.5! px-4! text-sm!" @click="showRenameDialog = false">
                         Cancel
                     </button>
-                    <button class="primary-chip !py-1.5 !px-4 !text-sm" @click="renameNode">Rename</button>
+                    <button class="primary-chip py-1.5! px-4! text-sm!" @click="renameNode">Rename</button>
                 </div>
             </div>
         </div>

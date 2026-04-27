@@ -28,7 +28,7 @@
 
             <template v-else>
                 <div
-                    class="sticky top-0 z-[100] flex bg-white dark:bg-zinc-950 border-gray-200 dark:border-zinc-800 border-b min-h-16 shadow-sm transition-colors overflow-x-hidden"
+                    class="sticky top-0 z-100 flex bg-white dark:bg-zinc-950 border-gray-200 dark:border-zinc-800 border-b min-h-16 shadow-xs transition-colors overflow-x-hidden"
                 >
                     <div class="flex w-full px-2 sm:px-4 overflow-x-auto no-scrollbar">
                         <button
@@ -93,7 +93,7 @@
                             </button>
                             <button type="button" class="hidden sm:flex rounded-full" @click="syncPropagationNode">
                                 <span
-                                    class="flex text-gray-800 dark:text-zinc-100 bg-white dark:bg-zinc-800/80 border border-gray-200 dark:border-zinc-700 hover:border-blue-400 dark:hover:border-blue-400/60 px-3 py-1.5 rounded-full shadow-sm transition"
+                                    class="flex text-gray-800 dark:text-zinc-100 bg-white dark:bg-zinc-800/80 border border-gray-200 dark:border-zinc-700 hover:border-blue-400 dark:hover:border-blue-400/60 px-3 py-1.5 rounded-full shadow-xs transition"
                                 >
                                     <MaterialDesignIcon
                                         icon-name="refresh"
@@ -107,7 +107,7 @@
                             </button>
                             <button type="button" class="hidden sm:flex rounded-full" @click="composeNewMessage">
                                 <span
-                                    class="flex rounded-full border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-white shadow-sm transition hover:bg-zinc-800 dark:border-zinc-400 dark:bg-zinc-200 dark:text-zinc-900 dark:hover:bg-white"
+                                    class="flex rounded-full border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-white shadow-xs transition hover:bg-zinc-800 dark:border-zinc-400 dark:bg-zinc-200 dark:text-zinc-900 dark:hover:bg-white"
                                 >
                                     <span>
                                         <MaterialDesignIcon icon-name="email" class="w-6 h-6" />
@@ -130,13 +130,13 @@
                     <!-- sidebar backdrop for mobile -->
                     <div
                         v-if="isSidebarOpen"
-                        class="fixed inset-0 z-[65] bg-black/20 backdrop-blur-sm sm:hidden"
+                        class="fixed inset-0 z-65 bg-black/20 backdrop-blur-xs sm:hidden"
                         @click="isSidebarOpen = false"
                     ></div>
 
                     <!-- sidebar -->
                     <div
-                        class="fixed inset-y-0 left-0 z-[70] transform transition-all duration-300 ease-in-out sm:relative sm:z-0 sm:flex sm:translate-x-0"
+                        class="fixed inset-y-0 left-0 z-70 transform transition-all duration-300 ease-in-out sm:relative sm:z-0 sm:flex sm:translate-x-0"
                         :class="[
                             isSidebarOpen ? 'translate-x-0' : '-translate-x-full',
                             isSidebarCollapsed ? 'w-16' : 'w-80 md:max-lg:w-64 lg:w-80',
@@ -371,13 +371,17 @@
                                                 />
                                             </RouterLink>
                                         </div>
-                                        <div v-if="!isSidebarCollapsed" class="my-auto dark:text-white truncate">
-                                            {{ $t("app.my_identity") }}
+                                        <div
+                                            v-if="!isSidebarCollapsed"
+                                            class="my-auto min-w-0 flex-1 dark:text-white truncate"
+                                            :title="identitySidebarLabel"
+                                        >
+                                            {{ identitySidebarLabel }}
                                         </div>
                                         <div v-if="!isSidebarCollapsed" class="my-auto ml-auto shrink-0">
                                             <button
                                                 type="button"
-                                                class="my-auto inline-flex items-center gap-x-1 rounded-md bg-gray-500 px-2 py-1 text-sm font-semibold text-white shadow-sm hover:bg-gray-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700 dark:focus-visible:outline-zinc-500"
+                                                class="my-auto inline-flex items-center gap-x-1 rounded-md bg-gray-500 px-2 py-1 text-sm font-semibold text-white shadow-xs hover:bg-gray-400 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700 dark:focus-visible:outline-zinc-500"
                                                 @click.stop="saveIdentitySettings"
                                             >
                                                 {{ $t("common.save") }}
@@ -386,7 +390,7 @@
                                     </div>
                                     <div
                                         v-if="isShowingMyIdentitySection && !isSidebarCollapsed"
-                                        class="divide-y text-gray-900 border-t border-gray-200 dark:text-zinc-200 dark:border-zinc-800"
+                                        class="divide-y divide-gray-200 text-gray-900 border-t border-gray-200 dark:divide-zinc-800 dark:text-zinc-200 dark:border-zinc-800"
                                     >
                                         <div class="p-2">
                                             <input
@@ -408,17 +412,17 @@
                                         </div>
                                         <div class="p-2 dark:border-zinc-900 overflow-hidden text-xs">
                                             <div>{{ $t("app.lxmf_address") }}</div>
-                                            <div
-                                                class="text-[10px] text-gray-700 dark:text-zinc-400 truncate font-mono cursor-pointer"
-                                                :title="config.lxmf_address_hash"
-                                                @click="copyValue(config.lxmf_address_hash, $t('app.lxmf_address'))"
-                                            >
-                                                {{ config.lxmf_address_hash }}
-                                            </div>
-                                            <div class="flex items-center justify-end pt-1">
+                                            <div class="flex min-w-0 items-center gap-1">
+                                                <div
+                                                    class="min-w-0 flex-1 text-[10px] text-gray-700 dark:text-zinc-400 truncate font-mono cursor-pointer"
+                                                    :title="config.lxmf_address_hash"
+                                                    @click="copyValue(config.lxmf_address_hash, $t('app.lxmf_address'))"
+                                                >
+                                                    {{ config.lxmf_address_hash }}
+                                                </div>
                                                 <button
                                                     type="button"
-                                                    class="p-1 rounded-lg text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+                                                    class="shrink-0 rounded-lg p-1 text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
                                                     :title="$t('app.show_qr')"
                                                     @click.stop="openLxmfQr"
                                                 >
@@ -436,18 +440,25 @@
                                 >
                                     <div
                                         class="flex text-gray-700 p-3 cursor-pointer dark:text-white"
+                                        data-testid="sidebar-announce-header"
                                         @click="isShowingAnnounceSection = !isShowingAnnounceSection"
                                     >
-                                        <div class="my-auto mr-2 shrink-0">
+                                        <button
+                                            type="button"
+                                            class="my-auto mr-2 flex shrink-0 items-center justify-center rounded-md border-0 bg-transparent p-0 text-inherit cursor-pointer"
+                                            :title="$t('app.announce_now')"
+                                            data-testid="sidebar-announce-radio"
+                                            @click.stop="sendAnnounce"
+                                        >
                                             <MaterialDesignIcon icon-name="radio" class="size-6" />
-                                        </div>
+                                        </button>
                                         <div v-if="!isSidebarCollapsed" class="my-auto truncate">
                                             {{ $t("app.announce") }}
                                         </div>
                                         <div v-if="!isSidebarCollapsed" class="ml-auto shrink-0">
                                             <button
                                                 type="button"
-                                                class="my-auto inline-flex items-center gap-x-1 rounded-md bg-gray-500 px-2 py-1 text-sm font-semibold text-white shadow-sm hover:bg-gray-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700 dark:focus-visible:outline-zinc-500"
+                                                class="my-auto inline-flex items-center gap-x-1 rounded-md bg-gray-500 px-2 py-1 text-sm font-semibold text-white shadow-xs hover:bg-gray-400 focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-500 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700 dark:focus-visible:outline-zinc-500"
                                                 @click.stop="sendAnnounce"
                                             >
                                                 {{ $t("app.announce_now") }}
@@ -456,7 +467,7 @@
                                     </div>
                                     <div
                                         v-if="isShowingAnnounceSection && !isSidebarCollapsed"
-                                        class="divide-y text-gray-900 border-t border-gray-200 dark:text-zinc-200 dark:border-zinc-800"
+                                        class="divide-y divide-gray-200 text-gray-900 border-t border-gray-200 dark:divide-zinc-800 dark:text-zinc-200 dark:border-zinc-800"
                                     >
                                         <div class="p-2 dark:border-zinc-800">
                                             <select
@@ -522,7 +533,7 @@
         <!-- LXMF QR modal -->
         <div
             v-if="showLxmfQr"
-            class="fixed inset-0 z-[190] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            class="fixed inset-0 z-190 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
             @click.self="showLxmfQr = false"
         >
             <div class="w-full max-w-sm bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden">
@@ -547,7 +558,7 @@
                     </div>
                     <div
                         v-if="config?.lxmf_address_hash"
-                        class="text-xs font-mono text-gray-700 dark:text-zinc-200 text-center break-words"
+                        class="text-xs font-mono text-gray-700 dark:text-zinc-200 text-center wrap-break-word"
                     >
                         {{ getMyIdentityUri() }}
                     </div>
@@ -568,7 +579,7 @@
         <transition name="fade-blur">
             <div
                 v-if="isSwitchingIdentity"
-                class="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/45 dark:bg-black/55 backdrop-blur-sm px-4"
+                class="fixed inset-0 z-200 flex items-center justify-center bg-slate-900/45 dark:bg-black/55 backdrop-blur-xs px-4"
                 role="status"
                 aria-live="polite"
             >
@@ -631,6 +642,7 @@ import TutorialModal from "./TutorialModal.vue";
 import AppShellBanners from "./layout/AppShellBanners.vue";
 import KeyboardShortcuts from "../js/KeyboardShortcuts";
 import ElectronUtils from "../js/ElectronUtils";
+import { postRequestPath } from "../js/reticulumPathfinding.js";
 import ToneGenerator from "../js/ToneGenerator";
 import logoUrl from "../assets/images/logo.png";
 
@@ -738,6 +750,11 @@ export default {
         showWsDisconnectedBanner() {
             return this.shellRunning && this.wsDisconnected && this.$route?.name !== "auth";
         },
+        identitySidebarLabel() {
+            const raw = this.displayName;
+            const name = raw != null && String(raw).trim() !== "" ? String(raw).trim() : "";
+            return name || this.$t("app.my_identity");
+        },
         shellCanvasStyle() {
             const raw = Number(this.config?.ui_transparency ?? 0);
             const t = Number.isFinite(raw) ? Math.max(0, Math.min(100, raw)) : 0;
@@ -795,6 +812,10 @@ export default {
             const v = localStorage.getItem("meshchatx_detailed_outbound_send_status");
             if (v === "true" || v === "false") {
                 GlobalState.detailedOutboundSendStatus = v === "true";
+            }
+            const tg = localStorage.getItem("meshchatx_message_timestamp_grouping_enabled");
+            if (tg === "true" || tg === "false") {
+                GlobalState.messageTimestampGroupingEnabled = tg === "true";
             }
         } catch {
             // ignore
@@ -1424,7 +1445,7 @@ export default {
             try {
                 const preferredHash = this.config?.lxmf_preferred_propagation_node_destination_hash;
                 if (preferredHash) {
-                    await window.api.post(`/api/v1/destination/${preferredHash}/request-path`);
+                    await postRequestPath(window.api, preferredHash);
                 }
                 await window.api.get("/api/v1/lxmf/propagation-node/sync");
             } catch (e) {
@@ -1821,8 +1842,9 @@ export default {
 </script>
 
 <style>
+@reference "../style.css";
 .banished-overlay {
-    @apply absolute inset-0 z-[100] flex items-center justify-center overflow-hidden pointer-events-none rounded-[inherit];
+    @apply absolute inset-0 z-100 flex items-center justify-center overflow-hidden pointer-events-none rounded-[inherit];
     background: rgba(220, 38, 38, 0.12);
     backdrop-filter: blur(3px) saturate(180%);
 }

@@ -2,8 +2,8 @@
 
 <template>
     <Transition name="confirm-dialog">
-        <div v-if="pendingConfirm" class="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-            <div class="fixed inset-0 bg-black/50 backdrop-blur-sm shadow-2xl" @click="cancel"></div>
+        <div v-if="pendingConfirm" class="fixed inset-0 z-9999 flex items-center justify-center p-4">
+            <div class="fixed inset-0 bg-black/50 backdrop-blur-xs shadow-2xl" @click="cancel"></div>
 
             <div
                 class="relative w-full sm:w-auto sm:min-w-[400px] sm:max-w-md bg-white dark:bg-zinc-900 sm:rounded-3xl rounded-3xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden transform transition-all"
@@ -12,7 +12,7 @@
                 <div class="p-8">
                     <div class="flex items-start mb-6">
                         <div
-                            class="flex-shrink-0 flex items-center justify-center w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 mr-4"
+                            class="shrink-0 flex items-center justify-center w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 mr-4"
                         >
                             <MaterialDesignIcon icon-name="alert-circle" class="w-6 h-6" />
                         </div>

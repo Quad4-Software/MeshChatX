@@ -55,7 +55,7 @@
                             <div
                                 v-for="iface in importableInterfaces"
                                 :key="iface.name"
-                                class="bg-white cursor-pointer flex items-center p-2 border rounded shadow dark:bg-zinc-900 dark:border-zinc-700"
+                                class="bg-white cursor-pointer flex items-center p-2 border rounded-sm shadow-sm dark:bg-zinc-900 dark:border-zinc-700"
                             >
                                 <div class="mr-auto text-sm flex-1" @click="toggleSelectedInterface(iface.name)">
                                     <div class="font-semibold text-gray-700 dark:text-zinc-100">{{ iface.name }}</div>

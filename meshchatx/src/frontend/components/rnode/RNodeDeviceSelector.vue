@@ -164,6 +164,7 @@ export default {
 </script>
 
 <style scoped>
+@reference "../../style.css";
 .rnf-label {
     @apply text-xs font-semibold text-gray-500 dark:text-zinc-500 uppercase tracking-wider;
 }

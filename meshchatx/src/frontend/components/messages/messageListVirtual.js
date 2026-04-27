@@ -22,6 +22,9 @@ export function estimateGroupHeight(entry) {
     if (!entry || typeof entry !== "object") {
         return 96;
     }
+    if (entry.type === "dateDivider") {
+        return 44;
+    }
     if (entry.type === "imageGroup") {
         return 340;
     }
@@ -40,6 +43,9 @@ export function findDisplayGroupIndexForMessageHash(groupsOldestFirst, hash) {
     for (let i = 0; i < groupsOldestFirst.length; i++) {
         const g = groupsOldestFirst[i];
         if (!g || typeof g !== "object") {
+            continue;
+        }
+        if (g.type === "dateDivider") {
             continue;
         }
         if (g.type === "imageGroup" && Array.isArray(g.items)) {

@@ -3,7 +3,7 @@
 <template>
     <div class="flex flex-col flex-1 h-full overflow-hidden bg-slate-50 dark:bg-zinc-950">
         <div
-            class="flex items-center px-4 py-4 bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-800 shadow-sm"
+            class="flex items-center px-4 py-4 bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-800 shadow-xs"
         >
             <div class="flex items-center gap-3">
                 <div class="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
@@ -23,7 +23,7 @@
                     <input
                         v-model="searchQuery"
                         type="text"
-                        class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-zinc-700 rounded-lg bg-gray-50 dark:bg-zinc-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-zinc-700 rounded-lg bg-gray-50 dark:bg-zinc-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                         :placeholder="$t('banishment.search_placeholder')"
                         @input="onSearchInput"
                     />
@@ -71,7 +71,7 @@
                         <div class="flex items-start justify-between mb-4">
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center gap-2 mb-2">
-                                    <div class="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg flex-shrink-0">
+                                    <div class="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg shrink-0">
                                         <MaterialDesignIcon
                                             icon-name="account-off"
                                             class="size-5 text-red-600 dark:text-red-400"
@@ -80,26 +80,26 @@
                                     <div class="min-w-0 flex-1">
                                         <div class="flex items-center gap-2 mb-1">
                                             <h4
-                                                class="text-base font-semibold text-gray-900 dark:text-white break-words"
+                                                class="text-base font-semibold text-gray-900 dark:text-white wrap-break-word"
                                                 :title="item.display_name"
                                             >
                                                 {{ item.display_name || $t("call.unknown") }}
                                             </h4>
                                             <span
                                                 v-if="item.is_node"
-                                                class="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded"
+                                                class="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-sm"
                                             >
                                                 {{ $t("banishment.node") }}
                                             </span>
                                             <span
                                                 v-else
-                                                class="px-2 py-0.5 text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded"
+                                                class="px-2 py-0.5 text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-sm"
                                             >
                                                 {{ $t("banishment.user") }}
                                             </span>
                                             <span
                                                 v-if="item.is_rns_blackholed"
-                                                class="px-2 py-0.5 text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded border border-zinc-200 dark:border-zinc-700"
+                                                class="px-2 py-0.5 text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-sm border border-zinc-200 dark:border-zinc-700"
                                                 title="Blackholed at Reticulum transport layer"
                                             >
                                                 RNS Blackhole

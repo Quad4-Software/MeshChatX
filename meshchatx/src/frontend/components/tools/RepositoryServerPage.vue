@@ -40,7 +40,7 @@
                             class="inline-flex items-center gap-2 text-sm text-sky-600 dark:text-sky-300 hover:underline"
                         >
                             <MaterialDesignIcon icon-name="arrow-left" class="size-4" />
-                            {{ $t("tools.repository_server.back_tools") }}
+                            {{ $t("tools.back_to_tools") }}
                         </RouterLink>
                     </div>
                 </div>
@@ -67,7 +67,7 @@
                         {{ $t("tools.repository_server.http_heading") }}
                     </h2>
                     <div class="flex flex-wrap gap-3 items-end">
-                        <label class="flex flex-col gap-1 text-xs min-w-[10rem]">
+                        <label class="flex flex-col gap-1 text-xs min-w-40">
                             <span class="text-gray-500 dark:text-zinc-500">{{
                                 $t("tools.repository_server.host_label")
                             }}</span>

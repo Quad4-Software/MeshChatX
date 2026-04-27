@@ -5,7 +5,9 @@
         <div class="flex-1 overflow-y-auto w-full pb-[max(1rem,env(safe-area-inset-bottom))]">
             <div class="p-3 sm:p-4 md:p-6 max-w-5xl mx-auto w-full space-y-4 min-w-0">
                 <!-- header -->
-                <div class="border-b border-gray-200 dark:border-zinc-800 pb-4">
+                <div
+                    class="flex flex-wrap items-start justify-between gap-3 border-b border-gray-200 dark:border-zinc-800 pb-4"
+                >
                     <div class="flex items-start gap-3 min-w-0">
                         <div
                             class="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg shrink-0"
@@ -21,6 +23,13 @@
                             </p>
                         </div>
                     </div>
+                    <RouterLink
+                        to="/tools"
+                        class="inline-flex items-center gap-2 text-sm text-blue-600 dark:text-blue-300 hover:underline shrink-0"
+                    >
+                        <MaterialDesignIcon icon-name="arrow-left" class="size-4" />
+                        {{ $t("tools.back_to_tools") }}
+                    </RouterLink>
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -199,7 +208,7 @@
                                             </div>
                                             <button
                                                 type="button"
-                                                class="size-9 flex items-center justify-center bg-white dark:bg-zinc-900 text-gray-500 dark:text-zinc-400 rounded-lg border border-gray-200 dark:border-zinc-700 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all shadow-sm"
+                                                class="size-9 flex items-center justify-center bg-white dark:bg-zinc-900 text-gray-500 dark:text-zinc-400 rounded-lg border border-gray-200 dark:border-zinc-700 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all shadow-xs"
                                                 title="Copy URI"
                                                 @click="copyUri"
                                             >
@@ -258,7 +267,7 @@
 
         <div
             v-if="isIngestScannerModalOpen"
-            class="fixed inset-0 z-[210] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+            class="fixed inset-0 z-210 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs"
             @click.self="closeIngestScannerModal"
         >
             <div class="w-full max-w-xl rounded-2xl bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden">
@@ -598,6 +607,7 @@ export default {
 </script>
 
 <style scoped>
+@reference "../../style.css";
 .input-field {
     @apply bg-gray-50/90 dark:bg-zinc-800/80 border border-gray-200 dark:border-zinc-700 text-sm rounded-2xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 dark:focus:ring-blue-50 dark:focus:border-blue-500 block w-full p-2.5 text-gray-900 dark:text-gray-100 transition;
 }

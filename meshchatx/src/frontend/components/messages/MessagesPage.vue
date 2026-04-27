@@ -66,7 +66,7 @@
         <button
             v-if="!isPopoutMode && !destinationHash"
             type="button"
-            class="sm:hidden fixed bottom-5 right-4 z-[65] flex h-14 w-14 items-center justify-center rounded-full bg-zinc-900 text-white shadow-lg ring-1 ring-white/10 transition active:scale-95 dark:bg-zinc-100 dark:text-zinc-900 dark:ring-zinc-800"
+            class="sm:hidden fixed bottom-5 right-4 z-65 flex h-14 w-14 items-center justify-center rounded-full bg-zinc-900 text-white shadow-lg ring-1 ring-white/10 transition active:scale-95 dark:bg-zinc-100 dark:text-zinc-900 dark:ring-zinc-800"
             :title="$t('app.compose')"
             @click="openMobileCompose"
         >
@@ -75,7 +75,7 @@
 
         <div
             v-if="isMobileComposeModalOpen"
-            class="fixed inset-0 z-[95] flex items-end justify-center sm:items-center p-0 sm:p-4 bg-black/50 backdrop-blur-sm sm:bg-black/50"
+            class="fixed inset-0 z-95 flex items-end justify-center sm:items-center p-0 sm:p-4 bg-black/50 backdrop-blur-xs sm:bg-black/50"
             @click.self="isMobileComposeModalOpen = false"
         >
             <div
@@ -115,14 +115,14 @@
                             autocorrect="off"
                             spellcheck="false"
                             :placeholder="$t('messages.mobile_compose_destination_placeholder')"
-                            class="block w-full rounded-xl border-0 py-2.5 px-3 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
+                            class="block w-full rounded-xl border-0 py-2.5 px-3 text-gray-900 dark:text-white shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
                             @keydown.enter="submitMobileCompose"
                         />
                     </div>
                     <div class="flex flex-col gap-2">
                         <button
                             type="button"
-                            class="w-full flex justify-center items-center gap-2 py-2.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all disabled:opacity-50 disabled:pointer-events-none"
+                            class="w-full flex justify-center items-center gap-2 py-2.5 px-4 border border-transparent rounded-xl shadow-xs text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all disabled:opacity-50 disabled:pointer-events-none"
                             :disabled="!mobileComposeAddress.trim()"
                             @click="submitMobileCompose"
                         >
@@ -144,7 +144,7 @@
         <!-- Ingest Paper Message Modal -->
         <div
             v-if="isIngestModalOpen"
-            class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            class="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
             @click.self="isIngestModalOpen = false"
         >
             <div class="w-full max-w-md bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden">
@@ -176,7 +176,7 @@
                                     v-model="ingestUri"
                                     type="text"
                                     placeholder="lxmf://... or lxma://..."
-                                    class="block w-full rounded-lg border-0 py-2 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
+                                    class="block w-full rounded-lg border-0 py-2 text-gray-900 dark:text-white shadow-xs ring-1 ring-inset ring-gray-300 dark:ring-zinc-800 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm dark:bg-zinc-900"
                                     @keydown.enter="ingestPaperMessage"
                                 />
                                 <button
@@ -200,7 +200,7 @@
                         </div>
                         <button
                             type="button"
-                            class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all"
+                            class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-xl shadow-xs text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all"
                             :disabled="!ingestUri"
                             @click="ingestPaperMessage"
                         >
@@ -216,7 +216,7 @@
 
         <div
             v-if="isIngestScannerModalOpen"
-            class="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+            class="fixed inset-0 z-120 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs"
             @click.self="closeIngestScannerModal"
         >
             <div class="w-full max-w-xl rounded-2xl bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden">

@@ -14,7 +14,7 @@
                 v-for="p in presets"
                 :key="p.id"
                 type="button"
-                class="px-2 py-1 text-[10px] font-bold uppercase tracking-tight rounded-lg bg-white/95 dark:bg-zinc-900/95 border border-gray-200 dark:border-zinc-700 text-gray-800 dark:text-zinc-100 shadow-sm hover:bg-gray-50 dark:hover:bg-zinc-800"
+                class="px-2 py-1 text-[10px] font-bold uppercase tracking-tight rounded-lg bg-white/95 dark:bg-zinc-900/95 border border-gray-200 dark:border-zinc-700 text-gray-800 dark:text-zinc-100 shadow-xs hover:bg-gray-50 dark:hover:bg-zinc-800"
                 @click="$emit('select-preset', p)"
             >
                 {{ $t(`map.export_region_${p.id}`) }}

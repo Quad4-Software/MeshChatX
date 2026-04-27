@@ -49,7 +49,7 @@
                         <button
                             v-else
                             type="button"
-                            class="secondary-chip !text-red-600 dark:!text-red-300 !border-red-200 dark:!border-red-500/50"
+                            class="secondary-chip text-red-600! dark:text-red-300! border-red-200! dark:border-red-500/50!"
                             @click="stop"
                         >
                             <MaterialDesignIcon icon-name="pause" class="w-4 h-4" />

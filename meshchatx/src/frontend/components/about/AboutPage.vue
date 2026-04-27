@@ -284,18 +284,18 @@
                         </div>
                         <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 text-sm min-w-0">
                             <div>
-                                <div class="glass-label !text-[10px] mb-2 opacity-50">
+                                <div class="glass-label text-[10px]! mb-2 opacity-50">
                                     {{ $t("about.reticulum_config") }}
                                 </div>
                                 <div
-                                    class="monospace-field !bg-zinc-50 dark:!bg-zinc-950 break-all text-[11px] !p-3 rounded-xl border border-zinc-100 dark:border-zinc-800"
+                                    class="monospace-field bg-zinc-50! dark:bg-zinc-950! break-all text-[11px] p-3! rounded-xl border border-zinc-100 dark:border-zinc-800"
                                 >
                                     {{ appInfo.reticulum_config_path || $t("about.path_unknown") }}
                                 </div>
                                 <button
                                     v-if="isElectron"
                                     type="button"
-                                    class="secondary-chip mt-3 !px-3 !py-1 !text-[10px]"
+                                    class="secondary-chip mt-3 px-3! py-1! text-[10px]!"
                                     @click="showReticulumConfigFile"
                                 >
                                     <v-icon icon="mdi-folder-open" start size="14"></v-icon>
@@ -303,18 +303,18 @@
                                 </button>
                             </div>
                             <div>
-                                <div class="glass-label !text-[10px] mb-2 opacity-50">
+                                <div class="glass-label text-[10px]! mb-2 opacity-50">
                                     {{ $t("about.database_path") }}
                                 </div>
                                 <div
-                                    class="monospace-field !bg-zinc-50 dark:!bg-zinc-950 break-all text-[11px] !p-3 rounded-xl border border-zinc-100 dark:border-zinc-800"
+                                    class="monospace-field bg-zinc-50! dark:bg-zinc-950! break-all text-[11px] p-3! rounded-xl border border-zinc-100 dark:border-zinc-800"
                                 >
                                     {{ appInfo.database_path || $t("about.path_unknown") }}
                                 </div>
                                 <button
                                     v-if="isElectron"
                                     type="button"
-                                    class="secondary-chip mt-3 !px-3 !py-1 !text-[10px]"
+                                    class="secondary-chip mt-3 px-3! py-1! text-[10px]!"
                                     @click="showDatabaseFile"
                                 >
                                     <v-icon icon="mdi-database-search" start size="14"></v-icon>
@@ -322,7 +322,7 @@
                                 </button>
                             </div>
                             <div
-                                class="flex flex-col justify-center space-y-3 py-2 sm:py-3 border-t sm:border border-gray-200/60 dark:border-zinc-800/80 sm:rounded-xl sm:p-4 sm:bg-black/[0.02] dark:sm:bg-white/[0.02]"
+                                class="flex flex-col justify-center space-y-3 py-2 sm:py-3 border-t sm:border border-gray-200/60 dark:border-zinc-800/80 sm:rounded-xl sm:p-4 sm:bg-black/2 dark:sm:bg-white/2"
                             >
                                 <div
                                     v-if="config"
@@ -411,7 +411,7 @@
                             <div class="flex flex-col space-y-8 min-w-0">
                                 <div class="flex items-center gap-5">
                                     <div
-                                        class="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-sm"
+                                        class="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shadow-xs"
                                     >
                                         <img
                                             src="../../public/favicons/favicon-512x512.png"
@@ -431,10 +431,10 @@
                                     class="flex items-center gap-5 pl-5 border-l-2 border-zinc-100 dark:border-zinc-800 ml-6 relative"
                                 >
                                     <div
-                                        class="absolute -left-[2px] top-0 bottom-0 w-[2px] bg-gradient-to-b from-blue-500 to-emerald-500"
+                                        class="absolute left-[-2px] top-0 bottom-0 w-[2px] bg-linear-to-b from-blue-500 to-emerald-500"
                                     ></div>
                                     <div
-                                        class="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 text-emerald-600 font-black text-[10px] tracking-tighter shadow-sm"
+                                        class="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 text-emerald-600 font-black text-[10px] tracking-tighter shadow-xs"
                                     >
                                         LXMFy
                                     </div>
@@ -451,10 +451,10 @@
                                     class="flex items-center gap-5 pl-5 border-l-2 border-zinc-100 dark:border-zinc-800 ml-6 relative"
                                 >
                                     <div
-                                        class="absolute -left-[2px] top-0 bottom-0 w-[2px] bg-gradient-to-b from-emerald-500 to-purple-500"
+                                        class="absolute left-[-2px] top-0 bottom-0 w-[2px] bg-linear-to-b from-emerald-500 to-purple-500"
                                     ></div>
                                     <div
-                                        class="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20 text-purple-600 font-black text-[10px] tracking-tighter shadow-sm"
+                                        class="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center border border-purple-500/20 text-purple-600 font-black text-[10px] tracking-tighter shadow-xs"
                                     >
                                         LXMF
                                     </div>
@@ -471,10 +471,10 @@
                                     class="flex items-center gap-5 pl-5 border-l-2 border-zinc-100 dark:border-zinc-800 ml-6 relative"
                                 >
                                     <div
-                                        class="absolute -left-[2px] top-0 bottom-0 w-[2px] bg-gradient-to-b from-purple-500 to-indigo-500"
+                                        class="absolute left-[-2px] top-0 bottom-0 w-[2px] bg-linear-to-b from-purple-500 to-indigo-500"
                                     ></div>
                                     <div
-                                        class="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20 text-indigo-600 font-black text-[10px] tracking-tighter shadow-sm"
+                                        class="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20 text-indigo-600 font-black text-[10px] tracking-tighter shadow-xs"
                                     >
                                         RNS
                                     </div>
@@ -492,7 +492,7 @@
                                                         ? 'bg-blue-500/10 text-blue-500 border-blue-500/20'
                                                         : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
                                                 ]"
-                                                class="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded border max-w-full break-words"
+                                                class="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-sm border max-w-full wrap-break-word"
                                             >
                                                 {{
                                                     appInfo.is_connected_to_shared_instance
@@ -511,7 +511,7 @@
 
                             <div class="space-y-8 min-w-0">
                                 <div
-                                    class="py-4 sm:p-5 border-t border-gray-200/60 dark:border-zinc-800/80 sm:border sm:rounded-2xl sm:bg-black/[0.02] dark:sm:bg-white/[0.02] min-w-0"
+                                    class="py-4 sm:p-5 border-t border-gray-200/60 dark:border-zinc-800/80 sm:border sm:rounded-2xl sm:bg-black/2 dark:sm:bg-white/2 min-w-0"
                                 >
                                     <div
                                         class="text-[10px] font-black text-gray-400 dark:text-zinc-600 uppercase tracking-[0.2em] mb-4"
@@ -601,7 +601,7 @@
                             <div class="flex flex-wrap gap-2 w-full md:w-auto">
                                 <button
                                     type="button"
-                                    class="secondary-chip !px-4 !py-1.5 !text-xs min-h-[44px] sm:min-h-0"
+                                    class="secondary-chip px-4! py-1.5! text-xs! min-h-[44px] sm:min-h-0"
                                     :disabled="databaseActionInProgress || healthLoading"
                                     @click="getDatabaseHealth(true)"
                                 >
@@ -611,7 +611,7 @@
                                 </button>
                                 <button
                                     type="button"
-                                    class="primary-chip !px-4 !py-1.5 !text-xs"
+                                    class="primary-chip px-4! py-1.5! text-xs!"
                                     :disabled="databaseActionInProgress"
                                     @click="vacuumDatabase"
                                 >
@@ -619,7 +619,7 @@
                                 </button>
                                 <button
                                     type="button"
-                                    class="danger-chip !px-4 !py-1.5 !text-xs"
+                                    class="danger-chip px-4! py-1.5! text-xs!"
                                     :disabled="databaseActionInProgress"
                                     @click="runRecovery"
                                 >
@@ -699,7 +699,7 @@
                                 </div>
                                 <button
                                     type="button"
-                                    class="primary-chip !px-5 !py-2.5"
+                                    class="primary-chip px-5! py-2.5!"
                                     :disabled="backupInProgress"
                                     @click="backupDatabase"
                                 >
@@ -728,11 +728,11 @@
                                             v-model="snapshotName"
                                             type="text"
                                             :placeholder="$t('about.snapshot_placeholder')"
-                                            class="bg-zinc-50 dark:bg-zinc-900 px-4 py-2 rounded-xl text-sm border border-zinc-100 dark:border-zinc-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 flex-1 md:min-w-[200px]"
+                                            class="bg-zinc-50 dark:bg-zinc-900 px-4 py-2 rounded-xl text-sm border border-zinc-100 dark:border-zinc-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 flex-1 md:min-w-[200px]"
                                         />
                                         <button
                                             type="button"
-                                            class="primary-chip !px-6"
+                                            class="primary-chip px-6!"
                                             :disabled="snapshotInProgress"
                                             @click="createSnapshot"
                                         >
@@ -747,7 +747,7 @@
                                         <div
                                             v-for="snapshot in snapshots"
                                             :key="snapshot.path"
-                                            class="flex items-center justify-between gap-2 py-3 sm:p-4 border-b border-gray-200/60 dark:border-zinc-800/80 last:border-0 sm:border sm:rounded-lg sm:bg-black/[0.02] dark:sm:bg-white/[0.02] transition-colors"
+                                            class="flex items-center justify-between gap-2 py-3 sm:p-4 border-b border-gray-200/60 dark:border-zinc-800/80 last:border-0 sm:border sm:rounded-lg sm:bg-black/2 dark:sm:bg-white/2 transition-colors"
                                         >
                                             <div class="flex flex-col min-w-0">
                                                 <span
@@ -764,7 +764,7 @@
                                             >
                                                 <button
                                                     type="button"
-                                                    class="primary-chip !px-3 !py-1 !text-[10px]"
+                                                    class="primary-chip px-3! py-1! text-[10px]!"
                                                     @click="downloadSnapshot(snapshot.name)"
                                                 >
                                                     <v-icon icon="mdi-download" size="12" start></v-icon>
@@ -772,14 +772,14 @@
                                                 </button>
                                                 <button
                                                     type="button"
-                                                    class="secondary-chip !px-3 !py-1 !text-[10px]"
+                                                    class="secondary-chip px-3! py-1! text-[10px]!"
                                                     @click="restoreFromSnapshot(snapshot.path)"
                                                 >
                                                     {{ $t("about.snapshot_restore") }}
                                                 </button>
                                                 <button
                                                     type="button"
-                                                    class="danger-chip !px-3 !py-1 !text-[10px]"
+                                                    class="danger-chip px-3! py-1! text-[10px]!"
                                                     @click="deleteSnapshot(snapshot.name)"
                                                 >
                                                     <v-icon icon="mdi-delete" size="12"></v-icon>
@@ -803,14 +803,14 @@
                                         </div>
                                         <div class="flex gap-2">
                                             <button
-                                                class="secondary-chip !p-1 disabled:opacity-30"
+                                                class="secondary-chip p-1! disabled:opacity-30"
                                                 :disabled="snapshotsOffset === 0"
                                                 @click="prevSnapshots"
                                             >
                                                 <v-icon icon="mdi-chevron-left"></v-icon>
                                             </button>
                                             <button
-                                                class="secondary-chip !p-1 disabled:opacity-30"
+                                                class="secondary-chip p-1! disabled:opacity-30"
                                                 :disabled="snapshotsOffset + snapshotsLimit >= snapshotsTotal"
                                                 @click="nextSnapshots"
                                             >
@@ -842,7 +842,7 @@
                                         <div
                                             v-for="backup in autoBackups"
                                             :key="backup.path"
-                                            class="flex items-center justify-between gap-2 py-3 sm:p-4 border-b border-gray-200/60 dark:border-zinc-800/80 last:border-0 sm:border sm:rounded-lg sm:bg-black/[0.02] dark:sm:bg-white/[0.02] transition-colors"
+                                            class="flex items-center justify-between gap-2 py-3 sm:p-4 border-b border-gray-200/60 dark:border-zinc-800/80 last:border-0 sm:border sm:rounded-lg sm:bg-black/2 dark:sm:bg-white/2 transition-colors"
                                         >
                                             <div class="flex flex-col min-w-0">
                                                 <span
@@ -859,7 +859,7 @@
                                             >
                                                 <button
                                                     type="button"
-                                                    class="primary-chip !px-3 !py-1 !text-[10px]"
+                                                    class="primary-chip px-3! py-1! text-[10px]!"
                                                     @click="downloadBackupFile(backup.name)"
                                                 >
                                                     <v-icon icon="mdi-download" size="12" start></v-icon>
@@ -867,14 +867,14 @@
                                                 </button>
                                                 <button
                                                     type="button"
-                                                    class="secondary-chip !px-3 !py-1 !text-[10px]"
+                                                    class="secondary-chip px-3! py-1! text-[10px]!"
                                                     @click="restoreFromSnapshot(backup.path)"
                                                 >
                                                     {{ $t("about.snapshot_restore") }}
                                                 </button>
                                                 <button
                                                     type="button"
-                                                    class="danger-chip !px-3 !py-1 !text-[10px]"
+                                                    class="danger-chip px-3! py-1! text-[10px]!"
                                                     @click="deleteBackup(backup.name)"
                                                 >
                                                     <v-icon icon="mdi-delete" size="12"></v-icon>
@@ -898,14 +898,14 @@
                                         </div>
                                         <div class="flex gap-2">
                                             <button
-                                                class="secondary-chip !p-1 disabled:opacity-30"
+                                                class="secondary-chip p-1! disabled:opacity-30"
                                                 :disabled="autoBackupsOffset === 0"
                                                 @click="prevBackups"
                                             >
                                                 <v-icon icon="mdi-chevron-left"></v-icon>
                                             </button>
                                             <button
-                                                class="secondary-chip !p-1 disabled:opacity-30"
+                                                class="secondary-chip p-1! disabled:opacity-30"
                                                 :disabled="autoBackupsOffset + autoBackupsLimit >= autoBackupsTotal"
                                                 @click="nextBackups"
                                             >
@@ -1254,9 +1254,13 @@ export default {
                 if (response.data.database?.health) {
                     this.databaseHealth = response.data.database.health;
                 }
-                this.databaseActionMessage = response.data.message || "Database vacuum completed";
+                const msg = response.data.message || this.$t("about.vacuum_complete");
+                this.databaseActionMessage = msg;
+                ToastUtils.success(this.$t("about.vacuum_complete"));
             } catch (e) {
-                this.databaseActionError = "Vacuum failed";
+                this.databaseActionError = this.$t("about.vacuum_failed");
+                const detail = e?.response?.data?.message;
+                ToastUtils.error(detail || this.$t("about.vacuum_failed"));
                 console.log(e);
             } finally {
                 this.databaseActionInProgress = false;
@@ -1326,6 +1330,9 @@ export default {
             if (this.databaseActionInProgress) {
                 return;
             }
+            if (!(await DialogUtils.confirm(this.$t("about.recovery_confirm")))) {
+                return;
+            }
             this.databaseActionInProgress = true;
             this.databaseActionMessage = "";
             this.databaseActionError = "";
@@ -1335,9 +1342,13 @@ export default {
                     this.databaseHealth = response.data.database.health;
                 }
                 this.databaseRecoveryActions = response.data.database?.actions || [];
-                this.databaseActionMessage = response.data.message || "Database recovery completed";
+                const msg = response.data.message || this.$t("about.recovery_complete");
+                this.databaseActionMessage = msg;
+                ToastUtils.success(this.$t("about.recovery_complete"));
             } catch (e) {
                 this.databaseActionError = this.$t("about.recovery_failed");
+                const detail = e?.response?.data?.message;
+                ToastUtils.error(detail || this.$t("about.recovery_failed"));
                 console.log(e);
             } finally {
                 this.databaseActionInProgress = false;
@@ -1471,6 +1482,7 @@ export default {
 </script>
 
 <style scoped>
+@reference "../../style.css";
 .about-section {
     @apply w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-6 sm:py-8 last:border-0;
 }

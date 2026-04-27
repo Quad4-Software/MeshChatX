@@ -17,7 +17,7 @@
                 :class="msg.is_outbound ? 'ml-auto items-end' : 'mr-auto items-start'"
             >
                 <div
-                    class="px-2 py-1 rounded-lg text-xs break-words shadow-sm"
+                    class="px-2 py-1 rounded-lg text-xs wrap-break-word shadow-xs"
                     :class="
                         msg.is_outbound
                             ? 'bg-blue-600 text-white'
@@ -81,7 +81,7 @@
                 <input
                     v-model="newMessage"
                     type="text"
-                    class="flex-1 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-md px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 text-gray-900 dark:text-zinc-100"
+                    class="flex-1 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-md px-2 py-1 text-xs focus:outline-hidden focus:ring-1 focus:ring-blue-500 text-gray-900 dark:text-zinc-100"
                     placeholder="Type a message..."
                     @keydown.enter="sendMessage"
                 />

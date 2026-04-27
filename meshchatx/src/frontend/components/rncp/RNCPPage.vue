@@ -136,7 +136,7 @@
                             </div>
                             <div class="flex items-end">
                                 <label class="flex items-center gap-2 cursor-pointer">
-                                    <input v-model="sendNoCompress" type="checkbox" class="rounded" />
+                                    <input v-model="sendNoCompress" type="checkbox" class="rounded-sm" />
                                     <span class="text-sm text-gray-700 dark:text-gray-300">{{
                                         $t("rncp.disable_compression")
                                     }}</span>
@@ -251,7 +251,7 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <label class="flex items-center gap-2 cursor-pointer">
-                                <input v-model="fetchAllowOverwrite" type="checkbox" class="rounded" />
+                                <input v-model="fetchAllowOverwrite" type="checkbox" class="rounded-sm" />
                                 <span class="text-sm text-gray-700 dark:text-gray-300">{{
                                     $t("rncp.allow_overwrite")
                                 }}</span>
@@ -341,13 +341,13 @@
                             </div>
                             <div class="flex items-end gap-4">
                                 <label class="flex items-center gap-2 cursor-pointer">
-                                    <input v-model="listenFetchAllowed" type="checkbox" class="rounded" />
+                                    <input v-model="listenFetchAllowed" type="checkbox" class="rounded-sm" />
                                     <span class="text-sm text-gray-700 dark:text-gray-300">{{
                                         $t("rncp.allow_fetch")
                                     }}</span>
                                 </label>
                                 <label class="flex items-center gap-2 cursor-pointer">
-                                    <input v-model="listenAllowOverwrite" type="checkbox" class="rounded" />
+                                    <input v-model="listenAllowOverwrite" type="checkbox" class="rounded-sm" />
                                     <span class="text-sm text-gray-700 dark:text-gray-300">{{
                                         $t("rncp.allow_overwrite")
                                     }}</span>

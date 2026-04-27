@@ -116,7 +116,7 @@
                     id="saveAsNew"
                     v-model="saveAsNew"
                     type="checkbox"
-                    class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
                 <label for="saveAsNew" class="text-sm text-gray-600 dark:text-zinc-400 cursor-pointer"
                     >Save as new ringtone</label

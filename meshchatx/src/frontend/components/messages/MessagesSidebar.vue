@@ -55,7 +55,7 @@
                     v-for="c in collapsedSidebarConversations"
                     :key="c.destination_hash"
                     type="button"
-                    class="shrink-0 p-0.5 rounded-xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    class="shrink-0 p-0.5 rounded-xl transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500"
                     :class="
                         selectedDestinationHash === c.destination_hash
                             ? 'ring-2 ring-indigo-500 ring-offset-1 ring-offset-white dark:ring-offset-zinc-950'
@@ -156,7 +156,7 @@
                                 <div
                                     v-if="folderMenu.show"
                                     v-click-outside="{ handler: () => (folderMenu.show = false), capture: true }"
-                                    class="absolute right-0 top-full mt-1 z-[60] min-w-[160px] bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-gray-200 dark:border-zinc-700 py-1 overflow-hidden animate-in fade-in zoom-in duration-100"
+                                    class="absolute right-0 top-full mt-1 z-60 min-w-[160px] bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-gray-200 dark:border-zinc-700 py-1 overflow-hidden animate-in fade-in zoom-in duration-100"
                                 >
                                     <button
                                         type="button"
@@ -314,7 +314,7 @@
                             <input
                                 type="checkbox"
                                 :checked="allSelected"
-                                class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500"
                                 @change="toggleSelectAll"
                             />
                             <span class="text-xs font-semibold text-blue-700 dark:text-blue-400">
@@ -347,7 +347,7 @@
                                 <div
                                     v-if="moveMenu.show"
                                     v-click-outside="{ handler: () => (moveMenu.show = false), capture: true }"
-                                    class="absolute right-0 top-full mt-1 z-[60] min-w-[160px] bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-gray-200 dark:border-zinc-700 py-1 overflow-hidden animate-in fade-in zoom-in duration-100"
+                                    class="absolute right-0 top-full mt-1 z-60 min-w-[160px] bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-gray-200 dark:border-zinc-700 py-1 overflow-hidden animate-in fade-in zoom-in duration-100"
                                 >
                                     <button
                                         type="button"
@@ -376,10 +376,10 @@
                     <div v-if="isLoading" class="w-full divide-y divide-gray-100 dark:divide-zinc-800">
                         <div v-for="i in 6" :key="i" class="p-3 animate-pulse">
                             <div class="flex gap-3">
-                                <div class="rounded bg-gray-200 dark:bg-zinc-800" :style="messageIconStyle"></div>
+                                <div class="rounded-sm bg-gray-200 dark:bg-zinc-800" :style="messageIconStyle"></div>
                                 <div class="flex-1 space-y-2 py-1">
-                                    <div class="h-2 bg-gray-200 dark:bg-zinc-800 rounded w-3/4"></div>
-                                    <div class="h-2 bg-gray-200 dark:bg-zinc-800 rounded w-1/2"></div>
+                                    <div class="h-2 bg-gray-200 dark:bg-zinc-800 rounded-sm w-3/4"></div>
+                                    <div class="h-2 bg-gray-200 dark:bg-zinc-800 rounded-sm w-1/2"></div>
                                 </div>
                             </div>
                         </div>
@@ -425,7 +425,7 @@
                                 <input
                                     type="checkbox"
                                     :checked="selectedHashes.has(conversation.destination_hash)"
-                                    class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500"
                                     @click.stop
                                     @change="toggleSelectConversation(conversation.destination_hash)"
                                 />
@@ -441,7 +441,7 @@
                                 :style="{ background: GlobalState.config.banished_color + '33' }"
                             >
                                 <span
-                                    class="banished-text !text-[10px] !opacity-100 !tracking-widest !border !px-1 !py-0.5 !text-white !shadow-lg"
+                                    class="banished-text text-[10px]! opacity-100! tracking-widest! border! px-1! py-0.5! text-white! shadow-lg!"
                                     :style="{ 'background-color': GlobalState.config.banished_color }"
                                     >{{ GlobalState.config.banished_text }}</span
                                 >
@@ -477,9 +477,7 @@
                                     >
                                         {{ conversation.custom_display_name ?? conversation.display_name }}
                                     </div>
-                                    <div
-                                        class="text-gray-500 dark:text-gray-400 text-xs whitespace-nowrap flex-shrink-0"
-                                    >
+                                    <div class="text-gray-500 dark:text-gray-400 text-xs whitespace-nowrap shrink-0">
                                         {{ formatTimeAgo(conversation.updated_at) }}
                                     </div>
                                 </div>
@@ -532,7 +530,7 @@
                             :show="contextMenu.show"
                             :x="contextMenu.x"
                             :y="contextMenu.y"
-                            panel-class="z-[100]"
+                            panel-class="z-100"
                         >
                             <ContextMenuItem @click="bulkMarkAsRead">
                                 <MaterialDesignIcon icon-name="email-open-outline" class="size-4 text-gray-400" />
@@ -695,7 +693,7 @@
                                 :style="{ background: GlobalState.config.banished_color + '33' }"
                             >
                                 <span
-                                    class="banished-text !text-[10px] !opacity-100 !tracking-widest !border !px-1 !py-0.5 !text-white !shadow-lg"
+                                    class="banished-text text-[10px]! opacity-100! tracking-widest! border! px-1! py-0.5! text-white! shadow-lg!"
                                     :style="{ 'background-color': GlobalState.config.banished_color }"
                                     >{{ GlobalState.config.banished_text }}</span
                                 >

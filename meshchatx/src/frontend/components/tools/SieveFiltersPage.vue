@@ -30,7 +30,7 @@
                         class="inline-flex items-center gap-2 text-sm text-violet-600 dark:text-violet-300 hover:underline shrink-0"
                     >
                         <MaterialDesignIcon icon-name="arrow-left" class="size-4" />
-                        {{ $t("tools.sieve_filters.back_tools") }}
+                        {{ $t("tools.back_to_tools") }}
                     </RouterLink>
                 </div>
 
@@ -76,7 +76,7 @@
                                             <input
                                                 v-model="rule.enabled"
                                                 type="checkbox"
-                                                class="rounded border-gray-300"
+                                                class="rounded-sm border-gray-300"
                                             />
                                             {{ $t("tools.sieve_filters.enabled") }}
                                         </label>
@@ -152,7 +152,7 @@
                                             <input
                                                 v-model="rule.match_peer_fields"
                                                 type="checkbox"
-                                                class="rounded border-gray-300"
+                                                class="rounded-sm border-gray-300"
                                                 @change="onMatchTargetsChange(rule)"
                                             />
                                             {{ $t("tools.sieve_filters.match_peer_fields") }}
@@ -161,7 +161,7 @@
                                             <input
                                                 v-model="rule.match_message"
                                                 type="checkbox"
-                                                class="rounded border-gray-300"
+                                                class="rounded-sm border-gray-300"
                                                 @change="onMatchTargetsChange(rule)"
                                             />
                                             {{ $t("tools.sieve_filters.match_message") }}
