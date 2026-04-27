@@ -240,13 +240,11 @@ public final class TelephoneNativeAudioSession {
                 AudioRecord.getMinBufferSize(SAMPLE_RATE, IN_CHANNEL, FORMAT),
                 4096
             );
-            audioRecord = new AudioRecord(
-                MediaRecorder.AudioSource.VOICE_COMMUNICATION,
-                SAMPLE_RATE,
-                IN_CHANNEL,
-                FORMAT,
-                inBuf * 2
-            );
+            audioRecord = createVoiceAudioRecord(inBuf);
+            if (audioRecord == null) {
+                postDispatch("error", "no_record_audio_permission", null);
+                return;
+            }
             if (audioRecord.getState() != AudioRecord.STATE_INITIALIZED) {
                 releaseTx();
                 postDispatch("error", "record_init", null);
@@ -305,6 +303,20 @@ public final class TelephoneNativeAudioSession {
             releaseTx();
             postDispatch("error", "setup", e.getMessage() != null ? e.getMessage() : "setup");
         }
+    }
+
+    @Nullable
+    private AudioRecord createVoiceAudioRecord(int inBuf) {
+        if (ContextCompat.checkSelfPermission(appContext, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            return null;
+        }
+        return new AudioRecord(
+            MediaRecorder.AudioSource.VOICE_COMMUNICATION,
+            SAMPLE_RATE,
+            IN_CHANNEL,
+            FORMAT,
+            inBuf * 2
+        );
     }
 
     private void drainMicrophone() {

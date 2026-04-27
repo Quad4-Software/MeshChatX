@@ -49,7 +49,7 @@ public final class WavPcmAttachmentRecorder {
         if (rec.get()) {
             return "err: already recording";
         }
-        if (!canStart(ctx)) {
+        if (ContextCompat.checkSelfPermission(ctx, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             return "err: record_audio";
         }
         int min = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL, ENCODING);
