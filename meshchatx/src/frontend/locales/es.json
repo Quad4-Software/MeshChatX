@@ -2015,7 +2015,8 @@
         "copy_failed": "No se pudo copiar",
         "refs_preview": "Refs (vista previa)",
         "truncated": "(truncado)",
-        "no_clone_hint": "Sin línea de clonación para nombres inalcanzables; corrija acceso u ortografía en el servidor rngit."
+        "no_clone_hint": "Sin línea de clonación para nombres inalcanzables; corrija acceso u ortografía en el servidor rngit.",
+        "experimental_footer": "Experimental: las herramientas de RNGit pueden cambiar sin previo aviso."
     },
     "rnprobe": {
         "network_diagnostics": "Diagnósticos de red",

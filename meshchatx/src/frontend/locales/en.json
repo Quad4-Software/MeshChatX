@@ -2022,7 +2022,8 @@
         "copy_failed": "Could not copy",
         "refs_preview": "Refs (preview)",
         "truncated": "(truncated)",
-        "no_clone_hint": "No clone line for unreachable names; fix access or spelling on the rngit server."
+        "no_clone_hint": "No clone line for unreachable names; fix access or spelling on the rngit server.",
+        "experimental_footer": "Experimental: RNGit tooling may change without notice."
     },
     "rnprobe": {
         "network_diagnostics": "Network Diagnostics",

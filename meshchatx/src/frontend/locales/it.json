@@ -2067,7 +2067,8 @@
         "copy_failed": "Impossibile copiare",
         "refs_preview": "Refs (anteprima)",
         "truncated": "(troncato)",
-        "no_clone_hint": "Nessuna riga clone per nomi irraggiungibili; correggi accesso o ortografia sul server rngit."
+        "no_clone_hint": "Nessuna riga clone per nomi irraggiungibili; correggi accesso o ortografia sul server rngit.",
+        "experimental_footer": "Sperimentale: gli strumenti RNGit possono cambiare senza preavviso."
     },
     "rnprobe": {
         "network_diagnostics": "Diagnostica di Rete",

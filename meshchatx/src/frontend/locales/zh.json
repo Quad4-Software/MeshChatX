@@ -2015,7 +2015,8 @@
         "copy_failed": "无法复制",
         "refs_preview": "引用（预览）",
         "truncated": "（已截断）",
-        "no_clone_hint": "不可达名称没有 clone 行；请在 rngit 服务器上修正访问或拼写。"
+        "no_clone_hint": "不可达名称没有 clone 行；请在 rngit 服务器上修正访问或拼写。",
+        "experimental_footer": "实验性功能：RNGit 工具可能会在不事先通知的情况下变更。"
     },
     "rnprobe": {
         "network_diagnostics": "网络诊断",

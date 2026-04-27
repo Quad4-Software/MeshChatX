@@ -1955,7 +1955,8 @@
         "copy_failed": "Kopieren fehlgeschlagen",
         "refs_preview": "Refs (Vorschau)",
         "truncated": "(gekürzt)",
-        "no_clone_hint": "Keine Klon-Zeile für nicht erreichbare Namen; Zugriff oder Schreibweise auf dem rngit-Server prüfen."
+        "no_clone_hint": "Keine Klon-Zeile für nicht erreichbare Namen; Zugriff oder Schreibweise auf dem rngit-Server prüfen.",
+        "experimental_footer": "Experimentell: RNGit-Werkzeuge können sich ohne Vorankündigung ändern."
     },
     "rnprobe": {
         "network_diagnostics": "Netzwerkdiagnose",

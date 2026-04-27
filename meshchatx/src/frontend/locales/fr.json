@@ -2015,7 +2015,8 @@
         "copy_failed": "Copie impossible",
         "refs_preview": "Refs (aperçu)",
         "truncated": "(tronqué)",
-        "no_clone_hint": "Pas de ligne clone pour les noms inaccessibles ; corrigez l'accès ou l'orthographe sur le serveur rngit."
+        "no_clone_hint": "Pas de ligne clone pour les noms inaccessibles ; corrigez l'accès ou l'orthographe sur le serveur rngit.",
+        "experimental_footer": "Expérimental : les outils RNGit peuvent évoluer sans préavis."
     },
     "rnprobe": {
         "network_diagnostics": "Diagnostics réseau",
