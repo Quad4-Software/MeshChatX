@@ -1,6 +1,7 @@
 # Single tagged-release pipeline: Linux release assets, Windows + macOS Electron
-# builds, Flatpak, SLSA provenance (generic generator), optional cosign bundles, and one
-# draft GitHub release. One workflow run per tag keeps the release graph immutable.
+# builds, Flatpak, Android APKs (dev/master track tags via android-apk-tag.yml), SLSA
+# provenance (generic generator), optional cosign bundles, and one draft GitHub release.
+# One workflow run per tag keeps the release graph immutable.
 #
 # Pinned first-party actions (bump tag and SHA together when upgrading):
 #   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
@@ -9,6 +10,7 @@
 #   actions/upload-artifact@v5.0.0     330a01c490aca151604b8cf639adc76d48f6c5d4
 #   actions/download-artifact@v5.0.0   634f93cb2916e3fdff6788551b99b062d0335ce0
 #   actions/cache@v4.2.0               1bd1e32a3bdc45362d1e726936510720a7c30a57
+#   actions/setup-java@v4.7.1          c5195efecf7bdfc987ee8bae7a71cb8b11521c00
 #
 # SLSA generator (must stay @vX.Y.Z semver per upstream):
 #   slsa-framework/slsa-github-generator/generator_generic_slsa3.yml@v2.1.0
@@ -51,6 +53,28 @@ jobs:
             artifact_name: meshchatx-frontend-release-${{ github.run_id }}-${{ github.run_attempt }}
             retention_days: 7
             pnpm_version: "10.33.0"
+
+    frontend-android:
+        name: Build frontend (Android / Python 3.11)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: ./.github/workflows/frontend-build.yml
+        permissions:
+            contents: read
+        with:
+            artifact_name: meshchatx-frontend-android-rel-${{ github.run_id }}-${{ github.run_attempt }}
+            retention_days: 7
+            python_version: "3.11"
+            pnpm_version: "10.33.0"
+
+    android-release:
+        name: Android APKs (tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        needs: [frontend-android]
+        secrets: inherit
+        uses: ./.github/workflows/android-apk-tag.yml
+        with:
+            frontend_artifact_name: ${{ needs.frontend-android.outputs.artifact_name }}
+            run_unit_tests: true
 
     linux-release:
         name: Linux release assets
@@ -434,6 +458,7 @@ jobs:
             - build-release
             - slsa-provenance-desktop
             - flatpak
+            - android-release
         if: startsWith(github.ref, 'refs/tags/')
         runs-on: ubuntu-latest
         timeout-minutes: 45
@@ -467,6 +492,13 @@ jobs:
               with:
                   name: meshchatx-linux-flatpak-${{ github.ref_name }}-${{ github.run_id }}
                   path: upload/flatpak
+
+            - name: Download Android APK bundle
+              continue-on-error: true
+              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              with:
+                  name: meshchatx-android-apks-${{ github.ref_name }}-${{ github.run_id }}
+                  path: upload/android
 
             - name: Download SLSA provenance (Linux)
               uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0

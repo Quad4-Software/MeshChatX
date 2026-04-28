@@ -1,32 +1,25 @@
-# Android APK build (debug + optional release) for branches, PRs, and manual runs.
-# Tagged APKs attached to GitHub Releases are built in build-release.yml (android-apk-tag.yml).
+# Android APK build for Git tags only. Invoked from build-release.yml so APKs ship in the
+# same workflow run and draft release as Linux/desktop/Flatpak (immutable per tag).
 #
-# Pinned first-party actions (bump tag and SHA together when upgrading):
+# Pinned first-party actions (keep in sync with android-build.yml):
 #   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
 #   actions/setup-python@v6.2.0        a309ff8b426b58ec0e2a45f0f869d46889d02405
 #   actions/setup-java@v4.7.1          c5195efecf7bdfc987ee8bae7a71cb8b11521c00
 #   actions/upload-artifact@v5.0.0     330a01c490aca151604b8cf639adc76d48f6c5d4
 #   actions/download-artifact@v5.0.0   634f93cb2916e3fdff6788551b99b062d0335ce0
 
-name: Android build
+name: Android APK (tag)
 
 on:
-    pull_request:
-        branches:
-            - dev
-    push:
-        branches:
-            - dev
-    workflow_dispatch:
+    workflow_call:
         inputs:
-            build_release:
-                description: Build signed/optimized release APK artifacts
+            frontend_artifact_name:
+                description: Name of the frontend artifact from frontend-build (Python 3.11).
                 required: true
-                type: boolean
-                default: true
-            run_tests:
-                description: Run Android unit tests
-                required: true
+                type: string
+            run_unit_tests:
+                description: Run Gradle unit tests and lint.
+                required: false
                 type: boolean
                 default: true
 
@@ -34,45 +27,25 @@ permissions:
     contents: read
     actions: write
 
-concurrency:
-    group: ${{ github.workflow }}-${{ github.ref }}
-    cancel-in-progress: true
-
 env:
     FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     NODE_OPTIONS: --max-old-space-size=8192
     NODE_VERSION: "24"
-    PNPM_VERSION: "10.32.1"
+    PNPM_VERSION: "10.33.0"
     PYTHON_VERSION: "3.11"
     JAVA_VERSION: "17"
     CHAQUOPY_REF: "9f563f45108a873d7feb363e1f754c0173f1114e"
 
 jobs:
-    frontend:
-        name: Build frontend artifact
-        uses: ./.github/workflows/frontend-build.yml
-        permissions:
-            contents: read
-        with:
-            artifact_name: meshchatx-frontend-android-${{ github.run_id }}-${{ github.run_attempt }}
-            retention_days: 1
-            # Android wheels run on Python 3.11; using the same here avoids
-            # spurious version drift in the docs-bundling step.
-            python_version: "3.11"
-
     android:
-        name: Android test/build
+        name: Android APK (tag)
         runs-on: ubuntu-latest
-        needs: frontend
         timeout-minutes: 90
-        permissions:
-            contents: write
-            actions: write
         defaults:
             run:
                 shell: bash
         env:
-            FRONTEND_ARTIFACT_NAME: ${{ needs.frontend.outputs.artifact_name }}
+            FRONTEND_ARTIFACT_NAME: ${{ inputs.frontend_artifact_name }}
         steps:
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
@@ -81,7 +54,6 @@ jobs:
 
             - name: Resolve tag release track
               id: track
-              if: github.ref_type == 'tag'
               run: |
                   set -euo pipefail
                   git fetch --no-tags origin dev master
@@ -120,9 +92,9 @@ jobs:
                   fi
 
             - name: Require signing secrets for master release tags
-              if: ${{ github.ref_type == 'tag' && steps.track.outputs.track == 'master' && steps.android_signing.outputs.ready != 'true' }}
+              if: ${{ steps.track.outputs.track == 'master' && steps.android_signing.outputs.ready != 'true' }}
               run: |
-                  echo "::error::Tagged master build needs release signing. Set secrets ANDROID_SIGNING_KEYSTORE_BASE64, ANDROID_SIGNING_KEYSTORE_PASSWORD, and ANDROID_SIGNING_KEY_ALIAS (see workflow header)."
+                  echo "::error::Tagged master build needs release signing. Set secrets ANDROID_SIGNING_KEYSTORE_BASE64, ANDROID_SIGNING_KEYSTORE_PASSWORD, and ANDROID_SIGNING_KEY_ALIAS (see android-build.yml header)."
                   exit 1
 
             - name: Set up Java
@@ -223,35 +195,35 @@ jobs:
                   ls -1 android/vendor/
 
             - name: Run unit tests
-              if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_tests }}
+              if: ${{ inputs.run_unit_tests }}
               working-directory: android
               run: |
                   chmod +x gradlew
                   ./gradlew --no-daemon :app:testDebugUnitTest
 
             - name: Run Android Lint
-              if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_tests }}
+              if: ${{ inputs.run_unit_tests }}
               working-directory: android
               run: |
                   chmod +x gradlew
                   ./gradlew --no-daemon :app:lintDebug
 
             - name: Build debug APK
-              if: ${{ github.ref_type != 'tag' || steps.track.outputs.track != 'master' }}
+              if: ${{ steps.track.outputs.track != 'master' }}
               working-directory: android
               run: |
                   chmod +x gradlew
                   ./gradlew --no-daemon :app:assembleDebug
 
             - name: Build release APK
-              if: ${{ (github.ref_type == 'tag' && steps.track.outputs.track == 'master') || (github.ref_type != 'tag' && (github.event_name != 'workflow_dispatch' || inputs.build_release)) }}
+              if: ${{ steps.track.outputs.track == 'master' }}
               working-directory: android
               run: |
                   chmod +x gradlew
                   ./gradlew --no-daemon :app:assembleRelease
 
             - name: Sign release APKs
-              if: ${{ github.ref_type == 'tag' && steps.track.outputs.track == 'master' && steps.android_signing.outputs.ready == 'true' }}
+              if: ${{ steps.track.outputs.track == 'master' && steps.android_signing.outputs.ready == 'true' }}
               env:
                   KS_B64: ${{ secrets.ANDROID_SIGNING_KEYSTORE_BASE64 }}
                   SIGNING_KEYSTORE_PATH: ${{ runner.temp }}/meshchatx-release.jks
@@ -273,7 +245,7 @@ jobs:
                   if-no-files-found: error
 
             - name: Upload debug APK
-              if: ${{ github.ref_type != 'tag' || steps.track.outputs.track != 'master' }}
+              if: ${{ steps.track.outputs.track != 'master' }}
               uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
               with:
                   name: meshchatx-android-debug-${{ github.ref_name }}-${{ github.run_id }}
@@ -281,7 +253,7 @@ jobs:
                   if-no-files-found: error
 
             - name: Upload test reports
-              if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_tests }}
+              if: ${{ inputs.run_unit_tests }}
               uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
               with:
                   name: meshchatx-android-tests-${{ github.ref_name }}-${{ github.run_id }}
@@ -293,9 +265,35 @@ jobs:
                   if-no-files-found: warn
 
             - name: Upload release APK
-              if: ${{ (github.ref_type == 'tag' && steps.track.outputs.track == 'master') || (github.ref_type != 'tag' && (github.event_name != 'workflow_dispatch' || inputs.build_release)) }}
+              if: ${{ steps.track.outputs.track == 'master' }}
               uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
               with:
                   name: meshchatx-android-release-${{ github.ref_name }}-${{ github.run_id }}
                   path: android/app/build/outputs/apk/release/*.apk
+                  if-no-files-found: error
+
+            - name: Stage APKs for unified draft release
+              if: ${{ steps.track.outputs.track == 'dev' || steps.track.outputs.track == 'master' }}
+              run: |
+                  set -euo pipefail
+                  mkdir -p android-apks-for-draft
+                  if [[ "${{ steps.track.outputs.track }}" == "dev" ]]; then
+                    cp -v android/app/build/outputs/apk/debug/*.apk android-apks-for-draft/
+                  else
+                    shopt -s nullglob
+                    signed=(android/app/build/outputs/apk/release/*-signed.apk)
+                    shopt -u nullglob
+                    if [[ ${#signed[@]} -eq 0 ]]; then
+                      echo "::error::Expected *-signed.apk under android/app/build/outputs/apk/release/" >&2
+                      exit 1
+                    fi
+                    cp -v "${signed[@]}" android-apks-for-draft/
+                  fi
+
+            - name: Upload Android APK bundle for draft
+              if: ${{ steps.track.outputs.track == 'dev' || steps.track.outputs.track == 'master' }}
+              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              with:
+                  name: meshchatx-android-apks-${{ github.ref_name }}-${{ github.run_id }}
+                  path: android-apks-for-draft/*.apk
                   if-no-files-found: error
