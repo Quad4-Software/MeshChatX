@@ -64,7 +64,7 @@ task build:all
 
 備考:
 
-- GitHub Actions はタグ付きリリース（Linux wheel / AppImage / deb / rpm、Windows、macOS、Flatpak、SLSA、ドラフトリリース）を 1 回のワークフローでビルドします: `.github/workflows/build-release.yml`。コンテナイメージは `.github/workflows/docker.yml`。
+- GitHub Actions はタグ付きリリース（Linux wheel / AppImage / deb / rpm、Windows、macOS、Flatpak、dev/master 上のタグ時の Android APK、SLSA、ドラフトリリース）を 1 回のワークフローでビルドします: `.github/workflows/build-release.yml`。コンテナイメージは `.github/workflows/docker.yml`。ブランチと PR の Android CI は `.github/workflows/android-build.yml`。
 - Linux `x64` および `arm64` の AppImage + DEB は GitHub でビルド。RPM も試行し、成果物があればアップロードします。
 
 ## Docker

@@ -64,7 +64,7 @@ Scegli il metodo in base all'ambiente e al formato del pacchetto.
 
 Note:
 
-- GitHub Actions compila le release con tag (Linux wheel/AppImage/deb/rpm, Windows, macOS, Flatpak, SLSA, bozza di release) in un'unica esecuzione tramite `.github/workflows/build-release.yml`; l'immagine container tramite `.github/workflows/docker.yml`.
+- GitHub Actions compila le release con tag (Linux wheel/AppImage/deb/rpm, Windows, macOS, Flatpak, APK Android se il tag è su dev/master, SLSA, bozza di release) in un'unica esecuzione tramite `.github/workflows/build-release.yml`; l'immagine container tramite `.github/workflows/docker.yml`. CI Android per branch e PR: `.github/workflows/android-build.yml`.
 - Per Linux, `x64` e `arm64` AppImage + DEB sono compilate su GitHub; il RPM e tentato e viene caricato quando l'artefatto e prodotto.
 
 ## Docker

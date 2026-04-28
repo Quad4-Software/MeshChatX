@@ -64,7 +64,7 @@ Waehlen Sie die Methode passend zu Umgebung und Paketierung.
 
 Hinweise:
 
-- GitHub Actions baut getaggte Releases (Linux Wheel/AppImage/deb/rpm, Windows, macOS, Flatpak, SLSA, Entwurfs-Release) in einem Lauf über `.github/workflows/build-release.yml`; das Container-Image über `.github/workflows/docker.yml`.
+- GitHub Actions baut getaggte Releases (Linux Wheel/AppImage/deb/rpm, Windows, macOS, Flatpak, Android-APKs bei Tags auf dev/master, SLSA, Entwurfs-Release) in einem Lauf über `.github/workflows/build-release.yml`; das Container-Image über `.github/workflows/docker.yml`. Android-CI für Branches und PRs: `.github/workflows/android-build.yml`.
 - Linux `x64` und `arm64` AppImage + DEB werden auf GitHub gebaut; RPM wird versucht und hochgeladen, wenn es erzeugt wird.
 
 ## Docker
