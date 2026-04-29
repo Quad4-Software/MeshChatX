@@ -2,12 +2,16 @@
 # 1. build-frontend: Build static frontend assets using Node
 # 2. builder: Install Python dependencies, build and collect backend files in a venv
 # 3. final image: Copy venv, install runtime deps, set up container user and config
+#
+# LXST wheels ship glibc-tagged filterlib extensions only. On Alpine/musl, cffi
+# compiles at build time; scripts/docker-bake-lxst-filterlib-musl.py copies the
+# artifact to the import name LXST.filterlib so runtime does not need gcc.
 
 # ---- Global Build Args ----
 ARG NODE_IMAGE=node:24-alpine
 ARG NODE_HASH=sha256:0340fa682d72068edf603c305bfbc10e23219fb0e40df58d9ea4d6f33a9798bf
 ARG PYTHON_IMAGE=python:3.14.4-alpine3.23
-ARG PYTHON_HASH=sha256:27ac3ba1699f7a526ad19bf0d35c12369b43d3439e08297a880398d97899c3d8
+ARG PYTHON_HASH=sha256:dd4d2bd5b53d9b25a51da13addf2be586beebd5387e289e798e4083d94ca837a
 
 # ---- STAGE 1: Frontend Build ----
 FROM ${NODE_IMAGE}@${NODE_HASH} AS build-frontend
@@ -35,7 +39,7 @@ RUN pip install --no-cache-dir --upgrade "pip>=26.0" poetry setuptools wheel "ja
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Install essential runtime tools in the venv
+# Install essential runtime tools in the venv (cffi verify needs setuptools on Python 3.12+)
 RUN pip install --no-cache-dir --upgrade "pip>=26.0" "setuptools" "jaraco.context>=6.1.0"
 
 COPY pyproject.toml poetry.lock README.md ./
@@ -45,11 +49,11 @@ RUN poetry config virtualenvs.create false && \
     rm -rf /root/.cache/pip /root/.cache/pypoetry
 
 COPY meshchatx ./meshchatx
+COPY scripts/docker-bake-lxst-filterlib-musl.py ./scripts/docker-bake-lxst-filterlib-musl.py
 COPY --from=build-frontend /src/meshchatx/public ./meshchatx/public
 
 RUN pip install --no-cache-dir . && \
-    python -c "import LXST.Filters; print('LXST Filters compiled successfully')" && \
-    # Remove unnecessary files from the venv
+    python scripts/docker-bake-lxst-filterlib-musl.py && \
     find /opt/venv -type d -name "tests" -exec rm -rf {} + && \
     find /opt/venv -type d -name "test" -exec rm -rf {} + && \
     find /opt/venv -type d -name "__pycache__" -exec rm -rf {} + && \
