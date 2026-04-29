@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Create the GitHub release as a draft if missing, then upload every file in DIR to that tag.
-# Requires: gh, GH_TOKEN. TAG from TAG or GITHUB_REF_NAME.
+# Skips electron-builder builder-debug.yml (and cosign bundles), including collision-renamed
+# copies (e.g. win__builder-debug.yml). Requires: gh, GH_TOKEN. TAG from TAG or GITHUB_REF_NAME.
 set -euo pipefail
 
 DIR="${1:?path to directory of files to upload}"
@@ -27,8 +28,28 @@ if ! gh release view "$TAG" >/dev/null 2>&1; then
 fi
 
 mapfile -d '' -t all < <(find "$DIR" -type f -print0)
+
+skip_noise() {
+    local base="$1"
+    case "$base" in
+        builder-debug.yml | builder-debug.yml.cosign.bundle) return 0 ;;
+        *__builder-debug.yml | *__builder-debug.yml.cosign.bundle) return 0 ;;
+    esac
+    return 1
+}
+
+filtered=()
+for f in "${all[@]}"; do
+    b=$(basename "$f")
+    if skip_noise "$b"; then
+        continue
+    fi
+    filtered+=("$f")
+done
+all=("${filtered[@]}")
+
 if [ "${#all[@]}" -eq 0 ]; then
-    echo "No files under ${DIR}" >&2
+    echo "No files under ${DIR} (after excluding electron-builder debug YAML)" >&2
     exit 1
 fi
 
