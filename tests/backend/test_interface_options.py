@@ -309,6 +309,62 @@ async def test_backbone_listener_mode_persists_options(temp_dir):
 
 
 @pytest.mark.asyncio
+async def test_backbone_connector_allows_empty_transport_identity(temp_dir):
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    free_port = _free_port("tcp")
+    async with make_app(temp_dir, config) as handler:
+        payload = {
+            "name": "BackboneOut",
+            "type": "BackboneInterface",
+            "target_host": "10.0.0.1",
+            "target_port": str(free_port),
+        }
+        response = await handler(make_request(payload))
+        body = json.loads(response.body)
+        assert response.status == 200, body
+        saved = config["interfaces"]["BackboneOut"]
+        assert saved["remote"] == "10.0.0.1"
+        assert str(saved["target_port"]) == str(free_port)
+        assert "transport_identity" not in saved
+
+
+@pytest.mark.asyncio
+async def test_external_interface_merges_extra_config(temp_dir):
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    async with make_app(temp_dir, config) as handler:
+        payload = {
+            "name": "WeaveTest",
+            "type": "WeaveInterface",
+            "extra_config": {"listen_ip": "127.0.0.1", "listen_port": 4242},
+        }
+        response = await handler(make_request(payload))
+        body = json.loads(response.body)
+        assert response.status == 200, body
+        saved = config["interfaces"]["WeaveTest"]
+        assert saved["type"] == "WeaveInterface"
+        assert saved["listen_ip"] == "127.0.0.1"
+        assert saved["listen_port"] == 4242
+
+
+@pytest.mark.asyncio
+async def test_external_interface_rejects_non_object_extra_config(temp_dir):
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    async with make_app(temp_dir, config) as handler:
+        payload = {
+            "name": "Bad",
+            "type": "FooInterface",
+            "extra_config": "not-an-object",
+        }
+        response = await handler(make_request(payload))
+        body = json.loads(response.body)
+        assert response.status == 422
+        assert "extra_config" in body["message"].lower()
+
+
+@pytest.mark.asyncio
 async def test_backbone_connector_mode_still_requires_remote(temp_dir):
     config = ConfigDict({"reticulum": {}, "interfaces": {}})
 

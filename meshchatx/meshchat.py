@@ -4386,22 +4386,13 @@ class ReticulumMeshChat:
                             },
                             status=422,
                         )
-                    transport_identity = data.get("transport_identity")
-                    if (
-                        transport_identity is None
-                        or str(transport_identity).strip() == ""
-                    ):
-                        return web.json_response(
-                            {
-                                "message": "Transport identity is required",
-                            },
-                            status=422,
-                        )
                     interface_details["remote"] = str(remote).strip()
                     interface_details["target_port"] = interface_target_port
-                    interface_details["transport_identity"] = str(
-                        transport_identity,
-                    ).strip()
+                    InterfaceEditor.update_value(
+                        interface_details,
+                        data,
+                        "transport_identity",
+                    )
 
             # handle I2P interface
             if interface_type == "I2PInterface":
@@ -4801,6 +4792,42 @@ class ReticulumMeshChat:
                 # set required options
                 interface_details["command"] = interface_command
                 interface_details["respawn_delay"] = interface_respawn_delay
+
+            _builtin_interface_types = frozenset(
+                {
+                    "AutoInterface",
+                    "TCPClientInterface",
+                    "BackboneInterface",
+                    "I2PInterface",
+                    "TCPServerInterface",
+                    "UDPInterface",
+                    "RNodeInterface",
+                    "RNodeIPInterface",
+                    "RNodeMultiInterface",
+                    "SerialInterface",
+                    "KISSInterface",
+                    "AX25KISSInterface",
+                    "PipeInterface",
+                },
+            )
+            if interface_type not in _builtin_interface_types:
+                extra = data.get("extra_config")
+                if extra is None:
+                    extra = {}
+                if not isinstance(extra, dict):
+                    return web.json_response(
+                        {
+                            "message": "extra_config must be a JSON object",
+                        },
+                        status=422,
+                    )
+                for key, value in extra.items():
+                    if key in {"name", "type", "allow_overwriting_interface"}:
+                        continue
+                    if value is None or value == "":
+                        interface_details.pop(key, None)
+                    else:
+                        interface_details[key] = value
 
             # interface discovery options
             for discovery_key in (
@@ -13706,6 +13733,27 @@ class ReticulumMeshChat:
                     )
                     return
 
+                if lu.startswith("meshchatx://docs") or lu.startswith("meshchat://docs"):
+                    from urllib.parse import parse_qsl, urlparse
+
+                    parsed = urlparse(uri_raw)
+                    q = dict(parse_qsl(parsed.query, keep_blank_values=True))
+                    rel = (q.get("reticulum") or q.get("path") or "").strip()
+                    payload: dict = {
+                        "type": "lxm.ingest_uri.result",
+                        "status": "success",
+                        "message": "Opening documentation.",
+                        "ingest_type": "docs_view",
+                    }
+                    if rel:
+                        payload["docs_query"] = {"reticulum": rel}
+                    AsyncUtils.run_async(
+                        client.send_str(
+                            json.dumps(payload),
+                        ),
+                    )
+                    return
+
                 # Columba-style contact sharing URI:
                 # lxma://<destination_hash_hex>:<public_key_hex>
                 if uri.lower().startswith("lxma://"):
@@ -16696,6 +16744,12 @@ def main():
     # Disable crash recovery if requested via flag
     if args.no_crash_recovery:
         recovery.disable()
+
+    planned_storage_dir = args.storage_dir or os.path.join("storage")
+    recovery.update_paths(
+        storage_dir=planned_storage_dir,
+        reticulum_config_dir=args.reticulum_config_dir,
+    )
 
     # check if we want to test exception messages
     if args.test_exception_message is not None:
