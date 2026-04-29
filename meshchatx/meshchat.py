@@ -5,6 +5,7 @@ import argparse
 import asyncio
 import atexit
 import base64
+import binascii
 import configparser
 import contextlib
 import copy
@@ -9820,84 +9821,99 @@ class ReticulumMeshChat:
             # get request body as json
             data = await request.json()
 
+            if not isinstance(data, dict) or "lxmf_message" not in data:
+                return web.json_response(
+                    {"message": "lxmf_message is required"},
+                    status=400,
+                )
+            lm = data["lxmf_message"]
+            if not isinstance(lm, dict):
+                return web.json_response(
+                    {"message": "lxmf_message must be an object"},
+                    status=400,
+                )
+
             # get delivery method
             delivery_method = None
             if "delivery_method" in data:
                 delivery_method = data["delivery_method"]
 
-            # get data from json
-            destination_hash = data["lxmf_message"]["destination_hash"]
-            content = data["lxmf_message"]["content"]
-            fields = {}
-            if "fields" in data["lxmf_message"]:
-                fields = data["lxmf_message"]["fields"]
+            try:
+                destination_hash = lm["destination_hash"]
+                content = lm["content"]
+            except (KeyError, TypeError):
+                return web.json_response(
+                    {"message": "destination_hash and content are required"},
+                    status=400,
+                )
 
-            # parse image field
+            fields = lm.get("fields") if isinstance(lm.get("fields"), dict) else {}
+
             image_field = None
-            if "image" in fields:
-                image_type = data["lxmf_message"]["fields"]["image"]["image_type"]
-                image_bytes = base64.b64decode(
-                    data["lxmf_message"]["fields"]["image"]["image_bytes"],
-                )
-                image_field = LxmfImageField(image_type, image_bytes)
-
-            # parse audio field
             audio_field = None
-            if "audio" in fields:
-                audio_mode = data["lxmf_message"]["fields"]["audio"]["audio_mode"]
-                audio_bytes = base64.b64decode(
-                    data["lxmf_message"]["fields"]["audio"]["audio_bytes"],
-                )
-                audio_field = LxmfAudioField(audio_mode, audio_bytes)
-
-            # parse file attachments field
             file_attachments_field = None
-            if "file_attachments" in fields:
-                file_attachments = []
-                for file_attachment in data["lxmf_message"]["fields"][
-                    "file_attachments"
-                ]:
-                    file_name = file_attachment["file_name"]
-                    file_bytes = base64.b64decode(file_attachment["file_bytes"])
-                    file_attachments.append(LxmfFileAttachment(file_name, file_bytes))
-
-                file_attachments_field = LxmfFileAttachmentsField(file_attachments)
-
-            # parse telemetry field
             telemetry_data = None
-            if "telemetry" in fields:
-                telemetry_val = fields["telemetry"]
-                if isinstance(telemetry_val, dict):
-                    # Frontend sent raw dict, pack it here
-                    telemetry_data = Telemeter.pack(location=telemetry_val)
-                elif isinstance(telemetry_val, str):
-                    # Frontend sent base64 packed data
-                    telemetry_data = base64.b64decode(telemetry_val)
-
-            # parse commands field
             commands = None
-            if "commands" in fields:
-                # convert dict keys back to ints if they look like hex or int strings
-                commands = []
-                for cmd in fields["commands"]:
-                    new_cmd = {}
-                    for k, v in cmd.items():
-                        try:
-                            if k.startswith("0x"):
-                                new_cmd[int(k, 16)] = v
-                            else:
-                                new_cmd[int(k)] = v
-                        except (ValueError, TypeError):
-                            new_cmd[k] = v
-                    commands.append(new_cmd)
 
-            # parse reply_to_hash and reply_quoted_content
+            try:
+                if "image" in fields and isinstance(fields.get("image"), dict):
+                    image_type = fields["image"]["image_type"]
+                    image_bytes = base64.b64decode(fields["image"]["image_bytes"])
+                    image_field = LxmfImageField(image_type, image_bytes)
+
+                if "audio" in fields and isinstance(fields.get("audio"), dict):
+                    audio_mode = fields["audio"]["audio_mode"]
+                    audio_bytes = base64.b64decode(fields["audio"]["audio_bytes"])
+                    audio_field = LxmfAudioField(audio_mode, audio_bytes)
+
+                if "file_attachments" in fields and isinstance(
+                    fields.get("file_attachments"),
+                    list,
+                ):
+                    file_attachments = []
+                    for file_attachment in fields["file_attachments"]:
+                        if not isinstance(file_attachment, dict):
+                            continue
+                        file_name = file_attachment["file_name"]
+                        file_bytes = base64.b64decode(file_attachment["file_bytes"])
+                        file_attachments.append(
+                            LxmfFileAttachment(file_name, file_bytes)
+                        )
+
+                    file_attachments_field = LxmfFileAttachmentsField(file_attachments)
+
+                if "telemetry" in fields:
+                    telemetry_val = fields["telemetry"]
+                    if isinstance(telemetry_val, dict):
+                        telemetry_data = Telemeter.pack(location=telemetry_val)
+                    elif isinstance(telemetry_val, str):
+                        telemetry_data = base64.b64decode(telemetry_val)
+
+                if "commands" in fields and isinstance(fields.get("commands"), list):
+                    commands = []
+                    for cmd in fields["commands"]:
+                        new_cmd = {}
+                        if not isinstance(cmd, dict):
+                            continue
+                        for k, v in cmd.items():
+                            try:
+                                if k.startswith("0x"):
+                                    new_cmd[int(k, 16)] = v
+                                else:
+                                    new_cmd[int(k)] = v
+                            except (ValueError, TypeError):
+                                new_cmd[k] = v
+                        commands.append(new_cmd)
+            except (KeyError, TypeError, ValueError, binascii.Error):
+                return web.json_response(
+                    {"message": "Invalid lxmf_message.fields"},
+                    status=400,
+                )
+
             reply_to_hash = None
-            if "reply_to_hash" in data["lxmf_message"]:
-                reply_to_hash = data["lxmf_message"]["reply_to_hash"]
-            reply_quoted_content = (
-                data["lxmf_message"].get("reply_quoted_content") or None
-            )
+            if "reply_to_hash" in lm:
+                reply_to_hash = lm["reply_to_hash"]
+            reply_quoted_content = lm.get("reply_quoted_content") or None
 
             try:
                 # send lxmf message to destination
@@ -13236,14 +13252,16 @@ class ReticulumMeshChat:
             if not download_data:
                 return
 
-            destination_hash = download_data.get("destination_hash")
+            destination_hash_hex = download_data.get("destination_hash")
             file_path = download_data.get("file_path")
 
-            if not destination_hash or not file_path:
+            if not destination_hash_hex or not file_path:
                 return
 
-            # convert destination hash to bytes
-            destination_hash = bytes.fromhex(destination_hash)
+            try:
+                destination_hash = bytes.fromhex(destination_hash_hex)
+            except ValueError:
+                return
 
             local_file = self._try_serve_local_page_node_file(
                 destination_hash,
@@ -13733,26 +13751,31 @@ class ReticulumMeshChat:
                     )
                     return
 
-                if lu.startswith("meshchatx://docs") or lu.startswith("meshchat://docs"):
-                    from urllib.parse import parse_qsl, urlparse
+                if uri_raw.lower().startswith(("meshchatx://", "meshchat://")):
+                    from urllib.parse import parse_qsl, unquote, urlparse
 
-                    parsed = urlparse(uri_raw)
-                    q = dict(parse_qsl(parsed.query, keep_blank_values=True))
-                    rel = (q.get("reticulum") or q.get("path") or "").strip()
-                    payload: dict = {
-                        "type": "lxm.ingest_uri.result",
-                        "status": "success",
-                        "message": "Opening documentation.",
-                        "ingest_type": "docs_view",
-                    }
-                    if rel:
-                        payload["docs_query"] = {"reticulum": rel}
-                    AsyncUtils.run_async(
-                        client.send_str(
-                            json.dumps(payload),
-                        ),
-                    )
-                    return
+                    _parsed = urlparse(uri_raw)
+                    _sch = (_parsed.scheme or "").lower()
+                    _host = (_parsed.netloc or "").lower()
+                    if _sch in ("meshchatx", "meshchat") and _host == "docs":
+                        _q = dict(parse_qsl(_parsed.query, keep_blank_values=True))
+                        rel = (_q.get("reticulum") or _q.get("path") or "").strip()
+                        if not rel and _parsed.path and _parsed.path != "/":
+                            rel = unquote(_parsed.path.lstrip("/"))
+                        payload = {
+                            "type": "lxm.ingest_uri.result",
+                            "status": "success",
+                            "message": "Opening documentation.",
+                            "ingest_type": "docs_view",
+                        }
+                        if rel:
+                            payload["docs_query"] = {"reticulum": rel}
+                        AsyncUtils.run_async(
+                            client.send_str(
+                                json.dumps(payload),
+                            ),
+                        )
+                        return
 
                 # Columba-style contact sharing URI:
                 # lxma://<destination_hash_hex>:<public_key_hex>
