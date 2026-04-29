@@ -280,6 +280,41 @@
                             <p class="text-gray-600 dark:text-zinc-400 text-sm">
                                 {{ $t("tutorial.bootstrap_desc") }}
                             </p>
+                            <div class="flex flex-col items-center gap-2 pt-1">
+                                <button
+                                    type="button"
+                                    class="inline-flex items-center gap-2 rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-2 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-500/15 dark:text-blue-300 dark:hover:bg-blue-500/20 disabled:opacity-60"
+                                    :disabled="loadingInterfaces || loadingDiscovered || pickingRandomBootstraps"
+                                    @click="pickRandomTcpBootstraps"
+                                >
+                                    <v-progress-circular
+                                        v-if="pickingRandomBootstraps"
+                                        indeterminate
+                                        size="16"
+                                        width="2"
+                                    />
+                                    <v-icon v-else icon="mdi-shuffle-variant" size="18" />
+                                    {{ $t("tutorial.bootstrap_pick_random_tcp") }}
+                                </button>
+                                <div
+                                    v-if="bootstrapSelectedLabels.length > 0"
+                                    class="w-full max-w-md rounded-xl border border-gray-200/90 bg-gray-50/80 px-3 py-2 text-left dark:border-zinc-700 dark:bg-zinc-900/50"
+                                >
+                                    <div
+                                        class="text-[10px] font-bold uppercase tracking-wide text-gray-500 dark:text-zinc-400"
+                                    >
+                                        {{ $t("tutorial.bootstrap_selected_nodes_heading") }}
+                                    </div>
+                                    <ul class="mt-1 space-y-0.5 text-xs text-gray-800 dark:text-zinc-200">
+                                        <li
+                                            v-for="(label, idx) in bootstrapSelectedLabels"
+                                            :key="selectedBootstrapKeys[idx]"
+                                        >
+                                            {{ label }}
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
 
                         <div
@@ -594,7 +629,7 @@
                         </div>
                     </div>
 
-                    <!-- Step 5: Documentation & Tools -->
+                    <!-- Step 5: Learn & Create -->
                     <div v-else-if="currentStep === 5" key="step5-tools" class="space-y-6">
                         <div class="text-center space-y-2">
                             <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
@@ -605,114 +640,197 @@
                             </p>
                         </div>
 
-                        <div class="grid grid-cols-1 gap-4">
-                            <div
-                                class="flex items-start gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800"
-                            >
-                                <v-icon icon="mdi-book-open-variant" color="blue" size="32"></v-icon>
-                                <div>
-                                    <div class="font-bold text-gray-900 dark:text-white">
-                                        {{ $t("tutorial.documentation") }}
-                                    </div>
-                                    <div class="text-sm text-gray-900 dark:text-white mb-2">
-                                        {{ $t("tutorial.documentation_desc") }}
-                                    </div>
-                                    <div class="flex gap-2">
-                                        <a
-                                            href="/meshchatx-docs/index.html"
-                                            target="_blank"
-                                            class="px-3 py-1 text-[10px] rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-xs transition-all inline-block"
-                                        >
-                                            {{ $t("tutorial.meshchatx_docs") }}
-                                        </a>
-                                        <a
-                                            :href="reticulumBundledDocsUrl"
-                                            target="_blank"
-                                            class="px-3 py-1 text-[10px] rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold shadow-xs transition-all hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-blue-400 dark:hover:border-blue-500 inline-block"
-                                        >
-                                            {{ $t("tutorial.reticulum_docs") }}
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div
-                                class="flex items-start gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800"
-                            >
-                                <v-icon icon="mdi-file-document-edit-outline" color="orange" size="32"></v-icon>
-                                <div>
-                                    <div class="font-bold text-gray-900 dark:text-white">
-                                        {{ $t("tutorial.micron_editor") }}
-                                    </div>
-                                    <div class="text-sm text-gray-900 dark:text-white mb-2">
-                                        {{ $t("tutorial.micron_editor_desc") }}
-                                    </div>
-                                    <button
-                                        type="button"
-                                        class="px-3 py-1 text-[10px] rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold shadow-xs transition-all hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-blue-400 dark:hover:border-blue-500"
-                                        @click="gotoRoute('micron-editor')"
-                                    >
-                                        {{ $t("tutorial.open_micron_editor") }}
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="space-y-6">
+                            <div class="flex w-full flex-col gap-4 max-w-xl mx-auto">
                                 <div
-                                    class="flex items-start gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 cursor-pointer hover:border-blue-500 transition-colors"
-                                    @click="gotoRoute('nomadnetwork')"
+                                    class="flex w-full items-start gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 touch-manipulation"
                                 >
-                                    <v-icon icon="mdi-earth" color="purple" size="24"></v-icon>
+                                    <v-icon icon="mdi-book-open-variant" color="blue" size="32"></v-icon>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="font-bold text-gray-900 dark:text-white">
+                                            {{ $t("tutorial.documentation") }}
+                                        </div>
+                                        <div class="text-sm text-gray-900 dark:text-white mb-2">
+                                            {{ $t("tutorial.documentation_desc") }}
+                                        </div>
+                                        <div class="flex flex-wrap gap-2">
+                                            <a
+                                                href="/meshchatx-docs/index.html"
+                                                target="_blank"
+                                                class="px-3 py-1 text-[10px] rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-xs transition-all inline-block"
+                                            >
+                                                {{ $t("tutorial.meshchatx_docs") }}
+                                            </a>
+                                            <a
+                                                :href="reticulumBundledDocsUrl"
+                                                target="_blank"
+                                                class="px-3 py-1 text-[10px] rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold shadow-xs transition-all hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-blue-400 dark:hover:border-blue-500 inline-block"
+                                            >
+                                                {{ $t("tutorial.reticulum_docs") }}
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div
+                                    class="flex w-full items-start gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 touch-manipulation"
+                                >
+                                    <v-icon icon="mdi-file-document-edit-outline" color="orange" size="32"></v-icon>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="font-bold text-gray-900 dark:text-white">
+                                            {{ $t("tutorial.micron_editor") }}
+                                        </div>
+                                        <div class="text-sm text-gray-900 dark:text-white mb-2">
+                                            {{ $t("tutorial.micron_editor_desc") }}
+                                        </div>
+                                        <div class="flex flex-wrap gap-2">
+                                            <button
+                                                type="button"
+                                                class="px-3 py-1 text-[10px] rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold shadow-xs transition-all hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-blue-400 dark:hover:border-blue-500"
+                                                @click="gotoRoute('micron-editor')"
+                                            >
+                                                {{ $t("tutorial.open_micron_editor") }}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                class="px-3 py-1 text-[10px] rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold shadow-xs transition-all hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-blue-400 dark:hover:border-blue-500"
+                                                @click="gotoRoute('mesh-server')"
+                                            >
+                                                {{ $t("tutorial.open_mesh_server") }}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div
+                                    class="flex w-full cursor-pointer items-start gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 transition-colors hover:border-indigo-500 touch-manipulation min-h-[4.5rem]"
+                                    role="button"
+                                    tabindex="0"
+                                    @click="gotoRoute('identities')"
+                                    @keydown.enter="gotoRoute('identities')"
+                                >
+                                    <v-icon icon="mdi-account-multiple-outline" color="indigo" size="32"></v-icon>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="font-bold text-gray-900 dark:text-white">
+                                            {{ $t("tutorial.identities_card_title") }}
+                                        </div>
+                                        <div class="text-sm text-gray-600 dark:text-zinc-400">
+                                            {{ $t("tutorial.identities_card_desc") }}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div
+                                    class="flex w-full cursor-pointer items-start gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 transition-colors hover:border-teal-500 touch-manipulation min-h-[4.5rem]"
+                                    role="button"
+                                    tabindex="0"
+                                    @click="gotoRoute('archives')"
+                                    @keydown.enter="gotoRoute('archives')"
+                                >
+                                    <v-icon icon="mdi-archive-outline" color="teal" size="32"></v-icon>
                                     <div>
-                                        <div class="font-bold text-gray-900 dark:text-white text-xs">
+                                        <div class="font-bold text-gray-900 dark:text-white">
+                                            {{ $t("tutorial.archiver") }}
+                                        </div>
+                                        <div class="text-sm text-gray-900 dark:text-white">
+                                            {{ $t("tutorial.archiver_desc") }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p
+                                class="text-center text-[11px] font-semibold tracking-wide text-gray-600 dark:text-zinc-400 px-2"
+                            >
+                                {{ $t("tutorial.learn_create_more") }}
+                            </p>
+
+                            <div class="grid grid-cols-2 gap-2 max-w-xl mx-auto">
+                                <div
+                                    class="flex flex-col gap-1.5 rounded-xl border border-gray-100 bg-gray-50 p-2.5 dark:border-zinc-800 dark:bg-zinc-900 cursor-pointer hover:border-blue-500 transition-colors touch-manipulation min-h-[5.5rem]"
+                                    role="button"
+                                    tabindex="0"
+                                    @click="gotoRoute('nomadnetwork')"
+                                    @keydown.enter="gotoRoute('nomadnetwork')"
+                                >
+                                    <v-icon icon="mdi-earth" color="purple" size="22" class="shrink-0"></v-icon>
+                                    <div class="min-w-0">
+                                        <div class="font-bold text-gray-900 dark:text-white text-[11px] leading-tight">
                                             {{ $t("tutorial.paper_messages") }}
                                         </div>
-                                        <div class="text-[10px] text-gray-900 dark:text-white">
+                                        <div
+                                            class="text-[9px] text-gray-600 dark:text-zinc-400 leading-snug line-clamp-3"
+                                        >
                                             {{ $t("tutorial.paper_messages_desc") }}
                                         </div>
                                     </div>
                                 </div>
 
                                 <div
-                                    class="flex items-start gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 cursor-pointer hover:border-blue-500 transition-colors"
+                                    class="flex flex-col gap-1.5 rounded-xl border border-gray-100 bg-gray-50 p-2.5 dark:border-zinc-800 dark:bg-zinc-900 cursor-pointer hover:border-blue-500 transition-colors touch-manipulation min-h-[5.5rem]"
+                                    role="button"
+                                    tabindex="0"
                                     @click="gotoRoute('messages')"
+                                    @keydown.enter="gotoRoute('messages')"
                                 >
-                                    <v-icon icon="mdi-message-text-outline" color="green" size="24"></v-icon>
-                                    <div>
-                                        <div class="font-bold text-gray-900 dark:text-white text-xs">
+                                    <v-icon
+                                        icon="mdi-message-text-outline"
+                                        color="green"
+                                        size="22"
+                                        class="shrink-0"
+                                    ></v-icon>
+                                    <div class="min-w-0">
+                                        <div class="font-bold text-gray-900 dark:text-white text-[11px] leading-tight">
                                             {{ $t("tutorial.send_messages") }}
                                         </div>
-                                        <div class="text-[10px] text-gray-900 dark:text-white">
+                                        <div
+                                            class="text-[9px] text-gray-600 dark:text-zinc-400 leading-snug line-clamp-3"
+                                        >
                                             {{ $t("tutorial.send_messages_desc") }}
                                         </div>
                                     </div>
                                 </div>
 
                                 <div
-                                    class="flex items-start gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 cursor-pointer hover:border-blue-500 transition-colors"
+                                    class="flex flex-col gap-1.5 rounded-xl border border-gray-100 bg-gray-50 p-2.5 dark:border-zinc-800 dark:bg-zinc-900 cursor-pointer hover:border-blue-500 transition-colors touch-manipulation min-h-[5.5rem]"
+                                    role="button"
+                                    tabindex="0"
                                     @click="gotoRoute('network-visualiser')"
+                                    @keydown.enter="gotoRoute('network-visualiser')"
                                 >
-                                    <v-icon icon="mdi-hub" color="teal" size="24"></v-icon>
-                                    <div>
-                                        <div class="font-bold text-gray-900 dark:text-white text-xs">
+                                    <v-icon icon="mdi-hub" color="teal" size="22" class="shrink-0"></v-icon>
+                                    <div class="min-w-0">
+                                        <div class="font-bold text-gray-900 dark:text-white text-[11px] leading-tight">
                                             {{ $t("tutorial.explore_nodes") }}
                                         </div>
-                                        <div class="text-[10px] text-gray-900 dark:text-white">
+                                        <div
+                                            class="text-[9px] text-gray-600 dark:text-zinc-400 leading-snug line-clamp-3"
+                                        >
                                             {{ $t("tutorial.explore_nodes_desc") }}
                                         </div>
                                     </div>
                                 </div>
 
                                 <div
-                                    class="flex items-start gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 cursor-pointer hover:border-blue-500 transition-colors"
+                                    class="flex flex-col gap-1.5 rounded-xl border border-gray-100 bg-gray-50 p-2.5 dark:border-zinc-800 dark:bg-zinc-900 cursor-pointer hover:border-blue-500 transition-colors touch-manipulation min-h-[5.5rem]"
+                                    role="button"
+                                    tabindex="0"
                                     @click="gotoRoute('call')"
+                                    @keydown.enter="gotoRoute('call')"
                                 >
-                                    <v-icon icon="mdi-phone-in-talk-outline" color="red" size="24"></v-icon>
-                                    <div>
-                                        <div class="font-bold text-gray-900 dark:text-white text-xs">
+                                    <v-icon
+                                        icon="mdi-phone-in-talk-outline"
+                                        color="red"
+                                        size="22"
+                                        class="shrink-0"
+                                    ></v-icon>
+                                    <div class="min-w-0">
+                                        <div class="font-bold text-gray-900 dark:text-white text-[11px] leading-tight">
                                             {{ $t("tutorial.voice_calls") }}
                                         </div>
-                                        <div class="text-[10px] text-gray-900 dark:text-white">
+                                        <div
+                                            class="text-[9px] text-gray-600 dark:text-zinc-400 leading-snug line-clamp-3"
+                                        >
                                             {{ $t("tutorial.voice_calls_desc") }}
                                         </div>
                                     </div>
@@ -1063,6 +1181,41 @@
                             <p class="text-lg text-gray-600 dark:text-zinc-400 max-w-3xl mx-auto">
                                 {{ $t("tutorial.bootstrap_desc_page") }}
                             </p>
+                            <div class="flex flex-col items-center gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    class="inline-flex items-center gap-2 rounded-xl border-2 border-blue-500/30 bg-blue-500/10 px-5 py-2.5 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-500/15 dark:text-blue-300 dark:hover:bg-blue-500/20 disabled:opacity-60"
+                                    :disabled="loadingInterfaces || loadingDiscovered || pickingRandomBootstraps"
+                                    @click="pickRandomTcpBootstraps"
+                                >
+                                    <v-progress-circular
+                                        v-if="pickingRandomBootstraps"
+                                        indeterminate
+                                        size="18"
+                                        width="2"
+                                    />
+                                    <v-icon v-else icon="mdi-shuffle-variant" size="20" />
+                                    {{ $t("tutorial.bootstrap_pick_random_tcp") }}
+                                </button>
+                                <div
+                                    v-if="bootstrapSelectedLabels.length > 0"
+                                    class="w-full max-w-xl rounded-xl border border-gray-200/90 bg-gray-50/80 px-4 py-3 text-left dark:border-zinc-700 dark:bg-zinc-900/50"
+                                >
+                                    <div
+                                        class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-zinc-400"
+                                    >
+                                        {{ $t("tutorial.bootstrap_selected_nodes_heading") }}
+                                    </div>
+                                    <ul class="mt-1.5 space-y-1 text-sm text-gray-800 dark:text-zinc-200">
+                                        <li
+                                            v-for="(label, idx) in bootstrapSelectedLabels"
+                                            :key="selectedBootstrapKeys[idx]"
+                                        >
+                                            {{ label }}
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
 
                         <div
@@ -1382,7 +1535,7 @@
                         </div>
                     </div>
 
-                    <!-- Step 5: Documentation & Tools -->
+                    <!-- Step 5: Learn & Create -->
                     <div v-else-if="currentStep === 5" key="page-step5-tools" class="space-y-8 py-10">
                         <div class="text-center space-y-4">
                             <h2 class="text-4xl font-black text-gray-900 dark:text-white">
@@ -1393,116 +1546,243 @@
                             </p>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div
-                                class="flex flex-col items-center gap-6 p-8 rounded-4xl bg-gray-50 dark:bg-zinc-900 text-center border border-gray-100 dark:border-zinc-800"
-                            >
-                                <v-icon icon="mdi-book-open-variant" color="blue" size="64"></v-icon>
-                                <div>
-                                    <div class="font-bold text-2xl text-gray-900 dark:text-white mb-2">
-                                        {{ $t("tutorial.documentation") }}
+                        <div class="space-y-8 px-2 sm:px-0">
+                            <div class="flex w-full flex-col gap-5 max-w-2xl mx-auto">
+                                <div
+                                    class="flex w-full flex-col gap-4 rounded-3xl border border-gray-100 bg-gray-50 p-6 dark:border-zinc-800 dark:bg-zinc-900 sm:p-8 sm:rounded-[2rem] touch-manipulation"
+                                >
+                                    <div class="flex gap-4 sm:gap-5">
+                                        <v-icon
+                                            icon="mdi-book-open-variant"
+                                            color="blue"
+                                            size="56"
+                                            class="shrink-0"
+                                        ></v-icon>
+                                        <div class="min-w-0 flex-1 text-left">
+                                            <div
+                                                class="text-xl font-bold text-gray-900 dark:text-white sm:text-2xl mb-2"
+                                            >
+                                                {{ $t("tutorial.documentation") }}
+                                            </div>
+                                            <p class="text-gray-700 dark:text-zinc-300 mb-6 text-base">
+                                                {{ $t("tutorial.documentation_desc_page") }}
+                                            </p>
+                                            <div class="flex flex-col gap-3">
+                                                <a
+                                                    href="/meshchatx-docs/index.html"
+                                                    target="_blank"
+                                                    class="flex min-h-12 items-center justify-center rounded-xl bg-blue-600 px-4 py-3 text-base font-semibold text-white shadow-xs transition-all hover:bg-blue-500"
+                                                >
+                                                    {{ $t("tutorial.read_meshchatx_docs") }}
+                                                </a>
+                                                <a
+                                                    :href="reticulumBundledDocsUrl"
+                                                    target="_blank"
+                                                    class="flex min-h-12 items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-3 text-base font-semibold text-gray-700 shadow-xs transition-all hover:border-blue-400 hover:bg-gray-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-blue-500 dark:hover:bg-zinc-700"
+                                                >
+                                                    {{ $t("tutorial.reticulum_manual") }}
+                                                </a>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <p class="text-gray-900 dark:text-white mb-6">
-                                        {{ $t("tutorial.documentation_desc_page") }}
-                                    </p>
-                                    <div class="flex flex-col gap-3">
-                                        <a
-                                            href="/meshchatx-docs/index.html"
-                                            target="_blank"
-                                            class="h-12 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-xs transition-all inline-flex items-center justify-center px-6"
+                                </div>
+
+                                <div
+                                    class="flex w-full flex-col gap-4 rounded-3xl border border-gray-100 bg-gray-50 p-6 dark:border-zinc-800 dark:bg-zinc-900 sm:p-8 sm:rounded-[2rem] touch-manipulation"
+                                >
+                                    <div class="flex gap-4 sm:gap-5">
+                                        <v-icon
+                                            icon="mdi-file-document-edit-outline"
+                                            color="orange"
+                                            size="56"
+                                            class="shrink-0"
+                                        ></v-icon>
+                                        <div class="min-w-0 flex-1 text-left">
+                                            <div
+                                                class="text-xl font-bold text-gray-900 dark:text-white sm:text-2xl mb-2"
+                                            >
+                                                {{ $t("tutorial.micron_editor") }}
+                                            </div>
+                                            <p class="text-gray-700 dark:text-zinc-300 mb-6 text-base">
+                                                {{ $t("tutorial.micron_editor_desc_page") }}
+                                            </p>
+                                            <div class="flex flex-col gap-3">
+                                                <div class="flex flex-col gap-3 sm:flex-row">
+                                                    <button
+                                                        type="button"
+                                                        class="flex min-h-12 flex-1 items-center justify-center rounded-xl bg-orange-600 px-4 py-3 text-base font-semibold text-white transition-all hover:bg-orange-500"
+                                                        @click="gotoRoute('micron-editor')"
+                                                    >
+                                                        {{ $t("tutorial.open_micron_editor") }}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        class="flex min-h-12 flex-1 items-center justify-center rounded-xl border border-gray-300 bg-white px-4 py-3 text-base font-semibold text-gray-700 transition-all hover:bg-gray-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                                                        @click="gotoRoute('mesh-server')"
+                                                    >
+                                                        {{ $t("tutorial.open_mesh_server") }}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div
+                                    class="flex w-full cursor-pointer flex-col gap-4 rounded-3xl border border-gray-100 bg-gray-50 p-6 transition-colors hover:border-indigo-500 dark:border-zinc-800 dark:bg-zinc-900 sm:p-8 sm:rounded-[2rem] touch-manipulation"
+                                    role="button"
+                                    tabindex="0"
+                                    @click="gotoRoute('identities')"
+                                    @keydown.enter="gotoRoute('identities')"
+                                >
+                                    <div class="flex gap-4 sm:gap-5">
+                                        <v-icon
+                                            icon="mdi-account-multiple-outline"
+                                            color="indigo"
+                                            size="56"
+                                            class="shrink-0"
+                                        ></v-icon>
+                                        <div class="min-w-0 flex-1 text-left">
+                                            <div
+                                                class="text-xl font-bold text-gray-900 dark:text-white sm:text-2xl mb-2"
+                                            >
+                                                {{ $t("tutorial.identities_card_title") }}
+                                            </div>
+                                            <p class="text-gray-700 dark:text-zinc-300 text-base">
+                                                {{ $t("tutorial.identities_card_desc_page") }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div
+                                    class="flex w-full cursor-pointer flex-col gap-4 rounded-3xl border border-gray-100 bg-gray-50 p-6 transition-colors hover:border-teal-500 dark:border-zinc-800 dark:bg-zinc-900 sm:p-8 sm:rounded-[2rem] touch-manipulation min-h-[5rem]"
+                                    role="button"
+                                    tabindex="0"
+                                    @click="gotoRoute('archives')"
+                                    @keydown.enter="gotoRoute('archives')"
+                                >
+                                    <div class="flex gap-4 sm:gap-5">
+                                        <v-icon
+                                            icon="mdi-archive-outline"
+                                            color="teal"
+                                            size="56"
+                                            class="shrink-0"
+                                        ></v-icon>
+                                        <div class="min-w-0 flex-1 text-left">
+                                            <div
+                                                class="text-xl font-bold text-gray-900 dark:text-white sm:text-2xl mb-2"
+                                            >
+                                                {{ $t("tutorial.archiver") }}
+                                            </div>
+                                            <p class="text-gray-700 dark:text-zinc-300 text-base">
+                                                {{ $t("tutorial.archiver_desc_page") }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p class="text-center text-sm font-semibold text-gray-600 dark:text-zinc-400 px-2">
+                                {{ $t("tutorial.learn_create_more") }}
+                            </p>
+
+                            <div class="grid grid-cols-2 gap-3 max-w-2xl mx-auto px-1 sm:px-0">
+                                <div
+                                    class="flex cursor-pointer flex-col gap-2 rounded-2xl border border-gray-100 bg-gray-50 p-3 dark:border-zinc-800 dark:bg-zinc-900 transition-colors hover:border-blue-500 touch-manipulation min-h-[6.5rem]"
+                                    role="button"
+                                    tabindex="0"
+                                    @click="gotoRoute('nomadnetwork')"
+                                    @keydown.enter="gotoRoute('nomadnetwork')"
+                                >
+                                    <v-icon icon="mdi-earth" color="purple" size="28" class="shrink-0"></v-icon>
+                                    <div class="min-w-0">
+                                        <div
+                                            class="font-bold text-gray-900 dark:text-white text-xs sm:text-sm leading-tight"
                                         >
-                                            {{ $t("tutorial.read_meshchatx_docs") }}
-                                        </a>
-                                        <a
-                                            :href="reticulumBundledDocsUrl"
-                                            target="_blank"
-                                            class="h-12 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold shadow-xs transition-all hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-blue-400 dark:hover:border-blue-500 inline-flex items-center justify-center px-6"
+                                            {{ $t("tutorial.paper_messages") }}
+                                        </div>
+                                        <div
+                                            class="text-[10px] sm:text-xs text-gray-600 dark:text-zinc-400 mt-1 leading-snug line-clamp-4"
                                         >
-                                            {{ $t("tutorial.reticulum_manual") }}
-                                        </a>
+                                            {{ $t("tutorial.paper_messages_desc") }}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <div
-                                class="flex flex-col items-center gap-6 p-8 rounded-4xl bg-gray-50 dark:bg-zinc-900 text-center border border-gray-100 dark:border-zinc-800"
-                            >
-                                <v-icon icon="mdi-file-document-edit-outline" color="orange" size="64"></v-icon>
-                                <div>
-                                    <div class="font-bold text-2xl text-gray-900 dark:text-white mb-2">
-                                        {{ $t("tutorial.micron_editor") }}
-                                    </div>
-                                    <p class="text-gray-900 dark:text-white mb-6">
-                                        {{ $t("tutorial.micron_editor_desc_page") }}
-                                    </p>
-                                    <button
-                                        type="button"
-                                        class="w-full h-12 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold shadow-xs transition-all"
-                                        @click="gotoRoute('micron-editor')"
-                                    >
-                                        {{ $t("tutorial.open_micron_editor") }}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                            <div
-                                class="flex flex-col items-center gap-4 p-6 rounded-3xl bg-gray-50 dark:bg-zinc-900 text-center border border-gray-100 dark:border-zinc-800 cursor-pointer hover:border-blue-500 transition-all hover:scale-[1.02]"
-                                @click="gotoRoute('nomadnetwork')"
-                            >
-                                <v-icon icon="mdi-earth" color="purple" size="40"></v-icon>
-                                <div>
-                                    <div class="font-bold text-gray-900 dark:text-white">
-                                        {{ $t("tutorial.paper_messages") }}
-                                    </div>
-                                    <div class="text-sm text-gray-900 dark:text-white mt-1">
-                                        {{ $t("tutorial.paper_messages_desc") }}
+                                <div
+                                    class="flex cursor-pointer flex-col gap-2 rounded-2xl border border-gray-100 bg-gray-50 p-3 dark:border-zinc-800 dark:bg-zinc-900 transition-colors hover:border-blue-500 touch-manipulation min-h-[6.5rem]"
+                                    role="button"
+                                    tabindex="0"
+                                    @click="gotoRoute('messages')"
+                                    @keydown.enter="gotoRoute('messages')"
+                                >
+                                    <v-icon
+                                        icon="mdi-message-text-outline"
+                                        color="green"
+                                        size="28"
+                                        class="shrink-0"
+                                    ></v-icon>
+                                    <div class="min-w-0">
+                                        <div
+                                            class="font-bold text-gray-900 dark:text-white text-xs sm:text-sm leading-tight"
+                                        >
+                                            {{ $t("tutorial.send_messages") }}
+                                        </div>
+                                        <div
+                                            class="text-[10px] sm:text-xs text-gray-600 dark:text-zinc-400 mt-1 leading-snug line-clamp-4"
+                                        >
+                                            {{ $t("tutorial.send_messages_desc") }}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <div
-                                class="flex flex-col items-center gap-4 p-6 rounded-3xl bg-gray-50 dark:bg-zinc-900 text-center border border-gray-100 dark:border-zinc-800 cursor-pointer hover:border-blue-500 transition-all hover:scale-[1.02]"
-                                @click="gotoRoute('messages')"
-                            >
-                                <v-icon icon="mdi-message-text-outline" color="green" size="40"></v-icon>
-                                <div>
-                                    <div class="font-bold text-gray-900 dark:text-white">
-                                        {{ $t("tutorial.send_messages") }}
-                                    </div>
-                                    <div class="text-sm text-gray-900 dark:text-white mt-1">
-                                        {{ $t("tutorial.send_messages_desc") }}
+                                <div
+                                    class="flex cursor-pointer flex-col gap-2 rounded-2xl border border-gray-100 bg-gray-50 p-3 dark:border-zinc-800 dark:bg-zinc-900 transition-colors hover:border-blue-500 touch-manipulation min-h-[6.5rem]"
+                                    role="button"
+                                    tabindex="0"
+                                    @click="gotoRoute('network-visualiser')"
+                                    @keydown.enter="gotoRoute('network-visualiser')"
+                                >
+                                    <v-icon icon="mdi-hub" color="teal" size="28" class="shrink-0"></v-icon>
+                                    <div class="min-w-0">
+                                        <div
+                                            class="font-bold text-gray-900 dark:text-white text-xs sm:text-sm leading-tight"
+                                        >
+                                            {{ $t("tutorial.explore_nodes") }}
+                                        </div>
+                                        <div
+                                            class="text-[10px] sm:text-xs text-gray-600 dark:text-zinc-400 mt-1 leading-snug line-clamp-4"
+                                        >
+                                            {{ $t("tutorial.explore_nodes_desc") }}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <div
-                                class="flex flex-col items-center gap-4 p-6 rounded-3xl bg-gray-50 dark:bg-zinc-900 text-center border border-gray-100 dark:border-zinc-800 cursor-pointer hover:border-blue-500 transition-all hover:scale-[1.02]"
-                                @click="gotoRoute('network-visualiser')"
-                            >
-                                <v-icon icon="mdi-hub" color="teal" size="40"></v-icon>
-                                <div>
-                                    <div class="font-bold text-gray-900 dark:text-white">
-                                        {{ $t("tutorial.explore_nodes") }}
-                                    </div>
-                                    <div class="text-sm text-gray-900 dark:text-white mt-1">
-                                        {{ $t("tutorial.explore_nodes_desc") }}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div
-                                class="flex flex-col items-center gap-4 p-6 rounded-3xl bg-gray-50 dark:bg-zinc-900 text-center border border-gray-100 dark:border-zinc-800 cursor-pointer hover:border-blue-500 transition-all hover:scale-[1.02]"
-                                @click="gotoRoute('call')"
-                            >
-                                <v-icon icon="mdi-phone-in-talk-outline" color="red" size="40"></v-icon>
-                                <div>
-                                    <div class="font-bold text-gray-900 dark:text-white">
-                                        {{ $t("tutorial.voice_calls") }}
-                                    </div>
-                                    <div class="text-sm text-gray-900 dark:text-white mt-1">
-                                        {{ $t("tutorial.voice_calls_desc") }}
+                                <div
+                                    class="flex cursor-pointer flex-col gap-2 rounded-2xl border border-gray-100 bg-gray-50 p-3 dark:border-zinc-800 dark:bg-zinc-900 transition-colors hover:border-blue-500 touch-manipulation min-h-[6.5rem]"
+                                    role="button"
+                                    tabindex="0"
+                                    @click="gotoRoute('call')"
+                                    @keydown.enter="gotoRoute('call')"
+                                >
+                                    <v-icon
+                                        icon="mdi-phone-in-talk-outline"
+                                        color="red"
+                                        size="28"
+                                        class="shrink-0"
+                                    ></v-icon>
+                                    <div class="min-w-0">
+                                        <div
+                                            class="font-bold text-gray-900 dark:text-white text-xs sm:text-sm leading-tight"
+                                        >
+                                            {{ $t("tutorial.voice_calls") }}
+                                        </div>
+                                        <div
+                                            class="text-[10px] sm:text-xs text-gray-600 dark:text-zinc-400 mt-1 leading-snug line-clamp-4"
+                                        >
+                                            {{ $t("tutorial.voice_calls_desc") }}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1632,6 +1912,8 @@ export default {
             bootstrapListSearch: "",
             bootstrapDiscoveredSectionOpen: true,
             bootstrapCommunitySectionOpen: true,
+            bootstrapAutoPickDone: false,
+            pickingRandomBootstraps: false,
         };
     },
     computed: {
@@ -1696,6 +1978,22 @@ export default {
         reticulumBundledDocsUrl() {
             return bundledReticulumDocsUrl(this.$i18n.locale);
         },
+        bootstrapSelectedLabels() {
+            return this.selectedBootstrapKeys.map((k) => this.bootstrapDisplayLabelForKey(k)).filter(Boolean);
+        },
+    },
+    watch: {
+        communityInterfaces() {
+            this.$nextTick(() => void this.maybeAutoPickBootstrapTcp());
+        },
+        discoveredInterfaces() {
+            this.$nextTick(() => void this.maybeAutoPickBootstrapTcp());
+        },
+        currentStep(val) {
+            if (val === 3) {
+                this.$nextTick(() => void this.maybeAutoPickBootstrapTcp());
+            }
+        },
     },
     beforeUnmount() {
         if (this.onWindowResize) {
@@ -1752,6 +2050,7 @@ export default {
             this.bootstrapListSearch = "";
             this.bootstrapDiscoveredSectionOpen = true;
             this.bootstrapCommunitySectionOpen = true;
+            this.bootstrapAutoPickDone = false;
             await this.loadDiscoveryBootstrapDefaults();
             await this.loadCommunityInterfaces();
             await this.loadDiscoveredInterfaces();
@@ -1834,6 +2133,9 @@ export default {
                 this.bootstrapListSearch = "";
                 this.bootstrapDiscoveredSectionOpen = true;
                 this.bootstrapCommunitySectionOpen = true;
+                await this.loadCommunityInterfaces();
+                await this.loadDiscoveredInterfaces();
+                await this.maybeAutoPickBootstrapTcp();
             } catch (e) {
                 console.error("Failed to enable discovery:", e);
                 ToastUtils.error(this.$t("tutorial.failed_enable_discovery"));
@@ -1878,6 +2180,176 @@ export default {
             } else {
                 this.selectedBootstrapKeys.push(key);
             }
+        },
+        bootstrapDisplayLabelForKey(key) {
+            if (!key) {
+                return "";
+            }
+            if (key.startsWith("comm:")) {
+                const name = key.slice(5);
+                const iface = this.communityInterfaces.find((c) => c.name === name);
+                return iface?.name || name;
+            }
+            if (key.startsWith("disc:")) {
+                const suffix = key.slice(5);
+                const iface = this.discoveredInterfaces.find((d) => String(d.discovery_hash || d.name) === suffix);
+                return iface?.name || suffix;
+            }
+            return key;
+        },
+        communityBootstrapExcludedFromRandom(iface) {
+            const name = String(iface.name || "");
+            const desc = String(iface.description || "");
+            const host = String(iface.target_host || "").trim();
+            const hay = `${name} ${desc}`.toLowerCase();
+            if (hay.includes("yggdrasil")) {
+                return true;
+            }
+            if (/\bygg\b/.test(hay) || hay.includes("-ygg") || hay.includes(" ygg") || hay.includes("(ygg")) {
+                return true;
+            }
+            if (/^(200|201|202|203):[0-9a-f:]+$/i.test(host)) {
+                return true;
+            }
+            return false;
+        },
+        pickEligibleCommunityTcpBootstrapForRandom() {
+            const out = [];
+            for (const iface of this.communityInterfaces) {
+                const t = iface.type;
+                if (t !== "TCPClientInterface" && t !== "BackboneInterface") {
+                    continue;
+                }
+                const host = String(iface.target_host || "").trim();
+                const port = iface.target_port;
+                if (!host || port === undefined || port === null || port === "") {
+                    continue;
+                }
+                if (this.communityBootstrapExcludedFromRandom(iface)) {
+                    continue;
+                }
+                out.push({
+                    key: `comm:${iface.name}`,
+                    kind: "community",
+                    iface,
+                    dedupe: `${host.toLowerCase()}:${Number(port)}`,
+                });
+            }
+            return out;
+        },
+        pickEligibleTcpBootstrapEntries() {
+            const out = [];
+            for (const iface of this.communityInterfaces) {
+                const t = iface.type;
+                if (t !== "TCPClientInterface" && t !== "BackboneInterface") {
+                    continue;
+                }
+                const host = String(iface.target_host || "").trim();
+                const port = iface.target_port;
+                if (!host || port === undefined || port === null || port === "") {
+                    continue;
+                }
+                out.push({
+                    key: `comm:${iface.name}`,
+                    kind: "community",
+                    iface,
+                    dedupe: `${host.toLowerCase()}:${Number(port)}`,
+                });
+            }
+            for (const iface of this.discoveredInterfaces) {
+                const host = String(iface.reachable_on || "").trim();
+                const port = iface.port;
+                if (!host || port === undefined || port === null || port === "") {
+                    continue;
+                }
+                const typ = iface.type || "";
+                if (typ && typ !== "BackboneInterface" && typ !== "TCPClientInterface") {
+                    continue;
+                }
+                out.push({
+                    key: `disc:${iface.discovery_hash || iface.name}`,
+                    kind: "discovered",
+                    iface,
+                    dedupe: `${host.toLowerCase()}:${Number(port)}`,
+                });
+            }
+            return out;
+        },
+        dedupeBootstrapEntries(entries) {
+            const seen = new Set();
+            const deduped = [];
+            for (const e of entries) {
+                if (seen.has(e.dedupe)) {
+                    continue;
+                }
+                seen.add(e.dedupe);
+                deduped.push(e);
+            }
+            return deduped;
+        },
+        shuffleArrayInPlace(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+        },
+        async pickRandomTcpBootstraps(options = {}) {
+            const silent = options.silent === true;
+            const auto = options.auto === true;
+            if (!silent && !auto) {
+                this.pickingRandomBootstraps = true;
+            }
+            await Promise.resolve();
+            await new Promise((resolve) => {
+                if (typeof requestAnimationFrame !== "undefined") {
+                    requestAnimationFrame(() => resolve());
+                } else {
+                    setTimeout(resolve, 0);
+                }
+            });
+            try {
+                let entries = this.pickEligibleCommunityTcpBootstrapForRandom();
+                entries = this.dedupeBootstrapEntries(entries);
+                if (entries.length === 0) {
+                    if (!silent && !auto) {
+                        ToastUtils.warning(this.$t("tutorial.bootstrap_pick_random_none"));
+                    }
+                    return;
+                }
+                this.shuffleArrayInPlace(entries);
+                const take = Math.min(3, entries.length);
+                this.selectedBootstrapKeys = entries.slice(0, take).map((e) => e.key);
+                const labels = this.selectedBootstrapKeys.map((k) => this.bootstrapDisplayLabelForKey(k));
+                if (!silent && !auto) {
+                    ToastUtils.success(
+                        this.$t("tutorial.bootstrap_pick_random_done", {
+                            count: take,
+                            names: labels.join(", "),
+                        })
+                    );
+                }
+            } finally {
+                if (!silent && !auto) {
+                    this.pickingRandomBootstraps = false;
+                }
+            }
+        },
+        async maybeAutoPickBootstrapTcp() {
+            if (this.bootstrapAutoPickDone) {
+                return;
+            }
+            if (this.currentStep !== 3 || this.connectionMode !== "discovery") {
+                return;
+            }
+            if (this.selectedBootstrapKeys.length > 0) {
+                return;
+            }
+            const entries = this.dedupeBootstrapEntries(this.pickEligibleCommunityTcpBootstrapForRandom());
+            if (entries.length === 0) {
+                return;
+            }
+            await this.pickRandomTcpBootstraps({ silent: true, auto: true });
+            this.bootstrapAutoPickDone = true;
         },
         buildBootstrapPayload(item) {
             if (item.kind === "discovered") {

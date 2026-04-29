@@ -587,11 +587,20 @@ export default {
             if (!this.status.has_docs) return [];
             return this.allLanguages.filter((l) => l.code !== this.currentLang);
         },
+        reticulumDocsQueryParam() {
+            return this.$route?.query?.reticulum;
+        },
+    },
+    watch: {
+        reticulumDocsQueryParam() {
+            this.applyDocumentationRouteQuery();
+        },
     },
     mounted() {
         this.fetchStatus();
         this.fetchMeshChatXDocs();
         this.statusInterval = setInterval(this.fetchStatus, 2000);
+        this.applyDocumentationRouteQuery();
     },
     beforeUnmount() {
         if (this.statusInterval) {
@@ -611,6 +620,9 @@ export default {
                 }
             } catch (error) {
                 console.error("Failed to fetch docs status:", error);
+            }
+            if (this.reticulumDocsQueryParam) {
+                this.applyDocumentationRouteQuery();
             }
         },
         dismissError() {
@@ -757,6 +769,28 @@ export default {
         clearSearch() {
             this.searchQuery = "";
             this.searchResults = [];
+        },
+        applyDocumentationRouteQuery() {
+            const q = this.reticulumDocsQueryParam;
+            if (q === undefined || q === null || q === "") {
+                return;
+            }
+            const raw = Array.isArray(q) ? q[0] : q;
+            if (typeof raw !== "string" || !raw.trim()) {
+                return;
+            }
+            let path = raw.trim();
+            try {
+                path = decodeURIComponent(path);
+            } catch {
+                return;
+            }
+            path = path.replace(/^\/?(?:reticulum-docs\/)?/, "");
+            if (!path) {
+                return;
+            }
+            this.activeTab = "reticulum";
+            this.selectedReticulumPath = path;
         },
         navigateTo(path) {
             if (path.startsWith("/meshchatx-docs/")) {

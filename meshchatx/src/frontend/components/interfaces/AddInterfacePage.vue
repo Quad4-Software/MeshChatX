@@ -163,6 +163,9 @@
                                                 <option value="PipeInterface">Pipe Interface (External)</option>
                                                 <option value="RNodeIPInterface">RNode over IP</option>
                                                 <option value="BackboneInterface">Backbone (public relay)</option>
+                                                <option value="__external__">
+                                                    Custom / external module (RNS interfacepath)
+                                                </option>
                                             </select>
                                         </div>
                                     </div>
@@ -241,9 +244,9 @@
                                                             $t("interfaces.discovery_default_bootstrap_only")
                                                         }}</FormLabel
                                                     >
-                                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                                        {{ $t("interfaces.discovery_default_bootstrap_only_hint") }}
-                                                    </p>
+                                                    <BundledDocsHint
+                                                        paragraph-class="text-xs text-gray-500 dark:text-gray-400 mt-0.5"
+                                                    />
                                                 </div>
                                             </div>
                                             <div class="grid grid-cols-3 gap-3">
@@ -312,13 +315,20 @@
                                                     />
                                                 </div>
                                                 <div>
-                                                    <FormLabel class="glass-label">Transport identity (hex)</FormLabel>
+                                                    <FormLabel class="glass-label">{{
+                                                        $t("interfaces.backbone_transport_identity_label")
+                                                    }}</FormLabel>
                                                     <input
                                                         v-model="newInterfaceTransportIdentity"
                                                         type="text"
-                                                        placeholder="32 hex chars from the directory"
+                                                        :placeholder="
+                                                            $t('interfaces.backbone_transport_identity_placeholder')
+                                                        "
                                                         class="input-field font-mono text-xs"
                                                     />
+                                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                        {{ $t("interfaces.backbone_transport_identity_hint") }}
+                                                    </p>
                                                 </div>
                                                 <div class="flex items-start gap-2">
                                                     <Toggle
@@ -333,9 +343,9 @@
                                                                 $t("interfaces.discovery_default_bootstrap_only")
                                                             }}</FormLabel
                                                         >
-                                                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                                            {{ $t("interfaces.discovery_default_bootstrap_only_hint") }}
-                                                        </p>
+                                                        <BundledDocsHint
+                                                            paragraph-class="text-xs text-gray-500 dark:text-gray-400 mt-0.5"
+                                                        />
                                                     </div>
                                                 </div>
                                             </div>
@@ -524,12 +534,30 @@
                                         >
                                             <div
                                                 v-if="newInterfaceType === 'RNodeInterface'"
-                                                class="flex items-center gap-2 pb-2"
+                                                class="flex flex-col gap-3 pb-2 sm:flex-row sm:items-center sm:gap-6"
                                             >
-                                                <Toggle id="rnode-use-ip" v-model="newInterfaceRNodeUseIP" />
-                                                <FormLabel for="rnode-use-ip" class="cursor-pointer mb-0! text-sm"
-                                                    >Connect over network (IP)</FormLabel
-                                                >
+                                                <div class="flex items-center gap-2">
+                                                    <Toggle
+                                                        id="rnode-use-ip"
+                                                        :model-value="newInterfaceRNodeUseIP"
+                                                        @update:model-value="setRNodeTransportIp"
+                                                    />
+                                                    <FormLabel for="rnode-use-ip" class="cursor-pointer mb-0! text-sm"
+                                                        >Connect over network (IP)</FormLabel
+                                                    >
+                                                </div>
+                                                <div class="flex items-center gap-2">
+                                                    <Toggle
+                                                        id="rnode-use-ble"
+                                                        :model-value="newInterfaceRNodeUseBle"
+                                                        @update:model-value="setRNodeTransportBle"
+                                                    />
+                                                    <FormLabel
+                                                        for="rnode-use-ble"
+                                                        class="cursor-pointer mb-0! text-sm"
+                                                        >{{ $t("interfaces.rnode_ble_toggle") }}</FormLabel
+                                                    >
+                                                </div>
                                             </div>
 
                                             <div
@@ -554,6 +582,28 @@
                                                         class="input-field"
                                                     />
                                                 </div>
+                                            </div>
+                                            <div
+                                                v-else-if="
+                                                    newInterfaceType === 'RNodeInterface' && newInterfaceRNodeUseBle
+                                                "
+                                                class="space-y-2"
+                                            >
+                                                <FormLabel class="glass-label">{{
+                                                    $t("interfaces.rnode_ble_peer_label")
+                                                }}</FormLabel>
+                                                <input
+                                                    v-model="newInterfaceRNodeBlePeer"
+                                                    type="text"
+                                                    :placeholder="$t('interfaces.rnode_ble_peer_placeholder')"
+                                                    class="input-field font-mono text-sm"
+                                                    autocapitalize="off"
+                                                    autocomplete="off"
+                                                    spellcheck="false"
+                                                />
+                                                <p class="text-[11px] leading-relaxed text-gray-500 dark:text-gray-400">
+                                                    {{ $t("interfaces.rnode_ble_hint") }}
+                                                </p>
                                             </div>
                                             <div v-else>
                                                 <FormLabel class="glass-label">Serial Port</FormLabel>
@@ -1027,6 +1077,59 @@
                                                 />
                                             </div>
                                         </div>
+
+                                        <!-- LocalInterface: IPC path used internally by RNS; optional external module -->
+                                        <div v-if="newInterfaceType === 'LocalInterface'" class="space-y-4">
+                                            <div class="text-sm text-gray-800 dark:text-zinc-200 leading-snug">
+                                                {{ $t("interfaces.loopback_local_title") }}
+                                            </div>
+                                            <p class="text-xs text-gray-600 dark:text-zinc-400 leading-relaxed">
+                                                {{ $t("interfaces.loopback_local_body") }}
+                                            </p>
+                                            <BundledDocsHint
+                                                hint-i18n-key="interfaces.loopback_local_docs_hint"
+                                                link-i18n-key="interfaces.loopback_local_docs_link"
+                                                :docs-rel-path="docsReticulumInterfacesOverview"
+                                                paragraph-class="text-xs text-gray-500 dark:text-gray-400"
+                                            />
+                                        </div>
+
+                                        <!-- External interface module (TypeName.py under Reticulum interfacepath) -->
+                                        <div v-if="newInterfaceType === '__external__'" class="space-y-4">
+                                            <p class="text-xs text-gray-600 dark:text-zinc-400 leading-relaxed">
+                                                {{ $t("interfaces.custom_external_intro") }}
+                                            </p>
+                                            <div>
+                                                <FormLabel class="glass-label">{{
+                                                    $t("interfaces.custom_external_type_label")
+                                                }}</FormLabel>
+                                                <input
+                                                    v-model="customExternalTypeName"
+                                                    type="text"
+                                                    class="input-field font-mono text-xs"
+                                                    :placeholder="$t('interfaces.custom_external_type_placeholder')"
+                                                    autocomplete="off"
+                                                    spellcheck="false"
+                                                />
+                                            </div>
+                                            <div>
+                                                <FormLabel class="glass-label">{{
+                                                    $t("interfaces.custom_external_json_label")
+                                                }}</FormLabel>
+                                                <textarea
+                                                    v-model="customExternalOptionsJson"
+                                                    rows="10"
+                                                    class="input-field font-mono text-xs min-h-[10rem]"
+                                                    :placeholder="$t('interfaces.custom_external_json_placeholder')"
+                                                ></textarea>
+                                            </div>
+                                            <BundledDocsHint
+                                                hint-i18n-key="interfaces.custom_external_docs_hint"
+                                                link-i18n-key="interfaces.custom_external_docs_link"
+                                                :docs-rel-path="docsReticulumInterfacesOverview"
+                                                paragraph-class="text-xs text-gray-500 dark:text-gray-400"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1232,9 +1335,7 @@
                                                     <FormLabel class="glass-label mb-0! text-sm">{{
                                                         $t("interfaces.discovery_default_bootstrap_only")
                                                     }}</FormLabel>
-                                                    <p class="text-xs text-gray-400">
-                                                        {{ $t("interfaces.discovery_default_bootstrap_only_hint") }}
-                                                    </p>
+                                                    <BundledDocsHint paragraph-class="text-xs text-gray-400" />
                                                 </div>
                                                 <Toggle v-model="reticulumDiscovery.default_bootstrap_only" />
                                             </div>
@@ -1566,6 +1667,8 @@ import FormLabel from "../forms/FormLabel.vue";
 import Toggle from "../forms/Toggle.vue";
 import GlobalState from "../../js/GlobalState";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import BundledDocsHint from "./BundledDocsHint.vue";
+import { RETICULUM_MANUAL_INTERFACES_OVERVIEW_REL } from "../../js/reticulumDocsEntryUrl.js";
 
 export default {
     name: "AddInterfacePage",
@@ -1574,6 +1677,7 @@ export default {
         FormLabel,
         ExpandingSection,
         Toggle,
+        BundledDocsHint,
     },
     data() {
         return {
@@ -1581,6 +1685,10 @@ export default {
             detectedConfigs: [],
             isSaving: false,
             isEditingInterface: false,
+
+            customExternalTypeName: "",
+            customExternalOptionsJson: "{}",
+            docsReticulumInterfacesOverview: RETICULUM_MANUAL_INTERFACES_OVERVIEW_REL,
 
             config: null,
 
@@ -1673,6 +1781,8 @@ export default {
 
             newInterfacePort: null,
             newInterfaceRNodeUseIP: false,
+            newInterfaceRNodeUseBle: false,
+            newInterfaceRNodeBlePeer: "",
             newInterfaceRNodeIPHost: "localhost",
             newInterfaceRNodeIPPort: "7633",
             RNodeGHzValue: 0,
@@ -1876,6 +1986,28 @@ export default {
                 console.log(e);
             }
         },
+        effectiveRNodeBlePort() {
+            let p = (this.newInterfaceRNodeBlePeer || "").trim();
+            if (!p) {
+                return "ble://";
+            }
+            if (p.toLowerCase().startsWith("ble://")) {
+                return p;
+            }
+            return `ble://${p}`;
+        },
+        setRNodeTransportIp(v) {
+            this.newInterfaceRNodeUseIP = Boolean(v);
+            if (this.newInterfaceRNodeUseIP) {
+                this.newInterfaceRNodeUseBle = false;
+            }
+        },
+        setRNodeTransportBle(v) {
+            this.newInterfaceRNodeUseBle = Boolean(v);
+            if (this.newInterfaceRNodeUseBle) {
+                this.newInterfaceRNodeUseIP = false;
+            }
+        },
         async loadCommunityInterfaces() {
             try {
                 const response = await window.api.get(`/api/v1/community-interfaces`);
@@ -1916,6 +2048,25 @@ export default {
 
                 this.newInterfaceName = interfaceName;
                 this.newInterfaceType = iface.type;
+                this.customExternalTypeName = "";
+                this.customExternalOptionsJson = "{}";
+                if (!this.isDedicatedFormInterfaceType(iface.type)) {
+                    this.newInterfaceType = "__external__";
+                    this.customExternalTypeName = iface.type;
+                    const skip = new Set(["type", "name", "interface_enabled", "enabled"]);
+                    const flat = {};
+                    for (const [k, v] of Object.entries(iface)) {
+                        if (skip.has(k)) {
+                            continue;
+                        }
+                        if (v !== null && typeof v === "object" && !Array.isArray(v)) {
+                            continue;
+                        }
+                        flat[k] = v;
+                    }
+                    this.customExternalOptionsJson = JSON.stringify(flat, null, 2);
+                }
+
                 this.newInterfaceTargetHost = iface.target_host ?? iface.remote ?? null;
                 this.newInterfaceTargetPort = iface.target_port ?? null;
                 this.newInterfaceTransportIdentity = iface.transport_identity ?? null;
@@ -1982,7 +2133,12 @@ export default {
 
                 this.newInterfacePort = iface.port;
                 this.newInterfaceRNodeUseIP = false;
-                if (iface.port && String(iface.port).startsWith("tcp://")) {
+                this.newInterfaceRNodeUseBle = false;
+                this.newInterfaceRNodeBlePeer = "";
+                if (iface.port && String(iface.port).toLowerCase().startsWith("ble://")) {
+                    this.newInterfaceRNodeUseBle = true;
+                    this.newInterfaceRNodeBlePeer = String(iface.port);
+                } else if (iface.port && String(iface.port).startsWith("tcp://")) {
                     const addr = String(iface.port).replace("tcp://", "");
                     const parts = addr.split(":");
                     this.newInterfaceRNodeIPHost = parts[0] || "localhost";
@@ -2103,7 +2259,12 @@ export default {
             if (config.forward_port) this.newInterfaceForwardPort = Number(config.forward_port);
             if (config.port) {
                 this.newInterfacePort = config.port;
-                if (config.port.startsWith("tcp://")) {
+                this.newInterfaceRNodeUseBle = false;
+                this.newInterfaceRNodeUseIP = false;
+                if (String(config.port).toLowerCase().startsWith("ble://")) {
+                    this.newInterfaceRNodeUseBle = true;
+                    this.newInterfaceRNodeBlePeer = config.port;
+                } else if (config.port.startsWith("tcp://")) {
                     const addr = config.port.replace("tcp://", "");
                     const [host, port] = addr.split(":");
                     this.newInterfaceRNodeIPHost = host;
@@ -2391,6 +2552,73 @@ export default {
                 const discoveryEnabled = this.discovery.discoverable === true;
                 const freqHz = Math.round(this.calculateFrequencyInHz());
 
+                if (this.newInterfaceType === "RNodeInterface" && this.newInterfaceRNodeUseBle) {
+                    const raw = (this.newInterfaceRNodeBlePeer || "").trim();
+                    const inner = raw.toLowerCase().startsWith("ble://") ? raw.slice(6).trim() : raw;
+                    if (!inner) {
+                        ToastUtils.warning(this.$t("interfaces.rnode_ble_peer_required"));
+                        return;
+                    }
+                }
+
+                if (this.newInterfaceType === "__external__") {
+                    const typeStr = (this.customExternalTypeName || "").trim();
+                    if (!typeStr) {
+                        ToastUtils.error(this.$t("interfaces.custom_external_type_required"));
+                        return;
+                    }
+                    let extra = {};
+                    try {
+                        extra = JSON.parse((this.customExternalOptionsJson || "").trim() || "{}");
+                    } catch {
+                        ToastUtils.error(this.$t("interfaces.custom_external_json_invalid"));
+                        return;
+                    }
+                    if (extra !== null && typeof extra !== "object") {
+                        ToastUtils.error(this.$t("interfaces.custom_external_json_invalid"));
+                        return;
+                    }
+                    const payload = {
+                        allow_overwriting_interface: this.isEditingInterface,
+                        name: this.newInterfaceName,
+                        type: typeStr,
+                        extra_config: extra,
+                        discoverable: discoveryEnabled ? "yes" : null,
+                        discovery_name: discoveryEnabled ? this.discovery.discovery_name : null,
+                        announce_interval: discoveryEnabled
+                            ? (this.numOrNull(this.discovery.announce_interval) ?? 360)
+                            : null,
+                        reachable_on: discoveryEnabled ? this.discovery.reachable_on : null,
+                        discovery_stamp_value: discoveryEnabled
+                            ? (this.numOrNull(this.discovery.discovery_stamp_value) ?? 14)
+                            : null,
+                        discovery_encrypt: discoveryEnabled ? this.discovery.discovery_encrypt === true : null,
+                        publish_ifac: discoveryEnabled ? this.discovery.publish_ifac === true : null,
+                        latitude: discoveryEnabled ? this.numOrNull(this.discovery.latitude) : null,
+                        longitude: discoveryEnabled ? this.numOrNull(this.discovery.longitude) : null,
+                        height: discoveryEnabled ? this.numOrNull(this.discovery.height) : null,
+                        discovery_frequency: discoveryEnabled
+                            ? this.numOrNull(this.discovery.discovery_frequency)
+                            : null,
+                        discovery_bandwidth: discoveryEnabled
+                            ? this.numOrNull(this.discovery.discovery_bandwidth)
+                            : null,
+                        discovery_modulation: discoveryEnabled
+                            ? this.numOrNull(this.discovery.discovery_modulation)
+                            : null,
+                        mode: this.sharedInterfaceSettings.mode || null,
+                        bitrate: this.sharedInterfaceSettings.bitrate,
+                        network_name: this.sharedInterfaceSettings.network_name,
+                        passphrase: this.sharedInterfaceSettings.passphrase,
+                    };
+                    const response = await window.api.post(`/api/v1/reticulum/interfaces/add`, payload);
+                    if (response.data.message) ToastUtils.success(response.data.message);
+                    GlobalState.hasPendingInterfaceChanges = true;
+                    GlobalState.modifiedInterfaceNames.add(this.newInterfaceName);
+                    this.$router.push({ name: "interfaces" });
+                    return;
+                }
+
                 const i2pPeers =
                     this.newInterfaceType === "I2PInterface"
                         ? (this.I2PSettings.newInterfacePeers || []).map((p) => String(p).trim()).filter(Boolean)
@@ -2433,7 +2661,9 @@ export default {
                         this.newInterfaceType === "I2PInterface" ? this.newInterfaceConnectable === true : null,
                     port: this.newInterfaceRNodeUseIP
                         ? `tcp://${this.newInterfaceRNodeIPHost}:${this.newInterfaceRNodeIPPort}`
-                        : this.newInterfacePort,
+                        : this.newInterfaceRNodeUseBle
+                          ? this.effectiveRNodeBlePort()
+                          : this.newInterfacePort,
                     frequency: freqHz,
                     bandwidth: this.newInterfaceBandwidth,
                     txpower: this.newInterfaceTxpower,
@@ -2554,6 +2784,25 @@ export default {
         },
         removeSubInterface(idx) {
             this.RNodeMultiInterface.subInterfaces.splice(idx, 1);
+        },
+        isDedicatedFormInterfaceType(t) {
+            const builtin = new Set([
+                "TCPClientInterface",
+                "BackboneInterface",
+                "I2PInterface",
+                "TCPServerInterface",
+                "UDPInterface",
+                "RNodeInterface",
+                "RNodeIPInterface",
+                "RNodeMultiInterface",
+                "SerialInterface",
+                "KISSInterface",
+                "AX25KISSInterface",
+                "PipeInterface",
+                "AutoInterface",
+                "LocalInterface",
+            ]);
+            return builtin.has(t);
         },
     },
 };

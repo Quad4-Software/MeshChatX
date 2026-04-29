@@ -1212,6 +1212,24 @@ export default {
                         }
                         break;
                     }
+                    if (json.ingest_type === "docs_view") {
+                        const dq = json.docs_query;
+                        const rel = dq && typeof dq.reticulum === "string" ? dq.reticulum.trim() : "";
+                        if (rel) {
+                            await this.$router.push({
+                                name: "documentation",
+                                query: { reticulum: encodeURIComponent(rel) },
+                            });
+                        } else {
+                            await this.$router.push({ name: "documentation" });
+                        }
+                        if (json.status === "error") {
+                            ToastUtils.error(json.message);
+                        } else if (json.message) {
+                            ToastUtils.info(json.message);
+                        }
+                        break;
+                    }
                     if (json.status === "success") {
                         ToastUtils.success(json.message);
                     } else if (json.status === "error") {
@@ -1765,6 +1783,33 @@ export default {
                 if (/^meshchatx:\/\/app\/call\/?/i.test(normalizedUrl)) {
                     this.$router.push({ name: "call", query: { tab: "phone" } });
                     return;
+                }
+                try {
+                    const u = new URL(normalizedUrl);
+                    const proto = u.protocol.toLowerCase();
+                    const host = u.hostname.toLowerCase();
+                    if ((proto === "meshchatx:" || proto === "meshchat:") && host === "docs") {
+                        let rel = u.searchParams.get("reticulum") ?? u.searchParams.get("path") ?? "";
+                        rel = String(rel).trim();
+                        if (!rel && u.pathname && u.pathname !== "/") {
+                            try {
+                                rel = decodeURIComponent(u.pathname.replace(/^\/+/, ""));
+                            } catch {
+                                rel = u.pathname.replace(/^\/+/, "");
+                            }
+                        }
+                        if (rel) {
+                            this.$router.push({
+                                name: "documentation",
+                                query: { reticulum: encodeURIComponent(rel) },
+                            });
+                        } else {
+                            this.$router.push({ name: "documentation" });
+                        }
+                        return;
+                    }
+                } catch {
+                    /* not a valid URL; continue */
                 }
                 if (/^(meshchatx|meshchat):\/\/map\b/i.test(normalizedUrl)) {
                     WebSocketConnection.send(

@@ -656,7 +656,9 @@
                                                         {{ $t("interfaces.discovery_default_bootstrap_only") }}
                                                     </div>
                                                     <div class="text-xs text-gray-500 dark:text-gray-400">
-                                                        {{ $t("interfaces.discovery_default_bootstrap_only_hint") }}
+                                                        <BundledDocsHint
+                                                            paragraph-class="text-xs text-gray-500 dark:text-gray-400"
+                                                        />
                                                     </div>
                                                 </div>
                                                 <Toggle
@@ -723,6 +725,7 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
 import GlobalState from "../../js/GlobalState";
 import Toggle from "../forms/Toggle.vue";
+import BundledDocsHint from "./BundledDocsHint.vue";
 
 export default {
     name: "InterfacesPage",
@@ -731,6 +734,7 @@ export default {
         ImportInterfacesModal,
         Interface,
         MaterialDesignIcon,
+        BundledDocsHint,
     },
     data() {
         return {
