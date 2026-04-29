@@ -30,6 +30,7 @@ prepare() {
   
   pnpm install
   poetry install
+  poetry run python scripts/patch_lxst_pyogg_ogg_ctypes.py
 }
 
 build() {

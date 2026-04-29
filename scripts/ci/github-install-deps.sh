@@ -39,6 +39,7 @@ fi
 
 python -m poetry check --lock
 python -m poetry install --no-interaction --no-ansi
+python -m poetry run python scripts/patch_lxst_pyogg_ogg_ctypes.py
 
 pnpm config set verify-store-integrity true
 pnpm install --frozen-lockfile
