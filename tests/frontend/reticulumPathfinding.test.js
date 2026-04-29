@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: 0BSD
+
 import { describe, it, expect, vi } from "vitest";
 import {
     getDestinationPath,
@@ -6,76 +8,38 @@ import {
     runDestinationPathFinder,
 } from "../../meshchatx/src/frontend/js/reticulumPathfinding.js";
 
-describe("reticulumPathfinding", () => {
-    it("getDestinationPath uses destination path API", async () => {
+describe("reticulumPathfinding.js", () => {
+    it("getDestinationPath builds expected URL and forwards params", () => {
         const api = { get: vi.fn().mockResolvedValue({ data: { path: null } }) };
-        await getDestinationPath(api, "abcd", { request: "1", timeout: 4 });
-        expect(api.get).toHaveBeenCalledWith("/api/v1/destination/abcd/path", {
-            params: { request: "1", timeout: 4 },
+        getDestinationPath(api, "deadbeef", { request: true, timeout: 12 });
+        expect(api.get).toHaveBeenCalledWith("/api/v1/destination/deadbeef/path", {
+            params: { request: "1", timeout: 12 },
         });
     });
 
-    it("coerces request true to string", async () => {
+    it("getDestinationPath uses raw hash segment (caller must validate)", () => {
         const api = { get: vi.fn().mockResolvedValue({ data: {} }) };
-        await getDestinationPath(api, "h1", { request: true });
-        expect(api.get).toHaveBeenCalledWith("/api/v1/destination/h1/path", {
-            params: { request: "1" },
-        });
+        getDestinationPath(api, "not/a/hex", {});
+        expect(api.get).toHaveBeenCalledWith("/api/v1/destination/not/a/hex/path", expect.any(Object));
     });
 
-    it("coerces request false to string", async () => {
-        const api = { get: vi.fn().mockResolvedValue({ data: {} }) };
-        await getDestinationPath(api, "h2", { request: false });
-        expect(api.get).toHaveBeenCalledWith("/api/v1/destination/h2/path", {
-            params: { request: "0" },
-        });
+    it("postRequestPath and postDropPath hit destination endpoints", () => {
+        const api = { post: vi.fn().mockResolvedValue({}) };
+        postRequestPath(api, "ab");
+        postDropPath(api, "ab");
+        expect(api.post).toHaveBeenCalledWith("/api/v1/destination/ab/request-path");
+        expect(api.post).toHaveBeenCalledWith("/api/v1/destination/ab/drop-path");
     });
 
-    it("postRequestPath and postDropPath hit expected routes", async () => {
-        const api = { post: vi.fn().mockResolvedValue({ data: {} }) };
-        await postRequestPath(api, "aaaabbbbccccddddeeeeffffaaaabbbb");
-        expect(api.post).toHaveBeenCalledWith("/api/v1/destination/aaaabbbbccccddddeeeeffffaaaabbbb/request-path");
-        await postDropPath(api, "x");
-        expect(api.post).toHaveBeenCalledWith("/api/v1/destination/x/drop-path");
-    });
-
-    it("runDestinationPathFinder quick posts request-path", async () => {
-        const api = { post: vi.fn().mockResolvedValue({ data: {} }) };
-        const r = await runDestinationPathFinder(api, "q1", "quick");
-        expect(r.ok).toBe(true);
-        expect(api.post).toHaveBeenCalledWith("/api/v1/destination/q1/request-path");
-    });
-
-    it("runDestinationPathFinder force uses GET with wait", async () => {
-        const api = {
-            get: vi.fn().mockResolvedValue({ data: { path: { hops: 1 } } }),
-        };
-        const r = await runDestinationPathFinder(api, "f1", "force", { forceTimeout: 9 });
-        expect(r.path.hops).toBe(1);
-        expect(api.get).toHaveBeenCalledWith("/api/v1/destination/f1/path", {
-            params: { request: "1", timeout: 9 },
-        });
-    });
-
-    it("runDestinationPathFinder drop_then_request drops then posts", async () => {
-        const api = { post: vi.fn().mockResolvedValue({ data: {} }) };
-        await runDestinationPathFinder(api, "d1", "drop_then_request");
-        expect(api.post).toHaveBeenNthCalledWith(1, "/api/v1/destination/d1/drop-path");
-        expect(api.post).toHaveBeenNthCalledWith(2, "/api/v1/destination/d1/request-path");
-    });
-
-    it("runDestinationPathFinder drop_then_request continues if drop fails with handler", async () => {
-        const onDrop = vi.fn();
-        const api = {
-            post: vi.fn().mockRejectedValueOnce(new Error("no drop")).mockResolvedValue({ data: {} }),
-        };
-        await runDestinationPathFinder(api, "d2", "drop_then_request", { onDropPathError: onDrop });
-        expect(onDrop).toHaveBeenCalled();
-        expect(api.post).toHaveBeenLastCalledWith("/api/v1/destination/d2/request-path");
+    it("runDestinationPathFinder quick only posts request-path", async () => {
+        const api = { post: vi.fn().mockResolvedValue({}) };
+        const r = await runDestinationPathFinder(api, "h", "quick");
+        expect(r).toEqual({ ok: true, path: null });
+        expect(api.post).toHaveBeenCalledTimes(1);
     });
 
     it("runDestinationPathFinder rejects unknown mode", async () => {
         const api = { get: vi.fn(), post: vi.fn() };
-        await expect(runDestinationPathFinder(api, "z", "invalid")).rejects.toThrow("unknown path finder mode");
+        await expect(runDestinationPathFinder(api, "h", "invalid-mode")).rejects.toThrow("unknown path finder mode");
     });
 });

@@ -29,6 +29,32 @@ describe("App.vue deep link protocol handling (security-oriented)", () => {
         vi.clearAllMocks();
     });
 
+    it("routes meshchatx://docs with reticulum query to documentation page", () => {
+        const push = vi.fn();
+        App.methods.handleProtocolLink.call(
+            { $router: { push } },
+            "meshchatx://docs?reticulum=" + encodeURIComponent("manual/interfaces.html#foo")
+        );
+        expect(push).toHaveBeenCalledWith({
+            name: "documentation",
+            query: {
+                reticulum: encodeURIComponent("manual/interfaces.html#foo"),
+            },
+        });
+        push.mockClear();
+        App.methods.handleProtocolLink.call({ $router: { push } }, "meshchat://docs?path=manual/index.html");
+        expect(push).toHaveBeenCalledWith({
+            name: "documentation",
+            query: { reticulum: encodeURIComponent("manual/index.html") },
+        });
+    });
+
+    it("routes meshchatx://docs without query to documentation index", () => {
+        const push = vi.fn();
+        App.methods.handleProtocolLink.call({ $router: { push } }, "meshchatx://docs");
+        expect(push).toHaveBeenCalledWith({ name: "documentation" });
+    });
+
     it("sends map deep links to lxm.ingest_uri unchanged over WebSocket", () => {
         const uri = "meshchatx://map?lat=1&lon=2&z=4&label=" + encodeURIComponent("<img src=x onerror=alert(1)>");
         App.methods.handleProtocolLink.call({ $router: { push: vi.fn() } }, uri);

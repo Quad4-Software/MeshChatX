@@ -272,6 +272,169 @@ def test_meshchatx_map_numeric_params_fuzzing(mock_app, lat, lon, z, extra):
         assert 0 <= mq["zoom"] <= 22
 
 
+@pytest.mark.asyncio
+async def test_lxm_ingest_docs_uri_with_reticulum(mock_app):
+    mock_client = MagicMock()
+    mock_client.send_str = MagicMock(return_value=asyncio.sleep(0))
+    mock_app.message_router.ingest_lxm_uri = MagicMock()
+
+    with patch(
+        "meshchatx.meshchat.AsyncUtils.run_async",
+        side_effect=lambda coro: asyncio.create_task(coro),
+    ):
+        await mock_app.on_websocket_data_received(
+            mock_client,
+            {
+                "type": "lxm.ingest_uri",
+                "uri": "meshchatx://docs?reticulum=manual/interfaces.html%23section",
+            },
+        )
+        await asyncio.sleep(0)
+
+    mock_app.message_router.ingest_lxm_uri.assert_not_called()
+    payload = json.loads(mock_client.send_str.call_args[0][0])
+    assert payload["type"] == "lxm.ingest_uri.result"
+    assert payload["status"] == "success"
+    assert payload["ingest_type"] == "docs_view"
+    assert payload["docs_query"]["reticulum"] == "manual/interfaces.html#section"
+
+
+@pytest.mark.asyncio
+async def test_lxm_ingest_docs_uri_meshchat_alias(mock_app):
+    mock_client = MagicMock()
+    mock_client.send_str = MagicMock(return_value=asyncio.sleep(0))
+    mock_app.message_router.ingest_lxm_uri = MagicMock()
+
+    with patch(
+        "meshchatx.meshchat.AsyncUtils.run_async",
+        side_effect=lambda coro: asyncio.create_task(coro),
+    ):
+        await mock_app.on_websocket_data_received(
+            mock_client,
+            {"type": "lxm.ingest_uri", "uri": "meshchat://docs?path=manual/index.html"},
+        )
+        await asyncio.sleep(0)
+
+    payload = json.loads(mock_client.send_str.call_args[0][0])
+    assert payload["ingest_type"] == "docs_view"
+    assert payload["docs_query"]["reticulum"] == "manual/index.html"
+
+
+@pytest.mark.asyncio
+async def test_lxm_ingest_docs_uri_open_index(mock_app):
+    mock_client = MagicMock()
+    mock_client.send_str = MagicMock(return_value=asyncio.sleep(0))
+    mock_app.message_router.ingest_lxm_uri = MagicMock()
+
+    with patch(
+        "meshchatx.meshchat.AsyncUtils.run_async",
+        side_effect=lambda coro: asyncio.create_task(coro),
+    ):
+        await mock_app.on_websocket_data_received(
+            mock_client,
+            {"type": "lxm.ingest_uri", "uri": "meshchatx://docs"},
+        )
+        await asyncio.sleep(0)
+
+    payload = json.loads(mock_client.send_str.call_args[0][0])
+    assert payload["ingest_type"] == "docs_view"
+    assert "docs_query" not in payload
+
+
+@pytest.mark.asyncio
+async def test_lxm_ingest_docs_hostname_spoof_not_docs_view(mock_app):
+    mock_client = MagicMock()
+    mock_client.send_str = MagicMock(return_value=asyncio.sleep(0))
+    mock_app.message_router.ingest_lxm_uri = MagicMock()
+
+    with patch(
+        "meshchatx.meshchat.AsyncUtils.run_async",
+        side_effect=lambda coro: asyncio.create_task(coro),
+    ):
+        await mock_app.on_websocket_data_received(
+            mock_client,
+            {"type": "lxm.ingest_uri", "uri": "meshchatx://docs-foo?reticulum=evil"},
+        )
+        await asyncio.sleep(0)
+
+    payload = json.loads(mock_client.send_str.call_args[0][0])
+    assert payload.get("ingest_type") != "docs_view"
+    mock_app.message_router.ingest_lxm_uri.assert_called()
+
+
+@pytest.mark.parametrize(
+    "rel",
+    [
+        "<script>alert(1)</script>",
+        "'; DROP TABLE docs;--",
+        "a" * 8000,
+    ],
+)
+@pytest.mark.asyncio
+async def test_lxm_ingest_docs_opaque_reticulum_roundtrip(mock_app, rel):
+    mock_client = MagicMock()
+    mock_client.send_str = MagicMock(return_value=asyncio.sleep(0))
+    mock_app.message_router.ingest_lxm_uri = MagicMock()
+    q = urlencode({"reticulum": rel}, quote_via=quote)
+    uri = f"meshchatx://docs?{q}"
+
+    with patch(
+        "meshchatx.meshchat.AsyncUtils.run_async",
+        side_effect=lambda coro: asyncio.create_task(coro),
+    ):
+        await mock_app.on_websocket_data_received(
+            mock_client,
+            {"type": "lxm.ingest_uri", "uri": uri},
+        )
+        await asyncio.sleep(0)
+
+    payload = json.loads(mock_client.send_str.call_args[0][0])
+    assert payload["ingest_type"] == "docs_view"
+    assert payload["docs_query"]["reticulum"] == rel
+
+
+@settings(
+    suppress_health_check=[HealthCheck.function_scoped_fixture],
+    deadline=None,
+    max_examples=80,
+)
+@given(tail=st.text(max_size=800))
+def test_meshchatx_docs_query_tail_fuzzing(mock_app, tail):
+    uri = "meshchatx://docs?" + tail
+    mock_client = MagicMock()
+    mock_client.send_str = MagicMock(return_value=asyncio.sleep(0))
+    mock_app.message_router.ingest_lxm_uri = MagicMock()
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+
+        async def _run():
+            with patch(
+                "meshchatx.meshchat.AsyncUtils.run_async",
+                side_effect=lambda coro: asyncio.create_task(coro),
+            ):
+                await mock_app.on_websocket_data_received(
+                    mock_client,
+                    {"type": "lxm.ingest_uri", "uri": uri},
+                )
+            await asyncio.sleep(0)
+
+        loop.run_until_complete(_run())
+    finally:
+        loop.close()
+
+    mock_client.send_str.assert_called()
+    raw = mock_client.send_str.call_args[0][0]
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError:
+        return
+    assert payload["type"] == "lxm.ingest_uri.result"
+    assert payload["status"] == "success"
+    assert payload["ingest_type"] == "docs_view"
+
+
 def test_telemetry_pack_location_xss_like_strings_return_none():
     from meshchatx.src.backend.telemetry_utils import Telemeter
 
