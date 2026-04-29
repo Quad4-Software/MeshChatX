@@ -76,11 +76,13 @@ tasks:
         desc: Install Python dependencies using Poetry
         cmds:
             - poetry install
+            - poetry run python scripts/patch_lxst_pyogg_ogg_ctypes.py
 
     setup:be:
         desc: Full backend environment setup
         cmds:
             - poetry install
+            - poetry run python scripts/patch_lxst_pyogg_ogg_ctypes.py
             - poetry run pip install ruff
 
     # --- Execution ---

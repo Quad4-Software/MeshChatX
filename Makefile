@@ -3,6 +3,7 @@
 install:
 	pnpm install
 	poetry install
+	poetry run python scripts/patch_lxst_pyogg_ogg_ctypes.py
 
 # Python backend only. For HMR, use: make dev  OR  make run in one terminal and pnpm run dev in another.
 run:
