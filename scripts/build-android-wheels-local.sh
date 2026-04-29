@@ -12,7 +12,7 @@ This script:
 4) Optionally patches LXST wheel metadata for local Android constraints
 5) Builds every recipe under android/chaquopy-recipes/ for each requested
    ABI (currently: cryptography, miniaudio)
-6) Copies outputs to android/vendor
+6) Copies outputs to android/vendor (includes caching bleak-*.whl for Chaquopy --find-links)
 
 Usage:
   scripts/build-android-wheels-local.sh [options]
@@ -734,6 +734,14 @@ PY
         fi
     done
 fi
+
+echo "Caching bleak pure wheel (${PYTHON_MINOR}) for Chaquopy --find-links"
+"${VENV_DIR}/bin/pip" download \
+    --only-binary=:all: \
+    --no-deps \
+    --python-version "${PYTHON_MINOR/./}" \
+    --dest "${OUT_DIR}" \
+    "bleak==3.0.1"
 
 echo "Done."
 echo "Built wheels in: ${OUT_DIR}"
