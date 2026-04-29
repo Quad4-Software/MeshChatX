@@ -124,6 +124,7 @@ jobs:
                   "$PY_X64" -m pip install -U pip setuptools wheel
                   "$PY_X64" -m pip install "cx-freeze>=7.0.0"
                   "$PY_X64" -m pip install -e .
+                  "$PY_X64" scripts/patch_lxst_pyogg_ogg_ctypes.py
 
             - name: Download frontend artifact
               uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0

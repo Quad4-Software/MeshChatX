@@ -178,6 +178,7 @@ jobs:
                       "pycodec2-*-cp311-cp311-android_24_x86_64.whl"
                       "pycodec2-*-cp311-cp311-android_24_armeabi_v7a.whl"
                       "lxst-*-py3-none-any.whl"
+                      "bleak-*-py3-none-any.whl"
                   )
                   missing=0
                   for pattern in "${required[@]}"; do
