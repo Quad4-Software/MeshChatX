@@ -144,8 +144,6 @@ meshchatx --headless
 pipx install ./reticulum_meshchatx-*-py3-none-any.whl
 ```
 
-The wheel **does not embed** Reticulum inside the MeshChatX package. It declares **`rns`** as a normal Python dependency (`rns>=1.1.9` in `pyproject.toml`), so in the same virtualenv or `pip` environment you get **separate** `site-packages` entries. You can **upgrade Reticulum independently** (for example `pip install -U "rns>=1.1.9"`) and the next `meshchatx` run will use that installed `RNS` module, as long as the version still satisfies the declared range. That is the usual “user-controlled” pip story; it is **not** shared with self-contained app bundles.
-
 ## Run from Source (Web Server Mode)
 
 Use this when developing or when you need a local custom build.
