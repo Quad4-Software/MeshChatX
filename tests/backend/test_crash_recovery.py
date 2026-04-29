@@ -9,6 +9,8 @@ import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
 
+import RNS
+
 from meshchatx.src.backend.recovery.crash_recovery import CrashRecovery
 
 
@@ -78,6 +80,18 @@ class TestCrashRecovery(unittest.TestCase):
         self.recovery.run_diagnosis(file=output)
         report = output.getvalue()
         self.assertIn("[ERROR] Reticulum config directory does not exist", report)
+
+    def test_reticulum_diagnosis_skips_false_missing_when_path_unset(self):
+        with patch.object(RNS.Reticulum, "configpath", ""):
+            self.recovery.update_paths(reticulum_config_dir=None)
+            output = io.StringIO()
+            self.recovery.run_reticulum_diagnosis(file=output)
+            report = output.getvalue()
+            self.assertIn("(not resolved yet)", report)
+            self.assertNotIn(
+                "[ERROR] Reticulum config directory does not exist",
+                report,
+            )
 
     def test_diagnosis_rns_log_extraction(self):
         rns_dir = os.path.join(self.test_dir, "rns_log")
@@ -166,6 +180,23 @@ class TestCrashRecovery(unittest.TestCase):
         causes = self.recovery._analyze_cause(exc_type, exc_value, diagnosis)
         self.assertEqual(causes[0]["description"], "Missing Reticulum Configuration")
         self.assertEqual(causes[0]["probability"], 99)
+
+    def test_heuristic_analysis_permission_denied_priority(self):
+        exc_type = PermissionError
+        exc_value = PermissionError(13, "Permission denied", "/config/.meshchat")
+        diagnosis = {"config_missing": True, "permission_denied": True}
+
+        causes = self.recovery._analyze_cause(exc_type, exc_value, diagnosis)
+        self.assertEqual(causes[0]["description"], "Filesystem Permission Denied")
+        self.assertEqual(causes[0]["probability"], 99)
+
+    def test_run_diagnosis_permission_crash_context(self):
+        output = io.StringIO()
+        exc = PermissionError(13, "Permission denied", "/data/meshchat")
+        self.recovery.run_diagnosis(file=output, crash_exception=exc)
+        report = output.getvalue()
+        self.assertIn("Filesystem permission failure", report)
+        self.assertIn("/data/meshchat", report)
 
     def test_entropy_calculation_levels(self):
         """Test how entropy reflects system disorder."""

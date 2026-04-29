@@ -7,6 +7,7 @@ persisted; priors refine over time (conjugate Beta-Binomial model).
 """
 
 import contextlib
+import errno
 import json
 import os
 import platform
@@ -26,6 +27,7 @@ _DEFAULT_PRIORS = {
     "ASYNC_RACE": 0.10,
     "OOM": 0.02,
     "CONFIG_MISSING": 0.01,
+    "FILESYSTEM_PERMISSION_DENIED": 0.05,
     "RNS_IDENTITY_FAILURE": 0.05,
     "LXMF_STORAGE_FAILURE": 0.05,
     "INTERFACE_OFFLINE": 0.05,
@@ -178,6 +180,7 @@ class CrashRecovery:
             "ASYNC_RACE": "Asynchronous Initialization Race Condition",
             "OOM": "System Resource Exhaustion (OOM)",
             "CONFIG_MISSING": "Missing Reticulum Configuration",
+            "FILESYSTEM_PERMISSION_DENIED": "Filesystem Permission Denied",
             "RNS_IDENTITY_FAILURE": "Reticulum Identity Load Failure",
             "LXMF_STORAGE_FAILURE": "LXMF Router Storage Failure",
             "INTERFACE_OFFLINE": "Reticulum Interface Initialization Failure",
@@ -213,7 +216,7 @@ class CrashRecovery:
         out.write("\nSystem Environment Diagnosis:\n")
         diagnosis_results = {}
         try:
-            diagnosis_results = self.run_diagnosis(file=out)
+            diagnosis_results = self.run_diagnosis(file=out, crash_exception=exc_value)
         except Exception as e:
             out.write(f"  [ERROR] Failed to complete diagnosis: {e}\n")
 
@@ -327,6 +330,16 @@ class CrashRecovery:
                     "Ensure ~/.reticulum/config exists or provide a custom path via --reticulum-config-dir.",
                 ],
             },
+            "FILESYSTEM_PERMISSION_DENIED": {
+                "probability": self._get_prior("FILESYSTEM_PERMISSION_DENIED"),
+                "description": "Filesystem Permission Denied",
+                "reasoning": "The process could not create or write a required directory or file (EACCES/EPERM).",
+                "suggestions": [
+                    "Fix ownership or permissions on the storage path (or its parent). The process user must be able to create that directory.",
+                    "If using Docker or Podman, mount the volume with UID/GID matching the container user, use docker run --user, or chown the host directory.",
+                    "Set MESHCHAT_STORAGE_DIR to a writable location, or point --storage-dir at a directory the runtime user owns.",
+                ],
+            },
             "RNS_IDENTITY_FAILURE": {
                 "probability": self._get_prior("RNS_IDENTITY_FAILURE"),
                 "description": "Reticulum Identity Load Failure",
@@ -402,6 +415,7 @@ class CrashRecovery:
                 and float(_m.group(1)) < 4.0
             ),
             "attribute_error": "attributeerror" in error_type,
+            "permission_denied": diagnosis.get("permission_denied", False),
         }
 
         # Update probabilities based on symptoms (Heuristic Likelihoods)
@@ -454,6 +468,31 @@ class CrashRecovery:
         if symptoms["rns_config_missing"]:
             potential_causes["CONFIG_MISSING"]["probability"] = 0.99
 
+        if (
+            symptoms["permission_denied"]
+            or exc_type is PermissionError
+            or (
+                isinstance(exc_value, OSError)
+                and getattr(exc_value, "errno", None) in (errno.EACCES, errno.EPERM)
+            )
+        ):
+            symptoms["permission_denied"] = True
+            potential_causes["FILESYSTEM_PERMISSION_DENIED"]["probability"] = 0.99
+            potential_causes["CONFIG_MISSING"]["probability"] = min(
+                potential_causes["CONFIG_MISSING"]["probability"],
+                0.02,
+            )
+            if self._likely_container_runtime():
+                extra = (
+                    "Container runtime detected: verify volume mounts, user namespace "
+                    "(--user), and host directory ownership."
+                )
+                suggestions = potential_causes["FILESYSTEM_PERMISSION_DENIED"][
+                    "suggestions"
+                ]
+                if extra not in suggestions:
+                    suggestions.append(extra)
+
         # Filter and sort by probability
         causes = [
             {
@@ -504,7 +543,9 @@ class CrashRecovery:
                 q_vec[0] = 0.6
 
         # 2. Configuration/RNS Dimension
-        if diagnosis.get("config_missing"):
+        if diagnosis.get("permission_denied"):
+            q_vec[1] = 0.25
+        elif diagnosis.get("config_missing"):
             q_vec[1] = 0.8
         elif diagnosis.get("config_invalid"):
             q_vec[1] = 0.4
@@ -528,13 +569,99 @@ class CrashRecovery:
 
         return entropy, divergence
 
-    def run_diagnosis(self, file=sys.stderr):
+    @staticmethod
+    def _likely_container_runtime():
+        try:
+            if os.path.exists("/.dockerenv"):
+                return True
+            if os.path.isfile("/proc/self/cgroup"):
+                with open("/proc/self/cgroup") as f:
+                    cg = f.read()
+                if any(
+                    x in cg
+                    for x in ("docker", "containerd", "kubepods", "libpod", "podman")
+                ):
+                    return True
+        except Exception:
+            pass
+        return False
+
+    def _append_permission_failure_diagnosis(self, exc, file, results):
+        if exc is None:
+            return
+        if isinstance(exc, PermissionError):
+            pass
+        elif isinstance(exc, OSError) and getattr(exc, "errno", None) in (
+            errno.EACCES,
+            errno.EPERM,
+        ):
+            pass
+        else:
+            return
+
+        path = getattr(exc, "filename", None)
+        if not path:
+            return
+
+        results["permission_denied"] = True
+        results["permission_denied_path"] = path
+
+        file.write("- Filesystem permission failure (from this crash):\n")
+        file.write(f"  - Path: {path}\n")
+        parent = os.path.dirname(path) or path
+        file.write(f"  - Parent directory: {parent}\n")
+
+        if os.path.exists(parent):
+            writable = os.access(parent, os.W_OK)
+            file.write(
+                "  - Parent exists: yes; writable by this process: "
+                f"{'yes' if writable else 'NO (cannot create files or subdirectories here)'}\n",
+            )
+            with contextlib.suppress(Exception):
+                st = os.stat(parent)
+                file.write(
+                    f"  - Parent mode: {oct(st.st_mode)} uid={st.st_uid} gid={st.st_gid}\n",
+                )
+        else:
+            file.write(
+                "  - Parent does not exist: creation failed, or an ancestor directory "
+                "is missing or not writable.\n",
+            )
+            cur = parent
+            steps = 0
+            while cur and steps < 64:
+                if os.path.exists(cur):
+                    ok = os.access(cur, os.W_OK)
+                    file.write(
+                        f"  - First existing ancestor: {cur}; writable: "
+                        f"{'yes' if ok else 'NO'}\n",
+                    )
+                    with contextlib.suppress(Exception):
+                        st = os.stat(cur)
+                        file.write(
+                            f"    mode={oct(st.st_mode)} uid={st.st_uid} gid={st.st_gid}\n",
+                        )
+                    break
+                nxt = os.path.dirname(cur)
+                if nxt == cur:
+                    break
+                cur = nxt
+                steps += 1
+
+        if self._likely_container_runtime():
+            file.write(
+                "  [NOTE] Container-style environment: bind mounts must be writable by "
+                "the container UID/GID (check docker run --user, volume ownership).\n",
+            )
+
+    def run_diagnosis(self, file=sys.stderr, crash_exception=None):
         """Performs a series of OS-agnostic checks on the application's environment."""
         results = {
             "low_memory": False,
             "config_missing": False,
             "available_mem_mb": 0,
             "db_type": "file",
+            "permission_denied": False,
         }
 
         # Basic System Info
@@ -542,6 +669,8 @@ class CrashRecovery:
             f"- OS: {platform.system()} {platform.release()} ({platform.machine()})\n",
         )
         file.write(f"- Python: {sys.version.split()[0]}\n")
+
+        self._append_permission_failure_diagnosis(crash_exception, file, results)
 
         # Resource Monitoring
         with contextlib.suppress(Exception):
@@ -558,9 +687,18 @@ class CrashRecovery:
         if self.storage_dir:
             file.write(f"- Storage Path: {self.storage_dir}\n")
             if not os.path.exists(self.storage_dir):
-                file.write(
-                    "  [ERROR] Storage path does not exist. Check MESHCHAT_STORAGE_DIR.\n",
-                )
+                parent = os.path.dirname(self.storage_dir.rstrip(os.sep))
+                if parent and os.path.exists(parent):
+                    pw = os.access(parent, os.W_OK)
+                    file.write(
+                        "  [ERROR] Storage path does not exist; parent "
+                        f"{'is writable (mkdir should succeed)' if pw else 'is NOT writable (permission issue)'}\n",
+                    )
+                else:
+                    file.write(
+                        "  [ERROR] Storage path does not exist. Check MESHCHAT_STORAGE_DIR "
+                        "or parent paths.\n",
+                    )
             else:
                 if not os.access(self.storage_dir, os.W_OK):
                     file.write(
@@ -639,65 +777,78 @@ class CrashRecovery:
         file.write("- Reticulum Network Stack:\n")
         results = {"config_missing": False, "active_interfaces": 0}
 
-        # Check config directory
-        config_dir = self.reticulum_config_dir or RNS.Reticulum.configpath
-        file.write(f"  - Config Directory: {config_dir}\n")
+        config_dir = self.reticulum_config_dir or getattr(
+            RNS.Reticulum,
+            "configpath",
+            None,
+        )
+        if config_dir is None:
+            config_dir = ""
+        display_cfg = config_dir if str(config_dir).strip() else "(not resolved yet)"
+        file.write(f"  - Config Directory: {display_cfg}\n")
 
-        if not os.path.exists(config_dir):
+        if not str(config_dir).strip():
+            file.write(
+                "  [INFO] Config path not set until Reticulum initializes; "
+                "skipping on-disk config checks.\n",
+            )
+            results["config_not_resolved"] = True
+        elif not os.path.exists(config_dir):
             file.write("  [ERROR] Reticulum config directory does not exist.\n")
             results["config_missing"] = True
             return results
 
-        config_file = os.path.join(config_dir, "config")
-        if not os.path.exists(config_file):
-            file.write("  [ERROR] Reticulum config file is missing.\n")
-            results["config_missing"] = True
-        else:
-            try:
-                # Basic config validation
-                with open(config_file) as f:
-                    content = f.read()
-                    if "[reticulum]" not in content:
-                        file.write(
-                            "  [ERROR] Reticulum config file is invalid (missing [reticulum] section).\n",
-                        )
-                        results["config_invalid"] = True
-                    else:
-                        file.write("  - Config File: OK\n")
-            except Exception as e:
-                file.write(f"  [ERROR] Could not read Reticulum config: {e}\n")
-                results["config_unreadable"] = True
-
-        # Extract recent RNS log entries if possible
-        # Check common log file locations
-        log_paths = [
-            os.path.join(config_dir, "logfile"),
-            os.path.join(config_dir, "rnsd.log"),
-            "/var/log/rnsd.log",
-        ]
-
-        found_logs = False
-        for logfile in log_paths:
-            if os.path.exists(logfile):
-                file.write(f"  - Recent Log Entries ({logfile}):\n")
+        if str(config_dir).strip():
+            config_file = os.path.join(config_dir, "config")
+            if not os.path.exists(config_file):
+                file.write("  [ERROR] Reticulum config file is missing.\n")
+                results["config_missing"] = True
+            else:
                 try:
-                    with open(logfile) as f:
-                        lines = f.readlines()
-                        if not lines:
-                            file.write("    (Log file is empty)\n")
+                    # Basic config validation
+                    with open(config_file) as f:
+                        content = f.read()
+                        if "[reticulum]" not in content:
+                            file.write(
+                                "  [ERROR] Reticulum config file is invalid (missing [reticulum] section).\n",
+                            )
+                            results["config_invalid"] = True
                         else:
-                            for line in lines[-15:]:
-                                if "ERROR" in line or "CRITICAL" in line:
-                                    file.write(f"    > [ALERT] {line.strip()}\n")
-                                else:
-                                    file.write(f"    > {line.strip()}\n")
-                    found_logs = True
-                    break  # Stop at first found log file
+                            file.write("  - Config File: OK\n")
                 except Exception as e:
-                    file.write(f"    [ERROR] Could not read logfile: {e}\n")
+                    file.write(f"  [ERROR] Could not read Reticulum config: {e}\n")
+                    results["config_unreadable"] = True
 
-        if not found_logs:
-            file.write("  - Logs: No RNS log files found in standard locations.\n")
+            # Extract recent RNS log entries if possible
+            # Check common log file locations
+            log_paths = [
+                os.path.join(config_dir, "logfile"),
+                os.path.join(config_dir, "rnsd.log"),
+                "/var/log/rnsd.log",
+            ]
+
+            found_logs = False
+            for logfile in log_paths:
+                if os.path.exists(logfile):
+                    file.write(f"  - Recent Log Entries ({logfile}):\n")
+                    try:
+                        with open(logfile) as f:
+                            lines = f.readlines()
+                            if not lines:
+                                file.write("    (Log file is empty)\n")
+                            else:
+                                for line in lines[-15:]:
+                                    if "ERROR" in line or "CRITICAL" in line:
+                                        file.write(f"    > [ALERT] {line.strip()}\n")
+                                    else:
+                                        file.write(f"    > {line.strip()}\n")
+                        found_logs = True
+                        break  # Stop at first found log file
+                    except Exception as e:
+                        file.write(f"    [ERROR] Could not read logfile: {e}\n")
+
+            if not found_logs:
+                file.write("  - Logs: No RNS log files found in standard locations.\n")
 
         # Check for interfaces and transport status
         with contextlib.suppress(Exception):
