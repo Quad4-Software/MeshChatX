@@ -28,6 +28,7 @@ trap 'rm -f "$PRED"' EXIT INT
 python3 scripts/ci/slsa-predicate.py > "$PRED"
 
 find "$DIR" -type f ! -name '*.cosign.bundle' ! -name '*.sha256' ! -name '*.intoto.jsonl' \
+    ! -name 'builder-debug.yml' \
     ! -path '*/win-unpacked/*' \
     ! -path '*/linux-unpacked/*' \
     ! -path '*/mac-universal/*' \
