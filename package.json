@@ -157,7 +157,7 @@
                     "universal"
                 ]
             },
-            "identity": null,
+            "identity": "-",
             "artifactName": "ReticulumMeshChatX-v${version}-mac-${arch}.${ext}",
             "extendInfo": {
                 "NSMicrophoneUsageDescription": "Microphone access is only needed for Audio Calls",
