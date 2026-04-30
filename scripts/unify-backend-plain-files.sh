@@ -8,10 +8,11 @@
 # Python bytecode (.pyc inside library.zip) is architecture-independent;
 # only timestamps and zip metadata cause SHA differences.
 #
-# Native extensions (.so/.dylib) that exist in only one tree are copied
-# to the other so the file sets match. The copy won't load on the wrong
-# arch at runtime, but the owning package (e.g. PyYAML) falls back to
-# its pure-Python implementation, so this is safe.
+# Native Mach-O binaries (.so/.dylib on darwin) must never be copied from one
+# architecture slice to the other: @electron/universal runs lipo on matching
+# paths and requires x86_64 in the x64 tree and arm64 in the arm64 tree.
+# Copying arm64 .so into darwin-x64 breaks universal packaging (lipo: same
+# architectures). Non-binary files may still be synced when missing.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -32,8 +33,17 @@ copy_missing() {
     while IFS= read -r -d '' rel; do
         rel="${rel#./}"
         if [[ ! -f "$dst_dir/$rel" ]]; then
+            local src_file="$src_dir/$rel"
+            local ft
+            ft=$(file --brief --no-pad "$src_file" 2>/dev/null || true)
+            if [[ "$ft" == Mach-O* ]]; then
+                echo "unify-backend: refusing to copy Mach-O across architecture trees: $rel" >&2
+                echo "  ($label); source reports: $ft" >&2
+                echo "  Fix the cx_Freeze build for ${dst_dir##*/} (darwin-x64 needs x86_64 Python: PYTHON_CMD / PYTHON_CMD_X64)." >&2
+                exit 1
+            fi
             mkdir -p "$dst_dir/$(dirname "$rel")"
-            cp "$src_dir/$rel" "$dst_dir/$rel"
+            cp "$src_file" "$dst_dir/$rel"
             echo "  synced ($label): $rel"
             synced=$((synced + 1))
         fi
