@@ -366,12 +366,13 @@ jobs:
               if: matrix.label == 'macos'
               env:
                   PY_X64: ${{ steps.python_x64.outputs.python-path }}
+                  ARCHFLAGS: "-arch x86_64"
               run: |
                   set -euo pipefail
-                  "$PY_X64" -m pip install -U pip setuptools wheel
-                  "$PY_X64" -m pip install "cx-freeze>=7.0.0"
-                  "$PY_X64" -m pip install -e .
-                  "$PY_X64" scripts/patch_lxst_pyogg_ogg_ctypes.py
+                  arch -x86_64 "$PY_X64" -m pip install -U pip setuptools wheel
+                  arch -x86_64 "$PY_X64" -m pip install "cx-freeze>=7.0.0"
+                  arch -x86_64 "$PY_X64" -m pip install -e .
+                  arch -x86_64 "$PY_X64" scripts/patch_lxst_pyogg_ogg_ctypes.py
 
             - name: Download frontend artifact
               uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
