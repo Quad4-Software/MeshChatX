@@ -122,7 +122,7 @@
                             <transition name="fade">
                                 <div
                                     v-if="showContactSupport"
-                                    class="mt-4 p-5 sm:p-6 rounded-2xl bg-white/60 dark:bg-zinc-950/60 border border-gray-100 dark:border-zinc-800 space-y-8 shadow-sm"
+                                    class="mt-4 p-5 sm:p-6 rounded-2xl bg-white/70 dark:bg-zinc-950/70 border border-gray-200/90 dark:border-zinc-800 shadow-sm space-y-6"
                                 >
                                     <div class="space-y-4">
                                         <div
@@ -131,114 +131,147 @@
                                             <v-icon
                                                 icon="mdi-account-circle-outline"
                                                 size="18"
-                                                class="text-blue-500"
+                                                class="text-blue-500 dark:text-blue-400"
                                             ></v-icon>
                                             {{ $t("about.contact_developer") }}
                                         </div>
-                                        <div class="space-y-1">
-                                            <div class="text-[9px] font-black text-gray-400 uppercase tracking-widest">
-                                                {{ $t("about.contact_lxmf_address") }}
+
+                                        <div class="space-y-3">
+                                            <div>
+                                                <div
+                                                    class="text-[9px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-1.5"
+                                                >
+                                                    {{ $t("about.contact_lxmf_address") }}
+                                                </div>
+                                                <div class="flex items-start gap-2">
+                                                    <router-link
+                                                        :to="{
+                                                            name: 'messages',
+                                                            params: { destinationHash: developerLxmfPrimary },
+                                                        }"
+                                                        class="flex-1 min-w-0 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline underline-offset-2 break-all leading-snug text-left"
+                                                        :title="$t('about.contact_open_messages')"
+                                                    >
+                                                        {{ developerLxmfPrimary }}
+                                                    </router-link>
+                                                    <button
+                                                        type="button"
+                                                        class="shrink-0 rounded-lg p-2 text-gray-500 hover:text-blue-600 dark:text-zinc-400 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-zinc-800/80 transition-colors"
+                                                        :aria-label="$t('about.contact_copy_address')"
+                                                        @click="
+                                                            copyValue(
+                                                                developerLxmfPrimary,
+                                                                'about.contact_lxmf_address'
+                                                            )
+                                                        "
+                                                    >
+                                                        <v-icon icon="mdi-content-copy" size="18"></v-icon>
+                                                    </button>
+                                                </div>
                                             </div>
-                                            <div class="flex items-center gap-2">
-                                                <code
-                                                    class="text-[11px] font-mono bg-zinc-100 dark:bg-zinc-900 px-2 py-1 rounded-lg break-all"
-                                                    >7cc8d66b4f6a0e0e49d34af7f6077b5a</code
+                                            <div>
+                                                <div
+                                                    class="text-[9px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-1.5"
                                                 >
-                                                <button
-                                                    type="button"
-                                                    class="p-1 hover:text-blue-500 transition"
-                                                    @click="
-                                                        copyValue(
-                                                            '7cc8d66b4f6a0e0e49d34af7f6077b5a',
-                                                            'about.contact_lxmf_address'
-                                                        )
-                                                    "
-                                                >
-                                                    <v-icon icon="mdi-content-copy" size="14"></v-icon>
-                                                </button>
+                                                    {{ $t("about.contact_alternate") }}
+                                                </div>
+                                                <div class="flex items-start gap-2">
+                                                    <router-link
+                                                        :to="{
+                                                            name: 'messages',
+                                                            params: { destinationHash: developerLxmfAlternate },
+                                                        }"
+                                                        class="flex-1 min-w-0 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline underline-offset-2 break-all leading-snug text-left"
+                                                        :title="$t('about.contact_open_messages')"
+                                                    >
+                                                        {{ developerLxmfAlternate }}
+                                                    </router-link>
+                                                    <button
+                                                        type="button"
+                                                        class="shrink-0 rounded-lg p-2 text-gray-500 hover:text-blue-600 dark:text-zinc-400 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-zinc-800/80 transition-colors"
+                                                        :aria-label="$t('about.contact_copy_address')"
+                                                        @click="
+                                                            copyValue(developerLxmfAlternate, 'about.contact_alternate')
+                                                        "
+                                                    >
+                                                        <v-icon icon="mdi-content-copy" size="18"></v-icon>
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
-                                        <div class="space-y-1">
-                                            <div class="text-[9px] font-black text-gray-400 uppercase tracking-widest">
-                                                {{ $t("about.contact_alternate") }}
-                                            </div>
-                                            <div class="flex items-center gap-2">
-                                                <code
-                                                    class="text-[11px] font-mono bg-zinc-100 dark:bg-zinc-900 px-2 py-1 rounded-lg break-all"
-                                                    >43d3309adf27fc446556121b553b56a6</code
-                                                >
-                                                <button
-                                                    type="button"
-                                                    class="p-1 hover:text-blue-500 transition"
-                                                    @click="
-                                                        copyValue(
-                                                            '43d3309adf27fc446556121b553b56a6',
-                                                            'about.contact_alternate'
-                                                        )
-                                                    "
-                                                >
-                                                    <v-icon icon="mdi-content-copy" size="14"></v-icon>
-                                                </button>
-                                            </div>
-                                        </div>
+
                                         <div
-                                            class="text-xs font-bold text-gray-600 dark:text-zinc-300 bg-blue-500/[0.06] dark:bg-blue-500/10 p-3 rounded-xl border border-blue-500/15 flex items-start gap-2"
+                                            class="text-xs font-semibold text-gray-600 dark:text-zinc-400 bg-gray-50 dark:bg-zinc-900/50 p-3 rounded-xl border border-gray-200/90 dark:border-zinc-800 flex items-start gap-2.5"
                                         >
                                             <v-icon
                                                 icon="mdi-information-outline"
                                                 size="18"
-                                                class="text-blue-500 shrink-0 mt-0.5"
+                                                class="text-blue-500 dark:text-blue-400 shrink-0 mt-0.5"
                                             ></v-icon>
                                             <span>{{ $t("about.contact_propagation_hint") }}</span>
                                         </div>
                                     </div>
 
-                                    <div
-                                        class="border-t border-gray-200/90 dark:border-zinc-800 pt-8 space-y-4 -mx-1 px-1"
-                                    >
+                                    <div class="border-t border-gray-100 dark:border-zinc-800/90 pt-2"></div>
+
+                                    <div class="space-y-4">
                                         <div
-                                            class="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-violet-700 dark:text-violet-300"
+                                            class="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-zinc-400"
                                         >
-                                            <v-icon icon="mdi-hand-heart" size="18"></v-icon>
+                                            <v-icon
+                                                icon="mdi-hand-heart"
+                                                size="18"
+                                                class="text-blue-500 dark:text-blue-400"
+                                            ></v-icon>
                                             {{ $t("about.donate_label") }}
                                         </div>
-                                        <div class="space-y-1">
-                                            <div class="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                                        <div>
+                                            <div
+                                                class="text-[9px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-1.5"
+                                            >
                                                 {{ $t("about.donate_monero_label") }}
                                             </div>
-                                            <div class="flex items-center gap-2">
-                                                <code
-                                                    class="text-[11px] font-mono bg-zinc-100 dark:bg-zinc-900 px-2 py-1 rounded-lg break-all select-all"
-                                                    >{{ moneroDonateAddress }}</code
+                                            <div class="flex items-start gap-2">
+                                                <span
+                                                    class="flex-1 min-w-0 text-sm font-medium text-gray-800 dark:text-zinc-200 break-all leading-snug select-all"
+                                                    >{{ moneroDonateAddress }}</span
                                                 >
                                                 <button
                                                     type="button"
-                                                    class="p-1 hover:text-violet-600 dark:hover:text-violet-300 transition shrink-0"
+                                                    class="shrink-0 rounded-lg p-2 text-gray-500 hover:text-blue-600 dark:text-zinc-400 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-zinc-800/80 transition-colors"
                                                     :aria-label="$t('about.donate_copy_monero')"
                                                     @click="copyValue(moneroDonateAddress, 'about.donate_monero_label')"
                                                 >
-                                                    <v-icon icon="mdi-content-copy" size="14"></v-icon>
+                                                    <v-icon icon="mdi-content-copy" size="18"></v-icon>
                                                 </button>
                                             </div>
                                         </div>
 
-                                        <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap pt-1">
+                                        <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                                             <a
                                                 href="https://ko-fi.com/quad4"
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                class="inline-flex flex-1 items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-orange-500/15 hover:bg-orange-500/25 text-orange-900 dark:text-orange-100 border border-orange-500/25 text-xs font-bold uppercase tracking-wide min-h-[44px]"
+                                                class="inline-flex flex-1 items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white/90 dark:bg-zinc-900/70 hover:bg-blue-500/[0.06] hover:border-blue-500/25 dark:hover:bg-zinc-800/80 text-gray-800 dark:text-zinc-100 text-xs font-bold uppercase tracking-wide min-h-[44px] transition-colors"
                                             >
-                                                <v-icon icon="mdi-coffee" size="18"></v-icon>
+                                                <v-icon
+                                                    icon="mdi-coffee"
+                                                    size="18"
+                                                    class="text-blue-600 dark:text-blue-400"
+                                                ></v-icon>
                                                 {{ $t("about.donate_kofi") }}
                                             </a>
                                             <a
                                                 href="https://buymeacoffee.com/quad4"
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                class="inline-flex flex-1 items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-950 dark:text-amber-50 border border-amber-500/25 text-xs font-bold uppercase tracking-wide min-h-[44px]"
+                                                class="inline-flex flex-1 items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white/90 dark:bg-zinc-900/70 hover:bg-blue-500/[0.06] hover:border-blue-500/25 dark:hover:bg-zinc-800/80 text-gray-800 dark:text-zinc-100 text-xs font-bold uppercase tracking-wide min-h-[44px] transition-colors"
                                             >
-                                                <v-icon icon="mdi-cup" size="18"></v-icon>
+                                                <v-icon
+                                                    icon="mdi-cup"
+                                                    size="18"
+                                                    class="text-blue-600 dark:text-blue-400"
+                                                ></v-icon>
                                                 {{ $t("about.donate_buymeacoffee") }}
                                             </a>
                                         </div>
@@ -1044,6 +1077,8 @@ export default {
             chromeVersion: null,
             nodeVersion: null,
             showContactSupport: false,
+            developerLxmfPrimary: "7cc8d66b4f6a0e0e49d34af7f6077b5a",
+            developerLxmfAlternate: "43d3309adf27fc446556121b553b56a6",
             moneroDonateAddress:
                 "83SUg6mmkkVGwCycckLEgRfdmXNm7H9XtVjbGXp5kko71N6pTefYURJeS7WdEGHrz2aagmt4nF3dWg6mHcYs6yu4EokwhTh",
         };
