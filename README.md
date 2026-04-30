@@ -192,6 +192,17 @@ The emoji picker renders standard Unicode emoji using your system fonts (Electro
 
 After installing, run `fc-cache -fv` if glyphs still fail until the next login. Optional: `noto-fonts` for broader symbol coverage on minimal installs.
 
+## Windows desktop: microphone (Electron, Windows 10 / 11)
+
+Calls and voice attachments use the microphone through Chromium inside the desktop app. If the UI shows no access or **getUserMedia** fails, check **Windows privacy** first (this is a frequent cause for “classic” Win32 apps, including Electron):
+
+1. Press **Win + R**, paste **`ms-settings:privacy-microphone`**, press Enter.
+2. Turn **Microphone access** on.
+3. Enable **Let desktop apps access your microphone** (wording may vary slightly by Windows version).
+4. Ensure MeshChatX is not denied under **Choose which apps can access your microphone** if that list appears.
+
+Also confirm the app is not muted in **Settings → System → Sound** and that a working input device is selected.
+
 ## Build Desktop Packages from Source
 
 These scripts are defined in `package.json` and `Taskfile.yml`.
