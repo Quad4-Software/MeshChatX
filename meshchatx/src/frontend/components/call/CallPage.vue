@@ -80,7 +80,7 @@
                 </div>
 
                 <!-- Phone Tab -->
-                <div v-if="activeTab === 'phone'" class="flex-1 flex flex-col">
+                <div v-if="activeTab === 'phone'" class="flex-1 flex flex-col pt-2">
                     <div
                         v-if="activeCall || isCallEnded || initiationStatus"
                         class="flex-1 flex flex-col items-center justify-center py-12 px-4"
@@ -88,12 +88,6 @@
                         <div
                             class="w-full max-w-md border-b border-gray-200 dark:border-zinc-800 p-8! flex flex-col items-center text-center relative overflow-hidden"
                         >
-                            <!-- Status pulse background -->
-                            <div
-                                v-if="activeCall && activeCall.status === 6"
-                                class="absolute inset-0 bg-green-500/5 animate-pulse"
-                            ></div>
-
                             <!-- Recording indicator -->
                             <div
                                 v-if="activeCall && activeCall.is_recording"
@@ -158,6 +152,25 @@
                                             (activeCall || lastCall)?.remote_identity_hash || initiationTargetHash
                                         )
                                     }}
+                                </div>
+                                <div
+                                    v-if="activeCall"
+                                    class="mt-1 flex items-center justify-center gap-2 text-[11px] text-gray-500 dark:text-zinc-400"
+                                >
+                                    <span
+                                        v-if="activeCall.path_hops != null"
+                                        class="inline-flex items-center gap-1 rounded-full bg-gray-100 dark:bg-zinc-800 px-2 py-0.5"
+                                    >
+                                        <MaterialDesignIcon icon-name="sitemap-outline" class="size-4" />
+                                        {{ activeCall.path_hops }} hops
+                                    </span>
+                                    <span
+                                        v-if="activeCall.path_interface"
+                                        class="inline-flex items-center gap-1 rounded-full bg-gray-100 dark:bg-zinc-800 px-2 py-0.5 max-w-[16rem]"
+                                    >
+                                        <MaterialDesignIcon icon-name="access-point-network" class="size-4" />
+                                        <span class="truncate">{{ activeCall.path_interface }}</span>
+                                    </span>
                                 </div>
                                 <div
                                     v-if="(activeCall || lastCall)?.is_contact || !!initiationTargetName"
@@ -240,6 +253,51 @@
                                             >
                                                 {{ elapsedTime }}
                                             </div>
+                                            <div
+                                                v-if="activeCall && activeCall.status === 6"
+                                                class="mt-3 grid grid-cols-2 gap-2 text-xs w-full max-w-xs"
+                                            >
+                                                <div
+                                                    class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left"
+                                                >
+                                                    <div class="text-[10px] text-gray-500 dark:text-zinc-400">
+                                                        TX Pkts
+                                                    </div>
+                                                    <div class="font-semibold text-gray-800 dark:text-zinc-100">
+                                                        {{ formatNumber(activeCall.tx_packets) }}
+                                                    </div>
+                                                </div>
+                                                <div
+                                                    class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left"
+                                                >
+                                                    <div class="text-[10px] text-gray-500 dark:text-zinc-400">
+                                                        RX Pkts
+                                                    </div>
+                                                    <div class="font-semibold text-gray-800 dark:text-zinc-100">
+                                                        {{ formatNumber(activeCall.rx_packets) }}
+                                                    </div>
+                                                </div>
+                                                <div
+                                                    class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left"
+                                                >
+                                                    <div class="text-[10px] text-gray-500 dark:text-zinc-400">
+                                                        TX Data Out
+                                                    </div>
+                                                    <div class="font-semibold text-gray-800 dark:text-zinc-100">
+                                                        {{ formatBytes(activeCall.tx_bytes) }}
+                                                    </div>
+                                                </div>
+                                                <div
+                                                    class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left"
+                                                >
+                                                    <div class="text-[10px] text-gray-500 dark:text-zinc-400">
+                                                        RX Data In
+                                                    </div>
+                                                    <div class="font-semibold text-gray-800 dark:text-zinc-100">
+                                                        {{ formatBytes(activeCall.rx_bytes) }}
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </template>
                                     <template v-else-if="initiationStatus">
@@ -258,6 +316,7 @@
                                 >
                                     Duration: {{ callDuration }}
                                 </div>
+
                                 <!-- Play Voicemail Button -->
                                 <div v-if="isCallEnded && wasVoicemail" class="mt-6 animate-fade-in">
                                     <button
@@ -325,20 +384,6 @@
                                                 class="size-6"
                                             />
                                         </button>
-
-                                        <!-- toggle stats -->
-                                        <button
-                                            type="button"
-                                            :class="[
-                                                isShowingStats
-                                                    ? 'bg-blue-500 text-white shadow-blue-500/20'
-                                                    : 'bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-200 hover:bg-gray-200 dark:hover:bg-zinc-700 shadow-gray-200/20 dark:shadow-black/20',
-                                            ]"
-                                            class="p-4 rounded-full shadow-lg transition-all duration-200"
-                                            @click="isShowingStats = !isShowingStats"
-                                        >
-                                            <MaterialDesignIcon icon-name="chart-bar" class="size-6" />
-                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -382,31 +427,6 @@
                                             : $t("call.hangup")
                                     }}</span>
                                 </button>
-                            </div>
-
-                            <!-- stats -->
-                            <div
-                                v-if="isShowingStats && activeCall"
-                                class="w-full mt-6 p-4 text-left bg-gray-50 dark:bg-zinc-800/50 rounded-2xl text-[10px] text-gray-500 dark:text-zinc-400 font-mono border border-gray-100 dark:border-zinc-800 relative z-10"
-                            >
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div class="flex flex-col gap-1">
-                                        <div class="flex justify-between">
-                                            <span>TX Pkts</span><span>{{ activeCall.tx_packets }}</span>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <span>TX Data</span><span>{{ formatBytes(activeCall.tx_bytes) }}</span>
-                                        </div>
-                                    </div>
-                                    <div class="flex flex-col gap-1">
-                                        <div class="flex justify-between">
-                                            <span>RX Pkts</span><span>{{ activeCall.rx_packets }}</span>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <span>RX Data</span><span>{{ formatBytes(activeCall.rx_bytes) }}</span>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -519,6 +539,12 @@
                                             :model-value="config?.telephone_allow_calls_from_contacts_only"
                                             :label="$t('call.allow_calls_from_contacts_only')"
                                             @update:model-value="toggleAllowCallsFromContactsOnly"
+                                        />
+                                        <Toggle
+                                            id="telephone-announce-toggle"
+                                            :model-value="config?.telephone_announce_enabled"
+                                            label="Announce Telephone Presence (LXST)"
+                                            @update:model-value="toggleTelephoneAnnounceEnabled"
                                         />
                                         <div class="flex flex-col gap-1">
                                             <Toggle
@@ -830,7 +856,7 @@
                 </div>
 
                 <!-- Phonebook Tab -->
-                <div v-if="activeTab === 'phonebook'" class="flex-1 flex flex-col max-w-3xl mx-auto w-full">
+                <div v-if="activeTab === 'phonebook'" class="flex-1 flex flex-col max-w-3xl mx-auto w-full pt-2">
                     <div class="mb-4">
                         <div class="relative">
                             <input
@@ -946,7 +972,7 @@
                 </div>
 
                 <!-- Voicemail Tab -->
-                <div v-if="activeTab === 'voicemail'" class="flex-1 flex flex-col max-w-3xl mx-auto w-full">
+                <div v-if="activeTab === 'voicemail'" class="flex-1 flex flex-col max-w-3xl mx-auto w-full pt-2">
                     <div class="mb-4">
                         <div class="relative">
                             <input
@@ -1366,7 +1392,7 @@
                 </div>
 
                 <!-- Contacts Tab -->
-                <div v-if="activeTab === 'contacts'" class="flex-1 flex flex-col max-w-3xl mx-auto w-full">
+                <div v-if="activeTab === 'contacts'" class="flex-1 flex flex-col max-w-3xl mx-auto w-full pt-2">
                     <div class="mb-4 flex gap-2">
                         <div class="relative flex-1">
                             <input
@@ -2128,7 +2154,9 @@ import Toggle from "../forms/Toggle.vue";
 import ToastUtils from "../../js/ToastUtils";
 import RingtoneEditor from "./RingtoneEditor.vue";
 import AudioWaveformPlayer from "../messages/AudioWaveformPlayer.vue";
-import telephonePcmCaptureWorkletUrl from "../../js/telephone-pcm-capture.worklet.js?url";
+
+// Keep this as a same-origin static asset URL so strict CSP can load it.
+const telephonePcmCaptureWorkletUrl = "/assets/js/telephone-pcm-capture.worklet.js";
 
 export default {
     name: "CallPage",
@@ -2146,7 +2174,6 @@ export default {
             audioProfiles: [],
             selectedAudioProfileId: null,
             destinationHash: "",
-            isShowingStats: false,
             callHistory: [],
             callHistorySearch: "",
             callHistoryLimit: 10,
@@ -2217,6 +2244,8 @@ export default {
             audioCtx: null,
             audioStream: null,
             audioSourceNode: null,
+            audioNoiseHighpass: null,
+            audioNoiseCompressor: null,
             audioProcessor: null,
             audioWorkletNode: null,
             audioSilentGain: null,
@@ -2228,6 +2257,15 @@ export default {
             remoteAudioEl: null,
             useAndroidNativeTelephone: false,
             androidNativeTelephoneListener: null,
+            localAudioLevel: 0,
+            remoteAudioLevel: 0,
+            localAudioTarget: 0,
+            remoteAudioTarget: 0,
+            visualizerRafId: null,
+            visualizerPhase: 0,
+            visualizerEnabled: true,
+            prevCallTxBytes: 0,
+            prevCallRxBytes: 0,
         };
     },
     computed: {
@@ -2309,6 +2347,9 @@ export default {
                 this.getRecordings();
             }
         },
+        activeCall() {
+            this.stopAudioVisualizer();
+        },
     },
     mounted() {
         this.getConfig();
@@ -2365,6 +2406,7 @@ export default {
         if (this.historyInterval) clearInterval(this.historyInterval);
         if (this.elapsedTimeInterval) clearInterval(this.elapsedTimeInterval);
         if (this.endedTimeout) clearTimeout(this.endedTimeout);
+        this.stopAudioVisualizer();
         if (this.audioPlayer) {
             this.audioPlayer.pause();
             this.audioPlayer = null;
@@ -2378,6 +2420,9 @@ export default {
         formatBytes(bytes) {
             return Utils.formatBytes(bytes || 0);
         },
+        formatNumber(value) {
+            return Utils.formatNumber(value || 0);
+        },
         formatDateTime(timestamp) {
             return Utils.convertUnixMillisToLocalDateTimeString(timestamp);
         },
@@ -2386,6 +2431,198 @@ export default {
         },
         formatDuration(seconds) {
             return Utils.formatMinutesSeconds(seconds);
+        },
+        capturePeakLevel(samples) {
+            if (!samples || samples.length === 0) return 0;
+            let peak = 0;
+            for (let i = 0; i < samples.length; i += 1) {
+                const value = Math.abs(samples[i]);
+                if (value > peak) peak = value;
+            }
+            return peak;
+        },
+        extractInt16Samples(payload) {
+            if (!payload) return null;
+            if (payload instanceof ArrayBuffer) {
+                return new Int16Array(payload);
+            }
+            if (ArrayBuffer.isView(payload)) {
+                const byteLengthEven = Math.floor(payload.byteLength / 2) * 2;
+                return new Int16Array(payload.buffer, payload.byteOffset, byteLengthEven / 2);
+            }
+            return null;
+        },
+        computeSignalLevel(samples, scale = 1) {
+            if (!samples || samples.length === 0) return 0;
+            let peak = 0;
+            let sumSq = 0;
+            for (let i = 0; i < samples.length; i += 1) {
+                const value = Math.abs(samples[i]) / scale;
+                if (value > peak) peak = value;
+                sumSq += value * value;
+            }
+            const rms = Math.sqrt(sumSq / samples.length);
+            const boosted = Math.max(peak * 0.8, rms * 2.4);
+            return this.normalizeAudioLevel(boosted);
+        },
+        normalizeAudioLevel(level) {
+            if (!Number.isFinite(level)) return 0;
+            const normalized = level > 1 && level <= 100 ? level / 100 : level;
+            return Math.max(0, Math.min(1, normalized));
+        },
+        disableAudioVisualizer() {
+            this.visualizerEnabled = false;
+            this.stopAudioVisualizer();
+        },
+        updateVisualizerFromCallStats(newCall, oldCall) {
+            if (!newCall || newCall.status !== 6) {
+                this.prevCallTxBytes = 0;
+                this.prevCallRxBytes = 0;
+                this.localAudioTarget = 0;
+                this.remoteAudioTarget = 0;
+                return;
+            }
+
+            // Real PCM levels are preferred; this is a fallback when bridge/native
+            // audio telemetry is unavailable but link stats are present.
+            if (this.audioWs || this.useAndroidNativeTelephone) {
+                this.prevCallTxBytes = Number(newCall.tx_bytes || 0);
+                this.prevCallRxBytes = Number(newCall.rx_bytes || 0);
+                return;
+            }
+
+            const tx = Number(newCall.tx_bytes || 0);
+            const rx = Number(newCall.rx_bytes || 0);
+            const prevTx = oldCall && oldCall.hash === newCall.hash ? this.prevCallTxBytes : tx;
+            const prevRx = oldCall && oldCall.hash === newCall.hash ? this.prevCallRxBytes : rx;
+            const txDelta = Math.max(0, tx - prevTx);
+            const rxDelta = Math.max(0, rx - prevRx);
+
+            // Convert byte deltas to subtle activity levels with soft cap.
+            const txLevel = this.normalizeAudioLevel(Math.log10(1 + txDelta) / 2.8);
+            const rxLevel = this.normalizeAudioLevel(Math.log10(1 + rxDelta) / 2.8);
+            this.localAudioTarget = Math.max(this.localAudioTarget, txLevel);
+            this.remoteAudioTarget = Math.max(this.remoteAudioTarget, rxLevel);
+            this.localAudioLevel = Math.max(this.localAudioLevel, this.localAudioTarget);
+            this.remoteAudioLevel = Math.max(this.remoteAudioLevel, this.remoteAudioTarget);
+
+            this.prevCallTxBytes = tx;
+            this.prevCallRxBytes = rx;
+        },
+        resizeAudioVisualizerCanvas(canvas) {
+            if (!canvas) return false;
+            const cssWidth = Math.max(160, Math.floor(canvas.clientWidth || 256));
+            const cssHeight = Math.max(56, Math.floor(canvas.clientHeight || 72));
+            const dpr = Math.max(1, Number(window.devicePixelRatio) || 1);
+            const targetWidth = Math.floor(cssWidth * dpr);
+            const targetHeight = Math.floor(cssHeight * dpr);
+            if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+                canvas.width = targetWidth;
+                canvas.height = targetHeight;
+            }
+            return true;
+        },
+        startAudioVisualizer() {
+            if (!this.visualizerEnabled || this.visualizerRafId) {
+                return;
+            }
+            if (
+                typeof window.requestAnimationFrame !== "function" ||
+                typeof window.cancelAnimationFrame !== "function"
+            ) {
+                this.disableAudioVisualizer();
+                return;
+            }
+            const canvas = this.$refs.callAudioVisualizer;
+            if (!canvas || typeof canvas.getContext !== "function") {
+                return;
+            }
+            if (!this.resizeAudioVisualizerCanvas(canvas)) {
+                this.disableAudioVisualizer();
+                return;
+            }
+            const ctx = canvas.getContext("2d");
+            if (!ctx) {
+                this.disableAudioVisualizer();
+                return;
+            }
+
+            const loop = () => {
+                const currentCanvas = this.$refs.callAudioVisualizer;
+                if (!currentCanvas || typeof currentCanvas.getContext !== "function") {
+                    this.stopAudioVisualizer();
+                    return;
+                }
+                if (!this.resizeAudioVisualizerCanvas(currentCanvas)) {
+                    this.disableAudioVisualizer();
+                    return;
+                }
+                const currentCtx = currentCanvas.getContext("2d");
+                if (!currentCtx) {
+                    this.disableAudioVisualizer();
+                    return;
+                }
+
+                const width = currentCanvas.width;
+                const height = currentCanvas.height;
+                const centerY = height / 2;
+                this.visualizerPhase += 0.065;
+                this.localAudioTarget *= 0.985;
+                this.remoteAudioTarget *= 0.985;
+                this.localAudioLevel = Math.max(this.localAudioLevel * 0.965, this.localAudioTarget);
+                this.remoteAudioLevel = Math.max(this.remoteAudioLevel * 0.965, this.remoteAudioTarget);
+
+                currentCtx.clearRect(0, 0, width, height);
+                currentCtx.fillStyle = "rgba(10, 12, 18, 0.9)";
+                currentCtx.fillRect(0, 0, width, height);
+
+                currentCtx.strokeStyle = "rgba(156, 163, 175, 0.22)";
+                currentCtx.lineWidth = 1;
+                currentCtx.beginPath();
+                currentCtx.moveTo(0, centerY);
+                currentCtx.lineTo(width, centerY);
+                currentCtx.stroke();
+
+                const drawWave = (level, color, phaseOffset, direction) => {
+                    const clampedLevel = this.normalizeAudioLevel(level);
+                    if (clampedLevel < 0.003) {
+                        return;
+                    }
+                    const amp = clampedLevel * (height * 0.4);
+                    currentCtx.beginPath();
+                    currentCtx.strokeStyle = color;
+                    currentCtx.lineWidth = 2;
+                    const step = 4;
+                    for (let x = 0; x <= width; x += step) {
+                        const t = (x / width) * Math.PI * 6 + this.visualizerPhase + phaseOffset;
+                        const envelope = 0.5 + 0.5 * Math.sin((x / width) * Math.PI);
+                        const y = centerY + direction * Math.sin(t) * amp * envelope;
+                        if (x === 0) {
+                            currentCtx.moveTo(x, y);
+                        } else {
+                            currentCtx.lineTo(x, y);
+                        }
+                    }
+                    currentCtx.stroke();
+                };
+
+                drawWave(this.localAudioLevel, "rgba(34, 211, 238, 0.95)", 0, -1);
+                drawWave(this.remoteAudioLevel, "rgba(167, 139, 250, 0.95)", Math.PI / 2, 1);
+
+                this.visualizerRafId = window.requestAnimationFrame(loop);
+            };
+
+            this.visualizerRafId = window.requestAnimationFrame(loop);
+        },
+        stopAudioVisualizer() {
+            if (this.visualizerRafId) {
+                window.cancelAnimationFrame(this.visualizerRafId);
+                this.visualizerRafId = null;
+            }
+            this.localAudioLevel = 0;
+            this.remoteAudioLevel = 0;
+            this.localAudioTarget = 0;
+            this.remoteAudioTarget = 0;
         },
         isMeshChatXAndroid() {
             return (
@@ -2408,6 +2645,11 @@ export default {
             return window.AudioContext || window.webkitAudioContext || null;
         },
         pickWebAudioMicConstraints(mediaDevices) {
+            const processingHints = {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true,
+            };
             const canEnumerate = this.hasEnumerateDevicesApi(mediaDevices);
             const validIds = canEnumerate
                 ? new Set(
@@ -2418,10 +2660,10 @@ export default {
                 : new Set();
             const sid = this.selectedAudioInputId;
             if (sid === "__meshchat_default_in__") {
-                return { audio: true };
+                return { audio: processingHints };
             }
             const id = sid && validIds.has(sid) ? sid : null;
-            return id ? { audio: { deviceId: { exact: id } } } : { audio: true };
+            return id ? { audio: { ...processingHints, deviceId: { exact: id } } } : { audio: processingHints };
         },
         async getUserMediaWithMicFallback(mediaDevices) {
             const constraints = this.pickWebAudioMicConstraints(mediaDevices);
@@ -2608,6 +2850,37 @@ export default {
 
                 const source = this.audioCtx.createMediaStreamSource(stream);
                 this.audioSourceNode = source;
+                let captureInput = source;
+
+                // Lightweight mic cleanup stage before PCM capture:
+                // - High-pass removes low rumble/fan hum.
+                // - Compressor smooths sudden peaks and lifts speech intelligibility.
+                if (
+                    typeof this.audioCtx.createBiquadFilter === "function" &&
+                    typeof this.audioCtx.createDynamicsCompressor === "function"
+                ) {
+                    try {
+                        const highpass = this.audioCtx.createBiquadFilter();
+                        highpass.type = "highpass";
+                        highpass.frequency.value = 120;
+                        highpass.Q.value = 0.707;
+
+                        const compressor = this.audioCtx.createDynamicsCompressor();
+                        compressor.threshold.value = -45;
+                        compressor.knee.value = 30;
+                        compressor.ratio.value = 3;
+                        compressor.attack.value = 0.003;
+                        compressor.release.value = 0.25;
+
+                        source.connect(highpass);
+                        highpass.connect(compressor);
+                        captureInput = compressor;
+                        this.audioNoiseHighpass = highpass;
+                        this.audioNoiseCompressor = compressor;
+                    } catch (filterErr) {
+                        this.logWebAudioFailure("telephone-noise-filter", filterErr);
+                    }
+                }
                 const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
                 const url = `${wsProtocol}//${window.location.host}/ws/telephone/audio`;
 
@@ -2644,9 +2917,16 @@ export default {
                             channelCount: 1,
                         });
                         processor.port.onmessage = (event) => {
-                            sendMicPcmToWs(event.data);
+                            const pcmBuffer = event.data;
+                            sendMicPcmToWs(pcmBuffer);
+                            const samples = this.extractInt16Samples(pcmBuffer);
+                            if (samples && samples.length > 0) {
+                                const level = this.computeSignalLevel(samples, 0x7fff);
+                                this.localAudioTarget = Math.max(this.localAudioTarget, level);
+                                this.localAudioLevel = Math.max(this.localAudioLevel, this.localAudioTarget);
+                            }
                         };
-                        source.connect(processor);
+                        captureInput.connect(processor);
                         this.audioWorkletNode = processor;
                         micTapNode = processor;
                     } catch (workletErr) {
@@ -2670,9 +2950,12 @@ export default {
                             if (!ch0 || ch0.length === 0) {
                                 return;
                             }
+                            const level = this.computeSignalLevel(ch0, 1);
+                            this.localAudioTarget = Math.max(this.localAudioTarget, level);
+                            this.localAudioLevel = Math.max(this.localAudioLevel, this.localAudioTarget);
                             sendMicPcmToWs(floatChannelToInt16PcmBuffer(ch0));
                         };
-                        source.connect(scriptNode);
+                        captureInput.connect(scriptNode);
                         this.audioProcessor = scriptNode;
                         micTapNode = scriptNode;
                     } catch (scriptErr) {
@@ -2701,6 +2984,14 @@ export default {
                         try {
                             const msg = JSON.parse(event.data);
                             if (msg.type === "error") {
+                                const errMsg = typeof msg.message === "string" ? msg.message : "";
+                                if (errMsg.includes("Web audio is disabled in config")) {
+                                    if (this.config) {
+                                        this.config.telephone_web_audio_enabled = false;
+                                    }
+                                    this.stopWebAudio();
+                                    return;
+                                }
                                 this.logWebAudioFailure("ws-server-error", new Error(msg.message || "unknown"));
                                 if (
                                     this.activeCall &&
@@ -2840,8 +3131,12 @@ export default {
             if (!this.audioCtx || !arrayBuffer) {
                 return;
             }
-            const pcm = new Int16Array(arrayBuffer);
+            const pcm = this.extractInt16Samples(arrayBuffer);
+            if (!pcm) return;
             if (pcm.length === 0) return;
+            const remoteLevel = this.computeSignalLevel(pcm, 0x7fff);
+            this.remoteAudioTarget = Math.max(this.remoteAudioTarget, remoteLevel);
+            this.remoteAudioLevel = Math.max(this.remoteAudioLevel, this.remoteAudioTarget);
             const floatBuf = new Float32Array(pcm.length);
             for (let i = 0; i < pcm.length; i += 1) {
                 floatBuf[i] = pcm[i] / 0x7fff;
@@ -2872,6 +3167,13 @@ export default {
             this._unbindAndroidNativeTelephone();
             this.androidNativeTelephoneListener = (ev) => {
                 const d = ev && ev.detail;
+                if (d && d.kind === "levels") {
+                    this.localAudioTarget = Math.max(this.localAudioTarget, this.normalizeAudioLevel(d.tx_level));
+                    this.remoteAudioTarget = Math.max(this.remoteAudioTarget, this.normalizeAudioLevel(d.rx_level));
+                    this.localAudioLevel = Math.max(this.localAudioLevel, this.localAudioTarget);
+                    this.remoteAudioLevel = Math.max(this.remoteAudioLevel, this.remoteAudioTarget);
+                    return;
+                }
                 if (d && d.kind === "error" && d.detail) {
                     this.logWebAudioFailure("android-native", new Error(String(d.sub || d.detail || "error")));
                 }
@@ -2916,6 +3218,22 @@ export default {
                     // ignore
                 }
                 this.audioSourceNode = null;
+            }
+            if (this.audioNoiseHighpass) {
+                try {
+                    this.audioNoiseHighpass.disconnect();
+                } catch {
+                    // ignore
+                }
+                this.audioNoiseHighpass = null;
+            }
+            if (this.audioNoiseCompressor) {
+                try {
+                    this.audioNoiseCompressor.disconnect();
+                } catch {
+                    // ignore
+                }
+                this.audioNoiseCompressor = null;
             }
             if (this.audioProcessor) {
                 try {
@@ -3168,6 +3486,19 @@ export default {
                     this.config.telephone_allow_calls_from_contacts_only = value;
                 }
                 ToastUtils.success(value ? "Calls limited to contacts" : "Calls allowed from everyone");
+            } catch {
+                ToastUtils.error(this.$t("call.failed_to_update_call_settings"));
+            }
+        },
+        async toggleTelephoneAnnounceEnabled(value) {
+            try {
+                await window.api.patch("/api/v1/config", {
+                    telephone_announce_enabled: value,
+                });
+                if (this.config) {
+                    this.config.telephone_announce_enabled = value;
+                }
+                ToastUtils.success(value ? "Telephone announces enabled" : "Telephone announces disabled");
             } catch {
                 ToastUtils.error(this.$t("call.failed_to_update_call_settings"));
             }
@@ -3824,16 +4155,14 @@ export default {
                     ? "/api/v1/telephone/unmute-transmit"
                     : "/api/v1/telephone/mute-transmit";
                 await window.api.get(endpoint);
-
-                // clear muting state after a short delay to allow backend to catch up
                 setTimeout(() => {
                     this.isMicMuting = false;
                 }, 500);
             } catch {
-                this.isMicMuting = false;
                 // Revert on error
                 this.localMicMuted = !this.localMicMuted;
                 ToastUtils.error(this.$t("call.failed_to_toggle_microphone"));
+                this.isMicMuting = false;
             }
         },
         async toggleSpeaker() {
@@ -3851,16 +4180,14 @@ export default {
                     ? "/api/v1/telephone/unmute-receive"
                     : "/api/v1/telephone/mute-receive";
                 await window.api.get(endpoint);
-
-                // clear muting state after a short delay to allow backend to catch up
                 setTimeout(() => {
                     this.isSpeakerMuting = false;
                 }, 500);
             } catch {
-                this.isSpeakerMuting = false;
                 // Revert on error
                 this.localSpeakerMuted = !this.localSpeakerMuted;
                 ToastUtils.error(this.$t("call.failed_to_toggle_speaker"));
+                this.isSpeakerMuting = false;
             }
         },
     },

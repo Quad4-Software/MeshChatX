@@ -703,6 +703,7 @@ export default {
             isSpeakerMuting: false,
             endedTimeout: null,
             ringtonePlayer: null,
+            ringtoneAutoplayBlocked: false,
             toneGenerator: new ToneGenerator(),
             isFetchingRingtone: false,
             initiationStatus: null,
@@ -806,6 +807,8 @@ export default {
         this.stopRingtone();
         this.toneGenerator.stop();
         window.removeEventListener("meshchatx-intent-uri", this.onAndroidIntentUri);
+        window.removeEventListener("pointerdown", this.onRingtoneUnlockGesture, true);
+        window.removeEventListener("keydown", this.onRingtoneUnlockGesture, true);
     },
     mounted() {
         try {
@@ -828,8 +831,19 @@ export default {
             });
         }
         window.addEventListener("meshchatx-intent-uri", this.onAndroidIntentUri);
+        window.addEventListener("pointerdown", this.onRingtoneUnlockGesture, true);
+        window.addEventListener("keydown", this.onRingtoneUnlockGesture, true);
     },
     methods: {
+        onRingtoneUnlockGesture() {
+            if (!this.ringtoneAutoplayBlocked) {
+                return;
+            }
+            this.ringtoneAutoplayBlocked = false;
+            if (this.activeCall?.status === 4 && this.activeCall?.is_incoming) {
+                this.playRingtone();
+            }
+        },
         startShellAuthWatch() {
             if (typeof this._shellAuthWatchStop === "function") {
                 this._shellAuthWatchStop();
@@ -1574,12 +1588,19 @@ export default {
             }
         },
         playRingtone() {
-            if (this.ringtonePlayer) {
-                if (this.ringtonePlayer.paused) {
-                    this.ringtonePlayer.play().catch((e) => {
-                        console.log("Failed to play custom ringtone:", e);
-                    });
-                }
+            if (!this.ringtonePlayer || this.ringtoneAutoplayBlocked) {
+                return;
+            }
+            if (this.ringtonePlayer.paused) {
+                this.ringtonePlayer.play().catch((e) => {
+                    if (e?.name === "NotAllowedError") {
+                        // Browser autoplay policy blocked playback until user gesture.
+                        // Stop retry spam; we retry once user interacts again.
+                        this.ringtoneAutoplayBlocked = true;
+                        return;
+                    }
+                    console.warn("Failed to play custom ringtone:", e);
+                });
             }
         },
         stopRingtone() {

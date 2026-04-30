@@ -166,6 +166,34 @@ describe("CallPage.vue", () => {
         expect(wrapper.find('input[type="text"]').exists()).toBe(true);
     });
 
+    it("renders call hops and interface metadata below address", async () => {
+        const wrapper = mountCallPage();
+        await wrapper.vm.$nextTick();
+        wrapper.vm.activeCall = {
+            status: 6,
+            remote_identity_hash: "ab".repeat(16),
+            remote_identity_name: "Path Test",
+            path_hops: 3,
+            path_interface: "Default Interface",
+            tx_packets: 303,
+            rx_packets: 289,
+            tx_bytes: 35 * 1024,
+            rx_bytes: 82 * 1024,
+        };
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.text()).toContain("3 hops");
+        expect(wrapper.text()).toContain("Default Interface");
+        expect(wrapper.text()).toContain("TX Pkts");
+        expect(wrapper.text()).toContain("303");
+        expect(wrapper.text()).toContain("RX Pkts");
+        expect(wrapper.text()).toContain("289");
+        expect(wrapper.text()).toContain("TX Data Out");
+        expect(wrapper.text()).toContain("35 KB");
+        expect(wrapper.text()).toContain("RX Data In");
+        expect(wrapper.text()).toContain("82 KB");
+    });
+
     it("attempts to place a call when 'Call' button is clicked", async () => {
         const wrapper = mountCallPage();
         await wrapper.vm.$nextTick();
@@ -228,6 +256,16 @@ describe("CallPage.vue", () => {
         await wrapper.vm.toggleAllowCallsFromContactsOnly(true);
         expect(axiosMock.patch).toHaveBeenCalledWith(expect.stringContaining("/api/v1/config"), {
             telephone_allow_calls_from_contacts_only: true,
+        });
+    });
+
+    it("toggleTelephoneAnnounceEnabled patches config", async () => {
+        const wrapper = mountCallPage();
+        await wrapper.vm.$nextTick();
+        wrapper.vm.config = { telephone_announce_enabled: true };
+        await wrapper.vm.toggleTelephoneAnnounceEnabled(false);
+        expect(axiosMock.patch).toHaveBeenCalledWith(expect.stringContaining("/api/v1/config"), {
+            telephone_announce_enabled: false,
         });
     });
 
@@ -323,6 +361,20 @@ describe("CallPage.vue", () => {
         expect(getUserMedia).toHaveBeenCalledTimes(2);
         expect(wrapper.vm.selectedAudioInputId).toBeNull();
         expect(stream).toBe(fakeStream);
+    });
+
+    it("pickWebAudioMicConstraints includes browser audio processing hints", async () => {
+        const wrapper = mountCallPage();
+        await flushPromises();
+        wrapper.vm.selectedAudioInputId = "mic-1";
+        wrapper.vm.audioInputDevices = [{ kind: "audioinput", deviceId: "mic-1" }];
+        const mediaDevices = { enumerateDevices: vi.fn().mockResolvedValue([]) };
+
+        const constraints = wrapper.vm.pickWebAudioMicConstraints(mediaDevices);
+        expect(constraints.audio.echoCancellation).toBe(true);
+        expect(constraints.audio.noiseSuppression).toBe(true);
+        expect(constraints.audio.autoGainControl).toBe(true);
+        expect(constraints.audio.deviceId).toEqual({ exact: "mic-1" });
     });
 
     it("startWebAudio uses MeshChatXAndroid native bridge when platform is android", async () => {
@@ -545,5 +597,99 @@ describe("CallPage.vue", () => {
         await wrapper.vm.getRingtoneStatus();
         expect(wrapper.vm.ringtoneStatus.id).toBe(3);
         expect(wrapper.vm.ringtoneStatus.volume).toBe(0.8);
+    });
+
+    it("resizeAudioVisualizerCanvas scales dimensions for responsive density", async () => {
+        const wrapper = mountCallPage();
+        await flushPromises();
+        const canvas = { clientWidth: 320, clientHeight: 80, width: 0, height: 0 };
+
+        const ok = wrapper.vm.resizeAudioVisualizerCanvas(canvas);
+        expect(ok).toBe(true);
+        expect(canvas.width).toBeGreaterThanOrEqual(320);
+        expect(canvas.height).toBeGreaterThanOrEqual(80);
+    });
+
+    it("android native level events feed tx/rx visualizer levels", async () => {
+        const wrapper = mountCallPage();
+        await flushPromises();
+        wrapper.vm.localAudioLevel = 0;
+        wrapper.vm.remoteAudioLevel = 0;
+        wrapper.vm._bindAndroidNativeTelephone();
+
+        try {
+            window.dispatchEvent(
+                new CustomEvent("meshchatx-native-telephone-audio", {
+                    detail: { kind: "levels", tx_level: 0.45, rx_level: 82 },
+                })
+            );
+            expect(wrapper.vm.localAudioLevel).toBeGreaterThan(0.4);
+            expect(wrapper.vm.remoteAudioLevel).toBeGreaterThan(0.8);
+        } finally {
+            wrapper.vm._unbindAndroidNativeTelephone();
+        }
+    });
+
+    it("playRemotePcm updates RX visualizer level from incoming PCM", async () => {
+        const wrapper = mountCallPage();
+        await flushPromises();
+        const connect = vi.fn();
+        const start = vi.fn();
+        wrapper.vm.audioCtx = {
+            createBuffer: vi.fn(() => ({ copyToChannel: vi.fn() })),
+            createBufferSource: vi.fn(() => ({ connect, start, buffer: null })),
+            destination: {},
+        };
+        wrapper.vm.selectedAudioOutputId = "__meshchat_default_out__";
+        wrapper.vm.remoteAudioLevel = 0;
+
+        const pcm = new Int16Array([0, 4000, -9000, 12000, -15000, 8000]);
+        wrapper.vm.playRemotePcm(pcm.buffer);
+
+        expect(wrapper.vm.remoteAudioLevel).toBeGreaterThan(0);
+        expect(connect).toHaveBeenCalled();
+        expect(start).toHaveBeenCalled();
+    });
+
+    it("updateVisualizerFromCallStats animates levels without web audio bridge", async () => {
+        const wrapper = mountCallPage();
+        await flushPromises();
+        wrapper.vm.audioWs = null;
+        wrapper.vm.useAndroidNativeTelephone = false;
+        wrapper.vm.localAudioLevel = 0;
+        wrapper.vm.remoteAudioLevel = 0;
+        wrapper.vm.prevCallTxBytes = 1000;
+        wrapper.vm.prevCallRxBytes = 2000;
+
+        wrapper.vm.updateVisualizerFromCallStats(
+            { hash: "aa", status: 6, tx_bytes: 3000, rx_bytes: 4500 },
+            { hash: "aa", status: 6, tx_bytes: 1000, rx_bytes: 2000 }
+        );
+
+        expect(wrapper.vm.localAudioLevel).toBeGreaterThan(0);
+        expect(wrapper.vm.remoteAudioLevel).toBeGreaterThan(0);
+        expect(wrapper.vm.prevCallTxBytes).toBe(3000);
+        expect(wrapper.vm.prevCallRxBytes).toBe(4500);
+    });
+
+    it("updateVisualizerFromCallStats does not override bridge-provided levels", async () => {
+        const wrapper = mountCallPage();
+        await flushPromises();
+        wrapper.vm.audioWs = { readyState: 1 };
+        wrapper.vm.useAndroidNativeTelephone = false;
+        wrapper.vm.localAudioLevel = 0.55;
+        wrapper.vm.remoteAudioLevel = 0.42;
+        wrapper.vm.prevCallTxBytes = 0;
+        wrapper.vm.prevCallRxBytes = 0;
+
+        wrapper.vm.updateVisualizerFromCallStats(
+            { hash: "bb", status: 6, tx_bytes: 9999, rx_bytes: 8888 },
+            { hash: "bb", status: 6, tx_bytes: 0, rx_bytes: 0 }
+        );
+
+        expect(wrapper.vm.localAudioLevel).toBe(0.55);
+        expect(wrapper.vm.remoteAudioLevel).toBe(0.42);
+        expect(wrapper.vm.prevCallTxBytes).toBe(9999);
+        expect(wrapper.vm.prevCallRxBytes).toBe(8888);
     });
 });

@@ -198,6 +198,11 @@ class ConfigManager:
             "telephone_allow_calls_from_contacts_only",
             False,
         )
+        self.telephone_announce_enabled = self.BoolConfig(
+            self,
+            "telephone_announce_enabled",
+            True,
+        )
         self.telephone_audio_profile_id = self.IntConfig(
             self,
             "telephone_audio_profile_id",

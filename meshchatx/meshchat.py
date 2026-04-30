@@ -6831,6 +6831,8 @@ class ReticulumMeshChat:
                     "rx_bytes": 0,
                     "tx_packets": 0,
                     "rx_packets": 0,
+                    "path_hops": None,
+                    "path_interface": None,
                 }
                 link = getattr(self.telephone_manager, "call_stats", {}).get("link")
                 if link:
@@ -6838,6 +6840,53 @@ class ReticulumMeshChat:
                     active_call["rx_bytes"] = getattr(link, "rxbytes", 0)
                     active_call["tx_packets"] = getattr(link, "tx", 0)
                     active_call["rx_packets"] = getattr(link, "rx", 0)
+                    # Best-effort direct link metadata fallback.
+                    if active_call["path_hops"] is None:
+                        for hop_attr in ["hops", "hop_count", "path_hops"]:
+                            hops_val = getattr(link, hop_attr, None)
+                            if isinstance(hops_val, int):
+                                active_call["path_hops"] = hops_val
+                                break
+                    if not active_call["path_interface"]:
+                        for iface_attr in ["attached_interface", "interface", "ifac"]:
+                            iface_val = getattr(link, iface_attr, None)
+                            if isinstance(iface_val, str) and iface_val.strip():
+                                active_call["path_interface"] = iface_val.strip()
+                                break
+                            iface_name = (
+                                getattr(iface_val, "name", None) if iface_val else None
+                            )
+                            if isinstance(iface_name, str) and iface_name.strip():
+                                active_call["path_interface"] = iface_name.strip()
+                                break
+
+                # Try multiple destination hashes; depending on LXST state, the
+                # active call hash is not always the route-resolvable destination.
+                for candidate_hex in [
+                    remote_telephony_hash,
+                    remote_hash,
+                    active_call["hash"],
+                    remote_destination_hash,
+                ]:
+                    if not candidate_hex:
+                        continue
+                    try:
+                        candidate_hash = bytes.fromhex(candidate_hex)
+                    except Exception:
+                        continue
+                    try:
+                        if not RNS.Transport.has_path(candidate_hash):
+                            continue
+                        active_call["path_hops"] = RNS.Transport.hops_to(candidate_hash)
+                        if hasattr(self, "reticulum") and self.reticulum:
+                            active_call["path_interface"] = (
+                                self.reticulum.get_next_hop_if_name(
+                                    candidate_hash,
+                                )
+                            )
+                        break
+                    except Exception:
+                        continue
 
             initiation_target_hash = self.telephone_manager.initiation_target_hash
             initiation_target_name = None
@@ -6887,6 +6936,9 @@ class ReticulumMeshChat:
                             "target_frame_time_ms",
                             None,
                         ),
+                        "diagnostics": self.web_audio_bridge.get_diagnostics()
+                        if hasattr(self.web_audio_bridge, "get_diagnostics")
+                        else None,
                     },
                 },
             )
@@ -6921,7 +6973,7 @@ class ReticulumMeshChat:
         # hangup active telephone call
         @routes.get("/api/v1/telephone/hangup")
         async def telephone_hangup(request):
-            await asyncio.to_thread(self.telephone_manager.hangup)
+            self.telephone_manager.request_hangup()
 
             return web.json_response(
                 {
@@ -12441,8 +12493,10 @@ class ReticulumMeshChat:
         if ctx.config.lxmf_local_propagation_node_enabled.get():
             ctx.message_router.announce_propagation_node()
 
-        # send announce for telephone
-        ctx.telephone_manager.announce(display_name=ctx.config.display_name.get())
+        # send announce for telephone (can be disabled to reduce unsolicited
+        # incoming telephony link attempts from public lxst.telephony announces)
+        if ctx.config.telephone_announce_enabled.get():
+            ctx.telephone_manager.announce(display_name=ctx.config.display_name.get())
 
         # tell websocket clients we just announced
         await self.send_announced_to_websocket_clients(context=ctx)
@@ -13040,6 +13094,11 @@ class ReticulumMeshChat:
         if "telephone_allow_calls_from_contacts_only" in data:
             self.config.telephone_allow_calls_from_contacts_only.set(
                 self._parse_bool(data["telephone_allow_calls_from_contacts_only"]),
+            )
+
+        if "telephone_announce_enabled" in data:
+            self.config.telephone_announce_enabled.set(
+                self._parse_bool(data["telephone_announce_enabled"]),
             )
 
         if "call_recording_enabled" in data:
@@ -14209,6 +14268,7 @@ class ReticulumMeshChat:
             "map_nominatim_api_url": ctx.config.map_nominatim_api_url.get(),
             "do_not_disturb_enabled": ctx.config.do_not_disturb_enabled.get(),
             "telephone_allow_calls_from_contacts_only": ctx.config.telephone_allow_calls_from_contacts_only.get(),
+            "telephone_announce_enabled": ctx.config.telephone_announce_enabled.get(),
             "telephone_audio_profile_id": ctx.config.telephone_audio_profile_id.get(),
             "telephone_web_audio_enabled": ctx.config.telephone_web_audio_enabled.get(),
             "telephone_web_audio_allow_fallback": ctx.config.telephone_web_audio_allow_fallback.get(),

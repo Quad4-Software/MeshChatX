@@ -208,4 +208,91 @@ describe("App.vue Modals", () => {
 
         expect(wrapper.vm.$refs.changelogModal.visible).toBe(true);
     });
+
+    it("playRingtone marks autoplay blocked on NotAllowedError", async () => {
+        const wrapper = mount(App, {
+            global: {
+                plugins: [router, vuetify, i18n],
+                stubs: {
+                    MaterialDesignIcon: true,
+                    LxmfUserIcon: true,
+                    NotificationBell: true,
+                    LanguageSelector: true,
+                    CallOverlay: true,
+                    CommandPalette: true,
+                    IntegrityWarningModal: true,
+                    VDialog: true,
+                    VCard: true,
+                    VCardText: true,
+                    VCardActions: true,
+                    VBtn: true,
+                    VIcon: true,
+                    VToolbar: true,
+                    VToolbarTitle: true,
+                    VSpacer: true,
+                    VProgressCircular: true,
+                    VCheckbox: true,
+                    VDivider: true,
+                },
+            },
+        });
+
+        await router.isReady();
+        await new Promise((resolve) => setTimeout(resolve, 50));
+
+        const err = new Error("autoplay blocked");
+        err.name = "NotAllowedError";
+        const play = vi.fn().mockRejectedValue(err);
+        wrapper.vm.ringtonePlayer = {
+            paused: true,
+            play,
+        };
+
+        wrapper.vm.playRingtone();
+        await Promise.resolve();
+
+        expect(wrapper.vm.ringtoneAutoplayBlocked).toBe(true);
+        expect(play).toHaveBeenCalledTimes(1);
+    });
+
+    it("onRingtoneUnlockGesture retries ringtone when incoming call still ringing", async () => {
+        const wrapper = mount(App, {
+            global: {
+                plugins: [router, vuetify, i18n],
+                stubs: {
+                    MaterialDesignIcon: true,
+                    LxmfUserIcon: true,
+                    NotificationBell: true,
+                    LanguageSelector: true,
+                    CallOverlay: true,
+                    CommandPalette: true,
+                    IntegrityWarningModal: true,
+                    VDialog: true,
+                    VCard: true,
+                    VCardText: true,
+                    VCardActions: true,
+                    VBtn: true,
+                    VIcon: true,
+                    VToolbar: true,
+                    VToolbarTitle: true,
+                    VSpacer: true,
+                    VProgressCircular: true,
+                    VCheckbox: true,
+                    VDivider: true,
+                },
+            },
+        });
+
+        await router.isReady();
+        await new Promise((resolve) => setTimeout(resolve, 50));
+
+        const playRingtone = vi.spyOn(wrapper.vm, "playRingtone").mockImplementation(() => {});
+        wrapper.vm.ringtoneAutoplayBlocked = true;
+        wrapper.vm.activeCall = { status: 4, is_incoming: true };
+
+        wrapper.vm.onRingtoneUnlockGesture();
+
+        expect(wrapper.vm.ringtoneAutoplayBlocked).toBe(false);
+        expect(playRingtone).toHaveBeenCalledTimes(1);
+    });
 });

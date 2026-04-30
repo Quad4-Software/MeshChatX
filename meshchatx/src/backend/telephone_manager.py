@@ -4,11 +4,13 @@ import asyncio
 import base64
 import contextlib
 import os
+import threading
 import time
 
 import RNS
 from LXST import Telephone
 
+from meshchatx.src.backend import reticulum_pathfinding
 from meshchatx.src.backend.meshchat_utils import (
     hex_identifier_to_bytes,
     normalize_hex_identifier,
@@ -116,14 +118,19 @@ class TelephoneManager:
             self.telephone = None
 
     def hangup(self):
+        self._update_initiation_status(None, None)
         if self.telephone:
             try:
                 self.telephone.hangup()
             except Exception as e:
                 RNS.log(f"TelephoneManager: Error during hangup: {e}", RNS.LOG_ERROR)
 
-        # Always clear initiation status on hangup to prevent "Dialing..." hang
+    def request_hangup(self):
+        # FIXME: Remove async hangup shim when LXST call() cancellation is non-blocking.
         self._update_initiation_status(None, None)
+        if not self.telephone:
+            return
+        threading.Thread(target=self.hangup, daemon=True).start()
 
     def register_ringing_callback(self, callback):
         self.on_ringing_callback = callback
@@ -221,6 +228,11 @@ class TelephoneManager:
         return not bool(self.initiation_status)
 
     async def _await_path(self, destination_hash: bytes, timeout_seconds: float):
+        # Reuse shared pathfinding behavior so stale/unresponsive routes are
+        # refreshed before we wait, mirroring the faster outbound LXMF path prep.
+        with contextlib.suppress(Exception):
+            reticulum_pathfinding.prepare_fresh_path_request(None, destination_hash)
+
         timeout_after = time.monotonic() + max(0.0, timeout_seconds)
         next_request_at = 0.0
 
@@ -234,7 +246,7 @@ class TelephoneManager:
             now = time.monotonic()
             if now >= next_request_at:
                 with contextlib.suppress(Exception):
-                    RNS.Transport.request_path(destination_hash)
+                    reticulum_pathfinding.nudge_path_request(destination_hash)
                 next_request_at = now + self._path_retry_interval_s
 
             await asyncio.sleep(self._path_poll_interval_s)
@@ -311,6 +323,10 @@ class TelephoneManager:
 
             if destination_identity is None:
                 self._update_initiation_status("Discovering path/identity...")
+                with contextlib.suppress(Exception):
+                    reticulum_pathfinding.prepare_fresh_path_request(
+                        None, destination_hash
+                    )
                 timeout_after = time.monotonic() + timeout_seconds
                 next_request_at = 0.0
 
@@ -322,7 +338,7 @@ class TelephoneManager:
                     now = time.monotonic()
                     if now >= next_request_at:
                         with contextlib.suppress(Exception):
-                            RNS.Transport.request_path(destination_hash)
+                            reticulum_pathfinding.nudge_path_request(destination_hash)
                         next_request_at = now + self._path_retry_interval_s
 
                     destination_identity = resolve_identity(destination_hash_hex)
@@ -335,10 +351,22 @@ class TelephoneManager:
                 msg = "Destination identity not found"
                 raise RuntimeError(msg)
 
-            if not RNS.Transport.has_path(destination_hash):
+            # FIXME: Remove telephony-destination pre-path lookup once LXST aligns
+            # identity-hash and telephony-destination path handling.
+            call_destination_hash = destination_hash
+            with contextlib.suppress(Exception):
+                call_destination_hash = RNS.Destination(
+                    destination_identity,
+                    RNS.Destination.OUT,
+                    RNS.Destination.SINGLE,
+                    "lxst",
+                    "telephony",
+                ).hash
+
+            if not RNS.Transport.has_path(call_destination_hash):
                 self._update_initiation_status("Requesting path...")
                 has_path = await self._await_path(
-                    destination_hash,
+                    call_destination_hash,
                     timeout_seconds=min(timeout_seconds, 10),
                 )
                 if self._is_initiation_cancelled():
@@ -390,8 +418,10 @@ class TelephoneManager:
                 await asyncio.sleep(self._status_poll_interval_s)
 
             if cancel_requested:
+                self._update_initiation_status(None, None)
                 with contextlib.suppress(Exception):
-                    self.telephone.hangup()
+                    # FIXME: Remove async hangup dispatch when LXST exposes cooperative cancellation.
+                    asyncio.create_task(asyncio.to_thread(self.telephone.hangup))
                 return None
 
             # If the task finished but we're still ringing or connecting,
@@ -462,74 +492,32 @@ class TelephoneManager:
 
     def mute_transmit(self):
         if self.telephone:
-            # Manual override as LXST internal muting can be buggy
-            if hasattr(self.telephone, "audio_input") and self.telephone.audio_input:
-                try:
-                    self.telephone.audio_input.stop()
-                except Exception as e:
-                    RNS.log(f"Failed to stop audio input for mute: {e}", RNS.LOG_ERROR)
-
-            # Still call the internal method just in case it does something useful
             try:
                 self.telephone.mute_transmit()
             except Exception:
                 pass
-
             self.transmit_muted = True
 
     def unmute_transmit(self):
         if self.telephone:
-            # Manual override as LXST internal muting can be buggy
-            if hasattr(self.telephone, "audio_input") and self.telephone.audio_input:
-                try:
-                    self.telephone.audio_input.start()
-                except Exception as e:
-                    RNS.log(
-                        f"Failed to start audio input for unmute: {e}",
-                        RNS.LOG_ERROR,
-                    )
-
-            # Still call the internal method just in case
             try:
                 self.telephone.unmute_transmit()
             except Exception:
                 pass
-
             self.transmit_muted = False
 
     def mute_receive(self):
         if self.telephone:
-            # Manual override as LXST internal muting can be buggy
-            if hasattr(self.telephone, "audio_output") and self.telephone.audio_output:
-                try:
-                    self.telephone.audio_output.stop()
-                except Exception as e:
-                    RNS.log(f"Failed to stop audio output for mute: {e}", RNS.LOG_ERROR)
-
-            # Still call the internal method just in case
             try:
                 self.telephone.mute_receive()
             except Exception:
                 pass
-
             self.receive_muted = True
 
     def unmute_receive(self):
         if self.telephone:
-            # Manual override as LXST internal muting can be buggy
-            if hasattr(self.telephone, "audio_output") and self.telephone.audio_output:
-                try:
-                    self.telephone.audio_output.start()
-                except Exception as e:
-                    RNS.log(
-                        f"Failed to start audio output for unmute: {e}",
-                        RNS.LOG_ERROR,
-                    )
-
-            # Still call the internal method just in case
             try:
                 self.telephone.unmute_receive()
             except Exception:
                 pass
-
             self.receive_muted = False

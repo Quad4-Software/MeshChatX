@@ -434,3 +434,53 @@ async def test_rapid_dial_cancel_soak_has_bounded_memory(telephone_manager):
 
     # Keep this lax enough for CI variance while still catching obvious leaks.
     assert peak < 80 * 1024 * 1024
+
+
+def test_request_hangup_clears_status_immediately_and_runs_hangup(telephone_manager):
+    telephone_manager.initiation_status = "Establishing link..."
+    telephone_manager.request_hangup()
+    assert telephone_manager.initiation_status is None
+    for _ in range(50):
+        if telephone_manager.telephone.hangup.called:
+            break
+        time.sleep(0.005)
+    assert telephone_manager.telephone.hangup.called
+
+
+@pytest.mark.asyncio
+async def test_initiate_checks_path_for_lxst_telephony_destination(telephone_manager):
+    destination_hash = bytes.fromhex("af" * 16)
+    telephony_destination_hash = bytes.fromhex("be" * 16)
+    observed_hashes = []
+    destination_identity = MagicMock()
+
+    def has_path(hash_bytes):
+        observed_hashes.append(hash_bytes)
+        return hash_bytes == telephony_destination_hash
+
+    fake_destination = MagicMock()
+    fake_destination.hash = telephony_destination_hash
+    telephone_manager.telephone.call.side_effect = lambda _identity: setattr(
+        telephone_manager.telephone, "call_status", 0
+    )
+
+    with (
+        patch(
+            "meshchatx.src.backend.telephone_manager.RNS.Identity.recall",
+            return_value=destination_identity,
+        ),
+        patch(
+            "meshchatx.src.backend.telephone_manager.RNS.Destination",
+            return_value=fake_destination,
+        ),
+        patch(
+            "meshchatx.src.backend.telephone_manager.RNS.Transport.has_path",
+            side_effect=has_path,
+        ),
+    ):
+        await asyncio.wait_for(
+            telephone_manager.initiate(destination_hash, timeout_seconds=1),
+            timeout=0.5,
+        )
+
+    assert telephony_destination_hash in observed_hashes
