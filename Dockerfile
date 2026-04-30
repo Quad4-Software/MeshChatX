@@ -14,7 +14,7 @@ ARG PYTHON_IMAGE=python:3.14.4-alpine3.23
 ARG PYTHON_HASH=sha256:dd4d2bd5b53d9b25a51da13addf2be586beebd5387e289e798e4083d94ca837a
 
 # ---- STAGE 1: Frontend Build ----
-FROM ${NODE_IMAGE}@${NODE_HASH} AS build-frontend
+FROM --platform=linux/amd64 ${NODE_IMAGE}@${NODE_HASH} AS build-frontend
 WORKDIR /src
 RUN apk add --no-cache git
 COPY package.json pnpm-lock.yaml vite.config.js ./

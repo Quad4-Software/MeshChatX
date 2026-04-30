@@ -10,7 +10,7 @@ ARG NODE_IMAGE=cgr.dev/chainguard/node:latest-dev
 ARG PYTHON_BUILD_IMAGE=cgr.dev/chainguard/python:latest-dev
 ARG PYTHON_RUNTIME_IMAGE=cgr.dev/chainguard/python:latest-dev
 
-FROM ${NODE_IMAGE} AS build-frontend
+FROM --platform=linux/amd64 ${NODE_IMAGE} AS build-frontend
 USER root
 WORKDIR /src
 RUN apk add --no-cache git
