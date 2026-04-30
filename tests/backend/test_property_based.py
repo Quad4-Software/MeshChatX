@@ -399,7 +399,12 @@ st_db_message = st.dictionaries(
 ).filter(lambda d: "created_at" in d and "updated_at" in d)
 
 
-@settings(suppress_health_check=[HealthCheck.too_slow])
+@settings(
+    suppress_health_check=[
+        HealthCheck.too_slow,
+        HealthCheck.filter_too_much,
+    ],
+)
 @given(db_message=st_db_message)
 def test_convert_db_lxmf_message_to_dict_robustness(db_message):
     # Fill in missing required keys for the function
