@@ -14,7 +14,14 @@ sys.path.append(os.getcwd())
 import json
 
 from meshchatx.src.backend.database import Database
+from meshchatx.src.backend.database.access_attempts import (
+    AccessAttemptsDAO,
+    user_agent_hash,
+)
+from meshchatx.src.backend.database.contacts import ContactsDAO
+from meshchatx.src.backend.database.map_drawings import MapDrawingsDAO
 from meshchatx.src.backend.database.telephone import TelephoneDAO
+from meshchatx.src.backend.database.voicemails import VoicemailDAO
 from meshchatx.src.backend.identity_manager import IdentityManager
 from tests.backend.benchmarking_utils import (
     benchmark,
@@ -52,6 +59,14 @@ class BackendBenchmarker:
             self.bench_identity_operations()
 
         self.bench_telephony_operations()
+        self.bench_contact_operations()
+        self.bench_config_operations()
+        self.bench_telemetry_operations()
+        self.bench_debug_log_operations()
+        self.bench_map_drawing_operations()
+        self.bench_voicemail_operations()
+        self.bench_access_attempt_operations()
+        self.bench_misc_operations()
 
         self.print_summary(json_output_path=json_output_path)
 
@@ -303,6 +318,298 @@ class BackendBenchmarker:
             )
 
         _, res = log_call()
+        self.results.append(res)
+
+    def bench_contact_operations(self):
+        dao = ContactsDAO(self.db.provider)
+        hashes = [secrets.token_hex(16) for _ in range(200)]
+
+        @benchmark("Contact Upsert (Batch of 100)", iterations=10)
+        def upsert_contacts():
+            with self.db.provider:
+                for i in range(100):
+                    dao.add_contact(
+                        name=f"Peer {i}",
+                        remote_identity_hash=random.choice(hashes),
+                        lxmf_address=secrets.token_hex(16),
+                    )
+
+        @benchmark("Get Contacts List", iterations=20)
+        def list_contacts():
+            return dao.get_contacts(limit=100)
+
+        @benchmark("Contact Search (LIKE query)", iterations=20)
+        def search_contacts():
+            return dao.get_contacts(search="Peer 1", limit=50)
+
+        @benchmark("Get Contact by Identity Hash", iterations=20)
+        def lookup_contact():
+            return dao.get_contact_by_identity_hash(random.choice(hashes))
+
+        _, res = upsert_contacts()
+        self.results.append(res)
+        for _ in range(5):
+            upsert_contacts()
+        _, res = list_contacts()
+        self.results.append(res)
+        _, res = search_contacts()
+        self.results.append(res)
+        _, res = lookup_contact()
+        self.results.append(res)
+
+    def bench_config_operations(self):
+        @benchmark("Config Set (50 keys)", iterations=20)
+        def set_config():
+            with self.db.provider:
+                for i in range(50):
+                    self.db.config.set(
+                        f"bench_key_{i}", f"value_{secrets.token_hex(4)}"
+                    )
+
+        @benchmark("Config Get (50 keys)", iterations=20)
+        def get_config():
+            for i in range(50):
+                self.db.config.get(f"bench_key_{i}")
+
+        _, res = set_config()
+        self.results.append(res)
+        _, res = get_config()
+        self.results.append(res)
+
+    def bench_telemetry_operations(self):
+        peers = [secrets.token_hex(16) for _ in range(50)]
+
+        @benchmark("Telemetry Upsert (Batch of 100)", iterations=10)
+        def upsert_telemetry():
+            with self.db.provider:
+                for _ in range(100):
+                    self.db.telemetry.upsert_telemetry(
+                        destination_hash=random.choice(peers),
+                        timestamp=time.time() - random.randint(0, 3600),
+                        data='{"battery":85,"temp":22}',
+                        received_from=secrets.token_hex(16),
+                    )
+
+        @benchmark("Get All Latest Telemetry", iterations=20)
+        def get_all_latest():
+            return self.db.telemetry.get_all_latest_telemetry()
+
+        @benchmark("Get Telemetry History (single peer)", iterations=20)
+        def get_history():
+            return self.db.telemetry.get_telemetry_history(peers[0], limit=50)
+
+        _, res = upsert_telemetry()
+        self.results.append(res)
+        for _ in range(5):
+            upsert_telemetry()
+        _, res = get_all_latest()
+        self.results.append(res)
+        _, res = get_history()
+        self.results.append(res)
+
+    def bench_debug_log_operations(self):
+        modules = ["meshchat", "database", "lxmf", "reticulum", "api"]
+
+        @benchmark("Debug Log Insert (Batch of 100)", iterations=10)
+        def insert_logs():
+            with self.db.provider:
+                for i in range(100):
+                    self.db.debug_logs.insert_log(
+                        level="INFO",
+                        module=random.choice(modules),
+                        message=f"bench log message {i}: " + secrets.token_hex(16),
+                    )
+
+        @benchmark("Get Debug Logs (filtered)", iterations=20)
+        def get_logs():
+            return self.db.debug_logs.get_logs(limit=100, module="meshchat")
+
+        @benchmark("Debug Log Cleanup (trim to 10k)", iterations=5)
+        def cleanup_logs():
+            return self.db.debug_logs.cleanup_old_logs(max_logs=10000)
+
+        _, res = insert_logs()
+        self.results.append(res)
+        for _ in range(10):
+            insert_logs()
+        _, res = get_logs()
+        self.results.append(res)
+        _, res = cleanup_logs()
+        self.results.append(res)
+
+    def bench_map_drawing_operations(self):
+        dao = MapDrawingsDAO(self.db.provider)
+        identity_hashes = [secrets.token_hex(16) for _ in range(10)]
+        drawing_data = (
+            '{"type":"FeatureCollection","features":['
+            + ",".join(
+                [
+                    '{"type":"Feature","geometry":{"type":"Point","coordinates":[0,0]},"properties":{}}'
+                ]
+                * 20
+            )
+            + "]}"
+        )
+
+        @benchmark("Map Drawing Upsert", iterations=20)
+        def upsert_drawing():
+            with self.db.provider:
+                dao.upsert_drawing(
+                    identity_hash=random.choice(identity_hashes),
+                    name=f"route_{random.randint(0, 10)}",
+                    data=drawing_data,
+                )
+
+        @benchmark("Get Map Drawings for Identity", iterations=20)
+        def get_drawings():
+            return dao.get_drawings(random.choice(identity_hashes))
+
+        _, res = upsert_drawing()
+        self.results.append(res)
+        for _ in range(10):
+            upsert_drawing()
+        _, res = get_drawings()
+        self.results.append(res)
+
+    def bench_voicemail_operations(self):
+        dao = VoicemailDAO(self.db.provider)
+        peers = [secrets.token_hex(16) for _ in range(20)]
+
+        @benchmark("Voicemail Add (Batch of 50)", iterations=10)
+        def add_voicemails():
+            with self.db.provider:
+                for i in range(50):
+                    dao.add_voicemail(
+                        remote_identity_hash=random.choice(peers),
+                        remote_identity_name=f"Peer {i}",
+                        filename=f"vm_{secrets.token_hex(8)}.opus",
+                        duration_seconds=random.randint(5, 300),
+                        timestamp=time.time() - random.randint(0, 86400),
+                    )
+
+        @benchmark("Get Voicemails List", iterations=20)
+        def get_voicemails():
+            return dao.get_voicemails(limit=50)
+
+        @benchmark("Get Voicemail Unread Count", iterations=20)
+        def unread_count():
+            return dao.get_unread_count()
+
+        _, res = add_voicemails()
+        self.results.append(res)
+        for _ in range(3):
+            add_voicemails()
+        _, res = get_voicemails()
+        self.results.append(res)
+        _, res = unread_count()
+        self.results.append(res)
+
+    def bench_access_attempt_operations(self):
+        dao = AccessAttemptsDAO(self.db.provider)
+        identity_hash = secrets.token_hex(16)
+        ips = [f"192.168.1.{i}" for i in range(50)]
+        ua = "Mozilla/5.0 (bench)"
+        ua_h = user_agent_hash(ua)
+
+        @benchmark("Access Attempt Insert (Batch of 100)", iterations=10)
+        def insert_attempts():
+            with self.db.provider:
+                for _ in range(100):
+                    dao.insert(
+                        identity_hash=identity_hash,
+                        client_ip=random.choice(ips),
+                        user_agent=ua,
+                        path="/api/v1/auth/login",
+                        method="POST",
+                        outcome=random.choice(["success", "failed_password"]),
+                    )
+
+        @benchmark("Access Attempt Count by IP", iterations=20)
+        def count_by_ip():
+            return dao.count_login_attempts_ip(
+                client_ip=random.choice(ips),
+                path="/api/v1/auth/login",
+                since_ts=time.time() - 60,
+            )
+
+        @benchmark("Lockout Failure Count (correlated subquery)", iterations=20)
+        def count_lockout():
+            return dao.count_lockout_failures(
+                identity_hash=identity_hash,
+                client_ip=random.choice(ips),
+                since_ts=time.time() - 900,
+            )
+
+        @benchmark("Upsert Trusted Client", iterations=20)
+        def upsert_trusted():
+            with self.db.provider:
+                dao.upsert_trusted(identity_hash, random.choice(ips), ua_h)
+
+        _, res = insert_attempts()
+        self.results.append(res)
+        for _ in range(10):
+            insert_attempts()
+        _, res = count_by_ip()
+        self.results.append(res)
+        _, res = count_lockout()
+        self.results.append(res)
+        _, res = upsert_trusted()
+        self.results.append(res)
+
+    def bench_misc_operations(self):
+        dest_hashes = [secrets.token_hex(16) for _ in range(100)]
+
+        @benchmark("Blocked Destination Add + Check (hot path)", iterations=20)
+        def blocked_dest_roundtrip():
+            h = random.choice(dest_hashes)
+            with self.db.provider:
+                self.db.misc.add_blocked_destination(h)
+            return self.db.misc.is_destination_blocked(h)
+
+        @benchmark("Get Blocked Destinations List", iterations=20)
+        def get_blocked():
+            return self.db.misc.get_blocked_destinations()
+
+        @benchmark("User Icon Upsert + Lookup", iterations=20)
+        def icon_roundtrip():
+            h = random.choice(dest_hashes)
+            with self.db.provider:
+                self.db.misc.update_lxmf_user_icon(h, "person", "#ffffff", "#000000")
+            return self.db.misc.get_user_icon(h)
+
+        @benchmark("User Icons Multi-Lookup (50 hashes)", iterations=20)
+        def icon_multi_lookup():
+            sample = random.sample(dest_hashes, min(50, len(dest_hashes)))
+            return self.db.misc.get_user_icons(sample)
+
+        @benchmark("Notification Add + Unread Count", iterations=20)
+        def notification_roundtrip():
+            with self.db.provider:
+                self.db.misc.add_notification(
+                    notification_type="message",
+                    remote_hash=random.choice(dest_hashes),
+                    title="bench",
+                    content="bench notification content",
+                )
+            return self.db.misc.get_unread_notification_count()
+
+        for _ in range(50):
+            with self.db.provider:
+                self.db.misc.add_blocked_destination(random.choice(dest_hashes))
+            with self.db.provider:
+                self.db.misc.update_lxmf_user_icon(
+                    random.choice(dest_hashes), "person", "#fff", "#000"
+                )
+
+        _, res = blocked_dest_roundtrip()
+        self.results.append(res)
+        _, res = get_blocked()
+        self.results.append(res)
+        _, res = icon_roundtrip()
+        self.results.append(res)
+        _, res = icon_multi_lookup()
+        self.results.append(res)
+        _, res = notification_roundtrip()
         self.results.append(res)
 
     def print_summary(self, json_output_path=None):
