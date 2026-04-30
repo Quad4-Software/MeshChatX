@@ -51,7 +51,7 @@ public class MeshChatApplication extends PyApplication {
         NotificationChannel messages = new NotificationChannel(
             CHANNEL_ID_MESSAGES,
             getString(R.string.notification_channel_messages_name),
-            NotificationManager.IMPORTANCE_DEFAULT
+            NotificationManager.IMPORTANCE_HIGH
         );
         messages.setDescription(getString(R.string.notification_channel_messages_desc));
         nm.createNotificationChannel(messages);

@@ -32,6 +32,7 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.core.app.ActivityCompat;
@@ -196,33 +197,35 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                if (!isStartupRequest(url)) {
+                if (!startupPageLoaded) {
+                    if (!isStartupRequest(url)) {
+                        return;
+                    }
+                    if (startupRequestHadLoadError) {
+                        return;
+                    }
+                    startupPageLoaded = true;
+                    mainHandler.removeCallbacksAndMessages(null);
+                    hideStartupLoadingOverlay();
+                    dispatchPendingIntentUri();
+                    dispatchCallNotificationAction();
                     return;
                 }
-                if (startupRequestHadLoadError) {
-                    return;
-                }
-                startupPageLoaded = true;
-                mainHandler.removeCallbacksAndMessages(null);
-                webView.setVisibility(android.view.View.VISIBLE);
-                loadingLogo.setVisibility(android.view.View.GONE);
-                progressBar.setVisibility(android.view.View.GONE);
-                loadingText.setVisibility(android.view.View.GONE);
-                errorText.setVisibility(android.view.View.GONE);
-                dispatchPendingIntentUri();
-                dispatchCallNotificationAction();
+                hideStartupLoadingOverlay();
             }
 
             @Override
             public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);
-                if (isStartupRequest(url)) {
+                if (!startupPageLoaded && isStartupRequest(url)) {
                     startupRequestHadLoadError = false;
-                    if (!startupPageLoaded) {
-                        webView.setVisibility(android.view.View.INVISIBLE);
-                    }
+                    webView.setVisibility(android.view.View.INVISIBLE);
+                    progressBar.setVisibility(android.view.View.VISIBLE);
+                    return;
                 }
-                progressBar.setVisibility(android.view.View.VISIBLE);
+                if (!startupPageLoaded) {
+                    progressBar.setVisibility(android.view.View.VISIBLE);
+                }
             }
 
             @Override
@@ -370,6 +373,22 @@ public class MainActivity extends AppCompatActivity {
         });
         handleIncomingIntent(getIntent());
         consumeCallIntentForPending(getIntent());
+
+        getOnBackPressedDispatcher().addCallback(
+            this,
+            new OnBackPressedCallback(true) {
+                @Override
+                public void handleOnBackPressed() {
+                    if (webView != null && webView.canGoBack()) {
+                        webView.goBack();
+                    } else {
+                        setEnabled(false);
+                        MainActivity.this.getOnBackPressedDispatcher().onBackPressed();
+                        setEnabled(true);
+                    }
+                }
+            }
+        );
 
         startMeshChatServer();
         scheduleConnectionRetry("Connecting to local server...");
@@ -674,6 +693,24 @@ public class MainActivity extends AppCompatActivity {
         return sw.toString();
     }
 
+    private void hideStartupLoadingOverlay() {
+        if (webView != null) {
+            webView.setVisibility(android.view.View.VISIBLE);
+        }
+        if (loadingLogo != null) {
+            loadingLogo.setVisibility(android.view.View.GONE);
+        }
+        if (progressBar != null) {
+            progressBar.setVisibility(android.view.View.GONE);
+        }
+        if (loadingText != null) {
+            loadingText.setVisibility(android.view.View.GONE);
+        }
+        if (errorText != null && !backendFailed) {
+            errorText.setVisibility(android.view.View.GONE);
+        }
+    }
+
     private void showStartupError(String message) {
         runOnUiThread(() -> {
             mainHandler.removeCallbacksAndMessages(null);
@@ -716,15 +753,6 @@ public class MainActivity extends AppCompatActivity {
             return phase;
         }
         return phase + " (" + connectionAttempts + "/" + MAX_CONNECTION_ATTEMPTS + ")";
-    }
-
-    @Override
-    public void onBackPressed() {
-        if (webView.canGoBack()) {
-            webView.goBack();
-        } else {
-            super.onBackPressed();
-        }
     }
 
     @Override

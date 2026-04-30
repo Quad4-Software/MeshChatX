@@ -229,6 +229,22 @@ public final class AndroidNotificationBridge {
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
 
+        int id = NOTIFY_BASE_ID;
+        if (dedupeHex != null && dedupeHex.length() >= 8) {
+            try {
+                id = NOTIFY_BASE_ID
+                    + (int) (Long.parseLong(
+                        dedupeHex.substring(0, Math.min(8, dedupeHex.length())), 16) & 0x7fff_ffff);
+            } catch (NumberFormatException ignored) {
+                id = NOTIFY_BASE_ID + (dedupeHex.hashCode() & 0x7fff_ffff);
+            }
+        }
+
+        try {
+            nm.cancel(id);
+        } catch (Exception ignored) {
+        }
+
         NotificationCompat.Builder b = new NotificationCompat.Builder(ctx, MeshChatApplication.CHANNEL_ID_MESSAGES)
             .setSmallIcon(R.drawable.ic_stat_meshchatx)
             .setContentTitle(title)
@@ -237,16 +253,9 @@ public final class AndroidNotificationBridge {
             .setContentIntent(pi)
             .setAutoCancel(true)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
-            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE);
-
-        int id = NOTIFY_BASE_ID;
-        if (dedupeHex != null && dedupeHex.length() >= 8) {
-            try {
-                id = NOTIFY_BASE_ID + (int) (Long.parseLong(dedupeHex.substring(0, Math.min(8, dedupeHex.length())), 16) & 0x7fff_ffff);
-            } catch (NumberFormatException ignored) {
-                id = NOTIFY_BASE_ID + (dedupeHex.hashCode() & 0x7fff_ffff);
-            }
-        }
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
+            .setOnlyAlertOnce(false);
 
         try {
             nm.notify(id, b.build());
