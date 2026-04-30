@@ -26,6 +26,7 @@ concurrency:
 
 permissions:
     contents: write
+    pull-requests: write
 
 env:
     FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -103,7 +104,12 @@ jobs:
                   output-file-path: bench_results.json
                   external-data-json-path: ./cache/benchmark-data.json
                   github-token: ${{ secrets.GITHUB_TOKEN }}
-                  alert-threshold: "150%"
+                  # GitHub shared runners have 20-40% variance even with identical
+                  # code. alert-threshold posts a comment; fail-threshold fails
+                  # the job. Sub-ms operations are especially noisy so we keep
+                  # the comment bar at 2x and the hard-fail bar at 3x.
+                  alert-threshold: "200%"
+                  fail-threshold: "300%"
                   fail-on-alert: true
                   comment-on-alert: true
                   summary-always: true
