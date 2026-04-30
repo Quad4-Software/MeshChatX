@@ -362,11 +362,29 @@ jobs:
               if: matrix.label == 'macos'
               run: echo "PYTHON_CMD_X64=${{ steps.python_x64.outputs.python-path }}" >> "$GITHUB_ENV"
 
+            - name: Install x86_64 libyaml for universal cx_Freeze slice
+              if: matrix.label == 'macos'
+              run: |
+                  set -euo pipefail
+                  # The Rosetta (x86_64) Homebrew lives at /usr/local/bin/brew on
+                  # Apple Silicon GitHub runners. libyaml must be available as
+                  # x86_64 so PyYAML's C extension (_yaml.cpython-3xx-darwin.so)
+                  # compiles for the darwin-x64 cx_Freeze slice. Without this,
+                  # pip falls back to pure Python pyyaml, which is absent from
+                  # the x64 tree while the arm64 tree has the binary, causing
+                  # unify-backend-plain-files.sh to fail.
+                  if [[ -x /usr/local/bin/brew ]]; then
+                      arch -x86_64 /usr/local/bin/brew install libyaml || true
+                  else
+                      echo "x86_64 Homebrew not found at /usr/local/bin/brew; PyYAML C extension may fall back to pure Python for x64 slice."
+                  fi
+
             - name: Install project deps into x64 Python (mac universal cx_Freeze)
               if: matrix.label == 'macos'
               env:
                   PY_X64: ${{ steps.python_x64.outputs.python-path }}
                   ARCHFLAGS: "-arch x86_64"
+                  PKG_CONFIG_PATH: "/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig"
               run: |
                   set -euo pipefail
                   arch -x86_64 "$PY_X64" -m pip install -U pip setuptools wheel

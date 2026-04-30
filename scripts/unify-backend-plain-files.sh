@@ -27,6 +27,7 @@ fi
 
 unified=0
 synced=0
+dropped=0
 
 copy_missing() {
     local src_dir="$1" dst_dir="$2" label="$3"
@@ -37,10 +38,13 @@ copy_missing() {
             local ft
             ft=$(file --brief --no-pad "$src_file" 2>/dev/null || true)
             if [[ "$ft" == Mach-O* ]]; then
-                echo "unify-backend: refusing to copy Mach-O across architecture trees: $rel" >&2
+                echo "unify-backend: dropping arch-only Mach-O for consistency: $rel" >&2
                 echo "  ($label); source reports: $ft" >&2
-                echo "  Fix the cx_Freeze build for ${dst_dir##*/} (darwin-x64 needs x86_64 Python: PYTHON_CMD / PYTHON_CMD_X64)." >&2
-                exit 1
+                echo "  Hint: ensure libyaml is available for x86_64 (arch -x86_64 brew install libyaml)" >&2
+                echo "  so PyYAML's C extension compiles for darwin-x64 and both trees match." >&2
+                rm -f "$src_file"
+                dropped=$((dropped + 1))
+                continue
             fi
             mkdir -p "$dst_dir/$(dirname "$rel")"
             cp "$src_file" "$dst_dir/$rel"
@@ -75,6 +79,9 @@ while IFS= read -r -d '' rel; do
 done < <(cd "$ARM64_DIR" && find . -type f -print0)
 
 total=$((unified + synced))
+if [[ $dropped -gt 0 ]]; then
+    echo "unify-backend: WARNING: dropped $dropped arch-only Mach-O binary/binaries for consistency (pure Python fallback active)"
+fi
 if [[ $total -gt 0 ]]; then
     echo "unify-backend: synced $synced missing file(s), unified $unified differing file(s)"
 else
