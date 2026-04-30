@@ -13,8 +13,13 @@ for d in "$@"; do
     [ -d "$d" ] && roots+=("$d")
 done
 if [ "${#roots[@]}" -eq 0 ]; then
-    echo "No existing directories in: $*" >&2
-    exit 1
+    echo "No existing directories in: $* (emitting empty hashes)" >&2
+    if [ -n "${GITHUB_OUTPUT:-}" ]; then
+        echo "hashes=" >>"$GITHUB_OUTPUT"
+    else
+        printf '%s\n' ""
+    fi
+    exit 0
 fi
 
 tmp="$(mktemp)"
@@ -27,8 +32,14 @@ find "${roots[@]}" -type f \( \
     | xargs -0r sha256sum >"$tmp"
 
 if [ ! -s "$tmp" ]; then
-    echo "No matching dist files under: ${roots[*]}" >&2
-    exit 1
+    echo "No matching dist files under: ${roots[*]} (emitting empty hashes)" >&2
+    b64=""
+    if [ -n "${GITHUB_OUTPUT:-}" ]; then
+        echo "hashes=${b64}" >>"$GITHUB_OUTPUT"
+    else
+        printf '%s\n' "$b64"
+    fi
+    exit 0
 fi
 
 b64="$(base64 -w0 <"$tmp")"

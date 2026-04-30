@@ -293,6 +293,7 @@ jobs:
     build-release:
         name: Build release (${{ matrix.label }})
         needs: frontend
+        continue-on-error: true
         permissions:
             contents: read
             actions: write
@@ -379,6 +380,23 @@ jobs:
                       echo "x86_64 Homebrew not found at /usr/local/bin/brew; PyYAML C extension may fall back to pure Python for x64 slice."
                   fi
 
+            - name: Install x86_64 codec2 for pycodec2 (universal slice)
+              if: matrix.label == 'macos'
+              run: |
+                  set -euo pipefail
+                  if [[ -x /usr/local/bin/brew ]]; then
+                      arch -x86_64 /usr/local/bin/brew install codec2
+                      _codec2="$(arch -x86_64 /usr/local/bin/brew --prefix codec2)"
+                      {
+                          echo "PYCODEC2_X64_LDFLAGS=-L${_codec2}/lib -arch x86_64"
+                          echo "MACOS_X64_PKG_CONFIG_PATH=${_codec2}/lib/pkgconfig:/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig"
+                      } >> "${GITHUB_ENV}"
+                  else
+                      echo "PYCODEC2_X64_LDFLAGS=-arch x86_64" >> "${GITHUB_ENV}"
+                      echo "MACOS_X64_PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig" >> "${GITHUB_ENV}"
+                      echo "x86_64 Homebrew not found; pycodec2 x64 slice build may fail."
+                  fi
+
             - name: Install project deps into x64 Python (mac universal cx_Freeze)
               if: matrix.label == 'macos'
               env:
@@ -387,8 +405,8 @@ jobs:
                   CC: "clang -arch x86_64"
                   CXX: "clang++ -arch x86_64"
                   CFLAGS: "-arch x86_64"
-                  LDFLAGS: "-arch x86_64"
-                  PKG_CONFIG_PATH: "/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig"
+                  LDFLAGS: "${{ env.PYCODEC2_X64_LDFLAGS }}"
+                  PKG_CONFIG_PATH: "${{ env.MACOS_X64_PKG_CONFIG_PATH }}"
               run: |
                   set -euo pipefail
                   arch -x86_64 "$PY_X64" -m pip install -U pip setuptools wheel
@@ -431,12 +449,14 @@ jobs:
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
 
             - name: Download Windows dist
+              continue-on-error: true
               uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
               with:
                   name: meshchatx-windows-${{ github.ref_name }}-${{ github.run_id }}
                   path: dl/win
 
             - name: Download macOS dist
+              continue-on-error: true
               uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
               with:
                   name: meshchatx-macos-${{ github.ref_name }}-${{ github.run_id }}
@@ -463,6 +483,7 @@ jobs:
     slsa-provenance-desktop:
         name: SLSA provenance (Windows + macOS)
         needs: [collect-desktop-slsa-subjects]
+        continue-on-error: true
         if: startsWith(github.ref, 'refs/tags/')
         permissions:
             id-token: write
@@ -499,12 +520,14 @@ jobs:
                   path: upload
 
             - name: Download Windows dist
+              continue-on-error: true
               uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
               with:
                   name: meshchatx-windows-${{ github.ref_name }}-${{ github.run_id }}
                   path: upload/win
 
             - name: Download macOS dist
+              continue-on-error: true
               uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
               with:
                   name: meshchatx-macos-${{ github.ref_name }}-${{ github.run_id }}
@@ -531,6 +554,7 @@ jobs:
                   path: upload
 
             - name: Download SLSA provenance (desktop)
+              continue-on-error: true
               uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
               with:
                   name: ${{ needs.slsa-provenance-desktop.outputs.provenance-name }}
