@@ -7,12 +7,7 @@
 #
 # Python bytecode (.pyc inside library.zip) is architecture-independent;
 # only timestamps and zip metadata cause SHA differences.
-#
-# Native Mach-O binaries (.so/.dylib on darwin) must never be copied from one
-# architecture slice to the other: @electron/universal runs lipo on matching
-# paths and requires x86_64 in the x64 tree and arm64 in the arm64 tree.
-# Copying arm64 .so into darwin-x64 breaks universal packaging (lipo: same
-# architectures). Non-binary files may still be synced when missing.
+
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -28,6 +23,7 @@ fi
 unified=0
 synced=0
 dropped=0
+normalized=0
 
 copy_missing() {
     local src_dir="$1" dst_dir="$2" label="$3"
@@ -69,21 +65,36 @@ while IFS= read -r -d '' rel; do
     fi
 
     filetype=$(file --brief --no-pad "$arm64_file" 2>/dev/null || true)
-    if [[ "$filetype" == Mach-O* ]]; then
+    if [[ "$filetype" != Mach-O* ]]; then
+        cp "$arm64_file" "$x64_file"
+        echo "  unified: $rel"
+        unified=$((unified + 1))
         continue
     fi
 
-    cp "$arm64_file" "$x64_file"
-    echo "  unified: $rel"
-    unified=$((unified + 1))
+    x64_filetype=$(file --brief --no-pad "$x64_file" 2>/dev/null || true)
+    if [[ "$x64_filetype" == Mach-O* ]] &&
+       [[ "$x64_filetype" == *arm64* ]] &&
+       [[ "$x64_filetype" != *universal* ]] &&
+       [[ "$x64_filetype" != *x86_64* ]]; then
+        cp "$arm64_file" "$x64_file"
+        echo "unify-backend: normalized same-arch Mach-O (arm64 in both trees): $rel" >&2
+        echo "  x64 copy replaced with arm64 tree's bytes; @electron/universal" >&2
+        echo "  will use x64ArchFiles to skip lipo.  For a true universal2 binary," >&2
+        echo "  ensure the x64 Python env compiles with CC=\"clang -arch x86_64\"." >&2
+        normalized=$((normalized + 1))
+    fi
 done < <(cd "$ARM64_DIR" && find . -type f -print0)
 
-total=$((unified + synced))
+total=$((unified + synced + normalized))
 if [[ $dropped -gt 0 ]]; then
     echo "unify-backend: WARNING: dropped $dropped arch-only Mach-O binary/binaries for consistency (pure Python fallback active)"
 fi
+if [[ $normalized -gt 0 ]]; then
+    echo "unify-backend: WARNING: normalized $normalized same-arch Mach-O file(s) (both trees had arm64; x64ArchFiles will skip lipo)"
+fi
 if [[ $total -gt 0 ]]; then
-    echo "unify-backend: synced $synced missing file(s), unified $unified differing file(s)"
+    echo "unify-backend: synced $synced missing file(s), unified $unified differing file(s), normalized $normalized same-arch file(s)"
 else
     echo "unify-backend: all files already identical and present in both trees"
 fi

@@ -384,6 +384,10 @@ jobs:
               env:
                   PY_X64: ${{ steps.python_x64.outputs.python-path }}
                   ARCHFLAGS: "-arch x86_64"
+                  CC: "clang -arch x86_64"
+                  CXX: "clang++ -arch x86_64"
+                  CFLAGS: "-arch x86_64"
+                  LDFLAGS: "-arch x86_64"
                   PKG_CONFIG_PATH: "/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig"
               run: |
                   set -euo pipefail
