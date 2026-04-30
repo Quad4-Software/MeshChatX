@@ -758,6 +758,8 @@
         "contact_support_title": "联系与支持",
         "contact_lxmf_address": "LXMF 地址",
         "contact_propagation_hint": "若无法直接联系我，请发送至传播节点。",
+        "contact_open_messages": "打开对话",
+        "contact_copy_address": "复制地址",
         "donate_label": "捐赠",
         "donate_monero_label": "Monero（XMR）",
         "donate_copy_monero": "复制 Monero 地址",
@@ -899,7 +901,14 @@
         "rnode_ble_hint": "Reticulum 通过 bleak 在运行 MeshChatX 的设备上使用 BLE。请先在系统中配对或绑定 RNode。纯网页或远程界面无法将 BLE 交给 Reticulum；请使用内置 Python 且包含 bleak 的 Electron、Linux、macOS、Windows 或 Android 应用。在 Android 上仍需遵循系统常规的配对、硬件支持与权限提示。",
         "rnode_ble_peer_label": "BLE 名称或 MAC",
         "rnode_ble_peer_placeholder": "MyRNode 或 aa:bb:cc:dd:ee:ff",
-        "rnode_ble_peer_required": "请输入 RNode 的广播名称或 MAC 地址。"
+        "rnode_ble_peer_required": "请输入 RNode 的广播名称或 MAC 地址。",
+        "rnode_ip_host_label": "主机名或 IP 地址",
+        "rnode_tcp_port_fixed_hint": "Reticulum 使用 TCP 7633 连接 RNode；只需填写主机名或 IP，不要加 :端口。",
+        "rnode_tcp_host_required": "请填写 RNode TCP 连接的主机名或 IP。",
+        "listen_ip_required": "Listen IP 为必填项。",
+        "kernel_iface_picker_title": "本机网络接口",
+        "kernel_iface_loading": "加载中…",
+        "kernel_iface_picker_help": "“设备”为可选，填写一个内核网卡名，或留空仅按 Listen IP 绑定。点击一行填入输入框。"
     },
     "map": {
         "title": "地图",

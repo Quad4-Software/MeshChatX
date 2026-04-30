@@ -810,6 +810,8 @@
         "contact_support_title": "Contatto e supporto",
         "contact_lxmf_address": "Indirizzo LXMF",
         "contact_propagation_hint": "Invia al nodo di propagazione se non riesci a raggiungermi direttamente.",
+        "contact_open_messages": "Apri conversazione",
+        "contact_copy_address": "Copia indirizzo",
         "donate_label": "Dona",
         "donate_monero_label": "Monero (XMR)",
         "donate_copy_monero": "Copia indirizzo Monero",
@@ -951,7 +953,14 @@
         "rnode_ble_hint": "Reticulum usa il BLE tramite bleak sul dispositivo che esegue MeshChatX. Associare o accoppiare prima l'RNode nel sistema. Solo browser o interfaccia remota non possono collegare il BLE a Reticulum; usare Electron, Linux, macOS, Windows o l'app Android, dove Python integrato include bleak. Su Android valgono come sempre accoppiamento, hardware e richieste di permesso del sistema.",
         "rnode_ble_peer_label": "Nome BLE o MAC",
         "rnode_ble_peer_placeholder": "MyRNode o aa:bb:cc:dd:ee:ff",
-        "rnode_ble_peer_required": "Inserire il nome annunciato o il MAC dell'RNode."
+        "rnode_ble_peer_required": "Inserire il nome annunciato o il MAC dell'RNode.",
+        "rnode_ip_host_label": "Nome host o indirizzo IP",
+        "rnode_tcp_port_fixed_hint": "Reticulum usa la porta TCP 7633 sull'RNode; inserire solo host o IP (senza :porta).",
+        "rnode_tcp_host_required": "Inserire host o IP per l'RNode via TCP.",
+        "listen_ip_required": "L'IP di ascolto è obbligatoria.",
+        "kernel_iface_picker_title": "Interfacce su questo host",
+        "kernel_iface_loading": "Caricamento…",
+        "kernel_iface_picker_help": "Il dispositivo è facoltativo: un solo nome di interfaccia del kernel, o lascia vuoto e lega solo con l'IP di ascolto. Clic su una riga per compilare."
     },
     "map": {
         "title": "Mappa",

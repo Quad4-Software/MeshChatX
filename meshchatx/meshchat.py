@@ -237,6 +237,34 @@ def _python_jit_status_line() -> str:
     return "Python JIT: enabled" if enabled else "Python JIT: disabled"
 
 
+def list_host_network_interfaces():
+    """Enumerate kernel network interfaces on the host running MeshChat.
+
+    Uses psutil (Linux, macOS, Windows). Fails soft on restricted environments
+    (e.g. some Android sandboxes) and returns ``([], error)``.
+
+    Reticulum's ``device`` field on server-style interfaces is a *single* interface
+    name, or omitted when binding only via ``listen_ip``.
+    """
+    try:
+        raw = psutil.net_if_addrs()
+    except Exception as exc:
+        logging.debug("list_host_network_interfaces: net_if_addrs failed: %s", exc)
+        return [], str(exc)
+    out: list[dict[str, object]] = []
+    for name in sorted(raw.keys(), key=lambda n: str(n).lower()):
+        addrs: list[str] = []
+        for addr in raw[name]:
+            if addr.family == socket.AF_INET:
+                addrs.append(addr.address)
+            elif addr.family == socket.AF_INET6:
+                if addr.address.startswith("fe80:"):
+                    continue
+                addrs.append(addr.address)
+        out.append({"name": name, "addresses": addrs})
+    return out, None
+
+
 class ReticulumMeshChat:
     def __init__(
         self,
@@ -3835,6 +3863,15 @@ class ReticulumMeshChat:
                 },
             )
 
+        @routes.get("/api/v1/system/network-interfaces")
+        async def system_network_interfaces(request):
+            interfaces, unavailable_reason = list_host_network_interfaces()
+            payload = {
+                "interfaces": interfaces,
+                "unavailable_reason": unavailable_reason,
+            }
+            return web.json_response(payload)
+
         @routes.get("/api/v1/tools/rnode/latest_release")
         async def tools_rnode_latest_release(request):
             """Proxy GitHub's latest-release JSON for RNode firmware (official repo).
@@ -4430,7 +4467,14 @@ class ReticulumMeshChat:
             if interface_type == "TCPServerInterface":
                 # ensure listen ip provided
                 interface_listen_ip = data.get("listen_ip")
-                if interface_listen_ip is None or interface_listen_ip == "":
+                if (
+                    interface_listen_ip is not None
+                    and str(interface_listen_ip).strip() != ""
+                ):
+                    interface_listen_ip = str(interface_listen_ip).strip()
+                else:
+                    interface_listen_ip = ""
+                if interface_listen_ip == "":
                     return web.json_response(
                         {
                             "message": "Listen IP is required",
@@ -4479,7 +4523,14 @@ class ReticulumMeshChat:
             if interface_type == "UDPInterface":
                 # ensure listen ip provided
                 interface_listen_ip = data.get("listen_ip")
-                if interface_listen_ip is None or interface_listen_ip == "":
+                if (
+                    interface_listen_ip is not None
+                    and str(interface_listen_ip).strip() != ""
+                ):
+                    interface_listen_ip = str(interface_listen_ip).strip()
+                else:
+                    interface_listen_ip = ""
+                if interface_listen_ip == "":
                     return web.json_response(
                         {
                             "message": "Listen IP is required",
@@ -4558,6 +4609,19 @@ class ReticulumMeshChat:
                         },
                         status=422,
                     )
+
+                if str(interface_port).strip().lower().startswith("tcp://"):
+                    interface_port = InterfaceEditor.normalize_rnode_tcp_port(
+                        str(interface_port),
+                    )
+                    host_part = str(interface_port)[len("tcp://") :].strip().strip(":")
+                    if not host_part:
+                        return web.json_response(
+                            {
+                                "message": "TCP host is required for RNode over IP",
+                            },
+                            status=422,
+                        )
 
                 # ensure frequency provided
                 interface_frequency = data.get("frequency")

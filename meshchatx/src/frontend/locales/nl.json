@@ -758,6 +758,8 @@
         "contact_support_title": "Contact & ondersteuning",
         "contact_lxmf_address": "LXMF-adres",
         "contact_propagation_hint": "Stuur naar het propagatieknooppunt als je me niet direct kunt bereiken.",
+        "contact_open_messages": "Gesprek openen",
+        "contact_copy_address": "Adres kopiëren",
         "donate_label": "Doneren",
         "donate_monero_label": "Monero (XMR)",
         "donate_copy_monero": "Monero-adres kopiëren",
@@ -899,7 +901,14 @@
         "rnode_ble_hint": "Reticulum gebruikt BLE via bleak op het apparaat waar MeshChatX draait. Koppel of verbind de RNode eerst in het besturingssysteem. Met alleen een browser of een externe UI kunt u geen BLE aan Reticulum koppelen; gebruik Electron, Linux, macOS, Windows of de Android-app, waar ingebed Python bleak bevat. Op Android gelden de gebruikelijke koppeling, hardware en machtigingsvragen van het OS.",
         "rnode_ble_peer_label": "BLE-naam of MAC",
         "rnode_ble_peer_placeholder": "MyRNode of aa:bb:cc:dd:ee:ff",
-        "rnode_ble_peer_required": "Voer de aangekondigde naam of MAC van de RNode in."
+        "rnode_ble_peer_required": "Voer de aangekondigde naam of MAC van de RNode in.",
+        "rnode_ip_host_label": "Hostnaam of IP-adres",
+        "rnode_tcp_port_fixed_hint": "Reticulum gebruikt TCP-poort 7633 op de RNode; alleen hostnaam of IP (geen :poort).",
+        "rnode_tcp_host_required": "Voer hostnaam of IP in voor RNode via TCP.",
+        "listen_ip_required": "Listen-IP is verplicht.",
+        "kernel_iface_picker_title": "Interfaces op deze host",
+        "kernel_iface_loading": "Laden…",
+        "kernel_iface_picker_help": "Apparaat is optioneel: één kernelinterfacenaam, of leeg laten en alleen via listen-IP binden. Klik op een regel om in te vullen."
     },
     "map": {
         "title": "Kaart",

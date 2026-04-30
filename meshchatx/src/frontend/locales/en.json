@@ -740,6 +740,8 @@
         "contact_support_title": "Contact & support",
         "contact_lxmf_address": "LXMF Address",
         "contact_propagation_hint": "Send to propagation node if you cant reach me!",
+        "contact_open_messages": "Open conversation",
+        "contact_copy_address": "Copy address",
         "donate_label": "Donate",
         "donate_monero_label": "Monero (XMR)",
         "donate_copy_monero": "Copy Monero address",
@@ -899,7 +901,14 @@
         "rnode_ble_hint": "Reticulum uses BLE via bleak on the device running MeshChatX. Pair or bond the RNode in the OS first. A browser-only or remote UI cannot attach BLE to Reticulum; use Electron, Linux, macOS, Windows, or the Android app, where the bundled Python includes bleak. On Android, Bluetooth still follows normal OS pairing, hardware support, and permission prompts.",
         "rnode_ble_peer_label": "BLE name or MAC",
         "rnode_ble_peer_placeholder": "MyRNode or aa:bb:cc:dd:ee:ff",
-        "rnode_ble_peer_required": "Enter a BLE advertised name or MAC address for the RNode."
+        "rnode_ble_peer_required": "Enter a BLE advertised name or MAC address for the RNode.",
+        "rnode_ip_host_label": "Host or IP address",
+        "rnode_tcp_port_fixed_hint": "Reticulum opens TCP port 7633 on the RNode itself; enter only the hostname or IP (do not add :port).",
+        "rnode_tcp_host_required": "Enter the hostname or IP for RNode over TCP.",
+        "listen_ip_required": "Listen IP is required.",
+        "kernel_iface_picker_title": "Interfaces on this host",
+        "kernel_iface_loading": "Loading…",
+        "kernel_iface_picker_help": "Device is optional: one kernel interface name, or leave empty to bind using Listen IP only. Click a row to fill the field."
     },
     "map": {
         "title": "Map",

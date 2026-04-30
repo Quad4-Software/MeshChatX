@@ -351,7 +351,9 @@
                                             </div>
                                             <div v-else class="space-y-4">
                                                 <div>
-                                                    <FormLabel class="glass-label">Listen IP (Optional)</FormLabel>
+                                                    <FormLabel class="glass-label"
+                                                        >Listen IP (optional if Device is set)</FormLabel
+                                                    >
                                                     <input
                                                         v-model="newInterfaceBackboneListenIp"
                                                         type="text"
@@ -373,9 +375,57 @@
                                                     <input
                                                         v-model="newInterfaceBackboneListenDevice"
                                                         type="text"
-                                                        placeholder="e.g. eth0"
+                                                        placeholder="Kernel interface e.g. eth0, wlan0"
                                                         class="input-field"
                                                     />
+                                                </div>
+                                                <div
+                                                    v-if="
+                                                        hostKernelInterfacesLoading ||
+                                                        hostKernelInterfaces.length ||
+                                                        hostKernelInterfacesUnavailable
+                                                    "
+                                                    class="rounded-xl border border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/30 p-3 space-y-2"
+                                                >
+                                                    <p class="text-xs text-gray-600 dark:text-zinc-400">
+                                                        {{ $t("interfaces.kernel_iface_picker_title") }}
+                                                    </p>
+                                                    <div
+                                                        v-if="hostKernelInterfacesLoading"
+                                                        class="text-xs text-gray-400"
+                                                    >
+                                                        {{ $t("interfaces.kernel_iface_loading") }}
+                                                    </div>
+                                                    <div v-else class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
+                                                        <button
+                                                            v-for="iface in hostKernelInterfaces"
+                                                            :key="'bb-' + iface.name"
+                                                            type="button"
+                                                            class="px-2.5 py-1.5 text-left text-xs rounded-lg border border-gray-200 dark:border-zinc-700 bg-white/90 dark:bg-zinc-900/90 hover:border-blue-400 dark:hover:border-blue-500 transition-colors max-w-full"
+                                                            @click="newInterfaceBackboneListenDevice = iface.name"
+                                                        >
+                                                            <span
+                                                                class="font-mono font-medium text-gray-900 dark:text-zinc-100"
+                                                                >{{ iface.name }}</span
+                                                            >
+                                                            <span
+                                                                v-if="iface.addresses && iface.addresses.length"
+                                                                class="block text-[10px] text-gray-500 dark:text-zinc-500 truncate max-w-[20rem]"
+                                                                >{{
+                                                                    iface.addresses.slice(0, 3).join(" \u00b7 ")
+                                                                }}</span
+                                                            >
+                                                        </button>
+                                                    </div>
+                                                    <p
+                                                        v-if="hostKernelInterfacesUnavailable"
+                                                        class="text-xs text-amber-600 dark:text-amber-500"
+                                                    >
+                                                        {{ hostKernelInterfacesUnavailable }}
+                                                    </p>
+                                                    <p class="text-xs text-gray-500 dark:text-zinc-500">
+                                                        {{ $t("interfaces.kernel_iface_picker_help") }}
+                                                    </p>
                                                 </div>
                                                 <div class="flex items-center gap-2">
                                                     <Toggle
@@ -397,12 +447,13 @@
                                             class="space-y-4"
                                         >
                                             <div>
-                                                <FormLabel class="glass-label">Listen IP (Optional)</FormLabel>
+                                                <FormLabel class="glass-label">Listen IP</FormLabel>
                                                 <input
                                                     v-model="newInterfaceListenIp"
                                                     type="text"
                                                     placeholder="0.0.0.0"
                                                     class="input-field"
+                                                    required
                                                 />
                                             </div>
                                             <div>
@@ -419,9 +470,52 @@
                                                 <input
                                                     v-model="newInterfaceNetworkDevice"
                                                     type="text"
-                                                    placeholder="e.g. eth0 (overrides Listen IP)"
+                                                    placeholder="e.g. eth0 (real OS interface; leave empty to use Listen IP only)"
                                                     class="input-field"
                                                 />
+                                            </div>
+                                            <div
+                                                v-if="
+                                                    hostKernelInterfacesLoading ||
+                                                    hostKernelInterfaces.length ||
+                                                    hostKernelInterfacesUnavailable
+                                                "
+                                                class="rounded-xl border border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/30 p-3 space-y-2"
+                                            >
+                                                <p class="text-xs text-gray-600 dark:text-zinc-400">
+                                                    {{ $t("interfaces.kernel_iface_picker_title") }}
+                                                </p>
+                                                <div v-if="hostKernelInterfacesLoading" class="text-xs text-gray-400">
+                                                    {{ $t("interfaces.kernel_iface_loading") }}
+                                                </div>
+                                                <div v-else class="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
+                                                    <button
+                                                        v-for="iface in hostKernelInterfaces"
+                                                        :key="'srv-' + iface.name"
+                                                        type="button"
+                                                        class="px-2.5 py-1.5 text-left text-xs rounded-lg border border-gray-200 dark:border-zinc-700 bg-white/90 dark:bg-zinc-900/90 hover:border-blue-400 dark:hover:border-blue-500 transition-colors max-w-full"
+                                                        @click="newInterfaceNetworkDevice = iface.name"
+                                                    >
+                                                        <span
+                                                            class="font-mono font-medium text-gray-900 dark:text-zinc-100"
+                                                            >{{ iface.name }}</span
+                                                        >
+                                                        <span
+                                                            v-if="iface.addresses && iface.addresses.length"
+                                                            class="block text-[10px] text-gray-500 dark:text-zinc-500 truncate max-w-[20rem]"
+                                                            >{{ iface.addresses.slice(0, 3).join(" \u00b7 ") }}</span
+                                                        >
+                                                    </button>
+                                                </div>
+                                                <p
+                                                    v-if="hostKernelInterfacesUnavailable"
+                                                    class="text-xs text-amber-600 dark:text-amber-500"
+                                                >
+                                                    {{ hostKernelInterfacesUnavailable }}
+                                                </p>
+                                                <p class="text-xs text-gray-500 dark:text-zinc-500">
+                                                    {{ $t("interfaces.kernel_iface_picker_help") }}
+                                                </p>
                                             </div>
                                             <div
                                                 v-if="newInterfaceType === 'TCPServerInterface'"
@@ -562,10 +656,12 @@
 
                                             <div
                                                 v-if="newInterfaceRNodeUseIP || newInterfaceType === 'RNodeIPInterface'"
-                                                class="grid grid-cols-2 gap-4"
+                                                class="space-y-2"
                                             >
                                                 <div>
-                                                    <FormLabel class="glass-label">Host</FormLabel>
+                                                    <FormLabel class="glass-label">{{
+                                                        $t("interfaces.rnode_ip_host_label")
+                                                    }}</FormLabel>
                                                     <input
                                                         v-model="newInterfaceRNodeIPHost"
                                                         type="text"
@@ -573,15 +669,9 @@
                                                         class="input-field"
                                                     />
                                                 </div>
-                                                <div>
-                                                    <FormLabel class="glass-label">Port</FormLabel>
-                                                    <input
-                                                        v-model="newInterfaceRNodeIPPort"
-                                                        type="number"
-                                                        placeholder="7633"
-                                                        class="input-field"
-                                                    />
-                                                </div>
+                                                <p class="text-xs text-gray-500 dark:text-zinc-500 leading-relaxed">
+                                                    {{ $t("interfaces.rnode_tcp_port_fixed_hint") }}
+                                                </p>
                                             </div>
                                             <div
                                                 v-else-if="
@@ -1697,6 +1787,10 @@ export default {
 
             comports: [],
 
+            hostKernelInterfaces: [],
+            hostKernelInterfacesLoading: false,
+            hostKernelInterfacesUnavailable: null,
+
             newInterfaceName: null,
             newInterfaceType: null,
 
@@ -1783,8 +1877,7 @@ export default {
             newInterfaceRNodeUseIP: false,
             newInterfaceRNodeUseBle: false,
             newInterfaceRNodeBlePeer: "",
-            newInterfaceRNodeIPHost: "localhost",
-            newInterfaceRNodeIPPort: "7633",
+            newInterfaceRNodeIPHost: "",
             RNodeGHzValue: 0,
             RNodeMHzValue: 0,
             RNodekHzValue: 0,
@@ -1902,6 +1995,7 @@ export default {
         this.getConfig();
         this.loadReticulumDiscoveryConfig();
         this.loadComports();
+        this.loadHostKernelInterfaces();
         this.loadCommunityInterfaces();
 
         // check if we are editing an interface
@@ -1984,6 +2078,59 @@ export default {
                 this.comports = response.data.comports;
             } catch (e) {
                 console.log(e);
+            }
+        },
+        buildRNodeTcpPort() {
+            let h = String(this.newInterfaceRNodeIPHost ?? "").trim();
+            while (h.endsWith(":")) {
+                h = h.slice(0, -1);
+            }
+            if (!h) {
+                return "";
+            }
+            return `tcp://${h}`;
+        },
+        parseRnodeTcpHostFromPort(portStr) {
+            const s = String(portStr || "");
+            if (!s.startsWith("tcp://")) {
+                return "localhost";
+            }
+            let rest = s.slice(6);
+            while (rest.endsWith(":")) {
+                rest = rest.slice(0, -1);
+            }
+            if (!rest) {
+                return "";
+            }
+            if (rest.startsWith("[")) {
+                const close = rest.indexOf("]");
+                if (close !== -1 && rest[close + 1] === ":") {
+                    return rest.slice(0, close + 1);
+                }
+                return rest;
+            }
+            if (rest.includes(":") && rest.indexOf(":") === rest.lastIndexOf(":")) {
+                const idx = rest.indexOf(":");
+                const tail = rest.slice(idx + 1);
+                if (/^\d{1,5}$/.test(tail) && Number(tail) <= 65535) {
+                    return rest.slice(0, idx);
+                }
+            }
+            return rest;
+        },
+        async loadHostKernelInterfaces() {
+            this.hostKernelInterfacesLoading = true;
+            this.hostKernelInterfacesUnavailable = null;
+            try {
+                const response = await window.api.get(`/api/v1/system/network-interfaces`);
+                this.hostKernelInterfaces = response.data.interfaces || [];
+                this.hostKernelInterfacesUnavailable = response.data.unavailable_reason || null;
+            } catch (e) {
+                this.hostKernelInterfaces = [];
+                this.hostKernelInterfacesUnavailable = e.response?.data?.message ?? e.message ?? "unavailable";
+                console.log(e);
+            } finally {
+                this.hostKernelInterfacesLoading = false;
             }
         },
         effectiveRNodeBlePort() {
@@ -2139,10 +2286,7 @@ export default {
                     this.newInterfaceRNodeUseBle = true;
                     this.newInterfaceRNodeBlePeer = String(iface.port);
                 } else if (iface.port && String(iface.port).startsWith("tcp://")) {
-                    const addr = String(iface.port).replace("tcp://", "");
-                    const parts = addr.split(":");
-                    this.newInterfaceRNodeIPHost = parts[0] || "localhost";
-                    this.newInterfaceRNodeIPPort = parts[1] || "7633";
+                    this.newInterfaceRNodeIPHost = this.parseRnodeTcpHostFromPort(iface.port);
                     this.newInterfaceRNodeUseIP = true;
                 }
                 this.newInterfaceFrequency = iface.frequency;
@@ -2265,10 +2409,7 @@ export default {
                     this.newInterfaceRNodeUseBle = true;
                     this.newInterfaceRNodeBlePeer = config.port;
                 } else if (config.port.startsWith("tcp://")) {
-                    const addr = config.port.replace("tcp://", "");
-                    const [host, port] = addr.split(":");
-                    this.newInterfaceRNodeIPHost = host;
-                    this.newInterfaceRNodeIPPort = port || "7633";
+                    this.newInterfaceRNodeIPHost = this.parseRnodeTcpHostFromPort(config.port);
                     this.newInterfaceRNodeUseIP = true;
                 }
             }
@@ -2561,6 +2702,24 @@ export default {
                     }
                 }
 
+                if (
+                    this.newInterfaceType === "RNodeIPInterface" ||
+                    (this.newInterfaceType === "RNodeInterface" && this.newInterfaceRNodeUseIP)
+                ) {
+                    if (!this.buildRNodeTcpPort()) {
+                        ToastUtils.error(this.$t("interfaces.rnode_tcp_host_required"));
+                        return;
+                    }
+                }
+
+                if (this.newInterfaceType === "TCPServerInterface" || this.newInterfaceType === "UDPInterface") {
+                    const lip = String(this.newInterfaceListenIp ?? "").trim();
+                    if (!lip) {
+                        ToastUtils.error(this.$t("interfaces.listen_ip_required"));
+                        return;
+                    }
+                }
+
                 if (this.newInterfaceType === "__external__") {
                     const typeStr = (this.customExternalTypeName || "").trim();
                     if (!typeStr) {
@@ -2636,16 +2795,18 @@ export default {
                     transport_identity: isBackboneListener ? null : this.newInterfaceTransportIdentity,
                     peers: i2pPeers,
                     listen_ip: isBackboneListener
-                        ? this.newInterfaceBackboneListenIp || null
-                        : this.newInterfaceListenIp,
+                        ? (this.newInterfaceBackboneListenIp || "").trim() || null
+                        : this.newInterfaceType === "TCPServerInterface" || this.newInterfaceType === "UDPInterface"
+                          ? String(this.newInterfaceListenIp ?? "").trim()
+                          : this.newInterfaceListenIp,
                     listen_port: isBackboneListener
                         ? this.newInterfaceBackboneListenPort || null
                         : this.newInterfaceListenPort,
                     forward_ip: this.newInterfaceForwardIp,
                     forward_port: this.newInterfaceForwardPort,
                     device: isBackboneListener
-                        ? this.newInterfaceBackboneListenDevice || null
-                        : this.newInterfaceNetworkDevice,
+                        ? (this.newInterfaceBackboneListenDevice || "").trim() || null
+                        : (this.newInterfaceNetworkDevice || "").trim() || null,
                     prefer_ipv6: this.newInterfacePreferIPV6 === true,
                     kiss_framing: this.newInterfaceKISSFramingEnabled === true,
                     i2p_tunneled: this.newInterfaceI2PTunnelingEnabled === true,
@@ -2659,11 +2820,12 @@ export default {
                             : undefined,
                     connectable:
                         this.newInterfaceType === "I2PInterface" ? this.newInterfaceConnectable === true : null,
-                    port: this.newInterfaceRNodeUseIP
-                        ? `tcp://${this.newInterfaceRNodeIPHost}:${this.newInterfaceRNodeIPPort}`
-                        : this.newInterfaceRNodeUseBle
-                          ? this.effectiveRNodeBlePort()
-                          : this.newInterfacePort,
+                    port:
+                        this.newInterfaceType === "RNodeIPInterface" || this.newInterfaceRNodeUseIP
+                            ? this.buildRNodeTcpPort()
+                            : this.newInterfaceRNodeUseBle
+                              ? this.effectiveRNodeBlePort()
+                              : this.newInterfacePort,
                     frequency: freqHz,
                     bandwidth: this.newInterfaceBandwidth,
                     txpower: this.newInterfaceTxpower,

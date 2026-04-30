@@ -110,6 +110,10 @@
         },
         {
             "method": "GET",
+            "path": "/api/v1/system/network-interfaces"
+        },
+        {
+            "method": "GET",
             "path": "/api/v1/config"
         },
         {

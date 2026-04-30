@@ -810,6 +810,8 @@
         "contact_support_title": "Kontakt & Unterstuetzung",
         "contact_lxmf_address": "LXMF-Adresse",
         "contact_propagation_hint": "An den Verbreitungsknoten senden, wenn Sie mich nicht direkt erreichen können.",
+        "contact_open_messages": "Unterhaltung oeffnen",
+        "contact_copy_address": "Adresse kopieren",
         "donate_label": "Spenden",
         "donate_monero_label": "Monero (XMR)",
         "donate_copy_monero": "Monero-Adresse kopieren",
@@ -951,7 +953,14 @@
         "rnode_ble_hint": "Reticulum nutzt BLE über bleak auf dem Gerät, auf dem MeshChatX läuft. RNode zuerst im Betriebssystem koppeln oder verbinden. Reine Browser- oder Remote-UI kann kein BLE an Reticulum durchreichen; Electron, Linux, macOS, Windows oder die Android-App verwenden, wo eingebettetes Python bleak enthält. Unter Android gelten weiterhin normale Kopplung, Hardwareunterstützung und Berechtigungsabfragen.",
         "rnode_ble_peer_label": "BLE-Name oder MAC",
         "rnode_ble_peer_placeholder": "MyRNode oder aa:bb:cc:dd:ee:ff",
-        "rnode_ble_peer_required": "Anzeigenamen oder MAC-Adresse des RNode eingeben."
+        "rnode_ble_peer_required": "Anzeigenamen oder MAC-Adresse des RNode eingeben.",
+        "rnode_ip_host_label": "Hostname oder IP-Adresse",
+        "rnode_tcp_port_fixed_hint": "Reticulum nutzt TCP-Port 7633 auf dem RNode; nur Hostname oder IP eingeben (kein :Port).",
+        "rnode_tcp_host_required": "Hostname oder IP für RNode über TCP eingeben.",
+        "listen_ip_required": "Listen-IP ist erforderlich.",
+        "kernel_iface_picker_title": "Schnittstellen auf diesem Rechner",
+        "kernel_iface_loading": "Laden…",
+        "kernel_iface_picker_help": "Optional ein Kernel-Interface-Name, oder leer lassen und nur über Listen-IP binden. Klick füllt das Feld."
     },
     "map": {
         "title": "Karte",

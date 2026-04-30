@@ -236,6 +236,23 @@ async def test_tcp_server_persists_optional_options(temp_dir):
 
 
 @pytest.mark.asyncio
+async def test_tcp_server_rejects_whitespace_listen_ip(temp_dir):
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    async with make_app(temp_dir, config) as handler:
+        payload = {
+            "name": "TCPServer",
+            "type": "TCPServerInterface",
+            "listen_ip": "   ",
+            "listen_port": _free_port("tcp"),
+        }
+        response = await handler(make_request(payload))
+        body = json.loads(response.body)
+        assert response.status == 422, body
+        assert "Listen IP" in body["message"]
+
+
+@pytest.mark.asyncio
 async def test_tcp_server_rejects_busy_listen_port(temp_dir):
     config = ConfigDict({"reticulum": {}, "interfaces": {}})
 
@@ -431,6 +448,48 @@ async def test_rnode_ble_uart_port_persisted(temp_dir):
         body = json.loads(response.body)
         assert response.status == 200, body
         assert config["interfaces"]["RadioBLE"]["port"] == "ble://aa:bb:cc:dd:ee:ff"
+
+
+@pytest.mark.asyncio
+async def test_rnode_tcp_over_ip_normalizes_to_host_only(temp_dir):
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    async with make_app(temp_dir, config) as handler:
+        payload = {
+            "name": "RNodeWiFi",
+            "type": "RNodeIPInterface",
+            "port": "tcp://192.168.4.1:7633",
+            "frequency": 868000000,
+            "bandwidth": 125000,
+            "txpower": 7,
+            "spreadingfactor": 8,
+            "codingrate": 5,
+        }
+        response = await handler(make_request(payload))
+        body = json.loads(response.body)
+        assert response.status == 200, body
+        assert config["interfaces"]["RNodeWiFi"]["port"] == "tcp://192.168.4.1"
+
+
+@pytest.mark.asyncio
+async def test_rnode_tcp_over_ip_rejects_empty_host(temp_dir):
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    async with make_app(temp_dir, config) as handler:
+        payload = {
+            "name": "Bad",
+            "type": "RNodeIPInterface",
+            "port": "tcp://",
+            "frequency": 868000000,
+            "bandwidth": 125000,
+            "txpower": 7,
+            "spreadingfactor": 8,
+            "codingrate": 5,
+        }
+        response = await handler(make_request(payload))
+        body = json.loads(response.body)
+        assert response.status == 422, body
+        assert "TCP host" in body["message"]
 
 
 @pytest.mark.asyncio

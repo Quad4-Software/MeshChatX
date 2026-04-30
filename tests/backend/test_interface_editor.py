@@ -44,3 +44,33 @@ def test_coerce_rnode_frequency_hz_integer_mhz():
 
 def test_coerce_rnode_frequency_hz_leaves_midrange_hz():
     assert InterfaceEditor.coerce_rnode_frequency_hz(125000) == 125000
+
+
+def test_normalize_rnode_tcp_port_host_only():
+    assert (
+        InterfaceEditor.normalize_rnode_tcp_port("tcp://10.0.0.5") == "tcp://10.0.0.5"
+    )
+
+
+def test_normalize_rnode_tcp_port_strips_legacy_ipv4_port():
+    assert (
+        InterfaceEditor.normalize_rnode_tcp_port("tcp://10.0.0.5:7633")
+        == "tcp://10.0.0.5"
+    )
+
+
+def test_normalize_rnode_tcp_port_strips_trailing_colons():
+    assert (
+        InterfaceEditor.normalize_rnode_tcp_port("tcp://10.0.0.5:") == "tcp://10.0.0.5"
+    )
+
+
+def test_normalize_rnode_tcp_port_bracket_ipv6_with_port():
+    assert (
+        InterfaceEditor.normalize_rnode_tcp_port("tcp://[2001:db8::1]:7633")
+        == "tcp://[2001:db8::1]"
+    )
+
+
+def test_normalize_rnode_tcp_port_non_tcp_unchanged():
+    assert InterfaceEditor.normalize_rnode_tcp_port("/dev/ttyUSB0") == "/dev/ttyUSB0"
