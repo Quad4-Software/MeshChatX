@@ -24,8 +24,24 @@ describe("LinkUtils.js", () => {
             expect(result).toContain('data-nomadnet-url="1dfeb0d794963579bd21ac8f153c77a4:/page/index.mu"');
         });
 
-        it("detects bare hash as lxmf", () => {
+        it("does not detect bare hash without prefix as lxmf", () => {
             const text = "1dfeb0d794963579bd21ac8f153c77a4";
+            const result = LinkUtils.renderReticulumLinks(text);
+            expect(result).not.toContain("lxmf-link");
+            expect(result).not.toContain("<a ");
+            expect(result).toBe(text);
+        });
+
+        it("does not false-detect hex in a github blob url as lxmf", () => {
+            const text =
+                "https://github.com/org/repo/blob/9a47f3fc51dd3318aec0d2eb9ab6fc497c0f1aef/electron-builder.yml#L29";
+            const result = LinkUtils.renderReticulumLinks(text);
+            expect(result).not.toContain("lxmf-link");
+            expect(result).not.toContain("nomadnet-link");
+        });
+
+        it("detects lxmf: links", () => {
+            const text = "lxmf:1dfeb0d794963579bd21ac8f153c77a4";
             const result = LinkUtils.renderReticulumLinks(text);
             expect(result).toContain('class="lxmf-link');
             expect(result).toContain('data-lxmf-address="1dfeb0d794963579bd21ac8f153c77a4"');
@@ -110,6 +126,24 @@ describe("LinkUtils.js", () => {
             const text = "1dfeb0d794963579bd21ac8f153c77a4:/page/meshchatx_on_pi.mu";
             const result = LinkUtils.renderAllLinks(text);
             expect(result).toContain('data-nomadnet-url="1dfeb0d794963579bd21ac8f153c77a4:/page/meshchatx_on_pi.mu"');
+        });
+
+        it("does not false-detect hex in a github blob url as lxmf or nomadnet", () => {
+            const text =
+                "https://github.com/org/repo/blob/9a47f3fc51dd3318aec0d2eb9ab6fc497c0f1aef/electron-builder.yml#L29";
+            const result = LinkUtils.renderAllLinks(text);
+            expect(result).not.toContain("lxmf-link");
+            expect(result).not.toContain("nomadnet-link");
+            expect(result).toContain(
+                'href="https://github.com/org/repo/blob/9a47f3fc51dd3318aec0d2eb9ab6fc497c0f1aef/electron-builder.yml#L29"'
+            );
+        });
+
+        it("detects lxmf: prefixed address in plain text", () => {
+            const text = "send to lxmf:1dfeb0d794963579bd21ac8f153c77a4 please";
+            const result = LinkUtils.renderAllLinks(text);
+            expect(result).toContain('class="lxmf-link');
+            expect(result).toContain('data-lxmf-address="1dfeb0d794963579bd21ac8f153c77a4"');
         });
     });
 

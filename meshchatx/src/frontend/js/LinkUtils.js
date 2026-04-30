@@ -78,23 +78,26 @@ export default class LinkUtils {
 
     /**
      * Detects and wraps Reticulum (NomadNet and LXMF) links in HTML.
-     * Supports nomadnet://<hash>, nomadnet@<hash>, lxmf://<hash>, lxmf@<hash> and bare <hash>
+     * Supports nomadnet://<hash>, nomadnet@<hash>, lxmf://<hash>, lxmf@<hash>, lxmf:<hash>,
+     * and bare <hash>:/path (NomadNet path form only — no bare hash without prefix).
      */
     static renderReticulumLinks(text) {
         if (!text) return "";
 
         // Hash is 32 hex chars. Path is optional (NomadNet only).
         const hashPattern = "[a-fA-F0-9]{32}";
-        // Optional prefix (nomadnet://, nomadnet@, lxmf://, lxmf@), then hash, optional path.
+        // Optional prefix, then hash, optional path. Bare hashes with no prefix and no
+        // path are intentionally skipped to avoid false positives inside URLs.
         const reticulumRegex = new RegExp(
-            `(nomadnet://|nomadnet@|lxmf://|lxmf@)?(${hashPattern})(?::(/[\\w\\d./?%&=-]*))?`,
+            `(nomadnet://|nomadnet@|lxmf://|lxmf@|lxmf:)?(${hashPattern})(?::(/[\\w\\d./?%&=_-]*))?`,
             "g"
         );
 
         return text.replace(reticulumRegex, (match, prefix, hash, path) => {
-            // Determine if it should be treated as a NomadNet link:
-            // - Has nomadnet prefix
-            // - OR has a path component (e.g. hash:/page)
+            if (!prefix && !path) {
+                return match;
+            }
+
             const isNomadNet =
                 (prefix && (prefix.startsWith("nomadnet://") || prefix.startsWith("nomadnet@"))) || !!path;
 
@@ -104,7 +107,6 @@ export default class LinkUtils {
                 const safeAttr = Utils.escapeHtml(url);
                 return `<a href="#" class="nomadnet-link text-blue-600 dark:text-blue-400 hover:underline font-mono" data-nomadnet-url="${safeAttr}">${match}</a>`;
             } else {
-                // Treat as LXMF link
                 return `<a href="#" class="lxmf-link text-blue-600 dark:text-blue-400 hover:underline font-mono" data-lxmf-address="${hash}">${match}</a>`;
             }
         });
