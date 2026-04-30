@@ -35,7 +35,7 @@ class BackendBenchmarker:
         self.db.close()
         shutil.rmtree(self.temp_dir)
 
-    def run_all(self, extreme=False):
+    def run_all(self, extreme=False, json_output_path=None):
         print(f"\n{'=' * 20} BACKEND BENCHMARKING START {'=' * 20}")
         print(f"Mode: {'EXTREME (Breaking Space)' if extreme else 'Standard'}")
         print(f"Base Memory: {get_memory_usage_mb():.2f} MB")
@@ -53,7 +53,7 @@ class BackendBenchmarker:
 
         self.bench_telephony_operations()
 
-        self.print_summary()
+        self.print_summary(json_output_path=json_output_path)
 
     def bench_extreme_message_flood(self):
         """Insert 100,000 messages with large randomized content."""
@@ -305,7 +305,7 @@ class BackendBenchmarker:
         _, res = log_call()
         self.results.append(res)
 
-    def print_summary(self):
+    def print_summary(self, json_output_path=None):
         print(f"\n{'=' * 20} BENCHMARK SUMMARY {'=' * 20}")
         print(f"{'Benchmark Name':40} | {'Avg Time':10} | {'Mem Delta':10}")
         print(f"{'-' * 40}-|-{'-' * 10}-|-{'-' * 10}")
@@ -315,6 +315,22 @@ class BackendBenchmarker:
             )
         print(f"{'=' * 59}")
         print(f"Final Memory Usage: {get_memory_usage_mb():.2f} MB")
+
+        if json_output_path:
+            import json as _json
+
+            entries = [
+                {
+                    "name": r.name,
+                    "unit": "ms",
+                    "value": round(r.duration_ms, 3),
+                    "extra": f"Memory delta: {r.memory_delta_mb:.2f} MB",
+                }
+                for r in self.results
+            ]
+            with open(json_output_path, "w") as f:
+                _json.dump(entries, f, indent=2)
+            print(f"Benchmark JSON written to {json_output_path}")
 
 
 if __name__ == "__main__":
@@ -326,10 +342,16 @@ if __name__ == "__main__":
         action="store_true",
         help="Run extreme stress tests",
     )
+    parser.add_argument(
+        "--json-output",
+        metavar="PATH",
+        default=None,
+        help="Write benchmark results as github-action-benchmark customSmallerIsBetter JSON to PATH",
+    )
     args = parser.parse_args()
 
     bench = BackendBenchmarker()
     try:
-        bench.run_all(extreme=args.extreme)
+        bench.run_all(extreme=args.extreme, json_output_path=args.json_output)
     finally:
         bench.cleanup()
