@@ -960,7 +960,8 @@
         "listen_ip_required": "Listen-IP ist erforderlich.",
         "kernel_iface_picker_title": "Schnittstellen auf diesem Rechner",
         "kernel_iface_loading": "Laden…",
-        "kernel_iface_picker_help": "Optional ein Kernel-Interface-Name, oder leer lassen und nur über Listen-IP binden. Klick füllt das Feld."
+        "kernel_iface_picker_help": "Optional ein Kernel-Interface-Name, oder leer lassen und nur über Listen-IP binden. Klick füllt das Feld.",
+        "auto_iface_ifname_chips_hint": "Schnittstellen dieses Rechners: Klicken zum Hinzufügen oder Entfernen im Feld darüber."
     },
     "map": {
         "title": "Karte",

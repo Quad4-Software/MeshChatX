@@ -908,7 +908,8 @@
         "listen_ip_required": "L'adresse IP d'écoute est obligatoire.",
         "kernel_iface_picker_title": "Interfaces sur cette machine",
         "kernel_iface_loading": "Chargement…",
-        "kernel_iface_picker_help": "Le champ Périphérique est optionnel : un seul nom d'interface noyau, ou laisser vide pour lier via l'IP d'écoute uniquement. Cliquez sur une ligne pour remplir."
+        "kernel_iface_picker_help": "Le champ Périphérique est optionnel : un seul nom d'interface noyau, ou laisser vide pour lier via l'IP d'écoute uniquement. Cliquez sur une ligne pour remplir.",
+        "auto_iface_ifname_chips_hint": "Interfaces sur cette machine : cliquez pour ajouter ou retirer des noms dans le champ ci-dessus."
     },
     "map": {
         "title": "Carte",

@@ -1117,6 +1117,48 @@
                                                     placeholder="e.g. eth0, wlan0"
                                                     class="input-field"
                                                 />
+                                                <div
+                                                    v-if="
+                                                        hostKernelInterfacesLoading ||
+                                                        hostKernelInterfaces.length ||
+                                                        hostKernelInterfacesUnavailable
+                                                    "
+                                                    class="mt-1.5 space-y-1"
+                                                >
+                                                    <p class="text-[10px] text-gray-500 dark:text-zinc-500">
+                                                        {{ $t("interfaces.auto_iface_ifname_chips_hint") }}
+                                                    </p>
+                                                    <div
+                                                        v-if="hostKernelInterfacesLoading"
+                                                        class="text-[10px] text-gray-400"
+                                                    >
+                                                        {{ $t("interfaces.kernel_iface_loading") }}
+                                                    </div>
+                                                    <div v-else class="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
+                                                        <button
+                                                            v-for="iface in hostKernelInterfaces"
+                                                            :key="'auto-allow-' + iface.name"
+                                                            type="button"
+                                                            class="max-w-full truncate px-1.5 py-0.5 text-[10px] rounded border font-mono transition-colors"
+                                                            :class="
+                                                                autoInterfaceChipActive(
+                                                                    'newInterfaceDevices',
+                                                                    iface.name
+                                                                )
+                                                                    ? 'border-blue-400 bg-blue-50/90 text-blue-900 dark:border-blue-500 dark:bg-blue-950/40 dark:text-blue-200'
+                                                                    : 'border-gray-200 bg-white/80 text-gray-800 hover:border-blue-300 dark:border-zinc-700 dark:bg-zinc-900/80 dark:text-zinc-200 dark:hover:border-blue-500'
+                                                            "
+                                                            @click="
+                                                                toggleAutoInterfaceCommaToken(
+                                                                    'newInterfaceDevices',
+                                                                    iface.name
+                                                                )
+                                                            "
+                                                        >
+                                                            {{ iface.name }}
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </div>
                                             <div>
                                                 <FormLabel class="glass-label"
@@ -1128,6 +1170,48 @@
                                                     placeholder="e.g. tun0, docker0"
                                                     class="input-field"
                                                 />
+                                                <div
+                                                    v-if="
+                                                        hostKernelInterfacesLoading ||
+                                                        hostKernelInterfaces.length ||
+                                                        hostKernelInterfacesUnavailable
+                                                    "
+                                                    class="mt-1.5 space-y-1"
+                                                >
+                                                    <p class="text-[10px] text-gray-500 dark:text-zinc-500">
+                                                        {{ $t("interfaces.auto_iface_ifname_chips_hint") }}
+                                                    </p>
+                                                    <div
+                                                        v-if="hostKernelInterfacesLoading"
+                                                        class="text-[10px] text-gray-400"
+                                                    >
+                                                        {{ $t("interfaces.kernel_iface_loading") }}
+                                                    </div>
+                                                    <div v-else class="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
+                                                        <button
+                                                            v-for="iface in hostKernelInterfaces"
+                                                            :key="'auto-ignore-' + iface.name"
+                                                            type="button"
+                                                            class="max-w-full truncate px-1.5 py-0.5 text-[10px] rounded border font-mono transition-colors"
+                                                            :class="
+                                                                autoInterfaceChipActive(
+                                                                    'newInterfaceIgnoredDevices',
+                                                                    iface.name
+                                                                )
+                                                                    ? 'border-amber-400 bg-amber-50/90 text-amber-950 dark:border-amber-600 dark:bg-amber-950/40 dark:text-amber-100'
+                                                                    : 'border-gray-200 bg-white/80 text-gray-800 hover:border-amber-300 dark:border-zinc-700 dark:bg-zinc-900/80 dark:text-zinc-200 dark:hover:border-amber-600'
+                                                            "
+                                                            @click="
+                                                                toggleAutoInterfaceCommaToken(
+                                                                    'newInterfaceIgnoredDevices',
+                                                                    iface.name
+                                                                )
+                                                            "
+                                                        >
+                                                            {{ iface.name }}
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </div>
                                             <div>
                                                 <FormLabel class="glass-label">Configured Bitrate (bps)</FormLabel>
@@ -2117,6 +2201,32 @@ export default {
                 }
             }
             return rest;
+        },
+        autoInterfaceChipActive(fieldKey, token) {
+            const raw = this[fieldKey];
+            if (raw == null || raw === "") {
+                return false;
+            }
+            return String(raw)
+                .split(",")
+                .map((s) => s.trim())
+                .includes(token);
+        },
+        toggleAutoInterfaceCommaToken(fieldKey, token) {
+            const raw = this[fieldKey];
+            let str = raw == null || raw === "" ? "" : String(raw);
+            const tokens = str
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean);
+            const i = tokens.indexOf(token);
+            if (i === -1) {
+                tokens.push(token);
+            } else {
+                tokens.splice(i, 1);
+            }
+            const next = tokens.join(", ");
+            this[fieldKey] = next === "" ? null : next;
         },
         async loadHostKernelInterfaces() {
             this.hostKernelInterfacesLoading = true;

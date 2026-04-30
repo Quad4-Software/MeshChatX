@@ -908,7 +908,8 @@
         "listen_ip_required": "La IP de escucha es obligatoria.",
         "kernel_iface_picker_title": "Interfaces en este equipo",
         "kernel_iface_loading": "Cargando…",
-        "kernel_iface_picker_help": "“Dispositivo” es opcional: un nombre de interfaz del kernel, o vacío para enlazar solo con la IP de escucha. Pulse una fila para rellenar."
+        "kernel_iface_picker_help": "“Dispositivo” es opcional: un nombre de interfaz del kernel, o vacío para enlazar solo con la IP de escucha. Pulse una fila para rellenar.",
+        "auto_iface_ifname_chips_hint": "Interfaces de este equipo: pulse para añadir o quitar nombres en el campo de arriba."
     },
     "map": {
         "title": "Mapa",

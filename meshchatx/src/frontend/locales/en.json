@@ -908,7 +908,8 @@
         "listen_ip_required": "Listen IP is required.",
         "kernel_iface_picker_title": "Interfaces on this host",
         "kernel_iface_loading": "Loading…",
-        "kernel_iface_picker_help": "Device is optional: one kernel interface name, or leave empty to bind using Listen IP only. Click a row to fill the field."
+        "kernel_iface_picker_help": "Device is optional: one kernel interface name, or leave empty to bind using Listen IP only. Click a row to fill the field.",
+        "auto_iface_ifname_chips_hint": "This host's interfaces: click to add or remove names in the field above."
     },
     "map": {
         "title": "Map",

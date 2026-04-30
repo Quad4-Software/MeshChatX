@@ -908,7 +908,8 @@
         "listen_ip_required": "Listen IP 为必填项。",
         "kernel_iface_picker_title": "本机网络接口",
         "kernel_iface_loading": "加载中…",
-        "kernel_iface_picker_help": "“设备”为可选，填写一个内核网卡名，或留空仅按 Listen IP 绑定。点击一行填入输入框。"
+        "kernel_iface_picker_help": "“设备”为可选，填写一个内核网卡名，或留空仅按 Listen IP 绑定。点击一行填入输入框。",
+        "auto_iface_ifname_chips_hint": "本机接口：点击可在上方字段中添加或移除名称。"
     },
     "map": {
         "title": "地图",

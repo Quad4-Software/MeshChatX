@@ -908,7 +908,8 @@
         "listen_ip_required": "Listen-IP is verplicht.",
         "kernel_iface_picker_title": "Interfaces op deze host",
         "kernel_iface_loading": "Laden…",
-        "kernel_iface_picker_help": "Apparaat is optioneel: één kernelinterfacenaam, of leeg laten en alleen via listen-IP binden. Klik op een regel om in te vullen."
+        "kernel_iface_picker_help": "Apparaat is optioneel: één kernelinterfacenaam, of leeg laten en alleen via listen-IP binden. Klik op een regel om in te vullen.",
+        "auto_iface_ifname_chips_hint": "Interfaces op deze host: klik om namen in het veld erboven toe te voegen of te verwijderen."
     },
     "map": {
         "title": "Kaart",

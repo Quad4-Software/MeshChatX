@@ -960,7 +960,8 @@
         "listen_ip_required": "L'IP di ascolto è obbligatoria.",
         "kernel_iface_picker_title": "Interfacce su questo host",
         "kernel_iface_loading": "Caricamento…",
-        "kernel_iface_picker_help": "Il dispositivo è facoltativo: un solo nome di interfaccia del kernel, o lascia vuoto e lega solo con l'IP di ascolto. Clic su una riga per compilare."
+        "kernel_iface_picker_help": "Il dispositivo è facoltativo: un solo nome di interfaccia del kernel, o lascia vuoto e lega solo con l'IP di ascolto. Clic su una riga per compilare.",
+        "auto_iface_ifname_chips_hint": "Interfacce su questo host: clic per aggiungere o rimuovere nomi nel campo sopra."
     },
     "map": {
         "title": "Mappa",
