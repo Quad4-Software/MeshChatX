@@ -807,6 +807,7 @@
         "contact_alternate": "Альтернативный адрес",
         "contact_details": "Подробности",
         "contact_developer": "Связаться с разработчиком",
+        "contact_support_title": "Контакты и поддержка",
         "contact_lxmf_address": "Адрес LXMF",
         "contact_propagation_hint": "Отправьте на узел распространения, если не удаётся связаться со мной напрямую.",
         "donate_label": "Пожертвование",

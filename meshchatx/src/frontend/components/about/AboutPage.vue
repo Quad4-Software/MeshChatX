@@ -93,148 +93,155 @@
                             >{{ $t("about.tagline_after") }}
                         </div>
 
-                        <div class="mt-6 pt-6 border-t border-gray-200/70 dark:border-zinc-800/80 space-y-3">
-                            <div class="flex items-center justify-between">
-                                <div
-                                    class="text-xs font-black uppercase tracking-widest text-gray-500 dark:text-zinc-500"
-                                >
-                                    {{ $t("about.contact_developer") }}
-                                </div>
-                                <v-icon
-                                    :icon="showContactDev ? 'mdi-chevron-up' : 'mdi-chevron-down'"
-                                    size="18"
-                                ></v-icon>
-                            </div>
-                            <button
-                                class="w-full text-left flex items-center justify-between px-4 py-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 transition-all"
-                                @click="showContactDev = !showContactDev"
-                            >
-                                <div class="flex items-center gap-2">
-                                    <v-icon icon="mdi-account-card-details" size="18"></v-icon>
-                                    <span class="text-xs font-black uppercase tracking-widest">{{
-                                        $t("about.contact_details")
-                                    }}</span>
-                                </div>
-                            </button>
-
-                            <transition name="fade">
-                                <div
-                                    v-if="showContactDev"
-                                    class="mt-4 p-5 rounded-2xl bg-white/50 dark:bg-zinc-950/50 border border-gray-100 dark:border-zinc-800 space-y-4"
-                                >
-                                    <div class="space-y-1">
-                                        <div class="text-[9px] font-black text-gray-400 uppercase tracking-widest">
-                                            {{ $t("about.contact_lxmf_address") }}
-                                        </div>
-                                        <div class="flex items-center gap-2">
-                                            <code
-                                                class="text-[11px] font-mono bg-zinc-100 dark:bg-zinc-900 px-2 py-1 rounded-lg break-all"
-                                                >7cc8d66b4f6a0e0e49d34af7f6077b5a</code
-                                            >
-                                            <button
-                                                class="p-1 hover:text-blue-500 transition"
-                                                @click="
-                                                    copyValue(
-                                                        '7cc8d66b4f6a0e0e49d34af7f6077b5a',
-                                                        'about.contact_lxmf_address'
-                                                    )
-                                                "
-                                            >
-                                                <v-icon icon="mdi-content-copy" size="14"></v-icon>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div class="space-y-1">
-                                        <div class="text-[9px] font-black text-gray-400 uppercase tracking-widest">
-                                            {{ $t("about.contact_alternate") }}
-                                        </div>
-                                        <div class="flex items-center gap-2">
-                                            <code
-                                                class="text-[11px] font-mono bg-zinc-100 dark:bg-zinc-900 px-2 py-1 rounded-lg break-all"
-                                                >43d3309adf27fc446556121b553b56a6</code
-                                            >
-                                            <button
-                                                class="p-1 hover:text-blue-500 transition"
-                                                @click="
-                                                    copyValue(
-                                                        '43d3309adf27fc446556121b553b56a6',
-                                                        'about.contact_alternate'
-                                                    )
-                                                "
-                                            >
-                                                <v-icon icon="mdi-content-copy" size="14"></v-icon>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div
-                                        class="text-xs font-bold text-gray-500 dark:text-white italic bg-blue-500/5 p-3 rounded-xl border border-blue-500/10 flex items-center gap-2"
-                                    >
-                                        <v-icon icon="mdi-information-outline" size="14" class="text-blue-500"></v-icon>
-                                        {{ $t("about.contact_propagation_hint") }}
-                                    </div>
-                                </div>
-                            </transition>
-                        </div>
-
-                        <div class="mt-6 pt-6 border-t border-gray-200/70 dark:border-zinc-800/80 space-y-3">
+                        <div class="mt-6 pt-6 border-t border-gray-200/70 dark:border-zinc-800/80">
                             <button
                                 type="button"
-                                class="w-full text-left flex items-center justify-between px-4 py-2 rounded-xl bg-violet-500/10 hover:bg-violet-500/20 text-violet-800 dark:text-violet-200 border border-violet-500/20 transition-all"
-                                @click="showDonate = !showDonate"
+                                class="group w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-gradient-to-br from-blue-500/[0.08] via-slate-500/[0.06] to-violet-500/[0.08] dark:from-blue-500/15 dark:via-zinc-800/40 dark:to-violet-500/15 hover:from-blue-500/15 hover:to-violet-500/15 dark:hover:from-blue-500/25 dark:hover:to-violet-500/25 border border-gray-200/80 dark:border-zinc-700/80 transition-all text-left min-h-[52px]"
+                                :aria-expanded="showContactSupport"
+                                @click="showContactSupport = !showContactSupport"
                             >
-                                <div class="flex items-center gap-2">
-                                    <v-icon icon="mdi-hand-heart" size="18"></v-icon>
-                                    <span class="text-xs font-black uppercase tracking-widest">{{
-                                        $t("about.donate_label")
-                                    }}</span>
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <span
+                                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/15 dark:bg-blue-500/25 text-blue-600 dark:text-blue-300 ring-1 ring-blue-500/20"
+                                    >
+                                        <v-icon icon="mdi-card-account-details-outline" size="22"></v-icon>
+                                    </span>
+                                    <span
+                                        class="text-xs font-black uppercase tracking-widest text-gray-800 dark:text-zinc-100 truncate"
+                                    >
+                                        {{ $t("about.contact_support_title") }}
+                                    </span>
                                 </div>
-                                <v-icon :icon="showDonate ? 'mdi-chevron-up' : 'mdi-chevron-down'" size="18"></v-icon>
+                                <v-icon
+                                    :icon="showContactSupport ? 'mdi-chevron-up' : 'mdi-chevron-down'"
+                                    size="22"
+                                    class="shrink-0 text-gray-500 dark:text-zinc-400 group-hover:text-gray-700 dark:group-hover:text-zinc-200 transition-colors"
+                                ></v-icon>
                             </button>
 
                             <transition name="fade">
                                 <div
-                                    v-if="showDonate"
-                                    class="mt-4 p-5 rounded-2xl bg-white/50 dark:bg-zinc-950/50 border border-gray-100 dark:border-zinc-800 space-y-4"
+                                    v-if="showContactSupport"
+                                    class="mt-4 p-5 sm:p-6 rounded-2xl bg-white/60 dark:bg-zinc-950/60 border border-gray-100 dark:border-zinc-800 space-y-8 shadow-sm"
                                 >
-                                    <div class="space-y-1">
-                                        <div class="text-[9px] font-black text-gray-400 uppercase tracking-widest">
-                                            {{ $t("about.donate_monero_label") }}
+                                    <div class="space-y-4">
+                                        <div
+                                            class="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-zinc-400"
+                                        >
+                                            <v-icon
+                                                icon="mdi-account-circle-outline"
+                                                size="18"
+                                                class="text-blue-500"
+                                            ></v-icon>
+                                            {{ $t("about.contact_developer") }}
                                         </div>
-                                        <div class="flex items-center gap-2">
-                                            <code
-                                                class="text-[11px] font-mono bg-zinc-100 dark:bg-zinc-900 px-2 py-1 rounded-lg break-all select-all"
-                                                >{{ moneroDonateAddress }}</code
-                                            >
-                                            <button
-                                                type="button"
-                                                class="p-1 hover:text-violet-600 dark:hover:text-violet-300 transition shrink-0"
-                                                :aria-label="$t('about.donate_copy_monero')"
-                                                @click="copyValue(moneroDonateAddress, 'about.donate_monero_label')"
-                                            >
-                                                <v-icon icon="mdi-content-copy" size="14"></v-icon>
-                                            </button>
+                                        <div class="space-y-1">
+                                            <div class="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                                                {{ $t("about.contact_lxmf_address") }}
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <code
+                                                    class="text-[11px] font-mono bg-zinc-100 dark:bg-zinc-900 px-2 py-1 rounded-lg break-all"
+                                                    >7cc8d66b4f6a0e0e49d34af7f6077b5a</code
+                                                >
+                                                <button
+                                                    type="button"
+                                                    class="p-1 hover:text-blue-500 transition"
+                                                    @click="
+                                                        copyValue(
+                                                            '7cc8d66b4f6a0e0e49d34af7f6077b5a',
+                                                            'about.contact_lxmf_address'
+                                                        )
+                                                    "
+                                                >
+                                                    <v-icon icon="mdi-content-copy" size="14"></v-icon>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="space-y-1">
+                                            <div class="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                                                {{ $t("about.contact_alternate") }}
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <code
+                                                    class="text-[11px] font-mono bg-zinc-100 dark:bg-zinc-900 px-2 py-1 rounded-lg break-all"
+                                                    >43d3309adf27fc446556121b553b56a6</code
+                                                >
+                                                <button
+                                                    type="button"
+                                                    class="p-1 hover:text-blue-500 transition"
+                                                    @click="
+                                                        copyValue(
+                                                            '43d3309adf27fc446556121b553b56a6',
+                                                            'about.contact_alternate'
+                                                        )
+                                                    "
+                                                >
+                                                    <v-icon icon="mdi-content-copy" size="14"></v-icon>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div
+                                            class="text-xs font-bold text-gray-600 dark:text-zinc-300 bg-blue-500/[0.06] dark:bg-blue-500/10 p-3 rounded-xl border border-blue-500/15 flex items-start gap-2"
+                                        >
+                                            <v-icon
+                                                icon="mdi-information-outline"
+                                                size="18"
+                                                class="text-blue-500 shrink-0 mt-0.5"
+                                            ></v-icon>
+                                            <span>{{ $t("about.contact_propagation_hint") }}</span>
                                         </div>
                                     </div>
 
-                                    <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap pt-1">
-                                        <a
-                                            href="https://ko-fi.com/quad4"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            class="inline-flex flex-1 items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-orange-500/15 hover:bg-orange-500/25 text-orange-900 dark:text-orange-100 border border-orange-500/25 text-xs font-bold uppercase tracking-wide min-h-[44px]"
+                                    <div
+                                        class="border-t border-gray-200/90 dark:border-zinc-800 pt-8 space-y-4 -mx-1 px-1"
+                                    >
+                                        <div
+                                            class="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-violet-700 dark:text-violet-300"
                                         >
-                                            <v-icon icon="mdi-coffee" size="18"></v-icon>
-                                            {{ $t("about.donate_kofi") }}
-                                        </a>
-                                        <a
-                                            href="https://buymeacoffee.com/quad4"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            class="inline-flex flex-1 items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-950 dark:text-amber-50 border border-amber-500/25 text-xs font-bold uppercase tracking-wide min-h-[44px]"
-                                        >
-                                            <v-icon icon="mdi-cup" size="18"></v-icon>
-                                            {{ $t("about.donate_buymeacoffee") }}
-                                        </a>
+                                            <v-icon icon="mdi-hand-heart" size="18"></v-icon>
+                                            {{ $t("about.donate_label") }}
+                                        </div>
+                                        <div class="space-y-1">
+                                            <div class="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                                                {{ $t("about.donate_monero_label") }}
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <code
+                                                    class="text-[11px] font-mono bg-zinc-100 dark:bg-zinc-900 px-2 py-1 rounded-lg break-all select-all"
+                                                    >{{ moneroDonateAddress }}</code
+                                                >
+                                                <button
+                                                    type="button"
+                                                    class="p-1 hover:text-violet-600 dark:hover:text-violet-300 transition shrink-0"
+                                                    :aria-label="$t('about.donate_copy_monero')"
+                                                    @click="copyValue(moneroDonateAddress, 'about.donate_monero_label')"
+                                                >
+                                                    <v-icon icon="mdi-content-copy" size="14"></v-icon>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap pt-1">
+                                            <a
+                                                href="https://ko-fi.com/quad4"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                class="inline-flex flex-1 items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-orange-500/15 hover:bg-orange-500/25 text-orange-900 dark:text-orange-100 border border-orange-500/25 text-xs font-bold uppercase tracking-wide min-h-[44px]"
+                                            >
+                                                <v-icon icon="mdi-coffee" size="18"></v-icon>
+                                                {{ $t("about.donate_kofi") }}
+                                            </a>
+                                            <a
+                                                href="https://buymeacoffee.com/quad4"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                class="inline-flex flex-1 items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-950 dark:text-amber-50 border border-amber-500/25 text-xs font-bold uppercase tracking-wide min-h-[44px]"
+                                            >
+                                                <v-icon icon="mdi-cup" size="18"></v-icon>
+                                                {{ $t("about.donate_buymeacoffee") }}
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                             </transition>
@@ -1036,8 +1043,7 @@ export default {
             electronVersion: null,
             chromeVersion: null,
             nodeVersion: null,
-            showContactDev: false,
-            showDonate: false,
+            showContactSupport: false,
             moneroDonateAddress:
                 "83SUg6mmkkVGwCycckLEgRfdmXNm7H9XtVjbGXp5kko71N6pTefYURJeS7WdEGHrz2aagmt4nF3dWg6mHcYs6yu4EokwhTh",
         };

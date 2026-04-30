@@ -737,6 +737,7 @@
         "contact_alternate": "Alternate",
         "contact_details": "Details",
         "contact_developer": "Contact Developer",
+        "contact_support_title": "Contact & support",
         "contact_lxmf_address": "LXMF Address",
         "contact_propagation_hint": "Send to propagation node if you cant reach me!",
         "donate_label": "Donate",

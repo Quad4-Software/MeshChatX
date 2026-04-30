@@ -755,6 +755,7 @@
         "contact_alternate": "备用地址",
         "contact_details": "详情",
         "contact_developer": "联系开发者",
+        "contact_support_title": "联系与支持",
         "contact_lxmf_address": "LXMF 地址",
         "contact_propagation_hint": "若无法直接联系我，请发送至传播节点。",
         "donate_label": "捐赠",

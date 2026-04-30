@@ -755,6 +755,7 @@
         "contact_alternate": "Dirección alternativa",
         "contact_details": "Detalles",
         "contact_developer": "Contactar con el desarrollador",
+        "contact_support_title": "Contacto y apoyo",
         "contact_lxmf_address": "Dirección LXMF",
         "contact_propagation_hint": "Enviar al nodo de propagación si no puedes alcanzarme directamente.",
         "donate_label": "Donar",
