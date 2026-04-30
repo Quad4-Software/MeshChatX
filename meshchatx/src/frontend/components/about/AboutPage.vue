@@ -176,6 +176,70 @@
                             </transition>
                         </div>
 
+                        <div class="mt-6 pt-6 border-t border-gray-200/70 dark:border-zinc-800/80 space-y-3">
+                            <button
+                                type="button"
+                                class="w-full text-left flex items-center justify-between px-4 py-2 rounded-xl bg-violet-500/10 hover:bg-violet-500/20 text-violet-800 dark:text-violet-200 border border-violet-500/20 transition-all"
+                                @click="showDonate = !showDonate"
+                            >
+                                <div class="flex items-center gap-2">
+                                    <v-icon icon="mdi-hand-heart" size="18"></v-icon>
+                                    <span class="text-xs font-black uppercase tracking-widest">{{
+                                        $t("about.donate_label")
+                                    }}</span>
+                                </div>
+                                <v-icon :icon="showDonate ? 'mdi-chevron-up' : 'mdi-chevron-down'" size="18"></v-icon>
+                            </button>
+
+                            <transition name="fade">
+                                <div
+                                    v-if="showDonate"
+                                    class="mt-4 p-5 rounded-2xl bg-white/50 dark:bg-zinc-950/50 border border-gray-100 dark:border-zinc-800 space-y-4"
+                                >
+                                    <div class="space-y-1">
+                                        <div class="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                                            {{ $t("about.donate_monero_label") }}
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <code
+                                                class="text-[11px] font-mono bg-zinc-100 dark:bg-zinc-900 px-2 py-1 rounded-lg break-all select-all"
+                                                >{{ moneroDonateAddress }}</code
+                                            >
+                                            <button
+                                                type="button"
+                                                class="p-1 hover:text-violet-600 dark:hover:text-violet-300 transition shrink-0"
+                                                :aria-label="$t('about.donate_copy_monero')"
+                                                @click="copyValue(moneroDonateAddress, 'about.donate_monero_label')"
+                                            >
+                                                <v-icon icon="mdi-content-copy" size="14"></v-icon>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap pt-1">
+                                        <a
+                                            href="https://ko-fi.com/quad4"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="inline-flex flex-1 items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-orange-500/15 hover:bg-orange-500/25 text-orange-900 dark:text-orange-100 border border-orange-500/25 text-xs font-bold uppercase tracking-wide min-h-[44px]"
+                                        >
+                                            <v-icon icon="mdi-coffee" size="18"></v-icon>
+                                            {{ $t("about.donate_kofi") }}
+                                        </a>
+                                        <a
+                                            href="https://buymeacoffee.com/quad4"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="inline-flex flex-1 items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-950 dark:text-amber-50 border border-amber-500/25 text-xs font-bold uppercase tracking-wide min-h-[44px]"
+                                        >
+                                            <v-icon icon="mdi-cup" size="18"></v-icon>
+                                            {{ $t("about.donate_buymeacoffee") }}
+                                        </a>
+                                    </div>
+                                </div>
+                            </transition>
+                        </div>
+
                         <div class="flex items-center gap-6 shrink-0">
                             <div class="text-right">
                                 <div
@@ -973,6 +1037,9 @@ export default {
             chromeVersion: null,
             nodeVersion: null,
             showContactDev: false,
+            showDonate: false,
+            moneroDonateAddress:
+                "83SUg6mmkkVGwCycckLEgRfdmXNm7H9XtVjbGXp5kko71N6pTefYURJeS7WdEGHrz2aagmt4nF3dWg6mHcYs6yu4EokwhTh",
         };
     },
     computed: {

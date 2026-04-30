@@ -11,6 +11,7 @@ Liam Cottle 氏による Reticulum MeshChat を大幅に改修・機能拡張し
 - 公式 GitHub ミラー: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - リリース: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - 変更履歴: [`CHANGELOG.md`](../CHANGELOG.md)
+- 寄付: [`donate.md`](../donate.md)
 
 rngit: `git clone rns://926baefe13daf5178c174f158dae1b45/quad4/MeshChatX`
 NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
@@ -368,6 +369,12 @@ python scripts/argos_translate.py --from en --to xx --input meshchatx/src/fronte
 `pnpm test -- tests/frontend/i18n.test.js --run` で `en.json` とのキー一致を検証。
 
 その他のコードの変更は必要ありません。アプリ、言語セレクター、およびテストは、ビルド時に `meshchatx/src/frontend/locales/` ディレクトリからロケールを検出します。
+
+## 寄付
+
+寄付は任意です。このアプリを開発するための時間と労力に充てられます。
+
+**寄付の方法:** [`donate.md`](../donate.md)（Monero、Ko-Fi、Buy Me a Coffee）。
 
 ## クレジット
 

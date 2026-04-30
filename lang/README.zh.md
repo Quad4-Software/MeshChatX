@@ -11,6 +11,7 @@ Liam Cottle 开发的 Reticulum MeshChat 的一个功能丰富的深度修改分
 - 官方 GitHub 镜像: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - 发行版: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - 变更日志: [`CHANGELOG.md`](../CHANGELOG.md)
+- 捐赠: [`donate.md`](../donate.md)
 
 rngit: `git clone rns://926baefe13daf5178c174f158dae1b45/quad4/MeshChatX`
 NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
@@ -368,6 +369,12 @@ python scripts/argos_translate.py --from en --to xx --input meshchatx/src/fronte
 运行 `pnpm test -- tests/frontend/i18n.test.js --run` 校验与 `en.json` 的键一致。
 
 不需要其他代码更改。应用程序、语言选择器和测试在构建时从 `meshchatx/src/frontend/locales/` 目录发现所有语言环境。
+
+## 捐赠
+
+捐赠纯属自愿，用于为本应用的开发提供时间与精力。
+
+**捐赠方式：** [`donate.md`](../donate.md)（Monero、Ko-Fi、Buy Me a Coffee）。
 
 ## 致谢
 

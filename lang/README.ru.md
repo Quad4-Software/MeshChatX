@@ -11,6 +11,7 @@
 - Официальное зеркало на GitHub: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - Релизы: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - Журнал изменений: [`CHANGELOG.md`](../CHANGELOG.md)
+- Поддержка проекта: [`donate.md`](../donate.md)
 
 rngit: `git clone rns://926baefe13daf5178c174f158dae1b45/quad4/MeshChatX`
 NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
@@ -368,6 +369,12 @@ python scripts/argos_translate.py --from en --to xx --input meshchatx/src/fronte
 `pnpm test -- tests/frontend/i18n.test.js --run`: проверка равенства ключей с `en.json`.
 
 Никаких других изменений в коде не требуется. Приложение, селектор языка и тесты обнаруживают локали из каталога `meshchatx/src/frontend/locales/` во время сборки.
+
+## Поддержка проекта
+
+Пожертвования добровольны. Они помогают оплатить время и усилия на разработку этого приложения.
+
+**Как поддержать:** [`donate.md`](../donate.md) (Monero, Ko-Fi, Buy Me a Coffee).
 
 ## Авторы
 

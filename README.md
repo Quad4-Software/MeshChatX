@@ -11,6 +11,7 @@ This project is independent from the original Reticulum MeshChat project and is 
 - Official GitHub Mirror: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - Releases: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - Changelog: [`CHANGELOG.md`](CHANGELOG.md)
+- Donate: [`donate.md`](donate.md) ([Donation](#donation))
 
 rngit: `git clone rns://926baefe13daf5178c174f158dae1b45/quad4/MeshChatX`
 
@@ -373,6 +374,12 @@ After any machine-assisted pass, have an LLM or a human reviewer verify grammar,
 Run `pnpm test -- tests/frontend/i18n.test.js --run` to verify key parity with `en.json`.
 
 No other code changes are required. The app, language selector, and tests all discover locales from the `meshchatx/src/frontend/locales/` directory at build time.
+
+## Donation
+
+Donations are voluntary. They help fund time and effort to develop this app.
+
+**Ways to give:** [`donate.md`](donate.md) (Monero, Ko-Fi, Buy Me a Coffee).
 
 ## Credits
 

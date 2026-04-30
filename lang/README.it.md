@@ -11,6 +11,7 @@ Questo progetto e indipendente dal progetto originale Reticulum MeshChat e non e
 - Mirror ufficiale su GitHub: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - Release: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - Changelog: [`CHANGELOG.md`](../CHANGELOG.md)
+- Donazioni: [`donate.md`](../donate.md)
 
 rngit: `git clone rns://926baefe13daf5178c174f158dae1b45/quad4/MeshChatX`
 NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
@@ -368,6 +369,12 @@ Dopo qualsiasi passaggio automatico, un LLM o un revisore umano controlli gramma
 Esegui `pnpm test -- tests/frontend/i18n.test.js --run` per verificare la parita delle chiavi con `en.json`.
 
 Non sono necessarie altre modifiche al codice. L'app, il selettore della lingua e i test scoprono le lingue dalla cartella `meshchatx/src/frontend/locales/` durante la compilazione.
+
+## Donazioni
+
+Le donazioni sono facoltative. Servono a finanziare tempo e impegno per sviluppare questa app.
+
+**Come donare:** [`donate.md`](../donate.md) (Monero, Ko-Fi, Buy Me a Coffee).
 
 ## Crediti
 
