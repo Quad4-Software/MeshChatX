@@ -114,4 +114,23 @@ describe("WebSocketConnection module", () => {
 
         WebSocketConnection.destroy();
     });
+
+    it("forwards invalid JSON frames without throwing", async () => {
+        const MockWS = makeWsImpl();
+        global.WebSocket = MockWS;
+
+        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection.js");
+
+        const onMessage = vi.fn();
+        WebSocketConnection.on("message", onMessage);
+
+        await WebSocketConnection.connect();
+        await vi.waitUntil(() => WebSocketConnection.ws?.readyState === MockWS.OPEN);
+
+        const sock = WebSocketConnection.ws;
+        expect(() => sock.onmessage({ data: "<<<not-json>>>" })).not.toThrow();
+        expect(onMessage).toHaveBeenCalledTimes(1);
+
+        WebSocketConnection.destroy();
+    });
 });
