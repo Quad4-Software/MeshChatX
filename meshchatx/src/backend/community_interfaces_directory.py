@@ -53,7 +53,9 @@ class _DirectoryFetchNoRedirectHandler(urllib.request.HTTPRedirectHandler):
         )
 
 
-_DIRECTORY_FETCH_OPENER = urllib.request.build_opener(_DirectoryFetchNoRedirectHandler())
+_DIRECTORY_FETCH_OPENER = urllib.request.build_opener(
+    _DirectoryFetchNoRedirectHandler()
+)
 
 
 def fetch_directory_payload(url: str, *, timeout: float = 60.0) -> object:
