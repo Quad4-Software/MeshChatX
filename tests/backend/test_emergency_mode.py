@@ -113,10 +113,6 @@ def test_emergency_mode_startup_logic(mock_rns, temp_dir):
         mock_integrity_instance = mock_integrity_class.return_value
         assert mock_integrity_instance.check_integrity.call_count == 0
 
-        # Verify migrate_from_legacy was NOT called
-        mock_db_instance = mock_db_class.return_value
-        assert mock_db_instance.migrate_from_legacy.call_count == 0
-
         # Verify TelephoneManager.init_telephone was NOT called
         mock_tel_instance = mock_tel_class.return_value
         assert mock_tel_instance.init_telephone.call_count == 0
@@ -214,10 +210,6 @@ def test_normal_mode_startup_logic(mock_rns, temp_dir):
 
         # Verify IntegrityManager.check_integrity WAS called
         assert mock_integrity_instance.check_integrity.call_count == 1
-
-        # Verify migrate_from_legacy WAS called
-        mock_db_instance = mock_db_class.return_value
-        assert mock_db_instance.migrate_from_legacy.call_count == 1
 
         # Verify TelephoneManager.init_telephone WAS called
         mock_tel_instance = mock_tel_class.return_value

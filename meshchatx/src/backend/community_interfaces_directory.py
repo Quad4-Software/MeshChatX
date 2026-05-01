@@ -9,12 +9,51 @@ import re
 import urllib.error
 import urllib.request
 from typing import Any
+from urllib.parse import urlparse
 
 DEFAULT_SUBMITTED_URL = (
     "https://directory.rns.recipes/api/directory/submitted?search=&type=&status=online"
 )
 
 DESCRIPTION = "directory.rns.recipes (user-submitted, online)"
+
+_ALLOWED_DIRECTORY_HOSTS = frozenset({"directory.rns.recipes"})
+
+
+def validate_directory_fetch_url(url: str) -> str:
+    """Reject SSRF: only https to directory.rns.recipes, no credentials."""
+    if not url or not isinstance(url, str):
+        msg = "URL must be a non-empty string"
+        raise ValueError(msg)
+    parsed = urlparse(url.strip())
+    if parsed.scheme != "https":
+        msg = "Community directory URL must use https"
+        raise ValueError(msg)
+    netloc = parsed.netloc or ""
+    if "@" in netloc:
+        msg = "Community directory URL must not contain credentials"
+        raise ValueError(msg)
+    host = (parsed.hostname or "").lower()
+    if host not in _ALLOWED_DIRECTORY_HOSTS:
+        msg = "Community directory URL host is not allowed"
+        raise ValueError(msg)
+    return url.strip()
+
+
+class _DirectoryFetchNoRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """urllib follows redirects by default; blocked to prevent SSRF via Location."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise urllib.error.HTTPError(
+            req.full_url,
+            code,
+            "Redirects are not followed for community directory fetch",
+            headers,
+            fp,
+        )
+
+
+_DIRECTORY_FETCH_OPENER = urllib.request.build_opener(_DirectoryFetchNoRedirectHandler())
 
 
 def fetch_directory_payload(url: str, *, timeout: float = 60.0) -> object:
@@ -26,7 +65,7 @@ def fetch_directory_payload(url: str, *, timeout: float = 60.0) -> object:
         },
         method="GET",
     )
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
+    with _DIRECTORY_FETCH_OPENER.open(req, timeout=timeout) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
 
@@ -35,7 +74,10 @@ def build_interfaces_from_directory_url(
     *,
     timeout: float = 60.0,
 ) -> tuple[list[dict[str, Any]], str]:
-    resolved = url or DEFAULT_SUBMITTED_URL
+    if url is not None and str(url).strip():
+        resolved = validate_directory_fetch_url(url)
+    else:
+        resolved = DEFAULT_SUBMITTED_URL
     payload = fetch_directory_payload(resolved, timeout=timeout)
     rows = rows_from_payload(payload)
     return transform_directory_rows(rows), resolved

@@ -142,27 +142,35 @@ class TranslatorHandler:
         libretranslate_reachable = False
 
         url = libretranslate_url or self.libretranslate_url
+        explicit_override = (
+            libretranslate_url is not None and str(libretranslate_url).strip() != ""
+        )
+        libre_base = None
         if self.has_requests:
-            if libretranslate_url is not None and str(libretranslate_url).strip():
-                try:
-                    url = normalize_loopback_http_service_base(libretranslate_url)
-                except UnsafeOutboundUrlError as e:
+            try:
+                libre_base = normalize_loopback_http_service_base(url)
+            except UnsafeOutboundUrlError as e:
+                if explicit_override:
                     msg = str(e)
                     raise ValueError(msg) from e
-            try:
-                libretranslate_langs = _sync_run_coro(self._fetch_languages_async(url))
-                if libretranslate_langs is not None:
-                    libretranslate_reachable = True
-                    languages.extend(
-                        {
-                            "code": lang.get("code"),
-                            "name": lang.get("name"),
-                            "source": "libretranslate",
-                        }
-                        for lang in libretranslate_langs
+                libre_base = None
+            if libre_base is not None:
+                try:
+                    libretranslate_langs = _sync_run_coro(
+                        self._fetch_languages_async(libre_base),
                     )
-            except Exception as e:
-                print(f"Failed to fetch LibreTranslate languages: {e}")
+                    if libretranslate_langs is not None:
+                        libretranslate_reachable = True
+                        languages.extend(
+                            {
+                                "code": lang.get("code"),
+                                "name": lang.get("name"),
+                                "source": "libretranslate",
+                            }
+                            for lang in libretranslate_langs
+                        )
+                except Exception as e:
+                    print(f"Failed to fetch LibreTranslate languages: {e}")
 
         if self.has_argos_lib:
             try:
@@ -222,14 +230,13 @@ class TranslatorHandler:
             return self._translate_argos(text, source_lang, target_lang)
 
         if self.translator_libretranslate_enabled and self.has_requests:
+            url_raw = libretranslate_url or self.libretranslate_url
             try:
-                url = libretranslate_url or self.libretranslate_url
-                if libretranslate_url is not None and str(libretranslate_url).strip():
-                    try:
-                        url = normalize_loopback_http_service_base(libretranslate_url)
-                    except UnsafeOutboundUrlError as e:
-                        msg = str(e)
-                        raise ValueError(msg) from e
+                url = normalize_loopback_http_service_base(url_raw)
+            except UnsafeOutboundUrlError as e:
+                msg = str(e)
+                raise ValueError(msg) from e
+            try:
                 return self._translate_libretranslate(
                     text,
                     source_lang=source_lang,

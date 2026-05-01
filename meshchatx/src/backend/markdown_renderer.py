@@ -10,8 +10,13 @@ _UNSAFE_PROTOCOLS = ("javascript:", "data:", "vbscript:", "file:")
 def _safe_href(url):
     if not url or not isinstance(url, str):
         return "#"
-    u = url.strip().lower()
+    trimmed = url.strip()
+    u = trimmed.lower()
     if any(u.startswith(p) for p in _UNSAFE_PROTOCOLS):
+        return "#"
+    if u.startswith("//"):
+        return "#"
+    if trimmed.startswith("\\\\"):
         return "#"
     if any(u.startswith(p) for p in _SAFE_LINK_PREFIXES):
         return url

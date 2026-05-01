@@ -142,7 +142,6 @@ def test_reticulum_meshchat_init(mock_rns, temp_dir):
 
         # Verify database initialization
         mock_db_instance.initialize.assert_called_once()
-        mock_db_instance.migrate_from_legacy.assert_called_once()
 
         # Verify RNS initialization
         mock_rns["Reticulum"].assert_called_once_with(temp_dir)

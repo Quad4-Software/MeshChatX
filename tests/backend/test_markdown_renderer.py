@@ -118,6 +118,21 @@ class TestMarkdownRenderer(unittest.TestCase):
         self.assertNotIn("vbscript:", r)
         self.assertIn('href="#"', r)
 
+    def test_protocol_relative_link_href_neutralized(self):
+        r = MarkdownRenderer.render("[phish](//evil.example/phish)")
+        self.assertNotIn("//evil.example", r)
+        self.assertNotIn('href="//', r)
+        self.assertIn('href="#"', r)
+
+    def test_unc_link_href_neutralized(self):
+        md = "[click](" + "\\\\\\\\evil.example\\\\share" + ")"
+        r = MarkdownRenderer.render(md)
+        self.assertIn('href="#"', r)
+
+    def test_protocol_relative_image_src_neutralized(self):
+        r = MarkdownRenderer.render("![x](//evil.example/i)")
+        self.assertNotIn("//evil.example", r)
+
     def test_safe_links_preserved(self):
         r = MarkdownRenderer.render("[link](https://example.com/path)")
         self.assertIn('href="https://example.com/path"', r)

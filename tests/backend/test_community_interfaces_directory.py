@@ -1,19 +1,136 @@
 # SPDX-License-Identifier: 0BSD
 
+import threading
+import urllib.error
+import urllib.request
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from meshchatx.src.backend.community_interfaces_directory import (
     DEFAULT_SUBMITTED_URL,
+    fetch_directory_payload,
     rows_from_payload,
     transform_directory_rows,
+    validate_directory_fetch_url,
 )
 
 
 def test_default_url_is_submitted_online():
     assert "submitted" in DEFAULT_SUBMITTED_URL
     assert "status=online" in DEFAULT_SUBMITTED_URL
+
+
+def test_validate_directory_fetch_url_accepts_default_host():
+    u = "https://directory.rns.recipes/api/foo?bar=1"
+    assert validate_directory_fetch_url(u) == u
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        "http://directory.rns.recipes/api",
+        "https://127.0.0.1/",
+        "https://metadata.internal/",
+        "ftp://directory.rns.recipes/",
+        "https://evil.com/https://directory.rns.recipes/",
+        "https://user:pass@directory.rns.recipes/",
+        "https://not-directory.rns.recipes.example/api",
+    ],
+)
+def test_validate_directory_fetch_url_rejects_ssrf(bad):
+    with pytest.raises(ValueError):
+        validate_directory_fetch_url(bad)
+
+
+class _Redirect302Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(302)
+        self.send_header("Location", "http://127.0.0.1:9/")
+        self.end_headers()
+
+    def log_message(self, *args):
+        return
+
+
+class _Json200Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        body = b'{"data":[]}'
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, *args):
+        return
+
+
+@pytest.fixture
+def redirect_http_port():
+    srv = HTTPServer(("127.0.0.1", 0), _Redirect302Handler)
+    thread = threading.Thread(target=srv.serve_forever, daemon=True)
+    thread.start()
+    port = srv.server_address[1]
+    yield port
+    srv.shutdown()
+
+
+@pytest.fixture
+def json_http_port():
+    srv = HTTPServer(("127.0.0.1", 0), _Json200Handler)
+    thread = threading.Thread(target=srv.serve_forever, daemon=True)
+    thread.start()
+    port = srv.server_address[1]
+    yield port
+    srv.shutdown()
+
+
+def test_directory_fetch_opener_blocks_http_redirect(redirect_http_port):
+    from meshchatx.src.backend.community_interfaces_directory import (
+        _DIRECTORY_FETCH_OPENER,
+    )
+
+    req = urllib.request.Request(f"http://127.0.0.1:{redirect_http_port}/")
+    with pytest.raises(urllib.error.HTTPError) as ei:
+        _DIRECTORY_FETCH_OPENER.open(req, timeout=3)
+    assert ei.value.code == 302
+
+
+def test_fetch_directory_payload_reads_json_when_no_redirect(
+    monkeypatch,
+    json_http_port,
+):
+    import meshchatx.src.backend.community_interfaces_directory as cid
+
+    monkeypatch.setattr(
+        cid,
+        "validate_directory_fetch_url",
+        lambda url: url,
+    )
+    out = fetch_directory_payload(
+        f"http://127.0.0.1:{json_http_port}/x",
+        timeout=3,
+    )
+    assert out == {"data": []}
+
+
+def test_fetch_directory_payload_raises_on_redirect(monkeypatch, redirect_http_port):
+    import meshchatx.src.backend.community_interfaces_directory as cid
+
+    monkeypatch.setattr(
+        cid,
+        "validate_directory_fetch_url",
+        lambda url: url,
+    )
+    with pytest.raises(urllib.error.HTTPError) as ei:
+        fetch_directory_payload(
+            f"http://127.0.0.1:{redirect_http_port}/",
+            timeout=3,
+        )
+    assert ei.value.code == 302
 
 
 def test_rows_from_payload_dict_data():
