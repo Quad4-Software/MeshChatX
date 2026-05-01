@@ -139,11 +139,6 @@ class IdentityContext:
 
         try:
             self.database.initialize()
-            if not getattr(self.app, "emergency", False):
-                self.database.migrate_from_legacy(
-                    self.app.reticulum_config_dir,
-                    self.identity_hash,
-                )
             self.database._tune_sqlite_pragmas()
         except Exception as exc:
             if not self.app.auto_recover and not getattr(self.app, "emergency", False):
