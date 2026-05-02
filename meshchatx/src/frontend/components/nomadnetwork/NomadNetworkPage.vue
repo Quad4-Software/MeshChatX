@@ -149,6 +149,47 @@
                                 <template v-else>
                                     {{ nomadBrowserRendererChip.tooltipBody }}
                                 </template>
+
+                                <div
+                                    v-if="wasmBundled && (nodePagePath || '').toLowerCase().endsWith('.mu')"
+                                    class="mt-2 pt-2 border-t border-[var(--mc-border-strong)] flex flex-col gap-1.5"
+                                >
+                                    <div
+                                        class="text-[10px] font-bold uppercase tracking-wider text-[var(--mc-text-secondary)] opacity-80"
+                                    >
+                                        {{ $t("nomadnet.renderer_switch_title") }}
+                                    </div>
+                                    <div class="flex gap-1">
+                                        <button
+                                            class="flex-1 rounded px-2 py-1 text-[10px] font-bold transition-colors"
+                                            :class="
+                                                !GlobalState.config.nomad_micron_wasm_enabled
+                                                    ? 'bg-blue-600 text-white dark:bg-blue-500'
+                                                    : 'bg-[var(--mc-surface-hover)] text-[var(--mc-text-secondary)] hover:bg-[var(--mc-border-strong)]'
+                                            "
+                                            @click.stop="
+                                                !GlobalState.config.nomad_micron_wasm_enabled
+                                                    ? null
+                                                    : toggleMicronWasm()
+                                            "
+                                        >
+                                            JS
+                                        </button>
+                                        <button
+                                            class="flex-1 rounded px-2 py-1 text-[10px] font-bold transition-colors"
+                                            :class="
+                                                GlobalState.config.nomad_micron_wasm_enabled
+                                                    ? 'bg-blue-600 text-white dark:bg-blue-500'
+                                                    : 'bg-[var(--mc-surface-hover)] text-[var(--mc-text-secondary)] hover:bg-[var(--mc-border-strong)]'
+                                            "
+                                            @click.stop="
+                                                GlobalState.config.nomad_micron_wasm_enabled ? null : toggleMicronWasm()
+                                            "
+                                        >
+                                            WASM
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </v-tooltip>
                     </div>
@@ -516,6 +557,7 @@ import IconButton from "../IconButton.vue";
 import DropDownMenu from "../DropDownMenu.vue";
 import DropDownMenuItem from "../DropDownMenuItem.vue";
 import GlobalState from "../../js/GlobalState";
+import { patchServerConfig } from "../../js/settings/settingsConfigService";
 import {
     preloadNomadMicronWasm,
     invalidateNomadMicronWasmPreload,
@@ -606,6 +648,7 @@ export default {
             pendingLoadLatestArchive: false,
 
             nomadMicronWasmReady: false,
+            wasmBundled: isMicronWasmBundled(),
         };
     },
     computed: {
@@ -908,6 +951,31 @@ export default {
                 return false;
             }
             return content.startsWith("Failed loading page:");
+        },
+        async toggleMicronWasm() {
+            if (!isMicronWasmBundled()) {
+                return;
+            }
+            const newValue = !GlobalState.config.nomad_micron_wasm_enabled;
+            try {
+                await patchServerConfig({ nomad_micron_wasm_enabled: newValue }, window.api);
+                // GlobalState.config is reactive and updated by the server response or by the patch call
+                // but we might need to force a re-render or reload the page if it doesn't happen automatically.
+                // In this case, nomadMicronWasmFeatureEffective depends on config, and renderedNodePageHtml
+                // depends on nomad_micron_wasm_use which depends on nomadMicronWasmFeatureEffective.
+                // So it should just work.
+                if (this.nodePageContent && this.nodePagePath && this.nodePagePath.toLowerCase().endsWith(".mu")) {
+                    // Force re-render of current page if it's a micron page
+                    const content = this.nodePageContent;
+                    this.nodePageContent = null;
+                    this.$nextTick(() => {
+                        this.nodePageContent = content;
+                    });
+                }
+            } catch (e) {
+                console.error("Failed to toggle Micron WASM", e);
+                ToastUtils.showError("Failed to update setting");
+            }
         },
         scheduleProcessPartials() {
             if (this.processPartialsRaf != null) {
@@ -1845,18 +1913,17 @@ export default {
             }
 
             // lxmf urls should open the conversation
-            if (url.startsWith("lxmf@")) {
-                const destinationHash = url.replace("lxmf@", "");
-                if (destinationHash.length === 32) {
-                    const routeName = this.isPopoutMode ? "messages-popout" : "messages";
-                    await this.$router.push({
-                        name: routeName,
-                        params: {
-                            destinationHash: destinationHash,
-                        },
-                    });
-                    return;
-                }
+            const normalizedLxmf = Utils.normalizeMeshchatHashHex(url);
+            if (normalizedLxmf.length === 32 && (url.startsWith("lxmf@") || url.startsWith("lxmf://"))) {
+                const destinationHash = normalizedLxmf;
+                const routeName = this.isPopoutMode ? "messages-popout" : "messages";
+                await this.$router.push({
+                    name: routeName,
+                    params: {
+                        destinationHash: destinationHash,
+                    },
+                });
+                return;
             }
 
             // attempt to parse url
