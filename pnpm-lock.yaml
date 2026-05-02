@@ -193,7 +193,7 @@ importers:
         version: 29.0.2
       micron-parser:
         specifier: github:RFnexus/micron-parser-js
-        version: https://codeload.github.com/RFnexus/micron-parser-js/tar.gz/aa8fe3ce9c53fe78c79b39a0abfb3264948b47a9
+        version: https://codeload.github.com/RFnexus/micron-parser-js/tar.gz/93ae28418b424e77741397da8065311ede4a6f88
       postcss:
         specifier: ^8.5.10
         version: 8.5.10
@@ -2309,6 +2309,10 @@ packages:
     resolution: {integrity: sha512-XXADHxXmvT9+CRxhXg56LJovE+bmWnEWB78LB83VZTprKTmaC5QfruXocxzTZ2Kl0DNwKuBdlIhjL8LeY8Sf8Q==}
     engines: {node: '>= 12'}
 
+  ip-address@10.2.0:
+    resolution: {integrity: sha512-/+S6j4E9AHvW9SWMSEY9Xfy66O5PWvVEJ08O0y5JGyEKQpojb0K0GKpz/v5HJ/G0vi3D2sjGK78119oXZeE0qA==}
+    engines: {node: '>= 12'}
+
   is-arrayish@0.2.1:
     resolution: {integrity: sha512-zz06S8t0ozoDXMG+ube26zeCTNXcKIPJZJi8hBrF4idCLms4CG9QtK7qBl1boi5ODzFpjswb5JPmHCbMpjaYzg==}
 
@@ -2679,8 +2683,8 @@ packages:
     resolution: {integrity: sha512-PXwfBhYu0hBCPw8Dn0E+WDYb7af3dSLVWKi3HGv84IdF4TyFoC0ysxFd0Goxw7nSv4T/PzEJQxsYsEiFCKo2BA==}
     engines: {node: '>=8.6'}
 
-  micron-parser@https://codeload.github.com/RFnexus/micron-parser-js/tar.gz/aa8fe3ce9c53fe78c79b39a0abfb3264948b47a9:
-    resolution: {tarball: https://codeload.github.com/RFnexus/micron-parser-js/tar.gz/aa8fe3ce9c53fe78c79b39a0abfb3264948b47a9}
+  micron-parser@https://codeload.github.com/RFnexus/micron-parser-js/tar.gz/93ae28418b424e77741397da8065311ede4a6f88:
+    resolution: {tarball: https://codeload.github.com/RFnexus/micron-parser-js/tar.gz/93ae28418b424e77741397da8065311ede4a6f88}
     version: 0.0.0
 
   mime-db@1.52.0:
@@ -3387,6 +3391,10 @@ packages:
 
   socks@2.8.7:
     resolution: {integrity: sha512-HLpt+uLy/pxB+bum/9DzAgiKS8CX1EvbWxI4zlmgGCExImLdiad2iCwXT5Z4c9c3Eq8rP2318mPW2c+QbtjK8A==}
+    engines: {node: '>= 10.0.0', npm: '>= 3.0.0'}
+
+  socks@2.8.8:
+    resolution: {integrity: sha512-NlGELfPrgX2f1TAAcz0WawlLn+0r3FyhhCRpFFK2CemXenPYvzMWWZINv3eDNo9ucdwme7oCHRY0Jnbs4aIkog==}
     engines: {node: '>= 10.0.0', npm: '>= 3.0.0'}
 
   source-map-js@1.2.1:
@@ -6643,6 +6651,8 @@ snapshots:
 
   ip-address@10.1.0: {}
 
+  ip-address@10.2.0: {}
+
   is-arrayish@0.2.1: {}
 
   is-blob@2.1.0: {}
@@ -7012,7 +7022,7 @@ snapshots:
       braces: 3.0.3
       picomatch: 2.3.2
 
-  micron-parser@https://codeload.github.com/RFnexus/micron-parser-js/tar.gz/aa8fe3ce9c53fe78c79b39a0abfb3264948b47a9: {}
+  micron-parser@https://codeload.github.com/RFnexus/micron-parser-js/tar.gz/93ae28418b424e77741397da8065311ede4a6f88: {}
 
   mime-db@1.52.0: {}
 
@@ -7663,7 +7673,7 @@ snapshots:
     dependencies:
       agent-base: 6.0.2
       debug: 4.4.3
-      socks: 2.8.7
+      socks: 2.8.8
     transitivePeerDependencies:
       - supports-color
 
@@ -7678,6 +7688,11 @@ snapshots:
   socks@2.8.7:
     dependencies:
       ip-address: 10.1.0
+      smart-buffer: 4.2.0
+
+  socks@2.8.8:
+    dependencies:
+      ip-address: 10.2.0
       smart-buffer: 4.2.0
 
   source-map-js@1.2.1: {}
