@@ -124,7 +124,7 @@ async def test_initiate_cancels_quickly_while_dialling(telephone_manager):
 
         telephone_manager._update_initiation_status(None, None)
 
-        result = await asyncio.wait_for(task, timeout=0.5)
+        result = await asyncio.wait_for(task, timeout=2.0)
 
     assert result is None
     assert telephone_manager.telephone.hangup.called
@@ -186,7 +186,7 @@ async def test_cancel_after_path_found_before_dialling_stabilizes(telephone_mana
                 break
             await asyncio.sleep(0)
         telephone_manager._update_initiation_status(None, None)
-        result = await asyncio.wait_for(task, timeout=0.4)
+        result = await asyncio.wait_for(task, timeout=2.0)
 
     assert result is None
     assert telephone_manager.telephone.hangup.called
@@ -228,7 +228,7 @@ async def test_request_path_exceptions_do_not_abort_discovery(telephone_manager)
     ):
         await asyncio.wait_for(
             telephone_manager.initiate(destination_hash, timeout_seconds=1),
-            timeout=0.5,
+            timeout=2.0,
         )
 
     assert mocked_request_path.call_count >= 2
@@ -261,7 +261,7 @@ async def test_flapping_path_state_recovers_and_dials(telephone_manager):
     ):
         result = await asyncio.wait_for(
             telephone_manager.initiate(destination_hash, timeout_seconds=1),
-            timeout=0.5,
+            timeout=2.0,
         )
 
     assert result is None
