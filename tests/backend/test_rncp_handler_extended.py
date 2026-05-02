@@ -153,3 +153,28 @@ def test_setup_receive_destination_idempotent_restarts_listener(
     assert mock_transport.deregister_destination.call_count == 1
     assert mock_transport.deregister_destination.call_args[0][0] is first_dest
     assert rncp_handler.receive_destination is second_dest
+
+
+@patch("meshchatx.src.backend.rncp_handler.RNS.Transport")
+@patch("meshchatx.src.backend.rncp_handler.RNS.Identity")
+@patch("meshchatx.src.backend.rncp_handler.RNS.Destination")
+@patch("meshchatx.src.backend.rncp_handler.RNS.Reticulum")
+def test_setup_receive_destination_empty_allowlist_clears_previous(
+    mock_rns_reticulum,
+    mock_dest_class,
+    mock_identity_class,
+    mock_transport,
+    rncp_handler,
+):
+    mock_rns_reticulum.identitypath = "/tmp/rns/identities"
+    mock_id_obj = MagicMock()
+    mock_identity_class.from_file.return_value = mock_id_obj
+    mock_dest_obj = MagicMock()
+    mock_dest_obj.hash = b"\x04" * 16
+    mock_dest_class.return_value = mock_dest_obj
+
+    with patch("os.path.isfile", return_value=True):
+        rncp_handler.setup_receive_destination(allowed_hashes=["cd" * 16])
+        assert len(rncp_handler.allowed_identity_hashes) == 1
+        rncp_handler.setup_receive_destination(allowed_hashes=[])
+        assert rncp_handler.allowed_identity_hashes == []

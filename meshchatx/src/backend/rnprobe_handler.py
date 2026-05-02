@@ -1,19 +1,54 @@
 # SPDX-License-Identifier: 0BSD
 
 import asyncio
+import logging
 import os
 import time
 
 import RNS
 
+logger = logging.getLogger(__name__)
+
 
 class RNProbeHandler:
     DEFAULT_PROBE_SIZE = 16
     DEFAULT_TIMEOUT = 12
+    MAX_PROBES = 50
+    MAX_WAIT_S = 120.0
+    MAX_TIMEOUT_S = 600.0
+    _PACKET_OVERHEAD_BYTES = 96
 
     def __init__(self, reticulum_instance, identity):
         self.reticulum = reticulum_instance
         self.identity = identity
+
+    def _max_payload_bytes(self) -> int:
+        mtu = int(RNS.Reticulum.MTU)
+        return max(1, mtu - self._PACKET_OVERHEAD_BYTES)
+
+    def _validate_probe_params(
+        self,
+        size: int,
+        timeout: float | None,
+        wait: float,
+        probes: int,
+    ) -> None:
+        if probes < 1 or probes > self.MAX_PROBES:
+            msg = f"probes must be between 1 and {self.MAX_PROBES}"
+            raise ValueError(msg)
+        if wait < 0 or wait > self.MAX_WAIT_S:
+            msg = f"wait must be between 0 and {self.MAX_WAIT_S} seconds"
+            raise ValueError(msg)
+        max_payload = self._max_payload_bytes()
+        if size < 1 or size > max_payload:
+            msg = f"size must be between 1 and {max_payload} bytes for this MTU"
+            raise ValueError(msg)
+        if timeout is not None:
+            if timeout <= 0 or timeout > self.MAX_TIMEOUT_S:
+                msg = (
+                    f"timeout must be positive and at most {self.MAX_TIMEOUT_S} seconds"
+                )
+                raise ValueError(msg)
 
     async def probe_destination(
         self,
@@ -24,6 +59,8 @@ class RNProbeHandler:
         wait: float = 0,
         probes: int = 1,
     ):
+        self._validate_probe_params(size, timeout, wait, probes)
+
         try:
             app_name, aspects = RNS.Destination.app_and_aspects_from_name(full_name)
         except Exception as e:

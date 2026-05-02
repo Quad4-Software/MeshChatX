@@ -22,6 +22,28 @@ RNGIT_IDX_REPOSITORY = 0x00
 _MAX_PROBE_NAMES = 64
 _MAX_REFS_PREVIEW_CHARS = 8000
 
+_MAX_RNGIT_PATH_TIMEOUT_S = 600.0
+_MAX_RNGIT_LINK_TIMEOUT_S = 180.0
+_MAX_RNGIT_LIST_TIMEOUT_S = 600.0
+
+
+def _clamp_timeout(
+    value: float | None,
+    *,
+    default: float,
+    minimum: float,
+    maximum: float,
+) -> float:
+    if value is None:
+        return default
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return default
+    if v < minimum:
+        return minimum
+    return min(v, maximum)
+
 
 def display_name_from_rngit_app_data(app_data_b64: str | None) -> str | None:
     """Decode optional rngit announce app_data (often a short node label)."""
@@ -102,11 +124,24 @@ async def list_remote_git_refs(
     if not repo:
         return {"ok": False, "error": "invalid_repository_name"}
 
-    path_timeout = (
-        path_timeout if path_timeout is not None else RNS.Transport.PATH_REQUEST_TIMEOUT
+    path_timeout = _clamp_timeout(
+        path_timeout,
+        default=float(RNS.Transport.PATH_REQUEST_TIMEOUT),
+        minimum=1.0,
+        maximum=_MAX_RNGIT_PATH_TIMEOUT_S,
     )
-    link_timeout = link_timeout if link_timeout is not None else 30.0
-    list_timeout = list_timeout if list_timeout is not None else 120.0
+    link_timeout = _clamp_timeout(
+        link_timeout,
+        default=30.0,
+        minimum=1.0,
+        maximum=_MAX_RNGIT_LINK_TIMEOUT_S,
+    )
+    list_timeout = _clamp_timeout(
+        list_timeout,
+        default=120.0,
+        minimum=1.0,
+        maximum=_MAX_RNGIT_LIST_TIMEOUT_S,
+    )
 
     destination_hash = bytes.fromhex(norm_hash)
 

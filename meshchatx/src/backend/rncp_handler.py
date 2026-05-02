@@ -37,6 +37,7 @@ class RNCPHandler:
 
     def teardown_receive_destination(self):
         if self.receive_destination is None:
+            self.allowed_identity_hashes = []
             return
         dest = self.receive_destination
         self.receive_destination = None
@@ -45,6 +46,7 @@ class RNCPHandler:
                 dest.deregister_request_handler("fetch_file")
             self._listener_fetch_registered = False
         self._listener_fetch_allowed = False
+        self.allowed_identity_hashes = []
         with contextlib.suppress(Exception):
             RNS.Transport.deregister_destination(dest)
 
@@ -79,6 +81,7 @@ class RNCPHandler:
     ):
         self.teardown_receive_destination()
 
+        self.allowed_identity_hashes = []
         if allowed_hashes:
             self.allowed_identity_hashes = [
                 bytes.fromhex(h) if isinstance(h, str) else h for h in allowed_hashes

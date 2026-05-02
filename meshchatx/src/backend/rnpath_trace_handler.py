@@ -1,10 +1,12 @@
 # SPDX-License-Identifier: 0BSD
 
 import asyncio
+import logging
 import time
-import traceback
 
 import RNS
+
+logger = logging.getLogger(__name__)
 
 
 class RNPathTraceHandler:
@@ -98,5 +100,6 @@ class RNPathTraceHandler:
                 "interface": next_hop_interface,
                 "next_hop": next_hop_bytes.hex() if next_hop_bytes else None,
             }
-        except Exception as e:
-            return {"error": f"Trace failed: {e}\n{traceback.format_exc()}"}
+        except Exception:
+            logger.exception("RN path trace failed")
+            return {"error": "Trace failed"}

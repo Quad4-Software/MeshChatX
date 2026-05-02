@@ -9425,22 +9425,37 @@ class ReticulumMeshChat:
                     )
                 result = await self.rnpath_trace_handler.trace_path(destination_hash)
                 return web.json_response(result)
-            except Exception as e:
-                import traceback
-
-                error_msg = f"Trace route failed: {e}\n{traceback.format_exc()}"
-                print(error_msg)
-                return web.json_response({"error": error_msg}, status=500)
+            except Exception:
+                logger.exception("RN path trace route failed")
+                return web.json_response({"error": "Trace failed"}, status=500)
 
         @routes.post("/api/v1/rnprobe")
         async def rnprobe(request):
             data = await request.json()
             destination_hash_str = data.get("destination_hash", "")
             full_name = data.get("full_name", "")
-            size = int(data.get("size", RNProbeHandler.DEFAULT_PROBE_SIZE))
-            timeout = float(data.get("timeout", 0)) or None
-            wait = float(data.get("wait", 0))
-            probes = int(data.get("probes", 1))
+            try:
+                size = int(data.get("size", RNProbeHandler.DEFAULT_PROBE_SIZE))
+            except (TypeError, ValueError):
+                return web.json_response({"message": "Invalid size"}, status=400)
+            try:
+                wait = float(data.get("wait", 0))
+            except (TypeError, ValueError):
+                return web.json_response({"message": "Invalid wait"}, status=400)
+            try:
+                probes = int(data.get("probes", 1))
+            except (TypeError, ValueError):
+                return web.json_response({"message": "Invalid probes"}, status=400)
+
+            timeout = None
+            raw_timeout = data.get("timeout", 0)
+            if raw_timeout is not None:
+                try:
+                    t = float(raw_timeout)
+                except (TypeError, ValueError):
+                    return web.json_response({"message": "Invalid timeout"}, status=400)
+                if t != 0:
+                    timeout = t
 
             try:
                 destination_hash = bytes.fromhex(destination_hash_str)
