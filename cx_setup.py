@@ -4,11 +4,15 @@ import os
 import sys
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parent
+_vendor_lxmfy = ROOT / "vendor" / "lxmfy"
+if _vendor_lxmfy.is_dir() and (_vendor_lxmfy / "lxmfy").is_dir():
+    sys.path.insert(0, str(_vendor_lxmfy))
+
 from cx_Freeze import Executable, setup
 
 from meshchatx.src.version import __version__
 
-ROOT = Path(__file__).resolve().parent
 PUBLIC_DIR = ROOT / "meshchatx" / "public"
 
 target_name = os.environ.get("CX_FREEZE_TARGET_NAME", "ReticulumMeshChatX")
