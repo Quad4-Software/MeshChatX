@@ -1,7 +1,13 @@
 #!/bin/sh
-# Install Trivy .deb for CI (scan / docker workflows). Upstream path: Sigstore on
-# trivy_${VER}_checksums.txt, SHA256 of the .deb against that file, then Sigstore on the .deb.
-# Custom mirror: TRIVY_DEB_URL and TRIVY_DEB_SHA256 (sha256sum -c format, hex only).
+# Install Trivy .deb for CI (scan / docker workflows).
+#
+# Default (no TRIVY_DEB_URL): official assets from
+# https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/
+#   1) cosign verify-blob on trivy_${VER}_checksums.txt (+ .sigstore.json)
+#   2) sha256sum -c for the arch .deb using that checksums file
+#   3) cosign verify-blob on the .deb (+ .deb.sigstore.json)
+#
+# Optional mirror: TRIVY_DEB_URL and TRIVY_DEB_SHA256 (sha256sum -c format, hex only).
 set -eu
 
 COSIGN_VERSION="${COSIGN_VERSION:-3.0.6}"

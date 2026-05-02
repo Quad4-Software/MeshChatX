@@ -32,8 +32,9 @@ env:
     NODE_VERSION: "24"
     POETRY_VERSION: "2.3.4"
     PNPM_VERSION: "10.32.1"
-    TRIVY_DEB_URL: "https://git.quad4.io/Quad4-Software/Trivy-Assets/raw/commit/fdfe96b77d2f7b7f5a90cea00af5024c9f728f17/trivy_0.69.3_Linux-64bit.deb"
-    TRIVY_DEB_SHA256: "a484057aafde31089cf2558ca0f79a4bc835125a5ee6834183a5bcf0735af358"
+    COSIGN_VERSION: "3.0.6"
+    # Official .deb; setup-trivy.sh verifies sigstore + SHA256 (see build-release.yml).
+    TRIVY_VERSION: "0.69.3"
 
 jobs:
     scan:
