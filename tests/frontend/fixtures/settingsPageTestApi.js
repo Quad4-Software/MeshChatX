@@ -123,7 +123,7 @@ export function buildFullServerConfig(overrides = {}) {
         nomad_render_markdown_enabled: true,
         nomad_render_html_enabled: true,
         nomad_render_plaintext_enabled: true,
-        nomad_micron_wasm_enabled: true,
+        nomad_micron_wasm_enabled: false,
         nomad_default_page_path: "/page/index.mu",
         gitea_base_url: "https://git.quad4.io",
         ...overrides,

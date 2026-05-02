@@ -463,7 +463,7 @@ class ConfigManager:
         self.nomad_micron_wasm_enabled = self.BoolConfig(
             self,
             "nomad_micron_wasm_enabled",
-            True,
+            False,
         )
         self.nomad_default_page_path = self.StringConfig(
             self,

@@ -2607,7 +2607,7 @@ export default {
                 nomad_render_markdown_enabled: true,
                 nomad_render_html_enabled: true,
                 nomad_render_plaintext_enabled: true,
-                nomad_micron_wasm_enabled: true,
+                nomad_micron_wasm_enabled: false,
                 nomad_default_page_path: "/page/index.mu",
                 local_message_auto_delete_enabled: false,
                 local_message_auto_delete_value: 30,
