@@ -58,6 +58,7 @@ def test_get_supported_languages_libretranslate(mock_session_cls):
     handler.has_argos_lib = False
     handler.has_argos_cli = False
     handler.has_requests = True
+    handler.translator_libretranslate_enabled = True
     langs = handler.get_supported_languages()
     assert len(langs) == 2
     assert langs[0]["code"] == "en"
@@ -183,6 +184,7 @@ def test_libretranslate_get_languages_disallows_redirects(mock_session_cls):
     handler.has_argos_lib = False
     handler.has_argos_cli = False
     handler.has_requests = True
+    handler.translator_libretranslate_enabled = True
     handler.get_supported_languages()
 
     assert mock_session.get.call_args.kwargs.get("allow_redirects") is False

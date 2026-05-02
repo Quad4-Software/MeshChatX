@@ -101,18 +101,23 @@ describe("MicronWasmLoader.js", () => {
         });
 
         // Mock crypto.subtle.digest to return hash matching embedded SRI for test data
-        const mockWasmHash = __MICRON_WASM_SRI_WASM__?.replace("sha384-", "") || "";
-        const mockExecHash = __MICRON_WASM_SRI_EXEC__?.replace("sha384-", "") || "";
+        // Use embedded hashes if available, otherwise generate deterministic mock hashes
+        const embeddedWasmHash = __MICRON_WASM_SRI_WASM__?.replace("sha384-", "");
+        const embeddedExecHash = __MICRON_WASM_SRI_EXEC__?.replace("sha384-", "");
+
+        // Create deterministic 48-byte mock hashes (SHA-384 output size) if embedded not available
+        const mockWasmHash =
+            embeddedWasmHash || "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+        const mockExecHash =
+            embeddedExecHash || "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
+
         vi.stubGlobal("crypto", {
             subtle: {
                 digest: vi.fn(async (algo, buf) => {
                     // Return different hash based on buffer size to distinguish wasm_exec.js vs wasm
-                    const hash =
-                        buf.byteLength < 1000
-                            ? mockExecHash // wasm_exec.js is smaller
-                            : mockWasmHash; // wasm is larger
-                    // Convert base64 to ArrayBuffer
-                    const binary = atob(hash);
+                    const hashB64 = buf.byteLength < 1000 ? mockExecHash : mockWasmHash;
+                    // Convert base64 to ArrayBuffer (48 bytes for SHA-384)
+                    const binary = atob(hashB64);
                     const bytes = new Uint8Array(binary.length);
                     for (let i = 0; i < binary.length; i++) {
                         bytes[i] = binary.charCodeAt(i);
@@ -164,13 +169,18 @@ describe("MicronWasmLoader.js", () => {
         });
 
         // Mock crypto.subtle.digest to return hash matching embedded SRI for test data
-        const mockWasmHash = __MICRON_WASM_SRI_WASM__?.replace("sha384-", "") || "";
-        const mockExecHash = __MICRON_WASM_SRI_EXEC__?.replace("sha384-", "") || "";
+        const embeddedWasmHash = __MICRON_WASM_SRI_WASM__?.replace("sha384-", "");
+        const embeddedExecHash = __MICRON_WASM_SRI_EXEC__?.replace("sha384-", "");
+        const mockWasmHash =
+            embeddedWasmHash || "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+        const mockExecHash =
+            embeddedExecHash || "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
+
         vi.stubGlobal("crypto", {
             subtle: {
                 digest: vi.fn(async (algo, buf) => {
-                    const hash = buf.byteLength < 1000 ? mockExecHash : mockWasmHash;
-                    const binary = atob(hash);
+                    const hashB64 = buf.byteLength < 1000 ? mockExecHash : mockWasmHash;
+                    const binary = atob(hashB64);
                     const bytes = new Uint8Array(binary.length);
                     for (let i = 0; i < binary.length; i++) {
                         bytes[i] = binary.charCodeAt(i);
