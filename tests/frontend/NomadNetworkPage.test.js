@@ -6,7 +6,7 @@ import MicronParser from "@/js/MicronParser.js";
 vi.mock("vuetify/components/VTooltip", () => ({
     VTooltip: {
         name: "VTooltip",
-        template: "<div class=\"v-tooltip-stub\"><slot /></div>",
+        template: '<div class="v-tooltip-stub"><slot /></div>',
     },
 }));
 
