@@ -35,6 +35,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install --no-cache-dir --upgrade "pip>=26.0" "setuptools" "jaraco.context>=6.1.0"
 
 COPY pyproject.toml poetry.lock README.md ./
+COPY vendor ./vendor
 RUN poetry config virtualenvs.create false && \
     poetry check --lock && \
     poetry install --no-root --only main --no-interaction --no-ansi && \

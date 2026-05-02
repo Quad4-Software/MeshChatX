@@ -4,6 +4,10 @@ donate.md
 screenshots/
 docs/
 
+vendor/lxmfy/tests/
+vendor/lxmfy/docs/
+vendor/lxmfy/.gitea/
+
 # Development files
 android/
 android/keystore/
