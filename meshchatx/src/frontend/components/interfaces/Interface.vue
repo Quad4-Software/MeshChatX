@@ -47,6 +47,12 @@
                         <span :class="statusChipClass" class="shrink-0">{{
                             isInterfaceEnabled(iface) ? $t("app.enabled") : $t("app.disabled")
                         }}</span>
+                        <span
+                            v-if="isReticulumRunning && isInterfaceEnabled(iface)"
+                            :class="ifaceLinkStatusChipClass"
+                            class="shrink-0"
+                            >{{ ifaceLinkStatusLabel }}</span
+                        >
                         <span v-if="isDiscoverable()" class="discoverable-chip shrink-0">Discoverable</span>
                     </div>
                     <div class="text-sm text-gray-600 dark:text-gray-300 wrap-break-word min-w-0">
@@ -56,10 +62,10 @@
                         <span v-if="iface._stats?.bitrate" class="stat-chip"
                             >{{ $t("interface.bitrate") }} {{ formatBitsPerSecond(iface._stats?.bitrate ?? 0) }}</span
                         >
-                        <span class="stat-chip"
+                        <span class="stat-chip" :class="{ 'stat-chip--zero-traffic': isIfaceStatBytesZero('txb') }"
                             >{{ $t("interface.tx") }} {{ formatBytes(iface._stats?.txb ?? 0) }}</span
                         >
-                        <span class="stat-chip"
+                        <span class="stat-chip" :class="{ 'stat-chip--zero-traffic': isIfaceStatBytesZero('rxb') }"
                             >{{ $t("interface.rx") }} {{ formatBytes(iface._stats?.rxb ?? 0) }}</span
                         >
                         <span v-if="iface.type === 'RNodeInterface' && iface._stats?.noise_floor" class="stat-chip"
@@ -259,6 +265,50 @@ export default {
                 ? "inline-flex items-center rounded-full bg-green-100 text-green-700 px-2 py-0.5 text-xs font-semibold"
                 : "inline-flex items-center rounded-full bg-red-100 text-red-700 px-2 py-0.5 text-xs font-semibold";
         },
+        ifaceLinkStatusKey() {
+            const v = this.normalizedIfaceLinkUp;
+            if (v === true) return "up";
+            if (v === false) return "down";
+            return null;
+        },
+        ifaceLinkStatusLabel() {
+            const key = this.ifaceLinkStatusKey;
+            if (key === "up") return this.$t("interface.link_up");
+            if (key === "down") return this.$t("interface.link_down");
+            return this.$t("interface.link_unknown");
+        },
+        ifaceLinkStatusChipClass() {
+            const key = this.ifaceLinkStatusKey;
+            if (key === "up") {
+                return "inline-flex items-center rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/45 dark:text-emerald-100 px-2 py-0.5 text-xs font-semibold";
+            }
+            if (key === "down") {
+                return "inline-flex items-center rounded-full bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100 px-2 py-0.5 text-xs font-semibold";
+            }
+            return "inline-flex items-center rounded-full bg-gray-100 text-gray-700 dark:bg-zinc-800 dark:text-zinc-300 px-2 py-0.5 text-xs font-semibold";
+        },
+        normalizedIfaceLinkUp() {
+            if (!this.isReticulumRunning || !this.isInterfaceEnabled(this.iface)) {
+                return null;
+            }
+            const st = this.iface._stats;
+            if (!st || typeof st !== "object") {
+                return null;
+            }
+            if ("status" in st) {
+                const s = st.status;
+                if (s === true) return true;
+                if (s === false) return false;
+                if (typeof s === "string") {
+                    const t = s.toLowerCase();
+                    if (t === "up") return true;
+                    if (t === "down") return false;
+                }
+            }
+            if (st.connected === true || st.online === true) return true;
+            if (st.connected === false || st.online === false) return false;
+            return null;
+        },
     },
     methods: {
         onIFACSignatureClick: function (ifacSignature) {
@@ -298,6 +348,15 @@ export default {
         formatFrequency(hz) {
             return Utils.formatFrequency(hz);
         },
+        isIfaceStatBytesZero(field) {
+            const st = this.iface._stats;
+            if (!st) {
+                return false;
+            }
+            const raw = st[field];
+            const n = raw == null ? 0 : Number(raw);
+            return (Number.isFinite(n) ? n : 0) === 0;
+        },
     },
 };
 </script>
@@ -316,6 +375,9 @@ export default {
 }
 .stat-chip {
     @apply inline-flex items-center rounded-full border border-gray-200 dark:border-zinc-700 px-2 py-0.5;
+}
+.stat-chip--zero-traffic {
+    @apply border-red-400 bg-red-50 text-red-800 dark:border-red-700 dark:bg-red-950/50 dark:text-red-200 font-semibold;
 }
 .ifac-line {
     @apply text-xs flex flex-wrap items-center gap-1;

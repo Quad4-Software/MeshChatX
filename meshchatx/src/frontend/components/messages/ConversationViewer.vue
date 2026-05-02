@@ -2643,11 +2643,11 @@ export default {
             const cfg = this.config;
             const a = cfg?.translator_argos_enabled;
             const l = cfg?.translator_libretranslate_enabled;
-            const onlyLibre = Boolean(l) && !a;
-            if (onlyLibre) {
-                return "auto";
+            if (!a && !l) {
+                return this.normalizedLocaleCode(cfg?.language || this.$i18n.locale) || "en";
             }
-            return this.normalizedLocaleCode(cfg?.language || this.$i18n.locale) || "en";
+
+            return "auto";
         },
         _readSavedTranslateTargetLang() {
             let v = null;
@@ -2720,10 +2720,10 @@ export default {
             const cfg = this.config;
             const a = cfg?.translator_argos_enabled;
             const l = cfg?.translator_libretranslate_enabled;
-            if (l && !a) {
-                return "auto";
+            if (!a && !l) {
+                return this.normalizedLocaleCode(cfg?.language || this.$i18n.locale) || "en";
             }
-            return this.normalizedLocaleCode(cfg?.language || this.$i18n.locale) || "en";
+            return "auto";
         },
         onTranslateTargetBarClickOutside() {
             if (this.isTranslateTargetModalWorking) {
@@ -2831,15 +2831,8 @@ export default {
                 return;
             }
             const useArgos = Boolean(a) && !l;
-            const onlyLibre = Boolean(l) && !a;
             const target = String(targetLang).toLowerCase().slice(0, 8);
-            const source_lang = onlyLibre
-                ? "auto"
-                : this.normalizedLocaleCode(cfg?.language || this.$i18n.locale) || "en";
-            if (useArgos && source_lang && target && source_lang === target) {
-                ToastUtils.error(this.$t("messages.translate_target_invalid"));
-                throw new Error("target");
-            }
+            const source_lang = "auto";
             this.isTranslatingMessage = true;
             try {
                 const response = await window.api.post("/api/v1/translator/translate", {
@@ -2855,10 +2848,8 @@ export default {
                     });
                 }
             } catch (e) {
-                if (e?.message !== "target") {
-                    console.error("Translation failed:", e);
-                    ToastUtils.error(this.$t("messages.translation_failed"));
-                }
+                console.error("Translation failed:", e);
+                ToastUtils.error(this.$t("messages.translation_failed"));
                 throw e;
             } finally {
                 this.isTranslatingMessage = false;
@@ -2877,15 +2868,8 @@ export default {
                 return;
             }
             const useArgos = Boolean(a) && !l;
-            const onlyLibre = Boolean(l) && !a;
             const target = String(targetLang).toLowerCase().slice(0, 8);
-            const source_lang = onlyLibre
-                ? "auto"
-                : this.normalizedLocaleCode(cfg?.language || this.$i18n.locale) || "en";
-            if (useArgos && source_lang && target && source_lang === target) {
-                ToastUtils.error(this.$t("messages.translate_target_invalid"));
-                return;
-            }
+            const source_lang = "auto";
             this.messageBubbleTranslation[hash] = {
                 loading: true,
                 showOriginal: false,

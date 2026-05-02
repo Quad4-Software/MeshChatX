@@ -77,7 +77,7 @@
                             ? 'ring-2 ring-blue-500 ring-offset-1 ring-offset-white dark:ring-offset-zinc-950'
                             : 'hover:bg-white/10'
                     "
-                    :title="node.display_name"
+                    :title="node.custom_display_name || node.display_name"
                     @click="onNodeClick(node)"
                 >
                     <MaterialDesignIcon icon-name="satellite-uplink" class="size-6 text-gray-600 dark:text-gray-300" />
@@ -116,18 +116,86 @@
             </div>
 
             <div v-if="tab === 'favourites'" class="flex-1 flex flex-col min-h-0">
-                <div class="p-3 border-b border-gray-200 dark:border-zinc-800">
+                <div class="p-3 border-b border-gray-200 dark:border-zinc-800 space-y-2">
                     <input
                         v-model="favouritesSearchTerm"
                         type="text"
                         :placeholder="$t('nomadnet.search_favourites_placeholder', { count: favourites.length })"
                         class="input-field w-full rounded-none"
                     />
+                    <div
+                        v-if="favouritesSelectionMode"
+                        class="flex flex-col gap-2 px-2 py-2 bg-blue-50 dark:bg-blue-900/10 rounded-lg"
+                    >
+                        <div class="flex items-center gap-2 min-w-0 w-full">
+                            <div class="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
+                                <input
+                                    type="checkbox"
+                                    :checked="allVisibleFavouritesSelected"
+                                    class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500 shrink-0"
+                                    @change="toggleSelectAllVisibleFavourites"
+                                />
+                                <span
+                                    class="text-xs font-semibold text-blue-700 dark:text-blue-400 truncate leading-none"
+                                >
+                                    {{ $t("nomadnet.bulk_selected_count", { count: selectedFavouriteHashes.length }) }}
+                                </span>
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0">
+                                <div class="relative inline-flex items-center">
+                                    <button
+                                        type="button"
+                                        class="inline-flex items-center whitespace-nowrap rounded px-0 py-0.5 text-xs font-bold leading-none text-blue-600 dark:text-blue-400 hover:underline disabled:pointer-events-none disabled:opacity-40"
+                                        :disabled="selectedFavouriteHashes.length === 0"
+                                        @click="favouriteBulkMoveMenuOpen = !favouriteBulkMoveMenuOpen"
+                                    >
+                                        {{ $t("nomadnet.bulk_move_to_section") }}
+                                    </button>
+                                    <div
+                                        v-if="favouriteBulkMoveMenuOpen"
+                                        v-click-outside="{ handler: closeFavouriteBulkMoveMenu, capture: true }"
+                                        class="absolute right-0 top-full mt-1 z-60 min-w-[10rem] max-h-56 overflow-y-auto bg-white dark:bg-zinc-800 rounded-xl shadow-xl border border-gray-200 dark:border-zinc-700 py-1"
+                                    >
+                                        <button
+                                            v-for="section in orderedSections"
+                                            :key="'bulk-move-' + section.id"
+                                            type="button"
+                                            class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-zinc-700"
+                                            @click="bulkMoveSelectedFavouritesToSection(section.id)"
+                                        >
+                                            {{ section.name }}
+                                        </button>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    class="inline-flex items-center whitespace-nowrap rounded px-0 py-0.5 text-xs font-bold leading-none text-red-600 dark:text-red-400 hover:underline disabled:pointer-events-none disabled:opacity-40"
+                                    :disabled="selectedFavouriteHashes.length === 0"
+                                    @click="bulkRemoveSelectedFavourites"
+                                >
+                                    {{ $t("nomadnet.bulk_remove") }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div
                     class="flex items-center justify-between px-3 pt-2 text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400"
                 >
-                    <span class="font-semibold">Sections</span>
+                    <div class="flex items-center gap-1 min-w-0">
+                        <button
+                            type="button"
+                            class="shrink-0 inline-flex items-center justify-center p-0.5 rounded-sm text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors leading-none"
+                            :title="$t('nomadnet.sidebar_selection_mode')"
+                            :class="{ 'text-blue-500 dark:text-blue-400': favouritesSelectionMode }"
+                            @click.stop="toggleFavouritesSelectionMode"
+                        >
+                            <span class="block size-[14px]">
+                                <MaterialDesignIcon icon-name="checkbox-multiple-marked-outline" />
+                            </span>
+                        </button>
+                        <span class="font-semibold truncate">Sections</span>
+                    </div>
                     <button
                         type="button"
                         class="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
@@ -138,14 +206,24 @@
                     </button>
                 </div>
                 <div class="flex-1 overflow-y-auto px-2 pb-4">
-                    <div v-if="favourites.length === 0" class="empty-state">
+                    <div v-if="favouritesSearchNoResults" class="empty-state empty-state--panel">
                         <MaterialDesignIcon icon-name="star-outline" class="w-8 h-8" />
-                        <div class="font-semibold">{{ $t("nomadnet.no_favourites") }}</div>
+                        <div class="font-semibold">{{ $t("nomadnet.favourites_search_no_results") }}</div>
                         <div class="text-sm text-gray-500 dark:text-gray-400">
-                            {{ $t("nomadnet.add_nodes_from_announces") }}
+                            {{ $t("nomadnet.favourites_search_try_other") }}
                         </div>
                     </div>
-                    <div v-else-if="hasFavouriteResults" class="space-y-3 pt-2">
+                    <div v-else class="space-y-3 pt-2">
+                        <div
+                            v-if="favourites.length === 0"
+                            class="empty-state empty-state--compact border border-dashed border-gray-200 dark:border-zinc-800 rounded-xl py-4 mb-1"
+                        >
+                            <MaterialDesignIcon icon-name="star-outline" class="w-8 h-8" />
+                            <div class="font-semibold">{{ $t("nomadnet.no_favourites") }}</div>
+                            <div class="text-sm text-gray-500 dark:text-gray-400">
+                                {{ $t("nomadnet.add_nodes_from_announces") }}
+                            </div>
+                        </div>
                         <div
                             v-for="section in sectionsWithFavourites"
                             :key="section.id"
@@ -221,18 +299,34 @@
                                         favourite.destination_hash === selectedDestinationHash
                                             ? 'favourite-card--active'
                                             : '',
-                                        draggingFavouriteHash === favourite.destination_hash
+                                        isFavouriteRowDragging(favourite.destination_hash)
                                             ? 'favourite-card--dragging'
+                                            : '',
+                                        favouritesSelectionMode &&
+                                        selectedFavouriteHashes.includes(favourite.destination_hash)
+                                            ? 'ring-1 ring-blue-400/60 dark:ring-blue-500/50'
                                             : '',
                                     ]"
                                     draggable="true"
-                                    @click="onFavouriteClick(favourite)"
+                                    @click="onFavouriteRowActivate(favourite)"
                                     @contextmenu.prevent="openFavouriteContextMenu($event, favourite, section.id)"
                                     @dragstart="onFavouriteDragStart($event, favourite, section.id)"
                                     @dragover.prevent="onFavouriteDragOver($event)"
                                     @drop.prevent="onFavouriteDrop($event, section.id, favourite)"
                                     @dragend="onFavouriteDragEnd"
                                 >
+                                    <div
+                                        v-if="favouritesSelectionMode"
+                                        class="my-auto mr-1 px-0.5 shrink-0"
+                                        @click.stop
+                                    >
+                                        <input
+                                            type="checkbox"
+                                            :checked="selectedFavouriteHashes.includes(favourite.destination_hash)"
+                                            class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500"
+                                            @change="toggleSelectFavourite(favourite.destination_hash)"
+                                        />
+                                    </div>
                                     <div
                                         v-if="
                                             GlobalState.config.banished_effect_enabled &&
@@ -277,15 +371,10 @@
                                     v-if="section.favourites.length === 0"
                                     class="text-xs text-gray-500 dark:text-gray-400 px-3 pb-2 italic"
                                 >
-                                    No favourites in this section.
+                                    {{ $t("nomadnet.no_favourites_in_section") }}
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    <div v-else class="empty-state">
-                        <MaterialDesignIcon icon-name="star-outline" class="w-8 h-8" />
-                        <div class="font-semibold">No favourites match your search</div>
-                        <div class="text-sm text-gray-500 dark:text-gray-400">Try a different search term.</div>
                     </div>
                 </div>
 
@@ -380,14 +469,65 @@
             </div>
 
             <div v-else class="flex-1 flex flex-col min-h-0">
-                <div class="p-3 border-b border-gray-200 dark:border-zinc-800">
-                    <input
-                        :value="nodesSearchTerm"
-                        type="text"
-                        :placeholder="$t('nomadnet.search_placeholder_announces', { count: totalNodesCount })"
-                        class="input-field w-full rounded-none"
-                        @input="onNodesSearchInput"
-                    />
+                <div class="p-3 border-b border-gray-200 dark:border-zinc-800 space-y-2">
+                    <div class="flex gap-1.5 items-center">
+                        <input
+                            :value="nodesSearchTerm"
+                            type="text"
+                            :placeholder="$t('nomadnet.search_placeholder_announces', { count: totalNodesCount })"
+                            class="input-field flex-1 min-w-0 rounded-none"
+                            @input="onNodesSearchInput"
+                        />
+                        <button
+                            type="button"
+                            class="shrink-0 self-center inline-flex items-center justify-center p-0.5 rounded-sm text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors leading-none"
+                            :title="$t('nomadnet.sidebar_selection_mode')"
+                            :class="{ 'text-blue-500 dark:text-blue-400': announcesSelectionMode }"
+                            @click="toggleAnnouncesSelectionMode"
+                        >
+                            <span class="block size-[14px]">
+                                <MaterialDesignIcon icon-name="checkbox-multiple-marked-outline" />
+                            </span>
+                        </button>
+                    </div>
+                    <div
+                        v-if="announcesSelectionMode"
+                        class="flex flex-col gap-2 px-2 py-2 bg-blue-50 dark:bg-blue-900/10 rounded-lg"
+                    >
+                        <div class="flex items-center gap-2 min-w-0 w-full">
+                            <div class="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
+                                <input
+                                    type="checkbox"
+                                    :checked="allVisibleAnnouncesSelected"
+                                    class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500 shrink-0"
+                                    @change="toggleSelectAllVisibleAnnounces"
+                                />
+                                <span
+                                    class="text-xs font-semibold text-blue-700 dark:text-blue-400 truncate leading-none"
+                                >
+                                    {{ $t("nomadnet.bulk_selected_count", { count: selectedAnnounceHashes.length }) }}
+                                </span>
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0">
+                                <button
+                                    type="button"
+                                    class="inline-flex items-center whitespace-nowrap rounded px-0 py-0.5 text-xs font-bold leading-none text-yellow-600 dark:text-yellow-400 hover:underline disabled:pointer-events-none disabled:opacity-40"
+                                    :disabled="selectedAnnounceHashes.length === 0"
+                                    @click="bulkAddSelectedAnnouncesToFavourites"
+                                >
+                                    {{ $t("nomadnet.bulk_add_to_favourites") }}
+                                </button>
+                                <button
+                                    type="button"
+                                    class="inline-flex items-center whitespace-nowrap rounded px-0 py-0.5 text-xs font-bold leading-none text-red-600 dark:text-red-400 hover:underline disabled:pointer-events-none disabled:opacity-40"
+                                    :disabled="selectedAnnounceHashes.length === 0"
+                                    @click="bulkBanishSelectedAnnounces"
+                                >
+                                    {{ $t("nomadnet.bulk_block_nodes") }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="flex-1 overflow-y-auto px-2 pb-4" @scroll="onNodesScroll">
                     <div v-if="searchedNodes.length > 0" class="space-y-2 pt-2">
@@ -395,7 +535,12 @@
                             v-for="node of searchedNodes"
                             :key="node.destination_hash"
                             class="announce-card relative"
-                            :class="{ 'announce-card--active': node.destination_hash === selectedDestinationHash }"
+                            :class="[
+                                node.destination_hash === selectedDestinationHash ? 'announce-card--active' : '',
+                                announcesSelectionMode && selectedAnnounceHashes.includes(node.destination_hash)
+                                    ? 'ring-1 ring-blue-400/60 dark:ring-blue-500/50'
+                                    : '',
+                            ]"
                             @contextmenu.prevent="openAnnounceContextMenu($event, node)"
                         >
                             <!-- banished overlay -->
@@ -413,17 +558,25 @@
 
                             <div
                                 class="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
-                                @click="onNodeClick(node)"
+                                @click="onAnnounceRowActivate(node)"
                             >
+                                <div v-if="announcesSelectionMode" class="my-auto shrink-0 px-0.5" @click.stop>
+                                    <input
+                                        type="checkbox"
+                                        :checked="selectedAnnounceHashes.includes(node.destination_hash)"
+                                        class="rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500"
+                                        @change="toggleSelectAnnounce(node.destination_hash)"
+                                    />
+                                </div>
                                 <div class="announce-card__icon shrink-0">
                                     <MaterialDesignIcon icon-name="satellite-uplink" class="w-5 h-5" />
                                 </div>
                                 <div class="min-w-0 flex-1">
                                     <div
                                         class="text-sm font-semibold text-gray-900 dark:text-white truncate"
-                                        :title="node.display_name"
+                                        :title="node.custom_display_name || node.display_name"
                                     >
-                                        {{ node.display_name }}
+                                        {{ node.custom_display_name || node.display_name }}
                                     </div>
                                     <div class="text-xs text-gray-500 dark:text-gray-400 flex flex-col gap-0.5">
                                         <span class="truncate">{{
@@ -473,7 +626,7 @@
                             <MaterialDesignIcon icon-name="loading" class="size-6 animate-spin text-gray-400" />
                         </div>
                     </div>
-                    <div v-else class="empty-state">
+                    <div v-else class="empty-state empty-state--panel">
                         <MaterialDesignIcon icon-name="radar" class="w-8 h-8" />
                         <div class="font-semibold">{{ $t("nomadnet.no_announces_yet") }}</div>
                         <div class="text-sm text-gray-500 dark:text-gray-400">
@@ -596,17 +749,25 @@ export default {
         "nodes-search-changed",
         "load-more-nodes",
         "toggle-collapse",
+        "bulk-remove-favourites",
+        "bulk-add-favourites",
     ],
     data() {
         return {
             GlobalState,
             tab: "favourites",
             favouritesSearchTerm: "",
+            favouritesSelectionMode: false,
+            announcesSelectionMode: false,
+            selectedFavouriteHashes: [],
+            selectedAnnounceHashes: [],
+            favouriteBulkMoveMenuOpen: false,
             defaultSectionId: "default",
             sections: [],
             sectionOrder: [],
             favouritesBySection: {},
             draggingFavouriteHash: null,
+            draggingFavouriteHashes: [],
             draggingFavouriteSectionId: null,
             dragOverSectionId: null,
             draggingSectionId: null,
@@ -665,7 +826,8 @@ export default {
         searchedNodes() {
             return this.nodesOrderedByLatestAnnounce.filter((node) => {
                 const search = this.nodesSearchTerm.toLowerCase();
-                const matchesDisplayName = node.display_name.toLowerCase().includes(search);
+                const label = (node.custom_display_name || node.display_name || "").toLowerCase();
+                const matchesDisplayName = label.includes(search);
                 const matchesDestinationHash = node.destination_hash.toLowerCase().includes(search);
                 return matchesDisplayName || matchesDestinationHash;
             });
@@ -689,14 +851,14 @@ export default {
                 return { ...section, favourites };
             });
         },
-        hasFavouriteResults() {
+        favouritesSearchNoResults() {
             if (this.favourites.length === 0) {
                 return false;
             }
             if (this.favouritesSearchTerm.trim() === "") {
-                return true;
+                return false;
             }
-            return this.sectionsWithFavourites.some((section) => section.favourites.length > 0);
+            return !this.sectionsWithFavourites.some((section) => section.favourites.length > 0);
         },
         collapsedFavouritePreview() {
             const out = [];
@@ -719,6 +881,26 @@ export default {
         collapsedAnnounceNodesPreview() {
             return this.nodesOrderedByLatestAnnounce.slice(0, 5);
         },
+        flatVisibleFavouriteDestinationHashes() {
+            const out = [];
+            for (const section of this.sectionsWithFavourites) {
+                for (const fav of section.favourites) {
+                    out.push(fav.destination_hash);
+                }
+            }
+            return out;
+        },
+        flatVisibleAnnounceDestinationHashes() {
+            return this.searchedNodes.map((n) => n.destination_hash);
+        },
+        allVisibleFavouritesSelected() {
+            const ids = this.flatVisibleFavouriteDestinationHashes;
+            return ids.length > 0 && ids.every((id) => this.selectedFavouriteHashes.includes(id));
+        },
+        allVisibleAnnouncesSelected() {
+            const ids = this.flatVisibleAnnounceDestinationHashes;
+            return ids.length > 0 && ids.every((id) => this.selectedAnnounceHashes.includes(id));
+        },
     },
     watch: {
         favourites: {
@@ -726,6 +908,11 @@ export default {
                 this.ensureFavouriteLayout();
             },
             deep: true,
+        },
+        tab() {
+            this.exitFavouritesSelectionMode();
+            this.exitAnnouncesSelectionMode();
+            this.favouriteBulkMoveMenuOpen = false;
         },
     },
     mounted() {
@@ -751,6 +938,151 @@ export default {
         }
     },
     methods: {
+        toggleFavouritesSelectionMode() {
+            this.favouritesSelectionMode = !this.favouritesSelectionMode;
+            if (!this.favouritesSelectionMode) {
+                this.selectedFavouriteHashes = [];
+            }
+            this.favouriteBulkMoveMenuOpen = false;
+        },
+        toggleAnnouncesSelectionMode() {
+            this.announcesSelectionMode = !this.announcesSelectionMode;
+            if (!this.announcesSelectionMode) {
+                this.selectedAnnounceHashes = [];
+            }
+        },
+        exitFavouritesSelectionMode() {
+            this.favouritesSelectionMode = false;
+            this.selectedFavouriteHashes = [];
+            this.favouriteBulkMoveMenuOpen = false;
+        },
+        exitAnnouncesSelectionMode() {
+            this.announcesSelectionMode = false;
+            this.selectedAnnounceHashes = [];
+        },
+        toggleSelectFavourite(hash) {
+            const i = this.selectedFavouriteHashes.indexOf(hash);
+            if (i >= 0) {
+                this.selectedFavouriteHashes.splice(i, 1);
+            } else {
+                this.selectedFavouriteHashes.push(hash);
+            }
+        },
+        toggleSelectAnnounce(hash) {
+            const i = this.selectedAnnounceHashes.indexOf(hash);
+            if (i >= 0) {
+                this.selectedAnnounceHashes.splice(i, 1);
+            } else {
+                this.selectedAnnounceHashes.push(hash);
+            }
+        },
+        toggleSelectAllVisibleFavourites() {
+            const ids = this.flatVisibleFavouriteDestinationHashes;
+            if (ids.length === 0) {
+                return;
+            }
+            if (ids.every((id) => this.selectedFavouriteHashes.includes(id))) {
+                this.selectedFavouriteHashes = this.selectedFavouriteHashes.filter((h) => !ids.includes(h));
+            } else {
+                this.selectedFavouriteHashes = [...new Set([...this.selectedFavouriteHashes, ...ids])];
+            }
+        },
+        toggleSelectAllVisibleAnnounces() {
+            const ids = this.flatVisibleAnnounceDestinationHashes;
+            if (ids.length === 0) {
+                return;
+            }
+            if (ids.every((id) => this.selectedAnnounceHashes.includes(id))) {
+                this.selectedAnnounceHashes = this.selectedAnnounceHashes.filter((h) => !ids.includes(h));
+            } else {
+                this.selectedAnnounceHashes = [...new Set([...this.selectedAnnounceHashes, ...ids])];
+            }
+        },
+        onFavouriteRowActivate(favourite) {
+            if (this.isBlocked(favourite.destination_hash)) {
+                return;
+            }
+            if (this.favouritesSelectionMode) {
+                this.toggleSelectFavourite(favourite.destination_hash);
+                return;
+            }
+            this.onFavouriteClick(favourite);
+        },
+        onAnnounceRowActivate(node) {
+            if (this.isBlocked(node.identity_hash || node.destination_hash)) {
+                return;
+            }
+            if (this.announcesSelectionMode) {
+                this.toggleSelectAnnounce(node.destination_hash);
+                return;
+            }
+            this.onNodeClick(node);
+        },
+        isFavouriteRowDragging(destinationHash) {
+            return this.draggingFavouriteHashes.includes(destinationHash);
+        },
+        closeFavouriteBulkMoveMenu() {
+            this.favouriteBulkMoveMenuOpen = false;
+        },
+        bulkMoveSelectedFavouritesToSection(sectionId) {
+            if (!sectionId || this.selectedFavouriteHashes.length === 0) {
+                this.closeFavouriteBulkMoveMenu();
+                return;
+            }
+            this.moveFavouritesToSection([...this.selectedFavouriteHashes], sectionId);
+            this.closeFavouriteBulkMoveMenu();
+            this.exitFavouritesSelectionMode();
+        },
+        async bulkRemoveSelectedFavourites() {
+            const hashes = [...this.selectedFavouriteHashes];
+            if (hashes.length === 0) {
+                return;
+            }
+            if (
+                !(await DialogUtils.confirm(
+                    this.$t("nomadnet.bulk_remove_favourites_confirm", { count: hashes.length })
+                ))
+            ) {
+                return;
+            }
+            this.$emit("bulk-remove-favourites", hashes);
+            this.exitFavouritesSelectionMode();
+        },
+        async bulkBanishSelectedAnnounces() {
+            const nodes = this.selectedAnnounceHashes
+                .map((h) => this.nodes[h])
+                .filter((n) => n && !this.isBlocked(n.identity_hash) && !this.isBlocked(n.destination_hash));
+            if (nodes.length === 0) {
+                return;
+            }
+            if (!(await DialogUtils.confirm(this.$t("nomadnet.bulk_block_confirm", { count: nodes.length })))) {
+                return;
+            }
+            try {
+                for (const node of nodes) {
+                    await window.api.post("/api/v1/blocked-destinations", {
+                        destination_hash: node.identity_hash,
+                    });
+                }
+                GlobalEmitter.emit("block-status-changed");
+                ToastUtils.success(this.$t("nomadnet.bulk_block_done", { count: nodes.length }));
+            } catch (e) {
+                DialogUtils.alert(this.$t("nomadnet.failed_to_block_node"));
+                console.error(e);
+            }
+            this.exitAnnouncesSelectionMode();
+        },
+        bulkAddSelectedAnnouncesToFavourites() {
+            const nodes = this.selectedAnnounceHashes
+                .map((h) => this.nodes[h])
+                .filter((n) => n && !this.isFavourite(n.destination_hash));
+            if (nodes.length === 0) {
+                ToastUtils.info(this.$t("nomadnet.bulk_nothing_to_add_favourites"));
+                return;
+            }
+            this.$emit("bulk-add-favourites", nodes);
+            this.exitAnnouncesSelectionMode();
+        },
         startEditingSection(section) {
             this.editingSectionId = section.id;
             this.editingSectionName = section.name;
@@ -958,14 +1290,28 @@ export default {
             this.$emit("remove-favourite", favourite);
         },
         onFavouriteDragStart(event, favourite, sectionId) {
+            let hashes;
+            if (
+                this.favouritesSelectionMode &&
+                this.selectedFavouriteHashes.includes(favourite.destination_hash) &&
+                this.selectedFavouriteHashes.length > 1
+            ) {
+                hashes = [...this.selectedFavouriteHashes];
+            } else {
+                hashes = [favourite.destination_hash];
+            }
             try {
                 if (event?.dataTransfer) {
                     event.dataTransfer.effectAllowed = "move";
                     event.dataTransfer.setData("text/plain", favourite.destination_hash);
+                    if (hashes.length > 1) {
+                        event.dataTransfer.setData("application/x-meshchat-nomad-favs", JSON.stringify(hashes));
+                    }
                 }
             } catch {
                 // ignore for browsers that prevent setting drag meta
             }
+            this.draggingFavouriteHashes = hashes;
             this.draggingFavouriteHash = favourite.destination_hash;
             this.draggingFavouriteSectionId = sectionId;
         },
@@ -975,13 +1321,23 @@ export default {
             }
         },
         onFavouriteDrop(event, targetSectionId, targetFavourite) {
-            if (!this.draggingFavouriteHash || this.draggingFavouriteHash === targetFavourite.destination_hash) {
+            const hashes =
+                this.draggingFavouriteHashes.length > 0
+                    ? [...this.draggingFavouriteHashes]
+                    : this.draggingFavouriteHash
+                      ? [this.draggingFavouriteHash]
+                      : [];
+            if (!hashes.length) {
                 return;
             }
-            this.moveFavouriteToSection(this.draggingFavouriteHash, targetSectionId, targetFavourite.destination_hash);
+            if (hashes.includes(targetFavourite.destination_hash)) {
+                return;
+            }
+            this.moveFavouritesToSection(hashes, targetSectionId, targetFavourite.destination_hash);
         },
         onFavouriteDragEnd() {
             this.draggingFavouriteHash = null;
+            this.draggingFavouriteHashes = [];
             this.draggingFavouriteSectionId = null;
             this.dragOverSectionId = null;
         },
@@ -992,10 +1348,16 @@ export default {
             this.dragOverSectionId = null;
         },
         onDropOnSection(sectionId) {
-            if (!this.draggingFavouriteHash) {
+            const hashes =
+                this.draggingFavouriteHashes.length > 0
+                    ? [...this.draggingFavouriteHashes]
+                    : this.draggingFavouriteHash
+                      ? [this.draggingFavouriteHash]
+                      : [];
+            if (!hashes.length) {
                 return;
             }
-            this.moveFavouriteToSection(this.draggingFavouriteHash, sectionId);
+            this.moveFavouritesToSection(hashes, sectionId);
         },
         onSectionDragStart(sectionId) {
             this.draggingSectionId = sectionId;
@@ -1029,32 +1391,42 @@ export default {
             this.draggingSectionOverId = null;
         },
         moveFavouriteToSection(hash, targetSectionId, beforeHash = null) {
-            if (!hash || !targetSectionId) {
+            this.moveFavouritesToSection([hash], targetSectionId, beforeHash);
+        },
+        moveFavouritesToSection(hashes, targetSectionId, beforeHash = null) {
+            const unique = [...new Set((hashes || []).filter(Boolean))];
+            if (!unique.length || !targetSectionId) {
                 return;
             }
             const updated = {};
             Object.keys(this.favouritesBySection).forEach((sectionKey) => {
-                updated[sectionKey] = (this.favouritesBySection[sectionKey] || []).filter((value) => value !== hash);
+                updated[sectionKey] = [...(this.favouritesBySection[sectionKey] || [])].filter(
+                    (value) => !unique.includes(value)
+                );
             });
 
             if (!updated[targetSectionId]) {
                 updated[targetSectionId] = [];
             }
-            const targetList = [...updated[targetSectionId]];
-            if (beforeHash) {
+
+            let targetList = [...updated[targetSectionId]];
+
+            if (beforeHash && !unique.includes(beforeHash)) {
                 const insertIndex = targetList.indexOf(beforeHash);
                 if (insertIndex === -1) {
-                    targetList.push(hash);
+                    targetList.push(...unique);
                 } else {
-                    targetList.splice(insertIndex, 0, hash);
+                    targetList.splice(insertIndex, 0, ...unique);
                 }
             } else {
-                targetList.push(hash);
+                targetList.push(...unique);
             }
+
             updated[targetSectionId] = targetList;
             this.favouritesBySection = updated;
             this.persistFavouriteLayout();
             this.draggingFavouriteHash = null;
+            this.draggingFavouriteHashes = [];
             this.draggingFavouriteSectionId = null;
             this.dragOverSectionId = null;
         },
@@ -1120,6 +1492,7 @@ export default {
             this.favouriteContextMenu.show = false;
             this.sectionContextMenu.show = false;
             this.announceContextMenu.show = false;
+            this.favouriteBulkMoveMenuOpen = false;
         },
         openAnnounceContextMenu(event, node) {
             this.announceContextMenu = {
@@ -1331,6 +1704,12 @@ export default {
     @apply border-blue-500 dark:border-blue-400 bg-blue-50/70 dark:bg-blue-900/30;
 }
 .empty-state {
-    @apply flex flex-col items-center justify-center text-center gap-2 text-gray-500 dark:text-gray-400 mt-20;
+    @apply flex flex-col items-center justify-center text-center gap-2 text-gray-500 dark:text-gray-400;
+}
+.empty-state--compact {
+    @apply justify-center py-3;
+}
+.empty-state--panel {
+    @apply min-h-[min(50vh,18rem)] py-10 sm:min-h-[min(45vh,20rem)];
 }
 </style>

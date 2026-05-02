@@ -18,6 +18,8 @@
             @rename-favourite="onRenameFavourite"
             @remove-favourite="onRemoveFavourite"
             @add-favourite="addFavourite"
+            @bulk-remove-favourites="onBulkRemoveFavourites"
+            @bulk-add-favourites="onBulkAddFavouritesFromAnnounces"
             @nodes-search-changed="onNodesSearchChanged"
             @load-more-nodes="loadMoreNodes"
             @toggle-collapse="nomadNetworkSidebarCollapsed = !nomadNetworkSidebarCollapsed"
@@ -76,8 +78,8 @@
                     <div class="my-auto dark:text-gray-100 flex-1 min-w-0 flex items-baseline gap-1 overflow-hidden">
                         <span
                             class="font-semibold truncate inline-block min-w-0 max-w-[min(100%,12rem)] sm:max-w-xs md:max-w-sm"
-                            :title="selectedNode.display_name"
-                            >{{ selectedNode.display_name }}</span
+                            :title="selectedNode.custom_display_name || selectedNode.display_name"
+                            >{{ selectedNode.custom_display_name || selectedNode.display_name }}</span
                         >
                         <span
                             v-if="selectedNodePath"
@@ -1102,6 +1104,49 @@ export default {
             // update favourites
             this.getFavourites();
         },
+        async onBulkRemoveFavourites(hashes) {
+            if (!Array.isArray(hashes) || hashes.length === 0) {
+                return;
+            }
+            let removed = 0;
+            for (const h of hashes) {
+                try {
+                    await window.api.delete(`/api/v1/favourites/${h}`);
+                    removed += 1;
+                } catch (e) {
+                    console.log(e);
+                }
+            }
+            await this.getFavourites();
+            if (removed > 0) {
+                ToastUtils.success(this.$t("nomadnet.bulk_remove_favourites_done", { count: removed }));
+            }
+        },
+        async onBulkAddFavouritesFromAnnounces(nodes) {
+            if (!Array.isArray(nodes) || nodes.length === 0) {
+                return;
+            }
+            let added = 0;
+            for (const node of nodes) {
+                if (this.isFavourite(node.destination_hash)) {
+                    continue;
+                }
+                try {
+                    await window.api.post("/api/v1/favourites/add", {
+                        destination_hash: node.destination_hash,
+                        display_name: node.display_name,
+                        aspect: "nomadnetwork.node",
+                    });
+                    added += 1;
+                } catch (e) {
+                    console.log(e);
+                }
+            }
+            await this.getFavourites();
+            if (added > 0) {
+                ToastUtils.success(this.$t("nomadnet.bulk_add_favourites_done", { count: added }));
+            }
+        },
         async getNomadnetworkNodeAnnounces(append = false) {
             try {
                 if (!append) {
@@ -1779,15 +1824,35 @@ export default {
             if (displayName == null) {
                 return;
             }
+            const trimmed = typeof displayName === "string" ? displayName.trim() : "";
+            if (!trimmed) {
+                return;
+            }
 
             try {
                 // rename on server
                 await window.api.post(`/api/v1/favourites/${favourite.destination_hash}/rename`, {
-                    display_name: displayName,
+                    display_name: trimmed,
                 });
 
                 // reload favourites
                 await this.getFavourites();
+
+                const dh = favourite.destination_hash;
+                if (this.nodes[dh]) {
+                    this.nodes[dh] = {
+                        ...this.nodes[dh],
+                        custom_display_name: trimmed,
+                        display_name: trimmed,
+                    };
+                }
+                if (this.selectedNode?.destination_hash === dh) {
+                    this.selectedNode = {
+                        ...this.selectedNode,
+                        custom_display_name: trimmed,
+                        display_name: trimmed,
+                    };
+                }
             } catch (e) {
                 console.log(e);
                 ToastUtils.error(this.$t("nomadnet.failed_rename_favourite"));

@@ -409,6 +409,7 @@ import QRCode from "qrcode";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import ToastUtils from "../../js/ToastUtils";
+import DownloadUtils from "../../js/DownloadUtils";
 import DialogUtils from "../../js/DialogUtils";
 
 import LxmfUserIcon from "../LxmfUserIcon.vue";
@@ -605,14 +606,7 @@ export default {
                 const blob = new Blob([JSON.stringify({ contacts }, null, 2)], {
                     type: "application/json",
                 });
-                const url = window.URL.createObjectURL(blob);
-                const link = document.createElement("a");
-                link.href = url;
-                link.setAttribute("download", "contacts_export.json");
-                document.body.appendChild(link);
-                link.click();
-                link.remove();
-                window.URL.revokeObjectURL(url);
+                await DownloadUtils.downloadFile("contacts_export.json", blob);
                 ToastUtils.success(this.$t("contacts.export_success"));
             } catch (e) {
                 ToastUtils.error(e?.response?.data?.message || this.$t("contacts.export_failed"));

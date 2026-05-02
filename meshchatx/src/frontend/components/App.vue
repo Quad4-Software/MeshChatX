@@ -28,34 +28,44 @@
 
             <template v-else>
                 <div
-                    class="sticky top-0 z-100 flex bg-white dark:bg-zinc-950 border-gray-200 dark:border-zinc-800 border-b min-h-16 shadow-xs transition-colors overflow-x-hidden"
+                    class="sticky top-0 z-100 flex bg-white dark:bg-zinc-950 border-gray-200 dark:border-zinc-800 border-b min-h-16 shadow-xs transition-colors"
                 >
-                    <div class="flex w-full px-2 sm:px-4 overflow-x-auto no-scrollbar">
+                    <div
+                        class="flex w-full min-h-16 items-center gap-0 overflow-x-auto no-scrollbar pl-2 pr-2 sm:ps-0 sm:pe-4"
+                    >
                         <button
                             type="button"
-                            class="sm:hidden my-auto mr-4 text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-300"
+                            class="sm:hidden shrink-0 mr-2 text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-300"
                             @click="isSidebarOpen = !isSidebarOpen"
                         >
                             <MaterialDesignIcon :icon-name="isSidebarOpen ? 'close' : 'menu'" class="size-6" />
                         </button>
-                        <div
-                            class="my-auto mr-2 hidden w-10 shrink-0 cursor-pointer overflow-hidden rounded-xl sm:flex sm:w-14"
-                            @click="onAppNameClick"
-                        >
-                            <img class="h-10 w-10 object-contain p-1 sm:h-14 sm:w-14" :src="logoUrl" alt="" />
-                        </div>
-                        <div class="my-auto hidden sm:block">
-                            <div
-                                class="font-semibold cursor-pointer text-gray-900 dark:text-zinc-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors tracking-tight text-lg"
-                                @click="onAppNameClick"
-                            >
-                                {{ $t("app.name") }}
+                        <div class="flex min-w-0 flex-1 items-center gap-2 sm:flex-initial sm:gap-3">
+                            <div class="hidden shrink-0 justify-start sm:flex sm:w-16 sm:justify-center">
+                                <div
+                                    class="flex h-10 w-10 cursor-pointer items-center justify-center overflow-hidden rounded-xl sm:h-14 sm:w-14"
+                                    @click="onAppNameClick"
+                                >
+                                    <img
+                                        class="h-9 w-9 max-h-full max-w-full object-contain sm:h-[3.25rem] sm:w-[3.25rem]"
+                                        :src="logoUrl"
+                                        alt=""
+                                    />
+                                </div>
                             </div>
-                            <div class="text-sm text-gray-600 dark:text-zinc-300">
-                                {{ $t("app.tagline") }}
+                            <div class="hidden min-w-0 leading-tight sm:block">
+                                <div
+                                    class="font-semibold cursor-pointer text-gray-900 dark:text-zinc-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors tracking-tight text-lg"
+                                    @click="onAppNameClick"
+                                >
+                                    {{ $t("app.name") }}
+                                </div>
+                                <div class="text-sm text-gray-600 dark:text-zinc-300">
+                                    {{ $t("app.tagline") }}
+                                </div>
                             </div>
                         </div>
-                        <div class="flex my-auto ml-auto mr-0 sm:mr-2 space-x-1 sm:space-x-2">
+                        <div class="flex ml-auto shrink-0 items-center mr-0 sm:mr-2 space-x-1 sm:space-x-2">
                             <button
                                 type="button"
                                 class="relative hidden sm:inline-flex rounded-full p-1.5 sm:p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"

@@ -2,6 +2,15 @@
 
 <template>
     <div class="flex flex-1 min-w-0 h-full overflow-hidden" :class="{ 'flex-row-reverse': messagesSidebarOnRight }">
+        <input
+            ref="foldersImportInput"
+            type="file"
+            accept=".json,application/json"
+            class="sr-only absolute m-[-1px] h-px w-px overflow-hidden border-0 p-0 whitespace-nowrap"
+            tabindex="-1"
+            aria-hidden="true"
+            @change="onFoldersImportFileSelected"
+        />
         <MessagesSidebar
             v-if="!isPopoutMode"
             :class="{ 'hidden sm:flex': destinationHash }"
@@ -257,6 +266,7 @@ function snapshotGlobalConfig() {
     return GlobalState.config && typeof GlobalState.config === "object" ? { ...GlobalState.config } : {};
 }
 import DialogUtils from "../../js/DialogUtils";
+import DownloadUtils from "../../js/DownloadUtils";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import ToastUtils from "../../js/ToastUtils";
 import { lxmfConversationListPreview } from "../../js/lxmfReactions";
@@ -857,38 +867,39 @@ export default {
                 const response = await window.api.get("/api/v1/lxmf/folders/export");
                 const data = JSON.stringify(response.data, null, 2);
                 const blob = new Blob([data], { type: "application/json" });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `meshchatx-folders-${new Date().toISOString().slice(0, 10)}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
+                await DownloadUtils.downloadFile(
+                    `meshchatx-folders-${new Date().toISOString().slice(0, 10)}.json`,
+                    blob
+                );
             } catch {
                 ToastUtils.error(this.$t("messages.failed_export_folders"));
             }
         },
-        async onImportFolders() {
-            const input = document.createElement("input");
-            input.type = "file";
-            input.accept = ".json";
-            input.onchange = async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.onload = async (re) => {
-                    try {
-                        const data = JSON.parse(re.target.result);
-                        await window.api.post("/api/v1/lxmf/folders/import", data);
-                        await this.getFolders();
-                        await this.getConversations();
-                        ToastUtils.success(this.$t("messages.folders_imported"));
-                    } catch {
-                        ToastUtils.error(this.$t("messages.failed_import_folders"));
-                    }
-                };
-                reader.readAsText(file);
+        onImportFolders() {
+            const input = this.$refs.foldersImportInput;
+            if (input && typeof input.click === "function") {
+                input.click();
+            }
+        },
+        onFoldersImportFileSelected(event) {
+            const target = event.target;
+            const file = target.files?.[0];
+            target.value = "";
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (re) => {
+                try {
+                    const data = JSON.parse(re.target.result);
+                    await window.api.post("/api/v1/lxmf/folders/import", data);
+                    await this.getFolders();
+                    await this.getConversations();
+                    ToastUtils.success(this.$t("messages.folders_imported"));
+                } catch {
+                    ToastUtils.error(this.$t("messages.failed_import_folders"));
+                }
             };
-            input.click();
+            reader.readAsText(file);
         },
         onFolderClick(folderId) {
             this.selectedFolderId = folderId;

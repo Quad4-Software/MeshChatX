@@ -721,6 +721,37 @@
                         </div>
                     </section>
 
+                    <section
+                        v-if="isMeshChatXAndroid"
+                        v-show="matchesSearch(...sectionKeywords.android)"
+                        class="settings-section break-inside-avoid"
+                    >
+                        <header class="settings-section__header">
+                            <div>
+                                <div class="settings-section__eyebrow">Android</div>
+                                <h2>{{ $t("settings.share_apk_heading") }}</h2>
+                                <p>{{ $t("settings.share_apk_desc") }}</p>
+                            </div>
+                        </header>
+                        <div class="settings-section__body space-y-4">
+                            <button
+                                type="button"
+                                class="btn-maintenance border-blue-200 dark:border-blue-900/30 text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/10 hover:bg-blue-100 dark:hover:bg-blue-900/20"
+                                @click="shareAndroidApk"
+                            >
+                                <div class="flex flex-col items-start text-left">
+                                    <div class="font-bold flex items-center gap-2">
+                                        <MaterialDesignIcon icon-name="share-variant" class="size-4" />
+                                        {{ $t("settings.share_apk") }}
+                                    </div>
+                                    <div class="text-xs opacity-80">
+                                        {{ $t("settings.share_apk_short_hint") }}
+                                    </div>
+                                </div>
+                            </button>
+                        </div>
+                    </section>
+
                     <!-- Page Archiver -->
                     <section
                         v-show="matchesSearch(...sectionKeywords.archiver)"
@@ -2449,6 +2480,7 @@ import ShortcutRecorder from "./ShortcutRecorder.vue";
 import SettingsSectionBlock from "./SettingsSectionBlock.vue";
 import KeyboardShortcuts from "../../js/KeyboardShortcuts";
 import ElectronUtils from "../../js/ElectronUtils";
+import AndroidBridge from "../../js/rnode/AndroidBridge";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 import StickerPacksManager from "../stickers/StickerPacksManager.vue";
 import GlobalState from "../../js/GlobalState";
@@ -2677,6 +2709,16 @@ export default {
                     "app.desktop_hardware_acceleration_enabled",
                     "app.desktop_hardware_acceleration_enabled_description",
                 ],
+                android: [
+                    "Android",
+                    "APK",
+                    "Bluetooth",
+                    "Nearby Share",
+                    "settings.share_apk_heading",
+                    "settings.share_apk_desc",
+                    "settings.share_apk",
+                    "settings.share_apk_short_hint",
+                ],
                 archiver: ["Browsing", "Page Archiver", "archiver", "archive", "versions", "storage", "flush"],
                 nomadRenderer: [
                     "NomadNet",
@@ -2881,6 +2923,14 @@ export default {
             const c = this.config?.lxmf_inbound_stamp_cost;
             return (typeof c === "number" ? c : Number(c) || 0) > 0;
         },
+        isMeshChatXAndroid() {
+            return (
+                typeof window !== "undefined" &&
+                window.MeshChatXAndroid &&
+                typeof window.MeshChatXAndroid.getPlatform === "function" &&
+                window.MeshChatXAndroid.getPlatform() === "android"
+            );
+        },
     },
     beforeUnmount() {
         // stop listening for websocket messages
@@ -2942,6 +2992,12 @@ export default {
         },
         clearSettingsSearch() {
             this.searchQuery = "";
+        },
+        shareAndroidApk() {
+            const bridge = new AndroidBridge();
+            if (!bridge.shareApk()) {
+                ToastUtils.error(this.$t("settings.share_apk_failed"));
+            }
         },
         matchesSearch(...texts) {
             return matchesSettingSearch(texts, (k) => this.$t(k), this.searchQuery);
@@ -3875,14 +3931,9 @@ export default {
                 const response = await window.api.get("/api/v1/maintenance/messages/export");
                 const messages = response.data.messages;
                 const dataStr = JSON.stringify({ messages }, null, 2);
-                const dataUri = "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);
-
+                const blob = new Blob([dataStr], { type: "application/json" });
                 const exportFileDefaultName = `meshchat_messages_${new Date().toISOString().slice(0, 10)}.json`;
-
-                const linkElement = document.createElement("a");
-                linkElement.setAttribute("href", dataUri);
-                linkElement.setAttribute("download", exportFileDefaultName);
-                linkElement.click();
+                await DownloadUtils.downloadFile(exportFileDefaultName, blob);
             } catch {
                 ToastUtils.error(this.$t("common.error"));
             }
@@ -3916,12 +3967,9 @@ export default {
             try {
                 const response = await window.api.get("/api/v1/lxmf/folders/export");
                 const dataStr = JSON.stringify(response.data, null, 2);
-                const dataUri = "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);
+                const blob = new Blob([dataStr], { type: "application/json" });
                 const exportFileDefaultName = `meshchat_folders_${new Date().toISOString().slice(0, 10)}.json`;
-                const linkElement = document.createElement("a");
-                linkElement.setAttribute("href", dataUri);
-                linkElement.setAttribute("download", exportFileDefaultName);
-                linkElement.click();
+                await DownloadUtils.downloadFile(exportFileDefaultName, blob);
                 ToastUtils.success(this.$t("settings.folders_exported"));
             } catch {
                 ToastUtils.error(this.$t("settings.failed_export_folders"));

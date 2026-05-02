@@ -130,30 +130,37 @@
                 </div>
             </div>
 
-            <div class="flex-1 overflow-hidden glass-card max-w-6xl mx-auto w-full p-0 flex flex-col rounded-xs">
+            <div
+                class="flex-1 overflow-hidden glass-card max-w-6xl mx-auto w-full p-0 flex flex-col rounded-xs min-h-0"
+            >
                 <div
                     v-if="activeTab === 'logs'"
-                    class="flex-1 overflow-auto p-3 sm:p-4 font-mono text-xs leading-relaxed select-text bg-white dark:bg-zinc-950"
+                    class="debug-log-scroll flex-1 overflow-auto p-2 sm:p-4 font-mono text-[9px] sm:text-[10px] md:text-xs max-sm:leading-snug sm:leading-snug md:leading-relaxed select-text touch-pan-x bg-white dark:bg-zinc-950 min-h-0"
                 >
-                    <div v-if="logs.length === 0" class="text-gray-500 italic text-center py-10">
+                    <div v-if="logs.length === 0" class="text-gray-500 italic text-center py-10 text-sm sm:text-base">
                         {{ loading ? $t("debug.loading_logs") : $t("debug.no_logs") }}
                     </div>
                     <div
                         v-for="(log, index) in logs"
                         :key="index"
-                        class="border-b border-gray-100 dark:border-zinc-900 py-1.5 flex gap-2 sm:gap-3 hover:bg-gray-50 dark:hover:bg-zinc-900/50 cursor-copy"
+                        class="debug-log-row border-b border-gray-100 dark:border-zinc-900 py-1 sm:py-1.5 flex gap-1.5 sm:gap-3 max-sm:flex-nowrap max-sm:min-w-max hover:bg-gray-50 dark:hover:bg-zinc-900/50 cursor-copy"
                         :class="{ 'bg-red-50/30 dark:bg-red-900/10': log.is_anomaly }"
                         title="Tap to copy this log entry"
                         @click="copyLogLine(log)"
                     >
-                        <span class="text-gray-400 shrink-0">{{ formatTime(log.timestamp) }}</span>
-                        <span :class="levelClass(log.level)" class="w-12 shrink-0 font-bold uppercase">{{
-                            log.level
-                        }}</span>
-                        <span class="text-blue-500 shrink-0 w-20 sm:w-24 overflow-hidden text-ellipsis italic"
+                        <span class="text-gray-400 shrink-0 max-sm:text-[8px]">{{ formatTime(log.timestamp) }}</span>
+                        <span
+                            :class="levelClass(log.level)"
+                            class="w-11 sm:w-12 shrink-0 font-bold uppercase max-sm:text-[8px] max-sm:tracking-tight"
+                            >{{ log.level }}</span
+                        >
+                        <span
+                            class="text-blue-500 shrink-0 w-[4.5rem] sm:w-24 overflow-hidden text-ellipsis italic max-sm:text-[8px]"
                             >[{{ log.module }}]</span
                         >
-                        <span class="text-gray-800 dark:text-gray-200 wrap-break-word flex-1">
+                        <span
+                            class="text-gray-800 dark:text-gray-200 flex-1 max-sm:whitespace-nowrap sm:wrap-break-word"
+                        >
                             {{ log.message }}
                             <span
                                 v-if="log.is_anomaly"
@@ -168,30 +175,39 @@
 
                 <div
                     v-else
-                    class="flex-1 overflow-auto p-3 sm:p-4 font-mono text-xs leading-relaxed select-text bg-white dark:bg-zinc-950"
+                    class="debug-log-scroll flex-1 overflow-auto p-2 sm:p-4 font-mono text-[9px] sm:text-[10px] md:text-xs max-sm:leading-snug sm:leading-snug md:leading-relaxed select-text touch-pan-x bg-white dark:bg-zinc-950 min-h-0"
                 >
-                    <div v-if="accessAttempts.length === 0" class="text-gray-500 italic text-center py-10">
+                    <div
+                        v-if="accessAttempts.length === 0"
+                        class="text-gray-500 italic text-center py-10 text-sm sm:text-base"
+                    >
                         {{ accessLoading ? $t("debug.loading_access") : $t("debug.no_access") }}
                     </div>
                     <div
                         v-for="row in accessAttempts"
                         :key="row.id"
-                        class="border-b border-gray-100 dark:border-zinc-900 py-2 flex flex-col gap-1 hover:bg-gray-50 dark:hover:bg-zinc-900/50 cursor-copy"
+                        class="border-b border-gray-100 dark:border-zinc-900 py-1.5 sm:py-2 flex flex-col gap-0.5 sm:gap-1 hover:bg-gray-50 dark:hover:bg-zinc-900/50 cursor-copy"
                         title="Tap to copy this access entry"
                         @click="copyAccessLine(row)"
                     >
-                        <div class="flex flex-wrap gap-x-3 gap-y-1 items-center">
+                        <div
+                            class="flex flex-wrap gap-x-2 gap-y-0.5 sm:gap-x-3 sm:gap-y-1 items-center max-sm:text-[9px]"
+                        >
                             <span class="text-gray-400 shrink-0">{{ formatTime(row.created_at) }}</span>
                             <span class="text-amber-600 dark:text-amber-400 font-semibold">{{ row.outcome }}</span>
-                            <span class="text-cyan-600 dark:text-cyan-400">{{ row.method }} {{ row.path }}</span>
+                            <span class="text-cyan-600 dark:text-cyan-400 max-sm:break-all sm:min-w-0"
+                                >{{ row.method }} {{ row.path }}</span
+                            >
                         </div>
-                        <div class="text-gray-600 dark:text-gray-400 break-all pl-0">
+                        <div class="text-gray-600 dark:text-gray-400 break-all pl-0 max-sm:text-[8px]">
                             <span class="text-gray-500">IP</span> {{ row.client_ip }}
                         </div>
-                        <div class="text-gray-600 dark:text-gray-400 break-all">
+                        <div class="text-gray-600 dark:text-gray-400 break-all max-sm:text-[8px]">
                             <span class="text-gray-500">UA</span> {{ row.user_agent || "—" }}
                         </div>
-                        <div v-if="row.detail" class="text-gray-500 text-[10px]">{{ row.detail }}</div>
+                        <div v-if="row.detail" class="text-gray-500 max-sm:text-[8px] sm:text-[10px]">
+                            {{ row.detail }}
+                        </div>
                     </div>
                 </div>
 
@@ -480,5 +496,9 @@ export default {
 <style scoped>
 .glass-card {
     border-radius: 2px !important;
+}
+.debug-log-scroll {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
 }
 </style>

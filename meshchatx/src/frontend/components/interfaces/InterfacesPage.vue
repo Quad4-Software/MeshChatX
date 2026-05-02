@@ -4,11 +4,11 @@
     <div
         class="flex flex-col flex-1 overflow-hidden min-w-0 bg-linear-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
     >
-        <div class="flex-1 overflow-y-auto overflow-x-hidden w-full px-3 sm:px-5 md:px-5 lg:px-8 py-4 sm:py-6">
+        <div class="flex-1 overflow-y-auto overflow-x-hidden w-full px-3 sm:px-5 md:px-5 lg:px-8 py-3 sm:py-4">
             <div class="space-y-0 w-full min-w-0 max-w-6xl xl:max-w-7xl 2xl:max-w-360 mx-auto flex-1">
                 <div
                     v-if="showRestartReminder"
-                    class="bg-amber-600 text-white border border-amber-500/30 p-4 sm:rounded-xl flex flex-wrap gap-3 items-center mb-4 sm:mb-6"
+                    class="bg-amber-600 text-white border border-amber-500/30 p-4 sm:rounded-xl flex flex-wrap gap-3 items-center mb-3 sm:mb-4"
                 >
                     <div class="flex items-center gap-3">
                         <MaterialDesignIcon icon-name="alert" class="w-6 h-6" />
@@ -29,7 +29,7 @@
                 </div>
 
                 <div
-                    class="interfaces-section interfaces-section--hero flex flex-col lg:flex-row lg:items-center justify-between gap-6"
+                    class="interfaces-section interfaces-section--hero flex flex-col lg:flex-row lg:items-center justify-between gap-4"
                 >
                     <div class="space-y-3 flex-1 min-w-0">
                         <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -255,7 +255,7 @@
                                     <button
                                         type="button"
                                         class="secondary-chip text-xs"
-                                        @click="loadDiscoveredInterfaces"
+                                        @click="refreshDiscoveredInterfacesList"
                                     >
                                         <MaterialDesignIcon icon-name="refresh" class="w-4 h-4" />
                                         Refresh
@@ -911,11 +911,39 @@ export default {
             return fromActive || fromStats;
         },
     },
+    watch: {
+        statusFilter(value) {
+            try {
+                localStorage.setItem("meshchatx.interfaces.statusFilter", value);
+            } catch {
+                /* ignore */
+            }
+        },
+        discoveredStatusFilter(value) {
+            try {
+                localStorage.setItem("meshchatx.interfaces.discoveredStatusFilter", value);
+            } catch {
+                /* ignore */
+            }
+        },
+    },
     beforeUnmount() {
         clearInterval(this.reloadInterval);
         clearInterval(this.discoveryInterval);
     },
     mounted() {
+        try {
+            const sf = localStorage.getItem("meshchatx.interfaces.statusFilter");
+            if (sf === "all" || sf === "enabled" || sf === "disabled") {
+                this.statusFilter = sf;
+            }
+            const df = localStorage.getItem("meshchatx.interfaces.discoveredStatusFilter");
+            if (df === "all" || df === "connected") {
+                this.discoveredStatusFilter = df;
+            }
+        } catch {
+            /* ignore */
+        }
         this.loadInterfaces();
         this.updateInterfaceStats();
         this.loadDiscoveryConfig();
@@ -1088,8 +1116,10 @@ export default {
 
                 this.discoveredInterfaces = Array.from(merged.values());
                 this.discoveredActive = active;
+                return true;
             } catch (e) {
                 console.log(e);
+                return false;
             }
         },
         discoveryKey(iface) {
@@ -1475,6 +1505,14 @@ export default {
         setStatusFilter(value) {
             this.statusFilter = value;
         },
+        async refreshDiscoveredInterfacesList() {
+            const ok = await this.loadDiscoveredInterfaces();
+            if (ok) {
+                ToastUtils.success(this.$t("interfaces.discovery_list_refreshed"));
+            } else {
+                ToastUtils.error(this.$t("interfaces.discovery_list_refresh_failed"));
+            }
+        },
         filterChipClass(isActive) {
             return isActive ? "primary-chip text-xs" : "secondary-chip text-xs";
         },
@@ -1519,12 +1557,12 @@ export default {
 <style scoped>
 @reference "../../style.css";
 .interfaces-section {
-    @apply w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-6 sm:py-8;
+    @apply w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-4 sm:py-6;
 }
 .interfaces-section--hero {
-    @apply border-b border-gray-200/60 dark:border-zinc-800/60 py-6 sm:py-8;
+    @apply border-b border-gray-200/60 dark:border-zinc-800/60 py-4 sm:py-6;
 }
 .interfaces-subpanel {
-    @apply mt-6 pt-6 border-t border-gray-200/50 dark:border-zinc-800/50 first:mt-0 first:pt-0 first:border-0;
+    @apply mt-4 pt-4 border-t border-gray-200/50 dark:border-zinc-800/50 first:mt-0 first:pt-0 first:border-0;
 }
 </style>
