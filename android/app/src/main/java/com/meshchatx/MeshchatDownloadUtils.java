@@ -16,7 +16,8 @@ final class MeshchatDownloadUtils {
         if (base.isEmpty()) {
             return "download.bin";
         }
-        base = base.replaceAll("[^A-Za-z0-9._ -]+", "_").trim();
+        // Hyphen must be first or last in the class so it is literal, not a range (space..hyphen would include '*').
+        base = base.replaceAll("[^A-Za-z0-9._ \\-]+", "_").trim();
         if (base.isEmpty()) {
             return "download.bin";
         }

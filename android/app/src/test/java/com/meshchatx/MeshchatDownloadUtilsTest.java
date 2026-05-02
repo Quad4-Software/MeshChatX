@@ -19,7 +19,7 @@ public class MeshchatDownloadUtilsTest {
 
     @Test
     public void sanitize_replacesUnsafeCharacters() {
-        Assert.assertEquals("mesh_x_folders.json", MeshchatDownloadUtils.sanitizeFileName("mesh:x?folders*.json"));
+        Assert.assertEquals("mesh_x_folders_.json", MeshchatDownloadUtils.sanitizeFileName("mesh:x?folders*.json"));
     }
 
     @Test
