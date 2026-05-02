@@ -9,6 +9,8 @@ from collections.abc import Callable
 
 import RNS
 
+from meshchatx.src.backend import reticulum_pathfinding
+
 # Global cache for Nomad Network links (reuse instead of reconnecting per request).
 # Protected by _nomadnet_links_lock for callers that may touch Reticulum from multiple threads.
 nomadnet_cached_links: dict[bytes, object] = {}
@@ -75,6 +77,7 @@ class NomadnetDownloader:
         timeout: int | None = None,
         *,
         on_phase: Callable[[str], None] | None = None,
+        reticulum: object | None = None,
     ):
         self.app_name = "nomadnetwork"
         self.aspects = "node"
@@ -86,6 +89,7 @@ class NomadnetDownloader:
         self._download_failure_callback = on_download_failure
         self.on_progress_update = on_progress_update
         self._on_phase = on_phase
+        self._reticulum = reticulum
         self.request_receipt = None
         self.is_cancelled = False
         self.link = None
@@ -134,9 +138,13 @@ class NomadnetDownloader:
 
         timeout_after_seconds = time.time() + path_lookup_timeout
 
+        reticulum_pathfinding.prepare_fresh_path_request(
+            self._reticulum,
+            self.destination_hash,
+        )
+
         if not RNS.Transport.has_path(self.destination_hash):
             self._emit_phase("finding_path")
-            RNS.Transport.request_path(self.destination_hash)
 
             while (
                 not RNS.Transport.has_path(self.destination_hash)
@@ -234,6 +242,7 @@ class NomadnetPageDownloader(NomadnetDownloader):
         timeout: int | None = None,
         *,
         on_phase: Callable[[str], None] | None = None,
+        reticulum: object | None = None,
     ):
         self.on_page_download_success = on_page_download_success
         self.on_page_download_failure = on_page_download_failure
@@ -246,6 +255,7 @@ class NomadnetPageDownloader(NomadnetDownloader):
             on_progress_update,
             timeout,
             on_phase=on_phase,
+            reticulum=reticulum,
         )
 
     def on_download_success(self, request_receipt: RNS.RequestReceipt):
@@ -275,6 +285,7 @@ class NomadnetFileDownloader(NomadnetDownloader):
         timeout: int | None = None,
         *,
         on_phase: Callable[[str], None] | None = None,
+        reticulum: object | None = None,
     ):
         self.on_file_download_success = on_file_download_success
         self.on_file_download_failure = on_file_download_failure
@@ -287,6 +298,7 @@ class NomadnetFileDownloader(NomadnetDownloader):
             on_progress_update,
             timeout,
             on_phase=on_phase,
+            reticulum=reticulum,
         )
 
     def on_download_success(self, request_receipt: RNS.RequestReceipt):
