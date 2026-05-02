@@ -128,6 +128,7 @@ config.global.stubs = {
     "v-toolbar": true,
     "v-toolbar-title": true,
     "v-tooltip": true,
+    VTooltip: true,
     "v-alert": true,
     "v-snackbar": true,
     "v-badge": true,
