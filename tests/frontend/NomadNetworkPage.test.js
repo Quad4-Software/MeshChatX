@@ -258,11 +258,7 @@ describe("NomadNetworkPage.vue", () => {
         });
 
         const boundaryCases = [
-            [
-                "phrase only mid-document",
-                "Something happened. Failed loading page: not a real prefix.",
-                false,
-            ],
+            ["phrase only mid-document", "Something happened. Failed loading page: not a real prefix.", false],
             ["leading newline before meshchat prefix", "\nFailed loading page: timeout", false],
             ["leading spaces before meshchat prefix", " Failed loading page: timeout", false],
             ["wrong casing on meshchat prefix", "failed loading page: timeout", false],
