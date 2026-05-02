@@ -95,6 +95,62 @@
                                 </span>
                             </template>
                         </span>
+                        <v-tooltip
+                            v-if="nomadBrowserRendererChip && !isLoadingNodePage"
+                            location="bottom"
+                            :open-on-hover="false"
+                            :open-on-focus="false"
+                            :open-on-click="true"
+                            :interactive="true"
+                            max-width="320"
+                            content-class="!bg-transparent !p-0 shadow-none"
+                        >
+                            <template #activator="{ props: tooltipActivatorProps }">
+                                <span
+                                    v-bind="tooltipActivatorProps"
+                                    class="shrink-0 hidden sm:inline-flex sm:items-center max-w-[7.5rem] md:max-w-[9rem] truncate rounded border border-gray-300 bg-gray-50 px-1.5 py-0.5 text-[10px] font-medium leading-tight text-gray-600 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-900 dark:text-gray-400 dark:focus-visible:ring-blue-400"
+                                    tabindex="0"
+                                    role="button"
+                                    >{{ nomadBrowserRendererChip.label }}</span
+                                >
+                            </template>
+                            <div
+                                class="max-w-[min(20rem,85vw)] rounded-lg border border-[var(--mc-border-strong)] bg-[var(--mc-surface)] px-3 py-2 text-xs leading-snug text-[var(--mc-text-secondary)] shadow-lg"
+                            >
+                                <template v-if="nomadBrowserRendererChip.popoverVariant === 'wasm_active'">
+                                    <span>{{ $t("nomadnet.renderer_popover_micron_wasm_powered") }}</span>
+                                    <a
+                                        class="font-medium text-[var(--mc-text-secondary)] underline underline-offset-2 hover:opacity-90"
+                                        :href="micronParserGoRepoUrl"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        @click.stop
+                                        >{{ $t("settings.nomad_micron_wasm_link_label") }}</a
+                                    ><span>{{
+                                        $t("nomadnet.renderer_popover_micron_wasm_active_tail", {
+                                            version: nomadBrowserRendererChip.micronGoRelease,
+                                        })
+                                    }}</span>
+                                </template>
+                                <template v-else-if="nomadBrowserRendererChip.popoverVariant === 'wasm_pending'">
+                                    <a
+                                        class="font-medium text-[var(--mc-text-secondary)] underline underline-offset-2 hover:opacity-90"
+                                        :href="micronParserGoRepoUrl"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        @click.stop
+                                        >{{ $t("settings.nomad_micron_wasm_link_label") }}</a
+                                    ><span>{{
+                                        $t("nomadnet.renderer_popover_micron_wasm_pending_tail", {
+                                            version: nomadBrowserRendererChip.micronGoRelease,
+                                        })
+                                    }}</span>
+                                </template>
+                                <template v-else>
+                                    {{ nomadBrowserRendererChip.tooltipBody }}
+                                </template>
+                            </div>
+                        </v-tooltip>
                     </div>
 
                     <!-- archive button -->
@@ -460,6 +516,12 @@ import IconButton from "../IconButton.vue";
 import DropDownMenu from "../DropDownMenu.vue";
 import DropDownMenuItem from "../DropDownMenuItem.vue";
 import GlobalState from "../../js/GlobalState";
+import {
+    preloadNomadMicronWasm,
+    invalidateNomadMicronWasmPreload,
+    isMicronWasmBundled,
+} from "../../js/MicronWasmLoader";
+import { VTooltip } from "vuetify/components/VTooltip";
 
 export default {
     name: "NomadNetworkPage",
@@ -469,6 +531,7 @@ export default {
         IconButton,
         DropDownMenu,
         DropDownMenuItem,
+        VTooltip,
     },
     props: {
         destinationHash: {
@@ -510,6 +573,7 @@ export default {
             nodePagePathHistory: [],
             nodePageCache: {},
             currentPageDownloadId: null,
+            pendingNomadPageCancelWithoutId: false,
 
             isDownloadingNodeFile: false,
             nodeFilePath: null,
@@ -540,12 +604,27 @@ export default {
 
             pathfinderInProgress: false,
             pendingLoadLatestArchive: false,
+
+            nomadMicronWasmReady: false,
         };
     },
     computed: {
         defaultNodePagePath() {
             const p = GlobalState.config?.nomad_default_page_path;
             return typeof p === "string" && p.startsWith("/page/") ? p : "/page/index.mu";
+        },
+        nomadMicronWasmFeatureEffective() {
+            return isMicronWasmBundled() && (GlobalState.config || {}).nomad_micron_wasm_enabled === true;
+        },
+        micronParserGoRepoUrl() {
+            return "https://git.quad4.io/Go-Libs/micron-parser-go";
+        },
+        nomadMicronWasmActive() {
+            return (
+                this.nomadMicronWasmFeatureEffective &&
+                this.nomadMicronWasmReady === true &&
+                typeof globalThis.micronConvert === "function"
+            );
         },
         nomadRenderOptions() {
             const c = GlobalState.config || {};
@@ -554,7 +633,62 @@ export default {
                 renderHtml: c.nomad_render_html_enabled !== false,
                 renderPlaintext: c.nomad_render_plaintext_enabled !== false,
                 nomadDestinationHash: this.selectedNode?.destination_hash || null,
+                nomad_micron_wasm_use: this.nomadMicronWasmFeatureEffective && this.nomadMicronWasmReady === true,
             };
+        },
+        /**
+         * Active page renderer label for the toolbar chip (.mu uses Micron JS vs WASM).
+         */
+        nomadBrowserRendererChip() {
+            if (!this.selectedNode || !this.nodePagePath) {
+                return null;
+            }
+            if (this.isShowingNodePageSource) {
+                return null;
+            }
+            const [p] = this.nodePagePath.split("`");
+            const pathLower = (p || "").toLowerCase();
+            const micronGoRelease =
+                typeof import.meta.env.VITE_MICRON_PARSER_GO_RELEASE === "string" &&
+                import.meta.env.VITE_MICRON_PARSER_GO_RELEASE.trim() !== ""
+                    ? import.meta.env.VITE_MICRON_PARSER_GO_RELEASE.trim()
+                    : "\u2014";
+            const plainChip = (labelKey, detailKey, detailParams) => {
+                const detail = detailKey ? this.$t(detailKey, detailParams ?? {}) : "";
+                return {
+                    label: this.$t(labelKey),
+                    popoverVariant: null,
+                    tooltipBody: detail,
+                };
+            };
+            if (pathLower.endsWith(".mu")) {
+                if (this.nomadMicronWasmActive) {
+                    return {
+                        label: this.$t("nomadnet.renderer_chip_micron_wasm"),
+                        popoverVariant: "wasm_active",
+                        micronGoRelease,
+                    };
+                }
+                const wasmPreferred = this.nomadMicronWasmFeatureEffective;
+                if (wasmPreferred && !this.nomadMicronWasmReady) {
+                    return {
+                        label: this.$t("nomadnet.renderer_chip_micron_js"),
+                        popoverVariant: "wasm_pending",
+                        micronGoRelease,
+                    };
+                }
+                return plainChip("nomadnet.renderer_chip_micron_js", "nomadnet.renderer_hint_micron_js");
+            }
+            if (pathLower.endsWith(".md")) {
+                return plainChip("nomadnet.renderer_chip_markdown", "nomadnet.renderer_hint_markdown");
+            }
+            if (pathLower.endsWith(".html")) {
+                return plainChip("nomadnet.renderer_chip_html", "nomadnet.renderer_hint_html");
+            }
+            if (pathLower.endsWith(".txt")) {
+                return plainChip("nomadnet.renderer_chip_plaintext", "nomadnet.renderer_hint_plaintext");
+            }
+            return null;
         },
         blockedDestinations() {
             return GlobalState.blockedDestinations;
@@ -688,6 +822,28 @@ export default {
     mounted() {
         // listen for websocket messages
         WebSocketConnection.on("message", this.onWebsocketMessage);
+
+        this.$watch(
+            () => GlobalState.config?.nomad_micron_wasm_enabled,
+            async (enabled) => {
+                if (!isMicronWasmBundled()) {
+                    this.nomadMicronWasmReady = false;
+                    return;
+                }
+                if (!enabled) {
+                    this.nomadMicronWasmReady = false;
+                    return;
+                }
+                invalidateNomadMicronWasmPreload();
+                this.nomadMicronWasmReady = await preloadNomadMicronWasm();
+            }
+        );
+
+        if (isMicronWasmBundled() && GlobalState.config?.nomad_micron_wasm_enabled === true) {
+            preloadNomadMicronWasm().then((ok) => {
+                this.nomadMicronWasmReady = ok === true;
+            });
+        }
 
         // load nomadnetwork node if a destination hash was provided on page load
         if (this.destinationHash) {
@@ -878,6 +1034,16 @@ export default {
 
                     // handle started status
                     if (nomadnetPageDownload.status === "started") {
+                        if (this.pendingNomadPageCancelWithoutId) {
+                            this.pendingNomadPageCancelWithoutId = false;
+                            WebSocketConnection.send(
+                                JSON.stringify({
+                                    type: "nomadnet.download.cancel",
+                                    download_id: downloadId,
+                                })
+                            );
+                            return;
+                        }
                         this.currentPageDownloadId = downloadId;
                         this.nodePageLoadPhase = "finding_path";
                         return;
@@ -994,8 +1160,9 @@ export default {
                     // clear page download if it matches
                     if (this.currentPageDownloadId === downloadId) {
                         this.currentPageDownloadId = null;
+                        this.pendingNomadPageCancelWithoutId = false;
                         this.isLoadingNodePage = false;
-                        this.nodePageContent = "Download cancelled";
+                        this.nodePageContent = this.$t("nomadnet.page_download_cancelled");
                     }
 
                     // clear file download if it matches
@@ -1249,6 +1416,8 @@ export default {
             // get new sequence for this page load
             const seq = ++this.nodePageRequestSequence;
 
+            this.pendingNomadPageCancelWithoutId = false;
+
             // get previous page path
             const previousNodePagePath = this.nodePagePath;
 
@@ -1412,6 +1581,10 @@ export default {
             this.partialIdsByKey = idsByKey;
             this.partialRefreshByKey = refreshByKey;
 
+            const micronOpts = {
+                useWasm: this.nomadMicronWasmActive,
+            };
+
             const muParser = new MicronParser();
             const updatePartialDom = (html, ids) => {
                 const container = this.$el.querySelector(".nodeContainer");
@@ -1433,7 +1606,7 @@ export default {
                     path,
                     fields,
                     (pageContent) => {
-                        const html = muParser.convertMicronToHtml(pageContent);
+                        const html = muParser.convertMicronToHtml(pageContent, {}, micronOpts);
                         const ids = this.partialIdsByKey[key];
                         if (ids) {
                             updatePartialDom(html, ids);
@@ -1449,7 +1622,7 @@ export default {
                             const scheduleRefresh = () => {
                                 this.partialRefreshTimers[key] = setTimeout(() => {
                                     this.downloadNomadNetPage(dest, path, fields, (content) => {
-                                        const h = muParser.convertMicronToHtml(content);
+                                        const h = muParser.convertMicronToHtml(content, {}, micronOpts);
                                         const idList = this.partialIdsByKey[key];
                                         if (idList) {
                                             updatePartialDom(h, idList);
@@ -2061,7 +2234,23 @@ export default {
                         download_id: this.currentPageDownloadId,
                     })
                 );
+                return;
             }
+            if (!this.isLoadingNodePage) {
+                return;
+            }
+            const parsed = this.parseNomadnetworkUrl(this.nodePagePath || "");
+            const dh = parsed?.destination_hash || this.selectedNode?.destination_hash;
+            const pathPart = parsed?.path;
+            if (dh && pathPart) {
+                const key = this.getNomadnetPageDownloadCallbackKey(dh, pathPart);
+                delete this.nomadnetPageDownloadCallbacks[key];
+            }
+            this.pendingNomadPageCancelWithoutId = true;
+            this.nodePageRequestSequence += 1;
+            this.isLoadingNodePage = false;
+            this.nodePageLoadPhase = null;
+            this.nodePageContent = this.$t("nomadnet.page_download_cancelled");
         },
         cancelFileDownload() {
             if (this.currentFileDownloadId !== null) {

@@ -286,10 +286,13 @@ export function renderNomadPageByPath(
     const renderPlaintext = renderOptions.renderPlaintext !== false;
     const nomadDestinationHash = renderOptions.nomadDestinationHash || null;
     const linkOpts = { destinationHash: nomadDestinationHash };
+    const micronOpts = {
+        useWasm: renderOptions.nomad_micron_wasm_use === true && typeof globalThis.micronConvert === "function",
+    };
     const p = (pagePathWithoutData || "").toLowerCase();
     if (p.endsWith(".mu")) {
         const muParser = new MicronParserClass();
-        let out = muParser.convertMicronToHtml(content, pagePartials);
+        let out = muParser.convertMicronToHtml(content, pagePartials, micronOpts);
         if (nomadDestinationHash) {
             out = isolateNomadLinksInHtml(out, nomadDestinationHash);
         }

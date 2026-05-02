@@ -879,6 +879,28 @@
                                     >
                                 </span>
                             </label>
+                            <label v-if="micronWasmBundledInBuild" class="setting-toggle">
+                                <Toggle
+                                    id="nomad-micron-wasm"
+                                    v-model="config.nomad_micron_wasm_enabled"
+                                    @update:model-value="onNomadMicronWasmToggle"
+                                />
+                                <span class="setting-toggle__label">
+                                    <span class="setting-toggle__title">{{
+                                        $t("settings.nomad_micron_wasm_title")
+                                    }}</span>
+                                    <span class="setting-toggle__description">
+                                        {{ $t("settings.nomad_micron_wasm_desc_before_link") }}
+                                        <a
+                                            class="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2"
+                                            href="https://git.quad4.io/Go-Libs/micron-parser-go"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            >{{ $t("settings.nomad_micron_wasm_link_label") }}</a
+                                        >{{ $t("settings.nomad_micron_wasm_desc_after_link") }}
+                                    </span>
+                                </span>
+                            </label>
                             <div class="space-y-2">
                                 <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
                                     Default page path (no URL path)
@@ -2504,6 +2526,7 @@ import {
 } from "../../js/settings/incomingDeliveryLimit";
 import { normalizeRetentionValue } from "../../js/localMessageRetention";
 import { matchesSettingSearch, normalizeSearchString } from "../../js/settingsSearchUtils";
+import { isMicronWasmBundled } from "../../js/MicronWasmLoader.js";
 
 export default {
     name: "SettingsPage",
@@ -2584,6 +2607,7 @@ export default {
                 nomad_render_markdown_enabled: true,
                 nomad_render_html_enabled: true,
                 nomad_render_plaintext_enabled: true,
+                nomad_micron_wasm_enabled: true,
                 nomad_default_page_path: "/page/index.mu",
                 local_message_auto_delete_enabled: false,
                 local_message_auto_delete_value: 30,
@@ -2728,6 +2752,9 @@ export default {
                     "markdown",
                     "HTML",
                     "plaintext",
+                    "WASM",
+                    "micron-parser-go",
+                    "micron-parser",
                     "index.mu",
                     "index.html",
                     "default page",
@@ -2877,6 +2904,9 @@ export default {
         };
     },
     computed: {
+        micronWasmBundledInBuild() {
+            return isMicronWasmBundled();
+        },
         settingsSearchActive() {
             return normalizeSearchString(this.searchQuery).length > 0;
         },
@@ -3545,6 +3575,20 @@ export default {
                 },
                 null
             );
+        },
+        async onNomadMicronWasmToggle(value) {
+            const prev = this.config.nomad_micron_wasm_enabled;
+            this.config.nomad_micron_wasm_enabled = value;
+            try {
+                const newConfig = await patchServerConfig({ nomad_micron_wasm_enabled: value }, window.api);
+                this.config = newConfig;
+                normalizeConfigColors(this.config);
+                this.syncLxmfTransferLimitInputs();
+            } catch (e) {
+                this.config.nomad_micron_wasm_enabled = prev;
+                ToastUtils.error(this.$t("common.save_failed"));
+                console.log(e);
+            }
         },
         async onNomadDefaultPagePathChange() {
             await this.updateConfig(

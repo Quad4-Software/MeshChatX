@@ -1,6 +1,7 @@
 import path from "path";
 import fs from "fs";
 import { defineConfig } from "vite";
+import { MICRON_PARSER_GO_RELEASE_TAG } from "./scripts/micron-parser-go-version.mjs";
 import tailwindcss from "@tailwindcss/vite";
 import vue from "@vitejs/plugin-vue";
 import vuetify from "vite-plugin-vuetify";
@@ -34,9 +35,27 @@ const e2eBackendWs = `ws://127.0.0.1:${e2eBackendPort}`;
 
 const appBuildTimeIso = new Date().toISOString();
 
+function isMicronWasmBundledResolved() {
+    const wasmDir = path.join(__dirname, "meshchatx", "src", "frontend", "public", "vendor", "micron-parser-go");
+    const wasmFile = path.join(wasmDir, "micron-parser-go.wasm");
+    const execFile = path.join(wasmDir, "wasm_exec.js");
+    try {
+        if (!fs.existsSync(wasmFile) || !fs.existsSync(execFile)) {
+            return false;
+        }
+        return fs.statSync(wasmFile).size >= 8192 && fs.statSync(execFile).size >= 1024;
+    } catch {
+        return false;
+    }
+}
+
+const micronWasmBundled = isMicronWasmBundledResolved();
+
 export default defineConfig({
     define: {
         __APP_BUILD_TIME__: JSON.stringify(appBuildTimeIso),
+        "import.meta.env.VITE_MICRON_WASM_BUNDLED": JSON.stringify(micronWasmBundled ? "true" : "false"),
+        "import.meta.env.VITE_MICRON_PARSER_GO_RELEASE": JSON.stringify(MICRON_PARSER_GO_RELEASE_TAG),
     },
     plugins: [
         tailwindcss(),

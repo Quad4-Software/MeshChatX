@@ -460,6 +460,11 @@ class ConfigManager:
             "nomad_render_plaintext_enabled",
             True,
         )
+        self.nomad_micron_wasm_enabled = self.BoolConfig(
+            self,
+            "nomad_micron_wasm_enabled",
+            True,
+        )
         self.nomad_default_page_path = self.StringConfig(
             self,
             "nomad_default_page_path",

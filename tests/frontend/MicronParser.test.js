@@ -707,4 +707,43 @@ describe("MicronParser.js", () => {
             expect(frag.childNodes.length).toBeGreaterThan(0);
         });
     });
+
+    describe("micron-parser-go WASM integration helpers", () => {
+        afterEach(() => {
+            delete globalThis.micronConvert;
+        });
+
+        it("splitMicronMarkupWasmSegments isolates MeshChat partial lines", () => {
+            const dest = "a".repeat(32);
+            const partialLine = `\`{${dest}:/page/partial.mu}`;
+            const segments = MicronParser.splitMicronMarkupWasmSegments(`> hello\nworld\n${partialLine}\ntrailer`);
+            expect(segments).toEqual([
+                { type: "mu", text: "> hello\nworld" },
+                { type: "partial", line: partialLine },
+                { type: "mu", text: "trailer" },
+            ]);
+        });
+
+        it("convertMicronToHtml falls back to JS when WASM throws", () => {
+            globalThis.micronConvert = vi.fn(() => {
+                throw new Error("forced wasm failure");
+            });
+            const p = new MicronParser(true, false);
+            const html = p.convertMicronToHtml("`!ok`!", {}, { useWasm: true });
+            expect(html.length).toBeGreaterThan(0);
+            expect(html.toLowerCase()).toContain("ok");
+        });
+
+        it("convertMicronToHtml stitches WASM segments with JS partial lines", () => {
+            globalThis.micronConvert = vi.fn(() => '<p data-wasm="1">wasm-body</p>');
+            const dest = "b".repeat(32);
+            const partialLine = `\`{${dest}:/page/inc.mu}`;
+            const p = new MicronParser(true, false);
+            const html = p.convertMicronToHtml(`intro line\n${partialLine}`, {}, { useWasm: true });
+            expect(globalThis.micronConvert).toHaveBeenCalled();
+            expect(html).toContain("wasm-body");
+            expect(html).toContain("mu-partial");
+            expect(html).toContain("data-dest");
+        });
+    });
 });

@@ -95,6 +95,7 @@ from meshchatx.src.backend.lxmf_utils import (
     is_user_facing_lxmf_payload,
     lxmf_fields_are_columba_reaction,
     lxmf_sidebar_preview_for_conversation_latest_row,
+    validate_app_extensions_for_lxmf_http_send,
 )
 from meshchatx.src.backend.map_manager import MAX_EXPORT_TILES, TRANSPARENT_TILE
 from meshchatx.src.backend.markdown_renderer import MarkdownRenderer
@@ -2334,6 +2335,7 @@ class ReticulumMeshChat:
             on_page_download_failure=on_failure,
             on_progress_update=on_progress,
             timeout=120,
+            reticulum=getattr(self, "reticulum", None),
         )
 
         try:
@@ -8044,7 +8046,6 @@ class ReticulumMeshChat:
                             or "Anonymous Peer"
                         )
 
-                # get current hops away
                 hops = RNS.Transport.hops_to(
                     bytes.fromhex(announce["destination_hash"]),
                 )
@@ -9618,10 +9619,11 @@ class ReticulumMeshChat:
                 )
 
             try:
-                bot_id = self.bot_handler.start_bot(
+                bot_id = await asyncio.to_thread(
+                    self.bot_handler.start_bot,
                     template_id,
-                    name=name,
-                    bot_id=bot_id,
+                    name,
+                    bot_id,
                 )
                 return web.json_response({"bot_id": bot_id, "success": True})
             except Exception as e:
@@ -9642,7 +9644,7 @@ class ReticulumMeshChat:
                 )
 
             try:
-                success = self.bot_handler.stop_bot(bot_id)
+                success = await asyncio.to_thread(self.bot_handler.stop_bot, bot_id)
                 return web.json_response({"success": success})
             except Exception as e:
                 return web.json_response(
@@ -9662,7 +9664,10 @@ class ReticulumMeshChat:
                 )
 
             try:
-                new_id = self.bot_handler.restart_bot(bot_id)
+                new_id = await asyncio.to_thread(
+                    self.bot_handler.restart_bot,
+                    bot_id,
+                )
                 return web.json_response({"bot_id": new_id, "success": True})
             except Exception as e:
                 return web.json_response(
@@ -9682,7 +9687,7 @@ class ReticulumMeshChat:
                 )
 
             try:
-                success = self.bot_handler.delete_bot(bot_id)
+                success = await asyncio.to_thread(self.bot_handler.delete_bot, bot_id)
                 return web.json_response({"success": success})
             except Exception as e:
                 return web.json_response(
@@ -9701,7 +9706,10 @@ class ReticulumMeshChat:
                 )
 
             try:
-                result = self.bot_handler.read_subprocess_log(bot_id)
+                result = await asyncio.to_thread(
+                    self.bot_handler.read_subprocess_log,
+                    bot_id,
+                )
                 return web.json_response(result)
             except ValueError as e:
                 return web.json_response(
@@ -9727,7 +9735,11 @@ class ReticulumMeshChat:
                 )
 
             try:
-                self.bot_handler.update_bot_name(bot_id, name)
+                await asyncio.to_thread(
+                    self.bot_handler.update_bot_name,
+                    bot_id,
+                    name,
+                )
                 return web.json_response({"success": True})
             except ValueError as e:
                 return web.json_response(
@@ -9752,7 +9764,7 @@ class ReticulumMeshChat:
                 )
 
             try:
-                self.bot_handler.request_announce(bot_id)
+                await asyncio.to_thread(self.bot_handler.request_announce, bot_id)
                 return web.json_response({"success": True})
             except ValueError as e:
                 return web.json_response(
@@ -10026,7 +10038,27 @@ class ReticulumMeshChat:
                     status=400,
                 )
 
-            fields = lm.get("fields") if isinstance(lm.get("fields"), dict) else {}
+            raw_fields = lm.get("fields")
+            fields = dict(raw_fields) if isinstance(raw_fields, dict) else {}
+            app_extensions_payload = fields.pop("app_extensions", None)
+            validated_app_extensions = None
+            if app_extensions_payload is not None:
+                if not isinstance(app_extensions_payload, dict):
+                    return web.json_response(
+                        {"message": "Invalid app_extensions"},
+                        status=400,
+                    )
+                try:
+                    validated_app_extensions = (
+                        validate_app_extensions_for_lxmf_http_send(
+                            app_extensions_payload,
+                        )
+                    )
+                except ValueError:
+                    return web.json_response(
+                        {"message": "Invalid app_extensions"},
+                        status=400,
+                    )
 
             image_field = None
             audio_field = None
@@ -10107,6 +10139,7 @@ class ReticulumMeshChat:
                     delivery_method=delivery_method,
                     reply_to_hash=reply_to_hash,
                     reply_quoted_content=reply_quoted_content,
+                    app_extensions=validated_app_extensions,
                 )
 
                 return web.json_response(
@@ -10341,9 +10374,28 @@ class ReticulumMeshChat:
         @routes.get("/api/v1/lxmf-messages/{message_hash}/uri")
         async def lxmf_message_uri(request):
             """Build a reticulum:// URI; prefer the router cache over DB-only state."""
-            message_hash = request.match_info.get("message_hash")
+            from meshchatx.src.backend.meshchat_utils import (
+                find_lxm_by_content_hash_for_paper_uri,
+                hex_identifier_to_bytes,
+                lxmf_message_try_paper_uri_string,
+                normalized_meshchat_lxmf_message_hash_hex,
+            )
 
-            lxm = self.message_router.get_message(bytes.fromhex(message_hash))
+            raw_hash = request.match_info.get("message_hash")
+            nh = normalized_meshchat_lxmf_message_hash_hex(raw_hash)
+            if not nh:
+                return web.json_response(
+                    {"message": "Invalid message hash"},
+                    status=400,
+                )
+            hb = hex_identifier_to_bytes(nh)
+            if hb is None:
+                return web.json_response(
+                    {"message": "Invalid message hash"},
+                    status=400,
+                )
+
+            lxm = find_lxm_by_content_hash_for_paper_uri(self.message_router, hb)
 
             if not lxm:
                 return web.json_response(
@@ -10353,16 +10405,16 @@ class ReticulumMeshChat:
                     status=404,
                 )
 
-            try:
-                # change delivery method to paper so as_uri works
-                original_method = lxm.method
-                lxm.method = LXMF.LXMessage.PAPER
-                uri = lxm.as_uri()
-                lxm.method = original_method  # restore
+            uri, err_detail = lxmf_message_try_paper_uri_string(lxm)
+            if not uri:
+                body = {
+                    "message": "Could not serialize this LXMF payload as a Paper URI"
+                }
+                if err_detail:
+                    body["detail"] = err_detail
+                return web.json_response(body, status=422)
 
-                return web.json_response({"uri": uri})
-            except Exception as e:
-                return web.json_response({"message": str(e)}, status=500)
+            return web.json_response({"uri": uri})
 
         # delete lxmf messages for conversation
         @routes.delete("/api/v1/lxmf-messages/conversation/{destination_hash}")
@@ -12920,6 +12972,11 @@ class ReticulumMeshChat:
                 self._parse_bool(data["nomad_render_plaintext_enabled"]),
             )
 
+        if "nomad_micron_wasm_enabled" in data:
+            self.config.nomad_micron_wasm_enabled.set(
+                self._parse_bool(data["nomad_micron_wasm_enabled"]),
+            )
+
         if "nomad_default_page_path" in data:
             from meshchatx.src.backend.page_node import is_allowed_page_filename
 
@@ -13601,24 +13658,23 @@ class ReticulumMeshChat:
                 on_file_download_failure,
                 on_file_download_progress,
                 on_phase=on_file_download_phase,
+                reticulum=getattr(self, "reticulum", None),
             )
             downloader.start_time = time.time()
             self.active_downloads[download_id] = downloader
 
-            # notify client download started
-            AsyncUtils.run_async(
-                client.send_str(
-                    json.dumps(
-                        {
-                            "type": "nomadnet.file.download",
-                            "download_id": download_id,
-                            "nomadnet_file_download": {
-                                "status": "started",
-                                "destination_hash": destination_hash.hex(),
-                                "file_path": file_path,
-                            },
+            # notify client download started (await so phase updates cannot reorder ahead of started)
+            await client.send_str(
+                json.dumps(
+                    {
+                        "type": "nomadnet.file.download",
+                        "download_id": download_id,
+                        "nomadnet_file_download": {
+                            "status": "started",
+                            "destination_hash": destination_hash.hex(),
+                            "file_path": file_path,
                         },
-                    ),
+                    },
                 ),
             )
 
@@ -13795,23 +13851,22 @@ class ReticulumMeshChat:
                 on_page_download_failure,
                 on_page_download_progress,
                 on_phase=on_page_download_phase,
+                reticulum=getattr(self, "reticulum", None),
             )
             self.active_downloads[download_id] = downloader
 
-            # notify client download started
-            AsyncUtils.run_async(
-                client.send_str(
-                    json.dumps(
-                        {
-                            "type": "nomadnet.page.download",
-                            "download_id": download_id,
-                            "nomadnet_page_download": {
-                                "status": "started",
-                                "destination_hash": destination_hash.hex(),
-                                "page_path": page_path,
-                            },
+            # notify client download started (await so phase updates cannot reorder ahead of started)
+            await client.send_str(
+                json.dumps(
+                    {
+                        "type": "nomadnet.page.download",
+                        "download_id": download_id,
+                        "nomadnet_page_download": {
+                            "status": "started",
+                            "destination_hash": destination_hash.hex(),
+                            "page_path": page_path,
                         },
-                    ),
+                    },
                 ),
             )
 
@@ -14402,6 +14457,7 @@ class ReticulumMeshChat:
             "nomad_render_markdown_enabled": ctx.config.nomad_render_markdown_enabled.get(),
             "nomad_render_html_enabled": ctx.config.nomad_render_html_enabled.get(),
             "nomad_render_plaintext_enabled": ctx.config.nomad_render_plaintext_enabled.get(),
+            "nomad_micron_wasm_enabled": ctx.config.nomad_micron_wasm_enabled.get(),
             "nomad_default_page_path": ctx.config.nomad_default_page_path.get(),
             "local_message_auto_delete_enabled": ctx.config.local_message_auto_delete_enabled.get(),
             "local_message_auto_delete_value": ctx.config.local_message_auto_delete_value.get(),
@@ -15762,7 +15818,6 @@ class ReticulumMeshChat:
         # We cannot replay "old" paths from the app layer — Transport.request_path refreshes discovery.
         path_outcome = await self._await_transport_path(destination_hash_bytes)
 
-        # find destination identity from hash
         destination_identity = RNS.Identity.recall(destination_hash_bytes)
         if destination_identity is None:
             # we have to bail out of sending, since we don't have the identity/path yet

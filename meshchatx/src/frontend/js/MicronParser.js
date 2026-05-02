@@ -99,6 +99,59 @@ export default class MicronParser extends BaseMicronParser {
         });
     }
 
+    static sanitizeRenderedMicronHtml(html) {
+        if (html == null) {
+            return "";
+        }
+        const s = typeof html === "string" ? html : String(html);
+        try {
+            const sanitized = DOMPurify.sanitize(s, {
+                USE_PROFILES: { html: true },
+                ALLOWED_URI_REGEXP,
+            });
+            try {
+                return MicronParser.stripOverlayStyles(sanitized);
+            } catch (e) {
+                console.warn("MicronParser: stripOverlayStyles failed", e);
+                return sanitized;
+            }
+        } catch (error) {
+            console.warn(
+                "DOMPurify is not installed or sanitization failed. Include dompurify or check the build.",
+                error
+            );
+            return `<p style="color: red;">DOMPurify is not installed or sanitization failed.</p>`;
+        }
+    }
+
+    /**
+     * Split Micron source into blocks for WASM conversion, keeping MeshChat partial-include lines on the JS path.
+     */
+    static splitMicronMarkupWasmSegments(markup) {
+        if (markup == null) {
+            return [];
+        }
+        const lines = String(markup).split("\n");
+        const segments = [];
+        let buf = [];
+        for (const line of lines) {
+            const trimmed = line.trim();
+            if (MicronParser.PARTIAL_LINE_REGEX.test(trimmed)) {
+                if (buf.length) {
+                    segments.push({ type: "mu", text: buf.join("\n") });
+                    buf = [];
+                }
+                segments.push({ type: "partial", line });
+            } else {
+                buf.push(line);
+            }
+        }
+        if (buf.length) {
+            segments.push({ type: "mu", text: buf.join("\n") });
+        }
+        return segments;
+    }
+
     injectMonospaceStyles() {
         if (document.getElementById("micron-monospace-styles")) {
             return;
@@ -156,10 +209,23 @@ export default class MicronParser extends BaseMicronParser {
         document.head.appendChild(styleEl);
     }
 
-    convertMicronToHtml(markup, partialContents = {}) {
-        if (markup == null) return "";
-        if (typeof markup !== "string") markup = String(markup);
+    convertMicronToHtmlWasmHybrid(markup, partialContents = {}) {
+        const mc = globalThis.micronConvert;
+        const segments = MicronParser.splitMicronMarkupWasmSegments(markup);
+        let html = "";
+        for (const seg of segments) {
+            if (seg.type === "mu") {
+                html += MicronParser.sanitizeRenderedMicronHtml(
+                    mc(seg.text, this.darkTheme, this.enableForceMonospace)
+                );
+            } else {
+                html += this._convertMicronToHtmlJs(seg.line + "\n", partialContents);
+            }
+        }
+        return html;
+    }
 
+    _convertMicronToHtmlJs(markup, partialContents = {}) {
         const build = () => {
             let html = "";
 
@@ -230,24 +296,7 @@ export default class MicronParser extends BaseMicronParser {
                 }
             }
 
-            try {
-                const sanitized = DOMPurify.sanitize(html, {
-                    USE_PROFILES: { html: true },
-                    ALLOWED_URI_REGEXP,
-                });
-                try {
-                    return MicronParser.stripOverlayStyles(sanitized);
-                } catch (e) {
-                    console.warn("MicronParser: stripOverlayStyles failed", e);
-                    return sanitized;
-                }
-            } catch (error) {
-                console.warn(
-                    "DOMPurify is not installed or sanitization failed. Include dompurify or check the build.",
-                    error
-                );
-                return `<p style="color: red;">DOMPurify is not installed or sanitization failed.</p>`;
-            }
+            return MicronParser.sanitizeRenderedMicronHtml(html);
         };
 
         try {
@@ -267,6 +316,22 @@ export default class MicronParser extends BaseMicronParser {
                 return `<pre class="mu-parse-fallback" style="white-space:pre-wrap">${escaped}</pre>`;
             }
         }
+    }
+
+    convertMicronToHtml(markup, partialContents = {}, options = {}) {
+        if (markup == null) return "";
+        if (typeof markup !== "string") markup = String(markup);
+
+        const wantWasm = options.useWasm === true && typeof globalThis.micronConvert === "function";
+        if (wantWasm) {
+            try {
+                return this.convertMicronToHtmlWasmHybrid(markup, partialContents);
+            } catch (e) {
+                console.warn("MicronParser: WASM Micron conversion failed, using JS parser", e);
+            }
+        }
+
+        return this._convertMicronToHtmlJs(markup, partialContents);
     }
 
     convertMicronToFragment(markup) {

@@ -11,6 +11,7 @@
     "scripts": {
         "dev": "vite dev",
         "watch": "pnpm run build-frontend -- --watch",
+        "prebuild-frontend": "node scripts/fetch-micron-wasm.mjs",
         "build-frontend": "vite build",
         "build-backend": "node scripts/build-backend.js",
         "build-docs": "python3 scripts/build/fetch_reticulum_manual.py",

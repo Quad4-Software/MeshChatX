@@ -1,12 +1,32 @@
 import { defineConfig } from "vitest/config";
 import vue from "@vitejs/plugin-vue";
 import path from "path";
+import fs from "fs";
+import { MICRON_PARSER_GO_RELEASE_TAG } from "./scripts/micron-parser-go-version.mjs";
+
+function isMicronWasmBundledResolved(repoRoot) {
+    const wasmDir = path.join(repoRoot, "meshchatx", "src", "frontend", "public", "vendor", "micron-parser-go");
+    const wasmFile = path.join(wasmDir, "micron-parser-go.wasm");
+    const execFile = path.join(wasmDir, "wasm_exec.js");
+    try {
+        if (!fs.existsSync(wasmFile) || !fs.existsSync(execFile)) {
+            return false;
+        }
+        return fs.statSync(wasmFile).size >= 8192 && fs.statSync(execFile).size >= 1024;
+    } catch {
+        return false;
+    }
+}
+
+const micronWasmBundled = isMicronWasmBundledResolved(__dirname);
 
 const appBuildTimeIso = new Date().toISOString();
 
 export default defineConfig({
     define: {
         __APP_BUILD_TIME__: JSON.stringify(appBuildTimeIso),
+        "import.meta.env.VITE_MICRON_WASM_BUNDLED": JSON.stringify(micronWasmBundled ? "true" : "false"),
+        "import.meta.env.VITE_MICRON_PARSER_GO_RELEASE": JSON.stringify(MICRON_PARSER_GO_RELEASE_TAG),
     },
     plugins: [
         vue({
