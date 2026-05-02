@@ -276,6 +276,11 @@ class ConfigManager:
             "libretranslate_url",
             "http://localhost:5000",
         )
+        self.libretranslate_api_key = self.StringConfig(
+            self,
+            "libretranslate_api_key",
+            None,
+        )
 
         # location config
         self.location_source = self.StringConfig(self, "location_source", "browser")

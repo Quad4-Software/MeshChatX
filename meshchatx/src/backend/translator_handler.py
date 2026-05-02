@@ -10,7 +10,7 @@ from typing import Any
 
 from meshchatx.src.backend.http_url_guard import (
     UnsafeOutboundUrlError,
-    normalize_loopback_http_service_base,
+    normalize_libretranslate_http_service_base,
 )
 
 try:
@@ -28,6 +28,20 @@ except ImportError:
     HAS_ARGOS_LIB = False
 
 ARGOS_CLI_EXECUTABLE_NAMES = ("argos-translate", "argostranslate")
+
+_MAX_LIBRETRANSLATE_API_KEY_LEN = 512
+
+
+def _normalize_optional_libretranslate_api_key(value: str | None) -> str | None:
+    if value is None:
+        return None
+    key = str(value).strip()
+    if not key:
+        return None
+    if len(key) > _MAX_LIBRETRANSLATE_API_KEY_LEN:
+        msg = "LibreTranslate API key exceeds maximum length"
+        raise ValueError(msg)
+    return key
 
 
 def _find_argos_cli_executable() -> str | None:
@@ -94,6 +108,7 @@ class TranslatorHandler:
     def __init__(
         self,
         libretranslate_url: str | None = None,
+        libretranslate_api_key: str | None = None,
         translator_argos_enabled: bool = False,
         translator_libretranslate_enabled: bool = False,
     ):
@@ -102,6 +117,11 @@ class TranslatorHandler:
         self.libretranslate_url = libretranslate_url or os.getenv(
             "LIBRETRANSLATE_URL",
             "http://localhost:5000",
+        )
+        self.libretranslate_api_key = _normalize_optional_libretranslate_api_key(
+            libretranslate_api_key
+            if libretranslate_api_key is not None
+            else os.getenv("LIBRETRANSLATE_API_KEY"),
         )
         self.has_argos_lib = HAS_ARGOS_LIB
         self._argos_cli_executable = _find_argos_cli_executable()
@@ -121,13 +141,16 @@ class TranslatorHandler:
         self.translator_argos_enabled = value
         self.translator_libretranslate_enabled = value
 
-    async def _fetch_languages_async(self, url: str):
+    async def _fetch_languages_async(self, url: str, api_key: str | None = None):
         base = url.rstrip("/")
         timeout = aiohttp.ClientTimeout(total=5)
+        get_kw: dict[str, Any] = {"allow_redirects": False}
+        if api_key:
+            get_kw["params"] = {"api_key": api_key}
         async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.get(
                 f"{base}/languages",
-                allow_redirects=False,
+                **get_kw,
             ) as response:
                 if response.status == 200:
                     return await response.json()
@@ -148,16 +171,19 @@ class TranslatorHandler:
         libre_base = None
         if self.has_requests:
             try:
-                libre_base = normalize_loopback_http_service_base(url)
+                libre_base = normalize_libretranslate_http_service_base(url)
             except UnsafeOutboundUrlError as e:
                 if explicit_override:
                     msg = str(e)
                     raise ValueError(msg) from e
                 libre_base = None
             if libre_base is not None:
+                api_key_eff = _normalize_optional_libretranslate_api_key(
+                    self.libretranslate_api_key,
+                )
                 try:
                     libretranslate_langs = _sync_run_coro(
-                        self._fetch_languages_async(libre_base),
+                        self._fetch_languages_async(libre_base, api_key_eff),
                     )
                     if libretranslate_langs is not None:
                         libretranslate_reachable = True
@@ -214,6 +240,7 @@ class TranslatorHandler:
         target_lang: str,
         use_argos: bool = False,
         libretranslate_url: str | None = None,
+        libretranslate_api_key: str | None = None,
     ) -> dict[str, Any]:
         if not self._any_backend_config_enabled():
             msg = "Translator is disabled"
@@ -232,16 +259,24 @@ class TranslatorHandler:
         if self.translator_libretranslate_enabled and self.has_requests:
             url_raw = libretranslate_url or self.libretranslate_url
             try:
-                url = normalize_loopback_http_service_base(url_raw)
+                url = normalize_libretranslate_http_service_base(url_raw)
             except UnsafeOutboundUrlError as e:
                 msg = str(e)
                 raise ValueError(msg) from e
+            api_key_eff = _normalize_optional_libretranslate_api_key(
+                libretranslate_api_key
+            )
+            if api_key_eff is None:
+                api_key_eff = _normalize_optional_libretranslate_api_key(
+                    self.libretranslate_api_key
+                )
             try:
                 return self._translate_libretranslate(
                     text,
                     source_lang=source_lang,
                     target_lang=target_lang,
                     libretranslate_url=url,
+                    api_key=api_key_eff,
                 )
             except Exception as e:
                 if self.translator_argos_enabled and self.has_argos:
@@ -260,18 +295,22 @@ class TranslatorHandler:
         source_lang: str,
         target_lang: str,
         libretranslate_url: str,
+        api_key: str | None = None,
     ) -> dict[str, Any]:
         base = libretranslate_url.rstrip("/")
         timeout = aiohttp.ClientTimeout(total=30)
+        translate_body: dict[str, Any] = {
+            "q": text,
+            "source": source_lang,
+            "target": target_lang,
+            "format": "text",
+        }
+        if api_key:
+            translate_body["api_key"] = api_key
         async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.post(
                 f"{base}/translate",
-                json={
-                    "q": text,
-                    "source": source_lang,
-                    "target": target_lang,
-                    "format": "text",
-                },
+                json=translate_body,
                 allow_redirects=False,
             ) as response:
                 if response.status != 200:
@@ -295,6 +334,7 @@ class TranslatorHandler:
         source_lang: str,
         target_lang: str,
         libretranslate_url: str | None = None,
+        api_key: str | None = None,
     ) -> dict[str, Any]:
         if not self.has_requests:
             msg = "aiohttp library not available"
@@ -307,6 +347,7 @@ class TranslatorHandler:
                 source_lang,
                 target_lang,
                 url,
+                api_key=api_key,
             ),
         )
 

@@ -268,8 +268,10 @@ class IdentityContext:
         )
 
         libretranslate_url = self.config.libretranslate_url.get()
+        libretranslate_api_key = self.config.libretranslate_api_key.get()
         self.translator_handler = TranslatorHandler(
             libretranslate_url=libretranslate_url,
+            libretranslate_api_key=libretranslate_api_key,
             translator_argos_enabled=self.config.translator_argos_enabled.get(),
             translator_libretranslate_enabled=self.config.translator_libretranslate_enabled.get(),
         )
