@@ -1,9 +1,16 @@
 # Prettier ignore file
 
+# Vendored third-party trees (not formatted here)
+vendor/
+
 # Dependencies
 node_modules/
 pnpm-lock.yaml
 .pnpm-store/
+
+# Lockfiles (avoid massive churn; not hand-edited as prose)
+poetry.lock
+uv.lock
 
 # Build output
 dist/

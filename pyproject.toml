@@ -90,12 +90,17 @@ build-backend = "setuptools.build_meta"
 [tool.ruff]
 exclude = [
     ".git",
+    ".mypy_cache",
     ".pnpm-store",
+    ".ruff_cache",
+    "build",
+    "dist",
     "node_modules",
     "venv",
     ".venv",
     "tests/frontend",
     "vendor",
+    "*.egg-info",
 ]
 
 [tool.ruff.lint]
