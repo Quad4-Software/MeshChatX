@@ -125,7 +125,7 @@ async def test_download_firmware_propagates_upstream_error_status(web_app):
             r = await client.get(
                 "/api/v1/tools/rnode/download_firmware",
                 params={
-                    "url": "https://git.quad4.io/Reticulum/RNode_Firmware/releases/download/v1/firmware.zip"
+                    "url": "https://github.com/markqvist/RNode_Firmware/releases/download/v1/firmware.zip"
                 },
             )
             assert r.status == 404
