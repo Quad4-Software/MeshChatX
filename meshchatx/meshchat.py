@@ -95,7 +95,6 @@ from meshchatx.src.backend.lxmf_utils import (
     is_user_facing_lxmf_payload,
     lxmf_fields_are_columba_reaction,
     lxmf_sidebar_preview_for_conversation_latest_row,
-    validate_app_extensions_for_lxmf_http_send,
 )
 from meshchatx.src.backend.map_manager import MAX_EXPORT_TILES, TRANSPARENT_TILE
 from meshchatx.src.backend.markdown_renderer import MarkdownRenderer
@@ -10041,24 +10040,11 @@ class ReticulumMeshChat:
             raw_fields = lm.get("fields")
             fields = dict(raw_fields) if isinstance(raw_fields, dict) else {}
             app_extensions_payload = fields.pop("app_extensions", None)
-            validated_app_extensions = None
-            if app_extensions_payload is not None:
-                if not isinstance(app_extensions_payload, dict):
-                    return web.json_response(
-                        {"message": "Invalid app_extensions"},
-                        status=400,
-                    )
-                try:
-                    validated_app_extensions = (
-                        validate_app_extensions_for_lxmf_http_send(
-                            app_extensions_payload,
-                        )
-                    )
-                except ValueError:
-                    return web.json_response(
-                        {"message": "Invalid app_extensions"},
-                        status=400,
-                    )
+            validated_app_extensions = (
+                app_extensions_payload
+                if isinstance(app_extensions_payload, dict)
+                else None
+            )
 
             image_field = None
             audio_field = None
