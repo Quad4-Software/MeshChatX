@@ -198,3 +198,41 @@ def test_request_announce_not_running(temp_identity_dir):
     ]
     with pytest.raises(RuntimeError, match="not running"):
         handler.request_announce(sid)
+
+
+def test_get_status_subprocess_log_not_shown_as_last_error(temp_identity_dir):
+    handler = BotHandler(temp_identity_dir)
+    sid = "b1"
+    storage = os.path.join(handler.bots_dir, sid)
+    os.makedirs(storage, exist_ok=True)
+    log_path = os.path.join(storage, "meshchatx_bot_subprocess.log")
+    with open(log_path, "w", encoding="utf-8") as f:
+        f.write("[Info] Received SIGTERM, shutting down now!\n")
+    handler.bots_state = [
+        {"id": sid, "template_id": "echo", "storage_dir": storage, "pid": None}
+    ]
+    status = handler.get_status()
+    assert status["bots"][0]["last_error"] is None
+
+
+def test_read_subprocess_log(temp_identity_dir):
+    handler = BotHandler(temp_identity_dir)
+    sid = "b1"
+    storage = os.path.join(handler.bots_dir, sid)
+    os.makedirs(storage, exist_ok=True)
+    log_path = os.path.join(storage, "meshchatx_bot_subprocess.log")
+    with open(log_path, "w", encoding="utf-8") as f:
+        f.write("line1\nline2\n")
+    handler.bots_state = [
+        {"id": sid, "template_id": "echo", "storage_dir": storage, "pid": None}
+    ]
+    out = handler.read_subprocess_log(sid)
+    assert out["truncated"] is False
+    assert out["total_bytes"] > 0
+    assert "line2" in (out["log"] or "")
+
+
+def test_read_subprocess_log_unknown_bot(temp_identity_dir):
+    handler = BotHandler(temp_identity_dir)
+    with pytest.raises(ValueError, match="Unknown bot"):
+        handler.read_subprocess_log("nope")

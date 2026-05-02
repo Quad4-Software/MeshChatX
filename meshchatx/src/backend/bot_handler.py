@@ -125,6 +125,62 @@ class BotHandler:
             return None
         return BotHandler._normalize_lxmf_hash_hex(raw)
 
+    @staticmethod
+    def _read_bot_last_error(storage_dir):
+        if not storage_dir:
+            return None
+        path = os.path.join(storage_dir, "meshchatx_bot_last_error.txt")
+        try:
+            with open(path, encoding="utf-8") as f:
+                text = f.read().strip()
+        except OSError:
+            return None
+        if not text:
+            return None
+        max_len = 1600
+        if len(text) > max_len:
+            return text[:max_len] + "\n..."
+        return text
+
+    @staticmethod
+    def _subprocess_log_path(storage_dir):
+        if not storage_dir:
+            return None
+        return os.path.join(storage_dir, "meshchatx_bot_subprocess.log")
+
+    def read_subprocess_log(self, bot_id, max_bytes=524_288):
+        entry = None
+        for e in self.bots_state:
+            if e.get("id") == bot_id:
+                entry = e
+                break
+        if entry is None:
+            raise ValueError(f"Unknown bot: {bot_id}")
+        storage_dir = entry.get("storage_dir")
+        path = BotHandler._subprocess_log_path(storage_dir)
+        if not path:
+            return {"log": None, "truncated": False, "total_bytes": 0}
+        try:
+            total = os.path.getsize(path)
+        except OSError:
+            return {"log": None, "truncated": False, "total_bytes": 0}
+        if total == 0:
+            return {"log": "", "truncated": False, "total_bytes": 0}
+        truncated = total > max_bytes
+        to_read = min(total, max_bytes)
+        try:
+            with open(path, "rb") as f:
+                if truncated:
+                    f.seek(total - to_read)
+                raw = f.read()
+        except OSError:
+            return {"log": None, "truncated": False, "total_bytes": total}
+        text = raw.decode("utf-8", errors="replace")
+        if truncated and "\n" in text:
+            _first, _sep, rest = text.partition("\n")
+            text = rest if rest else _first
+        return {"log": text, "truncated": truncated, "total_bytes": total}
+
     def get_status(self):
         bots: list[dict] = []
 
@@ -180,6 +236,9 @@ class BotHandler:
                     with contextlib.suppress(Exception):
                         address_pretty = RNS.prettyhexrep(bytes.fromhex(address_full))
 
+            storage_dir = entry.get("storage_dir")
+            last_err = self._read_bot_last_error(storage_dir)
+
             bots.append(
                 {
                     "id": bot_id,
@@ -191,7 +250,8 @@ class BotHandler:
                     "full_address": address_full,
                     "running": running,
                     "pid": pid,
-                    "storage_dir": entry.get("storage_dir"),
+                    "storage_dir": storage_dir,
+                    "last_error": last_err,
                 },
             )
 
@@ -237,6 +297,10 @@ class BotHandler:
 
         os.makedirs(bot_storage_dir, exist_ok=True)
 
+        err_file = os.path.join(bot_storage_dir, "meshchatx_bot_last_error.txt")
+        with contextlib.suppress(OSError):
+            os.unlink(err_file)
+
         cmd = [
             sys.executable,
             self.runner_path,
@@ -252,7 +316,29 @@ class BotHandler:
             entry["reticulum_config_dir"],
         ]
 
-        proc = subprocess.Popen(cmd, cwd=bot_storage_dir)
+        subprocess_log = os.path.join(bot_storage_dir, "meshchatx_bot_subprocess.log")
+        log_f = open(
+            subprocess_log,
+            "a",
+            encoding="utf-8",
+        )
+        try:
+            log_f.write(f"\n--- start {time.strftime('%Y-%m-%d %H:%M:%S')} ---\n")
+            log_f.flush()
+            proc = subprocess.Popen(
+                cmd,
+                cwd=bot_storage_dir,
+                stdout=log_f,
+                stderr=subprocess.STDOUT,
+                start_new_session=True,
+                env={**os.environ, "PYTHONUNBUFFERED": "1"},
+            )
+        except Exception:
+            log_f.close()
+            raise
+        else:
+            log_f.close()
+
         entry["pid"] = proc.pid
         self._save_state()
 

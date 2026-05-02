@@ -5,6 +5,7 @@ import contextlib
 import os
 import threading
 import time
+import traceback
 
 from meshchatx.src.backend.bot_templates import (
     EchoBotTemplate,
@@ -52,6 +53,11 @@ def main():
     )
     args = parser.parse_args()
 
+    storage_abs = os.path.abspath(args.storage)
+    err_path = os.path.join(storage_abs, "meshchatx_bot_last_error.txt")
+    with contextlib.suppress(OSError):
+        os.unlink(err_path)
+
     os.makedirs(args.storage, exist_ok=True)
 
     config_path = args.config_path
@@ -65,16 +71,22 @@ def main():
     )
     os.makedirs(reticulum_config_dir, exist_ok=True)
 
-    BotCls = TEMPLATE_MAP[args.template]
-    bot_instance = BotCls(
-        name=args.name,
-        storage_path=args.storage,
-        test_mode=False,
-        config_path=config_path,
-        reticulum_config_dir=reticulum_config_dir,
-    )
-
-    storage_abs = os.path.abspath(args.storage)
+    try:
+        BotCls = TEMPLATE_MAP[args.template]
+        bot_instance = BotCls(
+            name=args.name,
+            storage_path=args.storage,
+            test_mode=False,
+            config_path=config_path,
+            reticulum_config_dir=reticulum_config_dir,
+        )
+    except BaseException:
+        try:
+            with open(err_path, "w", encoding="utf-8") as ef:
+                traceback.print_exc(file=ef)
+        except OSError:
+            pass
+        raise
     with contextlib.suppress(OSError):
         with open(
             os.path.join(config_path, "bot_display_name.txt"),
@@ -112,7 +124,15 @@ def main():
         elif hasattr(bot_instance.bot, "_announce"):
             bot_instance.bot._announce()
 
-    bot_instance.run()
+    try:
+        bot_instance.run()
+    except BaseException:
+        try:
+            with open(err_path, "w", encoding="utf-8") as ef:
+                traceback.print_exc(file=ef)
+        except OSError:
+            pass
+        raise
 
 
 if __name__ == "__main__":

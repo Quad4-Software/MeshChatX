@@ -134,6 +134,14 @@
                                     </button>
                                     <button
                                         type="button"
+                                        class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
+                                        :title="$t('bots.view_process_log')"
+                                        @click="openProcessLog(bot)"
+                                    >
+                                        <MaterialDesignIcon icon-name="bug-outline" class="size-5" />
+                                    </button>
+                                    <button
+                                        type="button"
                                         class="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80 transition-colors"
                                         :title="$t('bots.export_identity')"
                                         @click="exportIdentity(bot.id)"
@@ -217,39 +225,128 @@
                                                 bot.running ? $t("bots.status_running") : $t("bots.status_stopped")
                                             }}</span>
                                         </div>
-                                        <div class="text-[11px] text-gray-500 dark:text-gray-400">
-                                            <span class="font-semibold text-gray-600 dark:text-gray-300">{{
-                                                $t("bots.lxmf_address")
-                                            }}</span>
-                                            <button
-                                                v-if="lxmfAddressFor(bot)"
-                                                type="button"
-                                                class="font-mono break-all text-left text-gray-800 dark:text-gray-200 hover:underline"
-                                                @click="copyLxmfAddress(bot)"
+                                        <dl class="space-y-2.5 text-[11px] text-gray-600 dark:text-gray-300 min-w-0">
+                                            <div class="min-w-0">
+                                                <dt
+                                                    class="text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1"
+                                                >
+                                                    {{ $t("bots.lxmf_address") }}
+                                                </dt>
+                                                <dd class="m-0 min-w-0">
+                                                    <button
+                                                        v-if="lxmfAddressFor(bot)"
+                                                        type="button"
+                                                        class="font-mono text-[11px] break-all text-left w-full max-w-full text-gray-800 dark:text-gray-200 hover:underline leading-snug"
+                                                        @click="copyLxmfAddress(bot)"
+                                                    >
+                                                        {{ lxmfAddressFor(bot) }}
+                                                    </button>
+                                                    <span v-else class="text-gray-500 dark:text-gray-400">{{
+                                                        $t("bots.address_pending")
+                                                    }}</span>
+                                                </dd>
+                                            </div>
+                                            <div class="min-w-0">
+                                                <dt
+                                                    class="text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1"
+                                                >
+                                                    {{ $t("bots.last_announce") }}
+                                                </dt>
+                                                <dd class="m-0 text-gray-700 dark:text-gray-200 leading-snug">
+                                                    <span v-if="bot.last_announce_at">{{
+                                                        formatRelativeSince(bot.last_announce_at)
+                                                    }}</span>
+                                                    <span v-else-if="lxmfAddressFor(bot)">{{
+                                                        $t("bots.never_announced")
+                                                    }}</span>
+                                                    <span v-else>—</span>
+                                                </dd>
+                                            </div>
+                                        </dl>
+                                        <div
+                                            v-if="botLastError(bot)"
+                                            class="rounded-lg border border-red-200/90 dark:border-red-900/70 bg-red-50/90 dark:bg-red-950/50 px-2.5 py-2 text-[11px] text-red-900 dark:text-red-100"
+                                        >
+                                            <div class="font-semibold flex items-center gap-1.5">
+                                                <MaterialDesignIcon
+                                                    icon-name="alert-circle-outline"
+                                                    class="size-4 shrink-0 opacity-90"
+                                                />
+                                                {{ $t("bots.last_error_heading") }}
+                                            </div>
+                                            <pre
+                                                class="mt-1.5 m-0 whitespace-pre-wrap break-words font-mono text-[10px] leading-relaxed text-red-800/95 dark:text-red-100/90"
+                                                >{{ botLastError(bot) }}</pre
                                             >
-                                                {{ lxmfAddressFor(bot) }}
-                                            </button>
-                                            <span v-else>{{ $t("bots.address_pending") }}</span>
                                         </div>
-                                        <div class="text-[11px] text-gray-500 dark:text-gray-400">
-                                            <span class="font-semibold text-gray-600 dark:text-gray-300">{{
-                                                $t("bots.last_announce")
-                                            }}</span>
-                                            <span v-if="bot.last_announce_at" class="ml-1.5">{{
-                                                formatRelativeSince(bot.last_announce_at)
-                                            }}</span>
-                                            <span v-else-if="lxmfAddressFor(bot)" class="ml-1.5">{{
-                                                $t("bots.never_announced")
-                                            }}</span>
-                                            <span v-else class="ml-1.5">—</span>
-                                        </div>
-                                        <div class="text-[10px] text-gray-400">
+                                        <div class="text-[10px] text-gray-400 pt-0.5">
                                             {{ bot.template_id || bot.template }}
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div
+            v-if="processLogModalBot"
+            class="fixed inset-0 z-100 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50"
+            @click.self="closeProcessLog"
+        >
+            <div
+                class="w-full sm:max-w-3xl flex flex-col max-sm:h-[92dvh] max-sm:max-h-[92dvh] sm:max-h-[90vh] rounded-t-2xl sm:rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-xl touch-pan-y min-h-0"
+            >
+                <div
+                    class="flex justify-between items-start gap-2 p-3 sm:p-5 border-b border-gray-200 dark:border-zinc-800 shrink-0"
+                >
+                    <div class="min-w-0 pr-2">
+                        <h3 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+                            {{ $t("bots.process_log_title") }}
+                        </h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-0.5 truncate">
+                            {{ processLogModalBot.name }}
+                        </p>
+                        <p v-if="processLogTruncated" class="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                            {{ $t("bots.process_log_truncated") }}
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0">
+                        <button
+                            type="button"
+                            class="p-2 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80"
+                            :title="$t('bots.copy_process_log')"
+                            :disabled="!processLogText"
+                            @click="copyProcessLog"
+                        >
+                            <MaterialDesignIcon icon-name="content-copy" class="size-5" />
+                        </button>
+                        <button
+                            type="button"
+                            class="p-2 rounded-lg text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-zinc-800/80"
+                            @click="closeProcessLog"
+                        >
+                            <MaterialDesignIcon icon-name="close" class="size-5" />
+                        </button>
+                    </div>
+                </div>
+                <div class="flex-1 min-h-0 flex flex-col p-2 sm:p-5 pt-2 sm:pt-2">
+                    <div
+                        v-if="processLogLoading"
+                        class="flex items-center justify-center py-16 text-gray-500 dark:text-gray-400 text-sm"
+                    >
+                        {{ $t("bots.process_log_loading") }}
+                    </div>
+                    <div
+                        v-else
+                        class="flex-1 min-h-0 max-sm:min-h-[55dvh] sm:min-h-[12rem] overflow-auto rounded-lg border border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900 touch-pan-x"
+                    >
+                        <pre
+                            class="bots-process-log-text m-0 min-h-full w-max min-w-full p-2 sm:p-3 font-mono text-gray-800 dark:text-gray-200 whitespace-pre select-text"
+                            >{{ processLogDisplayText }}</pre
+                        >
                     </div>
                 </div>
             </div>
@@ -340,7 +437,20 @@ export default {
             relativeTimerInterval: null,
             editingBotId: null,
             editingNameDraft: "",
+            processLogModalBot: null,
+            processLogText: "",
+            processLogTruncated: false,
+            processLogLoading: false,
         };
+    },
+    computed: {
+        processLogDisplayText() {
+            const t = (this.processLogText || "").trim();
+            if (t) {
+                return this.processLogText;
+            }
+            return this.processLogLoading ? "" : this.$t("bots.process_log_empty");
+        },
     },
     mounted() {
         this.getStatus();
@@ -365,7 +475,7 @@ export default {
                 this.templates = response.data.templates;
                 this.loading = false;
             } catch (e) {
-                console.error(e);
+                console.error("[BotsPage] getStatus failed", e?.response?.data || e?.message || e);
             }
         },
         selectTemplate(template) {
@@ -481,6 +591,44 @@ export default {
                 ToastUtils.error(e.response?.data?.message || this.$t("bots.announce_failed"));
             }
         },
+        botLastError(bot) {
+            const t = (bot?.last_error || "").trim();
+            return t;
+        },
+        closeProcessLog() {
+            this.processLogModalBot = null;
+            this.processLogText = "";
+            this.processLogTruncated = false;
+            this.processLogLoading = false;
+        },
+        async openProcessLog(bot) {
+            this.processLogModalBot = bot;
+            this.processLogText = "";
+            this.processLogTruncated = false;
+            this.processLogLoading = true;
+            try {
+                const response = await window.api.get("/api/v1/bots/subprocess-log", {
+                    params: { bot_id: bot.id },
+                });
+                this.processLogText =
+                    response.data.log === null || response.data.log === undefined ? "" : String(response.data.log);
+                this.processLogTruncated = Boolean(response.data.truncated);
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error(e.response?.data?.message || this.$t("bots.process_log_failed"));
+                this.closeProcessLog();
+            } finally {
+                this.processLogLoading = false;
+            }
+        },
+        copyProcessLog() {
+            const t = (this.processLogText || "").trim();
+            if (!t) {
+                return;
+            }
+            navigator.clipboard.writeText(this.processLogText);
+            ToastUtils.success(this.$t("bots.process_log_copied"));
+        },
         lxmfAddressFor(bot) {
             const raw = bot.lxmf_address || bot.full_address;
             if (!raw || typeof raw !== "string") {
@@ -553,5 +701,17 @@ export default {
 @reference "../../style.css";
 .glass-label {
     @apply block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1;
+}
+.bots-process-log-text {
+    font-size: 0.6875rem;
+    line-height: 1.55;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+@media (max-width: 639px) {
+    .bots-process-log-text {
+        font-size: 0.5625rem;
+        line-height: 1.28;
+    }
 }
 </style>
