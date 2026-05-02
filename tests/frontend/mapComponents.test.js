@@ -6,7 +6,6 @@ import MapDrawingToolbar from "@/components/map/internal/MapDrawingToolbar.vue";
 import MapBearingInstructions from "@/components/map/internal/MapBearingInstructions.vue";
 import MapSearchBar from "@/components/map/internal/MapSearchBar.vue";
 import MapExportInstructions from "@/components/map/internal/MapExportInstructions.vue";
-import MapNoMapWarning from "@/components/map/internal/MapNoMapWarning.vue";
 import MapLoadingOverlay from "@/components/map/internal/MapLoadingOverlay.vue";
 import MapExportConfigPanel from "@/components/map/internal/MapExportConfigPanel.vue";
 import MapExportProgressPanel from "@/components/map/internal/MapExportProgressPanel.vue";
@@ -170,16 +169,6 @@ describe("MapExportInstructions", () => {
         });
         await wrapper.find("button").trigger("click");
         expect(wrapper.emitted("select-preset")).toEqual([[presets[0]]]);
-    });
-});
-
-describe("MapNoMapWarning", () => {
-    it("emits upload", async () => {
-        const wrapper = mount(MapNoMapWarning, {
-            global: { mocks: { $t: t } },
-        });
-        await wrapper.find("button").trigger("click");
-        expect(wrapper.emitted("upload")).toHaveLength(1);
     });
 });
 

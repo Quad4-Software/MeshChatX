@@ -66,11 +66,11 @@
                 <div class="grid grid-cols-2 gap-4 text-sm">
                     <div>
                         <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Latitude</div>
-                        <div class="font-mono">{{ marker.discovered.latitude.toFixed(6) }}</div>
+                        <div class="tabular-nums">{{ marker.discovered.latitude.toFixed(6) }}</div>
                     </div>
                     <div>
                         <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Longitude</div>
-                        <div class="font-mono">{{ marker.discovered.longitude.toFixed(6) }}</div>
+                        <div class="tabular-nums">{{ marker.discovered.longitude.toFixed(6) }}</div>
                     </div>
                 </div>
 
@@ -94,23 +94,23 @@
                 <div class="grid grid-cols-2 gap-4 text-sm">
                     <div>
                         <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Latitude</div>
-                        <div class="font-mono">
+                        <div class="tabular-nums">
                             {{ marker.telemetry.telemetry.location.latitude.toFixed(6) }}
                         </div>
                     </div>
                     <div>
                         <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Longitude</div>
-                        <div class="font-mono">
+                        <div class="tabular-nums">
                             {{ marker.telemetry.telemetry.location.longitude.toFixed(6) }}
                         </div>
                     </div>
                     <div>
                         <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Altitude</div>
-                        <div>{{ marker.telemetry.telemetry.location.altitude.toFixed(1) }}m</div>
+                        <div class="tabular-nums">{{ marker.telemetry.telemetry.location.altitude.toFixed(1) }}m</div>
                     </div>
                     <div>
                         <div class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Speed</div>
-                        <div>{{ marker.telemetry.telemetry.location.speed.toFixed(1) }}km/h</div>
+                        <div class="tabular-nums">{{ marker.telemetry.telemetry.location.speed.toFixed(1) }}km/h</div>
                     </div>
                 </div>
 

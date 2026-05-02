@@ -49,7 +49,6 @@
                                 : 'text-gray-500 dark:text-gray-300'
                         "
                         class="px-2 py-1 text-xs sm:px-3 sm:text-sm font-medium rounded-md transition-all shrink-0"
-                        :disabled="!hasOfflineMap"
                         @click="toggleOffline(true)"
                     >
                         {{ $t("map.offline_mode") }}
@@ -367,8 +366,6 @@
 
             <MapLoadingOverlay v-if="isUploading" />
 
-            <MapNoMapWarning v-if="offlineEnabled && !hasOfflineMap" @upload="$refs.fileInput.click()" />
-
             <div
                 v-if="showMapPingModal"
                 class="fixed inset-0 z-200 flex items-center justify-center bg-black/40 p-4"
@@ -389,7 +386,7 @@
                             <MaterialDesignIcon icon-name="close" class="size-5" />
                         </button>
                     </div>
-                    <p class="text-xs text-gray-500 dark:text-zinc-400 mb-2 font-mono">
+                    <p class="text-xs text-gray-500 dark:text-zinc-400 mb-2">
                         {{ mapPingSummary }}
                     </p>
                     <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">{{
@@ -467,15 +464,19 @@
 
                 <!-- Lat/Lon Box -->
                 <div
-                    class="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border border-gray-200 dark:border-zinc-800 p-2 rounded-lg text-[10px] font-mono text-gray-600 dark:text-zinc-400 pointer-events-auto shadow-xs flex flex-col space-y-0.5"
+                    class="bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm border border-gray-200 dark:border-zinc-800 p-2 rounded-lg text-[10px] text-gray-600 dark:text-zinc-400 pointer-events-auto shadow-xs flex flex-col space-y-0.5"
                 >
                     <div class="flex justify-between space-x-4">
                         <span class="opacity-50 uppercase tracking-tighter">Lat</span>
-                        <span class="text-gray-900 dark:text-zinc-100">{{ displayCoords[1].toFixed(6) }}</span>
+                        <span class="text-gray-900 dark:text-zinc-100 tabular-nums">{{
+                            displayCoords[1].toFixed(6)
+                        }}</span>
                     </div>
                     <div class="flex justify-between space-x-4">
                         <span class="opacity-50 uppercase tracking-tighter">Lon</span>
-                        <span class="text-gray-900 dark:text-zinc-100">{{ displayCoords[0].toFixed(6) }}</span>
+                        <span class="text-gray-900 dark:text-zinc-100 tabular-nums">{{
+                            displayCoords[0].toFixed(6)
+                        }}</span>
                     </div>
                 </div>
             </div>
@@ -765,7 +766,7 @@
                                 >Zoom</span
                             >
                             <span
-                                class="text-[10px] font-mono font-bold text-gray-700 dark:text-zinc-300 leading-none tabular-nums"
+                                class="text-[10px] font-bold text-gray-700 dark:text-zinc-300 leading-none tabular-nums"
                                 >{{ currentZoom.toFixed(1) }}</span
                             >
                         </div>
@@ -774,7 +775,7 @@
                                 >Lat</span
                             >
                             <span
-                                class="text-[10px] font-mono font-bold text-gray-700 dark:text-zinc-300 leading-none tabular-nums"
+                                class="text-[10px] font-bold text-gray-700 dark:text-zinc-300 leading-none tabular-nums"
                                 >{{ displayCoords[1].toFixed(4) }}</span
                             >
                         </div>
@@ -783,7 +784,7 @@
                                 >Lon</span
                             >
                             <span
-                                class="text-[10px] font-mono font-bold text-gray-700 dark:text-zinc-300 leading-none tabular-nums"
+                                class="text-[10px] font-bold text-gray-700 dark:text-zinc-300 leading-none tabular-nums"
                                 >{{ displayCoords[0].toFixed(4) }}</span
                             >
                         </div>
@@ -1143,7 +1144,6 @@ import MapSearchBar from "./internal/MapSearchBar.vue";
 import MapExportInstructions from "./internal/MapExportInstructions.vue";
 import MapExportConfigPanel from "./internal/MapExportConfigPanel.vue";
 import MapExportProgressPanel from "./internal/MapExportProgressPanel.vue";
-import MapNoMapWarning from "./internal/MapNoMapWarning.vue";
 import MapLoadingOverlay from "./internal/MapLoadingOverlay.vue";
 import MapVectorExchangePanel from "./internal/MapVectorExchangePanel.vue";
 import { buildMeshchatMapUri, buildWebHashMapUrl } from "../../js/mapLinkUtils.js";
@@ -1181,7 +1181,6 @@ export default {
         MapExportInstructions,
         MapExportConfigPanel,
         MapExportProgressPanel,
-        MapNoMapWarning,
         MapLoadingOverlay,
         MapVectorExchangePanel,
     },
@@ -1457,6 +1456,13 @@ export default {
             }
         } catch (e) {
             console.warn("Failed to load map state from cache", e);
+        }
+        try {
+            const lo = localStorage.getItem("meshchatx.map.offlineMode");
+            if (lo === "1") this.offlineEnabled = true;
+            else if (lo === "0") this.offlineEnabled = false;
+        } catch {
+            /* ignore */
         }
 
         await this.initMap();
@@ -2597,7 +2603,6 @@ export default {
                     this.hasOfflineMap = false;
                     this.metadata = null;
                     if (this.offlineEnabled) {
-                        this.offlineEnabled = false;
                         await this.updateMapSource();
                     }
                 }
@@ -2605,7 +2610,6 @@ export default {
                 this.hasOfflineMap = false;
                 this.metadata = null;
                 if (this.offlineEnabled) {
-                    this.offlineEnabled = false;
                     await this.updateMapSource();
                 }
             }
@@ -2631,11 +2635,6 @@ export default {
             }
         },
         async toggleOffline(enabled) {
-            if (enabled && !this.hasOfflineMap) {
-                ToastUtils.error(this.$t("map.no_map_loaded"));
-                return;
-            }
-
             this.tileErrorCount = 0;
             this.dismissTileConnectivityBanner();
 
@@ -2672,6 +2671,11 @@ export default {
             }
 
             this.offlineEnabled = enabled;
+            try {
+                localStorage.setItem("meshchatx.map.offlineMode", enabled ? "1" : "0");
+            } catch {
+                /* ignore */
+            }
             if (enabled) {
                 this.isExportMode = false;
                 this.clearSearch();
@@ -2798,6 +2802,11 @@ export default {
                 this.metadata = response.data.metadata;
                 this.hasOfflineMap = true;
                 this.offlineEnabled = true;
+                try {
+                    localStorage.setItem("meshchatx.map.offlineMode", "1");
+                } catch {
+                    /* ignore */
+                }
                 await this.loadMBTilesList();
                 await this.checkOfflineMap();
                 await this.updateMapSource();
