@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
+import json
 import os
 import random
 import secrets
@@ -11,19 +12,17 @@ import time
 _REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, _REPO_ROOT)
 
-import json
-
-from meshchatx.src.backend.database import Database
-from meshchatx.src.backend.database.access_attempts import (
+from meshchatx.src.backend.database import Database  # noqa: E402
+from meshchatx.src.backend.database.access_attempts import (  # noqa: E402
     AccessAttemptsDAO,
     user_agent_hash,
 )
-from meshchatx.src.backend.database.contacts import ContactsDAO
-from meshchatx.src.backend.database.map_drawings import MapDrawingsDAO
-from meshchatx.src.backend.database.telephone import TelephoneDAO
-from meshchatx.src.backend.database.voicemails import VoicemailDAO
-from meshchatx.src.backend.identity_manager import IdentityManager
-from tests.backend.benchmarking_utils import (
+from meshchatx.src.backend.database.contacts import ContactsDAO  # noqa: E402
+from meshchatx.src.backend.database.map_drawings import MapDrawingsDAO  # noqa: E402
+from meshchatx.src.backend.database.telephone import TelephoneDAO  # noqa: E402
+from meshchatx.src.backend.database.voicemails import VoicemailDAO  # noqa: E402
+from meshchatx.src.backend.identity_manager import IdentityManager  # noqa: E402
+from tests.backend.benchmarking_utils import (  # noqa: E402
     benchmark,
     get_memory_usage_mb,
 )

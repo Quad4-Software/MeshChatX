@@ -9,9 +9,9 @@ _vendor_lxmfy = ROOT / "vendor" / "lxmfy"
 if _vendor_lxmfy.is_dir() and (_vendor_lxmfy / "lxmfy").is_dir():
     sys.path.insert(0, str(_vendor_lxmfy))
 
-from cx_Freeze import Executable, setup
+from cx_Freeze import Executable, setup  # noqa: E402
 
-from meshchatx.src.version import __version__
+from meshchatx.src.version import __version__  # noqa: E402
 
 PUBLIC_DIR = ROOT / "meshchatx" / "public"
 
