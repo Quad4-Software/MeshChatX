@@ -96,17 +96,32 @@
 
                     <div
                         v-if="translationMode === 'libretranslate'"
-                        class="p-3 rounded-lg bg-gray-50 dark:bg-zinc-800/50 border border-gray-100 dark:border-zinc-700/50"
+                        class="p-3 rounded-lg bg-gray-50 dark:bg-zinc-800/50 border border-gray-100 dark:border-zinc-700/50 space-y-3"
                     >
-                        <label class="glass-label mb-2">LibreTranslate API Server</label>
-                        <input
-                            v-model="libretranslateUrl"
-                            type="text"
-                            placeholder="http://localhost:5000"
-                            class="input-field"
-                        />
-                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            Enter the base URL of your LibreTranslate server (e.g., http://localhost:5000)
+                        <div>
+                            <label class="glass-label mb-2">{{ $t("translator.api_server") }}</label>
+                            <input
+                                v-model="libretranslateUrl"
+                                type="text"
+                                placeholder="http://localhost:5000"
+                                class="input-field"
+                            />
+                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                {{ $t("translator.api_server_description") }}
+                            </div>
+                        </div>
+                        <div>
+                            <label class="glass-label mb-2">{{ $t("translator.api_key_optional") }}</label>
+                            <input
+                                v-model="libretranslateApiKey"
+                                type="password"
+                                autocomplete="off"
+                                class="input-field"
+                                :placeholder="$t('translator.api_key_placeholder')"
+                            />
+                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                {{ $t("translator.api_key_description") }}
+                            </div>
                         </div>
                     </div>
 
@@ -407,10 +422,11 @@ export default {
             inputText: "",
             translationMode: "argos",
             libretranslateUrl: "http://localhost:5000",
+            libretranslateApiKey: "",
             hasArgos: false,
             libreClientAvailable: false,
             libretranslateReachable: false,
-            saveLibreUrlTimer: null,
+            debouncedLibrePersistTimer: null,
             isTranslating: false,
             isInstallingLanguages: false,
             translationResult: null,
@@ -454,12 +470,13 @@ export default {
             this.loadLanguages();
         },
         libretranslateUrl() {
-            if (this.saveLibreUrlTimer) {
-                clearTimeout(this.saveLibreUrlTimer);
+            this.scheduleDebouncedLibrePersist();
+            if (this.translationMode === "libretranslate") {
+                this.loadLanguages();
             }
-            this.saveLibreUrlTimer = setTimeout(() => {
-                this.persistLibreUrl();
-            }, 800);
+        },
+        libretranslateApiKey() {
+            this.scheduleDebouncedLibrePersist();
             if (this.translationMode === "libretranslate") {
                 this.loadLanguages();
             }
@@ -476,6 +493,7 @@ export default {
                 if (this.config?.libretranslate_url) {
                     this.libretranslateUrl = this.config.libretranslate_url;
                 }
+                this.libretranslateApiKey = this.config.libretranslate_api_key || "";
                 this.loadLanguages();
             } catch (e) {
                 console.log(e);
@@ -521,13 +539,42 @@ export default {
                 console.error(e);
             }
         },
-        async persistLibreUrl() {
-            if (!this.config || this.libretranslateUrl === (this.config.libretranslate_url || "")) {
+        scheduleDebouncedLibrePersist() {
+            if (this.debouncedLibrePersistTimer) {
+                clearTimeout(this.debouncedLibrePersistTimer);
+            }
+            this.debouncedLibrePersistTimer = setTimeout(() => {
+                this.persistLibreClientSettings();
+            }, 800);
+        },
+        async persistLibreClientSettings() {
+            if (!this.config) {
                 return;
             }
+            const urlTarget = this.libretranslateUrl || "";
+            const keyTarget = (this.libretranslateApiKey || "").trim();
+            const urlEq = urlTarget === (this.config.libretranslate_url || "");
+            const cfgKeyRaw = this.config.libretranslate_api_key;
+            const cfgKey = cfgKeyRaw == null ? "" : String(cfgKeyRaw).trim();
+            const keyEq = keyTarget === cfgKey;
+            if (urlEq && keyEq) {
+                return;
+            }
+            const patch = {};
+            if (!urlEq) {
+                patch.libretranslate_url = this.libretranslateUrl;
+            }
+            if (!keyEq) {
+                patch.libretranslate_api_key = keyTarget === "" ? null : keyTarget;
+            }
             try {
-                await window.api.patch("/api/v1/config", { libretranslate_url: this.libretranslateUrl });
-                this.config.libretranslate_url = this.libretranslateUrl;
+                await window.api.patch("/api/v1/config", patch);
+                if (!urlEq) {
+                    this.config.libretranslate_url = this.libretranslateUrl;
+                }
+                if (!keyEq) {
+                    this.config.libretranslate_api_key = keyTarget === "" ? null : keyTarget;
+                }
             } catch (e) {
                 console.error(e);
             }
@@ -584,6 +631,10 @@ export default {
                 };
                 if (this.translationMode === "libretranslate" && this.libretranslateUrl) {
                     payload.libretranslate_url = this.libretranslateUrl;
+                }
+                const keyTrimmed = (this.libretranslateApiKey || "").trim();
+                if (this.translationMode === "libretranslate" && keyTrimmed) {
+                    payload.libretranslate_api_key = keyTrimmed;
                 }
                 const response = await window.api.post("/api/v1/translator/translate", payload);
 
