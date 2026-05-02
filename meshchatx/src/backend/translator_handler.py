@@ -160,7 +160,11 @@ class TranslatorHandler:
         self,
         libretranslate_url: str | None = None,
     ) -> dict[str, Any]:
-        """List installed/reachable language pairs for UI; not gated on enable toggles."""
+        """List installed/reachable language pairs for the translator UI.
+
+        LibreTranslate is queried only when it is enabled in config or when the
+        caller passes ``libretranslate_url`` (non-empty) to probe a specific server.
+        """
         languages: list[dict[str, str]] = []
         libretranslate_reachable = False
 
@@ -168,8 +172,11 @@ class TranslatorHandler:
         explicit_override = (
             libretranslate_url is not None and str(libretranslate_url).strip() != ""
         )
+        probe_libretranslate = (
+            self.translator_libretranslate_enabled or explicit_override
+        )
         libre_base = None
-        if self.has_requests:
+        if self.has_requests and probe_libretranslate:
             try:
                 libre_base = normalize_libretranslate_http_service_base(url)
             except UnsafeOutboundUrlError as e:
