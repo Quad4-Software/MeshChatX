@@ -191,6 +191,12 @@ class AnnounceDAO:
             (destination_hash, display_name, aspect, now, now),
         )
 
+    def get_favourite_by_destination_hash(self, destination_hash):
+        return self.provider.fetchone(
+            "SELECT * FROM favourite_destinations WHERE destination_hash = ?",
+            (destination_hash,),
+        )
+
     def get_favourites(self, aspect=None):
         if aspect:
             return self.provider.fetchall(
