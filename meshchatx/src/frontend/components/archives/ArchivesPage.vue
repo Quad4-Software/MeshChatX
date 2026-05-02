@@ -236,6 +236,11 @@ import Utils from "../../js/Utils";
 import DownloadUtils from "../../js/DownloadUtils";
 import MicronParser from "../../js/MicronParser.js";
 import GlobalState from "../../js/GlobalState.js";
+import {
+    preloadNomadMicronWasm,
+    invalidateNomadMicronWasmPreload,
+    isMicronWasmBundled,
+} from "../../js/MicronWasmLoader.js";
 import { renderNomadPageByPath } from "../../js/NomadPageRenderer.js";
 import ArchiveSidebar from "./ArchiveSidebar.vue";
 
@@ -260,9 +265,20 @@ export default {
                 page: 1,
                 limit: 500, // Reduced from 1000 to improve initial load
             },
+            nomadMicronWasmReady: false,
         };
     },
     computed: {
+        nomadMicronWasmFeatureEffective() {
+            return isMicronWasmBundled() && (GlobalState.config || {}).nomad_micron_wasm_enabled === true;
+        },
+        nomadMicronWasmActive() {
+            return (
+                this.nomadMicronWasmFeatureEffective &&
+                this.nomadMicronWasmReady === true &&
+                typeof globalThis.micronConvert === "function"
+            );
+        },
         nomadRenderOptions() {
             const c = GlobalState.config || {};
             const hash = this.viewingArchive?.destination_hash || null;
@@ -271,6 +287,7 @@ export default {
                 renderHtml: c.nomad_render_html_enabled !== false,
                 renderPlaintext: c.nomad_render_plaintext_enabled !== false,
                 nomadDestinationHash: hash,
+                nomad_micron_wasm_use: this.nomadMicronWasmFeatureEffective && this.nomadMicronWasmReady === true,
             };
         },
         selectedNode() {
@@ -353,6 +370,36 @@ export default {
     },
     mounted() {
         this.getArchives();
+
+        this.$watch(
+            () => GlobalState.config?.nomad_micron_wasm_enabled,
+            async (enabled) => {
+                if (!isMicronWasmBundled()) {
+                    this.nomadMicronWasmReady = false;
+                    return;
+                }
+                if (!enabled) {
+                    this.nomadMicronWasmReady = false;
+                    return;
+                }
+                invalidateNomadMicronWasmPreload();
+                this.nomadMicronWasmReady = await preloadNomadMicronWasm();
+                const a = this.viewingArchive;
+                if (a) {
+                    this.renderedContent = this.renderFullContent(a);
+                }
+            }
+        );
+
+        if (isMicronWasmBundled() && GlobalState.config?.nomad_micron_wasm_enabled === true) {
+            preloadNomadMicronWasm().then((ok) => {
+                this.nomadMicronWasmReady = ok === true;
+                const a = this.viewingArchive;
+                if (a && ok) {
+                    this.renderedContent = this.renderFullContent(a);
+                }
+            });
+        }
     },
     methods: {
         async getArchives() {
@@ -553,9 +600,12 @@ export default {
             const pathPart = (archive.page_path || "").split("`")[0];
             const pl = pathPart.toLowerCase();
             const hasKnownExt = /\.(mu|md|txt|html)$/.test(pl);
+            const micronOpts = {
+                useWasm: this.nomadMicronWasmActive,
+            };
             try {
                 if (!hasKnownExt && archive.content.includes("`")) {
-                    return new MicronParser().convertMicronToHtml(archive.content, {});
+                    return new MicronParser().convertMicronToHtml(archive.content, {}, micronOpts);
                 }
                 return renderNomadPageByPath(pathPart, archive.content, {}, MicronParser, this.nomadRenderOptions);
             } catch (e) {
