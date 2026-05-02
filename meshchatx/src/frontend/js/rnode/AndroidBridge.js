@@ -111,6 +111,20 @@ export default class AndroidBridge {
         }
         return safeCall(() => this.bridge.getPlatform(), null);
     }
+
+    /**
+     * Opens the system share sheet with the installed APK (Bluetooth, Nearby Share, etc.).
+     * No-op when bridge or method is missing.
+     */
+    shareApk() {
+        if (!this.bridge || typeof this.bridge.shareApk !== "function") {
+            return false;
+        }
+        return safeCall(() => {
+            this.bridge.shareApk();
+            return true;
+        }, false);
+    }
 }
 
 AndroidBridge.PERM_BLUETOOTH = PERM_BLUETOOTH;
