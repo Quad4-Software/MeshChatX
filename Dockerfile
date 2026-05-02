@@ -21,6 +21,7 @@ COPY package.json pnpm-lock.yaml vite.config.js ./
 COPY patches ./patches
 COPY scripts/fetch-micron-wasm.mjs scripts/fetch-micron-wasm.mjs
 COPY scripts/micron-wasm-resolve-bundled.mjs scripts/micron-wasm-resolve-bundled.mjs
+COPY scripts/micron-parser-go-version.mjs scripts/micron-parser-go-version.mjs
 COPY meshchatx/src/frontend ./meshchatx/src/frontend
 RUN npm install -g pnpm@10.33.0 && \
     pnpm config set verify-store-integrity true && \
