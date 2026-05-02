@@ -8,8 +8,8 @@ import sys
 import tempfile
 import time
 
-# Ensure we can import meshchatx
-sys.path.append(os.getcwd())
+_REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+sys.path.insert(0, _REPO_ROOT)
 
 import json
 
