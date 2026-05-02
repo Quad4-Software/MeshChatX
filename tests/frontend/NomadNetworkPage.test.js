@@ -226,4 +226,111 @@ describe("NomadNetworkPage.vue", () => {
             expect(wrapper.vm.formatShortDuration(120000)).toMatch(/2m/);
         });
     });
+
+    describe("isFailedPageContent", () => {
+        const failedCases = [
+            ["request_failed"],
+            ["Failed loading page:"],
+            ["Failed loading page: Could not establish link to destination."],
+            ["Failed loading page: empty_response"],
+            ["Failed loading page: request_failed"],
+        ];
+
+        it.each(failedCases)("treats %s as failed load sentinel", (content) => {
+            const wrapper = mountNomadNetworkPage();
+            expect(wrapper.vm.isFailedPageContent(content)).toBe(true);
+        });
+
+        const notFailedCases = [
+            [null],
+            [undefined],
+            ["# README\nTalk about failure modes here."],
+            ["FAILURE is not how we detect errors"],
+            ["partial_failure in prose"],
+            [""],
+            ["Download cancelled"],
+            ["<p>success</p>"],
+        ];
+
+        it.each(notFailedCases)("does not treat %s as failed load", (content) => {
+            const wrapper = mountNomadNetworkPage();
+            expect(wrapper.vm.isFailedPageContent(content)).toBe(false);
+        });
+
+        const boundaryCases = [
+            [
+                "phrase only mid-document",
+                "Something happened. Failed loading page: not a real prefix.",
+                false,
+            ],
+            ["leading newline before meshchat prefix", "\nFailed loading page: timeout", false],
+            ["leading spaces before meshchat prefix", " Failed loading page: timeout", false],
+            ["wrong casing on meshchat prefix", "failed loading page: timeout", false],
+            ["wrong casing on sentinel", "REQUEST_FAILED", false],
+            ["sentinel with trailing space", "request_failed ", false],
+            ["sentinel with leading space", " request_failed", false],
+            ["meshchat prefix substring only", "PrefixedFailed loading page: no", false],
+        ];
+
+        it.each(boundaryCases)("boundary: %s", (_label, content, expectedFailed) => {
+            const wrapper = mountNomadNetworkPage();
+            expect(wrapper.vm.isFailedPageContent(content)).toBe(expectedFailed);
+        });
+
+        it("non-string and boxed values are not matched as failed", () => {
+            const wrapper = mountNomadNetworkPage();
+            expect(wrapper.vm.isFailedPageContent(123)).toBe(false);
+            expect(wrapper.vm.isFailedPageContent(NaN)).toBe(false);
+            expect(wrapper.vm.isFailedPageContent(true)).toBe(false);
+            expect(wrapper.vm.isFailedPageContent(false)).toBe(false);
+            expect(wrapper.vm.isFailedPageContent([])).toBe(false);
+            expect(wrapper.vm.isFailedPageContent({ status: "failure" })).toBe(false);
+            expect(wrapper.vm.isFailedPageContent(new String("request_failed"))).toBe(false);
+            expect(wrapper.vm.isFailedPageContent(new String("Failed loading page: boxed"))).toBe(false);
+        });
+    });
+
+    describe("hasPageLoadFailed", () => {
+        const destHash = "c".repeat(32);
+
+        it("is false while loading even if content looks like an error string", async () => {
+            const wrapper = mountNomadNetworkPage();
+            await wrapper.setData({
+                selectedNode: { destination_hash: destHash, display_name: "N" },
+                isLoadingNodePage: true,
+                nodePageContent: "Failed loading page: race",
+            });
+            expect(wrapper.vm.hasPageLoadFailed).toBe(false);
+        });
+
+        it("is false without selected node even if nodePageContent is an error string", async () => {
+            const wrapper = mountNomadNetworkPage();
+            await wrapper.setData({
+                selectedNode: null,
+                isLoadingNodePage: false,
+                nodePageContent: "Failed loading page: orphan",
+            });
+            expect(wrapper.vm.hasPageLoadFailed).toBe(false);
+        });
+
+        it("is true when idle, node selected, and content matches failure detection", async () => {
+            const wrapper = mountNomadNetworkPage();
+            await wrapper.setData({
+                selectedNode: { destination_hash: destHash, display_name: "N" },
+                isLoadingNodePage: false,
+                nodePageContent: "Failed loading page: done",
+            });
+            expect(wrapper.vm.hasPageLoadFailed).toBe(true);
+        });
+
+        it("is false when idle with valid page prose mentioning failure", async () => {
+            const wrapper = mountNomadNetworkPage();
+            await wrapper.setData({
+                selectedNode: { destination_hash: destHash, display_name: "N" },
+                isLoadingNodePage: false,
+                nodePageContent: "# Doc\nAvoid failure during deploy.",
+            });
+            expect(wrapper.vm.hasPageLoadFailed).toBe(false);
+        });
+    });
 });

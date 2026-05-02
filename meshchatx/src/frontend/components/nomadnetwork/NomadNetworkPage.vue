@@ -737,8 +737,7 @@ export default {
     methods: {
         /**
          * Returns true if the given page content represents a failed load.
-         * Matches the explicit "request_failed" sentinel, any backend failure
-         * payload containing the lowercase word "failure", and the user-facing
+         * Matches the explicit "request_failed" sentinel and the user-facing
          * "Failed loading page: ..." string set when a download callback fires
          * with a failure reason (e.g. "Could not establish link to destination.").
          */
@@ -752,11 +751,7 @@ export default {
             if (typeof content !== "string") {
                 return false;
             }
-            if (content.startsWith("Failed loading page:")) {
-                return true;
-            }
-            const lower = content.toLowerCase();
-            return lower.includes("failure");
+            return content.startsWith("Failed loading page:");
         },
         scheduleProcessPartials() {
             if (this.processPartialsRaf != null) {
