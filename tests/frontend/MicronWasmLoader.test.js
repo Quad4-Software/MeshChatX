@@ -105,11 +105,15 @@ describe("MicronWasmLoader.js", () => {
         const embeddedWasmHash = __MICRON_WASM_SRI_WASM__?.replace("sha384-", "");
         const embeddedExecHash = __MICRON_WASM_SRI_EXEC__?.replace("sha384-", "");
 
-        // Create deterministic 48-byte mock hashes (SHA-384 output size) if embedded not available
+        // Create deterministic 48-byte mock hashes (SHA-384 output size) if embedded not available or empty
         const mockWasmHash =
-            embeddedWasmHash || "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+            embeddedWasmHash && embeddedWasmHash.length > 0
+                ? embeddedWasmHash
+                : "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
         const mockExecHash =
-            embeddedExecHash || "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
+            embeddedExecHash && embeddedExecHash.length > 0
+                ? embeddedExecHash
+                : "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
 
         vi.stubGlobal("crypto", {
             subtle: {
@@ -172,9 +176,13 @@ describe("MicronWasmLoader.js", () => {
         const embeddedWasmHash = __MICRON_WASM_SRI_WASM__?.replace("sha384-", "");
         const embeddedExecHash = __MICRON_WASM_SRI_EXEC__?.replace("sha384-", "");
         const mockWasmHash =
-            embeddedWasmHash || "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+            embeddedWasmHash && embeddedWasmHash.length > 0
+                ? embeddedWasmHash
+                : "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
         const mockExecHash =
-            embeddedExecHash || "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
+            embeddedExecHash && embeddedExecHash.length > 0
+                ? embeddedExecHash
+                : "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
 
         vi.stubGlobal("crypto", {
             subtle: {
