@@ -105,6 +105,10 @@ test-results/
 playwright-report/
 blob-report/
 
+# Host-built micron WASM binaries (Docker/build fetch fresh copies)
+meshchatx/src/frontend/public/vendor/micron-parser-go/micron-parser-go.wasm
+meshchatx/src/frontend/public/vendor/micron-parser-go/wasm_exec.js
+
 .hypothesis
 .hypothesis/
 

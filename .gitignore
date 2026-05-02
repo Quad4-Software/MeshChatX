@@ -117,6 +117,10 @@ blob-report/
 
 meshchat-config/
 
+# micron-parser-go WASM (fetched at build via scripts/fetch-micron-wasm.mjs)
+meshchatx/src/frontend/public/vendor/micron-parser-go/micron-parser-go.wasm
+meshchatx/src/frontend/public/vendor/micron-parser-go/wasm_exec.js
+
 .hypothesis
 .hypothesis/
 
