@@ -37,6 +37,7 @@
                     @click.stop="
                         cv.openImage(cv.lxmfImageUrl(imgItem.lxmf_message.hash), cv.imageGroupGalleryUrls(entry.items))
                     "
+                    @contextmenu.prevent.stop="cv.onMessageContextMenu($event, imgItem, true)"
                 >
                     <InViewAnimatedImg
                         v-if="isAnimatedRasterType(imgItem.lxmf_message.fields?.image?.image_type)"
@@ -67,6 +68,7 @@
                     @click.stop="
                         cv.openImage(cv.lxmfImageUrl(imgItem.lxmf_message.hash), cv.imageGroupGalleryUrls(entry.items))
                     "
+                    @contextmenu.prevent.stop="cv.onMessageContextMenu($event, imgItem, true)"
                 >
                     <InViewAnimatedImg
                         v-if="isAnimatedRasterType(imgItem.lxmf_message.fields?.image?.image_type)"
@@ -92,6 +94,9 @@
                             cv.lxmfImageUrl(cv.imageGroupSortedChron(entry.items)[2].lxmf_message.hash),
                             cv.imageGroupGalleryUrls(entry.items)
                         )
+                    "
+                    @contextmenu.prevent.stop="
+                        cv.onMessageContextMenu($event, cv.imageGroupSortedChron(entry.items)[2], true)
                     "
                 >
                     <InViewAnimatedImg
@@ -124,6 +129,7 @@
                     @click.stop="
                         cv.openImage(cv.lxmfImageUrl(cell.lxmf_message.hash), cv.imageGroupGalleryUrls(entry.items))
                     "
+                    @contextmenu.prevent.stop="cv.onMessageContextMenu($event, cell, true)"
                 >
                     <InViewAnimatedImg
                         v-if="isAnimatedRasterType(cell.lxmf_message.fields?.image?.image_type)"
@@ -653,47 +659,85 @@
                 <div v-if="cv.getParsedItems(chatItem)" class="mt-2 space-y-2">
                     <!-- contact -->
                     <div
-                        v-if="cv.getParsedItems(chatItem).contact && !chatItem.is_outbound"
-                        class="flex flex-col gap-2 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30"
+                        v-if="cv.getParsedItems(chatItem).contact"
+                        class="flex flex-col gap-2 p-3 rounded-xl border"
+                        :class="
+                            chatItem.is_outbound
+                                ? cv.isThemeOutboundBubble(chatItem)
+                                    ? 'bg-white/10 border-white/20'
+                                    : 'bg-black/5 border-black/10'
+                                : 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800/30'
+                        "
                     >
-                        <div class="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                        <div
+                            class="flex items-center gap-2"
+                            :class="
+                                chatItem.is_outbound
+                                    ? cv.isThemeOutboundBubble(chatItem)
+                                        ? 'text-white'
+                                        : 'text-gray-800 dark:text-zinc-200'
+                                    : 'text-blue-700 dark:text-blue-300'
+                            "
+                        >
                             <MaterialDesignIcon icon-name="account-plus-outline" class="size-5" />
                             <span class="text-sm font-bold">Contact Shared</span>
                         </div>
                         <div class="flex items-center gap-3">
-                            <LxmfUserIcon
-                                :custom-image="cv.getParsedItems(chatItem).contact.custom_image"
-                                :icon-name="cv.getParsedItems(chatItem).contact.lxmf_user_icon?.icon_name"
-                                :icon-foreground-colour="
-                                    cv.getParsedItems(chatItem).contact.lxmf_user_icon?.foreground_colour
-                                "
-                                :icon-background-colour="
-                                    cv.getParsedItems(chatItem).contact.lxmf_user_icon?.background_colour
-                                "
-                                icon-class="size-10"
-                            />
                             <div class="flex-1 min-w-0">
-                                <div class="text-sm font-bold text-gray-900 dark:text-white truncate">
+                                <div
+                                    class="text-sm font-bold truncate"
+                                    :class="
+                                        chatItem.is_outbound
+                                            ? cv.isThemeOutboundBubble(chatItem)
+                                                ? 'text-white'
+                                                : 'text-gray-900 dark:text-white'
+                                            : 'text-gray-900 dark:text-white'
+                                    "
+                                >
                                     {{ cv.getParsedItems(chatItem).contact.name }}
                                 </div>
-                                <div class="text-[10px] font-mono text-gray-500 dark:text-zinc-400 truncate">
+                                <div
+                                    class="text-[10px] font-mono truncate"
+                                    :class="
+                                        chatItem.is_outbound
+                                            ? cv.isThemeOutboundBubble(chatItem)
+                                                ? 'text-white/70'
+                                                : 'text-gray-500 dark:text-zinc-400'
+                                            : 'text-gray-500 dark:text-zinc-400'
+                                    "
+                                >
                                     {{ cv.getParsedItems(chatItem).contact.hash }}
                                 </div>
                                 <div
                                     v-if="cv.getParsedItems(chatItem).contact.lxmf_address"
-                                    class="text-[9px] font-mono text-gray-400 dark:text-zinc-500 truncate"
+                                    class="text-[9px] font-mono truncate"
+                                    :class="
+                                        chatItem.is_outbound
+                                            ? cv.isThemeOutboundBubble(chatItem)
+                                                ? 'text-white/60'
+                                                : 'text-gray-400 dark:text-zinc-500'
+                                            : 'text-gray-400 dark:text-zinc-500'
+                                    "
                                 >
                                     LXMF: {{ cv.getParsedItems(chatItem).contact.lxmf_address }}
                                 </div>
                                 <div
                                     v-if="cv.getParsedItems(chatItem).contact.lxst_address"
-                                    class="text-[9px] font-mono text-gray-400 dark:text-zinc-500 truncate"
+                                    class="text-[9px] font-mono truncate"
+                                    :class="
+                                        chatItem.is_outbound
+                                            ? cv.isThemeOutboundBubble(chatItem)
+                                                ? 'text-white/60'
+                                                : 'text-gray-400 dark:text-zinc-500'
+                                            : 'text-gray-400 dark:text-zinc-500'
+                                    "
                                 >
                                     LXST: {{ cv.getParsedItems(chatItem).contact.lxst_address }}
                                 </div>
                             </div>
                         </div>
                         <button
+                            v-if="!chatItem.is_outbound"
                             type="button"
                             class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
                             @click="
@@ -711,17 +755,43 @@
 
                     <!-- paper message auto-conversion -->
                     <div
-                        v-if="cv.getParsedItems(chatItem).paperMessage && !chatItem.is_outbound"
-                        class="flex flex-col gap-2 p-3 rounded-xl bg-emerald-50 dark:bg-black/60 border border-emerald-100 dark:border-zinc-700/50"
+                        v-if="cv.getParsedItems(chatItem).paperMessage"
+                        class="flex flex-col gap-2 p-3 rounded-xl border"
+                        :class="
+                            chatItem.is_outbound
+                                ? cv.isThemeOutboundBubble(chatItem)
+                                    ? 'bg-white/10 border-white/20'
+                                    : 'bg-black/5 border-black/10'
+                                : 'bg-emerald-50 dark:bg-black/60 border-emerald-100 dark:border-zinc-700/50'
+                        "
                     >
-                        <div class="flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
+                        <div
+                            class="flex items-center gap-2"
+                            :class="
+                                chatItem.is_outbound
+                                    ? cv.isThemeOutboundBubble(chatItem)
+                                        ? 'text-white'
+                                        : 'text-gray-800 dark:text-zinc-200'
+                                    : 'text-emerald-700 dark:text-emerald-400'
+                            "
+                        >
                             <MaterialDesignIcon icon-name="qrcode-scan" class="size-5" />
                             <span class="text-sm font-bold">Paper Message detected</span>
                         </div>
-                        <p class="text-xs text-emerald-600/80 dark:text-zinc-400 leading-relaxed">
+                        <p
+                            class="text-xs leading-relaxed"
+                            :class="
+                                chatItem.is_outbound
+                                    ? cv.isThemeOutboundBubble(chatItem)
+                                        ? 'text-white/80'
+                                        : 'text-gray-600 dark:text-zinc-400'
+                                    : 'text-emerald-600/80 dark:text-zinc-400'
+                            "
+                        >
                             This message contains a signed LXMF URI that can be ingested into your conversations.
                         </p>
                         <button
+                            v-if="!chatItem.is_outbound"
                             type="button"
                             class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
                             @click="cv.ingestPaperMessage(cv.getParsedItems(chatItem).paperMessage)"
@@ -1143,7 +1213,6 @@
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import AudioWaveformPlayer from "./AudioWaveformPlayer.vue";
-import LxmfUserIcon from "../LxmfUserIcon.vue";
 import StickerView from "../stickers/StickerView.vue";
 import InViewAnimatedImg from "./InViewAnimatedImg.vue";
 import { isAnimatedRasterType } from "../../js/inViewObserver.js";
@@ -1153,7 +1222,6 @@ export default {
     components: {
         MaterialDesignIcon,
         AudioWaveformPlayer,
-        LxmfUserIcon,
         StickerView,
         InViewAnimatedImg,
     },

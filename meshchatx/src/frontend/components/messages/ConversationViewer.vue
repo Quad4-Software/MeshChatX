@@ -95,16 +95,24 @@
                             class="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors text-left"
                             @click="shareContact(contact)"
                         >
-                            <div
-                                class="h-10 w-10 shrink-0 rounded-full border-2 border-dashed border-gray-300 dark:border-zinc-600 bg-gray-50 dark:bg-zinc-800/80"
-                                aria-hidden="true"
-                            />
+                            <div class="shrink-0">
+                                <LxmfUserIcon
+                                    :custom-image="contact.custom_image"
+                                    :icon-name="lxmfContactResolvedIcon(contact).iconName"
+                                    :icon-foreground-colour="lxmfContactResolvedIcon(contact).foreground"
+                                    :icon-background-colour="lxmfContactResolvedIcon(contact).background"
+                                    :seed="
+                                        lxmfDeliveryDestinationHexFromContact(contact) || contact.remote_identity_hash
+                                    "
+                                    icon-class="size-10"
+                                />
+                            </div>
                             <div class="min-w-0">
                                 <div class="font-bold text-gray-900 dark:text-white truncate">
                                     {{ contact.name }}
                                 </div>
                                 <div class="text-[10px] text-gray-500 dark:text-zinc-500 font-mono truncate">
-                                    {{ contact.remote_identity_hash }}
+                                    {{ lxmfDeliveryDestinationHexFromContact(contact) || contact.remote_identity_hash }}
                                 </div>
                                 <div
                                     v-if="contact.lxmf_address"
@@ -3405,9 +3413,7 @@ export default {
             }, 200);
         },
         async handleComposeAddress(destinationHash) {
-            if (destinationHash.startsWith("lxmf@")) {
-                destinationHash = destinationHash.replace("lxmf@", "");
-            }
+            destinationHash = Utils.normalizeMeshchatHashHex(destinationHash);
             if (destinationHash.length !== 32) {
                 DialogUtils.alert(this.$t("common.invalid_address"));
                 return;
@@ -4637,6 +4643,47 @@ export default {
             this.newMessageText = sharedString;
             this.isShareContactModalOpen = false;
             this.sendMessage();
+        },
+        lxmfDeliveryDestinationHexFromContact(contact) {
+            if (!contact) return "";
+            const order = [contact.remote_destination_hash, contact.lxmf_address, contact.remote_identity_hash];
+            for (const c of order) {
+                const h = Utils.normalizeMeshchatHashHex(c);
+                if (h) {
+                    return h;
+                }
+            }
+            return "";
+        },
+        lxmfContactResolvedIcon(contact) {
+            const empty = { iconName: "", foreground: "", background: "" };
+            if (!contact) {
+                return empty;
+            }
+            const ri = contact.remote_icon;
+            if (ri?.icon_name) {
+                return {
+                    iconName: ri.icon_name,
+                    foreground: ri.foreground_colour || "",
+                    background: ri.background_colour || "",
+                };
+            }
+            const dest = this.lxmfDeliveryDestinationHexFromContact(contact);
+            if (!dest) {
+                return empty;
+            }
+            const conv =
+                this.conversations.find((c) => Utils.normalizeMeshchatHashHex(c.destination_hash || "") === dest) ||
+                null;
+            const lu = conv?.lxmf_user_icon;
+            if (lu?.icon_name) {
+                return {
+                    iconName: lu.icon_name,
+                    foreground: lu.foreground_colour || "",
+                    background: lu.background_colour || "",
+                };
+            }
+            return empty;
         },
         shareAsPaperMessage(chatItem) {
             this.paperMessageHash = chatItem.lxmf_message.hash;

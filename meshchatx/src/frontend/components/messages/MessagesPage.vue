@@ -258,6 +258,7 @@
 
 <script>
 import WebSocketConnection from "../../js/WebSocketConnection";
+import Utils from "../../js/Utils";
 import MessagesSidebar from "./MessagesSidebar.vue";
 import ConversationViewer from "./ConversationViewer.vue";
 import GlobalState, { mergeGlobalConfig } from "../../js/GlobalState";
@@ -422,9 +423,7 @@ export default {
                 return;
             }
 
-            if (destinationHash.startsWith("lxmf@")) {
-                destinationHash = destinationHash.replace("lxmf@", "");
-            }
+            destinationHash = Utils.normalizeMeshchatHashHex(destinationHash);
 
             await this.getLxmfDeliveryAnnounce(destinationHash);
 
@@ -1150,7 +1149,7 @@ export default {
             }
             this.isMobileComposeModalOpen = false;
             this.mobileComposeAddress = "";
-            await this.onComposeNewMessage(raw.replace(/^lxmf@/, ""));
+            await this.onComposeNewMessage(raw);
         },
     },
 };

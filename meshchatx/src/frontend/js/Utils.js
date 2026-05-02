@@ -249,6 +249,26 @@ class Utils {
             return map[m];
         });
     }
+
+    /**
+     * Return lowercase hex digits only (strips UUID hyphens, colons, whitespace).
+     */
+    static normalizeMeshchatHashHex(value) {
+        if (!value || typeof value !== "string") {
+            return "";
+        }
+        let h = value.trim().toLowerCase();
+        if (h.includes("://")) {
+            h = h.split("://")[1];
+        }
+        if (h.includes("@")) {
+            h = h.split("@")[1];
+        }
+        if (h.includes(":")) {
+            h = h.split(":")[0];
+        }
+        return h.replace(/[^0-9a-f]/g, "");
+    }
 }
 
 export default Utils;

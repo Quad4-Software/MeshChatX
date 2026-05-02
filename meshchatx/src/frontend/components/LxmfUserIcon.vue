@@ -19,9 +19,9 @@
     </div>
     <div
         v-else
-        class="bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-zinc-500 p-[15%] rounded-full shrink-0 flex items-center justify-center border border-gray-200 dark:border-zinc-700"
+        class="bg-gray-100 dark:bg-zinc-800 text-gray-400 dark:text-zinc-500 p-[10%] rounded-full shrink-0 flex items-center justify-center border border-gray-200 dark:border-zinc-700"
         :class="resolvedShellClass"
-        :style="iconStyle"
+        :style="[iconStyle, { 'background-color': fallbackBackgroundColor }]"
     >
         <MaterialDesignIcon icon-name="account" class="w-full h-full" />
     </div>
@@ -45,11 +45,15 @@ export default {
         },
         iconForegroundColour: {
             type: String,
-            default: "#6b7280",
+            default: "",
         },
         iconBackgroundColour: {
             type: String,
-            default: "#e5e7eb",
+            default: "",
+        },
+        seed: {
+            type: String,
+            default: "",
         },
         iconClass: {
             type: String,
@@ -80,9 +84,25 @@ export default {
                 : "#6b7280";
         },
         finalBackgroundColor() {
-            return this.iconBackgroundColour && this.iconBackgroundColour !== ""
-                ? this.iconBackgroundColour
-                : "#e5e7eb";
+            if (this.iconBackgroundColour && this.iconBackgroundColour !== "") {
+                return this.iconBackgroundColour;
+            }
+            return "#e5e7eb";
+        },
+        fallbackBackgroundColor() {
+            if (this.iconBackgroundColour && this.iconBackgroundColour !== "") {
+                return this.iconBackgroundColour;
+            }
+            if (!this.seed) {
+                return "";
+            }
+            // Simple deterministic color from seed string
+            let hash = 0;
+            for (let i = 0; i < this.seed.length; i++) {
+                hash = this.seed.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const h = Math.abs(hash % 360);
+            return `hsl(${h}, 35%, 85%)`;
         },
     },
 };
