@@ -20,6 +20,27 @@ function isMicronWasmBundledResolved(repoRoot) {
 
 const micronWasmBundled = isMicronWasmBundledResolved(__dirname);
 
+function loadMicronWasmIntegrity(repoRoot) {
+    if (!micronWasmBundled) return null;
+    const integrityPath = path.join(
+        repoRoot,
+        "meshchatx",
+        "src",
+        "frontend",
+        "public",
+        "vendor",
+        "micron-parser-go",
+        "integrity.json"
+    );
+    try {
+        const content = fs.readFileSync(integrityPath, "utf-8");
+        return JSON.parse(content);
+    } catch {
+        return null;
+    }
+}
+
+const micronWasmIntegrity = loadMicronWasmIntegrity(__dirname);
 const appBuildTimeIso = new Date().toISOString();
 
 export default defineConfig({
@@ -27,6 +48,8 @@ export default defineConfig({
         __APP_BUILD_TIME__: JSON.stringify(appBuildTimeIso),
         "import.meta.env.VITE_MICRON_WASM_BUNDLED": JSON.stringify(micronWasmBundled ? "true" : "false"),
         "import.meta.env.VITE_MICRON_PARSER_GO_RELEASE": JSON.stringify(MICRON_PARSER_GO_RELEASE_TAG),
+        __MICRON_WASM_SRI_WASM__: JSON.stringify(micronWasmIntegrity?.wasm || ""),
+        __MICRON_WASM_SRI_EXEC__: JSON.stringify(micronWasmIntegrity?.wasmExec || ""),
     },
     plugins: [
         vue({

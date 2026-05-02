@@ -100,10 +100,35 @@ describe("MicronWasmLoader.js", () => {
             return node;
         });
 
-        vi.spyOn(globalThis, "fetch").mockResolvedValue({
-            ok: true,
-            arrayBuffer: async () => new ArrayBuffer(16),
-            headers: new Headers({ "content-type": "application/wasm" }),
+        // Mock crypto.subtle.digest to return hash matching embedded SRI for test data
+        const mockWasmHash = __MICRON_WASM_SRI_WASM__?.replace("sha384-", "") || "";
+        const mockExecHash = __MICRON_WASM_SRI_EXEC__?.replace("sha384-", "") || "";
+        vi.stubGlobal("crypto", {
+            subtle: {
+                digest: vi.fn(async (algo, buf) => {
+                    // Return different hash based on buffer size to distinguish wasm_exec.js vs wasm
+                    const hash =
+                        buf.byteLength < 1000
+                            ? mockExecHash // wasm_exec.js is smaller
+                            : mockWasmHash; // wasm is larger
+                    // Convert base64 to ArrayBuffer
+                    const binary = atob(hash);
+                    const bytes = new Uint8Array(binary.length);
+                    for (let i = 0; i < binary.length; i++) {
+                        bytes[i] = binary.charCodeAt(i);
+                    }
+                    return bytes.buffer;
+                }),
+            },
+        });
+
+        vi.spyOn(globalThis, "fetch").mockImplementation((url) => {
+            const isWasm = url.includes(".wasm");
+            return Promise.resolve({
+                ok: true,
+                arrayBuffer: async () => (isWasm ? new ArrayBuffer(4096) : new ArrayBuffer(500)),
+                headers: new Headers({ "content-type": isWasm ? "application/wasm" : "application/javascript" }),
+            });
         });
 
         const streaming = vi
@@ -118,6 +143,7 @@ describe("MicronWasmLoader.js", () => {
             expect(instantiate).toHaveBeenCalled();
         } finally {
             appendSpy.mockRestore();
+            vi.unstubAllGlobals();
         }
     });
 
@@ -137,10 +163,30 @@ describe("MicronWasmLoader.js", () => {
             return node;
         });
 
-        vi.spyOn(globalThis, "fetch").mockResolvedValue({
-            ok: true,
-            arrayBuffer: async () => new ArrayBuffer(16),
-            headers: new Headers({ "content-type": "application/wasm" }),
+        // Mock crypto.subtle.digest to return hash matching embedded SRI for test data
+        const mockWasmHash = __MICRON_WASM_SRI_WASM__?.replace("sha384-", "") || "";
+        const mockExecHash = __MICRON_WASM_SRI_EXEC__?.replace("sha384-", "") || "";
+        vi.stubGlobal("crypto", {
+            subtle: {
+                digest: vi.fn(async (algo, buf) => {
+                    const hash = buf.byteLength < 1000 ? mockExecHash : mockWasmHash;
+                    const binary = atob(hash);
+                    const bytes = new Uint8Array(binary.length);
+                    for (let i = 0; i < binary.length; i++) {
+                        bytes[i] = binary.charCodeAt(i);
+                    }
+                    return bytes.buffer;
+                }),
+            },
+        });
+
+        vi.spyOn(globalThis, "fetch").mockImplementation((url) => {
+            const isWasm = url.includes(".wasm");
+            return Promise.resolve({
+                ok: true,
+                arrayBuffer: async () => (isWasm ? new ArrayBuffer(4096) : new ArrayBuffer(500)),
+                headers: new Headers({ "content-type": isWasm ? "application/wasm" : "application/javascript" }),
+            });
         });
 
         vi.spyOn(WebAssembly, "instantiateStreaming").mockRejectedValue(new Error("streaming failed"));
@@ -156,6 +202,7 @@ describe("MicronWasmLoader.js", () => {
             expect(instantiate).toHaveBeenCalledTimes(2);
         } finally {
             appendSpy.mockRestore();
+            vi.unstubAllGlobals();
         }
     });
 

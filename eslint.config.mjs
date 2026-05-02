@@ -45,6 +45,8 @@ export default [
                 ...globals.browser,
                 ...globals.node,
                 __APP_BUILD_TIME__: "readonly",
+                __MICRON_WASM_SRI_WASM__: "readonly",
+                __MICRON_WASM_SRI_EXEC__: "readonly",
                 axios: "readonly",
                 Codec2Lib: "readonly",
                 Codec2MicrophoneRecorder: "readonly",

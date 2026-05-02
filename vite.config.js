@@ -51,11 +51,36 @@ function isMicronWasmBundledResolved() {
 
 const micronWasmBundled = isMicronWasmBundledResolved();
 
+function loadMicronWasmIntegrity() {
+    if (!micronWasmBundled) return null;
+    const integrityPath = path.join(
+        __dirname,
+        "meshchatx",
+        "src",
+        "frontend",
+        "public",
+        "vendor",
+        "micron-parser-go",
+        "integrity.json"
+    );
+    try {
+        const content = fs.readFileSync(integrityPath, "utf-8");
+        return JSON.parse(content);
+    } catch {
+        console.warn("vite: could not load micron-parser-go integrity.json");
+        return null;
+    }
+}
+
+const micronWasmIntegrity = loadMicronWasmIntegrity();
+
 export default defineConfig({
     define: {
         __APP_BUILD_TIME__: JSON.stringify(appBuildTimeIso),
         "import.meta.env.VITE_MICRON_WASM_BUNDLED": JSON.stringify(micronWasmBundled ? "true" : "false"),
         "import.meta.env.VITE_MICRON_PARSER_GO_RELEASE": JSON.stringify(MICRON_PARSER_GO_RELEASE_TAG),
+        __MICRON_WASM_SRI_WASM__: JSON.stringify(micronWasmIntegrity?.wasm || ""),
+        __MICRON_WASM_SRI_EXEC__: JSON.stringify(micronWasmIntegrity?.wasmExec || ""),
     },
     plugins: [
         tailwindcss(),

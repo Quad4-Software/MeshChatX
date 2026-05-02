@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
  * Downloads micron-parser-go WASM release assets and matching wasm_exec.js for Vite public/.
+ * Generates SRI hashes for integrity verification at runtime.
  * Safe to run offline: exits 0 without files when MICRON_WASM_SKIP=1 or network fails.
  *
  * Override URLs:
@@ -9,6 +10,7 @@
  */
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 import { MICRON_PARSER_GO_RELEASE_TAG } from "./micron-parser-go-version.mjs";
 import { micronWasmVendorPaths, micronWasmRepoRoot } from "./micron-wasm-resolve-bundled.mjs";
 
@@ -25,6 +27,11 @@ function rmQuiet(p) {
     }
 }
 
+function computeSriHash(buf) {
+    const hash = crypto.createHash("sha384").update(buf).digest("base64");
+    return `sha384-${hash}`;
+}
+
 async function fetchBinary(url, destFile) {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
@@ -36,7 +43,7 @@ async function fetchBinary(url, destFile) {
         const buf = Buffer.from(await res.arrayBuffer());
         fs.mkdirSync(path.dirname(destFile), { recursive: true });
         fs.writeFileSync(destFile, buf);
-        return buf.length;
+        return { size: buf.length, sri: computeSriHash(buf) };
     } finally {
         clearTimeout(t);
     }
@@ -55,18 +62,30 @@ async function main() {
 
     fs.mkdirSync(dir, { recursive: true });
 
+    let wasmResult;
+    let execResult;
     try {
         console.log("fetch-micron-wasm: downloading wasm_exec.js...");
-        await fetchBinary(execUrl, wasmExec);
+        execResult = await fetchBinary(execUrl, wasmExec);
         console.log("fetch-micron-wasm: downloading micron-parser-go.wasm...");
-        const n = await fetchBinary(wasmUrl, wasm);
-        console.log(`fetch-micron-wasm: OK (${n} bytes WASM)`);
+        wasmResult = await fetchBinary(wasmUrl, wasm);
+        console.log(`fetch-micron-wasm: OK (${wasmResult.size} bytes WASM)`);
     } catch (e) {
         console.warn("fetch-micron-wasm: failed:", e?.message || e);
         rmQuiet(wasm);
         rmQuiet(wasmExec);
+        rmQuiet(path.join(dir, "integrity.json"));
         process.exit(0);
     }
+
+    // Write SRI hashes for runtime verification
+    const integrity = {
+        version: MICRON_PARSER_GO_RELEASE_TAG,
+        wasm: wasmResult.sri,
+        wasmExec: execResult.sri,
+    };
+    fs.writeFileSync(path.join(dir, "integrity.json"), JSON.stringify(integrity, null, 2));
+    console.log("fetch-micron-wasm: SRI hashes written to integrity.json");
 }
 
 main();
