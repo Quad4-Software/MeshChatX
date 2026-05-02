@@ -1,0 +1,218 @@
+version: '3'
+
+vars:
+  PYTHON_VERSION: '3.13'
+  PACKAGE_NAME: lxmfy
+  DOCKER_IMAGE: lxmfy-test
+  WHEEL_BUILDER_IMAGE: lxmfy-wheel-builder
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  update:
+    desc: Pull latest changes from git
+    cmds:
+      - git pull
+
+  install:
+    desc: Install package dependencies
+    cmds:
+      - poetry install
+
+  install-dev:
+    desc: Install development dependencies
+    cmds:
+      - poetry install --with dev
+      - poetry run pip install pytest pytest-asyncio pytest-cov
+
+  build:
+    desc: Build package using poetry
+    cmds:
+      - poetry build
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf build/
+      - rm -rf dist/
+      - rm -rf *.egg-info/
+      - rm -rf .pytest_cache/
+      - rm -rf __pycache__/
+      - find . -type d -name __pycache__ -exec rm -rf {} + || true
+      - find . -type f -name "*.pyc" -delete || true
+      - find . -type f -name "*.pyo" -delete || true
+
+  test:
+    desc: Run tests
+    cmds:
+      - poetry run pytest tests/ -v
+
+  lint:
+    desc: Run linting (ruff)
+    cmds:
+      - poetry run ruff check .
+
+  format:
+    desc: Format code (ruff)
+    cmds:
+      - poetry run ruff format .
+
+  check:
+    desc: Run safety check
+    cmds:
+      - poetry run safety check
+
+  dev:
+    desc: Install in development mode
+    cmds:
+      - poetry install
+
+  run:
+    desc: Run echo bot for testing
+    cmds:
+      - poetry run lxmfy run echo
+
+  version:
+    desc: Show current version
+    cmds:
+      - python -c "import lxmfy; print(lxmfy.__version__)"
+
+  bump-patch:
+    desc: Bump patch version
+    cmds:
+      - poetry version patch
+      - task update-version
+
+  bump-minor:
+    desc: Bump minor version
+    cmds:
+      - poetry version minor
+      - task update-version
+
+  bump-major:
+    desc: Bump major version
+    cmds:
+      - poetry version major
+      - task update-version
+
+  update-version:
+    internal: true
+    cmds:
+      - |
+        NEW_VERSION=$(poetry version -s)
+        echo "__version__ = \"$$NEW_VERSION\"" > lxmfy/__version__.py
+        echo "Updated version to $$NEW_VERSION"
+
+  docker:
+    desc: Build and run Docker container
+    deps:
+      - docker-build
+      - docker-run
+
+  docker-build:
+    desc: Build Docker image
+    cmds:
+      - docker build -t {{.DOCKER_IMAGE}} .
+
+  docker-run:
+    desc: Run Docker container
+    cmds:
+      - |
+        docker run -d \
+          --name {{.DOCKER_IMAGE}}-bot \
+          -v $(pwd)/config:/bot/config \
+          -v $(pwd)/.reticulum:/root/.reticulum \
+          --restart unless-stopped \
+          {{.DOCKER_IMAGE}}
+
+  docker-run-host:
+    desc: Run Docker container with host network
+    cmds:
+      - |
+        docker run -d \
+          --name {{.DOCKER_IMAGE}}-bot \
+          --network host \
+          -v $(pwd)/config:/bot/config \
+          -v $(pwd)/.reticulum:/root/.reticulum \
+          --restart unless-stopped \
+          {{.DOCKER_IMAGE}}
+
+  docker-wheel-build:
+    desc: Build wheel builder Docker image
+    cmds:
+      - docker build -f docker/Dockerfile.Build -t {{.WHEEL_BUILDER_IMAGE}} .
+
+  docker-wheel-extract:
+    desc: Extract wheels from builder container
+    cmds:
+      - docker run --rm -v "$(pwd)/dist_output:/output" {{.WHEEL_BUILDER_IMAGE}}
+
+  docker-compose-build:
+    desc: Build using docker-compose
+    cmds:
+      - docker-compose -f docker/docker-compose.yml build
+
+  docker-compose-up:
+    desc: Start services with docker-compose
+    cmds:
+      - docker-compose -f docker/docker-compose.yml up -d
+
+  docker-compose-down:
+    desc: Stop services with docker-compose
+    cmds:
+      - docker-compose -f docker/docker-compose.yml down
+
+  docker-compose-logs:
+    desc: Show docker-compose logs
+    cmds:
+      - docker-compose -f docker/docker-compose.yml logs -f
+
+  docker-stop:
+    desc: Stop and remove Docker container
+    cmds:
+      - docker stop {{.DOCKER_IMAGE}}-bot || true
+      - docker rm {{.DOCKER_IMAGE}}-bot || true
+
+  docker-clean:
+    desc: Clean Docker images and containers
+    deps:
+      - docker-stop
+    cmds:
+      - docker rmi {{.DOCKER_IMAGE}} || true
+      - docker rmi {{.WHEEL_BUILDER_IMAGE}} || true
+
+  publish-gitea:
+    desc: Publish package to Gitea registry
+    deps: [build]
+    cmds:
+      - twine upload --repository-url https://git.quad4.io/api/packages/LXMFy/pypi dist/*
+
+  publish-pypi:
+    desc: Publish package to PyPI
+    deps: [build]
+    cmds:
+      - twine upload dist/*
+
+  publish:
+    desc: Publish package to both Gitea and PyPI
+    deps: [publish-gitea, publish-pypi]
+
+  all:
+    desc: Run clean, lint, test, and build
+    deps:
+      - clean
+      - lint
+      - test
+      - build
+
+  ci:
+    desc: Run CI checks (lint, check, test, build)
+    deps:
+      - lint
+      - check
+      - test
+      - build
+

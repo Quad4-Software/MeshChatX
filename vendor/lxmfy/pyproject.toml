@@ -1,0 +1,55 @@
+[project]
+name = "lxmfy"
+version = "1.6.2"
+description = "LXMF bot framework for creating bots for the Reticulum Network"
+authors = [{name = "Quad4", email = "team@quad4.io"}]
+readme = "README.md"
+license = "BSD-0-Clause"
+requires-python = ">=3.11"
+keywords = ["lxmf", "reticulum", "bot", "framework", "rns"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "lxmf>=0.9.6",
+    "rns>=1.2.0"
+]
+
+[project.urls]
+Homepage = "https://git.quad4.io/LXMFy/LXMFy"
+Repository = "https://git.quad4.io/LXMFy/LXMFy"
+
+[project.scripts]
+lxmfy = "lxmfy.cli:main"
+
+[tool.poetry]
+packages = [{include = "lxmfy"}]
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.14.3"
+pytest = "^8.4.2"
+pytest-asyncio = "^1.2.0"
+pytest-cov = "^7.0.0"
+twine = "^6.2.0"
+psutil = "^7.2.1"
+hypothesis = "^6.150.2"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "e2e: marks tests as end-to-end tests",
+    "reliability: marks tests for long-term stability and crash resistance",
+]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

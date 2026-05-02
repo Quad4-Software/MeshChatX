@@ -1,0 +1,64 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) 2025, Ivan
+# This file is distributed under the same license as the LXMFy package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: LXMFy \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-09-27 16:06-0500\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: ../../source/index.rst:19
+msgid "Contents:"
+msgstr "Содержание:"
+
+#: ../../source/index.rst:2
+msgid "lxmfy documentation"
+msgstr "Документация lxmfy"
+
+#: ../../source/index.rst:4
+msgid ""
+"A framework for creating `LXMF <https://git.quad4.io/LXMFy/LXMFy>`_ bots on "
+"the `Reticulum Network <https://reticulum.network/>`_."
+msgstr ""
+"Фреймворк для создания ботов `LXMF <https://git.quad4.io/LXMFy/LXMFy>`_ в "
+"сети `Reticulum <https://reticulum.network/>`_."
+
+#: ../../source/index.rst:7
+msgid "Download"
+msgstr "Скачать"
+
+#: ../../source/index.rst:9
+msgid ""
+"Get the latest version of LXMFy docs (PDF, EPUB, HTML and Text) from our "
+"`Gitea repository <https://git.quad4.io/LXMFy/LXMFy>`_."
+msgstr ""
+"Получите последнюю версию документации LXMFy (PDF, EPUB, HTML и Text) из "
+"нашего `репозитория на Gitea <https://git.quad4.io/LXMFy/LXMFy>`_."
+
+#: ../../source/index.rst:12
+msgid "Languages"
+msgstr "Языки"
+
+#: ../../source/index.rst:14
+msgid "This documentation is available in the following languages:"
+msgstr "Эта документация доступна на следующих языках:"
+
+#: ../../source/index.rst:16
+#, fuzzy
+msgid "`English <index.html>`_"
+msgstr "* `English <index.html>`_"
+
+#: ../../source/index.rst:17
+#, fuzzy
+msgid "`Русский <ru/index.html>`_"
+msgstr "* `Русский <ru/index.html>`_"

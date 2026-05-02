@@ -1,0 +1,200 @@
+name: Build Documentation
+
+on:
+  push:
+    branches: [ master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: ./docs
+
+    steps:
+    - uses: https://git.quad4.io/actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+    - name: Set up Python
+      uses: https://git.quad4.io/actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548
+      with:
+        python-version: '3.13'
+
+    - name: Install Poetry
+      run: |
+        curl -sSL https://install.python-poetry.org | python3 -
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Configure Poetry
+      run: |
+        poetry config virtualenvs.create true
+        poetry config virtualenvs.in-project true
+
+    - name: Load cached venv
+      id: cached-poetry-dependencies
+      uses: https://git.quad4.io/actions/cache@2f8e54208210a422b2efd51efaa6bd6d7ca8920f
+      with:
+        path: .venv
+        key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+
+    - name: Install dependencies
+      run: poetry install --with dev --no-interaction --no-root
+
+    - name: Install LaTeX
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y texlive-latex-recommended texlive-fonts-recommended texlive-extra-utils texlive-latex-extra texlive-latex-base
+        sudo apt-get install -y latexmk
+
+    - name: Get supported languages
+      id: languages
+      run: |
+        # Default language is English (no suffix)
+        languages="en"
+        # Add other languages found in locales directory
+        if [ -d "./locales" ]; then
+          for lang_dir in ./locales/*/; do
+            if [ -d "$lang_dir" ]; then
+              lang=$(basename "$lang_dir")
+              languages="$languages $lang"
+            fi
+          done
+        fi
+        echo "languages=$languages" >> $GITHUB_OUTPUT
+        echo "Found languages: $languages"
+
+    - name: Build documentation for all languages
+      run: |
+        languages="${{ steps.languages.outputs.languages }}"
+        echo "Building documentation for languages: $languages"
+
+        for lang in $languages; do
+          echo "Building documentation for language: $lang"
+
+          # Build HTML
+          if [ "$lang" = "en" ]; then
+            echo "Building English HTML..."
+            poetry run make html
+          else
+            echo "Building $lang HTML..."
+            poetry run make html-$lang
+          fi
+
+          # Build EPUB
+          if [ "$lang" = "en" ]; then
+            echo "Building English EPUB..."
+            poetry run make epub
+          else
+            echo "Building $lang EPUB..."
+            poetry run make epub-$lang
+          fi
+
+          # Build PDF (with error handling)
+          if [ "$lang" = "en" ]; then
+            echo "Building English PDF..."
+            poetry run make latexpdf || echo "English PDF build failed, continuing without PDF"
+          else
+            echo "Building $lang PDF..."
+            poetry run make latexpdf-$lang || echo "$lang PDF build failed, continuing without PDF"
+          fi
+
+          # Build text
+          if [ "$lang" = "en" ]; then
+            echo "Building English text..."
+            poetry run make text
+          else
+            echo "Building $lang text..."
+            poetry run make text-$lang
+          fi
+        done
+
+    - name: Create release archives
+      run: |
+        mkdir -p releases
+
+        # Get supported languages (same logic as before)
+        languages="en"
+        if [ -d "./locales" ]; then
+          for lang_dir in ./locales/*/; do
+            if [ -d "$lang_dir" ]; then
+              lang=$(basename "$lang_dir")
+              languages="$languages $lang"
+            fi
+          done
+        fi
+
+        echo "Creating archives for languages: $languages"
+
+        for lang in $languages; do
+          echo "Creating archives for language: $lang"
+
+          # Copy HTML builds
+          if [ "$lang" = "en" ]; then
+            cp -r build/html releases/html 2>/dev/null || echo "No English HTML found"
+          else
+            cp -r build/html/$lang releases/html-$lang 2>/dev/null || echo "No $lang HTML found"
+          fi
+
+          # Copy EPUB builds
+          if [ "$lang" = "en" ]; then
+            cp build/epub/*.epub releases/ 2>/dev/null || echo "No English EPUB files found"
+          else
+            cp build/epub/$lang/*.epub releases/ 2>/dev/null || echo "No $lang EPUB files found"
+          fi
+
+          # Copy PDF builds
+          if [ "$lang" = "en" ]; then
+            cp build/latex/*.pdf releases/ 2>/dev/null || echo "No English PDF files found"
+          else
+            cp build/latex/$lang/*.pdf releases/ 2>/dev/null || echo "No $lang PDF files found"
+          fi
+
+          # Copy text builds
+          if [ "$lang" = "en" ]; then
+            cp -r build/text releases/text 2>/dev/null || echo "No English text found"
+          else
+            cp -r build/text/$lang releases/text-$lang 2>/dev/null || echo "No $lang text found"
+          fi
+        done
+
+        cd releases
+
+        # Create archives for each language and format
+        for lang in $languages; do
+          echo "Creating archives for language: $lang"
+
+          # HTML archives
+          if [ -d "html${lang:+-$lang}" ]; then
+            tar -czf lxmfy-docs-html${lang:+-${lang}}-$(date +%Y%m%d).tar.gz html${lang:+-$lang}/
+          fi
+
+          # Text archives
+          if [ -d "text${lang:+-$lang}" ]; then
+            tar -czf lxmfy-docs-text${lang:+-${lang}}-$(date +%Y%m%d).tar.gz text${lang:+-$lang}/
+          fi
+        done
+
+        ls -la
+
+    - name: Set release variables
+      id: release_vars
+      run: |
+        echo "tag_name=docs-$(date +%Y%m%d)" >> $GITHUB_OUTPUT
+        echo "release_name=$(date +%Y-%m-%d)" >> $GITHUB_OUTPUT
+
+    - name: Create Release
+      uses: https://git.quad4.io/actions/action-gh-release@6cbd405e2c4e67a21c47fa9e383d020e4e28b836
+      with:
+        tag_name: ${{ steps.release_vars.outputs.tag_name }}
+        name: ${{ steps.release_vars.outputs.release_name }}
+        files: |
+          docs/releases/*.epub
+          docs/releases/*.pdf
+          docs/releases/*.tar.gz
+        make_latest: false
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

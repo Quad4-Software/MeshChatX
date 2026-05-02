@@ -1,0 +1,74 @@
+name: Create Release
+
+# This workflow creates releases:
+# 1. Build packages
+# 2. Create Gitea release with all artifacts atomically
+# This ensures releases cannot be modified once published.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 0.6.8)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout
+      uses: https://git.quad4.io/actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      with:
+        persist-credentials: false
+
+    - name: Set up Python
+      uses: https://git.quad4.io/actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v5
+      with:
+        python-version: "3.13"
+
+    - name: Install build and twine
+      run: python3 -m pip install build twine --user
+
+    - name: Build a binary wheel and a source tarball
+      run: python3 -m build
+
+    - name: Generate SHA256 checksums
+      run: |
+        sha256sum dist/*.tar.gz dist/*.whl | sed 's|dist/||g' > dist/SHA256SUMS
+        echo "### SHA256 Checksums" > release_notes.md
+        echo '```' >> release_notes.md
+        cat dist/SHA256SUMS >> release_notes.md
+        echo '```' >> release_notes.md
+
+    - name: Publish to Gitea PyPI registry
+      run: python3 -m twine upload --repository-url ${{ github.server_url }}/api/packages/${{ github.repository_owner }}/pypi -u ${{ secrets.REGISTRY_USERNAME }} -p ${{ secrets.REGISTRY_PASSWORD }} dist/*.tar.gz dist/*.whl
+      continue-on-error: true
+
+    - name: Publish to PyPI
+      env:
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+      run: python3 -m twine upload dist/*.tar.gz dist/*.whl
+      continue-on-error: true
+
+    - name: Create Gitea Release with artifacts
+      uses: https://git.quad4.io/actions/gitea-release-action@4875285c0950474efb7ca2df55233c51333eeb74
+      with:
+        tag_name: ${{ inputs.version || github.ref_name }}
+        name: Release ${{ inputs.version || github.ref_name }}
+        body_path: release_notes.md
+        files: |
+          dist/*.tar.gz
+          dist/*.whl
+          dist/SHA256SUMS

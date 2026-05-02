@@ -1,0 +1,30 @@
+name: Bearer
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  rule_check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: https://git.quad4.io/actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744  # v3
+      - name: Bearer
+        uses: https://git.quad4.io/actions/bearer-action@828eeb928ce2f4a7ca5ed57fb8b59508cb8c79bc  # v2
+        with:
+          format: sarif
+          output: results.sarif
+          exit-code: 0
+      - name: Upload SARIF results
+        if: always()
+        uses: https://git.quad4.io/actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5  # v3
+        with:
+          name: bearer-sarif-results
+          path: results.sarif
