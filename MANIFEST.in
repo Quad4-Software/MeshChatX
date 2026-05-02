@@ -1,3 +1,4 @@
+graft vendor
 recursive-include meshchatx/public *
 recursive-exclude meshchatx/public/repository-server-bundled *
 recursive-include meshchatx/src/backend *

@@ -133,13 +133,64 @@ def _python_roots_from_pyproject(repo_root: Path) -> tuple[str, ...]:
     return tuple(sorted(set(names), key=lambda n: n.lower()))
 
 
+def _bundled_lxmfy_license_row(repo_root: Path) -> dict[str, Any] | None:
+    if _dist_for_requirement_name("lxmfy") is not None:
+        return None
+    vp = repo_root / "vendor" / "lxmfy" / "pyproject.toml"
+    if not vp.is_file():
+        return None
+    try:
+        with vp.open("rb") as f:
+            data = tomllib.load(f)
+    except OSError:
+        return None
+    proj = data.get("project")
+    if not isinstance(proj, dict):
+        return None
+    name = proj.get("name")
+    if name != "lxmfy":
+        return None
+    version = proj.get("version")
+    version_s = version.strip() if isinstance(version, str) and version.strip() else "—"
+    author = "—"
+    authors = proj.get("authors")
+    if isinstance(authors, list) and authors:
+        first = authors[0]
+        if isinstance(first, dict):
+            an = (first.get("name") or "").strip()
+            ae = (first.get("email") or "").strip()
+            if an and ae:
+                author = f"{an} <{ae}>"
+            elif an or ae:
+                author = an or ae
+    lic = proj.get("license")
+    license_s = lic.strip() if isinstance(lic, str) and lic.strip() else "—"
+    return {
+        "name": "lxmfy",
+        "version": version_s,
+        "author": author,
+        "license": license_s,
+    }
+
+
+def _merge_bundled_lxmfy(repo_root: Path, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    if any(str(r.get("name") or "").lower() == "lxmfy" for r in rows):
+        return rows
+    row = _bundled_lxmfy_license_row(repo_root)
+    if row is None:
+        return rows
+    merged = [*rows, row]
+    merged.sort(key=lambda r: str(r.get("name", "")).lower())
+    return merged
+
+
 def collect_backend_licenses() -> list[dict[str, Any]]:
+    repo = _repo_root()
     for root in _ROOT_DIST_CANDIDATES:
         if _dist_for_requirement_name(root) is not None:
-            return _collect_python_transitive((root,))
-    repo = _repo_root()
+            return _merge_bundled_lxmfy(repo, _collect_python_transitive((root,)))
     roots = _python_roots_from_pyproject(repo)
-    return _collect_python_transitive(roots)
+    return _merge_bundled_lxmfy(repo, _collect_python_transitive(roots))
 
 
 def _license_from_package_json(data: dict[str, Any]) -> str:

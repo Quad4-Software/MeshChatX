@@ -22,7 +22,6 @@ classifiers = [
 dependencies = [
   "aiohttp>=3.13.3",
   "lxmf>=0.9.6",
-  "lxmfy @ git+https://git.quad4.io/LXMFy/LXMFy.git",
   "psutil>=7.2.2",
   "bleak==3.0.1",
   "rns>=1.2.0",
@@ -42,16 +41,19 @@ dependencies = [
 meshchatx = "meshchatx.meshchat:main"
 meshchat = "meshchatx.meshchat:main"
 meshchatx-repository-http = "meshchatx.repository_http_standalone:main"
+lxmfy = "lxmfy.cli:main"
 
 [project.urls]
 Homepage = "https://git.quad4.io/RNS-Things/MeshChatX"
 
 [tool.poetry]
-packages = [{include = "meshchatx"}]
+packages = [
+  {include = "meshchatx"},
+  {include = "lxmfy", from = "vendor/lxmfy"},
+]
 
 [tool.poetry.dependencies]
 python = ">=3.11"
-lxmfy = {git = "https://git.quad4.io/LXMFy/LXMFy.git"}
 lxst = ">=0.4.6"
 
 [tool.poetry.group.dev.dependencies]
@@ -70,8 +72,9 @@ pytest-xdist = "^3.8.0"
 path = "logo"
 
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["meshchatx*"]
+where = [".", "vendor/lxmfy"]
+include = ["meshchatx*", "lxmfy*"]
+exclude = ["tests*"]
 namespaces = false
 
 [tool.setuptools.package-data]
@@ -92,6 +95,7 @@ exclude = [
     "venv",
     ".venv",
     "tests/frontend",
+    "vendor",
 ]
 
 [tool.ruff.lint]

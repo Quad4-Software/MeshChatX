@@ -1,5 +1,5 @@
 Reticulum MeshChatX - Third-party notices
-Generated at: 2026-04-27T17:37:14.375034Z
+Generated at: 2026-05-02T10:21:04.500382Z
 Frontend source: node_modules
 
 Python dependencies
@@ -25,12 +25,18 @@ audioop-lts 0.2.2
 bcrypt 5.0.0
   License: Apache-2.0
   Author: The Python Cryptographic Authority developers <cryptography-dev@python.org>
+bleak 3.0.1
+  License: MIT
+  Author: Henrik Blidh
 cffi 2.0.0
   License: MIT
   Author: Armin Rigo, Maciej Fijalkowski
 cryptography 46.0.7
   License: Apache-2.0 OR BSD-3-Clause
   Author: The Python Cryptographic Authority and individual contributors <cryptography-dev@python.org>
+dbus-fast 4.0.4
+  License: MIT
+  Author: Bluetooth Devices Authors
 frozenlist 1.8.0
   License: Apache-2.0
   Author: aiohttp team <team@aiohttp.org>
@@ -45,11 +51,11 @@ lxmf 0.9.6
   Author: Mark Qvist
 lxmfy 1.6.2
   License: BSD-0-Clause
-  Author: Quad4
+  Author: Quad4 <team@quad4.io>
 lxst 0.4.6
   License: Other/Proprietary License
   Author: Mark Qvist
-miniaudio 1.70
+miniaudio 1.71
   License: MIT
   Author: Irmen de Jong <irmen@razorvine.net>
 multidict 6.7.1
@@ -79,7 +85,7 @@ pyserial 3.5
 reticulum-meshchatx 4.6.0
   License: 0BSD AND MIT
   Author: Quad4
-rns 1.1.9
+rns 1.2.0
   License: Reticulum License
   Author: Mark Qvist
 websockets 16.0

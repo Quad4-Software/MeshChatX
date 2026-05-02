@@ -1392,26 +1392,6 @@ files = [
 rns = ">=1.1.9"
 
 [[package]]
-name = "lxmfy"
-version = "1.6.2"
-description = "LXMF bot framework for creating bots for the Reticulum Network"
-optional = false
-python-versions = ">=3.11"
-groups = ["main"]
-files = []
-develop = false
-
-[package.dependencies]
-lxmf = ">=0.9.4"
-rns = ">=1.1.5"
-
-[package.source]
-type = "git"
-url = "https://git.quad4.io/LXMFy/LXMFy.git"
-reference = "HEAD"
-resolved_reference = "e63654d2d2cf5241927ca0e53ac455f027cca84e"
-
-[[package]]
 name = "lxst"
 version = "0.4.6"
 description = "Lightweight Extensible Signal Transport for Reticulum"
@@ -3396,4 +3376,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11"
-content-hash = "c1815b412d1367b06a5689a9d2eb34f993d3ff1f6f8eafe242e7270177762077"
+content-hash = "2790502557b4ff52072462dd3e125af028cc4ea1dba26a19af03ee7445ef2416"
