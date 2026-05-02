@@ -98,6 +98,57 @@ describe("MicronParser.js", () => {
             expect(html).toContain("background-color: rgb(153, 153, 153)"); // #999
         });
 
+        it("handles bare headings without adding extra lines", () => {
+            // Bare headings are headings without content after them on the same line
+            // They should not insert extra blank lines
+            const markup = `>Anonymous Git Node
+
+>>
+\`[Node\`:/page/index.mu] / \`[public\`:/page/group.mu\`g=public] / LXMF
+
+>LXMF - \`*A simple messaging format\`*
+>>
+
+\`[Files\`:/page/tree.mu] \`[Commits\`:/page/commits.mu]`;
+            const html = parser.convertMicronToHtml(markup);
+
+            // All content should be present
+            expect(html).toContain("Anonymous Git Node");
+            expect(html).toContain("Node");
+            expect(html).toContain("public");
+            expect(html).toContain("LXMF");
+            expect(html).toContain("A simple messaging format");
+            expect(html).toContain("Files");
+            expect(html).toContain("Commits");
+
+            // Verify no consecutive <br><br> patterns that would indicate extra lines
+            // from bare headings (normalize HTML first)
+            const normalized = html.replace(/>\s+</g, "><");
+            expect(normalized).not.toContain("<br><br><br>");
+        });
+
+        it("handles nested bare headings with section indents", () => {
+            // Multiple nested bare headings should apply section indentation correctly
+            const markup = `>Section A
+>>>
+Content at depth 3
+
+>>Section B
+>
+Content at depth 1`;
+            const html = parser.convertMicronToHtml(markup);
+
+            expect(html).toContain("Section A");
+            expect(html).toContain("Section B");
+            expect(html).toContain("Content at depth 3");
+            expect(html).toContain("Content at depth 1");
+
+            // Check for section indentation via inline margin styles (2.4em = 2 levels * 1.2em per level)
+            expect(html).toContain("margin-left: 2.4em");
+            // Content after Section B should be at depth 1 (1.2em margin)
+            expect(html).toContain("margin-left: 1.2em");
+        });
+
         it("converts horizontal dividers", () => {
             const markup = "-";
             const html = parser.convertMicronToHtml(markup);

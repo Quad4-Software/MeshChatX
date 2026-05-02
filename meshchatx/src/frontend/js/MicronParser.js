@@ -460,6 +460,38 @@ export default class MicronParser extends BaseMicronParser {
         return super.parseLine(line, state);
     }
 
+    wrapWord(word) {
+        if (word.length === 0) return "";
+        if (!MicronParser.lineNeedsPerCharCells(word)) {
+            return "<span class='Mu-mnt-group'>" + escapeHtmlForFallback(word) + "</span>";
+        }
+        let out = "";
+        let charArr;
+        try {
+            charArr = [...new Intl.Segmenter().segment(word)].map((x) => x.segment);
+        } catch {
+            try {
+                charArr = Array.from(word);
+            } catch {
+                charArr = word.split("");
+            }
+        }
+        for (let char of charArr) {
+            const cellClass = MicronParser.isWideMonospaceCell(char) ? "Mu-mnt-full" : "Mu-mnt";
+            out += "<span class='" + cellClass + "'>" + escapeHtmlForFallback(char) + "</span>";
+        }
+        return "<span class='Mu-mws'>" + out + "</span>";
+    }
+
+    splitAtSpaces(line) {
+        let out = "";
+        const wordArr = line.split(/(?<= )/g);
+        for (const word of wordArr) {
+            out += this.wrapWord(word);
+        }
+        return out;
+    }
+
     forceMonospace(line) {
         if (line == null || line === "") {
             return "";
