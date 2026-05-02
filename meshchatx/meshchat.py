@@ -6341,6 +6341,8 @@ class ReticulumMeshChat:
                         "config": self.get_config_dict(),
                     },
                 )
+            except ValueError as e:
+                return web.json_response({"message": str(e)}, status=400)
             except Exception:
                 import traceback
 
@@ -8178,13 +8180,33 @@ class ReticulumMeshChat:
 
             # get request data
             data = await request.json()
-            display_name = data.get("display_name")
+            raw_name = data.get("display_name")
+            if raw_name is None:
+                display_name = ""
+            elif isinstance(raw_name, str):
+                display_name = raw_name.strip()
+            else:
+                display_name = str(raw_name).strip()
+
+            favourite = self.database.announces.get_favourite_by_destination_hash(
+                destination_hash,
+            )
+            if favourite is None:
+                return web.json_response(
+                    {"message": "Favourite not found"},
+                    status=404,
+                )
 
             # update display name if provided
             if len(display_name) > 0:
                 self.database.announces.upsert_custom_display_name(
                     destination_hash,
                     display_name,
+                )
+                self.database.announces.upsert_favourite(
+                    destination_hash,
+                    display_name,
+                    favourite["aspect"],
                 )
 
             return web.json_response(
@@ -9484,6 +9506,7 @@ class ReticulumMeshChat:
             target_lang = data.get("target_lang", "")
             use_argos = bool(data.get("use_argos", False))
             libretranslate_url = data.get("libretranslate_url")
+            libretranslate_api_key = data.get("libretranslate_api_key")
 
             if not text:
                 return web.json_response(
@@ -9504,6 +9527,7 @@ class ReticulumMeshChat:
                     target_lang=target_lang,
                     use_argos=use_argos,
                     libretranslate_url=libretranslate_url,
+                    libretranslate_api_key=libretranslate_api_key,
                 )
                 return web.json_response(result)
             except ValueError as e:
@@ -9645,6 +9669,30 @@ class ReticulumMeshChat:
             try:
                 success = self.bot_handler.delete_bot(bot_id)
                 return web.json_response({"success": success})
+            except Exception as e:
+                return web.json_response(
+                    {"message": str(e)},
+                    status=500,
+                )
+
+        @routes.get("/api/v1/bots/subprocess-log")
+        async def bots_subprocess_log(request):
+            bot_id = request.query.get("bot_id")
+
+            if not bot_id:
+                return web.json_response(
+                    {"message": "bot_id is required"},
+                    status=400,
+                )
+
+            try:
+                result = self.bot_handler.read_subprocess_log(bot_id)
+                return web.json_response(result)
+            except ValueError as e:
+                return web.json_response(
+                    {"message": str(e)},
+                    status=404,
+                )
             except Exception as e:
                 return web.json_response(
                     {"message": str(e)},
@@ -13171,6 +13219,21 @@ class ReticulumMeshChat:
             if hasattr(self, "translator_handler"):
                 self.translator_handler.libretranslate_url = value
 
+        if "libretranslate_api_key" in data:
+            from meshchatx.src.backend.translator_handler import (
+                _normalize_optional_libretranslate_api_key,
+            )
+
+            raw = data["libretranslate_api_key"]
+            if raw is None or raw == "":
+                norm = None
+            else:
+                norm = _normalize_optional_libretranslate_api_key(str(raw))
+
+            self.config.libretranslate_api_key.set(norm)
+            if hasattr(self, "translator_handler"):
+                self.translator_handler.libretranslate_api_key = norm
+
         # send config to websocket clients
         await self.send_config_to_websocket_clients()
 
@@ -14292,6 +14355,7 @@ class ReticulumMeshChat:
             "translator_argos_enabled": ctx.config.translator_argos_enabled.get(),
             "translator_libretranslate_enabled": ctx.config.translator_libretranslate_enabled.get(),
             "libretranslate_url": ctx.config.libretranslate_url.get(),
+            "libretranslate_api_key": ctx.config.libretranslate_api_key.get(),
             "desktop_open_calls_in_separate_window": ctx.config.desktop_open_calls_in_separate_window.get(),
             "desktop_hardware_acceleration_enabled": ctx.config.desktop_hardware_acceleration_enabled.get(),
             "blackhole_integration_enabled": ctx.config.blackhole_integration_enabled.get(),
