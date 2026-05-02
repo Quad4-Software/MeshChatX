@@ -91,6 +91,7 @@ export function buildFullServerConfig(overrides = {}) {
         translator_argos_enabled: false,
         translator_libretranslate_enabled: false,
         libretranslate_url: "http://localhost:5000",
+        libretranslate_api_key: null,
         desktop_open_calls_in_separate_window: false,
         desktop_hardware_acceleration_enabled: true,
         blackhole_integration_enabled: true,

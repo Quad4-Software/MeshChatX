@@ -365,7 +365,7 @@ describe("ConversationViewer.vue button interactions", () => {
                 "/api/v1/translator/translate",
                 expect.objectContaining({
                     text: "hello",
-                    source_lang: "en",
+                    source_lang: "auto",
                     target_lang: "de",
                     use_argos: true,
                 })

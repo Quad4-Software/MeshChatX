@@ -68,6 +68,8 @@ class TestTranslatorHandler(unittest.TestCase):
         result = self.handler.translate_text("Hello", "en", "de", use_argos=False)
         self.assertEqual(result["translated_text"], "Hallo")
         self.assertEqual(result["source"], "libretranslate")
+        body = mock_session.post.call_args.kwargs.get("json")
+        self.assertNotIn("api_key", body)
 
 
 if __name__ == "__main__":

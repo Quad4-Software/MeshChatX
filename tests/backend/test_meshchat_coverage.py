@@ -73,6 +73,38 @@ async def test_update_config_theme(mock_app):
     mock_app.config.theme.set.assert_called_with("dark")
 
 
+@pytest.mark.asyncio
+async def test_update_config_libretranslate_api_key(mock_app):
+    mock_app.send_config_to_websocket_clients = MagicMock(return_value=asyncio.Future())
+    mock_app.send_config_to_websocket_clients.return_value.set_result(None)
+    mock_app.config.libretranslate_api_key = MagicMock()
+    mock_app.translator_handler = MagicMock()
+    await mock_app.update_config({"libretranslate_api_key": " sek "})
+    mock_app.config.libretranslate_api_key.set.assert_called_once_with("sek")
+    assert mock_app.translator_handler.libretranslate_api_key == "sek"
+
+
+@pytest.mark.asyncio
+async def test_update_config_libretranslate_api_key_empty_clears(mock_app):
+    mock_app.send_config_to_websocket_clients = MagicMock(return_value=asyncio.Future())
+    mock_app.send_config_to_websocket_clients.return_value.set_result(None)
+    mock_app.config.libretranslate_api_key = MagicMock()
+    mock_app.translator_handler = MagicMock()
+    await mock_app.update_config({"libretranslate_api_key": ""})
+    mock_app.config.libretranslate_api_key.set.assert_called_once_with(None)
+    assert mock_app.translator_handler.libretranslate_api_key is None
+
+
+@pytest.mark.asyncio
+async def test_update_config_libretranslate_api_key_length_limit(mock_app):
+    mock_app.send_config_to_websocket_clients = MagicMock(return_value=asyncio.Future())
+    mock_app.send_config_to_websocket_clients.return_value.set_result(None)
+    mock_app.config.libretranslate_api_key = MagicMock()
+    mock_app.translator_handler = MagicMock()
+    with pytest.raises(ValueError):
+        await mock_app.update_config({"libretranslate_api_key": "z" * 513})
+
+
 def test_get_config_dict_no_context(mock_app):
     mock_app.current_context = None
     assert mock_app.get_config_dict() == {}
@@ -149,6 +181,7 @@ def test_get_config_dict_basic(mock_app):
         "translator_argos_enabled",
         "translator_libretranslate_enabled",
         "libretranslate_url",
+        "libretranslate_api_key",
         "desktop_open_calls_in_separate_window",
         "desktop_hardware_acceleration_enabled",
         "blackhole_integration_enabled",

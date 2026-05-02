@@ -141,3 +141,16 @@ def test_get_announce_count_by_aspect(announce_dao):
     assert announce_dao.get_announce_count_by_aspect("lxmf.delivery") == 2
     assert announce_dao.get_announce_count_by_aspect("nomadnetwork.node") == 1
     assert announce_dao.get_announce_count_by_aspect("lxmf.propagation") == 0
+
+
+def test_get_favourite_by_destination_hash(announce_dao):
+    assert announce_dao.get_favourite_by_destination_hash("missing") is None
+    announce_dao.upsert_favourite("dh1", "Original", "nomadnetwork.node")
+    row = announce_dao.get_favourite_by_destination_hash("dh1")
+    assert row["destination_hash"] == "dh1"
+    assert row["display_name"] == "Original"
+    assert row["aspect"] == "nomadnetwork.node"
+    announce_dao.upsert_custom_display_name("dh1", "Renamed")
+    announce_dao.upsert_favourite("dh1", "Renamed", row["aspect"])
+    row2 = announce_dao.get_favourite_by_destination_hash("dh1")
+    assert row2["display_name"] == "Renamed"
