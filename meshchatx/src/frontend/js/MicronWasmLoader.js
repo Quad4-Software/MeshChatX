@@ -6,6 +6,33 @@
 
 let resolvedPromise = null;
 
+/** Injects CSS required for ForceMonospace mode when using WASM. Safe to call multiple times. */
+function injectMicronWasmStyles() {
+    if (document.getElementById("micron-wasm-monospace-styles")) {
+        return;
+    }
+    const styleEl = document.createElement("style");
+    styleEl.id = "micron-wasm-monospace-styles";
+    styleEl.textContent = `
+        .Mu-nl {
+            cursor: pointer;
+        }
+        .Mu-mnt {
+            display: inline-block;
+            min-width: 1ch;
+            text-align: center;
+            white-space: pre;
+            text-decoration: inherit;
+            font-variant-numeric: tabular-nums;
+        }
+        .Mu-mws {
+            text-decoration: inherit;
+            display: inline;
+        }
+    `;
+    document.head.appendChild(styleEl);
+}
+
 /** True when WASM artifacts were present at Vite build time (not runtime probing). */
 export function isMicronWasmBundled() {
     if (typeof globalThis !== "undefined" && typeof globalThis.__MESHCHATX_TEST_MICRON_WASM_BUNDLED__ === "boolean") {
@@ -76,13 +103,16 @@ export function preloadNomadMicronWasm() {
         return Promise.resolve(false);
     }
     if (typeof globalThis.micronConvert === "function") {
+        injectMicronWasmStyles();
         return Promise.resolve(true);
     }
     if (resolvedPromise === null) {
         resolvedPromise = (async () => {
             try {
                 await instantiateOnce();
-                return typeof globalThis.micronConvert === "function";
+                const ok = typeof globalThis.micronConvert === "function";
+                if (ok) injectMicronWasmStyles();
+                return ok;
             } catch (e) {
                 console.warn(e);
                 resolvedPromise = null;
