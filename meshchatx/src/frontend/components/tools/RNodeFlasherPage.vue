@@ -372,14 +372,57 @@ export default {
             }
             this.refreshCapabilities();
         },
-        _loadScript(src) {
+        async _loadScript(src) {
+            // Fetch and verify SRI before injecting
+            const integrity = this._rnodeIntegrity || (await this._loadRnodeIntegrity());
+            const pathParts = src.split("/");
+            const filename = pathParts.slice(-2).join("/"); // e.g., "zip.min.js" or "crypto-js@3.9.1-1/core.js"
+            const expectedHash = integrity?.[filename];
+
+            if (!expectedHash) {
+                throw new Error(`RNode: SRI hash missing for ${filename}. Refusing to load untrusted code.`);
+            }
+
+            const res = await fetch(src);
+            if (!res.ok) {
+                throw new Error(`RNode: failed to fetch ${src} (${res.status})`);
+            }
+            const buf = await res.arrayBuffer();
+            const hash = await crypto.subtle.digest("SHA-384", buf);
+            const actualHash = "sha384-" + btoa(String.fromCharCode(...new Uint8Array(hash)));
+            if (actualHash !== expectedHash) {
+                throw new Error(`RNode: SRI hash mismatch for ${filename}. Possible tampering detected.`);
+            }
+
+            // Inject verified content as blob
+            const blob = new Blob([buf], { type: "application/javascript" });
+            const blobUrl = URL.createObjectURL(blob);
             return new Promise((resolve, reject) => {
                 const script = document.createElement("script");
-                script.src = src;
-                script.onload = resolve;
-                script.onerror = reject;
+                script.src = blobUrl;
+                script.onload = () => {
+                    URL.revokeObjectURL(blobUrl);
+                    resolve();
+                };
+                script.onerror = () => {
+                    URL.revokeObjectURL(blobUrl);
+                    reject(new Error(`Failed to load ${src}`));
+                };
                 document.head.appendChild(script);
             });
+        },
+        async _loadRnodeIntegrity() {
+            if (this._rnodeIntegrity) return this._rnodeIntegrity;
+            try {
+                const res = await fetch("/rnode-flasher/js/integrity.json");
+                if (!res.ok) throw new Error("Failed to load integrity.json");
+                const data = await res.json();
+                this._rnodeIntegrity = data.files || {};
+                return this._rnodeIntegrity;
+            } catch (e) {
+                console.error("RNode: Failed to load integrity hashes:", e);
+                throw e;
+            }
         },
         async _openTransport() {
             if (this.connectionMethod === TRANSPORT_SERIAL) {

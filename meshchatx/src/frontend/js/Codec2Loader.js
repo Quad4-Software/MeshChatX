@@ -9,8 +9,41 @@ const codec2ScriptPaths = [
 
 let loadPromise = null;
 let resolvedOk = false;
+let integrityHashes = null;
 
-function injectScript(src) {
+/** Computes SHA-384 hash of ArrayBuffer for SRI verification. */
+async function computeSriHash(buf) {
+    const hash = await crypto.subtle.digest("SHA-384", buf);
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(hash)));
+    return `sha384-${base64}`;
+}
+
+/** Loads integrity.json. Returns null if not available. */
+async function loadIntegrityHashes() {
+    if (integrityHashes !== null) return integrityHashes;
+    try {
+        const res = await fetch("/assets/js/codec2-emscripten/integrity.json");
+        if (!res.ok) return null;
+        const data = await res.json();
+        integrityHashes = data.files || {};
+        return integrityHashes;
+    } catch {
+        return null;
+    }
+}
+
+/** Verifies SRI hash. Throws if mismatch or missing when required. */
+async function verifySri(buf, expectedHash, name) {
+    if (!expectedHash) {
+        throw new Error(`Codec2: SRI hash missing for ${name}. Refusing to load untrusted code.`);
+    }
+    const actualHash = await computeSriHash(buf);
+    if (actualHash !== expectedHash) {
+        throw new Error(`Codec2: SRI hash mismatch for ${name}. Possible tampering detected.`);
+    }
+}
+
+async function injectScript(src) {
     if (typeof document === "undefined") {
         return Promise.resolve();
     }
@@ -29,16 +62,34 @@ function injectScript(src) {
         });
     }
 
+    // Fetch, verify SRI, then inject as blob
+    const integrity = await loadIntegrityHashes();
+    const filename = src.split("/").pop();
+    const expectedHash = integrity?.[filename];
+
+    const res = await fetch(src);
+    if (!res.ok) {
+        throw new Error(`Codec2: failed to fetch ${src} (${res.status})`);
+    }
+    const buf = await res.arrayBuffer();
+    await verifySri(buf, expectedHash, filename);
+
+    // Create blob URL for verified content
+    const blob = new Blob([buf], { type: "application/javascript" });
+    const blobUrl = URL.createObjectURL(blob);
+
     return new Promise((resolve, reject) => {
         const script = document.createElement("script");
-        script.src = src;
+        script.src = blobUrl;
         script.async = false;
         script.setAttribute(attrName, src);
         script.addEventListener("load", () => {
+            URL.revokeObjectURL(blobUrl);
             script.setAttribute(loadedAttr, "true");
             resolve();
         });
         script.addEventListener("error", () => {
+            URL.revokeObjectURL(blobUrl);
             script.remove();
             reject(new Error(`Failed to load ${src}`));
         });

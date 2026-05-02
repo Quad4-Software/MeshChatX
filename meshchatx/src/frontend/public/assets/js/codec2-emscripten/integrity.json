@@ -1,0 +1,15 @@
+{
+  "version": "local",
+  "files": {
+    "c2dec.wasm": "sha384-4zOZs7/jXc1loaji7m+4oob/zkOWTL1sDJMI1YxbBpxYaiMipiF3lwYiAvmWCeir",
+    "c2dec.js": "sha384-rHKNP761F8BDKgj24VSzJO/rdm9usDJKoHjdIOKt83hS4IcZKJau6XDgZXuiZCA8",
+    "c2enc.wasm": "sha384-1EVNLUcps00Ihe9cR40JaZd73jnJRtQjS9e6zUVOd4tni7/BwcwV9oouj/CPgA8N",
+    "c2enc.js": "sha384-Rrnbr/tbCaDiL1n14+MccgIw0Cef+yrpbdYythu5/PkpzZhsVc+9Fle0WyT+7AWc",
+    "sox.wasm": "sha384-NMa5LHokdsVBdaUPlK1jnsSQ1nmgAnf8POPAwFpRkfjckdBCUSs1RhRd03CHwDAN",
+    "sox.js": "sha384-iSAIvLWRyVYwMrKhVzrmvcCzS5noiipjTxOowhXWkmDW0xFGjLV8YGpppX1qRdum",
+    "codec2-lib.js": "sha384-ts/lRDKjHaqD4pUZeyXI+nMIe75khxJEcORRLiqaJo496FFa1FSkfKzW2lm9RAus",
+    "codec2-microphone-recorder.js": "sha384-dGQR+cfKn/lejCt32+N8EJw94+VwFvTeFILKDo1BOm0R+1qElYCR+jrPHezOEzb9",
+    "processor.js": "sha384-m1JmxQg3+KdNiu25A6ArCGFaaKmN6MzONe+LaphWLPfwXqs8bxD6dWNbehUUG54Y",
+    "wav-encoder.js": "sha384-QToS0oLeqMQo+9wYKkx+pTNlBRZsRKsKplmJB/Plf3LwngxNi+0YFJBkb17aCNIM"
+  }
+}

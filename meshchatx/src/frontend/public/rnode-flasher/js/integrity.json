@@ -1,0 +1,12 @@
+{
+  "version": "local",
+  "files": {
+    "zip.min.js": "sha384-cmZdkDGSIsPVhqU0ukL2jrqMz+w8htEprOs0cRQQqpOyXa+KQaFMYjioMb10W9IU",
+    "crypto-js@3.9.1-1/core.js": "sha384-jol9z4ZPGPDmUbsnDIVZFMN/LePaZZosij//98kSSqhMfSW8492HUOcStDqmJgQb",
+    "crypto-js@3.9.1-1/md5.js": "sha384-dkDpdL8rWfdl9pDjG0LmtTQhCkkzhhwt/32QdshNFJzIv3bFKcGg1P9O3bmj3e06",
+    "esptool-js@0.4.5/bundle.js": "sha384-oSX6xrk2dnf+rpEk51E6dJPAZnQaIGGyXqpUMTOI+/zy4EQTPcWAyd7GKuRu7dhu",
+    "nrf52_dfu_flasher.js": "sha384-w+piNnfdIh7UW5SxnYqwZoasIVB+45f2ArqYEMryVvJH2ZwmlqF0duPmYQEjQnxy",
+    "rnode.js": "sha384-iagMdctE36S8/4PC8Im2LMu/iQGMc/6jiDOJOM8bn1ILYwXFHoMyS13eeLwFl/Ft",
+    "web-serial-polyfill@1.0.15/dist/serial.js": "sha384-5/ferViMHB357beLZsaH2fUuLpRZlFJTWZBVyF/ZLHEzNOsQofokUthz/nB+T11x"
+  }
+}
