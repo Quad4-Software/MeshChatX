@@ -39,7 +39,16 @@
         "rename_failed": "Не удалось сохранить имя",
         "name_required": "Введите имя",
         "announce_triggered": "Запрос announce отправлен",
-        "announce_failed": "Не удалось запросить announce"
+        "announce_failed": "Не удалось запросить announce",
+        "last_error_heading": "Последняя ошибка",
+        "view_process_log": "Лог процесса (отладка)",
+        "process_log_title": "Лог процесса бота",
+        "process_log_empty": "Для этого бота пока нет вывода в лог.",
+        "process_log_truncated": "Показан только конец лог-файла; файл на диске больше.",
+        "process_log_loading": "Загрузка лога…",
+        "process_log_failed": "Не удалось загрузить лог процесса",
+        "process_log_copied": "Лог скопирован в буфер обмена",
+        "copy_process_log": "Копировать лог"
     },
     "app": {
         "name": "Reticulum MeshChatX",
@@ -898,6 +907,8 @@
         "failed_reload": "Failed to reload Reticulum!",
         "interface_not_found": "The selected interface for editing could not be found.",
         "discovery_settings_saved": "Discovery settings saved",
+        "discovery_list_refreshed": "Список обнаруженных интерфейсов обновлён.",
+        "discovery_list_refresh_failed": "Не удалось обновить список обнаруженных интерфейсов.",
         "discovery_default_bootstrap_only": "По умолчанию только bootstrap для нового исходящего TCP",
         "discovery_default_bootstrap_only_hint": "Новые TCP-клиент и backbone-коннектор получают bootstrap_only, чтобы Reticulum отключил их при достижении autoconnect_discovered_interfaces.",
         "discovery_default_bootstrap_docs_link": "См. раздел о bootstrap-подключении Reticulum.",
@@ -978,7 +989,6 @@
         "uploading": "Загрузка...",
         "upload_success": "Карта успешно загружена",
         "upload_failed": "Ошибка загрузки карты",
-        "no_map_loaded": "Офлайн-карта не загружена. Загрузите файл .mbtiles для включения офлайн-режима.",
         "invalid_file": "Неверный файл MBTiles. Поддерживаются только растровые карты.",
         "default_view": "Вид по умолчанию",
         "set_as_default": "Установить как вид по умолчанию",
@@ -1131,7 +1141,10 @@
         "tx": "TX",
         "rx": "RX",
         "noise": "Шум",
-        "clients": "Клиенты"
+        "clients": "Клиенты",
+        "link_up": "Связь установлена",
+        "link_down": "Нет связи",
+        "link_unknown": "Состояние связи неизвестно"
     },
     "messages": {
         "title": "Сообщения",
@@ -1361,6 +1374,9 @@
         "remove": "Удалить",
         "no_favourites": "Нет избранного",
         "add_nodes_from_announces": "Добавляйте узлы из вкладки анонсов.",
+        "favourites_search_no_results": "Нет избранного по вашему запросу",
+        "favourites_search_try_other": "Попробуйте другой поисковый запрос.",
+        "no_favourites_in_section": "В этом разделе нет избранного.",
         "search_announces": "Поиск анонсов",
         "announced_time_ago": "Анонсировано {time} назад",
         "block_node": "Заблокировать узел",
@@ -1404,7 +1420,19 @@
         "path_finder_archive_loading": "Поиск снимка архива...",
         "export_section_favourites": "Экспорт избранного раздела",
         "section_favourites_exported": "Избранное раздела экспортировано",
-        "section_favourites_export_failed": "Не удалось экспортировать избранное раздела"
+        "section_favourites_export_failed": "Не удалось экспортировать избранное раздела",
+        "sidebar_selection_mode": "Режим выбора",
+        "bulk_selected_count": "Выбрано: {count}",
+        "bulk_remove": "Удалить",
+        "bulk_move_to_section": "Переместить в раздел",
+        "bulk_remove_favourites_confirm": "Удалить {count} избранных с этого устройства?",
+        "bulk_remove_favourites_done": "Удалено избранных: {count}",
+        "bulk_block_confirm": "Изгнать {count} узлов из списка объявлений?",
+        "bulk_block_done": "Изгнано узлов: {count}",
+        "bulk_add_to_favourites": "В избранное",
+        "bulk_add_favourites_done": "Добавлено узлов в избранное: {count}",
+        "bulk_block_nodes": "Изгнать",
+        "bulk_nothing_to_add_favourites": "Нечего добавлять (уже в избранном или нет выбора)"
     },
     "forwarder": {
         "title": "LXMF Форвардер",
@@ -2466,7 +2494,12 @@
         "folders_exported": "Folders exported",
         "failed_export_folders": "Failed to export folders",
         "folders_imported": "Folders and mappings imported successfully",
-        "failed_import_folders": "Failed to import folders"
+        "failed_import_folders": "Failed to import folders",
+        "share_apk_heading": "Поделиться этой установкой",
+        "share_apk_desc": "Отправьте установленный пакет MeshChatX по Bluetooth, Nearby Share или другому приложению. Только в Android-приложении.",
+        "share_apk_short_hint": "Открывает системное меню для отправки этого APK.",
+        "share_apk": "Поделиться приложением (APK)",
+        "share_apk_failed": "Не удалось поделиться APK."
     },
     "debug": {
         "title": "Журнал отладки",

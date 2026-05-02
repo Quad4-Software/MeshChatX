@@ -39,7 +39,16 @@
         "rename_failed": "Kon naam niet opslaan",
         "name_required": "Geef een naam",
         "announce_triggered": "Aanmelding gevraagd",
-        "announce_failed": "Kon niet aankondigen"
+        "announce_failed": "Kon niet aankondigen",
+        "last_error_heading": "Laatste fout",
+        "view_process_log": "Proceslog (debug)",
+        "process_log_title": "Bot-proceslog",
+        "process_log_empty": "Nog geen loguitvoer voor deze bot.",
+        "process_log_truncated": "Alleen het einde van het logbestand wordt getoond; het bestand op schijf is groter.",
+        "process_log_loading": "Log laden…",
+        "process_log_failed": "Proceslog kon niet worden geladen",
+        "process_log_copied": "Log naar klembord gekopieerd",
+        "copy_process_log": "Log kopiëren"
     },
     "app": {
         "name": "Reticulum MeshChatX",
@@ -846,6 +855,8 @@
         "failed_reload": "Herladen van Reticulum is mislukt!",
         "interface_not_found": "De geselecteerde interface voor bewerken kon niet gevonden worden.",
         "discovery_settings_saved": "Opgeslagen zoekinstellingen",
+        "discovery_list_refreshed": "Ontdekte interfaces vernieuwd.",
+        "discovery_list_refresh_failed": "Ontdekte interfaces niet vernieuwd.",
         "discovery_default_bootstrap_only": "Standaard bootstrap-only voor nieuwe uitgaande TCP",
         "discovery_default_bootstrap_only_hint": "Nieuwe TCP-client- (en backbone-connector)interfaces krijgen bootstrap_only zodat Reticulum ze loskoppelt zodra autoconnect_discovered_interfaces is bereikt.",
         "discovery_default_bootstrap_docs_link": "Zie Reticulum bootstrap-connectiviteit.",
@@ -926,7 +937,6 @@
         "uploading": "Uploaden...",
         "upload_success": "Kaart met succes geüpload",
         "upload_failed": "Uploaden van kaart is mislukt",
-        "no_map_loaded": "Geen offline kaart geladen. Upload een .mbtiles bestand om offline modus in te schakelen.",
         "invalid_file": "Ongeldig MBTiles-bestand. Alleen rastertegels worden ondersteund.",
         "default_view": "Standaardweergave",
         "set_as_default": "Als standaardweergave instellen",
@@ -1079,7 +1089,10 @@
         "tx": "TX",
         "rx": "RX",
         "noise": "Geluid",
-        "clients": "Klanten"
+        "clients": "Klanten",
+        "link_up": "Verbinding actief",
+        "link_down": "Geen actieve verbinding",
+        "link_unknown": "Verbindingsstatus onbekend"
     },
     "messages": {
         "title": "Berichten",
@@ -1292,7 +1305,12 @@
         "folders_exported": "Mappen geëxporteerd",
         "failed_export_folders": "Exporteren van mappen is mislukt",
         "folders_imported": "Mappen en mappen succesvol geïmporteerd",
-        "failed_import_folders": "Kon mappen niet importeren"
+        "failed_import_folders": "Kon mappen niet importeren",
+        "share_apk_heading": "Deze installatie delen",
+        "share_apk_desc": "Stuur het geïnstalleerde MeshChatX-pakket via Bluetooth, Nearby Share of een andere app. Alleen in de Android-app.",
+        "share_apk_short_hint": "Opent het systeemdeelvenster voor deze APK.",
+        "share_apk": "App delen (APK)",
+        "share_apk_failed": "APK kan niet worden gedeeld."
     },
     "debug": {
         "title": "Debuglogs",
@@ -1421,6 +1439,9 @@
         "remove": "Verwijderen",
         "no_favourites": "Geen favorieten",
         "add_nodes_from_announces": "Voeg nodes toe vanaf het tabblad kondigt.",
+        "favourites_search_no_results": "Geen favorieten komen overeen met uw zoekopdracht",
+        "favourites_search_try_other": "Probeer een andere zoekterm.",
+        "no_favourites_in_section": "Geen favorieten in deze sectie.",
         "search_announces": "Zoekopdracht kondigt aan",
         "announced_time_ago": "Aangekondigd {time} geleden",
         "block_node": "Knooppunt verwijderen",
@@ -1464,7 +1485,19 @@
         "path_finder_archive_loading": "Zoeken naar archief-snapshot...",
         "export_section_favourites": "Favorieten van sectie exporteren",
         "section_favourites_exported": "Favorieten van sectie geëxporteerd",
-        "section_favourites_export_failed": "Favorieten van sectie konden niet worden geëxporteerd"
+        "section_favourites_export_failed": "Favorieten van sectie konden niet worden geëxporteerd",
+        "sidebar_selection_mode": "Selectiemodus",
+        "bulk_selected_count": "{count} geselecteerd",
+        "bulk_remove": "Verwijderen",
+        "bulk_move_to_section": "Verplaats naar sectie",
+        "bulk_remove_favourites_confirm": "{count} favorieten van dit apparaat verwijderen?",
+        "bulk_remove_favourites_done": "{count} favorieten verwijderd",
+        "bulk_block_confirm": "{count} nodes uit de aankondigingslijst verbannen?",
+        "bulk_block_done": "{count} nodes verbannen",
+        "bulk_add_to_favourites": "Toevoegen aan favorieten",
+        "bulk_add_favourites_done": "{count} nodes toegevoegd aan favorieten",
+        "bulk_block_nodes": "Verbannen",
+        "bulk_nothing_to_add_favourites": "Niets toe te voegen (al favoriet of geen selectie)"
     },
     "forwarder": {
         "title": "LXMF Forwarder",

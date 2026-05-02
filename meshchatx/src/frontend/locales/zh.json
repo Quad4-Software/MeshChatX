@@ -39,7 +39,16 @@
         "rename_failed": "无法保存名称",
         "name_required": "请输入名称",
         "announce_triggered": "广播请求已发送",
-        "announce_failed": "无法请求广播"
+        "announce_failed": "无法请求广播",
+        "last_error_heading": "上次错误",
+        "view_process_log": "进程日志（调试）",
+        "process_log_title": "机器人进程日志",
+        "process_log_empty": "此机器人尚无日志输出。",
+        "process_log_truncated": "仅显示日志末尾；磁盘上的文件更大。",
+        "process_log_loading": "正在加载日志…",
+        "process_log_failed": "无法加载进程日志",
+        "process_log_copied": "日志已复制到剪贴板",
+        "copy_process_log": "复制日志"
     },
     "app": {
         "name": "Reticulum MeshChatX",
@@ -846,6 +855,8 @@
         "failed_reload": "重新加载 Reticulum 失败！",
         "interface_not_found": "未找到要编辑的选定接口。",
         "discovery_settings_saved": "发现设置已保存",
+        "discovery_list_refreshed": "已刷新发现的接口列表。",
+        "discovery_list_refresh_failed": "无法刷新发现的接口列表。",
         "discovery_default_bootstrap_only": "新建出站 TCP 默认仅作引导",
         "discovery_default_bootstrap_only_hint": "启用后，新建的 TCP 客户端（与 backbone 连接器）接口会设置 bootstrap_only，在达到 autoconnect_discovered_interfaces 后由 Reticulum 自动断开。",
         "discovery_default_bootstrap_docs_link": "参阅 Reticulum 引导连接说明。",
@@ -926,7 +937,6 @@
         "uploading": "正在上传...",
         "upload_success": "地图上传成功",
         "upload_failed": "地图上传失败",
-        "no_map_loaded": "未加载离线地图。上传 .mbtiles 文件以启用离线模式。",
         "invalid_file": "无效的 MBTiles 文件。仅支持栅格瓦片。",
         "default_view": "默认视图",
         "set_as_default": "设为默认视图",
@@ -1079,7 +1089,10 @@
         "tx": "TX 主题",
         "rx": "RX 自动调用",
         "noise": "噪声",
-        "clients": "客户"
+        "clients": "客户",
+        "link_up": "链路已连通",
+        "link_down": "链路未连通",
+        "link_unknown": "链路状态未知"
     },
     "messages": {
         "title": "消息",
@@ -1292,7 +1305,12 @@
         "folders_exported": "导出文件夹",
         "failed_export_folders": "导出文件夹失败",
         "folders_imported": "成功导入文件夹和绘图",
-        "failed_import_folders": "导入文件夹失败"
+        "failed_import_folders": "导入文件夹失败",
+        "share_apk_heading": "分享当前安装包",
+        "share_apk_desc": "通过蓝牙、附近分享或其他应用发送已安装的 MeshChatX 安装包。仅限 Android 应用。",
+        "share_apk_short_hint": "打开系统分享面板以发送此 APK。",
+        "share_apk": "分享应用（APK）",
+        "share_apk_failed": "无法打开 APK 分享。"
     },
     "debug": {
         "title": "调试日志",
@@ -1421,6 +1439,9 @@
         "remove": "移除",
         "no_favourites": "无收藏",
         "add_nodes_from_announces": "从广播标签中添加节点。",
+        "favourites_search_no_results": "没有收藏匹配您的搜索",
+        "favourites_search_try_other": "请尝试其他搜索词。",
+        "no_favourites_in_section": "此分区中尚无收藏。",
         "search_announces": "搜索广播",
         "announced_time_ago": "{time} 前广播",
         "block_node": "放逐节点",
@@ -1464,7 +1485,19 @@
         "path_finder_archive_loading": "正在查找归档快照...",
         "export_section_favourites": "导出此分组的收藏",
         "section_favourites_exported": "分组收藏已导出",
-        "section_favourites_export_failed": "无法导出分组收藏"
+        "section_favourites_export_failed": "无法导出分组收藏",
+        "sidebar_selection_mode": "选择模式",
+        "bulk_selected_count": "已选 {count} 项",
+        "bulk_remove": "移除",
+        "bulk_move_to_section": "移动到分组",
+        "bulk_remove_favourites_confirm": "是否从此设备移除 {count} 个收藏？",
+        "bulk_remove_favourites_done": "已移除 {count} 个收藏",
+        "bulk_block_confirm": "是否将 {count} 个节点移出宣告列表？",
+        "bulk_block_done": "已移出 {count} 个节点",
+        "bulk_add_to_favourites": "加入收藏",
+        "bulk_add_favourites_done": "已将 {count} 个节点加入收藏",
+        "bulk_block_nodes": "移出",
+        "bulk_nothing_to_add_favourites": "无需添加（已在收藏或未选择）"
     },
     "forwarder": {
         "title": "LXMF 转发器",

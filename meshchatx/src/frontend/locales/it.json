@@ -39,7 +39,16 @@
         "rename_failed": "Impossibile salvare il nome",
         "name_required": "Inserisci un nome",
         "announce_triggered": "Annuncio richiesto",
-        "announce_failed": "Impossibile richiedere l'annuncio"
+        "announce_failed": "Impossibile richiedere l'annuncio",
+        "last_error_heading": "Ultimo errore",
+        "view_process_log": "Log di processo (debug)",
+        "process_log_title": "Log di processo del bot",
+        "process_log_empty": "Nessun output di log per questo bot.",
+        "process_log_truncated": "Viene mostrata solo la fine del log; il file su disco è più grande.",
+        "process_log_loading": "Caricamento log…",
+        "process_log_failed": "Impossibile caricare il log di processo",
+        "process_log_copied": "Log copiato negli appunti",
+        "copy_process_log": "Copia log"
     },
     "app": {
         "name": "Reticulum MeshChatX",
@@ -898,6 +907,8 @@
         "failed_reload": "Impossibile ricaricare Reticulum!",
         "interface_not_found": "L'interfaccia selezionata per la modifica non è stata trovata.",
         "discovery_settings_saved": "Impostazioni di scoperta salvate",
+        "discovery_list_refreshed": "Interfacce rilevate aggiornate.",
+        "discovery_list_refresh_failed": "Impossibile aggiornare le interfacce rilevate.",
         "discovery_default_bootstrap_only": "Predefinito bootstrap-only per nuovo TCP in uscita",
         "discovery_default_bootstrap_only_hint": "Le nuove interfacce TCP client (e connettore backbone) usano bootstrap_only così Reticulum può staccarle quando autoconnect_discovered_interfaces è soddisfatto.",
         "discovery_default_bootstrap_docs_link": "Vedi connettività di bootstrap Reticulum.",
@@ -978,7 +989,6 @@
         "uploading": "Caricamento...",
         "upload_success": "Mappa caricata con successo",
         "upload_failed": "Impossibile caricare la mappa",
-        "no_map_loaded": "Nessuna mappa offline caricata. Carica un file .mbtiles per abilitare la modalità offline.",
         "invalid_file": "File MBTiles non valido. Sono supportate solo le tile raster.",
         "default_view": "Vista Predefinita",
         "set_as_default": "Imposta come Vista Predefinita",
@@ -1131,7 +1141,10 @@
         "tx": "TX",
         "rx": "RX",
         "noise": "Rumore",
-        "clients": "Client"
+        "clients": "Client",
+        "link_up": "Collegamento attivo",
+        "link_down": "Collegamento non attivo",
+        "link_unknown": "Stato del collegamento sconosciuto"
     },
     "messages": {
         "title": "Messaggi",
@@ -1344,7 +1357,12 @@
         "folders_exported": "Cartelle esportate",
         "failed_export_folders": "Impossibile esportare le cartelle",
         "folders_imported": "Cartelle e mappature importate con successo",
-        "failed_import_folders": "Impossibile importare le cartelle"
+        "failed_import_folders": "Impossibile importare le cartelle",
+        "share_apk_heading": "Condividi questa installazione",
+        "share_apk_desc": "Invia il pacchetto MeshChatX installato tramite Bluetooth, Nearby Share o un'altra app. Solo nell'app Android.",
+        "share_apk_short_hint": "Apre la condivisione di sistema per questo APK.",
+        "share_apk": "Condividi app (APK)",
+        "share_apk_failed": "Impossibile condividere l'APK."
     },
     "debug": {
         "title": "Log di Debug",
@@ -1473,6 +1491,9 @@
         "remove": "Rimuovi",
         "no_favourites": "Nessun preferito",
         "add_nodes_from_announces": "Aggiungi nodi dalla scheda annunci.",
+        "favourites_search_no_results": "Nessun preferito corrisponde alla ricerca",
+        "favourites_search_try_other": "Prova un altro termine di ricerca.",
+        "no_favourites_in_section": "Nessun preferito in questa sezione.",
         "search_announces": "Cerca annunci",
         "announced_time_ago": "Annunciato {time} fa",
         "block_node": "Esilia Nodo",
@@ -1516,7 +1537,19 @@
         "path_finder_archive_loading": "Ricerca dello snapshot d'archivio...",
         "export_section_favourites": "Esporta preferiti della sezione",
         "section_favourites_exported": "Preferiti della sezione esportati",
-        "section_favourites_export_failed": "Impossibile esportare i preferiti della sezione"
+        "section_favourites_export_failed": "Impossibile esportare i preferiti della sezione",
+        "sidebar_selection_mode": "Modalità selezione",
+        "bulk_selected_count": "{count} selezionati",
+        "bulk_remove": "Rimuovi",
+        "bulk_move_to_section": "Sposta nella sezione",
+        "bulk_remove_favourites_confirm": "Rimuovere {count} preferiti da questo dispositivo?",
+        "bulk_remove_favourites_done": "Rimossi {count} preferiti",
+        "bulk_block_confirm": "Bandire {count} nodi dall'elenco annunci?",
+        "bulk_block_done": "Banditi {count} nodi",
+        "bulk_add_to_favourites": "Aggiungi ai preferiti",
+        "bulk_add_favourites_done": "Aggiunti {count} nodi ai preferiti",
+        "bulk_block_nodes": "Bandisci",
+        "bulk_nothing_to_add_favourites": "Niente da aggiungere (già preferiti o nessuna selezione)"
     },
     "forwarder": {
         "title": "Inoltro LXMF",

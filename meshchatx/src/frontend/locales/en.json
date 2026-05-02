@@ -39,7 +39,16 @@
         "rename_failed": "Could not save name",
         "name_required": "Enter a name",
         "announce_triggered": "Announce requested",
-        "announce_failed": "Could not request announce"
+        "announce_failed": "Could not request announce",
+        "last_error_heading": "Last error",
+        "view_process_log": "Process log (debug)",
+        "process_log_title": "Bot process log",
+        "process_log_empty": "No log output yet for this bot.",
+        "process_log_truncated": "Only the end of the log is shown; the file on disk is larger.",
+        "process_log_loading": "Loading log…",
+        "process_log_failed": "Could not load process log",
+        "process_log_copied": "Log copied to clipboard",
+        "copy_process_log": "Copy log"
     },
     "app": {
         "name": "Reticulum MeshChatX",
@@ -846,6 +855,8 @@
         "failed_reload": "Failed to reload Reticulum!",
         "interface_not_found": "The selected interface for editing could not be found.",
         "discovery_settings_saved": "Discovery settings saved",
+        "discovery_list_refreshed": "Discovered interfaces refreshed.",
+        "discovery_list_refresh_failed": "Could not refresh discovered interfaces.",
         "discovery_default_bootstrap_only": "Default bootstrap-only for new outbound TCP",
         "discovery_default_bootstrap_only_hint": "When enabled, new TCP client (and backbone connector) interfaces get bootstrap_only so Reticulum can detach them once autoconnect_discovered_interfaces is satisfied.",
         "discovery_default_bootstrap_docs_link": "See Reticulum bootstrapping connectivity.",
@@ -926,7 +937,6 @@
         "uploading": "Uploading...",
         "upload_success": "Map uploaded successfully",
         "upload_failed": "Failed to upload map",
-        "no_map_loaded": "No offline map loaded. Upload an .mbtiles file to enable offline mode.",
         "invalid_file": "Invalid MBTiles file. Only raster tiles are supported.",
         "default_view": "Default View",
         "set_as_default": "Set as Default View",
@@ -1079,7 +1089,10 @@
         "tx": "TX",
         "rx": "RX",
         "noise": "Noise",
-        "clients": "Clients"
+        "clients": "Clients",
+        "link_up": "Link up",
+        "link_down": "Link down",
+        "link_unknown": "Link status unknown"
     },
     "messages": {
         "title": "Messages",
@@ -1292,7 +1305,12 @@
         "folders_exported": "Folders exported",
         "failed_export_folders": "Failed to export folders",
         "folders_imported": "Folders and mappings imported successfully",
-        "failed_import_folders": "Failed to import folders"
+        "failed_import_folders": "Failed to import folders",
+        "share_apk_heading": "Share this install",
+        "share_apk_desc": "Send the installed MeshChatX package over Bluetooth, Nearby Share, or another app. Only available in the Android app.",
+        "share_apk_short_hint": "Opens the system share sheet for this APK.",
+        "share_apk": "Share app (APK)",
+        "share_apk_failed": "Could not open the share sheet for the APK."
     },
     "debug": {
         "title": "Debug Logs",
@@ -1421,6 +1439,9 @@
         "remove": "Remove",
         "no_favourites": "No favourites",
         "add_nodes_from_announces": "Add nodes from the announces tab.",
+        "favourites_search_no_results": "No favourites match your search",
+        "favourites_search_try_other": "Try a different search term.",
+        "no_favourites_in_section": "No favourites in this section.",
         "search_announces": "Search announces",
         "announced_time_ago": "Announced {time} ago",
         "block_node": "Banish Node",
@@ -1464,7 +1485,19 @@
         "path_finder_archive_loading": "Looking for archive snapshot...",
         "export_section_favourites": "Export section favourites",
         "section_favourites_exported": "Section favourites exported",
-        "section_favourites_export_failed": "Could not export section favourites"
+        "section_favourites_export_failed": "Could not export section favourites",
+        "sidebar_selection_mode": "Selection mode",
+        "bulk_selected_count": "{count} selected",
+        "bulk_remove": "Remove",
+        "bulk_move_to_section": "Move to section",
+        "bulk_remove_favourites_confirm": "Remove {count} favourites from this device?",
+        "bulk_remove_favourites_done": "Removed {count} favourites",
+        "bulk_block_confirm": "Banish {count} nodes from the announce list?",
+        "bulk_block_done": "Banished {count} nodes",
+        "bulk_add_to_favourites": "Add to favourites",
+        "bulk_add_favourites_done": "Added {count} nodes to favourites",
+        "bulk_block_nodes": "Banish",
+        "bulk_nothing_to_add_favourites": "Nothing to add (already favourites or none selected)"
     },
     "forwarder": {
         "title": "LXMF Forwarder",
@@ -2135,7 +2168,10 @@
         "argos_translate": "Argos Translate",
         "libretranslate": "LibreTranslate",
         "api_server": "LibreTranslate API Server",
-        "api_server_description": "Enter the base URL of your LibreTranslate server (e.g., http://localhost:5000)",
+        "api_server_description": "Enter the base URL of your LibreTranslate server (e.g., https://libretranslate.com or http://localhost:5000).",
+        "api_key_optional": "LibreTranslate API key (optional)",
+        "api_key_placeholder": "Leave empty unless your provider requires one",
+        "api_key_description": "If required, LibreTranslate expects this as api_key in the JSON translate body and optionally on the languages request. Omit for typical self-hosted instances.",
         "source_language": "Source Language",
         "auto_detect": "Auto-detect",
         "target_language": "Target Language",

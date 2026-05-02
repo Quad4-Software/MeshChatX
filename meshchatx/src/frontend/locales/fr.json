@@ -39,7 +39,16 @@
         "rename_failed": "Impossible d'enregistrer le nom",
         "name_required": "Saisissez un nom",
         "announce_triggered": "Annoncer la demande",
-        "announce_failed": "Impossible de demander l'annonce"
+        "announce_failed": "Impossible de demander l'annonce",
+        "last_error_heading": "Dernière erreur",
+        "view_process_log": "Journal de processus (débogage)",
+        "process_log_title": "Journal du processus du bot",
+        "process_log_empty": "Pas encore de sortie journal pour ce bot.",
+        "process_log_truncated": "Seule la fin du journal est affichée ; le fichier sur disque est plus grand.",
+        "process_log_loading": "Chargement du journal…",
+        "process_log_failed": "Impossible de charger le journal du processus",
+        "process_log_copied": "Journal copié dans le presse-papiers",
+        "copy_process_log": "Copier le journal"
     },
     "app": {
         "name": "Réticulum MeshChatX",
@@ -846,6 +855,8 @@
         "failed_reload": "Impossible de recharger Reticulum !",
         "interface_not_found": "L'interface sélectionnée pour l'édition n'a pas pu être trouvée.",
         "discovery_settings_saved": "Paramètres de découverte enregistrés",
+        "discovery_list_refreshed": "Interfaces découvertes actualisées.",
+        "discovery_list_refresh_failed": "Impossible d'actualiser les interfaces découvertes.",
         "discovery_default_bootstrap_only": "Bootstrap-only par défaut pour nouveau TCP sortant",
         "discovery_default_bootstrap_only_hint": "Les nouvelles interfaces client TCP (et connecteur backbone) reçoivent bootstrap_only pour que Reticulum les détache une fois autoconnect_discovered_interfaces atteint.",
         "discovery_default_bootstrap_docs_link": "Voir la connectivité de démarrage Reticulum.",
@@ -926,7 +937,6 @@
         "uploading": "Envoi...",
         "upload_success": "Carte téléchargée avec succès",
         "upload_failed": "Impossible de télécharger la carte",
-        "no_map_loaded": "Pas de carte hors ligne chargée. Télécharger un fichier .mbtiles pour activer le mode hors ligne.",
         "invalid_file": "Fichier MBTiles non valide. Seules les tuiles raster sont supportées.",
         "default_view": "Affichage par défaut",
         "set_as_default": "Définir comme vue par défaut",
@@ -1079,7 +1089,10 @@
         "tx": "TX",
         "rx": "RX",
         "noise": "Bruit",
-        "clients": "Clients"
+        "clients": "Clients",
+        "link_up": "Liaison active",
+        "link_down": "Liaison inactive",
+        "link_unknown": "État de la liaison inconnu"
     },
     "messages": {
         "title": "Messages",
@@ -1292,7 +1305,12 @@
         "folders_exported": "Dossiers exportés",
         "failed_export_folders": "Impossible d'exporter les dossiers",
         "folders_imported": "Dossiers et cartes importés avec succès",
-        "failed_import_folders": "Impossible d'importer des dossiers"
+        "failed_import_folders": "Impossible d'importer des dossiers",
+        "share_apk_heading": "Partager cette installation",
+        "share_apk_desc": "Envoyez le paquet MeshChatX installé via Bluetooth, Nearby Share ou une autre application. Uniquement dans l'application Android.",
+        "share_apk_short_hint": "Ouvre la feuille de partage système pour cet APK.",
+        "share_apk": "Partager l'app (APK)",
+        "share_apk_failed": "Impossible de partager l'APK."
     },
     "debug": {
         "title": "Débogues",
@@ -1421,6 +1439,9 @@
         "remove": "Supprimer",
         "no_favourites": "Pas de favoris",
         "add_nodes_from_announces": "Ajouter des nœuds de l'onglet Annonces.",
+        "favourites_search_no_results": "Aucun favori ne correspond à votre recherche",
+        "favourites_search_try_other": "Essayez un autre terme de recherche.",
+        "no_favourites_in_section": "Aucun favori dans cette section.",
         "search_announces": "La recherche annonce",
         "announced_time_ago": "Annoncé il y a {time}",
         "block_node": "Nœud baigné",
@@ -1464,7 +1485,19 @@
         "path_finder_archive_loading": "Recherche d'un instantané d'archive...",
         "export_section_favourites": "Exporter les favoris de la section",
         "section_favourites_exported": "Favoris de la section exportés",
-        "section_favourites_export_failed": "Impossible d'exporter les favoris de la section"
+        "section_favourites_export_failed": "Impossible d'exporter les favoris de la section",
+        "sidebar_selection_mode": "Mode sélection",
+        "bulk_selected_count": "{count} sélectionné(s)",
+        "bulk_remove": "Supprimer",
+        "bulk_move_to_section": "Déplacer vers la section",
+        "bulk_remove_favourites_confirm": "Supprimer {count} favoris sur cet appareil ?",
+        "bulk_remove_favourites_done": "{count} favoris supprimés",
+        "bulk_block_confirm": "Bannir {count} nœuds de la liste d'annonces ?",
+        "bulk_block_done": "{count} nœuds bannis",
+        "bulk_add_to_favourites": "Ajouter aux favoris",
+        "bulk_add_favourites_done": "{count} nœuds ajoutés aux favoris",
+        "bulk_block_nodes": "Bannir",
+        "bulk_nothing_to_add_favourites": "Rien à ajouter (déjà favoris ou aucune sélection)"
     },
     "forwarder": {
         "title": "Expéditeur LXMF",

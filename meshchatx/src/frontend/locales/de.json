@@ -39,7 +39,16 @@
         "rename_failed": "Name konnte nicht gespeichert werden",
         "name_required": "Namen eingeben",
         "announce_triggered": "Ankündigung angefordert",
-        "announce_failed": "Ankündigung konnte nicht angefordert werden"
+        "announce_failed": "Ankündigung konnte nicht angefordert werden",
+        "last_error_heading": "Letzter Fehler",
+        "view_process_log": "Prozesslog (Debug)",
+        "process_log_title": "Bot-Prozesslog",
+        "process_log_empty": "Noch keine Logausgabe für diesen Bot.",
+        "process_log_truncated": "Es wird nur das Ende des Logs angezeigt; die Datei auf der Festplatte ist größer.",
+        "process_log_loading": "Log wird geladen…",
+        "process_log_failed": "Prozesslog konnte nicht geladen werden",
+        "process_log_copied": "Log in die Zwischenablage kopiert",
+        "copy_process_log": "Log kopieren"
     },
     "app": {
         "name": "Reticulum MeshChatX",
@@ -898,6 +907,8 @@
         "failed_reload": "Neuladen von Reticulum fehlgeschlagen!",
         "interface_not_found": "The selected interface for editing could not be found.",
         "discovery_settings_saved": "Erkennungseinstellungen gespeichert",
+        "discovery_list_refreshed": "Erkannten Schnittstellen aktualisiert.",
+        "discovery_list_refresh_failed": "Erkannte Schnittstellen konnten nicht aktualisiert werden.",
         "discovery_default_bootstrap_only": "Standard: nur Bootstrap für neue ausgehende TCP",
         "discovery_default_bootstrap_only_hint": "Neue TCP-Client- und Backbone-Connector-Schnittstellen erhalten bootstrap_only, damit RNS sie abkoppeln kann, sobald autoconnect_discovered_interfaces erfüllt ist.",
         "discovery_default_bootstrap_docs_link": "Siehe Reticulum-Bootstrap-Konnektivität.",
@@ -978,7 +989,6 @@
         "uploading": "Wird hochgeladen...",
         "upload_success": "Karte erfolgreich hochgeladen",
         "upload_failed": "Hochladen der Karte fehlgeschlagen",
-        "no_map_loaded": "Keine Offline-Karte geladen. Laden Sie eine .mbtiles-Datei hoch, um den Offline-Modus zu aktivieren.",
         "invalid_file": "Ungültige MBTiles-Datei. Nur Rasterkacheln werden unterstützt.",
         "default_view": "Standardansicht",
         "set_as_default": "Als Standardansicht festlegen",
@@ -1131,7 +1141,10 @@
         "tx": "TX",
         "rx": "RX",
         "noise": "Rauschen",
-        "clients": "Clients"
+        "clients": "Clients",
+        "link_up": "Verbindung aktiv",
+        "link_down": "Verbindung inaktiv",
+        "link_unknown": "Verbindungsstatus unbekannt"
     },
     "messages": {
         "title": "Nachrichten",
@@ -1361,6 +1374,9 @@
         "remove": "Entfernen",
         "no_favourites": "Keine Favoriten",
         "add_nodes_from_announces": "Fügen Sie Knoten über den Tab 'Ankündigungen' hinzu.",
+        "favourites_search_no_results": "Keine Favoriten entsprechen Ihrer Suche",
+        "favourites_search_try_other": "Versuchen Sie einen anderen Suchbegriff.",
+        "no_favourites_in_section": "Keine Favoriten in diesem Abschnitt.",
         "search_announces": "Ankündigungen durchsuchen",
         "announced_time_ago": "Vor {time} angekündigt",
         "block_node": "Knoten blockieren",
@@ -1404,7 +1420,19 @@
         "path_finder_archive_loading": "Suche nach Archiv-Snapshot...",
         "export_section_favourites": "Abschnitts-Favoriten exportieren",
         "section_favourites_exported": "Abschnitts-Favoriten exportiert",
-        "section_favourites_export_failed": "Abschnitts-Favoriten konnten nicht exportiert werden"
+        "section_favourites_export_failed": "Abschnitts-Favoriten konnten nicht exportiert werden",
+        "sidebar_selection_mode": "Auswahlmodus",
+        "bulk_selected_count": "{count} ausgewählt",
+        "bulk_remove": "Entfernen",
+        "bulk_move_to_section": "In Abschnitt verschieben",
+        "bulk_remove_favourites_confirm": "{count} Favoriten von diesem Gerät entfernen?",
+        "bulk_remove_favourites_done": "{count} Favoriten entfernt",
+        "bulk_block_confirm": "{count} Knoten von der Ankündigungsliste verbannen?",
+        "bulk_block_done": "{count} Knoten gebannt",
+        "bulk_add_to_favourites": "Zu Favoriten hinzufügen",
+        "bulk_add_favourites_done": "{count} Knoten zu Favoriten hinzugefügt",
+        "bulk_block_nodes": "Verbannen",
+        "bulk_nothing_to_add_favourites": "Nichts hinzuzufügen (bereits Favoriten oder nichts ausgewählt)"
     },
     "forwarder": {
         "title": "LXMF-Weiterleiter",
@@ -2466,7 +2494,12 @@
         "folders_exported": "Ordner exportiert",
         "failed_export_folders": "Ordner exportieren fehlgeschlagen",
         "folders_imported": "Ordner und Zuordnungen erfolgreich importiert",
-        "failed_import_folders": "Ordner importieren fehlgeschlagen"
+        "failed_import_folders": "Ordner importieren fehlgeschlagen",
+        "share_apk_heading": "Diese Installation teilen",
+        "share_apk_desc": "Das installierte MeshChatX-Paket per Bluetooth, Nearby Share oder einer anderen App senden. Nur in der Android-App verfügbar.",
+        "share_apk_short_hint": "Öffnet das Teilen-Menü für diese APK.",
+        "share_apk": "App teilen (APK)",
+        "share_apk_failed": "APK konnte nicht geteilt werden."
     },
     "debug": {
         "title": "Debug Logs",
