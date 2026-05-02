@@ -22,5 +22,8 @@
     <string name="shortcut_call_short">Call</string>
     <string name="shortcut_call_long">Open phone / call</string>
     <string name="shortcut_unavailable">Shortcut unavailable</string>
+    <string name="share_apk_chooser_title">Share MeshChatX APK</string>
+    <string name="share_apk_failed">Could not prepare APK to share</string>
+    <string name="share_apk_unavailable">App package not found</string>
 </resources>
 

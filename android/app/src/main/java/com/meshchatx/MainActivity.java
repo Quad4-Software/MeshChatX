@@ -3,6 +3,7 @@ package com.meshchatx;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.ActivityNotFoundException;
+import android.content.ClipData;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
@@ -19,6 +20,7 @@ import android.os.Looper;
 import android.os.PowerManager;
 import android.provider.MediaStore;
 import android.provider.Settings;
+import android.webkit.GeolocationPermissions;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -37,6 +39,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 import androidx.core.view.WindowCompat;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
@@ -44,6 +47,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.chaquo.python.Python;
 import com.chaquo.python.android.AndroidPlatform;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -65,6 +69,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int RUNTIME_PERMISSIONS_REQUEST_CODE = 1001;
     private static final int WEB_MEDIA_PERMISSION_REQUEST_CODE = 1003;
     private static final int RNODE_BLUETOOTH_PERMISSION_REQUEST_CODE = 1004;
+    private static final int WEBVIEW_GEOLOCATION_PERMISSION_REQUEST_CODE = 1006;
     private static final String PREFS_NAME = "meshchatx";
     private static final String PREF_BATTERY_OPT_REQUESTED = "battery_opt_requested";
     private static final int MAX_CONNECTION_ATTEMPTS = 120;
@@ -74,6 +79,10 @@ public class MainActivity extends AppCompatActivity {
     private static final long MESHCHAT_SERVER_RETRY_DELAY_MS = 2000L;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private PermissionRequest pendingWebPermissionRequest = null;
+    @Nullable
+    private GeolocationPermissions.Callback pendingGeolocationPermissionCallback = null;
+    @Nullable
+    private String pendingGeolocationOrigin = null;
     private ValueCallback<Uri[]> filePathCallback = null;
     private boolean startupRequestHadLoadError = false;
     private boolean startupPageLoaded = false;
@@ -173,6 +182,7 @@ public class MainActivity extends AppCompatActivity {
         webSettings.setAllowContentAccess(true);
         webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         webSettings.setMediaPlaybackRequiresUserGesture(false);
+        webSettings.setGeolocationEnabled(true);
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
@@ -265,6 +275,40 @@ public class MainActivity extends AppCompatActivity {
         webView.addJavascriptInterface(new MeshChatXAndroidBridge(this), "MeshChatXAndroid");
 
         webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
+                runOnUiThread(() -> {
+                    if (callback == null) {
+                        return;
+                    }
+                    if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_FINE_LOCATION)
+                            == PackageManager.PERMISSION_GRANTED
+                        || ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                            == PackageManager.PERMISSION_GRANTED) {
+                        callback.invoke(origin, true, false);
+                        return;
+                    }
+                    pendingGeolocationOrigin = origin;
+                    pendingGeolocationPermissionCallback = callback;
+                    ActivityCompat.requestPermissions(
+                        MainActivity.this,
+                        new String[] {
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION,
+                        },
+                        WEBVIEW_GEOLOCATION_PERMISSION_REQUEST_CODE
+                    );
+                });
+            }
+
+            @Override
+            public void onGeolocationPermissionsHidePrompt() {
+                runOnUiThread(() -> {
+                    pendingGeolocationPermissionCallback = null;
+                    pendingGeolocationOrigin = null;
+                });
+            }
+
             @Override
             public void onPermissionRequest(final PermissionRequest request) {
                 runOnUiThread(() -> {
@@ -515,6 +559,27 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == WEBVIEW_GEOLOCATION_PERMISSION_REQUEST_CODE) {
+            boolean granted = false;
+            if (permissions != null && grantResults != null) {
+                for (int i = 0; i < permissions.length && i < grantResults.length; i++) {
+                    if (grantResults[i] != PackageManager.PERMISSION_GRANTED) {
+                        continue;
+                    }
+                    if (Manifest.permission.ACCESS_FINE_LOCATION.equals(permissions[i])
+                        || Manifest.permission.ACCESS_COARSE_LOCATION.equals(permissions[i])) {
+                        granted = true;
+                        break;
+                    }
+                }
+            }
+            if (pendingGeolocationPermissionCallback != null) {
+                pendingGeolocationPermissionCallback.invoke(pendingGeolocationOrigin, granted, false);
+                pendingGeolocationPermissionCallback = null;
+                pendingGeolocationOrigin = null;
+            }
+            return;
+        }
         if (requestCode == WEB_MEDIA_PERMISSION_REQUEST_CODE) {
             if (pendingWebPermissionRequest == null) {
                 return;
@@ -784,6 +849,11 @@ public class MainActivity extends AppCompatActivity {
             pendingWebPermissionRequest.deny();
             pendingWebPermissionRequest = null;
         }
+        if (pendingGeolocationPermissionCallback != null) {
+            pendingGeolocationPermissionCallback.invoke(pendingGeolocationOrigin, false, false);
+            pendingGeolocationPermissionCallback = null;
+            pendingGeolocationOrigin = null;
+        }
         if (filePathCallback != null) {
             filePathCallback.onReceiveValue(null);
             filePathCallback = null;
@@ -793,31 +863,12 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private static String sanitizeDownloadFileName(String name) {
-        if (name == null || name.isEmpty()) {
-            return "download.bin";
-        }
-        int slash = Math.max(name.lastIndexOf('/'), name.lastIndexOf('\\'));
-        String base = slash >= 0 ? name.substring(slash + 1) : name;
-        if (base.isEmpty()) {
-            return "download.bin";
-        }
-        base = base.replaceAll("[^A-Za-z0-9._ -]+", "_").trim();
-        if (base.isEmpty()) {
-            return "download.bin";
-        }
-        if (base.length() > 120) {
-            base = base.substring(0, 120);
-        }
-        return base;
-    }
-
     WebView getWebViewForNativeBridge() {
         return webView;
     }
 
     void persistMeshchatDownload(String fileName, byte[] data) throws IOException {
-        String safe = sanitizeDownloadFileName(fileName);
+        String safe = MeshchatDownloadUtils.sanitizeFileName(fileName);
         ContentResolver resolver = getContentResolver();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             ContentValues values = new ContentValues();
@@ -899,6 +950,67 @@ public class MainActivity extends AppCompatActivity {
         @JavascriptInterface
         public String getPlatform() {
             return "android";
+        }
+
+        @JavascriptInterface
+        public void shareApk() {
+            activity.runOnUiThread(() -> {
+                try {
+                    String srcPath = activity.getApplicationInfo().sourceDir;
+                    File src = new File(srcPath);
+                    if (!src.isFile()) {
+                        Toast.makeText(activity, R.string.share_apk_unavailable, Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    File cacheDir = new File(activity.getCacheDir(), "apk_share");
+                    if (!cacheDir.isDirectory() && !cacheDir.mkdirs()) {
+                        Toast.makeText(activity, R.string.share_apk_failed, Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    String ver = "unknown";
+                    try {
+                        android.content.pm.PackageInfo pi =
+                            activity
+                                .getPackageManager()
+                                .getPackageInfo(activity.getPackageName(), 0);
+                        if (pi.versionName != null && !pi.versionName.isEmpty()) {
+                            ver = pi.versionName.replaceAll("[^A-Za-z0-9._-]+", "_");
+                        }
+                    } catch (PackageManager.NameNotFoundException ignored) {
+                    }
+                    File dest = new File(cacheDir, "meshchatx-" + ver + ".apk");
+                    try (FileInputStream in = new FileInputStream(src);
+                        FileOutputStream out = new FileOutputStream(dest, false)) {
+                        byte[] buf = new byte[8192];
+                        int n;
+                        while ((n = in.read(buf)) != -1) {
+                            out.write(buf, 0, n);
+                        }
+                        out.flush();
+                    }
+                    Uri uri =
+                        FileProvider.getUriForFile(
+                            activity, activity.getPackageName() + ".fileprovider", dest);
+                    Intent share = new Intent(Intent.ACTION_SEND);
+                    share.setType("application/vnd.android.package-archive");
+                    share.putExtra(Intent.EXTRA_STREAM, uri);
+                    share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    share.setClipData(
+                        ClipData.newUri(
+                            activity.getContentResolver(),
+                            activity.getString(R.string.share_apk_chooser_title),
+                            uri));
+                    activity.startActivity(
+                        Intent.createChooser(
+                            share, activity.getString(R.string.share_apk_chooser_title)));
+                } catch (Exception e) {
+                    String msg = activity.getString(R.string.share_apk_failed);
+                    if (e.getMessage() != null && !e.getMessage().isEmpty()) {
+                        msg = msg + ": " + e.getMessage();
+                    }
+                    Toast.makeText(activity, msg, Toast.LENGTH_LONG).show();
+                }
+            });
         }
 
         @JavascriptInterface
