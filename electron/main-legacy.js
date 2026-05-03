@@ -275,16 +275,12 @@ function log(message) {
 }
 
 function getDefaultStorageDir() {
-    // if we are running a windows portable exe, we want to use .reticulum-meshchat in the portable exe dir
-    // e.g if we launch "E:\Some\Path\MeshChat.exe" we want to use "E:\Some\Path\.reticulum-meshchat"
     const portableExecutableDir = process.env.PORTABLE_EXECUTABLE_DIR;
     if (process.platform === "win32" && portableExecutableDir != null) {
-        return path.join(portableExecutableDir, ".reticulum-meshchat");
+        return path.join(portableExecutableDir, ".reticulum-meshchatx");
     }
 
-    // otherwise, we will fall back to putting the storage dir in the users home directory
-    // e.g: ~/.reticulum-meshchat
-    return path.join(app.getPath("home"), ".reticulum-meshchat");
+    return path.join(app.getPath("home"), ".reticulum-meshchatx");
 }
 
 function getDefaultReticulumConfigDir() {

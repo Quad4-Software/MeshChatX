@@ -34,6 +34,14 @@ function isResolvedPathUnderRoot(resolvedCandidate, rootPath) {
     return rel === "" || (!rel.startsWith(`..${path.sep}`) && rel !== "..");
 }
 
+function pairedLegacyStorageDir(defaultStorageDir) {
+    const base = path.basename(path.resolve(defaultStorageDir));
+    if (base !== ".reticulum-meshchatx") {
+        return null;
+    }
+    return path.join(path.dirname(path.resolve(defaultStorageDir)), ".reticulum-meshchat");
+}
+
 /**
  * @param {string} targetPath
  * @param {object} ctx
@@ -59,6 +67,7 @@ function isAllowedShellPath(targetPath, ctx) {
     };
 
     add(ctx.getDefaultStorageDir());
+    add(pairedLegacyStorageDir(ctx.getDefaultStorageDir()));
     add(ctx.getDefaultReticulumConfigDir());
     add(ctx.app.getPath("userData"));
     add(ctx.app.getPath("temp"));

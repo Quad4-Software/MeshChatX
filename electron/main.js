@@ -83,6 +83,12 @@ if (process.platform === "linux") {
     app.setName("reticulum-meshchatx");
 }
 
+// Detect if running in Flatpak sandbox
+const isRunningInFlatpak = !!process.env.FLATPAK_ID;
+if (isRunningInFlatpak) {
+    console.log(`Running in Flatpak sandbox: ${process.env.FLATPAK_ID}`);
+}
+
 // Protocol registration
 if (process.defaultApp) {
     if (process.argv.length >= 2) {
@@ -255,6 +261,7 @@ ipcMain.handle("relaunch-emergency", () => {
 });
 
 ipcMain.handle("shutdown", () => {
+    isQuiting = true;
     quit();
 });
 
@@ -428,16 +435,12 @@ function log(message) {
 }
 
 function getDefaultStorageDir() {
-    // if we are running a windows portable exe, we want to use .reticulum-meshchat in the portable exe dir
-    // e.g if we launch "E:\Some\Path\MeshChat.exe" we want to use "E:\Some\Path\.reticulum-meshchat"
     const portableExecutableDir = process.env.PORTABLE_EXECUTABLE_DIR;
     if (process.platform === "win32" && portableExecutableDir != null) {
-        return path.join(portableExecutableDir, ".reticulum-meshchat");
+        return path.join(portableExecutableDir, ".reticulum-meshchatx");
     }
 
-    // otherwise, we will fall back to putting the storage dir in the users home directory
-    // e.g: ~/.reticulum-meshchat
-    return path.join(app.getPath("home"), ".reticulum-meshchat");
+    return path.join(app.getPath("home"), ".reticulum-meshchatx");
 }
 
 function getDefaultReticulumConfigDir() {
@@ -856,7 +859,16 @@ app.on("render-process-gone", (_event, webContents, details) => {
     log(`render-process-gone for webContents ${wcId}: ${formatRenderProcessGoneDetails(details)}`);
 });
 
+// Track if quit has been initiated to prevent recursion
+let quitInitiated = false;
+let quitTimeoutId = null;
+
 function quit() {
+    if (quitInitiated) {
+        return;
+    }
+    quitInitiated = true;
+
     if (!exeChildProcess) {
         app.quit();
         return;
@@ -878,7 +890,7 @@ function quit() {
         return;
     }
     const timeoutMs = 5000;
-    const timeout = setTimeout(() => {
+    quitTimeoutId = setTimeout(() => {
         try {
             if (exeChildProcess && exeChildProcess.exitCode === null && exeChildProcess.signalCode === null) {
                 exeChildProcess.kill("SIGKILL");
@@ -889,10 +901,25 @@ function quit() {
         app.quit();
     }, timeoutMs);
     exeChildProcess.once("exit", () => {
-        clearTimeout(timeout);
+        if (quitTimeoutId) {
+            clearTimeout(quitTimeoutId);
+            quitTimeoutId = null;
+        }
         app.quit();
     });
 }
+
+// Handle before-quit for additional cleanup
+app.on("before-quit", () => {
+    if (!isQuiting) {
+        isQuiting = true;
+    }
+    // Ensure tray is destroyed to prevent it from keeping the app alive
+    if (tray && !tray.isDestroyed()) {
+        tray.destroy();
+        tray = null;
+    }
+});
 
 // quit electron if all windows are closed
 app.on("window-all-closed", () => {
