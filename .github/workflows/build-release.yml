@@ -1,6 +1,6 @@
 # Single tagged-release pipeline: Linux release assets, Windows + macOS Electron
 # builds, Flatpak, Android APKs (dev/master track tags via android-apk-tag.yml), SLSA
-# provenance (generic generator), optional cosign bundles, and one draft GitHub release.
+# provenance (generic generator: Linux, desktop, optional Android+Flatpak), optional cosign bundles, and one draft GitHub release.
 # One workflow run per tag keeps the release graph immutable.
 #
 # Pinned first-party actions (bump tag and SHA together when upgrading):
@@ -495,6 +495,50 @@ jobs:
             upload-assets: false
             provenance-name: meshchatx-desktop-${{ github.ref_name }}.intoto.jsonl
 
+    collect-android-flatpak-slsa-subjects:
+        name: SLSA subjects (Android APK + Flatpak)
+        needs: [android-release, flatpak]
+        if: startsWith(github.ref, 'refs/tags/')
+        runs-on: ubuntu-latest
+        outputs:
+            hashes: ${{ steps.hash.outputs.hashes }}
+            has_subjects: ${{ steps.hash.outputs.has_subjects }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+
+            - name: Download Android APK bundle
+              continue-on-error: true
+              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              with:
+                  name: meshchatx-android-apks-${{ github.ref_name }}-${{ github.run_id }}
+                  path: dl/android
+
+            - name: Download Flatpak artifact
+              continue-on-error: true
+              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              with:
+                  name: meshchatx-linux-flatpak-${{ github.ref_name }}-${{ github.run_id }}
+                  path: dl/flatpak
+
+            - name: Hash Android / Flatpak artifacts
+              id: hash
+              run: bash scripts/ci/github-slsa-hashes-apk-flatpak.sh dl/android dl/flatpak
+
+    slsa-provenance-android-flatpak:
+        name: SLSA provenance (Android + Flatpak)
+        needs: [collect-android-flatpak-slsa-subjects]
+        if: ${{ startsWith(github.ref, 'refs/tags/') && needs.collect-android-flatpak-slsa-subjects.outputs.has_subjects == 'true' }}
+        permissions:
+            id-token: write
+            contents: write
+            actions: read
+        uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
+        with:
+            base64-subjects: ${{ needs.collect-android-flatpak-slsa-subjects.outputs.hashes }}
+            upload-assets: false
+            provenance-name: meshchatx-android-flatpak-${{ github.ref_name }}.intoto.jsonl
+
     draft-github-release:
         name: Draft GitHub release (all assets + SLSA)
         needs:
@@ -504,7 +548,22 @@ jobs:
             - slsa-provenance-desktop
             - flatpak
             - android-release
-        if: startsWith(github.ref, 'refs/tags/')
+            - collect-android-flatpak-slsa-subjects
+            - slsa-provenance-android-flatpak
+        if: >-
+            always() &&
+            !cancelled() &&
+            startsWith(github.ref, 'refs/tags/') &&
+            needs.linux-release.result == 'success' &&
+            needs.slsa-provenance-linux.result == 'success' &&
+            needs.build-release.result == 'success' &&
+            needs.collect-desktop-slsa-subjects.result == 'success' &&
+            needs.slsa-provenance-desktop.result == 'success' &&
+            needs.flatpak.result == 'success' &&
+            needs.android-release.result == 'success' &&
+            needs.collect-android-flatpak-slsa-subjects.result == 'success' &&
+            (needs.slsa-provenance-android-flatpak.result == 'success' ||
+             needs.slsa-provenance-android-flatpak.result == 'skipped')
         runs-on: ubuntu-latest
         timeout-minutes: 45
         permissions:
@@ -558,6 +617,13 @@ jobs:
               uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
               with:
                   name: ${{ needs.slsa-provenance-desktop.outputs.provenance-name }}
+                  path: upload
+
+            - name: Download SLSA provenance (Android + Flatpak)
+              continue-on-error: true
+              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              with:
+                  name: meshchatx-android-flatpak-${{ github.ref_name }}.intoto.jsonl
                   path: upload
 
             - name: SLSA cosign bundles (desktop only)
