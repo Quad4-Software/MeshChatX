@@ -68,6 +68,12 @@ from meshchatx.src.backend.database.access_attempts import (
 )
 from meshchatx.src.backend.identity_context import IdentityContext
 from meshchatx.src.backend.identity_manager import IdentityManager
+from meshchatx.src.backend.legacy_migrator import (
+    assert_migration_context_paths,
+    fresh_storage_at_target,
+    migrate_legacy_to_target,
+    resolve_startup_storage,
+)
 from meshchatx.src.backend.interface_config_parser import InterfaceConfigParser
 from meshchatx.src.backend.interface_editor import InterfaceEditor
 from meshchatx.src.backend.interface_port_check import (
@@ -280,8 +286,12 @@ class ReticulumMeshChat:
         ssl_cert_path: str | None = None,
         ssl_key_path: str | None = None,
         rns_loglevel: str | None = None,
+        migration_context: dict | None = None,
     ):
         self.running = True
+        self.migration_context = (
+            migration_context if migration_context is not None else {}
+        )
         self.reticulum_config_dir = self._normalize_reticulum_config_dir(
             reticulum_config_dir,
         )
@@ -5474,6 +5484,7 @@ class ReticulumMeshChat:
                             "changelog_seen_version",
                             "0.0.0",
                         ),
+                        "migration": dict(self.migration_context),
                     },
                 },
             )
@@ -5541,6 +5552,37 @@ class ReticulumMeshChat:
         async def app_tutorial_seen(request):
             self.config.set("tutorial_seen", True)
             return web.json_response({"message": "Tutorial marked as seen"})
+
+        @routes.post("/api/v1/setup/storage-migration")
+        async def setup_storage_migration(request):
+            if not self.migration_context.get("show_choice"):
+                return web.json_response(
+                    {"error": "No storage migration is pending"},
+                    status=400,
+                )
+            try:
+                data = await request.json()
+            except Exception:
+                return web.json_response({"error": "Invalid JSON"}, status=400)
+            action = data.get("action")
+            leg = self.migration_context["legacy_path"]
+            tgt = self.migration_context["target_path"]
+            try:
+                assert_migration_context_paths(self.migration_context, leg, tgt)
+            except ValueError as e:
+                return web.json_response({"error": str(e)}, status=400)
+            try:
+                if action == "migrate":
+                    migrate_legacy_to_target(leg, tgt)
+                elif action == "fresh":
+                    fresh_storage_at_target(tgt)
+                else:
+                    return web.json_response({"error": "Unknown action"}, status=400)
+            except ValueError as e:
+                return web.json_response({"error": str(e)}, status=409)
+            except OSError as e:
+                return web.json_response({"error": str(e)}, status=500)
+            return web.json_response({"ok": True, "restart_required": True})
 
         # acknowledge and reset integrity issues
         @routes.post("/api/v1/app/integrity/acknowledge")
@@ -17013,8 +17055,12 @@ def main():
         recovery.disable()
 
     planned_storage_dir = args.storage_dir or os.path.join("storage")
+    effective_storage_dir, migration_context = resolve_startup_storage(
+        planned_storage_dir,
+    )
+    args.storage_dir = effective_storage_dir
     recovery.update_paths(
-        storage_dir=planned_storage_dir,
+        storage_dir=effective_storage_dir,
         reticulum_config_dir=args.reticulum_config_dir,
     )
 
@@ -17120,6 +17166,7 @@ def main():
         ssl_cert_path=ssl_cert,
         ssl_key_path=ssl_key,
         rns_loglevel=rns_log_cli,
+        migration_context=migration_context,
     )
 
     # store recovery on app for wiring with identity context
