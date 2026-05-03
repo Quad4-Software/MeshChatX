@@ -28,9 +28,14 @@ def is_user_facing_lxmf_payload(fields, content, title) -> bool:
 
     Messages that should NOT raise the notification bell:
       - reactions (Columba app_extensions.reaction_to with no other payload)
-      - telemetry-only messages (FIELD_TELEMETRY / fields["telemetry"] with no body)
+      - bare telemetry updates with no coordinates, no stream, and no
+        Sideband location-request command (FIELD_TELEMETRY body-only noise)
       - icon-only / appearance-only updates (no body, no attachment)
       - empty pings (no content, no title, no attachment)
+
+    Location shares (telemetry including ``location``), telemetry streams,
+    and Sideband ``commands`` entries with key ``0x01`` (location request) ARE
+    treated as user-facing so the bell and previews stay informative.
 
     The helper is intentionally tolerant: ``fields`` may be the rich dict
     produced by :func:`convert_lxmf_message_to_dict` (string keys), the raw
@@ -92,6 +97,22 @@ def is_user_facing_lxmf_payload(fields, content, title) -> bool:
     if isinstance(raw_files, list) and len(raw_files) > 0:
         return True
 
+    telemetry = fields.get("telemetry")
+    if isinstance(telemetry, dict):
+        loc = telemetry.get("location")
+        if isinstance(loc, dict) and loc:
+            return True
+
+    ts = fields.get("telemetry_stream")
+    if isinstance(ts, list) and len(ts) > 0:
+        return True
+
+    commands = fields.get("commands")
+    if isinstance(commands, list):
+        for cmd in commands:
+            if isinstance(cmd, dict) and "0x01" in cmd:
+                return True
+
     return False
 
 
@@ -107,6 +128,22 @@ def _reaction_emoji_from_parsed_lxmf_fields(fields: dict) -> str | None:
         emoji = (raw.get("emoji") or "").strip()
         return emoji or None
     return None
+
+
+def _lxmf_sidebar_actor_label(
+    row: dict,
+    *,
+    local_hash: str,
+    peer_display_name: str,
+) -> str:
+    is_incoming = bool(row.get("is_incoming"))
+    if is_incoming:
+        return peer_display_name or "Anonymous Peer"
+    src = (row.get("source_hash") or "").lower()
+    loc = (local_hash or "").lower()
+    return (
+        "You" if src and loc and src == loc else (peer_display_name or "Anonymous Peer")
+    )
 
 
 def lxmf_sidebar_preview_for_conversation_latest_row(
@@ -131,23 +168,39 @@ def lxmf_sidebar_preview_for_conversation_latest_row(
     except (json.JSONDecodeError, TypeError):
         fields = {}
 
+    actor = _lxmf_sidebar_actor_label(
+        row,
+        local_hash=local_hash,
+        peer_display_name=peer_display_name,
+    )
+    incoming = bool(row.get("is_incoming"))
+
     emoji = _reaction_emoji_from_parsed_lxmf_fields(fields)
-    if not emoji:
-        return str(content or "")
+    if emoji:
+        return f"{actor} reacted {emoji}"
 
-    is_incoming = bool(row.get("is_incoming"))
-    if is_incoming:
-        actor = peer_display_name or "Anonymous Peer"
-    else:
-        src = (row.get("source_hash") or "").lower()
-        loc = (local_hash or "").lower()
-        actor = (
-            "You"
-            if src and loc and src == loc
-            else (peer_display_name or "Anonymous Peer")
-        )
+    telemetry = fields.get("telemetry")
+    if isinstance(telemetry, dict):
+        loc = telemetry.get("location")
+        if isinstance(loc, dict) and loc:
+            return f"{actor} shared their location"
 
-    return f"{actor} reacted {emoji}"
+    ts = fields.get("telemetry_stream")
+    if isinstance(ts, list) and len(ts) > 0:
+        return f"{actor} sent a telemetry stream"
+
+    if isinstance(telemetry, dict) and len(telemetry) > 0:
+        return f"{actor} sent telemetry"
+
+    commands = fields.get("commands")
+    if isinstance(commands, list):
+        for cmd in commands:
+            if isinstance(cmd, dict) and "0x01" in cmd:
+                if incoming:
+                    return f"{actor} requested your location"
+                return f"{actor} sent a location request"
+
+    return str(content or "")
 
 
 def convert_lxmf_message_to_dict(

@@ -10971,6 +10971,10 @@ class ReticulumMeshChat:
 
                         icon = self.database.misc.get_user_icon(other_user_hash)
 
+                        peer_preview_name = (
+                            custom_display_name or display_name or "Anonymous Peer"
+                        )
+
                         conversations.append(
                             {
                                 "type": "lxmf_message",
@@ -10979,8 +10983,12 @@ class ReticulumMeshChat:
                                 "custom_display_name": custom_display_name,
                                 "lxmf_user_icon": dict(icon) if icon else None,
                                 "latest_message_preview": (
-                                    latest_message_data["content"] or ""
-                                )[:100],
+                                    lxmf_sidebar_preview_for_conversation_latest_row(
+                                        dict(latest_for_preview),
+                                        local_hash=local_hash,
+                                        peer_display_name=peer_preview_name,
+                                    )[:100]
+                                ),
                                 "updated_at": datetime.fromtimestamp(
                                     latest_message_data["timestamp"] or 0,
                                     UTC,

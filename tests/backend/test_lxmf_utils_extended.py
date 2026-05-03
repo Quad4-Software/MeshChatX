@@ -334,3 +334,67 @@ def test_sidebar_preview_prefers_non_empty_content():
         peer_display_name="Eve",
     )
     assert out == " hi "
+
+
+def test_sidebar_preview_telemetry_location_incoming():
+    local = "a" * 32
+    row = {
+        "content": "",
+        "fields": json.dumps(
+            {"telemetry": {"location": {"latitude": 1.0, "longitude": 2.0}}},
+        ),
+        "is_incoming": 1,
+        "source_hash": "b" * 32,
+    }
+    out = lxmf_sidebar_preview_for_conversation_latest_row(
+        row,
+        local_hash=local,
+        peer_display_name="Riley",
+    )
+    assert out == "Riley shared their location"
+
+
+def test_sidebar_preview_location_request_outbound_you():
+    me = "c" * 32
+    row = {
+        "content": "",
+        "fields": json.dumps({"commands": [{"0x01": 1_700_000_000}]}),
+        "is_incoming": 0,
+        "source_hash": me,
+    }
+    out = lxmf_sidebar_preview_for_conversation_latest_row(
+        row,
+        local_hash=me,
+        peer_display_name="Sam",
+    )
+    assert out == "You sent a location request"
+
+
+def test_sidebar_preview_telemetry_battery_only():
+    row = {
+        "content": "",
+        "fields": json.dumps({"telemetry": {"battery": {"charge_percent": 50}}}),
+        "is_incoming": 1,
+        "source_hash": "b" * 32,
+    }
+    out = lxmf_sidebar_preview_for_conversation_latest_row(
+        row,
+        local_hash="a" * 32,
+        peer_display_name="Taylor",
+    )
+    assert out == "Taylor sent telemetry"
+
+
+def test_sidebar_preview_telemetry_stream():
+    row = {
+        "content": "",
+        "fields": json.dumps({"telemetry_stream": [{"t": 1}]}),
+        "is_incoming": 1,
+        "source_hash": "b" * 32,
+    }
+    out = lxmf_sidebar_preview_for_conversation_latest_row(
+        row,
+        local_hash="a" * 32,
+        peer_display_name="Jordan",
+    )
+    assert out == "Jordan sent a telemetry stream"

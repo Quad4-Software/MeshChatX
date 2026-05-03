@@ -10,8 +10,10 @@ Covers:
   - the DAO method
     :func:`MessageDAO.get_latest_user_facing_incoming_message`
   - end-to-end ``GET /api/v1/notifications`` integration: reactions,
-    telemetry-only, icon-only, empty pings and delivery-status updates
-    must not produce false unread badges or empty dropdown entries
+    generic telemetry-only payloads, icon-only, empty pings and
+    delivery-status updates must not produce false unread badges or empty
+    dropdown entries; location shares, telemetry streams, and Sideband
+    location requests must surface with a readable preview.
 """
 
 from __future__ import annotations
@@ -74,6 +76,18 @@ class TestIsUserFacingLxmfPayload:
     def test_telemetry_only_is_not_user_facing(self):
         fields = {"telemetry": {"some": "data"}}
         assert not is_user_facing_lxmf_payload(fields, "", "")
+
+    def test_telemetry_with_location_is_user_facing(self):
+        fields = {"telemetry": {"location": {"latitude": 1.0, "longitude": 2.0}}}
+        assert is_user_facing_lxmf_payload(fields, "", "")
+
+    def test_telemetry_stream_is_user_facing(self):
+        fields = {"telemetry_stream": [{"x": 1}]}
+        assert is_user_facing_lxmf_payload(fields, "", "")
+
+    def test_sideband_location_request_command_is_user_facing(self):
+        fields = {"commands": [{"0x01": 1_700_000_000}]}
+        assert is_user_facing_lxmf_payload(fields, "", "")
 
     def test_icon_only_is_not_user_facing(self):
         # Icon appearance updates are processed separately and never appear in
@@ -165,6 +179,19 @@ class TestRequireUserFacingFlag:
                 require_user_facing=True,
             )
             is False
+        )
+
+    def test_telemetry_location_unread_when_require_user_facing(self):
+        row = _row(
+            incoming=1,
+            fields={"telemetry": {"location": {"latitude": 0.0, "longitude": 0.0}}},
+        )
+        assert (
+            compute_lxmf_conversation_unread_from_latest_row(
+                row,
+                require_user_facing=True,
+            )
+            is True
         )
 
     def test_user_facing_message_still_unread(self):
@@ -304,6 +331,24 @@ class TestGetLatestUserFacingIncomingMessage:
         )
         result = db.messages.get_latest_user_facing_incoming_message(PEER_HASH)
         assert result is None
+
+    def test_returns_incoming_location_telemetry(self, db):
+        db.messages.upsert_lxmf_message(
+            _mk_message(
+                msg_hash="loc1",
+                peer_hash=PEER_HASH,
+                content="",
+                fields={
+                    "telemetry": {
+                        "location": {"latitude": 1.0, "longitude": 2.0},
+                    },
+                },
+                timestamp=200,
+            ),
+        )
+        result = db.messages.get_latest_user_facing_incoming_message(PEER_HASH)
+        assert result is not None
+        assert result["hash"] == "loc1"
 
     def test_skips_outgoing_messages(self, db):
         db.messages.upsert_lxmf_message(
@@ -526,6 +571,45 @@ class TestNotificationsGetUserFacingFilter:
         body = await self._get(bell_app, unread="true", limit=10)
         assert body["unread_count"] == 0
         assert body["notifications"] == []
+
+    async def test_telemetry_location_raises_bell_with_preview(self, bell_app):
+        bell_app.database.messages.upsert_lxmf_message(
+            _mk_message(
+                msg_hash="loc1",
+                peer_hash=PEER_HASH,
+                content="",
+                fields={
+                    "telemetry": {
+                        "location": {"latitude": 1.0, "longitude": 2.0},
+                    },
+                },
+                timestamp=1_700_000_000,
+            ),
+        )
+        body = await self._get(bell_app, unread="true", limit=10)
+        assert body["unread_count"] == 1
+        assert len(body["notifications"]) == 1
+        peer_label = f"peer-{PEER_HASH[:6]}"
+        assert body["notifications"][0]["latest_message_preview"] == (
+            f"{peer_label} shared their location"
+        )
+
+    async def test_sideband_location_request_raises_bell_with_preview(self, bell_app):
+        bell_app.database.messages.upsert_lxmf_message(
+            _mk_message(
+                msg_hash="req1",
+                peer_hash=PEER_HASH,
+                content="",
+                fields={"commands": [{"0x01": 1_700_000_000}]},
+                timestamp=1_700_000_000,
+            ),
+        )
+        body = await self._get(bell_app, unread="true", limit=10)
+        assert body["unread_count"] == 1
+        peer_label = f"peer-{PEER_HASH[:6]}"
+        assert body["notifications"][0]["latest_message_preview"] == (
+            f"{peer_label} requested your location"
+        )
 
     async def test_empty_payload_does_not_raise_bell(self, bell_app):
         bell_app.database.messages.upsert_lxmf_message(
