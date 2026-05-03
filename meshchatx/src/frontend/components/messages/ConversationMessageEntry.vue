@@ -353,15 +353,17 @@
     </div>
     <div
         v-else-if="entry.type === 'dateDivider'"
-        class="flex justify-center w-full max-w-full my-3 shrink-0"
+        class="flex items-center justify-center gap-3 w-full max-w-full my-3 shrink-0 px-2 select-none"
         role="separator"
         :aria-label="cv.formatDateDividerLabel(entry.dayKey)"
     >
+        <span class="h-px w-10 shrink-0 bg-gray-300/85 sm:w-14 dark:bg-zinc-600/70" aria-hidden="true" />
         <span
-            class="inline-flex items-center rounded-full border border-gray-200/90 bg-gray-50/95 px-3 py-1 text-[11px] font-medium tracking-wide text-gray-600 shadow-xs dark:border-zinc-700/90 dark:bg-zinc-800/90 dark:text-zinc-300"
+            class="max-w-[min(100%,18rem)] text-center text-[11px] font-medium leading-snug tracking-wide text-gray-500/95 dark:text-zinc-400/95"
         >
             {{ cv.formatDateDividerLabel(entry.dayKey) }}
         </span>
+        <span class="h-px w-10 shrink-0 bg-gray-300/85 sm:w-14 dark:bg-zinc-600/70" aria-hidden="true" />
     </div>
     <div
         v-for="chatItem in [entry.chatItem]"
