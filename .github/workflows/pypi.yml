@@ -1,0 +1,222 @@
+# Publish ``reticulum-meshchatx`` sdist and wheel to PyPI (Trusted Publishing).
+# Builds the Vite frontend and offline bundles via the reusable frontend workflow,
+# places them under ``meshchatx/public/``, then runs ``python -m build``.
+#
+# Tag runs also emit SLSA generic provenance (``generator_generic_slsa3``) for the
+# exact ``dist/`` digests and optional Cosign ``*.cosign.bundle`` files next to each
+# distribution (same scripts as ``build-release.yml``; skips if ``COSIGN_PRIVATE_KEY`` unset).
+# PyPI upload uses a staging directory so bundles are not sent to the index.
+#
+# PyPI Trusted Publisher must reference this file as ``pypi.yml`` and use the
+# ``pypi`` GitHub Environment (with required reviewers if you enabled protection).
+#
+# Pinned first-party actions (bump tag and SHA together when upgrading):
+#   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
+#   actions/setup-python@v6.2.0        a309ff8b426b58ec0e2a45f0f869d46889d02405
+#   actions/upload-artifact@v5.0.0     330a01c490aca151604b8cf639adc76d48f6c5d4
+#   actions/download-artifact@v5.0.0   634f93cb2916e3fdff6788551b99b062d0335ce0
+#
+# SLSA generator (must stay @vX.Y.Z semver per upstream):
+#   slsa-framework/slsa-github-generator/generator_generic_slsa3.yml@v2.1.0
+#
+# Third-party pin (resolve before bumping ``release/v1``):
+#   curl -sS "https://api.github.com/repos/pypa/gh-action-pypi-publish/commits/release/v1" | jq -r '.sha'
+#   pypa/gh-action-pypi-publish@release/v1 -> cef221092ed1bacb1cc03d23a2d87d1d172e277b
+
+name: Publish to PyPI
+
+on:
+    push:
+        tags:
+            - "v*"
+    workflow_dispatch:
+
+permissions:
+    contents: read
+    actions: read
+    id-token: write
+
+concurrency:
+    group: pypi-${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+env:
+    FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    NODE_OPTIONS: --max-old-space-size=8192
+    PYTHON_VERSION: "3.14"
+    COSIGN_VERSION: "3.0.6"
+
+jobs:
+    frontend:
+        name: Build frontend artifact
+        uses: ./.github/workflows/frontend-build.yml
+        permissions:
+            contents: read
+        with:
+            artifact_name: meshchatx-frontend-pypi-${{ github.run_id }}-${{ github.run_attempt }}
+            retention_days: 2
+
+    build:
+        name: Build Python distributions
+        needs: frontend
+        runs-on: ubuntu-latest
+        timeout-minutes: 30
+        outputs:
+            hashes: ${{ steps.slsa-hashes.outputs.hashes }}
+        defaults:
+            run:
+                shell: bash
+        env:
+            FRONTEND_ARTIFACT_NAME: ${{ needs.frontend.outputs.artifact_name }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              with:
+                  persist-credentials: false
+
+            - name: Set up Python
+              uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+
+            - name: Download frontend artifact
+              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              with:
+                  name: ${{ env.FRONTEND_ARTIFACT_NAME }}
+                  path: meshchatx/public
+
+            - name: Verify frontend bundle in tree
+              run: |
+                  set -euo pipefail
+                  test -f meshchatx/public/index.html
+                  test -d meshchatx/public/assets
+                  test -d meshchatx/public/reticulum-docs-bundled/current
+
+            - name: Install build
+              run: python -m pip install -U pip "build>=1.2.0"
+
+            - name: Build sdist and wheel
+              run: python -m build
+
+            - name: Verify wheel contains frontend assets
+              run: |
+                  set -euo pipefail
+                  whl=(dist/*.whl)
+                  if [[ "${#whl[@]}" -ne 1 ]]; then
+                      echo "Expected exactly one wheel in dist/" >&2
+                      ls -la dist >&2
+                      exit 1
+                  fi
+                  export WHEEL_PATH="${whl[0]}"
+                  python - <<'PY'
+                  import os
+                  import sys
+                  import zipfile
+
+                  path = os.environ["WHEEL_PATH"]
+                  with zipfile.ZipFile(path) as zf:
+                      names = zf.namelist()
+                  if "meshchatx/public/index.html" not in names:
+                      print("missing: meshchatx/public/index.html", file=sys.stderr)
+                      sys.exit(1)
+                  if not any(n.startswith("meshchatx/public/assets/") for n in names):
+                      print("missing: meshchatx/public/assets/", file=sys.stderr)
+                      sys.exit(1)
+                  print("wheel contains meshchatx/public frontend paths")
+                  PY
+
+            - name: SLSA subject hashes (PyPI dists)
+              id: slsa-hashes
+              if: github.ref_type == 'tag'
+              run: bash scripts/ci/github-slsa-hashes-dist.sh
+
+            - name: Cosign attestations (sdist + wheels)
+              if: github.ref_type == 'tag'
+              env:
+                  COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+                  COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+                  GITHUB_SERVER_URL: ${{ github.server_url }}
+                  GITHUB_REPOSITORY: ${{ github.repository }}
+                  GITHUB_SHA: ${{ github.sha }}
+                  GITHUB_REF: ${{ github.ref }}
+                  GITHUB_RUN_ID: ${{ github.run_id }}
+                  GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+                  GITHUB_WORKFLOW: ${{ github.workflow }}
+                  GITHUB_WORKFLOW_FILE: pypi.yml
+                  COSIGN_VERSION: ${{ env.COSIGN_VERSION }}
+              run: |
+                  set -eu
+                  if [ -z "${COSIGN_PRIVATE_KEY:-}" ]; then
+                    echo "Skipping cosign attestations (no COSIGN_PRIVATE_KEY)."
+                    exit 0
+                  fi
+                  sh scripts/ci/setup-cosign.sh "${COSIGN_VERSION}"
+                  printf '%s\n' "$COSIGN_PRIVATE_KEY" > /tmp/cosign.key
+                  chmod 600 /tmp/cosign.key
+                  export COSIGN_KEY_PATH=/tmp/cosign.key
+                  sh scripts/ci/attest-release-assets.sh ./dist
+                  rm -f /tmp/cosign.key
+
+            - name: Store distribution packages
+              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              with:
+                  name: python-package-distributions
+                  path: dist/
+                  if-no-files-found: error
+
+    slsa-provenance-pypi:
+        name: SLSA provenance (PyPI dists)
+        needs: build
+        if: github.ref_type == 'tag'
+        permissions:
+            id-token: write
+            contents: write
+            actions: read
+        uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
+        with:
+            base64-subjects: ${{ needs.build.outputs.hashes }}
+            upload-assets: false
+            provenance-name: meshchatx-pypi-${{ github.ref_name }}.intoto.jsonl
+
+    publish-to-pypi:
+        name: Publish to PyPI
+        if: >-
+            github.ref_type == 'tag' &&
+            needs.build.result == 'success' &&
+            needs.slsa-provenance-pypi.result == 'success'
+        needs:
+            - build
+            - slsa-provenance-pypi
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        environment:
+            name: pypi
+            url: https://pypi.org/project/meshchatx/
+        permissions:
+            actions: read
+            contents: read
+            id-token: write
+        steps:
+            - name: Download distributions
+              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              with:
+                  name: python-package-distributions
+                  path: dist/
+
+            - name: Stage PyPI uploads (exclude Cosign bundles)
+              run: |
+                  set -euo pipefail
+                  mkdir -p pypi-upload
+                  shopt -s nullglob
+                  files=(dist/*.whl dist/*.tar.gz)
+                  if [[ "${#files[@]}" -eq 0 ]]; then
+                      echo "No .whl or .tar.gz in dist/" >&2
+                      ls -la dist >&2
+                      exit 1
+                  fi
+                  cp -v "${files[@]}" pypi-upload/
+
+            - name: Publish to PyPI
+              uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b
+              with:
+                  packages-dir: pypi-upload/

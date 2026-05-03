@@ -353,6 +353,10 @@ jobs:
               if: matrix.label == 'macos'
               run: /usr/sbin/softwareupdate --install-rosetta --agree-to-license || true
 
+            - name: Ensure x86_64 Homebrew (/usr/local) for universal slice
+              if: matrix.label == 'macos'
+              run: bash scripts/ci/github-ensure-macos-x86-64-homebrew.sh
+
             - name: Set up Python x64 for cx_Freeze universal slice
               id: python_x64
               if: matrix.label == 'macos'
@@ -370,32 +374,24 @@ jobs:
               if: matrix.label == 'macos'
               run: |
                   set -euo pipefail
-                  # The Rosetta (x86_64) Homebrew lives at /usr/local/bin/brew on
-                  # Apple Silicon GitHub runners. libyaml must be available as
-                  # x86_64 so PyYAML's C extension (_yaml.cpython-3xx-darwin.so)
-                  # compiles for the darwin-x64 cx_Freeze slice. Without this,
-                  # pip falls back to pure Python pyyaml, which is absent from
-                  # the x64 tree while the arm64 tree has the binary, causing
-                  # unify-backend-plain-files.sh to fail.
-                  if [[ -x /usr/local/bin/brew ]]; then
-                      arch -x86_64 /usr/local/bin/brew install libyaml || true
-                  else
-                      echo "x86_64 Homebrew not found at /usr/local/bin/brew; PyYAML C extension may fall back to pure Python for x64 slice."
-                  fi
+                  # x86_64 libyaml for the darwin-x64 cx_Freeze slice (see
+                  # github-ensure-macos-x86-64-homebrew.sh; /usr/local/bin/brew is
+                  # guaranteed before this step on Apple Silicon runners).
+                  arch -x86_64 /usr/local/bin/brew install libyaml || true
 
             - name: Install x86_64 codec2 for pycodec2 (universal slice)
               if: matrix.label == 'macos'
               run: |
                   set -euo pipefail
-                  if [[ -x /usr/local/bin/brew ]]; then
-                      arch -x86_64 /usr/local/bin/brew install codec2
-                  else
-                      echo "x86_64 Homebrew not found at /usr/local/bin/brew; cannot build pycodec2 x64 slice." >&2
-                      exit 1
-                  fi
+                  arch -x86_64 /usr/local/bin/brew install codec2
                   _codec2="$(arch -x86_64 /usr/local/bin/brew --prefix codec2)"
                   test -f "${_codec2}/include/codec2/codec2.h"
-                  test -f "${_codec2}/lib/libcodec2.dylib"
+                  shopt -s nullglob
+                  _libs=("${_codec2}/lib"/libcodec2*.dylib)
+                  if [[ ${#_libs[@]} -eq 0 ]]; then
+                      echo "no libcodec2*.dylib under ${_codec2}/lib" >&2
+                      exit 1
+                  fi
 
             - name: Install project deps into x64 Python (mac universal cx_Freeze)
               if: matrix.label == 'macos'
@@ -407,15 +403,10 @@ jobs:
                   CFLAGS: "-arch x86_64"
               run: |
                   set -euo pipefail
-                  if [[ -x /usr/local/bin/brew ]]; then
-                      _codec2="$(arch -x86_64 /usr/local/bin/brew --prefix codec2)"
-                      export LDFLAGS="-L${_codec2}/lib -arch x86_64"
-                      export CPPFLAGS="-I${_codec2}/include"
-                      export PKG_CONFIG_PATH="${_codec2}/lib/pkgconfig:/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig"
-                  else
-                      export LDFLAGS="-arch x86_64"
-                      export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig"
-                  fi
+                  _codec2="$(arch -x86_64 /usr/local/bin/brew --prefix codec2)"
+                  export LDFLAGS="-L${_codec2}/lib -arch x86_64"
+                  export CPPFLAGS="-I${_codec2}/include"
+                  export PKG_CONFIG_PATH="${_codec2}/lib/pkgconfig:/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig"
                   arch -x86_64 "$PY_X64" -m pip install -U pip setuptools wheel
                   arch -x86_64 "$PY_X64" -m pip install "cx-freeze>=7.0.0"
                   arch -x86_64 "$PY_X64" -m pip install -e .

@@ -102,6 +102,10 @@ jobs:
               if: matrix.label == 'macos'
               run: /usr/sbin/softwareupdate --install-rosetta --agree-to-license || true
 
+            - name: Ensure x86_64 Homebrew (/usr/local) for universal slice
+              if: matrix.label == 'macos'
+              run: bash scripts/ci/github-ensure-macos-x86-64-homebrew.sh
+
             - name: Set up Python x64 for cx_Freeze universal slice
               id: python_x64
               if: matrix.label == 'macos'
@@ -119,11 +123,7 @@ jobs:
               if: matrix.label == 'macos'
               run: |
                   set -euo pipefail
-                  if [[ -x /usr/local/bin/brew ]]; then
-                      arch -x86_64 /usr/local/bin/brew install codec2
-                  else
-                      echo "x86_64 Homebrew not found at /usr/local/bin/brew; pycodec2 x64 slice build may fail." >&2
-                  fi
+                  arch -x86_64 /usr/local/bin/brew install codec2
 
             - name: Install project deps into x64 Python (mac universal cx_Freeze)
               if: matrix.label == 'macos'
@@ -135,19 +135,14 @@ jobs:
                   CFLAGS: "-arch x86_64"
               run: |
                   set -euo pipefail
-                  if [[ -x /usr/local/bin/brew ]]; then
-                      _codec2="$(arch -x86_64 /usr/local/bin/brew --prefix codec2)"
-                      export LDFLAGS="-L${_codec2}/lib -arch x86_64"
-                      export CPPFLAGS="-I${_codec2}/include"
-                      export PKG_CONFIG_PATH="${_codec2}/lib/pkgconfig:/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig"
-                  else
-                      export LDFLAGS="-arch x86_64"
-                      export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig"
-                  fi
-                  "$PY_X64" -m pip install -U pip setuptools wheel
-                  "$PY_X64" -m pip install "cx-freeze>=7.0.0"
-                  "$PY_X64" -m pip install -e .
-                  "$PY_X64" scripts/patch_lxst_pyogg_ogg_ctypes.py
+                  _codec2="$(arch -x86_64 /usr/local/bin/brew --prefix codec2)"
+                  export LDFLAGS="-L${_codec2}/lib -arch x86_64"
+                  export CPPFLAGS="-I${_codec2}/include"
+                  export PKG_CONFIG_PATH="${_codec2}/lib/pkgconfig:/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig"
+                  arch -x86_64 "$PY_X64" -m pip install -U pip setuptools wheel
+                  arch -x86_64 "$PY_X64" -m pip install "cx-freeze>=7.0.0"
+                  arch -x86_64 "$PY_X64" -m pip install -e .
+                  arch -x86_64 "$PY_X64" scripts/patch_lxst_pyogg_ogg_ctypes.py
 
             - name: Download frontend artifact
               uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
