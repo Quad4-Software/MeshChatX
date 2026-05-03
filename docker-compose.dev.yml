@@ -11,4 +11,8 @@ services:
         ports:
             - 127.0.0.1:8000:8000
         volumes:
-            - ./meshchat-config:/config
+            - meshchatx-config:/config
+
+volumes:
+    meshchatx-config:
+        name: meshchatx-config

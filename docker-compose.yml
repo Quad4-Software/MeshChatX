@@ -1,11 +1,15 @@
 services:
     reticulum-meshchatx:
         container_name: reticulum-meshchatx
-        image: ${MESHCHAT_IMAGE:-ghcr.io/sudo-ivan/meshchatx:latest}
+        image: ${MESHCHAT_IMAGE:-quad4io/meshchatx:latest}
         restart: unless-stopped
         security_opt:
             - no-new-privileges:true
         ports:
             - 127.0.0.1:8000:8000
         volumes:
-            - ./meshchat-config:/config
+            - meshchatx-config:/config
+
+volumes:
+    meshchatx-config:
+        name: meshchatx-config
