@@ -2,22 +2,82 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.6.0] - 2026-05-02 - Upcoming
+## [4.6.0] - 2026-05-03 - Upcoming
 
 ### TL;DR
 
+- **Micron WASM parser**: Go-based **WASM** implementation for Micron page parsing, Falls back to JavaScript when WASM is unavailable. **Micron-Parser-JS is still default**.
+- **Security/Integrity**: **SRI verification** for external scripts (Codec2, RNode Flasher) and Micron WASM assets with integrity manifests generated at build time.
 - **File downloads**: When you save or export things (including from archives), filenames are **cleaned up** so odd characters are less likely to break saves, and you get **clearer feedback** when a download wraps up.
 - **NomadNet favourites**: You can **import and export** your NomadNet favourites list so you are not stuck re-building it by hand on a new device; **contact sharing** wording is clearer across several languages.
 - **RNGit Explorer**: New in-app explorer for **RNGit**.
-- **Android**: **Foreground sync** with notifications, **WebSocket** bridge hooks, **calls** and richer **audio** (including native attachments), **optional camera** manifest wiring, plus **Lint** in CI and toolchain updates.
+- **Android**: **Foreground sync** with notifications, **WebSocket** bridge hooks, **calls** and richer **audio** (including native attachments), **optional camera** manifest wiring, **APK sharing** via system share sheet, plus **Lint** in CI and toolchain updates.
+- **LibreTranslate**: Optional **API key** support for self-hosted or public instances with improved configuration persistence.
+- **Bot management**: Subprocess **error tracking**, **log retrieval**, and better lifecycle handling for LXMFy bots.
+- **Map improvements**: Removed **MapNoMapWarning** component, streamlined **offline mode** handling, and improved coordinate display with tabular formatting.
+- **Telephony**: Call **metadata tracking** with **path hops** and **interface details**, plus **ringtone handling** for browser autoplay restrictions.
 - **Reticulum and announces**: **Bootstrap-only** defaults for new **outbound TCP** / **backbone connector** interfaces (with discovery and add-interface options), **per-aspect announce storage** toggles in **`announce_manager`** / **`config_manager`**, and refreshed **community interface** presets (builder script and list cleanup).
 - **Chat UI**: Clearer **outbound propagation** status in threads; **clipboard** helpers for secure and non-secure contexts; **Tailwind CSS 4** with the **Vite** plugin and a slimmer frontend config footprint.
-- **Settings and locales**: **Privacy**, **message auto-delete**, **community preset** strings, **bootstrap node search** copy, and **outbound propagation** status translations across supported languages.
+- **Settings and locales**: **Privacy**, **message auto-delete**, **community preset** strings, **bootstrap node search** copy, **LibreTranslate API key**, and **outbound propagation** status translations across supported languages.
+
+### Micron WASM parser
+
+- **Micron-Parser-Go WASM**: Go-based WASM implementation for Micron page parsing with **word wrapping**, **space splitting**, and **ForceMonospace** CSS injection.
+- **Configuration**: Toggle for **Micron WASM support** in settings (default **off** for compatibility). **`micron_parser_go_version`** config option to control the WASM binary version.
+- **Dynamic loading**: WASM binary fetched and cached with **SRI verification** against **`integrity.json`** manifests.
+- **Fallback behavior**: Graceful fallback to JavaScript parser when WASM is unavailable or fails to load.
+- **Docker support**: Scripts to fetch and resolve Micron WASM binaries during Docker builds with version pinning.
+
+### Security and integrity
+
+- **SRI verification**: Subresource Integrity verification for **Codec2** and **RNode Flasher** external scripts with **`integrity.json`** manifests.
+- **Micron WASM integrity**: Generated **`integrity.json`** for Micron WASM assets with SHA-384 hashes verified at load time.
+- **Security documentation**: Updated **`SECURITY.md`** with SRI verification details for external code and CI integrity tests.
+- **Community interfaces**: SSRF protection with URL validation and fetch handling for community directory requests.
+
+### Bots and LXMFy
+
+- **Bot error handling**: Subprocess **last error tracking** and **log retrieval** for bot instances via **`GET /api/v1/bots/{id}/logs`**.
+- **LXMFy vendor integration**: Vendored **LXMFy** dependency for bot framework functionality.
+- **Configuration**: Improved bot configuration persistence and validation in **`config_manager`**.
+
+### LibreTranslate
+
+- **API key support**: Optional **API key** field for LibreTranslate configuration in settings with secure storage.
+- **URL validation**: **Loopback-only** URL normalization and validation for LibreTranslate service endpoints.
+- **Configuration persistence**: Improved **`libretranslate_url`** and **`libretranslate_api_key`** handling with live probing.
+
+### Map and visualization
+
+- **Simplified offline handling**: Removed **MapNoMapWarning** component and streamlined offline mode logic.
+- **Coordinate display**: Improved **tabular formatting** for coordinate readouts in the map UI.
+- **Geolocation permissions**: Android **geolocation permissions** for map and LXMF telemetry functionality.
+
+### Telephony and calls
+
+- **Call metadata tracking**: Real-time display of **path hops**, **interface details**, and **RTT** during active calls.
+- **Ringtone handling**: Improved **browser autoplay restriction** handling for ringtone playback with fallback strategies.
+- **Telephone announcements**: Configurable **announcement enabling** for telephone functionality.
+
+### Android platform
+
+- **APK sharing**: **`shareApk`** method in **AndroidBridge** for sharing the installed APK via system share sheet.
+- **File sharing utilities**: Native file sharing integration for mesh content.
+- **Geolocation permissions**: Added **fine/coarse location** permissions for map and telemetry features.
+- **Notification improvements**: Better **audio settings permission** handling and **back navigation** responsiveness.
+- **Versioning**: Bumped to **4.6.0** with updated feature flags.
+
+### Tools and path utilities
+
+- **RN path trace**: Improved **error handling** and **validation** in path trace and probe handlers.
+- **NomadNetwork pathfinding**: Integrated **reticulum pathfinding** into NomadNet downloads for better link establishment.
+- **Failure detection**: Simplified **`isFailedPageContent`** method with dedicated tests for page load failure detection.
 
 ### Downloads, archives, and frontend utilities
 
 - **Downloads**: File download flow adds **persistence**, **user notifications**, and **filename sanitization** so exports land predictably and bad names are rejected or normalized safely.
 - **Refactors**: Download helpers and **time formatting** utilities consolidated; UI elements updated where downloads surface.
+- **User icons**: **Seed-based background colors** for user icon components provide consistent, deterministic colors per identity.
 - **Tests**: **`DownloadUtils`** unit tests; **`Utils`** tests updated for formatting helpers; **`ArchivesPage`** test accounts for delayed **`downloadTextAsFile`** behaviour.
 
 ### NomadNet and locales
@@ -82,12 +142,13 @@ All notable changes to this project will be documented in this file.
 - **Caching**: **Node.js** and **Poetry** caches added where workflows install tooling.
 - **Docker publish**: Workflow gains **Docker Hub** integration, **tag generation**, and a **login** fix so credential detection output is used consistently.
 - **Android release**: Workflow updates for **tag handling**, **signing secret** detection, **APK upload** behaviour, and **Lint** (see Android section for product impact).
-- **Benchmarks**: **Taskfile** default **benchmark** task and workflow trigger alignment.
+- **Benchmarks**: **Taskfile** default **benchmark** task and workflow trigger alignment. Expanded benchmark suite covering **contacts**, **config**, **telemetry**, **debug logs**, **map drawings**, **voicemail**, and **access attempts** with JSON output and results caching.
+- **Alert thresholds**: Updated benchmark alert and fail thresholds for improved variance handling in CI.
 - **Draft releases**: Script sets **`GH_REPO`** from **`GITHUB_REPOSITORY`** when unset.
 - **Asset attestations**: Workflow **excludes additional file types** from attestation and **disables tlog upload** where that was causing friction.
 - **Trivy**: Build and **security scan** workflows include explicit **setup** / **update** steps; install script gains **upstream verification** and **cosign** integration.
 - **pip-audit**: **`CVE-2026-3219`** ignored temporarily with a documented rationale until an upstream fix lands.
-- **Tests**: Minor **formatting** tidy-ups in the test tree; **`test_app_status_tracking`** uses **`4.6.0`** as the example **`changelog_seen_version`** stamp so it tracks the release; added coverage for **`android_push_bridge`**, **`meshchat_wrapper`**, and **`rngit_tool`** (including wrapper server loops and frequency conversion); **`http_api_routes.json`** contract updated for new routes; **Transport** announce-handler registration test expectation fixed.
+- **Tests**: Minor **formatting** tidy-ups in the test tree; **`test_app_status_tracking`** uses **`4.6.0`** as the example **`changelog_seen_version`** stamp so it tracks the release; added coverage for **`android_push_bridge`**, **`meshchat_wrapper`**, **`rngit_tool`**, and **Micron WASM** (including wrapper server loops, frequency conversion, and WASM loading); **`http_api_routes.json`** contract updated for new routes; **Transport** announce-handler registration test expectation fixed; **NomadNetwork** regression tests for WebSocket download status; **telephone initiation** timeout increases for stability; **MarkdownRenderer** lxmf link detection tests; **WebSocketConnection** invalid JSON frame handling.
 
 ### Docker, compose, and documentation
 
@@ -189,6 +250,7 @@ All notable changes to this project will be documented in this file.
 ### Frontend and UX
 
 - **Propagation sync (App header)**: After **`GET /api/v1/lxmf/propagation-node/sync`**, the client **polls** propagation status on an interval while the router is in a transfer state, updates a **keyed loading toast** (`propagation-sync-status`) with translated strings (**`app.propagation_sync_live`**, **`app.propagation_sync_state.*`**), dismisses it when the transfer ends, then shows the existing success or error summary. Stopping sync clears the poll timer and dismisses the live toast; **beforeUnmount** cleans up if you leave the page mid-sync. Removed the old toolbar pattern **`Syncing... ({state})`** in favour of **`app.syncing`** plus the toast.
+- **Link detection**: Updated **Reticulum link detection** to support **`lxmf:`** prefix and prevent false positives for bare hashes. **`link-utils`** now validates URLs more strictly before rendering.
 - **Propagation nodes UI**: Settings and tools surface propagation node controls, transfer limits (MB), sync, and Material icons for node state; locales updated.
 - **Incoming message size (Settings / Propagation Nodes)**: Preset selector (**1 MB**, **10 MB**, **25 MB**, **50 MB**, **1 GB**) and **custom** amount with **MB** or **GB** unit; shared helpers in **`meshchatx/src/frontend/js/settings/incomingDeliveryLimit.js`**; **en** / **de** / **it** / **ru** strings (**`app.incoming_message_size*`**).
 - **Stranger links and sidebar**: Config options for **warning on stranger-originated links** and **Messages sidebar position**; UI and **en** / **de** / **it** / **ru** strings.
@@ -344,6 +406,7 @@ All notable changes to this project will be documented in this file.
 ### Removed
 
 - **axios** (replaced by **`fetch`**), legacy PR vulnerability workflow, **Nix** flakes, obsolete scripts.
+- **LegacyMigrator**: Removed legacy database migration system from startup to streamline initialization.
 
 ### LXMF interoperability
 
