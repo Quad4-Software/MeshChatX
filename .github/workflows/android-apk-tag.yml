@@ -91,10 +91,10 @@ jobs:
                     echo "ready=false" >> "${GITHUB_OUTPUT}"
                   fi
 
-            - name: Require signing secrets for master release tags
-              if: ${{ steps.track.outputs.track == 'master' && steps.android_signing.outputs.ready != 'true' }}
+            - name: Require signing secrets for dev and master tag APKs
+              if: ${{ (steps.track.outputs.track == 'master' || steps.track.outputs.track == 'dev') && steps.android_signing.outputs.ready != 'true' }}
               run: |
-                  echo "::error::Tagged master build needs release signing. Set secrets ANDROID_SIGNING_KEYSTORE_BASE64, ANDROID_SIGNING_KEYSTORE_PASSWORD, and ANDROID_SIGNING_KEY_ALIAS (see android-build.yml header)."
+                  echo "::error::Tagged dev (RC) and master builds need release signing so draft APKs match production keys (upgrade in place). Set secrets ANDROID_SIGNING_KEYSTORE_BASE64, ANDROID_SIGNING_KEYSTORE_PASSWORD, ANDROID_SIGNING_KEY_ALIAS, and optionally ANDROID_SIGNING_KEY_PASSWORD (see android-build.yml header)."
                   exit 1
 
             - name: Set up Java
@@ -209,6 +209,13 @@ jobs:
                   chmod +x gradlew
                   ./gradlew --no-daemon :app:lintDebug
 
+            - name: Build release APK
+              if: ${{ steps.track.outputs.track == 'master' || steps.track.outputs.track == 'dev' }}
+              working-directory: android
+              run: |
+                  chmod +x gradlew
+                  ./gradlew --no-daemon :app:assembleRelease
+
             - name: Build debug APK
               if: ${{ steps.track.outputs.track != 'master' }}
               working-directory: android
@@ -216,15 +223,8 @@ jobs:
                   chmod +x gradlew
                   ./gradlew --no-daemon :app:assembleDebug
 
-            - name: Build release APK
-              if: ${{ steps.track.outputs.track == 'master' }}
-              working-directory: android
-              run: |
-                  chmod +x gradlew
-                  ./gradlew --no-daemon :app:assembleRelease
-
             - name: Sign release APKs
-              if: ${{ steps.track.outputs.track == 'master' && steps.android_signing.outputs.ready == 'true' }}
+              if: ${{ (steps.track.outputs.track == 'master' || steps.track.outputs.track == 'dev') && steps.android_signing.outputs.ready == 'true' }}
               env:
                   KS_B64: ${{ secrets.ANDROID_SIGNING_KEYSTORE_BASE64 }}
                   SIGNING_KEYSTORE_PATH: ${{ runner.temp }}/meshchatx-release.jks
@@ -266,7 +266,7 @@ jobs:
                   if-no-files-found: warn
 
             - name: Upload release APK
-              if: ${{ steps.track.outputs.track == 'master' }}
+              if: ${{ steps.track.outputs.track == 'master' || steps.track.outputs.track == 'dev' }}
               uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
               with:
                   name: meshchatx-android-release-${{ github.ref_name }}-${{ github.run_id }}
@@ -278,18 +278,14 @@ jobs:
               run: |
                   set -euo pipefail
                   mkdir -p android-apks-for-draft
-                  if [[ "${{ steps.track.outputs.track }}" == "dev" ]]; then
-                    cp -v android/app/build/outputs/apk/debug/*.apk android-apks-for-draft/
-                  else
-                    shopt -s nullglob
-                    signed=(android/app/build/outputs/apk/release/*-signed.apk)
-                    shopt -u nullglob
-                    if [[ ${#signed[@]} -eq 0 ]]; then
-                      echo "::error::Expected *-signed.apk under android/app/build/outputs/apk/release/" >&2
-                      exit 1
-                    fi
-                    cp -v "${signed[@]}" android-apks-for-draft/
+                  shopt -s nullglob
+                  signed=(android/app/build/outputs/apk/release/*-signed.apk)
+                  shopt -u nullglob
+                  if [[ ${#signed[@]} -eq 0 ]]; then
+                    echo "::error::Expected *-signed.apk under android/app/build/outputs/apk/release/ (dev and master draft releases use the same release-signed APK)." >&2
+                    exit 1
                   fi
+                  cp -v "${signed[@]}" android-apks-for-draft/
 
             - name: Upload Android APK bundle for draft
               if: ${{ steps.track.outputs.track == 'dev' || steps.track.outputs.track == 'master' }}
