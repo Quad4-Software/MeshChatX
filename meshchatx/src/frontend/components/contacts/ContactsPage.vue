@@ -99,7 +99,6 @@
                                     :icon-background-colour="
                                         contact.remote_icon ? contact.remote_icon.background_colour : ''
                                     "
-                                    :seed="contact.lxmf_address || contact.remote_identity_hash"
                                     icon-class="size-10 sm:size-12"
                                 />
                             </div>

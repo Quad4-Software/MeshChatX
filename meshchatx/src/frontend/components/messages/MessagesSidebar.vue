@@ -69,7 +69,6 @@
                         :icon-name="c.lxmf_user_icon ? c.lxmf_user_icon.icon_name : ''"
                         :icon-foreground-colour="c.lxmf_user_icon ? c.lxmf_user_icon.foreground_colour : ''"
                         :icon-background-colour="c.lxmf_user_icon ? c.lxmf_user_icon.background_colour : ''"
-                        :seed="c.destination_hash"
                         icon-class="size-9 shrink-0"
                         :icon-style="collapsedConversationIconStyle"
                     />

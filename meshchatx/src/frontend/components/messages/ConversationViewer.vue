@@ -101,9 +101,6 @@
                                     :icon-name="lxmfContactResolvedIcon(contact).iconName"
                                     :icon-foreground-colour="lxmfContactResolvedIcon(contact).foreground"
                                     :icon-background-colour="lxmfContactResolvedIcon(contact).background"
-                                    :seed="
-                                        lxmfDeliveryDestinationHexFromContact(contact) || contact.remote_identity_hash
-                                    "
                                     icon-class="size-10"
                                 />
                             </div>
@@ -527,7 +524,7 @@
                                     class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 block w-full min-w-0 pl-3 sm:pl-4 pr-[76px] py-2.5 resize-none shadow-xs transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500 min-h-[44px] max-h-[200px] overflow-y-auto leading-snug"
                                     rows="1"
                                     spellcheck="true"
-                                    :placeholder="$t('messages.send_placeholder')"
+                                    :placeholder="composeInputPlaceholder"
                                     @keydown.enter.exact.prevent="onEnterPressed"
                                     @keydown.enter.shift.exact.prevent="onShiftEnterPressed"
                                     @paste="onMessagePaste"
@@ -789,11 +786,14 @@
                                 <SendMessageButton
                                     :is-sending-message="false"
                                     :can-send-message="canSendMessage"
+                                    :can-open-send-menu="Boolean(selectedPeer)"
                                     :delivery-method="newMessageDeliveryMethod"
                                     :compact="compactSendLayout"
                                     :sending-tooltip="sendMessagePathfindingTooltip"
-                                    @send="sendMessage"
+                                    @send="onComposerSendClick"
                                     @delivery-method-changed="newMessageDeliveryMethod = $event"
+                                    @send-command-or-request="enableNextSendAsCommandOrRequest"
+                                    @send-paper-compose="generatePaperMessageFromComposition"
                                 />
                             </div>
                         </div>
@@ -885,52 +885,37 @@
                                 <MaterialDesignIcon icon-name="paperclip-plus" class="w-4 h-4" />
                                 <span class="hidden sm:inline">{{ $t("messages.add_files") }}</span>
                             </button>
-                            <button
-                                type="button"
-                                class="attachment-action-button"
-                                :title="$t('messages.paste_from_clipboard')"
-                                @click="pasteFromClipboard"
-                            >
-                                <MaterialDesignIcon icon-name="content-paste" class="w-4 h-4" />
-                                <span class="hidden sm:inline">Paste</span>
-                            </button>
                             <AddImageButton @add-image="onImageSelected" />
-                            <button
-                                type="button"
-                                class="attachment-action-button"
-                                :title="$t('messages.share_location')"
-                                @click="shareLocation"
-                            >
-                                <MaterialDesignIcon icon-name="map-marker" class="w-4 h-4" />
-                                <span class="hidden sm:inline">{{ $t("messages.location") }}</span>
-                            </button>
-                            <button
-                                type="button"
-                                class="attachment-action-button"
-                                :title="$t('messages.request_location')"
-                                @click="requestLocation"
-                            >
-                                <MaterialDesignIcon icon-name="crosshairs-question" class="w-4 h-4" />
-                                <span class="hidden sm:inline">{{ $t("messages.request") }}</span>
-                            </button>
-                            <button
-                                type="button"
-                                class="attachment-action-button"
-                                :title="$t('messages.generate_paper_message')"
-                                :disabled="!canSendMessage || isGeneratingPaperMessage"
-                                @click="generatePaperMessageFromComposition"
-                            >
-                                <template v-if="isGeneratingPaperMessage">
-                                    <div
-                                        class="size-4 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"
-                                    ></div>
-                                    <span class="hidden sm:inline">Generating...</span>
-                                </template>
-                                <template v-else>
-                                    <MaterialDesignIcon icon-name="qrcode-plus" class="w-4 h-4" />
-                                    <span class="hidden sm:inline">LXM</span>
-                                </template>
-                            </button>
+                            <div v-click-outside="closeLocationActionMenu" class="relative">
+                                <button
+                                    type="button"
+                                    class="attachment-action-button"
+                                    :title="$t('messages.location')"
+                                    @click.stop="toggleLocationActionMenu"
+                                >
+                                    <MaterialDesignIcon icon-name="map-marker" class="w-4 h-4" />
+                                    <span class="hidden sm:inline">{{ $t("messages.location") }}</span>
+                                </button>
+                                <div
+                                    v-if="showLocationActionMenu"
+                                    class="absolute left-0 bottom-full mb-2 z-50 min-w-[220px] overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+                                >
+                                    <button
+                                        type="button"
+                                        class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-800"
+                                        @click="selectSendLocation"
+                                    >
+                                        {{ $t("messages.share_location") }}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-800"
+                                        @click="selectRequestLocation"
+                                    >
+                                        {{ $t("messages.request_location") }}
+                                    </button>
+                                </div>
+                            </div>
                             <button
                                 v-if="hasTranslator && newMessageText"
                                 type="button"
@@ -952,14 +937,7 @@
         </div>
 
         <!-- hidden file input for selecting files -->
-        <input
-            ref="file-input"
-            type="file"
-            multiple
-            accept="*/*,image/*"
-            style="display: none"
-            @change="onFileInputChange"
-        />
+        <input ref="file-input" type="file" multiple style="display: none" @change="onFileInputChange" />
 
         <!-- Message Context Menu (Teleport to body to avoid overflow clipping) -->
         <Teleport to="body">
@@ -1841,6 +1819,8 @@ export default {
             newMessageAudio: null,
             newMessageTelemetry: null,
             newMessageFiles: [],
+            pendingSendAsCommandOrRequest: false,
+            showLocationActionMenu: false,
             isTranslatingMessage: false,
             autoScrollOnNewMessage: true,
             composeAddress: "",
@@ -2068,6 +2048,20 @@ export default {
             }
             return this.$t("messages.sending_ellipsis");
         },
+        composeInputPlaceholder() {
+            void this.newMessageDeliveryMethod;
+            const dm = this.newMessageDeliveryMethod;
+            if (dm === "direct") {
+                return this.$t("messages.compose_hint_direct");
+            }
+            if (dm === "propagated") {
+                return this.$t("messages.compose_hint_propagated");
+            }
+            if (dm === "opportunistic") {
+                return this.$t("messages.compose_hint_opportunistic");
+            }
+            return this.$t("messages.compose_hint_automatic");
+        },
         isSyncingPropagationNode() {
             return [
                 "path_requested",
@@ -2143,6 +2137,9 @@ export default {
             return suggestions.slice(0, 10);
         },
         canSendMessage() {
+            if (this.pendingSendAsCommandOrRequest && this.selectedPeer) {
+                return true;
+            }
             // can send if message text is present
             const messageText = this.newMessageText.trim();
             const hasText = messageText != null && messageText !== "";
@@ -2467,6 +2464,19 @@ export default {
                 typeof window.MeshChatXAndroid.getPlatform === "function" &&
                 window.MeshChatXAndroid.getPlatform() === "android"
             );
+        },
+        androidNativeWavAttachmentAllowed() {
+            const b = window.MeshChatXAndroid;
+            if (!b || typeof b.startNativeWavAttachment !== "function") {
+                return false;
+            }
+            if (typeof b.isNativeWavAttachmentAvailable === "function") {
+                return b.isNativeWavAttachmentAvailable() === true;
+            }
+            if (typeof b.isNativePcmAudioAvailable === "function") {
+                return b.isNativePcmAudioAvailable() === true;
+            }
+            return true;
         },
         setupPeerHeaderResizeObserver() {
             this.teardownPeerHeaderResizeObserver();
@@ -3486,10 +3496,12 @@ export default {
                 return;
             }
 
-            this.chatItems[chatItemIndex].lxmf_message = {
-                ...this.chatItems[chatItemIndex].lxmf_message,
-                ...lxmfMessage,
-            };
+            const prev = this.chatItems[chatItemIndex].lxmf_message;
+            const merged = { ...prev, ...lxmfMessage };
+            if (!Object.prototype.hasOwnProperty.call(lxmfMessage, "_pendingPathfinding")) {
+                delete merged._pendingPathfinding;
+            }
+            this.chatItems[chatItemIndex].lxmf_message = merged;
         },
         onLxmfMessageDeleted(hash) {
             if (hash) {
@@ -4746,10 +4758,10 @@ export default {
 
             let audioTotalSize = 0;
             if (this.newMessageAudio) {
-                audioTotalSize = this.newMessageAudio.size;
+                audioTotalSize = this.newMessageAudio.audio_blob?.size ?? 0;
                 fields["audio"] = {
                     audio_mode: this.newMessageAudio.audio_mode,
-                    audio_size: this.newMessageAudio.size,
+                    audio_size: this.newMessageAudio.audio_blob?.size ?? 0,
                     audio_bytes: Utils.arrayBufferToBase64(await this.newMessageAudio.audio_blob.arrayBuffer()),
                 };
             }
@@ -5099,6 +5111,135 @@ export default {
             } catch (e) {
                 console.log(e);
                 ToastUtils.error(this.$t("messages.failed_send_location_request"));
+            }
+        },
+        normalizeSidebandCommandKey(key) {
+            const raw = String(key ?? "").trim();
+            if (!raw) {
+                return null;
+            }
+            const known = {
+                plugin: "0x00",
+                telemetry_request: "0x01",
+                request: "0x01",
+                location_request: "0x01",
+                ping: "0x02",
+                echo: "0x03",
+                signal_report: "0x04",
+            };
+            if (Object.prototype.hasOwnProperty.call(known, raw.toLowerCase())) {
+                return known[raw.toLowerCase()];
+            }
+            if (/^\d+$/.test(raw)) {
+                const n = Number.parseInt(raw, 10);
+                if (Number.isInteger(n) && n >= 0 && n <= 255) {
+                    return `0x${n.toString(16).padStart(2, "0")}`;
+                }
+            }
+            if (/^0x[0-9a-f]{1,2}$/i.test(raw)) {
+                return `0x${raw.slice(2).toLowerCase().padStart(2, "0")}`;
+            }
+            return null;
+        },
+        parseCommandOrRequestText(text) {
+            const trimmed = String(text || "").trim();
+            const nowTs = Math.floor(Date.now() / 1000);
+
+            if (!trimmed) {
+                // Keep old behavior for empty input: telemetry/location request.
+                return [{ "0x01": nowTs }];
+            }
+
+            if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+                const parsed = JSON.parse(trimmed);
+                const list = Array.isArray(parsed) ? parsed : [parsed];
+                const out = [];
+                for (const cmd of list) {
+                    if (!cmd || typeof cmd !== "object" || Array.isArray(cmd)) {
+                        continue;
+                    }
+                    const mapped = {};
+                    for (const [k, v] of Object.entries(cmd)) {
+                        const normalized = this.normalizeSidebandCommandKey(k);
+                        if (!normalized) {
+                            continue;
+                        }
+                        mapped[normalized] = v;
+                    }
+                    if (Object.keys(mapped).length > 0) {
+                        out.push(mapped);
+                    }
+                }
+                if (out.length === 0) {
+                    throw new Error("No valid command keys found");
+                }
+                return out;
+            }
+
+            const firstSpace = trimmed.search(/\s/);
+            const keyToken = firstSpace === -1 ? trimmed : trimmed.slice(0, firstSpace);
+            const arg = firstSpace === -1 ? "" : trimmed.slice(firstSpace + 1).trim();
+            const key = this.normalizeSidebandCommandKey(keyToken);
+            if (!key) {
+                return [{ "0x00": trimmed }];
+            }
+
+            if (key === "0x01") {
+                // request/location_request/telemetry_request
+                return [{ "0x01": arg ? Number.parseInt(arg, 10) || nowTs : nowTs }];
+            }
+            if (key === "0x02" || key === "0x04") {
+                return [{ [key]: arg ? arg.toLowerCase() !== "false" : true }];
+            }
+            if (key === "0x03") {
+                return [{ "0x03": arg || "ping" }];
+            }
+            if (key === "0x00") {
+                return [{ "0x00": arg || trimmed }];
+            }
+            return [{ [key]: arg || true }];
+        },
+        onComposerSendClick() {
+            if (this.pendingSendAsCommandOrRequest) {
+                void this.sendCommandOrRequest();
+                return;
+            }
+            void this.sendMessage();
+        },
+        toggleLocationActionMenu() {
+            this.showLocationActionMenu = !this.showLocationActionMenu;
+        },
+        closeLocationActionMenu() {
+            this.showLocationActionMenu = false;
+        },
+        async selectSendLocation() {
+            this.closeLocationActionMenu();
+            await this.shareLocation();
+        },
+        async selectRequestLocation() {
+            this.closeLocationActionMenu();
+            await this.requestLocation();
+        },
+        enableNextSendAsCommandOrRequest() {
+            this.pendingSendAsCommandOrRequest = true;
+        },
+        async sendCommandOrRequest() {
+            try {
+                if (!this.selectedPeer) return;
+                const commands = this.parseCommandOrRequestText(this.newMessageText);
+                await window.api.post(`/api/v1/lxmf-messages/send`, {
+                    lxmf_message: {
+                        destination_hash: this.selectedPeer.destination_hash,
+                        content: "",
+                        fields: { commands },
+                    },
+                });
+                this.newMessageText = "";
+                this.pendingSendAsCommandOrRequest = false;
+                ToastUtils.success("Command or request sent");
+            } catch (e) {
+                console.log(e);
+                ToastUtils.error(`Failed to send command/request: ${e.message}`);
             }
         },
         viewLocationOnMap(location) {
@@ -5849,32 +5990,23 @@ export default {
                     break;
                 }
                 case "opus": {
-                    if (this.isMeshChatXAndroid() && window.MeshChatXAndroid?.startNativeWavAttachment) {
-                        if (
-                            typeof window.MeshChatXAndroid.isNativePcmAudioAvailable === "function" &&
-                            !window.MeshChatXAndroid.isNativePcmAudioAvailable()
-                        ) {
-                            DialogUtils.alert(this.buildAudioRecordingFailureMessage());
-                            break;
-                        }
+                    if (this.isMeshChatXAndroid() && this.androidNativeWavAttachmentAllowed()) {
                         const res = window.MeshChatXAndroid.startNativeWavAttachment();
-                        if (res !== "ok") {
-                            DialogUtils.alert(this.buildAudioRecordingFailureMessage());
+                        if (res === "ok") {
+                            this.androidNativeOpusAttachment = true;
+                            this.audioAttachmentMicrophoneRecorderCodec = "opus";
+                            this.audioAttachmentMicrophoneRecorder = { _androidNative: true };
+                            this.audioAttachmentRecordingStartedAt = Date.now();
+                            this.isRecordingAudioAttachment = true;
+                            this.audioAttachmentRecordingDuration = Utils.formatMinutesSeconds(0);
+                            this.audioAttachmentRecordingTimer = setInterval(() => {
+                                const recordingDurationMillis = Date.now() - this.audioAttachmentRecordingStartedAt;
+                                const recordingDurationSeconds = recordingDurationMillis / 1000;
+                                this.audioAttachmentRecordingDuration =
+                                    Utils.formatMinutesSeconds(recordingDurationSeconds);
+                            }, 1000);
                             break;
                         }
-                        this.androidNativeOpusAttachment = true;
-                        this.audioAttachmentMicrophoneRecorderCodec = "opus";
-                        this.audioAttachmentMicrophoneRecorder = { _androidNative: true };
-                        this.audioAttachmentRecordingStartedAt = Date.now();
-                        this.isRecordingAudioAttachment = true;
-                        this.audioAttachmentRecordingDuration = Utils.formatMinutesSeconds(0);
-                        this.audioAttachmentRecordingTimer = setInterval(() => {
-                            const recordingDurationMillis = Date.now() - this.audioAttachmentRecordingStartedAt;
-                            const recordingDurationSeconds = recordingDurationMillis / 1000;
-                            this.audioAttachmentRecordingDuration =
-                                Utils.formatMinutesSeconds(recordingDurationSeconds);
-                        }, 1000);
-                        break;
                     }
                     this.audioAttachmentMicrophoneRecorderCodec = "opus";
                     this.audioAttachmentMicrophoneRecorder = new MicrophoneRecorder();

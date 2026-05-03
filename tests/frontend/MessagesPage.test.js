@@ -188,6 +188,43 @@ describe("MessagesPage.vue", () => {
         expect(convCalls).toHaveLength(0);
     });
 
+    it("sets sidebar preview i18n key for outbound telemetry location on lxmf_message_created", async () => {
+        const destHash = "a".repeat(32);
+        const wrapper = mountMessagesPage();
+        await wrapper.vm.$nextTick();
+
+        wrapper.vm.conversations = [
+            {
+                destination_hash: destHash,
+                display_name: "Test Peer",
+                latest_message_preview: "old",
+                updated_at: "2025-01-01T00:00:00Z",
+            },
+        ];
+
+        axiosMock.get.mockClear();
+
+        await wrapper.vm.onWebsocketMessage({
+            data: JSON.stringify({
+                type: "lxmf_message_created",
+                lxmf_message: {
+                    hash: "loc1",
+                    source_hash: "my-hash",
+                    destination_hash: destHash,
+                    is_incoming: false,
+                    content: "",
+                    title: "",
+                    timestamp: 1700000000,
+                    fields: { telemetry: { location: { latitude: 1, longitude: 2 } } },
+                },
+            }),
+        });
+
+        expect(wrapper.vm.conversations[0].latest_message_preview).toBe("messages.conversation_location_share_you");
+        const convCalls = axiosMock.get.mock.calls.filter((c) => c[0] === "/api/v1/lxmf/conversations");
+        expect(convCalls).toHaveLength(0);
+    });
+
     it("resolves display name for new conversation only", async () => {
         const destHash = "d".repeat(32);
         const wrapper = mountMessagesPage();

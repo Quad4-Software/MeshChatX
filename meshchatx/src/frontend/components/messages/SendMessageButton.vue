@@ -4,11 +4,11 @@
     <div class="relative inline-flex items-stretch rounded-xl shadow-xs">
         <template v-if="compact">
             <button
-                :disabled="!canSendMessage"
+                :disabled="!canSendMessage && !canOpenSendMenu"
                 type="button"
                 class="inline-flex items-center justify-center rounded-xl p-2.5 min-h-[44px] min-w-[44px] text-white transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 touch-manipulation select-none"
                 :class="[
-                    canSendMessage
+                    canSendMessage || canOpenSendMenu
                         ? 'bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus-visible:outline-blue-500'
                         : 'bg-gray-400 dark:bg-zinc-500 focus-visible:outline-gray-500 cursor-not-allowed',
                 ]"
@@ -73,11 +73,11 @@
             </button>
             <div class="relative self-stretch">
                 <button
-                    :disabled="!canSendMessage"
+                    :disabled="!canSendMessage && !canOpenSendMenu"
                     type="button"
                     class="border-l relative inline-flex items-center justify-center rounded-r-xl px-2.5 h-full text-white transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2"
                     :class="[
-                        canSendMessage
+                        canSendMessage || canOpenSendMenu
                             ? 'bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus-visible:outline-blue-500 border-blue-700 dark:border-blue-800'
                             : 'bg-gray-400 dark:bg-zinc-500 focus-visible:outline-gray-500 border-gray-500 dark:border-zinc-600 cursor-not-allowed',
                     ]"
@@ -136,6 +136,27 @@
                     >
                         Send to Propagation Node
                     </button>
+                    <div
+                        class="border-t border-gray-100 dark:border-zinc-800 text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-500 px-4 pt-2 pb-1"
+                    >
+                        {{ $t("messages.send_menu_more_label") }}
+                    </div>
+                    <button
+                        type="button"
+                        class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 whitespace-nowrap"
+                        :disabled="!canOpenSendMenu"
+                        @click="emitCommandOrRequest"
+                    >
+                        {{ $t("messages.send_menu_telemetry_request") }}
+                    </button>
+                    <button
+                        type="button"
+                        class="w-full block text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 whitespace-nowrap"
+                        :disabled="!canSendMessage"
+                        @click="emitPaperCompose"
+                    >
+                        {{ $t("messages.send_menu_paper_compose") }}
+                    </button>
                 </div>
             </div>
         </Transition>
@@ -158,8 +179,12 @@ export default {
             default:
                 "Resolving route to peer (finding path). This can take a while on first contact or after links change. Paths are remembered until they expire.",
         },
+        canOpenSendMenu: {
+            type: Boolean,
+            default: false,
+        },
     },
-    emits: ["delivery-method-changed", "send"],
+    emits: ["delivery-method-changed", "send", "send-command-or-request", "send-paper-compose"],
     data() {
         return {
             isShowingMenu: false,
@@ -186,7 +211,7 @@ export default {
             }
         },
         onCompactPointerDown() {
-            if (!this.compact || !this.canSendMessage) {
+            if (!this.compact || (!this.canSendMessage && !this.canOpenSendMenu)) {
                 return;
             }
             this.compactTapArmed = true;
@@ -228,6 +253,14 @@ export default {
         },
         setDeliveryMethod(deliveryMethod) {
             this.$emit("delivery-method-changed", deliveryMethod);
+            this.hideMenu();
+        },
+        emitCommandOrRequest() {
+            this.$emit("send-command-or-request");
+            this.hideMenu();
+        },
+        emitPaperCompose() {
+            this.$emit("send-paper-compose");
             this.hideMenu();
         },
         send() {

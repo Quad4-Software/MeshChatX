@@ -290,6 +290,20 @@
                                 <MaterialDesignIcon icon-name="open-in-new" class="size-5" />
                                 <span>{{ $t("nomadnet.pop_out_browser") }}</span>
                             </DropDownMenuItem>
+                            <DropDownMenuItem
+                                v-if="showMicronRendererInMobileMenu"
+                                @click="applyNomadMicronWasmEnabled(false)"
+                            >
+                                <MaterialDesignIcon icon-name="language-javascript" class="size-5" />
+                                <span>{{ $t("nomadnet.renderer_menu_js") }}</span>
+                            </DropDownMenuItem>
+                            <DropDownMenuItem
+                                v-if="showMicronRendererInMobileMenu"
+                                @click="applyNomadMicronWasmEnabled(true)"
+                            >
+                                <MaterialDesignIcon icon-name="memory" class="size-5" />
+                                <span>{{ $t("nomadnet.renderer_menu_wasm") }}</span>
+                            </DropDownMenuItem>
                         </template>
                     </DropDownMenu>
 
@@ -556,7 +570,7 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import IconButton from "../IconButton.vue";
 import DropDownMenu from "../DropDownMenu.vue";
 import DropDownMenuItem from "../DropDownMenuItem.vue";
-import GlobalState from "../../js/GlobalState";
+import GlobalState, { mergeGlobalConfig } from "../../js/GlobalState";
 import { patchServerConfig } from "../../js/settings/settingsConfigService";
 import {
     preloadNomadMicronWasm,
@@ -732,6 +746,13 @@ export default {
                 return plainChip("nomadnet.renderer_chip_plaintext", "nomadnet.renderer_hint_plaintext");
             }
             return null;
+        },
+        showMicronRendererInMobileMenu() {
+            if (!this.wasmBundled || !this.selectedNode || !this.nodePagePath || this.isShowingNodePageSource) {
+                return false;
+            }
+            const [p] = this.nodePagePath.split("`");
+            return (p || "").toLowerCase().endsWith(".mu");
         },
         blockedDestinations() {
             return GlobalState.blockedDestinations;
@@ -956,16 +977,20 @@ export default {
             if (!isMicronWasmBundled()) {
                 return;
             }
-            const newValue = !GlobalState.config.nomad_micron_wasm_enabled;
+            await this.applyNomadMicronWasmEnabled(!GlobalState.config.nomad_micron_wasm_enabled);
+        },
+        async applyNomadMicronWasmEnabled(useWasm) {
+            if (!isMicronWasmBundled()) {
+                return;
+            }
+            const newValue = Boolean(useWasm);
+            if (Boolean(GlobalState.config?.nomad_micron_wasm_enabled) === newValue) {
+                return;
+            }
             try {
-                await patchServerConfig({ nomad_micron_wasm_enabled: newValue }, window.api);
-                // GlobalState.config is reactive and updated by the server response or by the patch call
-                // but we might need to force a re-render or reload the page if it doesn't happen automatically.
-                // In this case, nomadMicronWasmFeatureEffective depends on config, and renderedNodePageHtml
-                // depends on nomad_micron_wasm_use which depends on nomadMicronWasmFeatureEffective.
-                // So it should just work.
+                const next = await patchServerConfig({ nomad_micron_wasm_enabled: newValue }, window.api);
+                mergeGlobalConfig(next);
                 if (this.nodePageContent && this.nodePagePath && this.nodePagePath.toLowerCase().endsWith(".mu")) {
-                    // Force re-render of current page if it's a micron page
                     const content = this.nodePageContent;
                     this.nodePageContent = null;
                     this.$nextTick(() => {
@@ -973,8 +998,8 @@ export default {
                     });
                 }
             } catch (e) {
-                console.error("Failed to toggle Micron WASM", e);
-                ToastUtils.showError("Failed to update setting");
+                console.error("Failed to update Micron WASM preference", e);
+                ToastUtils.error(this.$t("nomadnet.renderer_setting_failed"));
             }
         },
         scheduleProcessPartials() {

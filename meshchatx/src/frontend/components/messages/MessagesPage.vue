@@ -270,7 +270,7 @@ import DialogUtils from "../../js/DialogUtils";
 import DownloadUtils from "../../js/DownloadUtils";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import ToastUtils from "../../js/ToastUtils";
-import { lxmfConversationListPreview } from "../../js/lxmfReactions";
+import { lxmfConversationListPreview } from "../../js/lxmfConversationPreview";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 
 export default {

@@ -2008,4 +2008,50 @@ describe("ConversationViewer.vue", () => {
             });
         });
     });
+
+    describe("android native wav attachment gate", () => {
+        afterEach(() => {
+            delete window.MeshChatXAndroid;
+        });
+
+        it("prefers isNativeWavAttachmentAvailable when present", () => {
+            window.MeshChatXAndroid = {
+                getPlatform: () => "android",
+                startNativeWavAttachment: vi.fn(),
+                isNativeWavAttachmentAvailable: () => true,
+                isNativePcmAudioAvailable: () => false,
+            };
+            const wrapper = mountConversationViewer();
+            expect(wrapper.vm.androidNativeWavAttachmentAllowed()).toBe(true);
+        });
+
+        it("falls back to isNativePcmAudioAvailable when wav-specific method is absent", () => {
+            window.MeshChatXAndroid = {
+                getPlatform: () => "android",
+                startNativeWavAttachment: vi.fn(),
+                isNativePcmAudioAvailable: () => true,
+            };
+            const wrapper = mountConversationViewer();
+            expect(wrapper.vm.androidNativeWavAttachmentAllowed()).toBe(true);
+        });
+
+        it("is false when isNativeWavAttachmentAvailable returns false", () => {
+            window.MeshChatXAndroid = {
+                getPlatform: () => "android",
+                startNativeWavAttachment: vi.fn(),
+                isNativeWavAttachmentAvailable: () => false,
+                isNativePcmAudioAvailable: () => true,
+            };
+            const wrapper = mountConversationViewer();
+            expect(wrapper.vm.androidNativeWavAttachmentAllowed()).toBe(false);
+        });
+
+        it("is false without startNativeWavAttachment", () => {
+            window.MeshChatXAndroid = {
+                getPlatform: () => "android",
+            };
+            const wrapper = mountConversationViewer();
+            expect(wrapper.vm.androidNativeWavAttachmentAllowed()).toBe(false);
+        });
+    });
 });

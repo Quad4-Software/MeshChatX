@@ -2,7 +2,7 @@
 
 <template>
     <div
-        class="fixed bottom-4 left-1/2 -translate-x-1/2 sm:left-auto sm:right-4 sm:translate-x-0 z-100 flex flex-col gap-2 pointer-events-none w-[calc(100%-2rem)] max-w-sm sm:w-auto sm:max-w-md"
+        class="fixed max-sm:bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))] bottom-4 left-1/2 -translate-x-1/2 sm:left-auto sm:right-4 sm:translate-x-0 z-100 flex flex-col gap-2 pointer-events-none w-[calc(100%-2rem)] max-w-sm sm:w-auto sm:max-w-md"
     >
         <TransitionGroup name="toast">
             <div

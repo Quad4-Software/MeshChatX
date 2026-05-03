@@ -304,6 +304,13 @@ describe("ConversationViewer.vue button interactions", () => {
             clickSpy.mockRestore();
         });
 
+        it("file input does not restrict accepted mime types", async () => {
+            const wrapper = mountViewer();
+            await wrapper.vm.$nextTick();
+            const fileInput = wrapper.find('input[type="file"]');
+            expect(fileInput.attributes("accept")).toBeUndefined();
+        });
+
         it("onFileInputChange appends selected files to newMessageFiles", () => {
             const wrapper = mountViewer();
             const f = new File(["x"], "attach.txt", { type: "text/plain" });
@@ -320,28 +327,11 @@ describe("ConversationViewer.vue button interactions", () => {
             expect(wrapper.vm.newMessageFiles).toEqual([f2]);
         });
 
-        it("paste toolbar button reads clipboard text into the message field", async () => {
-            const readText = vi.fn(() => Promise.resolve("from-clipboard"));
-            vi.stubGlobal("navigator", {
-                ...navigator,
-                clipboard: { readText },
-            });
-            const prevSc = window.isSecureContext;
-            Object.defineProperty(window, "isSecureContext", { configurable: true, value: true });
-            try {
-                const wrapper = mountViewer();
-                await wrapper.vm.$nextTick();
-                const ta = wrapper.find("#message-input").element;
-                ta.selectionStart = 0;
-                ta.selectionEnd = 0;
-                wrapper.vm.newMessageText = "";
-
-                const actionButtons = wrapper.findAll(".attachment-action-button");
-                await actionButtons[1].trigger("click");
-                await vi.waitFor(() => expect(wrapper.vm.newMessageText).toBe("from-clipboard"));
-            } finally {
-                Object.defineProperty(window, "isSecureContext", { configurable: true, value: prevSc });
-            }
+        it("does not render a dedicated paste toolbar button", async () => {
+            const wrapper = mountViewer();
+            await wrapper.vm.$nextTick();
+            const pasteIcon = wrapper.find('[icon-name="content-paste"]');
+            expect(pasteIcon.exists()).toBe(false);
         });
 
         it("applyComposeTranslation posts translate and replaces text", async () => {
@@ -399,6 +389,96 @@ describe("ConversationViewer.vue button interactions", () => {
                     }),
                 })
             );
+        });
+
+        it("location action menu toggles and closes", () => {
+            const wrapper = mountViewer();
+            expect(wrapper.vm.showLocationActionMenu).toBe(false);
+            wrapper.vm.toggleLocationActionMenu();
+            expect(wrapper.vm.showLocationActionMenu).toBe(true);
+            wrapper.vm.closeLocationActionMenu();
+            expect(wrapper.vm.showLocationActionMenu).toBe(false);
+        });
+
+        it("selectSendLocation closes menu and calls shareLocation", async () => {
+            const wrapper = mountViewer();
+            wrapper.vm.showLocationActionMenu = true;
+            const shareSpy = vi.spyOn(wrapper.vm, "shareLocation").mockResolvedValue(undefined);
+            await wrapper.vm.selectSendLocation();
+            expect(shareSpy).toHaveBeenCalled();
+            expect(wrapper.vm.showLocationActionMenu).toBe(false);
+            shareSpy.mockRestore();
+        });
+
+        it("selectRequestLocation closes menu and calls requestLocation", async () => {
+            const wrapper = mountViewer();
+            wrapper.vm.showLocationActionMenu = true;
+            const reqSpy = vi.spyOn(wrapper.vm, "requestLocation").mockResolvedValue(undefined);
+            await wrapper.vm.selectRequestLocation();
+            expect(reqSpy).toHaveBeenCalled();
+            expect(wrapper.vm.showLocationActionMenu).toBe(false);
+            reqSpy.mockRestore();
+        });
+
+        it("sendCommandOrRequest sends typed Sideband command", async () => {
+            const wrapper = mountViewer();
+            wrapper.vm.newMessageText = "ping";
+            await wrapper.vm.sendCommandOrRequest();
+            expect(axiosMock.post).toHaveBeenCalledWith(
+                "/api/v1/lxmf-messages/send",
+                expect.objectContaining({
+                    lxmf_message: expect.objectContaining({
+                        destination_hash: "a".repeat(32),
+                        fields: {
+                            commands: [{ "0x02": true }],
+                        },
+                    }),
+                })
+            );
+        });
+
+        it("sendCommandOrRequest accepts JSON command input", async () => {
+            const wrapper = mountViewer();
+            wrapper.vm.newMessageText = '{"0x03":"hello"}';
+            await wrapper.vm.sendCommandOrRequest();
+            expect(axiosMock.post).toHaveBeenCalledWith(
+                "/api/v1/lxmf-messages/send",
+                expect.objectContaining({
+                    lxmf_message: expect.objectContaining({
+                        fields: {
+                            commands: [{ "0x03": "hello" }],
+                        },
+                    }),
+                })
+            );
+        });
+
+        it("enableNextSendAsCommandOrRequest only arms mode until send button is pressed", async () => {
+            const wrapper = mountViewer();
+            expect(wrapper.vm.pendingSendAsCommandOrRequest).toBe(false);
+            wrapper.vm.enableNextSendAsCommandOrRequest();
+            expect(wrapper.vm.pendingSendAsCommandOrRequest).toBe(true);
+            wrapper.vm.newMessageText = "ping";
+            await wrapper.vm.onComposerSendClick();
+            expect(axiosMock.post).toHaveBeenCalledWith(
+                "/api/v1/lxmf-messages/send",
+                expect.objectContaining({
+                    lxmf_message: expect.objectContaining({
+                        fields: {
+                            commands: [{ "0x02": true }],
+                        },
+                    }),
+                })
+            );
+            expect(wrapper.vm.pendingSendAsCommandOrRequest).toBe(false);
+        });
+
+        it("onComposerSendClick falls back to normal message send when not armed", async () => {
+            const wrapper = mountViewer();
+            const sendSpy = vi.spyOn(wrapper.vm, "sendMessage").mockResolvedValue(undefined);
+            await wrapper.vm.onComposerSendClick();
+            expect(sendSpy).toHaveBeenCalled();
+            sendSpy.mockRestore();
         });
 
         it("shareLocation with manual coordinates sets telemetry and calls sendMessage", async () => {

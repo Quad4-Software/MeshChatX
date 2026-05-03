@@ -183,6 +183,8 @@ def lxmf_sidebar_preview_for_conversation_latest_row(
     if isinstance(telemetry, dict):
         loc = telemetry.get("location")
         if isinstance(loc, dict) and loc:
+            if actor == "You":
+                return "You shared your location"
             return f"{actor} shared their location"
 
     ts = fields.get("telemetry_stream")

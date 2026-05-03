@@ -132,6 +132,56 @@ describe("NomadNetworkPage.vue", () => {
         }
     });
 
+    describe("showMicronRendererInMobileMenu", () => {
+        it("is true on .mu page when wasm bundled and not in source view", async () => {
+            const dest = "a".repeat(32);
+            const wrapper = mountNomadNetworkPage();
+            await wrapper.setData({
+                wasmBundled: true,
+                selectedNode: { destination_hash: dest, display_name: "N" },
+                nodePagePath: `${dest}:/page/index.mu`,
+                isShowingNodePageSource: false,
+            });
+            expect(wrapper.vm.showMicronRendererInMobileMenu).toBe(true);
+        });
+
+        it("is false without selectedNode", async () => {
+            const dest = "c".repeat(32);
+            const wrapper = mountNomadNetworkPage();
+            await wrapper.setData({
+                wasmBundled: true,
+                selectedNode: null,
+                nodePagePath: `${dest}:/page/index.mu`,
+                isShowingNodePageSource: false,
+            });
+            expect(wrapper.vm.showMicronRendererInMobileMenu).toBe(false);
+        });
+
+        it("is false in source view", async () => {
+            const dest = "b".repeat(32);
+            const wrapper = mountNomadNetworkPage();
+            await wrapper.setData({
+                wasmBundled: true,
+                selectedNode: { destination_hash: dest, display_name: "N" },
+                nodePagePath: `${dest}:/page/index.mu`,
+                isShowingNodePageSource: true,
+            });
+            expect(wrapper.vm.showMicronRendererInMobileMenu).toBe(false);
+        });
+
+        it("is false when wasm is not bundled", async () => {
+            const dest = "d".repeat(32);
+            const wrapper = mountNomadNetworkPage();
+            await wrapper.setData({
+                wasmBundled: false,
+                selectedNode: { destination_hash: dest, display_name: "N" },
+                nodePagePath: `${dest}:/page/index.mu`,
+                isShowingNodePageSource: false,
+            });
+            expect(wrapper.vm.showMicronRendererInMobileMenu).toBe(false);
+        });
+    });
+
     describe("partials", () => {
         it("clearPartials resets partial state and timers", () => {
             const wrapper = mountNomadNetworkPage();

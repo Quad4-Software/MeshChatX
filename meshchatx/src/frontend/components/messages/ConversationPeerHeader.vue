@@ -14,7 +14,6 @@
                 :icon-background-colour="
                     selectedPeer.lxmf_user_icon ? selectedPeer.lxmf_user_icon.background_colour : ''
                 "
-                :seed="selectedPeer.destination_hash"
                 icon-class="shrink-0"
                 :icon-style="messageIconStyle"
             />
