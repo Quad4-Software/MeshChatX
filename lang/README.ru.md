@@ -13,6 +13,8 @@
 - Журнал изменений: [`CHANGELOG.md`](../CHANGELOG.md)
 - Поддержка проекта: [`donate.md`](../donate.md)
 
+<a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/Quad4-Software/MeshChatX"><img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" height="60" alt="Get it on Obtainium"></a>
+
 rngit: `git clone rns://926baefe13daf5178c174f158dae1b45/quad4/MeshChatX`
 NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
 
