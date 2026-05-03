@@ -47,8 +47,6 @@ import { DataSet } from "vis-data";
 import * as mdi from "@mdi/js";
 import Utils from "../../js/Utils";
 import GlobalEmitter from "../../js/GlobalEmitter";
-import ToastUtils from "../../js/ToastUtils";
-import { PONG_NODE_IDS } from "./internal/visualiserConstants.js";
 import NetworkVisualiserLoadingOverlay from "./internal/NetworkVisualiserLoadingOverlay.vue";
 import NetworkVisualiserToolbar from "./internal/NetworkVisualiserToolbar.vue";
 import NetworkVisualiserLegend from "./internal/NetworkVisualiserLegend.vue";
@@ -132,16 +130,6 @@ export default {
             isUpdating: false,
             isLoading: false,
             enablePhysics: true,
-            enableOrbit: false,
-            enableBouncingBalls: false,
-            enableFallingSkies: false,
-            enableSnake: false,
-            enablePong: false,
-            orbitAnimationFrame: null,
-            bouncingBallsAnimationFrame: null,
-            fallingSkiesAnimationFrame: null,
-            snakeAnimationFrame: null,
-            pongAnimationFrame: null,
             showDisabledInterfaces: false,
             showDiscoveredInterfaces: false,
             loadingStatus: "Initializing...",
@@ -168,8 +156,6 @@ export default {
             hopFilterDebounceTimer: null,
             abortController: new AbortController(),
             currentLOD: "high",
-            lastVizKeys: [],
-            vizHadOneLayout: false,
             didDisableStabilization: false,
             vizChunkSize: pickAdaptiveChunkSize(),
             iconQueue: [],
@@ -197,79 +183,6 @@ export default {
         enablePhysics() {
             this.refreshPhysicsEnabled();
         },
-        enableOrbit(val) {
-            if (val) {
-                this.enableBouncingBalls = false;
-                this.enableFallingSkies = false;
-                this.enableSnake = false;
-                this.enablePong = false;
-                this.stopFallingSkies();
-                this.stopSnake();
-                this.stopPong();
-                this.startOrbit();
-            } else {
-                this.stopOrbit();
-            }
-        },
-        enableBouncingBalls(val) {
-            if (val) {
-                this.enableOrbit = false;
-                this.enableFallingSkies = false;
-                this.enableSnake = false;
-                this.enablePong = false;
-                this.stopFallingSkies();
-                this.stopSnake();
-                this.stopPong();
-                this.startBouncingBalls();
-            } else {
-                this.stopBouncingBalls();
-            }
-        },
-        enableFallingSkies(val) {
-            if (val) {
-                this.enableOrbit = false;
-                this.enableBouncingBalls = false;
-                this.enableSnake = false;
-                this.enablePong = false;
-                this.stopOrbit();
-                this.stopBouncingBalls();
-                this.stopSnake();
-                this.stopPong();
-                this.startFallingSkies();
-            } else {
-                this.stopFallingSkies();
-            }
-        },
-        enableSnake(val) {
-            if (val) {
-                this.enableOrbit = false;
-                this.enableBouncingBalls = false;
-                this.enableFallingSkies = false;
-                this.enablePong = false;
-                this.stopOrbit();
-                this.stopBouncingBalls();
-                this.stopFallingSkies();
-                this.stopPong();
-                this.startSnake();
-            } else {
-                this.stopSnake();
-            }
-        },
-        enablePong(val) {
-            if (val) {
-                this.enableOrbit = false;
-                this.enableBouncingBalls = false;
-                this.enableFallingSkies = false;
-                this.enableSnake = false;
-                this.stopOrbit();
-                this.stopBouncingBalls();
-                this.stopFallingSkies();
-                this.stopSnake();
-                this.startPong();
-            } else {
-                this.stopPong();
-            }
-        },
         searchQuery() {
             // we don't want to trigger a full update from server, just re-run the filtering on existing data
             this.processVisualization();
@@ -288,30 +201,9 @@ export default {
         }
         this.iconQueue = [];
         this.iconQueueGeneration += 1;
-        if (this._toggleOrbitHandler) {
-            GlobalEmitter.off("toggle-orbit", this._toggleOrbitHandler);
-        }
-        if (this._toggleBouncingBallsHandler) {
-            GlobalEmitter.off("toggle-bouncing-balls", this._toggleBouncingBallsHandler);
-        }
-        if (this._toggleFallingSkiesHandler) {
-            GlobalEmitter.off("toggle-falling-skies", this._toggleFallingSkiesHandler);
-        }
         if (this._visualiserPrefsHandler) {
             GlobalEmitter.off("visualiser-display-prefs-changed", this._visualiserPrefsHandler);
         }
-        if (this._toggleSnakeHandler) {
-            GlobalEmitter.off("toggle-snake", this._toggleSnakeHandler);
-        }
-        if (this._togglePongHandler) {
-            GlobalEmitter.off("toggle-pong", this._togglePongHandler);
-        }
-        this.detachGameKeyListeners();
-        this.stopOrbit();
-        this.stopBouncingBalls();
-        this.stopFallingSkies();
-        this.stopSnake(false);
-        this.stopPong(false);
         clearInterval(this.reloadInterval);
         if (this.hopFilterDebounceTimer) {
             clearTimeout(this.hopFilterDebounceTimer);
@@ -339,21 +231,6 @@ export default {
             this.isShowingControls = false;
         }
 
-        this._toggleOrbitHandler = () => {
-            this.enableOrbit = !this.enableOrbit;
-        };
-        GlobalEmitter.on("toggle-orbit", this._toggleOrbitHandler);
-
-        this._toggleBouncingBallsHandler = () => {
-            this.enableBouncingBalls = !this.enableBouncingBalls;
-        };
-        GlobalEmitter.on("toggle-bouncing-balls", this._toggleBouncingBallsHandler);
-
-        this._toggleFallingSkiesHandler = () => {
-            this.enableFallingSkies = !this.enableFallingSkies;
-        };
-        GlobalEmitter.on("toggle-falling-skies", this._toggleFallingSkiesHandler);
-
         this._visualiserPrefsHandler = () => {
             this.loadVisualiserDisplayPrefs();
             if (this.network) {
@@ -361,16 +238,6 @@ export default {
             }
         };
         GlobalEmitter.on("visualiser-display-prefs-changed", this._visualiserPrefsHandler);
-
-        this._toggleSnakeHandler = () => {
-            this.enableSnake = !this.enableSnake;
-        };
-        GlobalEmitter.on("toggle-snake", this._toggleSnakeHandler);
-
-        this._togglePongHandler = () => {
-            this.enablePong = !this.enablePong;
-        };
-        GlobalEmitter.on("toggle-pong", this._togglePongHandler);
 
         this.loadVisualiserDisplayPrefs();
         this.init();
@@ -650,14 +517,7 @@ export default {
         },
         refreshPhysicsEnabled() {
             if (!this.network) return;
-            const on =
-                this.enablePhysics &&
-                !this.enableOrbit &&
-                !this.enableBouncingBalls &&
-                !this.enableFallingSkies &&
-                !this.enableSnake &&
-                !this.enablePong;
-            this.network.setOptions({ physics: { enabled: on } });
+            this.network.setOptions({ physics: { enabled: this.enablePhysics } });
         },
         pickStablePosition(id, posById, initialFn) {
             const prev = posById[id];
@@ -667,783 +527,6 @@ export default {
             const v = initialFn();
             posById[id] = { x: v.x, y: v.y };
             return v;
-        },
-        edgeHiddenForMode(peerNodeId) {
-            if (this.enableBouncingBalls || this.enableSnake || this.enablePong) {
-                return true;
-            }
-            if (
-                peerNodeId != null &&
-                this.enableFallingSkies &&
-                this._fallingPendingIds &&
-                this._fallingPendingIds.has(peerNodeId)
-            ) {
-                return true;
-            }
-            return false;
-        },
-        edgesHiddenForOverlayGames() {
-            return this.enableBouncingBalls || this.enableSnake || this.enablePong;
-        },
-        startOrbit() {
-            if (!this.network) return;
-            this.stopOrbit();
-            this.stopBouncingBalls();
-            this.stopSnake(false);
-            this.stopPong(false);
-
-            this.refreshPhysicsEnabled();
-
-            const nodeIds = this.nodes.getIds();
-            const positions = this.network.getPositions(nodeIds) || {};
-            const mePos = positions["me"] || { x: 0, y: 0 };
-
-            this._orbitAroundMe = [];
-            this._orbitAroundIface = [];
-
-            for (const id of nodeIds) {
-                if (id === "me") continue;
-                const n = this.nodes.get(id);
-                if (!n || !n.group) continue;
-                const pos = positions[id] || { x: mePos.x, y: mePos.y };
-                if (n.group === "interface" || n.group === "discovered") {
-                    const dx = pos.x - mePos.x;
-                    const dy = pos.y - mePos.y;
-                    const r = Math.hypot(dx, dy) || 400;
-                    this._orbitAroundMe.push({
-                        id,
-                        radius: r,
-                        angle: Math.atan2(dy, dx),
-                        speed: (0.0012 + Math.random() * 0.0024) * (Math.random() > 0.5 ? 1 : -1),
-                    });
-                } else if (n.group === "announce" && n._parentInterface) {
-                    const parentId = n._parentInterface;
-                    const pPos = positions[parentId] || mePos;
-                    const dx = pos.x - pPos.x;
-                    const dy = pos.y - pPos.y;
-                    const r = Math.hypot(dx, dy) || 140;
-                    this._orbitAroundIface.push({
-                        id,
-                        parentId,
-                        radius: r,
-                        angle: Math.atan2(dy, dx),
-                        speed: (0.002 + Math.random() * 0.004) * (Math.random() > 0.5 ? 1 : -1),
-                    });
-                }
-            }
-
-            const animate = () => {
-                if (!this.enableOrbit) return;
-
-                const meP = this.network.getPositions(["me"])["me"] || { x: 0, y: 0 };
-
-                const ifacePos = { me: meP };
-                const batch = [];
-
-                for (const data of this._orbitAroundMe) {
-                    if (data.id === this._draggingNodeId) {
-                        const p = this.network.getPositions([data.id])[data.id];
-                        if (p) {
-                            const dx = p.x - meP.x;
-                            const dy = p.y - meP.y;
-                            data.radius = Math.hypot(dx, dy) || data.radius;
-                            data.angle = Math.atan2(dy, dx);
-                            ifacePos[data.id] = p;
-                        }
-                        continue;
-                    }
-                    data.angle += data.speed;
-                    const x = meP.x + Math.cos(data.angle) * data.radius;
-                    const y = meP.y + Math.sin(data.angle) * data.radius;
-                    batch.push({ id: data.id, x, y });
-                    ifacePos[data.id] = { x, y };
-                }
-
-                if (batch.length > 0) {
-                    this.nodes.update(batch);
-                }
-
-                const annBatch = [];
-                for (const data of this._orbitAroundIface) {
-                    if (data.id === this._draggingNodeId) {
-                        const p = this.network.getPositions([data.id])[data.id];
-                        const parent =
-                            ifacePos[data.parentId] || this.network.getPositions([data.parentId])[data.parentId];
-                        if (p && parent) {
-                            const dx = p.x - parent.x;
-                            const dy = p.y - parent.y;
-                            data.radius = Math.hypot(dx, dy) || data.radius;
-                            data.angle = Math.atan2(dy, dx);
-                        }
-                        continue;
-                    }
-                    const parent =
-                        ifacePos[data.parentId] || this.network.getPositions([data.parentId])[data.parentId] || meP;
-                    data.angle += data.speed;
-                    annBatch.push({
-                        id: data.id,
-                        x: parent.x + Math.cos(data.angle) * data.radius,
-                        y: parent.y + Math.sin(data.angle) * data.radius,
-                    });
-                }
-
-                if (annBatch.length > 0) {
-                    this.nodes.update(annBatch);
-                }
-
-                this.orbitAnimationFrame = requestAnimationFrame(animate);
-            };
-
-            this.orbitAnimationFrame = requestAnimationFrame(animate);
-        },
-        stopOrbit() {
-            if (this.orbitAnimationFrame) {
-                cancelAnimationFrame(this.orbitAnimationFrame);
-                this.orbitAnimationFrame = null;
-            }
-            this._orbitAroundMe = [];
-            this._orbitAroundIface = [];
-            this.refreshPhysicsEnabled();
-        },
-        startFallingSkies() {
-            if (!this.network) return;
-            this.stopSnake(false);
-            this.stopPong(false);
-            this.refreshPhysicsEnabled();
-            if (this._fallingById && this._fallingById.size > 0) {
-                this.scheduleFallingTick();
-            }
-        },
-        stopFallingSkies() {
-            if (this.fallingSkiesAnimationFrame) {
-                cancelAnimationFrame(this.fallingSkiesAnimationFrame);
-                this.fallingSkiesAnimationFrame = null;
-            }
-            this._fallingById = new Map();
-            this._fallingPendingIds = new Set();
-            this.refreshPhysicsEnabled();
-            if (this.network) {
-                this.processVisualization();
-            }
-        },
-        scheduleFallingTick() {
-            if (!this.enableFallingSkies || !this.network) return;
-            if (this.fallingSkiesAnimationFrame != null) return;
-            const tick = () => {
-                this.fallingSkiesAnimationFrame = null;
-                if (!this.enableFallingSkies || !this._fallingById || this._fallingById.size === 0) {
-                    return;
-                }
-                const gravity = 0.55;
-                const updates = [];
-                const done = [];
-
-                for (const [id, st] of this._fallingById) {
-                    st.vy += gravity;
-                    st.y += st.vy;
-                    if (st.y >= st.ty - 2) {
-                        updates.push({ id, x: st.tx, y: st.ty });
-                        done.push({ id, edgeIds: st.edgeIds || [] });
-                    } else {
-                        updates.push({ id, x: st.tx, y: st.y });
-                    }
-                }
-
-                if (updates.length > 0) {
-                    this.nodes.update(updates);
-                }
-                const edgeUnhide = [];
-                for (const { id, edgeIds } of done) {
-                    this._fallingById.delete(id);
-                    this._fallingPendingIds.delete(id);
-                    edgeUnhide.push(...edgeIds);
-                }
-                if (edgeUnhide.length > 0) {
-                    this.edges.update(edgeUnhide.map((eid) => ({ id: eid, hidden: this.enableBouncingBalls })));
-                }
-                if (this._fallingById.size > 0) {
-                    this.fallingSkiesAnimationFrame = requestAnimationFrame(tick);
-                }
-            };
-            this.fallingSkiesAnimationFrame = requestAnimationFrame(tick);
-        },
-        startBouncingBalls() {
-            if (!this.network) return;
-            this.stopBouncingBalls();
-            this.stopOrbit();
-            this.stopSnake(false);
-            this.stopPong(false);
-
-            // Disable physics
-            this.network.setOptions({ physics: { enabled: false } });
-
-            // Hide edges
-            const edges = this.edges.get();
-            const updatedEdges = edges.map((edge) => ({ id: edge.id, hidden: true }));
-            this.edges.update(updatedEdges);
-
-            const container = document.getElementById("network");
-            if (!container) return;
-            const width = container.clientWidth;
-            const height = container.clientHeight;
-
-            const scale = this.network.getScale();
-            const viewPosition = this.network.getViewPosition();
-
-            const halfWidth = width / scale / 2;
-            const halfHeight = height / scale / 2;
-            const topBound = viewPosition.y - halfHeight;
-            const leftBound = viewPosition.x - halfWidth;
-            const rightBound = viewPosition.x + halfWidth;
-
-            const nodeIds = this.nodes.getIds();
-            this._bouncingNodes = nodeIds.map((id) => {
-                const node = this.nodes.get(id);
-                // Get current canvas position if available, otherwise randomize
-                const currentPos = this.network.getPositions([id])[id] || {
-                    x: leftBound + Math.random() * (rightBound - leftBound),
-                    y: topBound - Math.random() * 800 - 100,
-                };
-                return {
-                    id: id,
-                    x: currentPos.x,
-                    y: currentPos.y < topBound ? currentPos.y : topBound - Math.random() * 800 - 100, // ensure they start above or at their current high pos
-                    vx: (Math.random() - 0.5) * 15,
-                    vy: Math.random() * 10,
-                    radius: (node.size || 25) * 1.5, // approximate collision radius
-                };
-            });
-
-            const gravity = 0.45;
-            const friction = 0.99;
-            const bounce = 0.75;
-
-            const animate = () => {
-                if (!this.enableBouncingBalls) return;
-
-                // Re-calculate boundaries in case of zoom/pan
-                const scale = this.network.getScale();
-                const viewPosition = this.network.getViewPosition();
-                const halfWidth = width / scale / 2;
-                const halfHeight = height / scale / 2;
-                const bottomBound = viewPosition.y + halfHeight;
-                const leftBound = viewPosition.x - halfWidth;
-                const rightBound = viewPosition.x + halfWidth;
-
-                const updates = this._bouncingNodes.map((node) => {
-                    if (node.id === this._draggingNodeId) {
-                        return {
-                            id: node.id,
-                            x: node.x,
-                            y: node.y,
-                        };
-                    }
-
-                    node.vy += gravity;
-                    node.vx *= friction;
-                    node.vy *= friction;
-                    node.x += node.vx;
-                    node.y += node.vy;
-
-                    // Bounce off bottom
-                    if (node.y + node.radius > bottomBound) {
-                        node.y = bottomBound - node.radius;
-                        node.vy *= -bounce;
-                        node.vx += (Math.random() - 0.5) * 4;
-                    }
-
-                    // Bounce off sides
-                    if (node.x - node.radius < leftBound) {
-                        node.x = leftBound + node.radius;
-                        node.vx *= -bounce;
-                    } else if (node.x + node.radius > rightBound) {
-                        node.x = rightBound - node.radius;
-                        node.vx *= -bounce;
-                    }
-
-                    return {
-                        id: node.id,
-                        x: node.x,
-                        y: node.y,
-                    };
-                });
-
-                this.nodes.update(updates);
-                this.bouncingBallsAnimationFrame = requestAnimationFrame(animate);
-            };
-
-            this.bouncingBallsAnimationFrame = requestAnimationFrame(animate);
-        },
-        stopBouncingBalls() {
-            if (this.bouncingBallsAnimationFrame) {
-                cancelAnimationFrame(this.bouncingBallsAnimationFrame);
-                this.bouncingBallsAnimationFrame = null;
-            }
-
-            const edges = this.edges.get();
-            const updatedEdges = edges.map((edge) => ({ id: edge.id, hidden: false }));
-            this.edges.update(updatedEdges);
-
-            this.refreshPhysicsEnabled();
-        },
-        getViewCanvasBounds() {
-            const container = document.getElementById("network");
-            if (!container || !this.network) return null;
-            const scale = this.network.getScale();
-            const vp = this.network.getViewPosition();
-            const w = container.clientWidth;
-            const h = container.clientHeight;
-            const halfW = w / (2 * scale);
-            const halfH = h / (2 * scale);
-            return {
-                left: vp.x - halfW,
-                right: vp.x + halfW,
-                top: vp.y - halfH,
-                bottom: vp.y + halfH,
-                scale,
-            };
-        },
-        attachGameKeyListeners(mode) {
-            this.detachGameKeyListeners();
-            this._gameKeyMode = mode;
-            this._snakeKeys = { u: 0, d: 0, l: 0, r: 0, w: 0, s: 0 };
-            this._onGameKeyDown = (e) => {
-                const tag = (e.target && e.target.tagName) || "";
-                if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
-                if (mode === "snake") {
-                    if (["ArrowUp", "w", "W"].includes(e.key)) {
-                        e.preventDefault();
-                        this._snakeKeys.u = 1;
-                    }
-                    if (["ArrowDown", "s", "S"].includes(e.key)) {
-                        e.preventDefault();
-                        this._snakeKeys.d = 1;
-                    }
-                    if (["ArrowLeft", "a", "A"].includes(e.key)) {
-                        e.preventDefault();
-                        this._snakeKeys.l = 1;
-                    }
-                    if (["ArrowRight", "d", "D"].includes(e.key)) {
-                        e.preventDefault();
-                        this._snakeKeys.r = 1;
-                    }
-                } else if (mode === "pong") {
-                    if (e.key === "w" || e.key === "W") {
-                        e.preventDefault();
-                        this._snakeKeys.w = 1;
-                    }
-                    if (e.key === "s" || e.key === "S") {
-                        e.preventDefault();
-                        this._snakeKeys.s = 1;
-                    }
-                }
-            };
-            this._onGameKeyUp =
-                mode === "snake"
-                    ? (e) => {
-                          if (["ArrowUp", "w", "W"].includes(e.key)) this._snakeKeys.u = 0;
-                          if (["ArrowDown", "s", "S"].includes(e.key)) this._snakeKeys.d = 0;
-                          if (["ArrowLeft", "a", "A"].includes(e.key)) this._snakeKeys.l = 0;
-                          if (["ArrowRight", "d", "D"].includes(e.key)) this._snakeKeys.r = 0;
-                      }
-                    : (e) => {
-                          if (e.key === "w" || e.key === "W") this._snakeKeys.w = 0;
-                          if (e.key === "s" || e.key === "S") this._snakeKeys.s = 0;
-                      };
-            window.addEventListener("keydown", this._onGameKeyDown, true);
-            window.addEventListener("keyup", this._onGameKeyUp, true);
-        },
-        detachGameKeyListeners() {
-            if (this._onGameKeyDown) {
-                window.removeEventListener("keydown", this._onGameKeyDown, true);
-                this._onGameKeyDown = null;
-            }
-            if (this._onGameKeyUp) {
-                window.removeEventListener("keyup", this._onGameKeyUp, true);
-                this._onGameKeyUp = null;
-            }
-            this._gameKeyMode = null;
-        },
-        getPositionAlongTrail(trail, distBehind) {
-            if (!trail || trail.length === 0) return { x: 0, y: 0 };
-            if (trail.length === 1) return { ...trail[0] };
-            let d = 0;
-            for (let i = trail.length - 1; i > 0; i--) {
-                const p = trail[i];
-                const q = trail[i - 1];
-                const seg = Math.hypot(p.x - q.x, p.y - q.y);
-                if (d + seg >= distBehind) {
-                    const t = seg > 0 ? (distBehind - d) / seg : 0;
-                    return { x: p.x + (q.x - p.x) * t, y: p.y + (q.y - p.y) * t };
-                }
-                d += seg;
-            }
-            return { ...trail[0] };
-        },
-        startSnake() {
-            if (!this.network) return;
-            this.stopSnake(false);
-            this.stopPong(false);
-            this.stopOrbit();
-            this.stopBouncingBalls();
-            this.stopFallingSkies();
-            this.network.setOptions({ physics: { enabled: false } });
-            const edges = this.edges.get();
-            this.edges.update(edges.map((edge) => ({ id: edge.id, hidden: true })));
-
-            const me = this.network.getPositions(["me"]).me || { x: 0, y: 0 };
-            this._snakeVx = 7;
-            this._snakeVy = 0;
-            this._snakeHeadX = me.x;
-            this._snakeHeadY = me.y;
-            this._snakeTrail = [{ x: me.x, y: me.y }];
-            this._snakeEatenIds = [];
-            this._snakeFoodIds = new Set();
-            for (const id of this.nodes.getIds()) {
-                if (id !== "me") this._snakeFoodIds.add(id);
-            }
-            this.attachGameKeyListeners("snake");
-            ToastUtils.info(this.$t("visualiser.snake_hint"));
-
-            const speed = 8;
-            const margin = 40;
-            const headR = 28;
-            const tailGap = 42;
-
-            const tick = () => {
-                if (!this.enableSnake || !this.network) return;
-                const b = this.getViewCanvasBounds();
-                if (!b) return;
-
-                let vx = 0;
-                let vy = 0;
-                const k = this._snakeKeys || {};
-                if (k.u) vy -= 1;
-                if (k.d) vy += 1;
-                if (k.l) vx -= 1;
-                if (k.r) vx += 1;
-                if (vx !== 0 || vy !== 0) {
-                    const len = Math.hypot(vx, vy) || 1;
-                    this._snakeVx = (vx / len) * speed;
-                    this._snakeVy = (vy / len) * speed;
-                }
-
-                let hx = this._snakeHeadX + this._snakeVx;
-                let hy = this._snakeHeadY + this._snakeVy;
-                hx = Math.max(b.left + margin, Math.min(b.right - margin, hx));
-                hy = Math.max(b.top + margin, Math.min(b.bottom - margin, hy));
-                this._snakeHeadX = hx;
-                this._snakeHeadY = hy;
-
-                this.nodes.update([{ id: "me", x: hx, y: hy }]);
-
-                const last = this._snakeTrail[this._snakeTrail.length - 1];
-                if (!last || Math.hypot(hx - last.x, hy - last.y) > 3) {
-                    this._snakeTrail.push({ x: hx, y: hy });
-                    if (this._snakeTrail.length > 8000) {
-                        this._snakeTrail.splice(0, 1500);
-                    }
-                }
-
-                const updates = [];
-                for (let i = 0; i < this._snakeEatenIds.length; i++) {
-                    const id = this._snakeEatenIds[i];
-                    const pos = this.getPositionAlongTrail(this._snakeTrail, (i + 1) * tailGap);
-                    updates.push({ id, x: pos.x, y: pos.y });
-                }
-                if (updates.length > 0) this.nodes.update(updates);
-
-                const foodArr = [...this._snakeFoodIds];
-                const posMap = foodArr.length > 0 ? this.network.getPositions(foodArr) : {};
-                for (const fid of foodArr) {
-                    const fp = posMap[fid];
-                    if (!fp) {
-                        this._snakeFoodIds.delete(fid);
-                        continue;
-                    }
-                    const n = this.nodes.get(fid);
-                    const nr = n && n.size ? n.size * 0.45 : 14;
-                    if (Math.hypot(hx - fp.x, hy - fp.y) < headR + nr) {
-                        this._snakeFoodIds.delete(fid);
-                        this._snakeEatenIds.push(fid);
-                    }
-                }
-
-                for (let i = 0; i < this._snakeEatenIds.length; i++) {
-                    const pos = this.getPositionAlongTrail(this._snakeTrail, (i + 1) * tailGap);
-                    if (Math.hypot(hx - pos.x, hy - pos.y) < headR * 0.55) {
-                        if (this.snakeAnimationFrame) {
-                            cancelAnimationFrame(this.snakeAnimationFrame);
-                            this.snakeAnimationFrame = null;
-                        }
-                        ToastUtils.info(this.$t("visualiser.snake_hit_self"));
-                        this.enableSnake = false;
-                        return;
-                    }
-                }
-
-                if (this._snakeFoodIds.size === 0 && this._snakeEatenIds.length > 0) {
-                    if (this.snakeAnimationFrame) {
-                        cancelAnimationFrame(this.snakeAnimationFrame);
-                        this.snakeAnimationFrame = null;
-                    }
-                    ToastUtils.success(this.$t("visualiser.snake_win"));
-                    this.enableSnake = false;
-                    return;
-                }
-
-                this.snakeAnimationFrame = requestAnimationFrame(tick);
-            };
-
-            this.snakeAnimationFrame = requestAnimationFrame(tick);
-        },
-        stopSnake(runProcessViz = true) {
-            if (this.snakeAnimationFrame) {
-                cancelAnimationFrame(this.snakeAnimationFrame);
-                this.snakeAnimationFrame = null;
-            }
-            this.detachGameKeyListeners();
-            this._snakeTrail = [];
-            this._snakeFoodIds = null;
-            this._snakeEatenIds = [];
-            const edges = this.edges.get();
-            this.edges.update(edges.map((edge) => ({ id: edge.id, hidden: false })));
-            this.refreshPhysicsEnabled();
-            if (runProcessViz && this.network) {
-                this.processVisualization();
-            }
-        },
-        startPong() {
-            if (!this.network) return;
-            this.stopPong(false);
-            this.stopSnake(false);
-            this.stopOrbit();
-            this.stopBouncingBalls();
-            this.stopFallingSkies();
-            this.network.setOptions({ physics: { enabled: false } });
-            const edges = this.edges.get();
-            this.edges.update(edges.map((edge) => ({ id: edge.id, hidden: true })));
-
-            const b = this.getViewCanvasBounds();
-            if (!b) return;
-            const midX = (b.left + b.right) / 2;
-            const midY = (b.top + b.bottom) / 2;
-            const padH = 100;
-            const padW = 14;
-            const ballR = 10;
-
-            this._pongBall = { x: midX, y: midY, vx: 9, vy: 6, r: ballR };
-            this._pongPadL = { x: b.left + 36, y: midY, w: padW, h: padH };
-            this._pongPadR = { x: b.right - 36, y: midY, w: padW, h: padH };
-            this._pongScoreYou = 0;
-            this._pongScoreAi = 0;
-            this._pongWinPoints = 7;
-
-            const isDark = document.documentElement.classList.contains("dark");
-            const padBg = isDark ? "#1e40af" : "#60a5fa";
-            const padBr = isDark ? "#3b82f6" : "#2563eb";
-            const hudFg = isDark ? "#fafafa" : "#18181b";
-            const hudBg = isDark ? "#27272a" : "#f4f4f5";
-
-            this.nodes.update([
-                {
-                    id: "__pong_ball",
-                    group: "pong",
-                    shape: "dot",
-                    size: ballR * 2,
-                    color: this.nodeColor("#e2e8f0", isDark ? "#f8fafc" : "#0f172a"),
-                    label: "",
-                    font: { size: 0 },
-                    x: this._pongBall.x,
-                    y: this._pongBall.y,
-                    physics: false,
-                },
-                {
-                    id: "__pong_hud",
-                    group: "pong",
-                    shape: "box",
-                    label: `0 - 0`,
-                    font: { size: 16, color: hudFg, bold: true },
-                    margin: 10,
-                    color: {
-                        background: hudBg,
-                        border: padBr,
-                        highlight: { background: hudBg, border: padBr },
-                        hover: { background: hudBg, border: padBr },
-                    },
-                    x: midX,
-                    y: b.top + 44,
-                    physics: false,
-                },
-                {
-                    id: "__pong_pad_l",
-                    group: "pong",
-                    shape: "box",
-                    label: "",
-                    font: { size: 0 },
-                    margin: 6,
-                    widthConstraint: { minimum: padW * 2, maximum: padW * 2 },
-                    heightConstraint: { minimum: padH, maximum: padH },
-                    color: { background: padBg, border: padBr, highlight: { background: padBg, border: padBr } },
-                    x: this._pongPadL.x,
-                    y: this._pongPadL.y,
-                    physics: false,
-                },
-                {
-                    id: "__pong_pad_r",
-                    group: "pong",
-                    shape: "box",
-                    label: "",
-                    font: { size: 0 },
-                    margin: 6,
-                    widthConstraint: { minimum: padW * 2, maximum: padW * 2 },
-                    heightConstraint: { minimum: padH, maximum: padH },
-                    color: {
-                        background: isDark ? "#4c1d95" : "#a78bfa",
-                        border: padBr,
-                        highlight: { background: padBg, border: padBr },
-                    },
-                    x: this._pongPadR.x,
-                    y: this._pongPadR.y,
-                    physics: false,
-                },
-            ]);
-
-            this.attachGameKeyListeners("pong");
-            ToastUtils.info(this.$t("visualiser.pong_hint"));
-
-            const paddleSpeed = 11;
-            const aiMaxStep = paddleSpeed * 0.92;
-
-            const resetBall = (bounds, towardSign) => {
-                const bb = this._pongBall;
-                bb.x = (bounds.left + bounds.right) / 2;
-                bb.y = (bounds.top + bounds.bottom) / 2;
-                const ramp = Math.min(5, this._pongScoreYou + this._pongScoreAi);
-                const base = 8.5 + ramp * 0.35;
-                bb.vx = towardSign * base * (0.95 + Math.random() * 0.1);
-                bb.vy = (Math.random() * 8 + 3) * (Math.random() > 0.5 ? 1 : -1);
-            };
-
-            const loop = () => {
-                if (!this.enablePong || !this.network || !this._pongBall) return;
-                const bounds = this.getViewCanvasBounds();
-                if (!bounds) return;
-                const ball = this._pongBall;
-                const pl = this._pongPadL;
-                const pr = this._pongPadR;
-
-                if (this._snakeKeys.w) pl.y -= paddleSpeed;
-                if (this._snakeKeys.s) pl.y += paddleSpeed;
-
-                const ph = padH / 2;
-                const dy = ball.y - pr.y;
-                const step = Math.min(aiMaxStep, Math.abs(dy) * 0.22);
-                if (dy < -1.5) pr.y -= step;
-                else if (dy > 1.5) pr.y += step;
-
-                pl.y = Math.max(bounds.top + ph + 8, Math.min(bounds.bottom - ph - 8, pl.y));
-                pr.y = Math.max(bounds.top + ph + 8, Math.min(bounds.bottom - ph - 8, pr.y));
-
-                ball.x += ball.vx;
-                ball.y += ball.vy;
-
-                if (ball.y - ball.r < bounds.top) {
-                    ball.y = bounds.top + ball.r;
-                    ball.vy *= -1;
-                } else if (ball.y + ball.r > bounds.bottom) {
-                    ball.y = bounds.bottom - ball.r;
-                    ball.vy *= -1;
-                }
-
-                if (ball.vx < 0 && ball.x - ball.r <= pl.x + padW && ball.y >= pl.y - ph && ball.y <= pl.y + ph) {
-                    ball.x = pl.x + padW + ball.r;
-                    ball.vx *= -1.025;
-                    ball.vy += (Math.random() - 0.5) * 2.2;
-                } else if (
-                    ball.vx > 0 &&
-                    ball.x + ball.r >= pr.x - padW &&
-                    ball.y >= pr.y - ph &&
-                    ball.y <= pr.y + ph
-                ) {
-                    ball.x = pr.x - padW - ball.r;
-                    ball.vx *= -1.025;
-                    ball.vy += (Math.random() - 0.5) * 2.2;
-                }
-
-                const edgeMargin = 18;
-                if (ball.x - ball.r < bounds.left - edgeMargin) {
-                    this._pongScoreAi++;
-                    if (this._pongScoreAi >= this._pongWinPoints) {
-                        if (this.pongAnimationFrame) {
-                            cancelAnimationFrame(this.pongAnimationFrame);
-                            this.pongAnimationFrame = null;
-                        }
-                        ToastUtils.info(this.$t("visualiser.pong_win_ai"));
-                        this.enablePong = false;
-                        return;
-                    }
-                    resetBall(bounds, -1);
-                } else if (ball.x + ball.r > bounds.right + edgeMargin) {
-                    this._pongScoreYou++;
-                    if (this._pongScoreYou >= this._pongWinPoints) {
-                        if (this.pongAnimationFrame) {
-                            cancelAnimationFrame(this.pongAnimationFrame);
-                            this.pongAnimationFrame = null;
-                        }
-                        ToastUtils.success(this.$t("visualiser.pong_win_you"));
-                        this.enablePong = false;
-                        return;
-                    }
-                    resetBall(bounds, 1);
-                }
-
-                const hudLabel = `${this._pongScoreYou} - ${this._pongScoreAi}`;
-
-                this.nodes.update([
-                    { id: "__pong_ball", x: ball.x, y: ball.y },
-                    { id: "__pong_pad_l", x: pl.x, y: pl.y },
-                    { id: "__pong_pad_r", x: pr.x, y: pr.y },
-                    { id: "__pong_hud", label: hudLabel, x: (bounds.left + bounds.right) / 2, y: bounds.top + 44 },
-                ]);
-
-                this.pongAnimationFrame = requestAnimationFrame(loop);
-            };
-            this.pongAnimationFrame = requestAnimationFrame(loop);
-        },
-        stopPong(runProcessViz = true) {
-            if (this.pongAnimationFrame) {
-                cancelAnimationFrame(this.pongAnimationFrame);
-                this.pongAnimationFrame = null;
-            }
-            this.detachGameKeyListeners();
-            this._pongBall = null;
-            for (const id of PONG_NODE_IDS) {
-                try {
-                    this.nodes.remove(id);
-                } catch {
-                    /* node may already be removed */
-                }
-            }
-            const edges = this.edges.get();
-            this.edges.update(edges.map((edge) => ({ id: edge.id, hidden: false })));
-            this.refreshPhysicsEnabled();
-            if (runProcessViz && this.network) {
-                this.processVisualization();
-            }
-        },
-        reconcileSnakeFoodAfterViz() {
-            if (!this._snakeFoodIds || !this._snakeEatenIds) return;
-            const ids = new Set(this.nodes.getIds());
-            this._snakeEatenIds = this._snakeEatenIds.filter((id) => ids.has(id));
-            const eaten = new Set(this._snakeEatenIds);
-            for (const id of [...this._snakeFoodIds]) {
-                if (!ids.has(id)) this._snakeFoodIds.delete(id);
-            }
-            for (const id of ids) {
-                if (id === "me" || eaten.has(id) || PONG_NODE_IDS.includes(id)) continue;
-                this._snakeFoodIds.add(id);
-            }
         },
         async init() {
             const container = document.getElementById("network");
@@ -1539,42 +622,6 @@ export default {
 
             this.refreshPhysicsEnabled();
 
-            this.network.on("dragStart", (params) => {
-                if (
-                    (this.enableBouncingBalls ||
-                        this.enableOrbit ||
-                        this.enableFallingSkies ||
-                        this.enableSnake ||
-                        this.enablePong) &&
-                    params.nodes.length > 0
-                ) {
-                    this._draggingNodeId = params.nodes[0];
-                    this.network.setOptions({ physics: { enabled: false } });
-                }
-            });
-
-            this.network.on("dragging", (params) => {
-                if (this._draggingNodeId) {
-                    const canvasPos = params.pointer.canvas;
-                    if (this.enableBouncingBalls) {
-                        const node = this._bouncingNodes.find((n) => n.id === this._draggingNodeId);
-                        if (node) {
-                            node.vx = (canvasPos.x - node.x) * 0.5;
-                            node.vy = (canvasPos.y - node.y) * 0.5;
-                            node.x = canvasPos.x;
-                            node.y = canvasPos.y;
-                        }
-                    } else if (this.enableOrbit || this.enableFallingSkies || this.enableSnake || this.enablePong) {
-                        this.nodes.update({ id: this._draggingNodeId, x: canvasPos.x, y: canvasPos.y });
-                    }
-                }
-            });
-
-            this.network.on("dragEnd", () => {
-                this._draggingNodeId = null;
-                this.refreshPhysicsEnabled();
-            });
-
             this.network.on("zoom", () => {
                 this.updateLOD();
             });
@@ -1596,7 +643,6 @@ export default {
             }
         },
         async onAutoReload() {
-            if (this.enableSnake || this.enablePong) return;
             if (!this.autoReload || this.isUpdating || this.isLoading) return;
             this.isUpdating = true;
             try {
@@ -1606,7 +652,7 @@ export default {
             }
         },
         updateLOD() {
-            if (!this.network || this.enableSnake || this.enablePong) return;
+            if (!this.network) return;
             if (typeof this.network.getScale !== "function") return;
             const scale = this.network.getScale();
             let newLOD = "high";
@@ -1719,25 +765,6 @@ export default {
             const processedEdgeIds = new Set();
 
             const posById = {};
-            const prevIds = new Set(this.lastVizKeys);
-
-            if (!this.enableFallingSkies) {
-                this._fallingById = new Map();
-                if (!this._fallingPendingIds) {
-                    this._fallingPendingIds = new Set();
-                } else {
-                    this._fallingPendingIds.clear();
-                }
-            } else {
-                if (!this._fallingById) {
-                    this._fallingById = new Map();
-                }
-                if (!this._fallingPendingIds) {
-                    this._fallingPendingIds = new Set();
-                }
-            }
-
-            const allowAnnounceFall = this.enableFallingSkies && this.vizHadOneLayout;
 
             const existingNodeIds = this.nodes.getIds();
             if (this.network) {
@@ -1838,7 +865,7 @@ export default {
                     width: 3,
                     length: 200,
                     arrows: { to: { enabled: true, scaleFactor: 0.5 } },
-                    hidden: this.edgesHiddenForOverlayGames(),
+                    hidden: false,
                 });
                 processedEdgeIds.add(edgeId);
             }
@@ -1910,7 +937,7 @@ export default {
                         },
                         width: 1,
                         dashes: true,
-                        hidden: this.edgesHiddenForOverlayGames(),
+                        hidden: false,
                     });
                     processedEdgeIds.add(edgeId);
                 }
@@ -1982,7 +1009,6 @@ export default {
 
                     const targetXY = this.pickStablePosition(entry.hash, posById, () => ({ x: initX, y: initY }));
                     const edgeId = `${entry.interface}~${entry.hash}`;
-                    const shouldFall = allowAnnounceFall && !prevIds.has(entry.hash);
 
                     let node = {
                         id: entry.hash,
@@ -1995,29 +1021,6 @@ export default {
                         x: targetXY.x,
                         y: targetXY.y,
                     };
-
-                    if (shouldFall) {
-                        this._fallingPendingIds.add(entry.hash);
-                        let topY = targetXY.y - 1100;
-                        const container = document.getElementById("network");
-                        if (container && this.network) {
-                            const scale = this.network.getScale();
-                            const vp = this.network.getViewPosition();
-                            const halfH = container.clientHeight / (2 * scale);
-                            topY = vp.y - halfH - 60;
-                        }
-                        node.x = targetXY.x;
-                        node.y = topY;
-                        posById[entry.hash] = { x: targetXY.x, y: targetXY.y };
-                        this._fallingById.set(entry.hash, {
-                            tx: targetXY.x,
-                            ty: targetXY.y,
-                            x: targetXY.x,
-                            y: topY,
-                            vy: 0,
-                            edgeIds: [edgeId],
-                        });
-                    }
 
                     node.label = displayName;
                     node.title = `${displayName}\nAspect: ${announce.aspect}\nHops: ${entry.hops}\nVia: ${entry.interface}\nLast Seen: ${Utils.convertDateTimeToLocalDateTimeString(new Date(announce.updated_at))}`;
@@ -2102,7 +1105,7 @@ export default {
                         },
                         width: entry.hops === 1 ? 2 : 1,
                         dashes: entry.hops > 1,
-                        hidden: this.edgeHiddenForMode(entry.hash),
+                        hidden: false,
                     });
                     processedEdgeIds.add(edgeId);
                 }
@@ -2123,12 +1126,6 @@ export default {
                 if (this.abortController.signal.aborted) return;
             }
 
-            if (this.enablePong) {
-                for (const id of PONG_NODE_IDS) {
-                    processedNodeIds.add(id);
-                }
-            }
-
             // Cleanup: remove nodes/edges that are no longer in the network
             const nodesToRemove = this.nodes.getIds().filter((id) => !processedNodeIds.has(id));
             if (nodesToRemove.length > 0) this.nodes.remove(nodesToRemove);
@@ -2141,24 +1138,9 @@ export default {
             this.currentBatch = 0;
             this.totalBatches = 0;
 
-            this.lastVizKeys = [...processedNodeIds];
-            this.vizHadOneLayout = true;
-
             if (this.network && !this.didDisableStabilization) {
                 this.didDisableStabilization = true;
                 this.network.setOptions({ physics: { stabilization: { enabled: false } } });
-            }
-
-            if (this.enableFallingSkies && this._fallingById && this._fallingById.size > 0) {
-                this.scheduleFallingTick();
-            }
-
-            if (this.enableSnake && this._snakeFoodIds) {
-                this.reconcileSnakeFoodAfterViz();
-            }
-
-            if (this.enableOrbit) {
-                this.startOrbit();
             }
 
             /*
