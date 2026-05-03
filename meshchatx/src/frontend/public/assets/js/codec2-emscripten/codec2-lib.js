@@ -1,3 +1,17 @@
+/**
+ * Emscripten resolves .wasm next to the script URL. Codec2Loader injects these
+ * scripts from blob: URLs (SRI), so scriptDirectory is opaque and WASM fetch
+ * fails unless we pin assets to same-origin paths (notably Android WebView).
+ */
+function codec2EmscriptenLocateFile(path) {
+    const base = "/assets/js/codec2-emscripten";
+    const p = String(path || "").replace(/^\.\//, "");
+    if (p.startsWith("/")) {
+        return base + p;
+    }
+    return `${base}/${p}`;
+}
+
 class Codec2Lib {
     static arrayBufferToBase64(buffer) {
         let binary = "";
@@ -30,6 +44,7 @@ class Codec2Lib {
     static runDecode(mode, data) {
         return new Promise((resolve, reject) => {
             const module = {
+                locateFile: codec2EmscriptenLocateFile,
                 arguments: [mode, "input.bit", "output.raw"],
                 preRun: () => {
                     module.FS.writeFile("input.bit", new Uint8Array(data));
@@ -48,6 +63,7 @@ class Codec2Lib {
     static runEncode(mode, data) {
         return new Promise((resolve, reject) => {
             const module = {
+                locateFile: codec2EmscriptenLocateFile,
                 arguments: [mode, "input.raw", "output.bit"],
                 preRun: () => {
                     module.FS.writeFile("input.raw", new Uint8Array(data));
@@ -66,6 +82,7 @@ class Codec2Lib {
     static rawToWav(buffer) {
         return new Promise((resolve, reject) => {
             const module = {
+                locateFile: codec2EmscriptenLocateFile,
                 arguments: [
                     "-r",
                     "8000",
@@ -96,6 +113,7 @@ class Codec2Lib {
     static audioFileToRaw(buffer, filename) {
         return new Promise((resolve, reject) => {
             const module = {
+                locateFile: codec2EmscriptenLocateFile,
                 arguments: [filename, "-r", "8000", "-L", "-e", "signed-integer", "-b", "16", "-c", "1", "output.raw"],
                 preRun: () => {
                     module.FS.writeFile(filename, new Uint8Array(buffer));

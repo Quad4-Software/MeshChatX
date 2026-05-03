@@ -7,8 +7,8 @@
     "c2enc.js": "sha384-Rrnbr/tbCaDiL1n14+MccgIw0Cef+yrpbdYythu5/PkpzZhsVc+9Fle0WyT+7AWc",
     "sox.wasm": "sha384-NMa5LHokdsVBdaUPlK1jnsSQ1nmgAnf8POPAwFpRkfjckdBCUSs1RhRd03CHwDAN",
     "sox.js": "sha384-iSAIvLWRyVYwMrKhVzrmvcCzS5noiipjTxOowhXWkmDW0xFGjLV8YGpppX1qRdum",
-    "codec2-lib.js": "sha384-ts/lRDKjHaqD4pUZeyXI+nMIe75khxJEcORRLiqaJo496FFa1FSkfKzW2lm9RAus",
-    "codec2-microphone-recorder.js": "sha384-dGQR+cfKn/lejCt32+N8EJw94+VwFvTeFILKDo1BOm0R+1qElYCR+jrPHezOEzb9",
+    "codec2-lib.js": "sha384-zsX9uAMRA7ZBjLcgR/uc2ZKNnyd41x3/KyKl7NMxTBQ8fXVH+RzNfOmBpVyQmvet",
+    "codec2-microphone-recorder.js": "sha384-Akn96VRTRXneZSwV4ocrapOCdrKAR0oilBW2KuEamp2cvPMayG+vhS0e2tTjXr/m",
     "processor.js": "sha384-m1JmxQg3+KdNiu25A6ArCGFaaKmN6MzONe+LaphWLPfwXqs8bxD6dWNbehUUG54Y",
     "wav-encoder.js": "sha384-QToS0oLeqMQo+9wYKkx+pTNlBRZsRKsKplmJB/Plf3LwngxNi+0YFJBkb17aCNIM"
   }

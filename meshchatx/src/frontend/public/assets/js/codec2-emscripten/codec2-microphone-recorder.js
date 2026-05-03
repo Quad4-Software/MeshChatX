@@ -51,7 +51,9 @@ class Codec2MicrophoneRecorder {
                 typeof globalThis.AudioWorkletNode === "function"
             ) {
                 try {
-                    await this.audioContext.audioWorklet.addModule("assets/js/codec2-emscripten/processor.js");
+                    await this.audioContext.audioWorklet.addModule(
+                        "/assets/js/codec2-emscripten/processor.js"
+                    );
                     const wn = new AudioWorkletNode(this.audioContext, "audio-processor");
                     wn.port.onmessage = async (event) => {
                         this.audioChunks.push(event.data);
