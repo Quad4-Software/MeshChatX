@@ -811,6 +811,8 @@ export default {
             clearInterval(this._propagationSyncPollTimer);
             this._propagationSyncPollTimer = null;
         }
+        // Clear polling guard flag on unmount
+        this._isPropagationSyncPolling = false;
         this.stopShell();
         this.clearWsShellUiTimers();
         if (this.endedTimeout) clearTimeout(this.endedTimeout);
@@ -1498,32 +1500,41 @@ export default {
 
             await this.updatePropagationNodeStatus();
 
+            // Guard to prevent overlapping poll calls
+            this._isPropagationSyncPolling = false;
+
             const poll = async () => {
-                await this.updatePropagationNodeStatus();
-                if (this.isSyncingPropagationNode) {
-                    ToastUtils.loading(this.propagationSyncLiveToastMessage(), 0, propagationSyncToastKey);
-                    return;
-                }
-                if (this._propagationSyncPollTimer != null) {
-                    clearInterval(this._propagationSyncPollTimer);
-                    this._propagationSyncPollTimer = null;
-                }
-                ToastUtils.dismiss(propagationSyncToastKey);
-                const status = this.propagationNodeStatus?.state;
-                const messagesReceived = this.propagationNodeStatus?.messages_received ?? 0;
-                const messagesStored = this.propagationNodeStatus?.messages_stored ?? 0;
-                const deliveryConfirmations = this.propagationNodeStatus?.delivery_confirmations ?? 0;
-                const messagesHidden = this.propagationNodeStatus?.messages_hidden ?? 0;
-                if (status === "complete" || status === "idle") {
-                    const base = this.$t("app.sync_complete", { count: messagesReceived });
-                    const details = `${messagesStored} stored, ${deliveryConfirmations} confirmations, ${messagesHidden} hidden`;
-                    ToastUtils.success(`${base} (${details})`);
-                } else {
-                    ToastUtils.error(
-                        this.$t("app.sync_error", {
-                            status: this.propagationSyncStatusLabel(status),
-                        })
-                    );
+                if (this._isPropagationSyncPolling) return;
+                this._isPropagationSyncPolling = true;
+                try {
+                    await this.updatePropagationNodeStatus();
+                    if (this.isSyncingPropagationNode) {
+                        ToastUtils.loading(this.propagationSyncLiveToastMessage(), 0, propagationSyncToastKey);
+                        return;
+                    }
+                    if (this._propagationSyncPollTimer != null) {
+                        clearInterval(this._propagationSyncPollTimer);
+                        this._propagationSyncPollTimer = null;
+                    }
+                    ToastUtils.dismiss(propagationSyncToastKey);
+                    const status = this.propagationNodeStatus?.state;
+                    const messagesReceived = this.propagationNodeStatus?.messages_received ?? 0;
+                    const messagesStored = this.propagationNodeStatus?.messages_stored ?? 0;
+                    const deliveryConfirmations = this.propagationNodeStatus?.delivery_confirmations ?? 0;
+                    const messagesHidden = this.propagationNodeStatus?.messages_hidden ?? 0;
+                    if (status === "complete" || status === "idle") {
+                        const base = this.$t("app.sync_complete", { count: messagesReceived });
+                        const details = `${messagesStored} stored, ${deliveryConfirmations} confirmations, ${messagesHidden} hidden`;
+                        ToastUtils.success(`${base} (${details})`);
+                    } else {
+                        ToastUtils.error(
+                            this.$t("app.sync_error", {
+                                status: this.propagationSyncStatusLabel(status),
+                            })
+                        );
+                    }
+                } finally {
+                    this._isPropagationSyncPolling = false;
                 }
             };
 
@@ -1560,6 +1571,8 @@ export default {
                 clearInterval(this._propagationSyncPollTimer);
                 this._propagationSyncPollTimer = null;
             }
+            // Clear the polling guard flag
+            this._isPropagationSyncPolling = false;
             ToastUtils.dismiss(propagationSyncToastKey);
             await this.updatePropagationNodeStatus();
         },

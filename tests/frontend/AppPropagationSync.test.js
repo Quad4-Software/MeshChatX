@@ -27,6 +27,7 @@ function makeSyncContext(axiosMock, tOverrides = {}) {
         },
         propagationNodeStatus: null,
         _propagationSyncPollTimer: null,
+        _isPropagationSyncPolling: false,
         propagationSyncLiveToastMessage: App.methods.propagationSyncLiveToastMessage,
         propagationSyncStatusLabel: App.methods.propagationSyncStatusLabel,
         get isSyncingPropagationNode() {
