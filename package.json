@@ -275,7 +275,6 @@
                 "--talk-name=org.freedesktop.portal.Desktop",
                 "--own-name=com.sudoivan.reticulummeshchatx",
                 "--socket=pulseaudio",
-                "--socket=pipewire",
                 "--filesystem=xdg-run/pipewire-0"
             ]
         },

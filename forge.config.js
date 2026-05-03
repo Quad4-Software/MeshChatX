@@ -128,7 +128,6 @@ module.exports = {
                         "--own-name=com.sudoivan.reticulummeshchatx",
                         "--env=TMPDIR=/var/tmp",
                         "--socket=pulseaudio",
-                        "--socket=pipewire",
                         "--filesystem=xdg-run/pipewire-0",
                     ],
                     extraFlatpakBuilderArgs: ["--verbose"],
