@@ -1,6 +1,7 @@
 const { FusesPlugin } = require("@electron-forge/plugin-fuses");
 const { FuseV1Options, FuseVersion } = require("@electron/fuses");
 const which = require("which");
+const path = require("path");
 
 function hasExecutable(name) {
     return which.sync(name, { nothrow: true }) !== null;
@@ -111,6 +112,8 @@ module.exports = {
                     sdk: "org.freedesktop.Sdk",
                     base: "org.electronjs.Electron2.BaseApp",
                     baseVersion: "25.08",
+                    // Custom desktop template for proper StartupWMClass
+                    desktopTemplate: path.join(__dirname, "electron", "flatpak-desktop.ejs"),
                     finishArgs: [
                         "--share=ipc",
                         "--share=network",
@@ -120,8 +123,13 @@ module.exports = {
                         "--allow=bluetooth",
                         "--filesystem=home",
                         "--talk-name=org.freedesktop.Notifications",
+                        "--talk-name=org.freedesktop.DBus",
+                        "--talk-name=org.freedesktop.portal.Desktop",
+                        "--own-name=com.sudoivan.reticulummeshchatx",
                         "--env=TMPDIR=/var/tmp",
                         "--socket=pulseaudio",
+                        "--socket=pipewire",
+                        "--filesystem=xdg-run/pipewire-0",
                     ],
                     extraFlatpakBuilderArgs: ["--verbose"],
                 },

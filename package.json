@@ -270,7 +270,13 @@
                 "--device=dri",
                 "--allow=bluetooth",
                 "--filesystem=home",
-                "--talk-name=org.freedesktop.Notifications"
+                "--talk-name=org.freedesktop.Notifications",
+                "--talk-name=org.freedesktop.DBus",
+                "--talk-name=org.freedesktop.portal.Desktop",
+                "--own-name=com.sudoivan.reticulummeshchatx",
+                "--socket=pulseaudio",
+                "--socket=pipewire",
+                "--filesystem=xdg-run/pipewire-0"
             ]
         },
         "dmg": {
