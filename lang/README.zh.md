@@ -82,7 +82,7 @@ docker run -d --name reticulum-meshchatx \
   --restart unless-stopped \
   --security-opt no-new-privileges:true \
   -p 127.0.0.1:8000:8000 \
-  -v "$(pwd)/meshchat-config:/config" \
+  -v meshchatx-config:/config \
   ghcr.io/quad4-software/meshchatx:latest
 ```
 
@@ -91,12 +91,18 @@ docker run -d --name reticulum-meshchatx \
 默认 compose 文件映射:
 
 - 主机 `127.0.0.1:8000` -> 容器端口 `8000`
-- `./meshchat-config` -> `/config` 持久化
+- Docker **命名卷** **`meshchatx-config`** -> **`/config`** 持久化（与镜像内 **meshchat** 用户 UID 1000 一致，通常无需为 bind mount 在宿主机执行 `chown`）
 
-如遇权限问题:
+**可选：挂载宿主机目录**
+
+将卷参数改为 `-v "$(pwd)/meshchat-config:/config"`（Compose 中修改服务的 `volumes`）。容器以 **UID 1000** 运行；宿主机目录需对应该用户可写（常见：`sudo chown -R 1000:1000 ./meshchat-config`）。首次运行前自行创建空目录，可避免 Docker 以不合适权限创建。
+
+**查看或删除命名卷**
 
 ```bash
-sudo chown -R 1000:1000 ./meshchat-config
+docker volume inspect meshchatx-config
+docker rm -f reticulum-meshchatx
+docker volume rm meshchatx-config
 ```
 
 ## 从发行版安装

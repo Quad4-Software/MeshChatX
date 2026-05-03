@@ -82,7 +82,7 @@ docker run -d --name reticulum-meshchatx \
   --restart unless-stopped \
   --security-opt no-new-privileges:true \
   -p 127.0.0.1:8000:8000 \
-  -v "$(pwd)/meshchat-config:/config" \
+  -v meshchatx-config:/config \
   ghcr.io/quad4-software/meshchatx:latest
 ```
 
@@ -91,12 +91,18 @@ Sie koennen `quad4io/meshchatx:latest` statt des GHCR-Images verwenden, wenn Sie
 Standard-Compose-Datei:
 
 - `127.0.0.1:8000` auf dem Host -> Container-Port `8000`
-- `./meshchat-config` -> `/config` fuer Persistenz
+- Docker-Benanntes Volume **`meshchatx-config`** -> **`/config`** fuer Persistenz (passt zum Image-Benutzer **meshchat**, UID 1000, ohne Host-**chown** bei Bind-Mounts)
 
-Bei Berechtigungsproblemen:
+**Optional: Host-Verzeichnis einbinden**
+
+Ersetzen Sie die Volume-Zeile durch `-v "$(pwd)/meshchat-config:/config"` (Compose: `volumes`-Eintrag des Service anpassen). Der Container laeuft als **UID 1000**; das Host-Verzeichnis muss dafuer beschreibbar sein (typisch: `sudo chown -R 1000:1000 ./meshchat-config`). Leeres Verzeichnis vor dem ersten Start anlegen, damit Docker es nicht mit unpassenden Rechten erzeugt.
+
+**Named Volume pruefen oder loeschen**
 
 ```bash
-sudo chown -R 1000:1000 ./meshchat-config
+docker volume inspect meshchatx-config
+docker rm -f reticulum-meshchatx
+docker volume rm meshchatx-config
 ```
 
 ## Installation aus Release-Artefakten

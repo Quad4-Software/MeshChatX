@@ -83,7 +83,7 @@ docker run -d --name reticulum-meshchatx \
   --restart unless-stopped \
   --security-opt no-new-privileges:true \
   -p 127.0.0.1:8000:8000 \
-  -v "$(pwd)/meshchat-config:/config" \
+  -v meshchatx-config:/config \
   ghcr.io/quad4-software/meshchatx:latest
 ```
 
@@ -92,12 +92,19 @@ You can substitute `quad4io/meshchatx:latest` for the image if you prefer Docker
 Default compose file maps:
 
 - `127.0.0.1:8000` on host -> container port `8000`
-- `./meshchat-config` -> `/config` for persistence
+- Docker **named volume** `meshchatx-config` -> `/config` for persistence (works with the image `meshchat` user, UID 1000, without bind-mount permission fixes)
 
-If your local `meshchat-config` permissions block writes, fix ownership:
+**Optional: bind mount a host directory instead**
+
+If you want data under a host path (for example `./meshchat-config`), replace the volume line with `-v "$(pwd)/meshchat-config:/config"` (Compose: change the service `volumes` entry to that bind path). The container runs as **UID 1000**; the host directory must be writable by that uid (typical fix: `sudo chown -R 1000:1000 ./meshchat-config`). If the directory is empty on first run, create it first so Docker does not create it as root-only.
+
+**Inspect or reset the named volume**
 
 ```bash
-sudo chown -R 1000:1000 ./meshchat-config
+docker volume inspect meshchatx-config
+# remove container and delete persisted data (destructive)
+docker rm -f reticulum-meshchatx
+docker volume rm meshchatx-config
 ```
 
 ## Install from Release Artifacts

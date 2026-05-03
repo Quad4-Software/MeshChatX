@@ -82,7 +82,7 @@ docker run -d --name reticulum-meshchatx \
   --restart unless-stopped \
   --security-opt no-new-privileges:true \
   -p 127.0.0.1:8000:8000 \
-  -v "$(pwd)/meshchat-config:/config" \
+  -v meshchatx-config:/config \
   ghcr.io/quad4-software/meshchatx:latest
 ```
 
@@ -91,12 +91,18 @@ Al posto dell'immagine GHCR puoi usare `quad4io/meshchatx:latest` se preferisci 
 Il file compose predefinito mappa:
 
 - `127.0.0.1:8000` sull'host -> porta `8000` del container
-- `./meshchat-config` -> `/config` per la persistenza
+- Volume Docker nominato **`meshchatx-config`** -> **`/config`** per la persistenza (adatto all'utente **meshchat** dell'immagine, UID 1000, senza `chown` sull'host per i bind mount)
 
-In caso di errori di permessi:
+**Opzionale: montare una directory dell'host**
+
+Sostituisci la riga del volume con `-v "$(pwd)/meshchat-config:/config"` (Compose: modifica la voce `volumes` del servizio). Il container gira come **UID 1000**; la directory sull'host deve essere scrivibile (tipico: `sudo chown -R 1000:1000 ./meshchat-config`). Prima del primo avvio crea una directory vuota; altrimenti Docker potrebbe crearla con permessi errati.
+
+**Ispezionare o eliminare il volume nominato**
 
 ```bash
-sudo chown -R 1000:1000 ./meshchat-config
+docker volume inspect meshchatx-config
+docker rm -f reticulum-meshchatx
+docker volume rm meshchatx-config
 ```
 
 ## Installazione da artefatti di release

@@ -82,7 +82,7 @@ docker run -d --name reticulum-meshchatx \
   --restart unless-stopped \
   --security-opt no-new-privileges:true \
   -p 127.0.0.1:8000:8000 \
-  -v "$(pwd)/meshchat-config:/config" \
+  -v meshchatx-config:/config \
   ghcr.io/quad4-software/meshchatx:latest
 ```
 
@@ -91,12 +91,18 @@ docker run -d --name reticulum-meshchatx \
 Compose-файл по умолчанию:
 
 - `127.0.0.1:8000` на хосте -> порт `8000` контейнера
-- `./meshchat-config` -> `/config` для данных
+- Именованный том Docker **`meshchatx-config`** -> **`/config`** для данных (подходит пользователю **meshchat** в образе, UID 1000, без `chown` на хосте для bind mount)
 
-Если возникают ошибки прав доступа:
+**По желанию: каталог на хосте**
+
+Замените строку тома на `-v "$(pwd)/meshchat-config:/config"` (Compose: измените `volumes` у сервиса). Контейнер работает от **UID 1000**; каталог на хосте должен быть доступен на запись (обычно: `sudo chown -R 1000:1000 ./meshchat-config`). Создайте пустой каталог до первого запуска, чтобы Docker не создал его с неподходящими правами.
+
+**Просмотр или удаление именованного тома**
 
 ```bash
-sudo chown -R 1000:1000 ./meshchat-config
+docker volume inspect meshchatx-config
+docker rm -f reticulum-meshchatx
+docker volume rm meshchatx-config
 ```
 
 ## Установка из релизных артефактов
