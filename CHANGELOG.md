@@ -77,7 +77,6 @@ All notable changes to this project will be documented in this file.
 
 - **Downloads**: File download flow adds **persistence**, **user notifications**, and **filename sanitization** so exports land predictably and bad names are rejected or normalized safely.
 - **Refactors**: Download helpers and **time formatting** utilities consolidated; UI elements updated where downloads surface.
-- **User icons**: **Seed-based background colors** for user icon components provide consistent, deterministic colors per identity.
 - **Tests**: **`DownloadUtils`** unit tests; **`Utils`** tests updated for formatting helpers; **`ArchivesPage`** test accounts for delayed **`downloadTextAsFile`** behaviour.
 
 ### NomadNet and locales
