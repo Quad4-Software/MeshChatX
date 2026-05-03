@@ -88,7 +88,7 @@ describe("TutorialModal getting started migration", () => {
                 legacy_path: "/home/x/.reticulum-meshchat",
                 target_path: "/home/x/.reticulum-meshchatx",
                 mode: "redirect_to_legacy",
-            }),
+            })
         );
 
         const router = createRouter({
@@ -112,7 +112,7 @@ describe("TutorialModal getting started migration", () => {
                 show_choice: true,
                 legacy_path: "/home/x/.reticulum-meshchat",
                 target_path: "/home/x/.reticulum-meshchatx",
-            }),
+            })
         );
         await vi.waitFor(
             () => {
@@ -123,7 +123,7 @@ describe("TutorialModal getting started migration", () => {
                     t.includes(en.tutorial.migration_fresh)
                 );
             },
-            { timeout: 4000 },
+            { timeout: 4000 }
         );
 
         wrapper.unmount();
@@ -135,7 +135,7 @@ describe("TutorialModal getting started migration", () => {
                 show_choice: true,
                 legacy_path: "/a/.reticulum-meshchat",
                 target_path: "/a/.reticulum-meshchatx",
-            }),
+            })
         );
         axiosMock.post.mockImplementation((url, body) => {
             if (url === "/api/v1/setup/storage-migration") {
@@ -178,7 +178,7 @@ describe("TutorialModal getting started migration", () => {
                 show_choice: true,
                 legacy_path: "/a/.reticulum-meshchat",
                 target_path: "/a/.reticulum-meshchatx",
-            }),
+            })
         );
         axiosMock.post.mockResolvedValue({ data: { ok: true, restart_required: true } });
 
@@ -213,7 +213,7 @@ describe("TutorialModal getting started migration", () => {
                 show_choice: true,
                 legacy_path: "/a/.reticulum-meshchat",
                 target_path: "/a/.reticulum-meshchatx",
-            }),
+            })
         );
         axiosMock.post.mockRejectedValue({
             response: { data: { error: "target already has data" } },
@@ -299,7 +299,7 @@ describe("TutorialModal getting started migration", () => {
                 show_choice: true,
                 legacy_path: "/z/.reticulum-meshchat",
                 target_path: "/z/.reticulum-meshchatx",
-            }),
+            })
         );
 
         const router = createRouter({
@@ -327,7 +327,7 @@ describe("TutorialModal getting started migration", () => {
             expect.objectContaining({
                 show_choice: true,
                 legacy_path: "/z/.reticulum-meshchat",
-            }),
+            })
         );
         expect(wrapper.text()).toContain(en.tutorial.migration_title);
 
