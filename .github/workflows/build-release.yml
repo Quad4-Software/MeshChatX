@@ -388,8 +388,12 @@ jobs:
                   if [[ -x /usr/local/bin/brew ]]; then
                       arch -x86_64 /usr/local/bin/brew install codec2
                   else
-                      echo "x86_64 Homebrew not found at /usr/local/bin/brew; pycodec2 x64 slice build may fail." >&2
+                      echo "x86_64 Homebrew not found at /usr/local/bin/brew; cannot build pycodec2 x64 slice." >&2
+                      exit 1
                   fi
+                  _codec2="$(arch -x86_64 /usr/local/bin/brew --prefix codec2)"
+                  test -f "${_codec2}/include/codec2/codec2.h"
+                  test -f "${_codec2}/lib/libcodec2.dylib"
 
             - name: Install project deps into x64 Python (mac universal cx_Freeze)
               if: matrix.label == 'macos'
