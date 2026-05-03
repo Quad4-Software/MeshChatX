@@ -29,7 +29,7 @@ function fakeApp() {
 
 describe("shellPathGuard", () => {
     const home = os.homedir();
-    const storage = path.join(home, ".reticulum-meshchat");
+    const storage = path.join(home, ".reticulum-meshchatx");
     const reticulum = path.join(home, ".reticulum");
     const ctx = {
         app: fakeApp(),
@@ -40,6 +40,12 @@ describe("shellPathGuard", () => {
 
     it("allows paths under default storage", () => {
         const p = path.join(storage, "rncp_received", "file.bin");
+        expect(isAllowedShellPath(p, ctx)).toBe(true);
+    });
+
+    it("allows paired legacy storage directory", () => {
+        const legacy = path.join(home, ".reticulum-meshchat");
+        const p = path.join(legacy, "identities", "abc", "database.db");
         expect(isAllowedShellPath(p, ctx)).toBe(true);
     });
 
