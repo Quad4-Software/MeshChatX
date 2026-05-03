@@ -64,6 +64,38 @@
                                 {{ $t("tutorial.welcome_desc") }}
                             </p>
                         </div>
+                        <div
+                            v-if="migrationOffer && migrationOffer.show_choice"
+                            class="w-full max-w-xl mx-auto p-4 rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/90 dark:bg-amber-950/40 text-left space-y-3"
+                        >
+                            <div class="font-semibold text-amber-950 dark:text-amber-100">
+                                {{ $t("tutorial.migration_title") }}
+                            </div>
+                            <p class="text-sm text-amber-950/90 dark:text-amber-100/90">
+                                {{ $t("tutorial.migration_desc") }}
+                            </p>
+                            <div class="flex flex-col sm:flex-row gap-2 justify-stretch sm:justify-end">
+                                <button
+                                    type="button"
+                                    class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium disabled:opacity-50"
+                                    :disabled="migrationBusy"
+                                    @click="migrationMigrate"
+                                >
+                                    {{ $t("tutorial.migration_migrate") }}
+                                </button>
+                                <button
+                                    type="button"
+                                    class="px-4 py-2 rounded-lg border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 text-sm font-medium disabled:opacity-50"
+                                    :disabled="migrationBusy"
+                                    @click="migrationFresh"
+                                >
+                                    {{ $t("tutorial.migration_fresh") }}
+                                </button>
+                            </div>
+                            <p v-if="migrationBusy" class="text-xs text-center text-gray-600 dark:text-zinc-400">
+                                {{ $t("tutorial.migration_working") }}
+                            </p>
+                        </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full mt-8">
                             <div
                                 class="flex items-start gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 transition-all hover:scale-[1.03] hover:shadow-xl hover:z-10"
@@ -965,6 +997,38 @@
                             </h1>
                             <p class="text-xl text-gray-600 dark:text-zinc-400 max-w-2xl mx-auto">
                                 {{ $t("tutorial.welcome_desc") }}
+                            </p>
+                        </div>
+                        <div
+                            v-if="migrationOffer && migrationOffer.show_choice"
+                            class="w-full max-w-2xl mx-auto p-5 rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/90 dark:bg-amber-950/40 text-left space-y-3"
+                        >
+                            <div class="font-semibold text-amber-950 dark:text-amber-100">
+                                {{ $t("tutorial.migration_title") }}
+                            </div>
+                            <p class="text-sm text-amber-950/90 dark:text-amber-100/90">
+                                {{ $t("tutorial.migration_desc") }}
+                            </p>
+                            <div class="flex flex-col sm:flex-row gap-2 justify-stretch sm:justify-end">
+                                <button
+                                    type="button"
+                                    class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium disabled:opacity-50"
+                                    :disabled="migrationBusy"
+                                    @click="migrationMigrate"
+                                >
+                                    {{ $t("tutorial.migration_migrate") }}
+                                </button>
+                                <button
+                                    type="button"
+                                    class="px-4 py-2 rounded-lg border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 text-sm font-medium disabled:opacity-50"
+                                    :disabled="migrationBusy"
+                                    @click="migrationFresh"
+                                >
+                                    {{ $t("tutorial.migration_fresh") }}
+                                </button>
+                            </div>
+                            <p v-if="migrationBusy" class="text-xs text-center text-gray-600 dark:text-zinc-400">
+                                {{ $t("tutorial.migration_working") }}
                             </p>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full mt-12">
@@ -1914,6 +1978,8 @@ export default {
             bootstrapCommunitySectionOpen: true,
             bootstrapAutoPickDone: false,
             pickingRandomBootstraps: false,
+            migrationOffer: null,
+            migrationBusy: false,
         };
     },
     computed: {
@@ -2012,6 +2078,7 @@ export default {
             this.loadDiscoveryBootstrapDefaults();
             this.loadCommunityInterfaces();
             this.loadDiscoveredInterfaces();
+            this.refreshMigrationOffer();
             this.discoveryInterval = setInterval(() => {
                 this.loadDiscoveredInterfaces();
             }, 5000);
@@ -2051,6 +2118,7 @@ export default {
             this.bootstrapDiscoveredSectionOpen = true;
             this.bootstrapCommunitySectionOpen = true;
             this.bootstrapAutoPickDone = false;
+            await this.refreshMigrationOffer();
             await this.loadDiscoveryBootstrapDefaults();
             await this.loadCommunityInterfaces();
             await this.loadDiscoveredInterfaces();
@@ -2098,6 +2166,50 @@ export default {
                 console.error("Failed to load discovered interfaces:", e);
             } finally {
                 this.loadingDiscovered = false;
+            }
+        },
+        async refreshMigrationOffer() {
+            this.migrationOffer = null;
+            try {
+                const response = await window.api.get("/api/v1/app/info");
+                const m = response.data?.app_info?.migration;
+                if (m && m.show_choice) {
+                    this.migrationOffer = m;
+                }
+            } catch (e) {
+                console.error("Failed to load migration status:", e);
+            }
+        },
+        async migrationMigrate() {
+            if (this.migrationBusy || !this.migrationOffer) return;
+            this.migrationBusy = true;
+            try {
+                await window.api.post("/api/v1/setup/storage-migration", { action: "migrate" });
+                ToastUtils.success(this.$t("tutorial.migration_done_restart"));
+                if (window.electron && typeof window.electron.relaunch === "function") {
+                    await window.electron.relaunch();
+                }
+            } catch (e) {
+                ToastUtils.error(e.response?.data?.error || this.$t("tutorial.migration_failed"));
+                console.error(e);
+            } finally {
+                this.migrationBusy = false;
+            }
+        },
+        async migrationFresh() {
+            if (this.migrationBusy || !this.migrationOffer) return;
+            this.migrationBusy = true;
+            try {
+                await window.api.post("/api/v1/setup/storage-migration", { action: "fresh" });
+                ToastUtils.success(this.$t("tutorial.migration_done_restart"));
+                if (window.electron && typeof window.electron.relaunch === "function") {
+                    await window.electron.relaunch();
+                }
+            } catch (e) {
+                ToastUtils.error(e.response?.data?.error || this.$t("tutorial.migration_failed"));
+                console.error(e);
+            } finally {
+                this.migrationBusy = false;
             }
         },
         async reloadReticulum() {
