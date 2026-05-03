@@ -6,33 +6,35 @@ All notable changes to this project will be documented in this file.
 
 ### TL;DR
 
-- **Micron WASM parser**: Go-based **WASM** implementation for Micron page parsing, Falls back to JavaScript when WASM is unavailable. **Micron-Parser-JS is still default**.
-- **Security/Integrity**: **SRI verification** for external scripts (Codec2, RNode Flasher) and Micron WASM assets with integrity manifests generated at build time.
-- **File downloads**: When you save or export things (including from archives), filenames are **cleaned up** so odd characters are less likely to break saves, and you get **clearer feedback** when a download wraps up.
-- **NomadNet favourites**: You can **import and export** your NomadNet favourites list so you are not stuck re-building it by hand on a new device; **contact sharing** wording is clearer across several languages.
+- **Micron WASM parser**: Go-based **WASM** parser for Micron pages that can fallback to JavaScript when WASM is unavailable, this is off by default in settings. **Micron-Parser-JS stays the default**.
+- **Security and integrity**: **SRI** checks for external scripts (Codec2, RNode Flasher) and Micron WASM with build-time manifests. Release workflows emit **SLSA provenance** for **Android APK** and **Flatpak**. **`SECURITY.md`** explains attestation alongside the SRI notes.
+- **File downloads**: When you save or export things (including from archives), filenames are **cleaned up** so odd characters are less likely to break saves. You get **clearer feedback** when a download wraps up.
+- **NomadNet favourites**: You can **import** and **export** your NomadNet favourites list on a new device without retyping everything. **Contact sharing** wording is clearer across several languages.
 - **RNGit Explorer**: New in-app explorer for **RNGit**.
-- **Android**: **Foreground sync** with notifications, **WebSocket** bridge hooks, **calls** and richer **audio** (including native attachments), **optional camera** manifest wiring, **APK sharing** via system share sheet, plus **Lint** in CI and toolchain updates.
+- **Android**: **Foreground sync** with notifications, **WebSocket** bridge hooks, **calls** and richer **audio** (including native attachments), **optional camera** manifest wiring, **APK sharing** via the system share sheet, plus **Lint** in CI and toolchain updates.
 - **LibreTranslate**: Optional **API key** support for self-hosted or public instances with improved configuration persistence.
 - **Bot management**: Subprocess **error tracking**, **log retrieval**, and better lifecycle handling for LXMFy bots.
 - **Map improvements**: Removed **MapNoMapWarning** component, streamlined **offline mode** handling, and improved coordinate display with tabular formatting.
 - **Telephony**: Call **metadata tracking** with **path hops** and **interface details**, plus **ringtone handling** for browser autoplay restrictions.
-- **Reticulum and announces**: **Bootstrap-only** defaults for new **outbound TCP** / **backbone connector** interfaces (with discovery and add-interface options), **per-aspect announce storage** toggles in **`announce_manager`** / **`config_manager`**, and refreshed **community interface** presets (builder script and list cleanup).
-- **Chat UI**: Clearer **outbound propagation** status in threads; **clipboard** helpers for secure and non-secure contexts; **Tailwind CSS 4** with the **Vite** plugin and a slimmer frontend config footprint.
-- **Settings and locales**: **Privacy**, **message auto-delete**, **community preset** strings, **bootstrap node search** copy, **LibreTranslate API key**, and **outbound propagation** status translations across supported languages.
+- **Reticulum and announces**: **Bootstrap-only** defaults for new **outbound TCP** and **backbone connector** interfaces (with discovery and add-interface options), **per-aspect announce storage** toggles in **`announce_manager`** and **`config_manager`**, and refreshed **community interface** presets (builder script and list cleanup).
+- **Chat UI**: Clearer **outbound propagation** status in threads, **clipboard** helpers for secure and non-secure contexts, and **Tailwind CSS 4** with the **Vite** plugin and a slimmer frontend config footprint.
+- **Settings and locales**: **Privacy**, **message auto-delete**, **community preset** strings, **bootstrap node search** copy, **LibreTranslate API key**, **migration** copy, **identity** and sending options, and **outbound propagation** status translations across supported languages.
+- **Storage migration**: Reworked **legacy storage** migration with an **API**, **tutorial** choices, automatic **upstream folder** moves where needed, and aligned **Docker**, **Electron**, and test paths for old layouts.
+- **Release CI**: Optional **Bunny Storage** uploads for release assets and clearer **tag resolution** in the main release workflow.
 
 ### Micron WASM parser
 
-- **Micron-Parser-Go WASM**: Go-based WASM implementation for Micron page parsing with **word wrapping**, **space splitting**, and **ForceMonospace** CSS injection.
-- **Configuration**: Toggle for **Micron WASM support** in settings (default **off** for compatibility). **`micron_parser_go_version`** config option to control the WASM binary version.
+- **Micron-Parser-Go WASM**: Go-based WASM implementation for Micron page parsing with **word wrapping**, **space splitting**, and **ForceMonospace** CSS injection. **Micron Parser Go** is pinned to **v1.0.4** in integrity tooling.
+- **Configuration**: Toggle for **Micron WASM support** in settings (default **off** for compatibility). **`micron_parser_go_version`** config option controls the WASM binary version.
 - **Dynamic loading**: WASM binary fetched and cached with **SRI verification** against **`integrity.json`** manifests.
 - **Fallback behavior**: Graceful fallback to JavaScript parser when WASM is unavailable or fails to load.
-- **Docker support**: Scripts to fetch and resolve Micron WASM binaries during Docker builds with version pinning.
+- **Docker support**: Scripts fetch and resolve Micron WASM binaries during Docker builds with version pinning.
 
 ### Security and integrity
 
-- **SRI verification**: Subresource Integrity verification for **Codec2** and **RNode Flasher** external scripts with **`integrity.json`** manifests.
+- **SRI verification**: Subresource Integrity verification for **Codec2** and **RNode Flasher** external scripts with **`integrity.json`** manifests. **Codec2** WASM loading uses **`locateFile`** so asset paths resolve reliably next to integrity checks.
 - **Micron WASM integrity**: Generated **`integrity.json`** for Micron WASM assets with SHA-384 hashes verified at load time.
-- **Security documentation**: Updated **`SECURITY.md`** with SRI verification details for external code and CI integrity tests.
+- **Security documentation**: Updated **`SECURITY.md`** with SRI details for external code and CI integrity tests plus **SLSA** notes for **APK** and **Flatpak** artifacts.
 - **Community interfaces**: SSRF protection with URL validation and fetch handling for community directory requests.
 
 ### Bots and LXMFy
@@ -76,45 +78,53 @@ All notable changes to this project will be documented in this file.
 ### Downloads, archives, and frontend utilities
 
 - **Downloads**: File download flow adds **persistence**, **user notifications**, and **filename sanitization** so exports land predictably and bad names are rejected or normalized safely.
-- **Refactors**: Download helpers and **time formatting** utilities consolidated; UI elements updated where downloads surface.
-- **Tests**: **`DownloadUtils`** unit tests; **`Utils`** tests updated for formatting helpers; **`ArchivesPage`** test accounts for delayed **`downloadTextAsFile`** behaviour.
+- **Refactors**: Download helpers and **time formatting** utilities consolidated. UI elements updated where downloads surface.
+- **Tests**: **`DownloadUtils`** unit tests. **`Utils`** tests updated for formatting helpers. **`ArchivesPage`** test accounts for delayed **`downloadTextAsFile`** behaviour.
 
 ### NomadNet and locales
 
 - **Favourites**: **Import/export** for NomadNet favourites from the app.
-- **Locales**: **Contact sharing** options and related strings refreshed across supported languages; **RNGit Explorer** strings added; **localization tables** aligned for consistency.
-- **Locales**: **Bootstrap node search** copy; settings strings for **privacy**, **message auto-delete**, and **community preset** management; **outbound message propagation status** labels for the conversation UI.
+- **Locales**: **Contact sharing** options and related strings refreshed across supported languages. **RNGit Explorer** strings added and **localization tables** aligned for consistency.
+- **Locales**: **Bootstrap node search** copy and settings strings for **privacy**, **message auto-delete**, and **community preset** management. **Outbound message propagation status** labels for the conversation UI.
 
 ### RNGit Explorer
 
 - **Backend**: **`rngit_tool`** introduces the RNGit explorer capability.
-- **Frontend**: **RNGit Explorer** page and **sidebar** / navigation integration; **experimental** footer notice (localized).
-- **Tests**: Coverage for **server behaviour** and **frequency conversion** paths used by the tool; obsolete **RNGit database announcement conversion** test removed.
+- **Frontend**: **RNGit Explorer** page with **sidebar** and navigation integration plus a localized **experimental** footer notice.
+- **Tests**: Coverage for **server behaviour** and **frequency conversion** paths used by the tool. Obsolete **RNGit database announcement conversion** test removed.
 
 ### Android
 
-- **Gradle**: **Product flavors** removed; **Python sync** task simplified to match the single packaging path.
-- **Paths**: **Taskfile** and CI workflows updated for the new **APK** / Python directory layout.
+- **Gradle**: **Product flavors** removed. **Python sync** task simplified to match the single packaging path.
+- **Paths**: **Taskfile** and CI workflows updated for the new **APK** and Python directory layout.
 - **Docs**: Android README sections updated so they no longer talk about removed flavors.
-- **Sync and notifications**: **Foreground service** for message synchronization with user-facing **notification** copy; **WebSocket** integration in **`meshchat_wrapper`** and an **Android push bridge** so the UI can react to backend events.
+- **Sync and notifications**: **Foreground service** for message synchronization with user-facing **notification** copy. **WebSocket** integration in **`meshchat_wrapper`** and an **Android push bridge** so the UI can react to backend events.
 - **Reliability**: **Server loop control** and clearer **error handling** around the notification bridge.
-- **Calls and media**: **Call handling**, **notification channels**, **permissions** and **shortcuts**; **native audio attachment** support and improved **message routing** and in-app **audio** navigation; **TelephoneNativeAudioSession** and **WavPcmAttachmentRecorder** encapsulate **record creation** and **permission** checks.
-- **Manifest**: **Camera** added as an **optional** feature where appropriate; duplicate optional **camera** / **microphone** feature declarations removed from **`AndroidManifest.xml`**.
+- **Calls and media**: **Call handling**, **notification channels**, **permissions**, and **shortcuts**. **Native audio attachment** support with improved **message routing** and in-app **audio** navigation. **TelephoneNativeAudioSession** and **WavPcmAttachmentRecorder** encapsulate **record creation** and **permission** checks.
+- **Manifest**: **Camera** added as an **optional** feature where appropriate. Duplicate optional **camera** and **microphone** feature declarations removed from **`AndroidManifest.xml`**.
 - **Toolchain**: **Gradle** plugin and **SDK** bumps, dependency refresh, and **Lint** configuration.
 - **CI**: **Android Lint** runs in the workflow with **report artifacts** uploaded for review.
 
 ### MeshChat UI, conversations, and microphone
 
-- **Conversations**: **UUID**-based pending message hashing and **viewport resize** handling updates.
-- **Outbound status**: **`meshchat`** message updates accept a **method** parameter with **method-to-state** mapping so propagation outcomes read consistently; **`ConversationViewer`** shows clearer **propagation state** titles; tests cover outbound propagation status behaviour.
+- **Conversations**: **UUID**-based pending message hashing, **viewport resize** handling updates, **date divider** styling for accessibility, and list **previews** that prefer **display names** with small **telemetry** polish.
+- **Getting started**: **Identity** screen added to the onboarding flow.
+- **Audio**: Native **WAV** attachment availability checks and clearer **recording** source wiring.
+- **Main shell**: **`App.vue`** uses a **polling guard** so refresh work cannot overlap.
+- **Command palette and visualiser**: **Visualizer** entries trimmed from the command palette and **NetworkVisualiser** physics simplified.
+- **Outbound status**: **`meshchat`** message updates accept a **method** parameter with **method-to-state** mapping so propagation outcomes read consistently. **`ConversationViewer`** shows clearer **propagation state** titles. Tests cover outbound propagation status behaviour.
 - **Clipboard**: **`clipboardUtils.js`** improves **copy** / **read** for **secure** and **non-secure** contexts when **`navigator.clipboard`** is missing or rejects.
 - **Layout**: Responsive **height** class tweaks on **`App.vue`** and **`AuthPage.vue`**.
 - **Styling**: **z-index** values standardized and **class naming** cleaned up across multiple components.
 - **Microphone**: **`microphoneRecorder`** can capture via **AudioWorklet** or **ScriptProcessor** for better **performance** and **compatibility** across environments.
 
+### Desktop (Electron)
+
+- **Storage and quit**: User data directory naming matches the migration layout. **Quit** handling is more predictable.
+
 ### Reticulum config, discovery, and display
 
-- **Bootstrap-only interfaces**: Discovery and **Add Interface** flows can mark new **TCP client** and **backbone connector** interfaces **`bootstrap_only`** so Reticulum can detach them after **`autoconnect_discovered_interfaces`** is satisfied; defaults are configurable under **Interfaces**.
+- **Bootstrap-only interfaces**: Discovery and **Add Interface** flows can mark new **TCP client** and **backbone connector** interfaces **`bootstrap_only`** so Reticulum can detach them after **`autoconnect_discovered_interfaces`** is satisfied. Defaults stay configurable under **Interfaces**.
 - **Announce storage**: **`announce_manager`** wires **per-aspect** persistence (**`announce_store_*`**) through **`config_manager`** so LXMF, telephony, NomadNet, propagation, and RNGit aspects can be stored or skipped independently.
 - **Interface editor**: **`coerce_rnode_frequency_hz`** normalizes frequency values written into Reticulum config.
 - **Discovery helpers**: **`parseRNodeFrequencyHz`** interprets frequency fields from API-style payloads.
@@ -128,35 +138,43 @@ All notable changes to this project will be documented in this file.
 ### Version source and sync scripts
 
 - **Single source of truth**: Runtime **version** is read from **`src/version.py`**, which is kept in lockstep with root **`package.json`** (including **`__init__.py`** where applicable).
-- **`version:sync`**: Script updates **multiple files** in one pass; follow-up fixes keep **README** version lines in translated docs **consistent** and easier to maintain.
+- **`version:sync`**: Script updates **multiple files** in one pass. Follow-up fixes keep **README** version lines in translated docs **consistent** and easier to maintain.
 
 ### Repository server and bundled wheels
 
 - **Bundling**: Logic to **stage a local MeshChatX wheel** into the bundled directory and refreshed **download** behaviour for repository assets.
 
+### Database
+
+- **Identifiers**: Sanitization for dynamic **PRAGMA** names and **WAL** checkpoint modes.
+- **Startup**: Legacy inline migrator removed from default database init in favour of the dedicated migration flow.
+
 ### CI, release automation, and supply chain
 
-- **GitHub Actions**: **Migrated** primary workflows from **Gitea**; obsolete Gitea workflow files removed.
-- **Workflow hygiene**: **Flatpak** CI cleaned up; deprecated **Snap** build scripts removed from the tree.
+- **GitHub Actions**: **Migrated** primary workflows from **Gitea**. Obsolete Gitea workflow files removed.
+- **Workflow hygiene**: **Flatpak** CI cleaned up. Deprecated **Snap** build scripts removed from the tree.
 - **Caching**: **Node.js** and **Poetry** caches added where workflows install tooling.
 - **Docker publish**: Workflow gains **Docker Hub** integration, **tag generation**, and a **login** fix so credential detection output is used consistently.
-- **Android release**: Workflow updates for **tag handling**, **signing secret** detection, **APK upload** behaviour, and **Lint** (see Android section for product impact).
+- **Android release**: Workflow updates for **tag handling**, **signing secret** detection, **APK upload** behaviour, and **Lint** (see Android section for product impact). Tighter **APK** signing and build rules on **dev** and **master**.
+- **macOS builds**: **Codec2** install path fixes for **x64** and improved **Homebrew** detection plus env setup for cross-arch jobs.
+- **SLSA**: Release workflow generates **SLSA provenance** for **Android APK** and **Flatpak** artifacts (see **Security** section for docs).
 - **Benchmarks**: **Taskfile** default **benchmark** task and workflow trigger alignment. Expanded benchmark suite covering **contacts**, **config**, **telemetry**, **debug logs**, **map drawings**, **voicemail**, and **access attempts** with JSON output and results caching.
 - **Alert thresholds**: Updated benchmark alert and fail thresholds for improved variance handling in CI.
 - **Draft releases**: Script sets **`GH_REPO`** from **`GITHUB_REPOSITORY`** when unset.
 - **Asset attestations**: Workflow **excludes additional file types** from attestation and **disables tlog upload** where that was causing friction.
-- **Trivy**: Build and **security scan** workflows include explicit **setup** / **update** steps; install script gains **upstream verification** and **cosign** integration.
+- **Trivy**: Build and **security scan** workflows include explicit **setup** and **update** steps. Install script gains **upstream verification** and **cosign** integration.
 - **pip-audit**: **`CVE-2026-3219`** ignored temporarily with a documented rationale until an upstream fix lands.
-- **Tests**: Minor **formatting** tidy-ups in the test tree; **`test_app_status_tracking`** uses **`4.6.0`** as the example **`changelog_seen_version`** stamp so it tracks the release; added coverage for **`android_push_bridge`**, **`meshchat_wrapper`**, **`rngit_tool`**, and **Micron WASM** (including wrapper server loops, frequency conversion, and WASM loading); **`http_api_routes.json`** contract updated for new routes; **Transport** announce-handler registration test expectation fixed; **NomadNetwork** regression tests for WebSocket download status; **telephone initiation** timeout increases for stability; **MarkdownRenderer** lxmf link detection tests; **WebSocketConnection** invalid JSON frame handling.
+- **Tests**: Minor **formatting** tidy-ups in the test tree. **`test_app_status_tracking`** uses **`4.6.0`** as the example **`changelog_seen_version`** stamp so it tracks the release. Added coverage for **`android_push_bridge`**, **`meshchat_wrapper`**, **`rngit_tool`**, and **Micron WASM** (including wrapper server loops, frequency conversion, and WASM loading). **`http_api_routes.json`** contract updated for new routes. **Transport** announce-handler registration test expectation fixed. **NomadNetwork** regression tests for WebSocket download status. **Telephone initiation** timeout increases for stability. **MarkdownRenderer** lxmf link detection tests. **WebSocketConnection** invalid JSON frame handling.
 
 ### Docker, compose, and documentation
 
-- **Dockerfile**: Optional **reproducible native build** target wiring; **OCI**-style metadata and **image source** hints refined; **`docker-compose.yml`** image source updated; build context drops unnecessary **legacy Tailwind** config files.
-- **Docs**: **README** and translated READMEs add **Docker Hub** / **GHCR** guidance and **copy-paste `docker run` examples** where helpful; **browser requirements** called out where relevant; **official GitHub mirror** links refreshed; **GitHub Actions** references replace Gitea-era wording; **security policy** and **SECURITY** formatting polish; **Raspberry Pi** install examples use **`bash`** fences consistently.
+- **Dockerfile**: Optional **reproducible native build** target wiring. **OCI**-style metadata and **image source** hints refined. **`docker-compose.yml`** image reference and **volume** layout aligned with README examples. Build context drops unnecessary **legacy Tailwind** config files.
+- **Flatpak**: Custom **desktop** template, permission tweaks, and removal of the **Pipewire** socket from the Flatpak config.
+- **Docs**: **README** and translated READMEs add **Docker Hub** and **GHCR** guidance plus **copy-paste `docker run` examples** where helpful. **Browser requirements** called out where relevant. **Official GitHub mirror** links refreshed. **GitHub Actions** references replace Gitea-era wording. **Security policy** and **SECURITY** formatting polish. **Raspberry Pi** install examples use **`bash`** fences consistently.
 
 ### Tailwind and Vite frontend
 
-- **Tailwind CSS 4.2.4** with **`@tailwindcss/vite`**; obsolete **Tailwind config** files removed and **`style.css`** updated for the new setup.
+- **Tailwind CSS 4.2.4** with **`@tailwindcss/vite`**. Obsolete **Tailwind config** files removed and **`style.css`** updated for the new setup.
 
 ## [4.5.1] - 2026-04-24
 
