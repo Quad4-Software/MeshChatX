@@ -1,6 +1,8 @@
 # Single tagged-release pipeline: Linux release assets, Windows + macOS Electron
 # builds, Flatpak, Android APKs (dev/master track tags via android-apk-tag.yml), SLSA
 # provenance (generic generator: Linux, desktop, optional Android+Flatpak), optional cosign bundles, and one draft GitHub release.
+# Optional: same draft ``upload/`` tree is mirrored to bunny.net Edge Storage for master/dev
+# tags when ``BUNNY_STORAGE_ACCESS_KEY`` is set (see draft job).
 # One workflow run per tag keeps the release graph immutable.
 #
 # Pinned first-party actions (bump tag and SHA together when upgrading):
@@ -575,6 +577,33 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+              with:
+                  fetch-depth: 0
+
+            - name: Resolve tag release track
+              id: release_track
+              run: |
+                  set -euo pipefail
+                  git fetch --no-tags origin dev master
+                  sha="$(git rev-parse HEAD)"
+                  on_m=false
+                  on_d=false
+                  while IFS= read -r line; do
+                    ref="$(printf '%s' "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+                    case "$ref" in
+                      origin/master) on_m=true ;;
+                      origin/dev) on_d=true ;;
+                    esac
+                  done < <(git branch -r --contains "${sha}")
+                  if [[ "${on_m}" == true ]]; then
+                    track=master
+                  elif [[ "${on_d}" == true ]]; then
+                    track=dev
+                  else
+                    track=none
+                  fi
+                  echo "track=${track}" >> "${GITHUB_OUTPUT}"
+                  echo "Resolved tag ${GITHUB_REF_NAME} -> track=${track}"
 
             - name: Download Linux release assets
               uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
@@ -664,3 +693,19 @@ jobs:
               env:
                   GH_TOKEN: ${{ github.token }}
               run: bash scripts/ci/github-draft-release-upload-assets.sh upload
+
+            - name: Upload release assets to Bunny Storage
+              if: ${{ steps.release_track.outputs.track == 'master' || steps.release_track.outputs.track == 'dev' }}
+              env:
+                  BUNNY_STORAGE_ACCESS_KEY: ${{ secrets.BUNNY_STORAGE_ACCESS_KEY }}
+                  BUNNY_STORAGE_BASE_URL: ${{ vars.BUNNY_STORAGE_BASE_URL }}
+                  BUNNY_RELEASE_TRACK: ${{ steps.release_track.outputs.track }}
+              run: |
+                  set -euo pipefail
+                  if [[ -z "${BUNNY_STORAGE_ACCESS_KEY:-}" ]]; then
+                    echo "::notice::Skipping Bunny Storage (set repository secret BUNNY_STORAGE_ACCESS_KEY to enable)."
+                    exit 0
+                  fi
+                  export BUNNY_STORAGE_BASE_URL="${BUNNY_STORAGE_BASE_URL:-https://la.storage.bunnycdn.com/meshchatx}"
+                  export BUNNY_STORAGE_OBJECT_PREFIX="${BUNNY_RELEASE_TRACK}/${GITHUB_REF_NAME}"
+                  python3 scripts/ci/github-upload-bunny-storage-release-assets.py upload
