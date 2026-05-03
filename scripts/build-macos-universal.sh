@@ -31,6 +31,15 @@ else
     echo "Reusing prebuilt frontend assets in meshchatx/public/."
 fi
 cross-env ARCH=arm64 pnpm run build-backend
+_arm_miniaudio="build/exe/darwin-arm64/lib/_miniaudio.abi3.so"
+if [[ -f "$_arm_miniaudio" ]]; then
+    _ft=$(file --brief --no-pad "$_arm_miniaudio" 2>/dev/null || true)
+    if [[ "$_ft" == *x86_64* && "$_ft" != *arm64* ]]; then
+        echo "darwin-arm64 cx_Freeze output has x86_64-only _miniaudio.abi3.so; universal lipo will fail." >&2
+        echo "Rebuild miniaudio in the Poetry env (see scripts/ci/github-install-deps.sh) or fix compiler flags." >&2
+        exit 1
+    fi
+fi
 if [[ -n "${PYTHON_CMD_X64:-}" ]]; then
     cross-env ARCH=x64 PYTHON_CMD="$PYTHON_CMD_X64" pnpm run build-backend
 else
