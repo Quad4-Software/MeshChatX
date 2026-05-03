@@ -387,15 +387,8 @@ jobs:
                   set -euo pipefail
                   if [[ -x /usr/local/bin/brew ]]; then
                       arch -x86_64 /usr/local/bin/brew install codec2
-                      _codec2="$(arch -x86_64 /usr/local/bin/brew --prefix codec2)"
-                      {
-                          echo "PYCODEC2_X64_LDFLAGS=-L${_codec2}/lib -arch x86_64"
-                          echo "MACOS_X64_PKG_CONFIG_PATH=${_codec2}/lib/pkgconfig:/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig"
-                      } >> "${GITHUB_ENV}"
                   else
-                      echo "PYCODEC2_X64_LDFLAGS=-arch x86_64" >> "${GITHUB_ENV}"
-                      echo "MACOS_X64_PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig" >> "${GITHUB_ENV}"
-                      echo "x86_64 Homebrew not found; pycodec2 x64 slice build may fail."
+                      echo "x86_64 Homebrew not found at /usr/local/bin/brew; pycodec2 x64 slice build may fail." >&2
                   fi
 
             - name: Install project deps into x64 Python (mac universal cx_Freeze)
@@ -406,10 +399,17 @@ jobs:
                   CC: "clang -arch x86_64"
                   CXX: "clang++ -arch x86_64"
                   CFLAGS: "-arch x86_64"
-                  LDFLAGS: "${{ env.PYCODEC2_X64_LDFLAGS }}"
-                  PKG_CONFIG_PATH: "${{ env.MACOS_X64_PKG_CONFIG_PATH }}"
               run: |
                   set -euo pipefail
+                  if [[ -x /usr/local/bin/brew ]]; then
+                      _codec2="$(arch -x86_64 /usr/local/bin/brew --prefix codec2)"
+                      export LDFLAGS="-L${_codec2}/lib -arch x86_64"
+                      export CPPFLAGS="-I${_codec2}/include"
+                      export PKG_CONFIG_PATH="${_codec2}/lib/pkgconfig:/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig"
+                  else
+                      export LDFLAGS="-arch x86_64"
+                      export PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig"
+                  fi
                   arch -x86_64 "$PY_X64" -m pip install -U pip setuptools wheel
                   arch -x86_64 "$PY_X64" -m pip install "cx-freeze>=7.0.0"
                   arch -x86_64 "$PY_X64" -m pip install -e .
