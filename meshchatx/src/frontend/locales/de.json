@@ -2509,20 +2509,10 @@
         "action_sync_desc": "Mit dem Propagationsknoten synchronisieren",
         "action_compose": "Nachricht verfassen",
         "action_compose_desc": "Neue LXMF-Nachricht",
-        "action_orbit": "Orbit umschalten",
-        "action_orbit_desc": "Orbit-Kamera im Netzwerkgraph",
         "action_getting_started": "Erste Schritte",
         "action_getting_started_desc": "Einrichtungsanleitung öffnen",
         "action_changelog": "Änderungsprotokoll",
-        "action_changelog_desc": "Letzte Änderungen",
-        "action_bouncing_balls": "Bouncing Balls",
-        "action_bouncing_balls_desc": "Physik-Demo im Graph",
-        "action_falling_skies": "Falling Skies",
-        "action_falling_skies_desc": "Neue Knoten oben im Visualizer einfallen lassen",
-        "action_snake": "Mesh Snake",
-        "action_snake_desc": "Fressen Sie jeden Knoten. Ihr Schwanz wächst mit jedem gesammelten Knoten.",
-        "action_pong": "Mesh Pong",
-        "action_pong_desc": "Du gegen die KI. Der Punktestand wird oben angezeigt."
+        "action_changelog_desc": "Letzte Änderungen"
     },
     "settings": {
         "shortcut_saved": "Shortcut saved",
@@ -2590,8 +2580,6 @@
         "multi_hops": "2+ Hops",
         "clear": "Clear",
         "show_labels": "Show all labels",
-        "bouncing_balls": "Bouncing balls mode",
-        "orbit_mode": "Orbit mode",
         "show_edges": "Show edges",
         "show_tooltips": "Show tooltips",
         "show_rssi": "Show RSSI",
@@ -2619,13 +2607,7 @@
         "failed_load": "Netzwerkdaten laden fehlgeschlagen",
         "max_hops_filter": "Max. Hops",
         "show_disabled_interfaces": "Offline-Interfaces anzeigen",
-        "show_discovered_interfaces": "Entdeckte Interfaces anzeigen",
-        "snake_win": "Du hast jeden Knoten gefressen.",
-        "snake_hit_self": "Eigene Spur getroffen. Game over.",
-        "snake_hint": "Pfeiltasten oder WASD zum Steuern. Friss alle Knoten ohne die eigene Spur zu kreuzen.",
-        "pong_hint": "W und S bewegen dein Paddle (links). Rechts spielt die KI. Wer zuerst 7 Punkte hat, gewinnt.",
-        "pong_win_you": "Du gewinnst.",
-        "pong_win_ai": "KI gewinnt."
+        "show_discovered_interfaces": "Entdeckte Interfaces anzeigen"
     },
     "banishment": {
         "title": "Banished",
