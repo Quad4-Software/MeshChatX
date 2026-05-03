@@ -1089,6 +1089,16 @@ public class MainActivity extends AppCompatActivity {
                 && WavPcmAttachmentRecorder.canStart(activity);
         }
 
+        /**
+         * Voice-note attachment capture (PCM WAV) only checks the attachment recorder,
+         * independent of telephone native audio, so the WebView can always prefer
+         * native 48 kHz mono PCM for LXST Opus encoding on the server.
+         */
+        @JavascriptInterface
+        public boolean isNativeWavAttachmentAvailable() {
+            return WavPcmAttachmentRecorder.canStart(activity);
+        }
+
         @JavascriptInterface
         public boolean isTelephoneNativeAudioAvailable() {
             return TelephoneNativeAudioSession.canRun(activity);

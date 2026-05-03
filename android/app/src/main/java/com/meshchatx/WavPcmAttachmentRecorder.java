@@ -58,7 +58,7 @@ public final class WavPcmAttachmentRecorder {
         }
         try {
             audioRecord = new AudioRecord(
-                MediaRecorder.AudioSource.MIC,
+                MediaRecorder.AudioSource.VOICE_COMMUNICATION,
                 SAMPLE_RATE,
                 CHANNEL,
                 ENCODING,
