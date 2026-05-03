@@ -2910,6 +2910,12 @@
         "license": "MIT"
     },
     {
+        "name": "ip-address",
+        "version": "10.2.0",
+        "author": "Beau Gunderson <beau@beaugunderson.com> (https://beaugunderson.com/)",
+        "license": "MIT"
+    },
+    {
         "name": "is-arrayish",
         "version": "0.2.1",
         "author": "Qix (http://github.com/qix-)",
@@ -4484,6 +4490,12 @@
     {
         "name": "socks",
         "version": "2.8.7",
+        "author": "Josh Glazebrook",
+        "license": "MIT"
+    },
+    {
+        "name": "socks",
+        "version": "2.8.8",
         "author": "Josh Glazebrook",
         "license": "MIT"
     },
