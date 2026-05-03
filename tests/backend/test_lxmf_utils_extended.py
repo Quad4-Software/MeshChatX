@@ -354,6 +354,24 @@ def test_sidebar_preview_telemetry_location_incoming():
     assert out == "Riley shared their location"
 
 
+def test_sidebar_preview_telemetry_location_outbound_you():
+    me = "c" * 32
+    row = {
+        "content": "",
+        "fields": json.dumps(
+            {"telemetry": {"location": {"latitude": 1.0, "longitude": 2.0}}},
+        ),
+        "is_incoming": 0,
+        "source_hash": me,
+    }
+    out = lxmf_sidebar_preview_for_conversation_latest_row(
+        row,
+        local_hash=me,
+        peer_display_name="Sam",
+    )
+    assert out == "You shared your location"
+
+
 def test_sidebar_preview_location_request_outbound_you():
     me = "c" * 32
     row = {

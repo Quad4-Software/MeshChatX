@@ -51,10 +51,6 @@ export default {
             type: String,
             default: "",
         },
-        seed: {
-            type: String,
-            default: "",
-        },
         iconClass: {
             type: String,
             default: "",
@@ -93,16 +89,7 @@ export default {
             if (this.iconBackgroundColour && this.iconBackgroundColour !== "") {
                 return this.iconBackgroundColour;
             }
-            if (!this.seed) {
-                return "";
-            }
-            // Simple deterministic color from seed string
-            let hash = 0;
-            for (let i = 0; i < this.seed.length; i++) {
-                hash = this.seed.charCodeAt(i) + ((hash << 5) - hash);
-            }
-            const h = Math.abs(hash % 360);
-            return `hsl(${h}, 35%, 85%)`;
+            return "";
         },
     },
 };
