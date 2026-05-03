@@ -5,6 +5,36 @@ import {
     preloadNomadMicronWasm,
 } from "../../meshchatx/src/frontend/js/MicronWasmLoader.js";
 
+function micronTestSriForBuffer(buf, mockExecHashB64, mockWasmHashB64) {
+    const hashPayloadB64 = buf.byteLength < 1000 ? mockExecHashB64 : mockWasmHashB64;
+    const binary = atob(hashPayloadB64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+    return `sha384-${btoa(String.fromCharCode(...bytes))}`;
+}
+
+function mockMicronWasmFetch(mockExecHash, mockWasmHash) {
+    return (url) => {
+        const u = String(url);
+        if (u.includes("integrity.json")) {
+            const wasmSri = micronTestSriForBuffer(new ArrayBuffer(4096), mockExecHash, mockWasmHash);
+            const execSri = micronTestSriForBuffer(new ArrayBuffer(500), mockExecHash, mockWasmHash);
+            return Promise.resolve({
+                ok: true,
+                json: async () => ({ wasm: wasmSri, wasmExec: execSri }),
+            });
+        }
+        const isWasm = u.includes(".wasm");
+        return Promise.resolve({
+            ok: true,
+            arrayBuffer: async () => (isWasm ? new ArrayBuffer(4096) : new ArrayBuffer(500)),
+            headers: new Headers({ "content-type": isWasm ? "application/wasm" : "application/javascript" }),
+        });
+    };
+}
+
 describe("MicronWasmLoader.js", () => {
     let origBundledFlag;
 
@@ -131,14 +161,7 @@ describe("MicronWasmLoader.js", () => {
             },
         });
 
-        vi.spyOn(globalThis, "fetch").mockImplementation((url) => {
-            const isWasm = url.includes(".wasm");
-            return Promise.resolve({
-                ok: true,
-                arrayBuffer: async () => (isWasm ? new ArrayBuffer(4096) : new ArrayBuffer(500)),
-                headers: new Headers({ "content-type": isWasm ? "application/wasm" : "application/javascript" }),
-            });
-        });
+        vi.spyOn(globalThis, "fetch").mockImplementation(mockMicronWasmFetch(mockExecHash, mockWasmHash));
 
         const streaming = vi
             .spyOn(WebAssembly, "instantiateStreaming")
@@ -198,14 +221,7 @@ describe("MicronWasmLoader.js", () => {
             },
         });
 
-        vi.spyOn(globalThis, "fetch").mockImplementation((url) => {
-            const isWasm = url.includes(".wasm");
-            return Promise.resolve({
-                ok: true,
-                arrayBuffer: async () => (isWasm ? new ArrayBuffer(4096) : new ArrayBuffer(500)),
-                headers: new Headers({ "content-type": isWasm ? "application/wasm" : "application/javascript" }),
-            });
-        });
+        vi.spyOn(globalThis, "fetch").mockImplementation(mockMicronWasmFetch(mockExecHash, mockWasmHash));
 
         vi.spyOn(WebAssembly, "instantiateStreaming").mockRejectedValue(new Error("streaming failed"));
         const instantiate = vi
