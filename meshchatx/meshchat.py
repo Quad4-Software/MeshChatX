@@ -1772,11 +1772,25 @@ class ReticulumMeshChat:
         )
         return self.identity_manager.delete_identity(identity_hash, current_hash)
 
-    def restore_identity_from_bytes(self, identity_bytes: bytes):
-        return self.identity_manager.restore_identity_from_bytes(identity_bytes)
+    def restore_identity_from_bytes(
+        self,
+        identity_bytes: bytes,
+        display_name: str | None = None,
+    ):
+        return self.identity_manager.restore_identity_from_bytes(
+            identity_bytes,
+            display_name=display_name,
+        )
 
-    def restore_identity_from_base32(self, base32_value: str):
-        return self.identity_manager.restore_identity_from_base32(base32_value)
+    def restore_identity_from_base32(
+        self,
+        base32_value: str,
+        display_name: str | None = None,
+    ):
+        return self.identity_manager.restore_identity_from_base32(
+            base32_value,
+            display_name=display_name,
+        )
 
     def update_identity_metadata_cache(self):
         if not hasattr(self, "identity") or not self.identity:
@@ -6086,7 +6100,17 @@ class ReticulumMeshChat:
                     with open(temp_path, "rb") as f:
                         identity_bytes = f.read()
                     os.remove(temp_path)
-                    result = self.restore_identity_from_bytes(identity_bytes)
+                    display_name = None
+                    next_field = await reader.next()
+                    while next_field is not None:
+                        if next_field.name == "display_name":
+                            display_name = (await next_field.text()).strip()
+                            break
+                        next_field = await reader.next()
+                    result = self.restore_identity_from_bytes(
+                        identity_bytes,
+                        display_name=display_name,
+                    )
                 else:
                     data = await request.json()
                     base32_value = data.get("base32")
@@ -6095,7 +6119,10 @@ class ReticulumMeshChat:
                             {"message": "base32 value is required"},
                             status=400,
                         )
-                    result = self.restore_identity_from_base32(base32_value)
+                    result = self.restore_identity_from_base32(
+                        base32_value,
+                        display_name=data.get("display_name"),
+                    )
 
                 return web.json_response(
                     {

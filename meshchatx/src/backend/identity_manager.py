@@ -225,21 +225,32 @@ class IdentityManager:
             return True
         return False
 
-    def restore_identity_from_bytes(self, identity_bytes: bytes) -> dict:
+    def restore_identity_from_bytes(
+        self,
+        identity_bytes: bytes,
+        display_name: str | None = None,
+    ) -> dict:
         try:
             # We use RNS.Identity.from_bytes to validate and get the hash
             identity = RNS.Identity.from_bytes(identity_bytes)
             if not identity:
                 raise ValueError("Could not load identity from bytes")
 
-            return self._save_new_identity(identity, "Restored Identity")
+            name = (display_name or "").strip() or "Restored Identity"
+            return self._save_new_identity(identity, name)
         except Exception as exc:
             raise ValueError(f"Failed to restore identity: {exc}") from exc
 
-    def restore_identity_from_base32(self, base32_value: str) -> dict:
+    def restore_identity_from_base32(
+        self,
+        base32_value: str,
+        display_name: str | None = None,
+    ) -> dict:
         try:
             identity_bytes = base64.b32decode(base32_value, casefold=True)
-            return self.restore_identity_from_bytes(identity_bytes)
+            return self.restore_identity_from_bytes(
+                identity_bytes, display_name=display_name
+            )
         except Exception as exc:
             msg = f"Invalid base32 identity: {exc}"
             raise ValueError(msg) from exc

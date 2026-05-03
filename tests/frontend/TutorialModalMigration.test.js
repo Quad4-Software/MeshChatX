@@ -53,6 +53,16 @@ function discoveryApiHandlers(migrationPayload) {
         if (url === "/api/v1/reticulum/discovered-interfaces") {
             return Promise.resolve({ data: { interfaces: [], active: [] } });
         }
+        if (url === "/api/v1/config") {
+            return Promise.resolve({ data: { config: { display_name: "Anonymous Peer" } } });
+        }
+        if (url === "/api/v1/identities") {
+            return Promise.resolve({
+                data: {
+                    identities: [{ hash: "default_identity", display_name: "Anonymous Peer", is_current: true }],
+                },
+            });
+        }
         return Promise.resolve({ data: {} });
     };
 }
@@ -368,6 +378,233 @@ describe("TutorialModal getting started migration", () => {
 
         expect(wrapper.vm.migrationOffer).toBeNull();
 
+        wrapper.unmount();
+    });
+
+    it("identity step new mode applies display name and continues", async () => {
+        axiosMock.get.mockImplementation(discoveryApiHandlers({ show_choice: false }));
+        axiosMock.patch.mockResolvedValue({ data: {} });
+
+        const router = createRouter({
+            history: createWebHashHistory(),
+            routes: [{ path: "/", name: "home", component: { template: "<div/>" } }],
+        });
+        await router.push("/");
+        await router.isReady();
+
+        const wrapper = mount(TutorialModal, {
+            attachTo: document.body,
+            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+        });
+
+        await wrapper.vm.show();
+        await flushPromises();
+        wrapper.vm.currentStep = 2;
+        wrapper.vm.identityMode = "new";
+        wrapper.vm.identityName = "Mesh User";
+        await wrapper.vm.handlePrimaryAction();
+
+        expect(axiosMock.patch).toHaveBeenCalledWith("/api/v1/config", { display_name: "Mesh User" });
+        expect(wrapper.vm.currentStep).toBe(3);
+        wrapper.unmount();
+    });
+
+    it("identity step import base32 switches to imported and deletes default on finish", async () => {
+        axiosMock.get.mockImplementation(discoveryApiHandlers({ show_choice: false }));
+        axiosMock.post.mockImplementation((url, body) => {
+            if (url === "/api/v1/identity/restore") {
+                expect(body).toEqual({
+                    base32: "ABCD1234",
+                    display_name: "Imported User",
+                });
+                return Promise.resolve({
+                    data: { identity: { hash: "imported_hash" }, message: "ok" },
+                });
+            }
+            if (url === "/api/v1/identities/switch") {
+                expect(body).toEqual({ identity_hash: "imported_hash" });
+                return Promise.resolve({ data: { hotswapped: true } });
+            }
+            if (url === "/api/v1/app/tutorial/seen") {
+                return Promise.resolve({ data: {} });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        axiosMock.delete = vi.fn().mockResolvedValue({ data: {} });
+
+        const router = createRouter({
+            history: createWebHashHistory(),
+            routes: [{ path: "/", name: "home", component: { template: "<div/>" } }],
+        });
+        await router.push("/");
+        await router.isReady();
+
+        const wrapper = mount(TutorialModal, {
+            attachTo: document.body,
+            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+        });
+
+        await wrapper.vm.show();
+        await flushPromises();
+
+        wrapper.vm.currentStep = 2;
+        wrapper.vm.identityMode = "import";
+        wrapper.vm.identityName = "Imported User";
+        wrapper.vm.identityImportBase32 = "ABCD1234";
+        await wrapper.vm.handlePrimaryAction();
+
+        expect(wrapper.vm.identityImportedHash).toBe("imported_hash");
+        expect(wrapper.vm.currentStep).toBe(3);
+
+        wrapper.vm.currentStep = wrapper.vm.totalSteps;
+        await wrapper.vm.finishTutorial();
+        expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/identities/switch", {
+            identity_hash: "imported_hash",
+        });
+        expect(axiosMock.delete).toHaveBeenCalledWith("/api/v1/identities/default_identity");
+        wrapper.unmount();
+    });
+
+    it("identity import mode requires file or base32 input", async () => {
+        axiosMock.get.mockImplementation(discoveryApiHandlers({ show_choice: false }));
+
+        const router = createRouter({
+            history: createWebHashHistory(),
+            routes: [{ path: "/", name: "home", component: { template: "<div/>" } }],
+        });
+        await router.push("/");
+        await router.isReady();
+
+        const wrapper = mount(TutorialModal, {
+            attachTo: document.body,
+            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+        });
+
+        await wrapper.vm.show();
+        await flushPromises();
+
+        wrapper.vm.currentStep = 2;
+        wrapper.vm.identityMode = "import";
+        wrapper.vm.identityImportBase32 = "   ";
+        await wrapper.vm.handlePrimaryAction();
+
+        expect(wrapper.vm.currentStep).toBe(2);
+        expect(wrapper.vm.identityImportError).toBe(en.tutorial.identity_import_required);
+        expect(axiosMock.post).not.toHaveBeenCalled();
+        wrapper.unmount();
+    });
+
+    it("identity step new mode falls back to default username for blank input", async () => {
+        axiosMock.get.mockImplementation(discoveryApiHandlers({ show_choice: false }));
+        axiosMock.patch.mockResolvedValue({ data: {} });
+
+        const router = createRouter({
+            history: createWebHashHistory(),
+            routes: [{ path: "/", name: "home", component: { template: "<div/>" } }],
+        });
+        await router.push("/");
+        await router.isReady();
+
+        const wrapper = mount(TutorialModal, {
+            attachTo: document.body,
+            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+        });
+
+        await wrapper.vm.show();
+        await flushPromises();
+        wrapper.vm.currentStep = 2;
+        wrapper.vm.identityMode = "new";
+        wrapper.vm.identityName = "   ";
+        await wrapper.vm.handlePrimaryAction();
+
+        expect(axiosMock.patch).toHaveBeenCalledWith("/api/v1/config", { display_name: "Anonymous Peer" });
+        expect(wrapper.vm.currentStep).toBe(3);
+        wrapper.unmount();
+    });
+
+    it("identity import continue is race-safe and only submits one restore request", async () => {
+        axiosMock.get.mockImplementation(discoveryApiHandlers({ show_choice: false }));
+        let resolveRestore;
+        const restorePromise = new Promise((resolve) => {
+            resolveRestore = resolve;
+        });
+        axiosMock.post.mockImplementation((url) => {
+            if (url === "/api/v1/identity/restore") {
+                return restorePromise;
+            }
+            return Promise.resolve({ data: {} });
+        });
+
+        const router = createRouter({
+            history: createWebHashHistory(),
+            routes: [{ path: "/", name: "home", component: { template: "<div/>" } }],
+        });
+        await router.push("/");
+        await router.isReady();
+
+        const wrapper = mount(TutorialModal, {
+            attachTo: document.body,
+            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+        });
+
+        await wrapper.vm.show();
+        await flushPromises();
+        wrapper.vm.currentStep = 2;
+        wrapper.vm.identityMode = "import";
+        wrapper.vm.identityName = "Race User";
+        wrapper.vm.identityImportBase32 = "RACEKEY";
+
+        const p1 = wrapper.vm.handlePrimaryAction();
+        const p2 = wrapper.vm.handlePrimaryAction();
+        await flushPromises();
+
+        expect(axiosMock.post).toHaveBeenCalledTimes(1);
+        resolveRestore({
+            data: {
+                identity: { hash: "race_hash" },
+            },
+        });
+        await Promise.all([p1, p2]);
+
+        expect(wrapper.vm.identityImportedHash).toBe("race_hash");
+        expect(wrapper.vm.currentStep).toBe(3);
+        wrapper.unmount();
+    });
+
+    it("finishTutorial keeps modal open and reports error when identity switch fails", async () => {
+        axiosMock.get.mockImplementation(discoveryApiHandlers({ show_choice: false }));
+        axiosMock.post.mockImplementation((url) => {
+            if (url === "/api/v1/identities/switch") {
+                return Promise.reject({ response: { data: { message: "switch failed" } } });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        axiosMock.delete = vi.fn().mockResolvedValue({ data: {} });
+
+        const router = createRouter({
+            history: createWebHashHistory(),
+            routes: [{ path: "/", name: "home", component: { template: "<div/>" } }],
+        });
+        await router.push("/");
+        await router.isReady();
+
+        const wrapper = mount(TutorialModal, {
+            attachTo: document.body,
+            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+        });
+
+        await wrapper.vm.show();
+        await flushPromises();
+        wrapper.vm.visible = true;
+        wrapper.vm.currentStep = wrapper.vm.totalSteps;
+        wrapper.vm.identityImportedHash = "imported_hash";
+        wrapper.vm.originalIdentityHash = "default_identity";
+
+        await wrapper.vm.finishTutorial();
+
+        expect(wrapper.vm.visible).toBe(true);
+        expect(axiosMock.delete).not.toHaveBeenCalled();
+        expect(ToastUtils.error).toHaveBeenCalledWith("switch failed");
         wrapper.unmount();
     });
 });

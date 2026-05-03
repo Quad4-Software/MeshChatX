@@ -77,7 +77,7 @@
                             <div class="flex flex-col sm:flex-row gap-2 justify-stretch sm:justify-end">
                                 <button
                                     type="button"
-                                    class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium disabled:opacity-50"
+                                    class="tutorial-action-btn tutorial-action-btn-primary"
                                     :disabled="migrationBusy"
                                     @click="migrationMigrate"
                                 >
@@ -85,7 +85,7 @@
                                 </button>
                                 <button
                                     type="button"
-                                    class="px-4 py-2 rounded-lg border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 text-sm font-medium disabled:opacity-50"
+                                    class="tutorial-action-btn tutorial-action-btn-secondary"
                                     :disabled="migrationBusy"
                                     @click="migrationFresh"
                                 >
@@ -208,8 +208,105 @@
                         </div>
                     </div>
 
-                    <!-- Step 2: Choose Connection Mode -->
-                    <div v-else-if="currentStep === 2" key="step2-mode" class="space-y-6">
+                    <!-- Step 2: Identity Setup -->
+                    <div v-else-if="currentStep === 2" key="step2-identity" class="space-y-6">
+                        <div class="text-center space-y-2">
+                            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+                                {{ $t("tutorial.identity_title") }}
+                            </h2>
+                            <p class="text-gray-600 dark:text-zinc-400 text-base">
+                                {{ $t("tutorial.identity_desc") }}
+                            </p>
+                        </div>
+                        <input
+                            ref="identityImportFileInput"
+                            type="file"
+                            accept=".identity,.bin,.key"
+                            class="hidden"
+                            @change="onIdentityImportFileChange"
+                        />
+                        <div class="grid grid-cols-1 gap-3">
+                            <button
+                                type="button"
+                                class="text-left flex items-start gap-4 p-5 rounded-2xl border-2 transition-all"
+                                :class="
+                                    identityMode === 'new'
+                                        ? 'border-blue-500 bg-blue-500/5'
+                                        : 'border-gray-200 dark:border-zinc-700 hover:border-blue-400'
+                                "
+                                @click="identityMode = 'new'"
+                            >
+                                <v-icon icon="mdi-account-plus-outline" color="blue" size="34"></v-icon>
+                                <div>
+                                    <div class="font-bold text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.identity_new") }}
+                                    </div>
+                                    <div class="text-sm text-gray-600 dark:text-zinc-400">
+                                        {{ $t("tutorial.identity_new_desc") }}
+                                    </div>
+                                </div>
+                            </button>
+                            <button
+                                type="button"
+                                class="text-left flex items-start gap-4 p-5 rounded-2xl border-2 transition-all"
+                                :class="
+                                    identityMode === 'import'
+                                        ? 'border-blue-500 bg-blue-500/5'
+                                        : 'border-gray-200 dark:border-zinc-700 hover:border-blue-400'
+                                "
+                                @click="identityMode = 'import'"
+                            >
+                                <v-icon icon="mdi-file-import-outline" color="indigo" size="34"></v-icon>
+                                <div>
+                                    <div class="font-bold text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.identity_import") }}
+                                    </div>
+                                    <div class="text-sm text-gray-600 dark:text-zinc-400">
+                                        {{ $t("tutorial.identity_import_desc") }}
+                                    </div>
+                                </div>
+                            </button>
+                        </div>
+                        <div class="rounded-2xl border border-gray-200 dark:border-zinc-700 p-4 space-y-3">
+                            <label class="block text-sm font-semibold text-gray-700 dark:text-zinc-200">
+                                {{ $t("tutorial.identity_set_name") }}
+                            </label>
+                            <input
+                                v-model="identityName"
+                                type="text"
+                                :placeholder="defaultUsername"
+                                class="w-full rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-sm text-gray-900 dark:text-zinc-100"
+                            />
+                            <div
+                                v-if="identityMode === 'import'"
+                                class="space-y-3 pt-2 border-t border-gray-200 dark:border-zinc-800"
+                            >
+                                <button
+                                    type="button"
+                                    class="tutorial-action-btn tutorial-action-btn-secondary w-full justify-center"
+                                    @click="$refs.identityImportFileInput?.click()"
+                                >
+                                    {{
+                                        identityImportFile
+                                            ? identityImportFile.name
+                                            : $t("tutorial.identity_upload_file")
+                                    }}
+                                </button>
+                                <textarea
+                                    v-model="identityImportBase32"
+                                    rows="3"
+                                    class="w-full rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-xs font-mono text-gray-900 dark:text-zinc-100"
+                                    :placeholder="$t('tutorial.identity_base32_placeholder')"
+                                />
+                            </div>
+                            <p v-if="identityImportError" class="text-sm text-red-600 dark:text-red-400">
+                                {{ identityImportError }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Choose Connection Mode -->
+                    <div v-else-if="currentStep === 3" key="step3-mode" class="space-y-6">
                         <div class="text-center space-y-2">
                             <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
                                 {{ $t("tutorial.connect") }}
@@ -303,8 +400,8 @@
                         </p>
                     </div>
 
-                    <!-- Step 3: Bootstrap Selection -->
-                    <div v-else-if="currentStep === 3" key="step3-bootstrap" class="space-y-6">
+                    <!-- Step 4: Bootstrap Selection -->
+                    <div v-else-if="currentStep === 4" key="step4-bootstrap" class="space-y-6">
                         <div class="text-center space-y-2">
                             <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
                                 {{ $t("tutorial.bootstrap_title") }}
@@ -576,14 +673,14 @@
                                 <div class="flex gap-2">
                                     <button
                                         type="button"
-                                        class="px-4 py-2 text-xs rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold transition-all hover:bg-gray-50 dark:hover:bg-zinc-700"
+                                        class="tutorial-action-btn tutorial-action-btn-secondary"
                                         @click="skipBootstraps"
                                     >
                                         {{ $t("tutorial.bootstrap_skip") }}
                                     </button>
                                     <button
                                         type="button"
-                                        class="px-5 py-2 text-xs rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-sm transition-all"
+                                        class="tutorial-action-btn tutorial-action-btn-success"
                                         :disabled="
                                             addingBootstraps || reloadingReticulum || selectedBootstrapCount === 0
                                         "
@@ -603,8 +700,8 @@
                         </div>
                     </div>
 
-                    <!-- Step 4: Propagation Mode -->
-                    <div v-else-if="currentStep === 4" key="step4-prop" class="space-y-6">
+                    <!-- Step 5: Propagation Mode -->
+                    <div v-else-if="currentStep === 5" key="step5-prop" class="space-y-6">
                         <div class="text-center space-y-2">
                             <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
                                 {{ $t("tutorial.propagation") }}
@@ -628,7 +725,7 @@
                                 <div class="flex flex-col gap-3 pt-2">
                                     <button
                                         type="button"
-                                        class="w-full px-6 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg transition-all transform hover:scale-[1.02]"
+                                        class="tutorial-action-btn tutorial-action-btn-primary w-full"
                                         :disabled="savingPropagation"
                                         @click="enableAutoPropagation"
                                     >
@@ -643,7 +740,7 @@
                                     </button>
                                     <button
                                         type="button"
-                                        class="w-full px-6 py-3 rounded-2xl border-2 border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-bold shadow-xs transition-all transform hover:scale-[1.02]"
+                                        class="tutorial-action-btn tutorial-action-btn-secondary w-full"
                                         @click="nextStep"
                                     >
                                         {{ $t("tutorial.propagation_skip_auto") }}
@@ -661,8 +758,8 @@
                         </div>
                     </div>
 
-                    <!-- Step 5: Learn & Create -->
-                    <div v-else-if="currentStep === 5" key="step5-tools" class="space-y-6">
+                    <!-- Step 6: Learn & Create -->
+                    <div v-else-if="currentStep === 6" key="step6-tools" class="space-y-6">
                         <div class="text-center space-y-2">
                             <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
                                 {{ $t("tutorial.learn_create") }}
@@ -871,10 +968,10 @@
                         </div>
                     </div>
 
-                    <!-- Step 6: Finish -->
+                    <!-- Step 7: Finish -->
                     <div
-                        v-else-if="currentStep === 6"
-                        key="step6-finish"
+                        v-else-if="currentStep === 7"
+                        key="step7-finish"
                         class="flex flex-col items-center text-center space-y-8 py-10"
                     >
                         <div class="w-32 h-32 bg-green-500/10 rounded-full flex items-center justify-center relative">
@@ -908,7 +1005,7 @@
                 <button
                     v-if="currentStep > 1 && currentStep < totalSteps"
                     type="button"
-                    class="px-6 py-2.5 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold text-sm shadow-xs transition-all hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-blue-400 dark:hover:border-blue-500"
+                    class="tutorial-action-btn tutorial-action-btn-secondary"
                     @click="previousStep"
                 >
                     {{ $t("tutorial.back") }}
@@ -919,7 +1016,7 @@
                     <button
                         v-if="currentStep < totalSteps"
                         type="button"
-                        class="px-6 py-2.5 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold text-sm shadow-xs transition-all opacity-50 hover:opacity-100 hover:bg-gray-50 dark:hover:bg-zinc-700"
+                        class="tutorial-action-btn tutorial-action-btn-secondary"
                         @click="skipTutorial"
                     >
                         {{ $t("tutorial.skip") }}
@@ -928,8 +1025,9 @@
                     <button
                         v-if="currentStep < totalSteps"
                         type="button"
-                        class="px-8 h-12 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm shadow-xs transition-all"
-                        @click="nextStep"
+                        class="tutorial-action-btn tutorial-action-btn-primary"
+                        :disabled="currentStep === 2 && identityImportInProgress"
+                        @click="handlePrimaryAction"
                     >
                         {{ $t("tutorial.next") }}
                     </button>
@@ -937,7 +1035,7 @@
                     <button
                         v-else
                         type="button"
-                        class="px-8 h-12 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-sm shadow-xs transition-all"
+                        class="tutorial-action-btn tutorial-action-btn-success"
                         @click="finishTutorial"
                     >
                         {{ $t("tutorial.finish_setup") }}
@@ -1012,7 +1110,7 @@
                             <div class="flex flex-col sm:flex-row gap-2 justify-stretch sm:justify-end">
                                 <button
                                     type="button"
-                                    class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium disabled:opacity-50"
+                                    class="tutorial-action-btn tutorial-action-btn-primary"
                                     :disabled="migrationBusy"
                                     @click="migrationMigrate"
                                 >
@@ -1020,7 +1118,7 @@
                                 </button>
                                 <button
                                     type="button"
-                                    class="px-4 py-2 rounded-lg border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 text-sm font-medium disabled:opacity-50"
+                                    class="tutorial-action-btn tutorial-action-btn-secondary"
                                     :disabled="migrationBusy"
                                     @click="migrationFresh"
                                 >
@@ -1147,8 +1245,107 @@
                         </div>
                     </div>
 
-                    <!-- Step 2: Choose Connection Mode -->
-                    <div v-else-if="currentStep === 2" key="page-step2-mode" class="space-y-8 py-8">
+                    <!-- Step 2: Identity Setup -->
+                    <div v-else-if="currentStep === 2" key="page-step2-identity" class="space-y-8 py-8">
+                        <div class="text-center space-y-3">
+                            <h2 class="text-3xl font-black text-gray-900 dark:text-white">
+                                {{ $t("tutorial.identity_title") }}
+                            </h2>
+                            <p class="text-lg text-gray-600 dark:text-zinc-400 max-w-3xl mx-auto">
+                                {{ $t("tutorial.identity_desc_page") }}
+                            </p>
+                        </div>
+                        <input
+                            ref="identityImportFileInput"
+                            type="file"
+                            accept=".identity,.bin,.key"
+                            class="hidden"
+                            @change="onIdentityImportFileChange"
+                        />
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+                            <button
+                                type="button"
+                                class="text-left flex items-start gap-5 p-7 rounded-3xl border-2 transition-all"
+                                :class="
+                                    identityMode === 'new'
+                                        ? 'border-blue-500 bg-blue-500/5'
+                                        : 'border-gray-200 dark:border-zinc-700 hover:border-blue-400'
+                                "
+                                @click="identityMode = 'new'"
+                            >
+                                <v-icon icon="mdi-account-plus-outline" color="blue" size="52"></v-icon>
+                                <div>
+                                    <div class="text-xl font-bold text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.identity_new") }}
+                                    </div>
+                                    <div class="text-sm text-gray-600 dark:text-zinc-400 mt-1">
+                                        {{ $t("tutorial.identity_new_desc") }}
+                                    </div>
+                                </div>
+                            </button>
+                            <button
+                                type="button"
+                                class="text-left flex items-start gap-5 p-7 rounded-3xl border-2 transition-all"
+                                :class="
+                                    identityMode === 'import'
+                                        ? 'border-blue-500 bg-blue-500/5'
+                                        : 'border-gray-200 dark:border-zinc-700 hover:border-blue-400'
+                                "
+                                @click="identityMode = 'import'"
+                            >
+                                <v-icon icon="mdi-file-import-outline" color="indigo" size="52"></v-icon>
+                                <div>
+                                    <div class="text-xl font-bold text-gray-900 dark:text-white">
+                                        {{ $t("tutorial.identity_import") }}
+                                    </div>
+                                    <div class="text-sm text-gray-600 dark:text-zinc-400 mt-1">
+                                        {{ $t("tutorial.identity_import_desc") }}
+                                    </div>
+                                </div>
+                            </button>
+                        </div>
+                        <div
+                            class="max-w-4xl mx-auto rounded-3xl border border-gray-200 dark:border-zinc-700 p-6 space-y-4"
+                        >
+                            <label class="block text-base font-semibold text-gray-800 dark:text-zinc-100">
+                                {{ $t("tutorial.identity_set_name") }}
+                            </label>
+                            <input
+                                v-model="identityName"
+                                type="text"
+                                :placeholder="defaultUsername"
+                                class="w-full rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-3 text-base text-gray-900 dark:text-zinc-100"
+                            />
+                            <div
+                                v-if="identityMode === 'import'"
+                                class="space-y-4 pt-3 border-t border-gray-200 dark:border-zinc-800"
+                            >
+                                <button
+                                    type="button"
+                                    class="tutorial-action-btn tutorial-action-btn-secondary w-full justify-center"
+                                    @click="$refs.identityImportFileInput?.click()"
+                                >
+                                    {{
+                                        identityImportFile
+                                            ? identityImportFile.name
+                                            : $t("tutorial.identity_upload_file")
+                                    }}
+                                </button>
+                                <textarea
+                                    v-model="identityImportBase32"
+                                    rows="4"
+                                    class="w-full rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-3 text-sm font-mono text-gray-900 dark:text-zinc-100"
+                                    :placeholder="$t('tutorial.identity_base32_placeholder')"
+                                />
+                            </div>
+                            <p v-if="identityImportError" class="text-sm text-red-600 dark:text-red-400">
+                                {{ identityImportError }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Choose Connection Mode -->
+                    <div v-else-if="currentStep === 3" key="page-step3-mode" class="space-y-8 py-8">
                         <div class="text-center space-y-2">
                             <h2 class="text-3xl font-black text-gray-900 dark:text-white">
                                 {{ $t("tutorial.connect") }}
@@ -1236,8 +1433,8 @@
                         </p>
                     </div>
 
-                    <!-- Step 3: Bootstrap Selection -->
-                    <div v-else-if="currentStep === 3" key="page-step3-bootstrap" class="space-y-6 py-8">
+                    <!-- Step 4: Bootstrap Selection -->
+                    <div v-else-if="currentStep === 4" key="page-step4-bootstrap" class="space-y-6 py-8">
                         <div class="text-center space-y-2">
                             <h2 class="text-3xl font-black text-gray-900 dark:text-white">
                                 {{ $t("tutorial.bootstrap_title") }}
@@ -1517,14 +1714,14 @@
                             <div class="flex gap-3">
                                 <button
                                     type="button"
-                                    class="px-6 py-3 text-sm rounded-xl border-2 border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-bold transition-all hover:bg-gray-50 dark:hover:bg-zinc-700"
+                                    class="tutorial-action-btn tutorial-action-btn-secondary"
                                     @click="skipBootstraps"
                                 >
                                     {{ $t("tutorial.bootstrap_skip") }}
                                 </button>
                                 <button
                                     type="button"
-                                    class="px-8 py-3 text-sm rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-lg transition-all"
+                                    class="tutorial-action-btn tutorial-action-btn-success"
                                     :disabled="addingBootstraps || reloadingReticulum || selectedBootstrapCount === 0"
                                     @click="confirmBootstraps"
                                 >
@@ -1541,8 +1738,8 @@
                         </div>
                     </div>
 
-                    <!-- Step 4: Propagation Mode -->
-                    <div v-else-if="currentStep === 4" key="page-step4-prop" class="space-y-8 py-12">
+                    <!-- Step 5: Propagation Mode -->
+                    <div v-else-if="currentStep === 5" key="page-step5-prop" class="space-y-8 py-12">
                         <div class="text-center space-y-4">
                             <h2 class="text-4xl font-black text-gray-900 dark:text-white">
                                 {{ $t("tutorial.propagation") }}
@@ -1566,7 +1763,7 @@
                                 <div class="flex flex-col gap-4 pt-4">
                                     <button
                                         type="button"
-                                        class="px-10 py-4 text-xl rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black shadow-xl transition-all transform hover:scale-105"
+                                        class="tutorial-action-btn tutorial-action-btn-primary"
                                         :disabled="savingPropagation"
                                         @click="enableAutoPropagation"
                                     >
@@ -1581,7 +1778,7 @@
                                     </button>
                                     <button
                                         type="button"
-                                        class="px-10 py-4 text-xl rounded-2xl border-2 border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-black shadow-lg transition-all transform hover:scale-105"
+                                        class="tutorial-action-btn tutorial-action-btn-secondary"
                                         @click="nextStep"
                                     >
                                         {{ $t("tutorial.propagation_skip_auto") }}
@@ -1599,8 +1796,8 @@
                         </div>
                     </div>
 
-                    <!-- Step 5: Learn & Create -->
-                    <div v-else-if="currentStep === 5" key="page-step5-tools" class="space-y-8 py-10">
+                    <!-- Step 6: Learn & Create -->
+                    <div v-else-if="currentStep === 6" key="page-step6-tools" class="space-y-8 py-10">
                         <div class="text-center space-y-4">
                             <h2 class="text-4xl font-black text-gray-900 dark:text-white">
                                 {{ $t("tutorial.learn_create") }}
@@ -1853,10 +2050,10 @@
                         </div>
                     </div>
 
-                    <!-- Step 6: Finish -->
+                    <!-- Step 7: Finish -->
                     <div
-                        v-else-if="currentStep === 6"
-                        key="page-step6-finish"
+                        v-else-if="currentStep === 7"
+                        key="page-step7-finish"
                         class="flex flex-col items-center text-center space-y-10 py-20"
                     >
                         <div class="w-48 h-48 bg-green-500/10 rounded-full flex items-center justify-center relative">
@@ -1890,7 +2087,7 @@
                     <button
                         v-if="currentStep > 1 && currentStep < totalSteps"
                         type="button"
-                        class="px-8 h-12 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold text-sm shadow-xs transition-all hover:bg-gray-50 dark:hover:bg-zinc-700 hover:border-blue-400 dark:hover:border-blue-500"
+                        class="tutorial-action-btn tutorial-action-btn-secondary"
                         @click="previousStep"
                     >
                         {{ $t("tutorial.back") }}
@@ -1901,7 +2098,7 @@
                         <button
                             v-if="currentStep < totalSteps"
                             type="button"
-                            class="px-8 h-12 rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 font-semibold text-sm shadow-xs transition-all opacity-50 hover:opacity-100 hover:bg-gray-50 dark:hover:bg-zinc-700"
+                            class="tutorial-action-btn tutorial-action-btn-secondary"
                             @click="skipTutorial"
                         >
                             {{ $t("tutorial.skip_setup") }}
@@ -1910,8 +2107,9 @@
                         <button
                             v-if="currentStep < totalSteps"
                             type="button"
-                            class="px-12 h-14 text-lg rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-xs transition-all"
-                            @click="nextStep"
+                            class="tutorial-action-btn tutorial-action-btn-primary"
+                            :disabled="currentStep === 2 && identityImportInProgress"
+                            @click="handlePrimaryAction"
                         >
                             {{ $t("tutorial.continue") }}
                         </button>
@@ -1919,7 +2117,7 @@
                         <button
                             v-else
                             type="button"
-                            class="px-12 h-14 text-lg rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-xs transition-all"
+                            class="tutorial-action-btn tutorial-action-btn-success"
                             @click="finishTutorial"
                         >
                             {{ $t("tutorial.finish_setup") }}
@@ -1952,8 +2150,16 @@ export default {
         return {
             visible: false,
             currentStep: 1,
-            totalSteps: 6,
+            totalSteps: 7,
             logoUrl,
+            identityMode: "new",
+            identityName: "",
+            identityImportBase32: "",
+            identityImportFile: null,
+            identityImportInProgress: false,
+            identityImportError: "",
+            identityImportedHash: null,
+            originalIdentityHash: null,
             communityInterfaces: [],
             loadingInterfaces: false,
             interfaceAddedViaTutorial: false,
@@ -2044,6 +2250,12 @@ export default {
         reticulumBundledDocsUrl() {
             return bundledReticulumDocsUrl(this.$i18n.locale);
         },
+        defaultUsername() {
+            return "Anonymous Peer";
+        },
+        hasIdentityImportInput() {
+            return Boolean(this.identityImportFile || this.identityImportBase32.trim());
+        },
         bootstrapSelectedLabels() {
             return this.selectedBootstrapKeys.map((k) => this.bootstrapDisplayLabelForKey(k)).filter(Boolean);
         },
@@ -2056,7 +2268,7 @@ export default {
             this.$nextTick(() => void this.maybeAutoPickBootstrapTcp());
         },
         currentStep(val) {
-            if (val === 3) {
+            if (val === 4) {
                 this.$nextTick(() => void this.maybeAutoPickBootstrapTcp());
             }
         },
@@ -2075,6 +2287,7 @@ export default {
         };
         window.addEventListener("resize", this.onWindowResize, { passive: true });
         if (this.isPage) {
+            this.loadIdentitySetupDefaults();
             this.loadDiscoveryBootstrapDefaults();
             this.loadCommunityInterfaces();
             this.loadDiscoveredInterfaces();
@@ -2085,6 +2298,103 @@ export default {
         }
     },
     methods: {
+        resetIdentitySetupState() {
+            this.identityMode = "new";
+            this.identityName = "";
+            this.identityImportBase32 = "";
+            this.identityImportFile = null;
+            this.identityImportError = "";
+            this.identityImportInProgress = false;
+            this.identityImportedHash = null;
+            this.originalIdentityHash = null;
+        },
+        async loadIdentitySetupDefaults() {
+            try {
+                const [identitiesRes, configRes] = await Promise.all([
+                    window.api.get("/api/v1/identities"),
+                    window.api.get("/api/v1/config"),
+                ]);
+                const identities = identitiesRes.data?.identities ?? [];
+                const currentIdentity = identities.find((item) => item.is_current);
+                this.originalIdentityHash = currentIdentity?.hash || null;
+                this.identityName = configRes.data?.config?.display_name || this.defaultUsername;
+            } catch (e) {
+                console.error("Failed to load identity setup defaults:", e);
+                this.identityName = this.defaultUsername;
+            }
+        },
+        onIdentityImportFileChange(event) {
+            const files = event?.target?.files;
+            this.identityImportFile = files?.[0] || null;
+            this.identityImportError = "";
+            if (event?.target) {
+                event.target.value = "";
+            }
+        },
+        async importIdentityFromFile(file, displayName) {
+            const formData = new FormData();
+            formData.append("file", file);
+            if (displayName) {
+                formData.append("display_name", displayName);
+            }
+            const response = await window.api.post("/api/v1/identity/restore", formData, {
+                headers: { "Content-Type": "multipart/form-data" },
+            });
+            return response.data?.identity?.hash || null;
+        },
+        async importIdentityFromBase32(base32, displayName) {
+            const payload = { base32 };
+            if (displayName) {
+                payload.display_name = displayName;
+            }
+            const response = await window.api.post("/api/v1/identity/restore", payload);
+            return response.data?.identity?.hash || null;
+        },
+        async handleIdentityContinue() {
+            if (this.identityImportInProgress) {
+                return;
+            }
+            const trimmedName = this.identityName.trim() || this.defaultUsername;
+            this.identityImportError = "";
+            if (this.identityMode === "new") {
+                try {
+                    await window.api.patch("/api/v1/config", {
+                        display_name: trimmedName,
+                    });
+                    GlobalState.config.display_name = trimmedName;
+                    this.identityImportedHash = null;
+                    this.currentStep = 3;
+                } catch (e) {
+                    this.identityImportError =
+                        e.response?.data?.message || this.$t("tutorial.identity_name_update_failed");
+                }
+                return;
+            }
+            if (!this.hasIdentityImportInput) {
+                this.identityImportError = this.$t("tutorial.identity_import_required");
+                return;
+            }
+            this.identityImportInProgress = true;
+            try {
+                let importedHash = null;
+                if (this.identityImportFile) {
+                    importedHash = await this.importIdentityFromFile(this.identityImportFile, trimmedName);
+                    this.identityImportFile = null;
+                } else {
+                    importedHash = await this.importIdentityFromBase32(this.identityImportBase32.trim(), trimmedName);
+                    this.identityImportBase32 = "";
+                }
+                if (!importedHash) {
+                    throw new Error("Missing imported identity hash");
+                }
+                this.identityImportedHash = importedHash;
+                this.currentStep = 3;
+            } catch (e) {
+                this.identityImportError = e.response?.data?.message || this.$t("tutorial.identity_import_failed");
+            } finally {
+                this.identityImportInProgress = false;
+            }
+        },
         async toggleTheme() {
             const newTheme = this.config.theme === "dark" ? "light" : "dark";
             try {
@@ -2110,6 +2420,7 @@ export default {
         async show() {
             this.visible = true;
             this.currentStep = 1;
+            this.resetIdentitySetupState();
             this.interfaceAddedViaTutorial = false;
             this.connectionMode = null;
             this.selectedBootstrapKeys = [];
@@ -2119,6 +2430,7 @@ export default {
             this.bootstrapCommunitySectionOpen = true;
             this.bootstrapAutoPickDone = false;
             await this.refreshMigrationOffer();
+            await this.loadIdentitySetupDefaults();
             await this.loadDiscoveryBootstrapDefaults();
             await this.loadCommunityInterfaces();
             await this.loadDiscoveredInterfaces();
@@ -2241,7 +2553,7 @@ export default {
                 this.defaultBootstrapOnly = true;
                 ToastUtils.success(this.$t("tutorial.discovery_enabled"));
                 this.connectionMode = "discovery";
-                this.currentStep = 3;
+                this.currentStep = 4;
                 this.bootstrapListSearch = "";
                 this.bootstrapDiscoveredSectionOpen = true;
                 this.bootstrapCommunitySectionOpen = true;
@@ -2270,7 +2582,7 @@ export default {
                 ToastUtils.success(this.$t("tutorial.local_added"));
                 await this.reloadReticulum();
                 this.connectionMode = "local";
-                this.currentStep = 4;
+                this.currentStep = 5;
             } catch (e) {
                 console.error("Failed to add AutoInterface:", e);
                 ToastUtils.error(e.response?.data?.message || this.$t("tutorial.failed_add_local"));
@@ -2280,7 +2592,7 @@ export default {
         },
         useManualMode() {
             this.connectionMode = "manual";
-            this.currentStep = 4;
+            this.currentStep = 5;
         },
         isBootstrapSelected(key) {
             return this.selectedBootstrapKeys.includes(key);
@@ -2450,7 +2762,7 @@ export default {
             if (this.bootstrapAutoPickDone) {
                 return;
             }
-            if (this.currentStep !== 3 || this.connectionMode !== "discovery") {
+            if (this.currentStep !== 4 || this.connectionMode !== "discovery") {
                 return;
             }
             if (this.selectedBootstrapKeys.length > 0) {
@@ -2557,10 +2869,10 @@ export default {
                 await this.reloadReticulum();
             }
             this.addingBootstraps = false;
-            this.currentStep = 4;
+            this.currentStep = 5;
         },
         skipBootstraps() {
-            this.currentStep = 4;
+            this.currentStep = 5;
         },
         async enableAutoPropagation() {
             this.savingPropagation = true;
@@ -2665,14 +2977,21 @@ export default {
                 this.$router.push({ name: routeName });
             }
         },
+        async handlePrimaryAction() {
+            if (this.currentStep === 2) {
+                await this.handleIdentityContinue();
+                return;
+            }
+            this.nextStep();
+        },
         nextStep() {
             if (this.currentStep >= this.totalSteps) return;
-            if (this.currentStep === 2 && this.connectionMode !== "discovery") {
-                this.currentStep = 4;
+            if (this.currentStep === 3 && this.connectionMode !== "discovery") {
+                this.currentStep = 5;
                 return;
             }
             this.currentStep++;
-            if (this.currentStep === 3) {
+            if (this.currentStep === 4) {
                 this.bootstrapListSearch = "";
                 this.bootstrapDiscoveredSectionOpen = true;
                 this.bootstrapCommunitySectionOpen = true;
@@ -2680,8 +2999,8 @@ export default {
         },
         previousStep() {
             if (this.currentStep <= 1) return;
-            if (this.currentStep === 4 && this.connectionMode !== "discovery") {
-                this.currentStep = 2;
+            if (this.currentStep === 5 && this.connectionMode !== "discovery") {
+                this.currentStep = 3;
                 return;
             }
             this.currentStep--;
@@ -2706,6 +3025,19 @@ export default {
         async finishTutorial() {
             if (GlobalState.hasPendingInterfaceChanges) {
                 await this.reloadReticulum();
+            }
+            if (this.identityImportedHash && this.identityImportedHash !== this.originalIdentityHash) {
+                try {
+                    await window.api.post("/api/v1/identities/switch", {
+                        identity_hash: this.identityImportedHash,
+                    });
+                    if (this.originalIdentityHash) {
+                        await window.api.delete(`/api/v1/identities/${this.originalIdentityHash}`);
+                    }
+                } catch (e) {
+                    ToastUtils.error(e.response?.data?.message || this.$t("tutorial.identity_switch_failed"));
+                    return;
+                }
             }
             this.visible = false;
             this.markSeen();
@@ -2805,5 +3137,64 @@ export default {
 .fade-slide-leave-to {
     opacity: 0;
     transform: translateX(-30px);
+}
+
+.tutorial-action-btn {
+    min-height: 2.75rem;
+    padding: 0.625rem 1rem;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    line-height: 1.1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.15s ease;
+}
+
+.tutorial-action-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.tutorial-action-btn-primary {
+    background: rgb(37 99 235);
+    color: white;
+}
+
+.tutorial-action-btn-primary:hover:not(:disabled) {
+    background: rgb(59 130 246);
+}
+
+.tutorial-action-btn-secondary {
+    border: 1px solid rgb(209 213 219);
+    background: white;
+    color: rgb(55 65 81);
+}
+
+.tutorial-action-btn-secondary:hover:not(:disabled) {
+    background: rgb(249 250 251);
+}
+
+.tutorial-action-btn-success {
+    background: rgb(5 150 105);
+    color: white;
+}
+
+.tutorial-action-btn-success:hover:not(:disabled) {
+    background: rgb(16 185 129);
+}
+
+.tutorial-dialog :deep(.dark) .tutorial-action-btn-secondary,
+:deep(.dark) .tutorial-action-btn-secondary {
+    border-color: rgb(63 63 70);
+    background: rgb(39 39 42);
+    color: rgb(212 212 216);
+}
+
+.tutorial-dialog :deep(.dark) .tutorial-action-btn-secondary:hover:not(:disabled),
+:deep(.dark) .tutorial-action-btn-secondary:hover:not(:disabled) {
+    background: rgb(63 63 70);
 }
 </style>

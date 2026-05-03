@@ -77,6 +77,52 @@ class TestIdentityRestore(unittest.TestCase):
         mock_rns_identity.from_bytes.assert_called_with(identity_bytes)
 
     @patch("RNS.Identity")
+    @patch("meshchatx.src.backend.identity_manager.DatabaseProvider")
+    @patch("meshchatx.src.backend.identity_manager.DatabaseSchema")
+    def test_restore_identity_from_base32_with_display_name(
+        self,
+        mock_schema,
+        mock_provider,
+        mock_rns_identity,
+    ):
+        mock_id_instance = MagicMock()
+        mock_id_instance.hash = b"test_hash_32_bytes_long_01234567"
+        mock_id_instance.get_private_key.return_value = b"test_private_key"
+        mock_rns_identity.from_bytes.return_value = mock_id_instance
+
+        identity_bytes = b"some_identity_bytes"
+        base32_value = base64.b32encode(identity_bytes).decode("utf-8")
+        result = self.identity_manager.restore_identity_from_base32(
+            base32_value,
+            display_name="Imported Name",
+        )
+
+        self.assertEqual(result["display_name"], "Imported Name")
+
+    @patch("RNS.Identity")
+    @patch("meshchatx.src.backend.identity_manager.DatabaseProvider")
+    @patch("meshchatx.src.backend.identity_manager.DatabaseSchema")
+    def test_restore_identity_from_base32_blank_display_name_uses_default(
+        self,
+        mock_schema,
+        mock_provider,
+        mock_rns_identity,
+    ):
+        mock_id_instance = MagicMock()
+        mock_id_instance.hash = b"test_hash_32_bytes_long_01234567"
+        mock_id_instance.get_private_key.return_value = b"test_private_key"
+        mock_rns_identity.from_bytes.return_value = mock_id_instance
+
+        identity_bytes = b"some_identity_bytes"
+        base32_value = base64.b32encode(identity_bytes).decode("utf-8")
+        result = self.identity_manager.restore_identity_from_base32(
+            base32_value,
+            display_name="   ",
+        )
+
+        self.assertEqual(result["display_name"], "Restored Identity")
+
+    @patch("RNS.Identity")
     def test_restore_identity_invalid_bytes(self, mock_rns_identity):
         mock_rns_identity.from_bytes.return_value = None
         with self.assertRaises(ValueError) as cm:
