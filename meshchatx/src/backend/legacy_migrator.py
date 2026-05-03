@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
+import logging
 import os
 import shutil
 
@@ -7,6 +8,8 @@ import RNS
 
 LEGACY_DIR = ".reticulum-meshchat"
 CURRENT_DIR = ".reticulum-meshchatx"
+UPSTREAM_DIR = "reticulum-meshchat"
+UPSTREAM_X_DIR = "reticulum-meshchatx"
 
 
 def _basename_norm(p: str) -> str:
@@ -25,6 +28,17 @@ def paired_new_from_legacy(legacy_storage_path: str) -> str | None:
         return None
     parent = os.path.dirname(os.path.normpath(legacy_storage_path))
     return os.path.join(parent, CURRENT_DIR)
+
+
+def _is_meshchatx_storage_basename(base: str) -> bool:
+    return base in (CURRENT_DIR, UPSTREAM_X_DIR)
+
+
+def paired_upstream_plain_from_meshchatx(meshchatx_path: str) -> str | None:
+    if not _is_meshchatx_storage_basename(_basename_norm(meshchatx_path)):
+        return None
+    parent = os.path.dirname(os.path.normpath(meshchatx_path))
+    return os.path.join(parent, UPSTREAM_DIR)
 
 
 def storage_has_meshchat_data(storage_dir: str) -> bool:
@@ -57,7 +71,40 @@ def resolve_startup_storage(request_dir: str) -> tuple[str, dict]:
     if skip:
         return planned, empty_ctx
 
+    skip_upstream_auto = os.environ.get(
+        "MESHCHAT_SKIP_UPSTREAM_FOLDER_MIGRATION",
+        "",
+    ).strip().lower() in ("1", "true", "yes")
+
     base = _basename_norm(planned)
+    if (
+        not skip_upstream_auto
+        and _is_meshchatx_storage_basename(base)
+        and not storage_has_meshchat_data(planned)
+    ):
+        upstream_plain = paired_upstream_plain_from_meshchatx(planned)
+        if upstream_plain and storage_has_meshchat_data(upstream_plain):
+            try:
+                migrate_legacy_to_target(upstream_plain, planned)
+                logging.getLogger(__name__).info(
+                    "Auto-copied upstream storage %s -> %s",
+                    upstream_plain,
+                    planned,
+                )
+                return planned, {
+                    **empty_ctx,
+                    "did_auto_upstream_folder_copy": True,
+                    "upstream_copy_source": upstream_plain,
+                    "upstream_copy_target": planned,
+                }
+            except OSError:
+                logging.getLogger(__name__).warning(
+                    "Upstream folder auto-migration failed (%s -> %s)",
+                    upstream_plain,
+                    planned,
+                    exc_info=True,
+                )
+
     if base == CURRENT_DIR and not storage_has_meshchat_data(planned):
         legacy = paired_legacy_from_new(planned)
         if legacy and storage_has_meshchat_data(legacy):

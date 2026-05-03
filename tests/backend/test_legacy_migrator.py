@@ -6,6 +6,7 @@ import sqlite3
 import stat
 import tempfile
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 import RNS
@@ -15,12 +16,15 @@ from hypothesis import strategies as st
 from meshchatx.src.backend.legacy_migrator import (
     CURRENT_DIR,
     LEGACY_DIR,
+    UPSTREAM_DIR,
+    UPSTREAM_X_DIR,
     assert_migration_context_paths,
     copy_legacy_storage_tree,
     fresh_storage_at_target,
     migrate_legacy_to_target,
     paired_legacy_from_new,
     paired_new_from_legacy,
+    paired_upstream_plain_from_meshchatx,
     resolve_startup_storage,
     storage_has_meshchat_data,
 )
@@ -451,5 +455,151 @@ def test_resolve_identities_only_no_root_identity(monkeypatch):
         eff, ctx = resolve_startup_storage(new_home)
         assert eff == leg_home
         assert ctx["show_choice"] is True
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def test_paired_upstream_plain_from_meshchatx_paths():
+    p_dot = os.path.join("/tmp", "o", CURRENT_DIR)
+    assert paired_upstream_plain_from_meshchatx(p_dot) == os.path.join(
+        "/tmp", "o", UPSTREAM_DIR
+    )
+    p_plain = os.path.join("/tmp", "o", UPSTREAM_X_DIR)
+    assert paired_upstream_plain_from_meshchatx(p_plain) == os.path.join(
+        "/tmp", "o", UPSTREAM_DIR
+    )
+    assert paired_upstream_plain_from_meshchatx("/tmp/storage") is None
+
+
+def test_auto_upstream_plain_folder_to_dot_meshchatx(monkeypatch):
+    root = tempfile.mkdtemp()
+    try:
+        new_home = os.path.join(root, CURRENT_DIR)
+        plain = os.path.join(root, UPSTREAM_DIR)
+        os.makedirs(plain, exist_ok=True)
+        with open(os.path.join(plain, "identity"), "wb") as f:
+            f.write(RNS.Identity(create_keys=True).get_private_key())
+        os.makedirs(new_home, exist_ok=True)
+        monkeypatch.delenv("MESHCHAT_SKIP_LEGACY_MIGRATION_UI", raising=False)
+        monkeypatch.delenv("MESHCHAT_SKIP_UPSTREAM_FOLDER_MIGRATION", raising=False)
+        eff, ctx = resolve_startup_storage(new_home)
+        assert eff == os.path.abspath(new_home)
+        assert ctx.get("did_auto_upstream_folder_copy") is True
+        assert ctx.get("show_choice") is not True
+        assert storage_has_meshchat_data(new_home)
+        assert os.path.isfile(os.path.join(new_home, "identity"))
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def test_auto_upstream_plain_folder_to_plain_meshchatx(monkeypatch):
+    root = tempfile.mkdtemp()
+    try:
+        new_home = os.path.join(root, UPSTREAM_X_DIR)
+        plain = os.path.join(root, UPSTREAM_DIR)
+        os.makedirs(plain, exist_ok=True)
+        with open(os.path.join(plain, "identity"), "wb") as f:
+            f.write(RNS.Identity(create_keys=True).get_private_key())
+        os.makedirs(new_home, exist_ok=True)
+        monkeypatch.delenv("MESHCHAT_SKIP_LEGACY_MIGRATION_UI", raising=False)
+        monkeypatch.delenv("MESHCHAT_SKIP_UPSTREAM_FOLDER_MIGRATION", raising=False)
+        eff, ctx = resolve_startup_storage(new_home)
+        assert eff == os.path.abspath(new_home)
+        assert ctx.get("did_auto_upstream_folder_copy") is True
+        assert storage_has_meshchat_data(new_home)
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def test_auto_upstream_skipped_by_env(monkeypatch):
+    root = tempfile.mkdtemp()
+    try:
+        new_home = os.path.join(root, CURRENT_DIR)
+        plain = os.path.join(root, UPSTREAM_DIR)
+        os.makedirs(plain, exist_ok=True)
+        with open(os.path.join(plain, "identity"), "wb") as f:
+            f.write(RNS.Identity(create_keys=True).get_private_key())
+        os.makedirs(new_home, exist_ok=True)
+        leg = os.path.join(root, LEGACY_DIR)
+        os.makedirs(leg, exist_ok=True)
+        with open(os.path.join(leg, "identity"), "wb") as f:
+            f.write(RNS.Identity(create_keys=True).get_private_key())
+        monkeypatch.delenv("MESHCHAT_SKIP_LEGACY_MIGRATION_UI", raising=False)
+        monkeypatch.setenv("MESHCHAT_SKIP_UPSTREAM_FOLDER_MIGRATION", "1")
+        eff, ctx = resolve_startup_storage(new_home)
+        assert eff == leg
+        assert ctx.get("did_auto_upstream_folder_copy") is not True
+        assert ctx["show_choice"] is True
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def test_auto_upstream_skipped_when_target_already_has_data(monkeypatch):
+    root = tempfile.mkdtemp()
+    try:
+        new_home = os.path.join(root, CURRENT_DIR)
+        plain = os.path.join(root, UPSTREAM_DIR)
+        os.makedirs(plain, exist_ok=True)
+        with open(os.path.join(plain, "identity"), "wb") as f:
+            f.write(RNS.Identity(create_keys=True).get_private_key())
+        os.makedirs(new_home, exist_ok=True)
+        with open(os.path.join(new_home, "identity"), "wb") as f:
+            f.write(RNS.Identity(create_keys=True).get_private_key())
+        monkeypatch.delenv("MESHCHAT_SKIP_LEGACY_MIGRATION_UI", raising=False)
+        monkeypatch.delenv("MESHCHAT_SKIP_UPSTREAM_FOLDER_MIGRATION", raising=False)
+        eff, ctx = resolve_startup_storage(new_home)
+        assert eff == os.path.abspath(new_home)
+        assert ctx.get("did_auto_upstream_folder_copy") is not True
+        assert ctx.get("show_choice") is not True
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def test_auto_upstream_prefers_plain_over_dot_legacy_redirect(monkeypatch):
+    root = tempfile.mkdtemp()
+    try:
+        new_home = os.path.join(root, CURRENT_DIR)
+        plain = os.path.join(root, UPSTREAM_DIR)
+        os.makedirs(plain, exist_ok=True)
+        with open(os.path.join(plain, "identity"), "wb") as f:
+            f.write(RNS.Identity(create_keys=True).get_private_key())
+        leg = os.path.join(root, LEGACY_DIR)
+        os.makedirs(leg, exist_ok=True)
+        with open(os.path.join(leg, "identity"), "wb") as f:
+            f.write(RNS.Identity(create_keys=True).get_private_key())
+        os.makedirs(new_home, exist_ok=True)
+        monkeypatch.delenv("MESHCHAT_SKIP_LEGACY_MIGRATION_UI", raising=False)
+        monkeypatch.delenv("MESHCHAT_SKIP_UPSTREAM_FOLDER_MIGRATION", raising=False)
+        eff, ctx = resolve_startup_storage(new_home)
+        assert eff == os.path.abspath(new_home)
+        assert ctx.get("did_auto_upstream_folder_copy") is True
+        assert ctx.get("show_choice") is not True
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
+
+
+def test_auto_upstream_oserror_falls_through_to_dot_legacy(monkeypatch):
+    root = tempfile.mkdtemp()
+    try:
+        new_home = os.path.join(root, CURRENT_DIR)
+        plain = os.path.join(root, UPSTREAM_DIR)
+        os.makedirs(plain, exist_ok=True)
+        with open(os.path.join(plain, "identity"), "wb") as f:
+            f.write(RNS.Identity(create_keys=True).get_private_key())
+        leg = os.path.join(root, LEGACY_DIR)
+        os.makedirs(leg, exist_ok=True)
+        with open(os.path.join(leg, "identity"), "wb") as f:
+            f.write(RNS.Identity(create_keys=True).get_private_key())
+        os.makedirs(new_home, exist_ok=True)
+        monkeypatch.delenv("MESHCHAT_SKIP_LEGACY_MIGRATION_UI", raising=False)
+        monkeypatch.delenv("MESHCHAT_SKIP_UPSTREAM_FOLDER_MIGRATION", raising=False)
+        with patch(
+            "meshchatx.src.backend.legacy_migrator.migrate_legacy_to_target",
+            side_effect=OSError("simulated copy failure"),
+        ):
+            eff, ctx = resolve_startup_storage(new_home)
+        assert eff == leg
+        assert ctx["show_choice"] is True
+        assert ctx.get("did_auto_upstream_folder_copy") is not True
     finally:
         shutil.rmtree(root, ignore_errors=True)
