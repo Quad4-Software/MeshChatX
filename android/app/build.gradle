@@ -163,7 +163,7 @@ chaquopy {
             options "--find-links", vendorWheelDir.absolutePath
             install "packaging>=23"
             install "aiohttp==3.13.3"
-            install "rns>=1.2.0"
+            install "rns>=1.2.1"
             install "bleak==3.0.1"
             install "lxmf>=0.9.4"
             install "numpy==1.26.2"

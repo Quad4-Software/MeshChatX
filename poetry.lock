@@ -2458,14 +2458,14 @@ jupyter = ["ipywidgets (>=7.5.1,<9)"]
 
 [[package]]
 name = "rns"
-version = "1.2.0"
+version = "1.2.1"
 description = "Self-configuring, encrypted and resilient mesh networking stack for LoRa, packet radio, WiFi and everything in between"
 optional = false
 python-versions = ">=3.7"
 groups = ["main"]
 files = [
-    {file = "rns-1.2.0-py3-none-any.whl", hash = "sha256:b58e97332241755ed32e309d46e09615a123490430ae85fcbdec9318c9e26154"},
-    {file = "rns-1.2.0.tar.gz", hash = "sha256:b34f1fc0339cfff2c53a3bc5a2420d79dbc6cd09077901828c0bc030f8da7b48"},
+    {file = "rns-1.2.1-py3-none-any.whl", hash = "sha256:5ccbfc31b528133c4dd06c132034c2151e4eed74bc2dcf40af52385094492c9e"},
+    {file = "rns-1.2.1.tar.gz", hash = "sha256:3003ec50ef08ec3556a644f27071204b1f1de5a6e0c9e0c95113657aaec6e97d"},
 ]
 
 [package.dependencies]
@@ -3376,4 +3376,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11"
-content-hash = "2790502557b4ff52072462dd3e125af028cc4ea1dba26a19af03ee7445ef2416"
+content-hash = "3c7670cdbe9e3603e41a5772a9e3dd826c405656eb546aa40fd181b0902632c7"
