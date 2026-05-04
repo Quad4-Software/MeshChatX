@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.6.0] - 2026-05-03 - Upcoming
+## [4.6.0] - 2026-05-04
 
 ### TL;DR
 
