@@ -232,6 +232,12 @@ describe("MicronWasmLoader.js", () => {
         try {
             expect(await preloadNomadMicronWasm()).toBe(false);
             invalidateNomadMicronWasmPreload();
+            globalThis.Go = class {
+                constructor() {
+                    this.importObject = {};
+                    this.run = vi.fn();
+                }
+            };
             expect(await preloadNomadMicronWasm()).toBe(false);
             expect(instantiate).toHaveBeenCalledTimes(2);
         } finally {

@@ -901,6 +901,15 @@
                                     </span>
                                 </span>
                             </label>
+                            <div v-if="micronWasmBundledInBuild" class="mt-2">
+                                <button
+                                    type="button"
+                                    class="primary-chip text-sm"
+                                    @click="micronWasmUpdateModalOpen = true"
+                                >
+                                    {{ $t("settings.micron_wasm_update_open_btn") }}
+                                </button>
+                            </div>
                             <div class="space-y-2">
                                 <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
                                     Default page path (no URL path)
@@ -2486,6 +2495,7 @@
                 </div>
             </div>
         </div>
+        <micron-wasm-update-modal v-model="micronWasmUpdateModalOpen" @saved="onMicronWasmOverrideSaved" />
     </div>
 </template>
 
@@ -2527,6 +2537,7 @@ import {
 import { normalizeRetentionValue } from "../../js/localMessageRetention";
 import { matchesSettingSearch, normalizeSearchString } from "../../js/settingsSearchUtils";
 import { isMicronWasmBundled } from "../../js/MicronWasmLoader.js";
+import MicronWasmUpdateModal from "./MicronWasmUpdateModal.vue";
 
 export default {
     name: "SettingsPage",
@@ -2537,6 +2548,7 @@ export default {
         LxmfUserIcon,
         SettingsSectionBlock,
         StickerPacksManager,
+        MicronWasmUpdateModal,
     },
     data() {
         return {
@@ -2624,6 +2636,7 @@ export default {
             reloadingRns: false,
             reloadRnsStatusMessage: "",
             searchQuery: "",
+            micronWasmUpdateModalOpen: false,
             trustedTelemetryPeers: [],
             stickerCount: 0,
             stickerImportReplaceDuplicates: false,
@@ -2747,13 +2760,15 @@ export default {
                 nomadRenderer: [
                     "NomadNet",
                     "NomadNet browser renderer",
+                    "micron-parser-go",
+                    "WASM",
+                    "SHASUMS",
+                    "micron wasm update",
                     "browser",
                     "renderer",
                     "markdown",
                     "HTML",
                     "plaintext",
-                    "WASM",
-                    "micron-parser-go",
                     "micron-parser",
                     "index.mu",
                     "index.html",
@@ -3590,6 +3605,7 @@ export default {
                 console.log(e);
             }
         },
+        onMicronWasmOverrideSaved() {},
         async onNomadDefaultPagePathChange() {
             await this.updateConfig(
                 {

@@ -3977,6 +3977,77 @@ class ReticulumMeshChat:
             except Exception as e:
                 return web.json_response({"error": str(e)}, status=500)
 
+        @routes.get("/api/v1/tools/micron-parser-go-release")
+        async def tools_micron_parser_go_release(request):
+            """Proxy Micron-Parser-Go release files from one fixed GitHub repo (CSP-safe).
+
+            Browsers cannot fetch github.com under the default connect-src; the server
+            fetches only https://github.com/Quad4-Software/Micron-Parser-Go/releases/download/{tag}/{asset}.
+            """
+            tag = (request.query.get("tag") or "").strip()
+            asset = (request.query.get("asset") or "").strip()
+            allowed_assets = frozenset({"SHASUMS256.txt", "micron-parser-go.wasm"})
+            if asset not in allowed_assets:
+                return web.json_response({"error": "Invalid asset"}, status=400)
+            if not tag or len(tag) > 128:
+                return web.json_response({"error": "Invalid tag"}, status=400)
+            if any(
+                c in tag for c in ("/", "\\", "..", "?", "#", " ", "\t", "\n", "\r")
+            ):
+                return web.json_response({"error": "Invalid tag"}, status=400)
+            if not re.fullmatch(r"v[A-Za-z0-9._-]+", tag):
+                return web.json_response({"error": "Invalid tag format"}, status=400)
+
+            upstream = (
+                "https://github.com/Quad4-Software/Micron-Parser-Go/releases/download/"
+                f"{tag}/{asset}"
+            )
+            if asset == "SHASUMS256.txt":
+                max_bytes = 64 * 1024
+            else:
+                max_bytes = 20 * 1024 * 1024
+
+            headers_out = {
+                "Cache-Control": "no-store",
+            }
+            gh_headers = {"User-Agent": "MeshChatX-MicronWasmRelease/1.0"}
+
+            try:
+                timeout = aiohttp.ClientTimeout(total=120)
+                async with aiohttp.ClientSession(timeout=timeout) as session:
+                    async with session.get(
+                        upstream, headers=gh_headers, allow_redirects=True
+                    ) as response:
+                        if response.status != 200:
+                            return web.json_response(
+                                {
+                                    "error": (
+                                        f"Upstream returned {response.status} "
+                                        f"for Micron-Parser-Go {tag}/{asset}"
+                                    )
+                                },
+                                status=502,
+                            )
+                        data = await response.read()
+                        if len(data) > max_bytes:
+                            return web.json_response(
+                                {"error": "Release asset exceeds size limit"},
+                                status=502,
+                            )
+                        if asset == "SHASUMS256.txt":
+                            return web.Response(
+                                body=data,
+                                content_type="text/plain",
+                                headers=headers_out,
+                            )
+                        return web.Response(
+                            body=data,
+                            content_type="application/wasm",
+                            headers=headers_out,
+                        )
+            except Exception as e:
+                return web.json_response({"error": str(e)}, status=502)
+
         # fetch reticulum interfaces
         @routes.get("/api/v1/reticulum/interfaces")
         async def reticulum_interfaces(request):
