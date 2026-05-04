@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.6.1] - 2026-05-04
+
+### Fixed
+
+- **Micron pages (JavaScript renderer)**: Long lines on Micron pages now wrap more reliably instead of running off the edge awkwardly.
+- **Nomad browser**: The Micron JavaScript / WebAssembly switch in the toolbar (and switching engines in general) works on every Micron page link, including ones with extra parameters in the address which caused issues.
+- **macOS app (Intel + Apple Silicon in one download)**: Building the combined Mac app could fail with a merge error because some bundled audio pieces looked identical in both halves. The build now trims native add-ons to either Apple Silicon or Intel before they are merged, and install scripts on Mac CI rebuild the miniaudio piece from source when needed so the merge step succeeds.
+
 ## [4.6.0] - 2026-05-04
 
 ### TL;DR
