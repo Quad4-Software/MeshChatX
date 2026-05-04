@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### TL;DR
 
-- **Micron WASM parser**: Go-based **WASM** parser for Micron pages that can fallback to JavaScript when WASM is unavailable, this is off by default in settings. **Micron-Parser-JS stays the default**.
+- **Micron WASM parser**: Go-based **WASM** parser for Micron pages that can fallback to JavaScript when WASM is unavailable, this is off by default in settings. **Micron-Parser-JS stays the default**. The WASM binary is upgradable in settings either fetch from GitHub releases or user can upload their own.
 - **Security and integrity**: **SRI** checks for external scripts (Codec2, RNode Flasher) and Micron WASM with build-time manifests. Release workflows emit **SLSA provenance** for **Android APK** and **Flatpak**. **`SECURITY.md`** explains attestation alongside the SRI notes.
 - **File downloads**: When you save or export things (including from archives), filenames are **cleaned up** so odd characters are less likely to break saves. You get **clearer feedback** when a download wraps up.
 - **NomadNet favourites**: You can **import** and **export** your NomadNet favourites list on a new device without retyping everything. **Contact sharing** wording is clearer across several languages.
