@@ -901,6 +901,29 @@
                                     </span>
                                 </span>
                             </label>
+                            <div
+                                v-if="micronWasmBundledInBuild && config.nomad_micron_wasm_enabled"
+                                class="space-y-2 rounded-lg border border-gray-200 bg-gray-50/80 p-3 dark:border-zinc-700 dark:bg-zinc-900/50"
+                            >
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    {{ $t("settings.nomad_micron_default_engine_title") }}
+                                </div>
+                                <p class="text-xs text-gray-600 dark:text-gray-400">
+                                    {{ $t("settings.nomad_micron_default_engine_desc") }}
+                                </p>
+                                <select
+                                    :value="config.nomad_micron_default_engine === 'wasm' ? 'wasm' : 'js'"
+                                    class="input-field max-w-xl"
+                                    @change="onNomadMicronDefaultEngineSelect($event)"
+                                >
+                                    <option value="js">
+                                        {{ $t("settings.nomad_micron_default_engine_option_js") }}
+                                    </option>
+                                    <option value="wasm">
+                                        {{ $t("settings.nomad_micron_default_engine_option_wasm") }}
+                                    </option>
+                                </select>
+                            </div>
                             <div v-if="micronWasmBundledInBuild" class="mt-2">
                                 <button
                                     type="button"
@@ -2619,7 +2642,8 @@ export default {
                 nomad_render_markdown_enabled: true,
                 nomad_render_html_enabled: true,
                 nomad_render_plaintext_enabled: true,
-                nomad_micron_wasm_enabled: false,
+                nomad_micron_wasm_enabled: true,
+                nomad_micron_default_engine: "js",
                 nomad_default_page_path: "/page/index.mu",
                 local_message_auto_delete_enabled: false,
                 local_message_auto_delete_value: 30,
@@ -2773,6 +2797,8 @@ export default {
                     "index.mu",
                     "index.html",
                     "default page",
+                    "settings.nomad_micron_default_engine_title",
+                    "settings.nomad_micron_default_engine_desc",
                 ],
                 crawler: ["Discovery", "Smart Crawler", "crawler", "crawl", "retries", "delay", "concurrent"],
                 csp: [
@@ -3601,6 +3627,23 @@ export default {
                 this.syncLxmfTransferLimitInputs();
             } catch (e) {
                 this.config.nomad_micron_wasm_enabled = prev;
+                ToastUtils.error(this.$t("common.save_failed"));
+                console.log(e);
+            }
+        },
+        async onNomadMicronDefaultEngineSelect(ev) {
+            const v = ev.target.value === "wasm" ? "wasm" : "js";
+            const prev = this.config.nomad_micron_default_engine === "wasm" ? "wasm" : "js";
+            if (v === prev) {
+                return;
+            }
+            try {
+                const newConfig = await patchServerConfig({ nomad_micron_default_engine: v }, window.api);
+                this.config = newConfig;
+                normalizeConfigColors(this.config);
+                this.syncLxmfTransferLimitInputs();
+            } catch (e) {
+                ev.target.value = prev;
                 ToastUtils.error(this.$t("common.save_failed"));
                 console.log(e);
             }

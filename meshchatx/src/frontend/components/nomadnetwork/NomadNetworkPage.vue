@@ -163,14 +163,15 @@
                                         <button
                                             class="flex-1 rounded px-2 py-1 text-[10px] font-bold transition-colors"
                                             :class="
-                                                !GlobalState.config.nomad_micron_wasm_enabled
+                                                (GlobalState.config.nomad_micron_default_engine || 'js') === 'js'
                                                     ? 'bg-blue-600 text-white dark:bg-blue-500'
                                                     : 'bg-[var(--mc-surface-hover)] text-[var(--mc-text-secondary)] hover:bg-[var(--mc-border-strong)]'
                                             "
+                                            :disabled="!GlobalState.config.nomad_micron_wasm_enabled"
                                             @click.stop="
-                                                !GlobalState.config.nomad_micron_wasm_enabled
+                                                (GlobalState.config.nomad_micron_default_engine || 'js') === 'js'
                                                     ? null
-                                                    : toggleMicronWasm()
+                                                    : applyNomadMicronDefaultEngine('js')
                                             "
                                         >
                                             JS
@@ -178,12 +179,15 @@
                                         <button
                                             class="flex-1 rounded px-2 py-1 text-[10px] font-bold transition-colors"
                                             :class="
-                                                GlobalState.config.nomad_micron_wasm_enabled
+                                                (GlobalState.config.nomad_micron_default_engine || 'js') === 'wasm'
                                                     ? 'bg-blue-600 text-white dark:bg-blue-500'
                                                     : 'bg-[var(--mc-surface-hover)] text-[var(--mc-text-secondary)] hover:bg-[var(--mc-border-strong)]'
                                             "
+                                            :disabled="!GlobalState.config.nomad_micron_wasm_enabled"
                                             @click.stop="
-                                                GlobalState.config.nomad_micron_wasm_enabled ? null : toggleMicronWasm()
+                                                (GlobalState.config.nomad_micron_default_engine || 'js') === 'wasm'
+                                                    ? null
+                                                    : applyNomadMicronDefaultEngine('wasm')
                                             "
                                         >
                                             WASM
@@ -292,14 +296,14 @@
                             </DropDownMenuItem>
                             <DropDownMenuItem
                                 v-if="showMicronRendererInMobileMenu"
-                                @click="applyNomadMicronWasmEnabled(false)"
+                                @click="applyNomadMicronDefaultEngine('js')"
                             >
                                 <MaterialDesignIcon icon-name="language-javascript" class="size-5" />
                                 <span>{{ $t("nomadnet.renderer_menu_js") }}</span>
                             </DropDownMenuItem>
                             <DropDownMenuItem
                                 v-if="showMicronRendererInMobileMenu"
-                                @click="applyNomadMicronWasmEnabled(true)"
+                                @click="applyNomadMicronDefaultEngine('wasm')"
                             >
                                 <MaterialDesignIcon icon-name="memory" class="size-5" />
                                 <span>{{ $t("nomadnet.renderer_menu_wasm") }}</span>
@@ -677,20 +681,24 @@ export default {
             return "https://git.quad4.io/Go-Libs/micron-parser-go";
         },
         nomadMicronWasmActive() {
+            const engineWasm = (GlobalState.config?.nomad_micron_default_engine || "js") === "wasm";
             return (
                 this.nomadMicronWasmFeatureEffective &&
                 this.nomadMicronWasmReady === true &&
-                typeof globalThis.micronConvert === "function"
+                typeof globalThis.micronConvert === "function" &&
+                engineWasm
             );
         },
         nomadRenderOptions() {
             const c = GlobalState.config || {};
+            const engineWasm = (c.nomad_micron_default_engine || "js") === "wasm";
             return {
                 renderMarkdown: c.nomad_render_markdown_enabled !== false,
                 renderHtml: c.nomad_render_html_enabled !== false,
                 renderPlaintext: c.nomad_render_plaintext_enabled !== false,
                 nomadDestinationHash: this.selectedNode?.destination_hash || null,
-                nomad_micron_wasm_use: this.nomadMicronWasmFeatureEffective && this.nomadMicronWasmReady === true,
+                nomad_micron_wasm_use:
+                    this.nomadMicronWasmFeatureEffective && this.nomadMicronWasmReady === true && engineWasm,
             };
         },
         /**
@@ -726,7 +734,9 @@ export default {
                         micronGoRelease,
                     };
                 }
-                const wasmPreferred = this.nomadMicronWasmFeatureEffective;
+                const wasmPreferred =
+                    this.nomadMicronWasmFeatureEffective &&
+                    (GlobalState.config?.nomad_micron_default_engine || "js") === "wasm";
                 if (wasmPreferred && !this.nomadMicronWasmReady) {
                     return {
                         label: this.$t("nomadnet.renderer_chip_micron_js"),
@@ -903,6 +913,19 @@ export default {
             }
         );
 
+        this.$watch(
+            () => GlobalState.config?.nomad_micron_default_engine,
+            () => {
+                if (this.nodePageContent && this.nodePagePath && this.nodePagePath.toLowerCase().endsWith(".mu")) {
+                    const content = this.nodePageContent;
+                    this.nodePageContent = null;
+                    this.$nextTick(() => {
+                        this.nodePageContent = content;
+                    });
+                }
+            }
+        );
+
         if (isMicronWasmBundled() && GlobalState.config?.nomad_micron_wasm_enabled === true) {
             preloadNomadMicronWasm().then((ok) => {
                 this.nomadMicronWasmReady = ok === true;
@@ -973,23 +996,20 @@ export default {
             }
             return content.startsWith("Failed loading page:");
         },
-        async toggleMicronWasm() {
+        async applyNomadMicronDefaultEngine(engine) {
             if (!isMicronWasmBundled()) {
                 return;
             }
-            await this.applyNomadMicronWasmEnabled(!GlobalState.config.nomad_micron_wasm_enabled);
-        },
-        async applyNomadMicronWasmEnabled(useWasm) {
-            if (!isMicronWasmBundled()) {
+            if (!GlobalState.config?.nomad_micron_wasm_enabled) {
                 return;
             }
-            const newValue = Boolean(useWasm);
-            if (Boolean(GlobalState.config?.nomad_micron_wasm_enabled) === newValue) {
+            const next = engine === "wasm" ? "wasm" : "js";
+            if ((GlobalState.config?.nomad_micron_default_engine || "js") === next) {
                 return;
             }
             try {
-                const next = await patchServerConfig({ nomad_micron_wasm_enabled: newValue }, window.api);
-                mergeGlobalConfig(next);
+                const cfg = await patchServerConfig({ nomad_micron_default_engine: next }, window.api);
+                mergeGlobalConfig(cfg);
                 if (this.nodePageContent && this.nodePagePath && this.nodePagePath.toLowerCase().endsWith(".mu")) {
                     const content = this.nodePageContent;
                     this.nodePageContent = null;
@@ -998,7 +1018,7 @@ export default {
                     });
                 }
             } catch (e) {
-                console.error("Failed to update Micron WASM preference", e);
+                console.error("Failed to update Micron default engine", e);
                 ToastUtils.error(this.$t("nomadnet.renderer_setting_failed"));
             }
         },

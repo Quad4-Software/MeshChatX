@@ -273,21 +273,25 @@ export default {
             return isMicronWasmBundled() && (GlobalState.config || {}).nomad_micron_wasm_enabled === true;
         },
         nomadMicronWasmActive() {
+            const engineWasm = (GlobalState.config?.nomad_micron_default_engine || "js") === "wasm";
             return (
                 this.nomadMicronWasmFeatureEffective &&
                 this.nomadMicronWasmReady === true &&
-                typeof globalThis.micronConvert === "function"
+                typeof globalThis.micronConvert === "function" &&
+                engineWasm
             );
         },
         nomadRenderOptions() {
             const c = GlobalState.config || {};
             const hash = this.viewingArchive?.destination_hash || null;
+            const engineWasm = (c.nomad_micron_default_engine || "js") === "wasm";
             return {
                 renderMarkdown: c.nomad_render_markdown_enabled !== false,
                 renderHtml: c.nomad_render_html_enabled !== false,
                 renderPlaintext: c.nomad_render_plaintext_enabled !== false,
                 nomadDestinationHash: hash,
-                nomad_micron_wasm_use: this.nomadMicronWasmFeatureEffective && this.nomadMicronWasmReady === true,
+                nomad_micron_wasm_use:
+                    this.nomadMicronWasmFeatureEffective && this.nomadMicronWasmReady === true && engineWasm,
             };
         },
         selectedNode() {
@@ -384,6 +388,16 @@ export default {
                 }
                 invalidateNomadMicronWasmPreload();
                 this.nomadMicronWasmReady = await preloadNomadMicronWasm();
+                const a = this.viewingArchive;
+                if (a) {
+                    this.renderedContent = this.renderFullContent(a);
+                }
+            }
+        );
+
+        this.$watch(
+            () => GlobalState.config?.nomad_micron_default_engine,
+            () => {
                 const a = this.viewingArchive;
                 if (a) {
                     this.renderedContent = this.renderFullContent(a);

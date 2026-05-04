@@ -13110,6 +13110,15 @@ class ReticulumMeshChat:
             self.config.nomad_micron_wasm_enabled.set(
                 self._parse_bool(data["nomad_micron_wasm_enabled"]),
             )
+            if not self.config.nomad_micron_wasm_enabled.get():
+                self.config.nomad_micron_default_engine.set("js")
+
+        if "nomad_micron_default_engine" in data:
+            if self.config.nomad_micron_wasm_enabled.get():
+                raw = str(data["nomad_micron_default_engine"] or "").strip().lower()
+                self.config.nomad_micron_default_engine.set(
+                    "wasm" if raw == "wasm" else "js"
+                )
 
         if "nomad_default_page_path" in data:
             from meshchatx.src.backend.page_node import is_allowed_page_filename
@@ -14592,6 +14601,8 @@ class ReticulumMeshChat:
             "nomad_render_html_enabled": ctx.config.nomad_render_html_enabled.get(),
             "nomad_render_plaintext_enabled": ctx.config.nomad_render_plaintext_enabled.get(),
             "nomad_micron_wasm_enabled": ctx.config.nomad_micron_wasm_enabled.get(),
+            "nomad_micron_default_engine": ctx.config.nomad_micron_default_engine.get()
+            or "js",
             "nomad_default_page_path": ctx.config.nomad_default_page_path.get(),
             "local_message_auto_delete_enabled": ctx.config.local_message_auto_delete_enabled.get(),
             "local_message_auto_delete_value": ctx.config.local_message_auto_delete_value.get(),
