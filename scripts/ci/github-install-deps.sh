@@ -32,11 +32,56 @@ python -m poetry check --lock
 python -m poetry install --no-interaction --no-ansi
 python -m poetry run python scripts/patch_lxst_pyogg_ogg_ctypes.py
 
-# Python 3.14 may install miniaudio from sdist; a mis-linked x86_64-only
-# _miniaudio.abi3.so in the arm64 cx_Freeze tree differs from the x64 slice and
-# breaks @electron/universal (lipo cannot merge two x86_64-only Mach-O files).
-if [[ "$(uname -s)" == "Darwin" && "$(uname -m)" == "arm64" ]]; then
-    if ! poetry run python -c "
+if [[ "$(uname -s)" == "Darwin" ]]; then
+    if poetry run python -c "import platform, sys; sys.exit(0 if platform.machine() == 'arm64' else 1)"; then
+        _miniaudio_state="$(poetry run python -c "
+import importlib.util
+import pathlib
+import subprocess
+import sys
+
+spec = importlib.util.find_spec('miniaudio')
+if not spec or not spec.origin:
+    print('missing')
+    sys.exit(0)
+so = pathlib.Path(spec.origin).resolve().parent / '_miniaudio.abi3.so'
+if not so.is_file():
+    print('missing')
+    sys.exit(0)
+out = subprocess.check_output(['file', str(so)], text=True)
+has_arm = 'arm64' in out
+has_x86 = 'x86_64' in out
+if not has_arm and has_x86:
+    print('x86only')
+elif has_arm and has_x86:
+    print('universal')
+elif has_arm and not has_x86:
+    print('arm64only')
+else:
+    print('unknown')
+" 2>/dev/null || echo "missing")"
+        case "$_miniaudio_state" in
+            x86only)
+                echo "miniaudio _miniaudio.abi3.so is x86_64-only on arm64 venv; rebuilding from source." >&2
+                _need_rebuild=1
+                ;;
+            universal)
+                echo "miniaudio _miniaudio.abi3.so is universal2; rebuilding as arm64-only so @electron/universal can lipo with the x64 slice." >&2
+                _need_rebuild=1
+                ;;
+            *)
+                _need_rebuild=0
+                ;;
+        esac
+        if [[ "${_need_rebuild:-0}" == "1" ]]; then
+            (
+                export ARCHFLAGS="-arch arm64"
+                export CFLAGS="-arch arm64"
+                export CXXFLAGS="-arch arm64"
+                poetry run python -m pip install --force-reinstall --no-cache-dir --no-binary miniaudio "miniaudio>=1.70,<2"
+            )
+        fi
+        if ! poetry run python -c "
 import importlib.util
 import pathlib
 import subprocess
@@ -49,17 +94,19 @@ so = pathlib.Path(spec.origin).resolve().parent / '_miniaudio.abi3.so'
 if not so.is_file():
     sys.exit(0)
 out = subprocess.check_output(['file', str(so)], text=True)
-if 'x86_64' in out and 'arm64' not in out:
+if 'arm64' not in out:
+    sys.stderr.write(out)
     sys.exit(1)
 sys.exit(0)
 "; then
-        echo "Rebuilding miniaudio for arm64 (was x86_64-only)." >&2
-        (
-            export ARCHFLAGS="-arch arm64"
-            export CFLAGS="-arch arm64 ${CFLAGS:-}"
-            export CXXFLAGS="-arch arm64 ${CXXFLAGS:-}"
-            poetry run python -m pip install --force-reinstall --no-cache-dir --no-binary miniaudio "miniaudio>=1.70,<2"
-        )
+            if [[ "${MESHCHATX_MAC_UNIVERSAL_STRIP_AUDIO:-0}" == "1" ]]; then
+                echo "miniaudio native extension is not arm64-capable, but MESHCHATX_MAC_UNIVERSAL_STRIP_AUDIO=1 is set; continuing (the build will drop _miniaudio.abi3.so before lipo)." >&2
+            else
+                echo "miniaudio native extension is not arm64-capable; universal macOS builds will fail at lipo." >&2
+                echo "Re-run with MESHCHATX_MAC_UNIVERSAL_STRIP_AUDIO=1 to drop optional audio decoding for the DMG." >&2
+                exit 1
+            fi
+        fi
     fi
 fi
 
