@@ -82,7 +82,7 @@ pycparser 3.0
 pyserial 3.5
   License: BSD
   Author: Chris Liechti
-reticulum-meshchatx 4.6.0
+reticulum-meshchatx 4.6.1
   License: 0BSD AND MIT
   Author: Quad4
 rns 1.2.0

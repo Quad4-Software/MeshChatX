@@ -340,7 +340,7 @@ task build:all
 
 ## バージョン管理
 
-このリポジトリの現在のバージョンは `4.6.0` です。
+このリポジトリの現在のバージョンは `4.6.1` です。
 
 - リリースのバージョン上げは **`package.json` の `version` のみ**編集します。
 - **`pnpm run version:sync`**（**`pnpm run build`** 開始時にも実行）で、**`pyproject.toml`**、**`meshchatx/src/version.py`**、**`THIRD_PARTY_NOTICES.txt`**（製品行）、**README** / **lang/README.\***（現在のバージョン行）、**`docs/meshchatx_on_raspberry_pi.md`** の pipx 例、**`packaging/arch/PKGBUILD`** の補助フィールドに反映します。

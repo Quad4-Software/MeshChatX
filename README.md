@@ -355,7 +355,7 @@ task build:all
 
 ## Versioning
 
-Current version in this repo is `4.6.0`.
+Current version in this repo is `4.6.1`.
 
 - **`package.json`** `version` is the only value you edit for a release bump.
 - Run **`pnpm run version:sync`** (also run at the start of **`pnpm run build`**) to propagate that version into **`pyproject.toml`**, **`meshchatx/src/version.py`**, **`THIRD_PARTY_NOTICES.txt`** (product line), **README** / **lang/README.\*** “current version” lines, **`docs/meshchatx_on_raspberry_pi.md`** pipx example, and **`packaging/arch/PKGBUILD`** helpers.
