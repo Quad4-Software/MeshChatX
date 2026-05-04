@@ -151,7 +151,7 @@
                                 </template>
 
                                 <div
-                                    v-if="wasmBundled && (nodePagePath || '').toLowerCase().endsWith('.mu')"
+                                    v-if="showMicronRendererInMobileMenu"
                                     class="mt-2 pt-2 border-t border-[var(--mc-border-strong)] flex flex-col gap-1.5"
                                 >
                                     <div
@@ -757,12 +757,22 @@ export default {
             }
             return null;
         },
-        showMicronRendererInMobileMenu() {
-            if (!this.wasmBundled || !this.selectedNode || !this.nodePagePath || this.isShowingNodePageSource) {
+        /**
+         * True when the loaded Nomad URL points at a .mu page. Strips Nomad ` suffix
+         * (e.g. /page/foo.mu`g=reticulum|...) so engine switching matches the renderer chip.
+         */
+        nodePagePathIsMicronMu() {
+            if (!this.nodePagePath) {
                 return false;
             }
             const [p] = this.nodePagePath.split("`");
             return (p || "").toLowerCase().endsWith(".mu");
+        },
+        showMicronRendererInMobileMenu() {
+            if (!this.wasmBundled || !this.selectedNode || !this.nodePagePath || this.isShowingNodePageSource) {
+                return false;
+            }
+            return this.nodePagePathIsMicronMu;
         },
         blockedDestinations() {
             return GlobalState.blockedDestinations;
@@ -916,7 +926,7 @@ export default {
         this.$watch(
             () => GlobalState.config?.nomad_micron_default_engine,
             () => {
-                if (this.nodePageContent && this.nodePagePath && this.nodePagePath.toLowerCase().endsWith(".mu")) {
+                if (this.nodePageContent && this.nodePagePathIsMicronMu) {
                     const content = this.nodePageContent;
                     this.nodePageContent = null;
                     this.$nextTick(() => {
@@ -1010,7 +1020,7 @@ export default {
             try {
                 const cfg = await patchServerConfig({ nomad_micron_default_engine: next }, window.api);
                 mergeGlobalConfig(cfg);
-                if (this.nodePageContent && this.nodePagePath && this.nodePagePath.toLowerCase().endsWith(".mu")) {
+                if (this.nodePageContent && this.nodePagePathIsMicronMu) {
                     const content = this.nodePageContent;
                     this.nodePageContent = null;
                     this.$nextTick(() => {

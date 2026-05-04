@@ -180,6 +180,19 @@ describe("NomadNetworkPage.vue", () => {
             });
             expect(wrapper.vm.showMicronRendererInMobileMenu).toBe(false);
         });
+
+        it("is true on .mu page when URL has Nomad data suffix after backtick", async () => {
+            const dest = "e".repeat(32);
+            const wrapper = mountNomadNetworkPage();
+            await wrapper.setData({
+                wasmBundled: true,
+                selectedNode: { destination_hash: dest, display_name: "N" },
+                nodePagePath: `${dest}:/page/repo.mu\`g=reticulum|r=nomadnet`,
+                isShowingNodePageSource: false,
+            });
+            expect(wrapper.vm.nodePagePathIsMicronMu).toBe(true);
+            expect(wrapper.vm.showMicronRendererInMobileMenu).toBe(true);
+        });
     });
 
     describe("partials", () => {
