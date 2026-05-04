@@ -1082,6 +1082,10 @@
         },
         {
             "method": "GET",
+            "path": "/api/v1/tools/micron-parser-go-release"
+        },
+        {
+            "method": "GET",
             "path": "/api/v1/tools/rnode/download_firmware"
         },
         {
