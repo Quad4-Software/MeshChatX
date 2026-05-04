@@ -200,7 +200,9 @@ export default class MicronParser extends BaseMicronParser {
             .Mu-mnt-group {
                 display: inline;
                 font-family: inherit;
-                white-space: pre;
+                white-space: pre-wrap;
+                overflow-wrap: anywhere;
+                word-break: break-word;
                 text-decoration: inherit;
                 vertical-align: baseline;
                 line-height: 1.25;
