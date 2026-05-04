@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### TL;DR
 
-- **Micron WASM parser**: Go-based **WASM** parser for Micron pages that can fallback to JavaScript when WASM is unavailable, this is off by default in settings. **Micron-Parser-JS stays the default**. The WASM binary is upgradable in settings either fetch from GitHub releases or user can upload their own.
+- **Micron WASM parser**: Go-based **WASM** parser for Micron pages that falls back to JavaScript when WASM is unavailable or disabled. **Micron Parser JS stays the default renderer**. The **WASM engine** can stay enabled for updates while you choose **JavaScript or WebAssembly** as the default in settings or from the Nomad browser toolbar. The WASM binary is upgradable in settings (GitHub releases or local upload).
 - **Security and integrity**: **SRI** checks for external scripts (Codec2, RNode Flasher) and Micron WASM with build-time manifests. Release workflows emit **SLSA provenance** for **Android APK** and **Flatpak**. **`SECURITY.md`** explains attestation alongside the SRI notes.
 - **File downloads**: When you save or export things (including from archives), filenames are **cleaned up** so odd characters are less likely to break saves. You get **clearer feedback** when a download wraps up.
 - **NomadNet favourites**: You can **import** and **export** your NomadNet favourites list on a new device without retyping everything. **Contact sharing** wording is clearer across several languages.
@@ -22,10 +22,10 @@ All notable changes to this project will be documented in this file.
 - **Storage migration**: Reworked **legacy storage** migration with an **API**, **tutorial** choices, automatic **upstream folder** moves where needed, and aligned **Docker**, **Electron**, and test paths for old layouts.
 - **Release CI**: Optional **Bunny Storage** uploads for release assets and clearer **tag resolution** in the main release workflow.
 
-### Micron WASM parser
+### Micron WASM parser (Micron-Parser-Go)
 
-- **Micron-Parser-Go WASM**: Go-based WASM implementation for Micron page parsing with **word wrapping**, **space splitting**, and **ForceMonospace** CSS injection. **Micron Parser Go** is pinned to **v1.0.4** in integrity tooling.
-- **Configuration**: Toggle for **Micron WASM support** in settings (default **off** for compatibility). **`micron_parser_go_version`** config option controls the WASM binary version.
+- **Micron-Parser-Go WASM**: Go-based WASM implementation for Micron page parsing with **word wrapping**, **space splitting**, and **ForceMonospace** CSS injection. **Micron Parser Go** is pinned to **v1.0.5**.
+- **Configuration**: **Micron WASM engine** toggle (default **on**) allows loading and updating the WASM build. **`nomad_micron_default_engine`** (`js` or `wasm`, default **`js`**) sets the default Micron renderer separately from the toolbar. **`micron_parser_go_version`** pins the WASM binary version.
 - **Dynamic loading**: WASM binary fetched and cached with **SRI verification** against **`integrity.json`** manifests.
 - **Fallback behavior**: Graceful fallback to JavaScript parser when WASM is unavailable or fails to load.
 - **Docker support**: Scripts fetch and resolve Micron WASM binaries during Docker builds with version pinning.
