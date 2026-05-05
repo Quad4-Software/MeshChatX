@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import mimetypes
 import os
 import sys
@@ -23,6 +24,74 @@ def mime_for(path: Path) -> str:
         return "application/wasm"
     guessed, _enc = mimetypes.guess_type(path.name)
     return guessed or "application/octet-stream"
+
+
+def get_json(url: str, access_key: str, timeout: int = 120) -> object:
+    req = urllib.request.Request(
+        url,
+        method="GET",
+        headers={"AccessKey": access_key},
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        body = resp.read()
+    return json.loads(body.decode("utf-8"))
+
+
+def delete_path(url: str, access_key: str, timeout: int = 120) -> None:
+    req = urllib.request.Request(
+        url,
+        method="DELETE",
+        headers={"AccessKey": access_key},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            code = resp.getcode()
+    except urllib.error.HTTPError as e:
+        code = e.code
+        if code == 404:
+            return
+        e.read(500)
+        raise SystemExit(f"HTTP {code} DELETE {url}") from e
+    else:
+        if code not in (200, 201, 204):
+            raise SystemExit(f"unexpected DELETE status {code} for {url}")
+
+
+def prune_other_versions(
+    base: str,
+    access_key: str,
+    track: str,
+    keep_version: str,
+) -> None:
+    """Remove every version directory under ``track/`` except ``keep_version``."""
+    base = base.rstrip("/")
+    list_url = f"{base}/{encode_object_rel(track)}/"
+    try:
+        listing = get_json(list_url, access_key)
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return
+        raise
+    if not isinstance(listing, list):
+        return
+    seen: set[str] = set()
+    for item in listing:
+        if not isinstance(item, dict):
+            continue
+        if not item.get("IsDirectory"):
+            continue
+        name = item.get("ObjectName")
+        if not name or not isinstance(name, str):
+            continue
+        if name in seen:
+            continue
+        seen.add(name)
+        if name == keep_version:
+            continue
+        rel = f"{track}/{name}"
+        delete_url = f"{base}/{encode_object_rel(rel)}"
+        print(f"prune: DELETE {delete_url}", file=sys.stderr)
+        delete_path(delete_url, access_key)
 
 
 def put_file(
@@ -80,6 +149,10 @@ def main() -> None:
             file=sys.stderr,
         )
         sys.exit(1)
+    if prefix:
+        seg = prefix.split("/", 1)
+        if len(seg) == 2 and seg[0] in ("master", "dev"):
+            prune_other_versions(base, key, seg[0], seg[1])
     root = Path(sys.argv[1]).resolve()
     if not root.is_dir():
         print(f"not a directory: {root}", file=sys.stderr)

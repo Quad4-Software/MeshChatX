@@ -1,6 +1,7 @@
 # Build multi-arch image, push to GHCR, and keyless-sign the manifest (Cosign).
 # Optionally also push to Docker Hub when credentials are configured (fork-friendly).
-# Runs on push to dev (tags :dev and :sha-*), tags (semver tags), and workflow_dispatch.
+# Runs on push to main/master (tags :latest and :sha-*), dev (tags :dev and :sha-*),
+# tags (semver tags + :latest), and workflow_dispatch.
 #
 # Optional Docker Hub (same tag set as GHCR):
 #   Repository secrets (both required to enable Hub push; omit either to skip):
@@ -31,6 +32,8 @@ on:
     workflow_dispatch:
     push:
         branches:
+            - main
+            - master
             - dev
         tags:
             - "*"

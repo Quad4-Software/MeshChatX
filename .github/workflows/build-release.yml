@@ -2,7 +2,8 @@
 # builds, Flatpak, Android APKs (dev/master track tags via android-apk-tag.yml), SLSA
 # provenance (generic generator: Linux, desktop, optional Android+Flatpak), optional cosign bundles, and one draft GitHub release.
 # Optional: same draft ``upload/`` tree is mirrored to bunny.net Edge Storage for master/dev
-# tags when ``BUNNY_STORAGE_ACCESS_KEY`` is set (see draft job).
+# tags when ``BUNNY_STORAGE_ACCESS_KEY`` is set (see draft job). ``-rc`` tags always use the
+# ``dev/`` prefix; previous release folders under ``master/`` and ``dev/`` are pruned after each upload.
 # One workflow run per tag keeps the release graph immutable.
 #
 # Pinned first-party actions (bump tag and SHA together when upgrading):
@@ -698,5 +699,10 @@ jobs:
                     exit 0
                   fi
                   export BUNNY_STORAGE_BASE_URL="${BUNNY_STORAGE_BASE_URL:-https://la.storage.bunnycdn.com/meshchatx}"
-                  export BUNNY_STORAGE_OBJECT_PREFIX="${BUNNY_RELEASE_TRACK}/${GITHUB_REF_NAME}"
+                  _ref_lc="${GITHUB_REF_NAME,,}"
+                  if [[ "${_ref_lc}" == *"-rc"* ]]; then
+                    export BUNNY_STORAGE_OBJECT_PREFIX="dev/${GITHUB_REF_NAME}"
+                  else
+                    export BUNNY_STORAGE_OBJECT_PREFIX="${BUNNY_RELEASE_TRACK}/${GITHUB_REF_NAME}"
+                  fi
                   python3 scripts/ci/github-upload-bunny-storage-release-assets.py upload

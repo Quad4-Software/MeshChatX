@@ -30,6 +30,7 @@ esac
 case "$REF" in
     refs/tags/v*)
         VERSION="${REF#refs/tags/v}"
+        echo "-t ${IMAGE}:latest" >> "$OUTPUT"
         echo "-t ${IMAGE}:${VERSION}" >> "$OUTPUT"
         echo "-t ${IMAGE}:v${VERSION}" >> "$OUTPUT"
         MAJOR_MINOR="$(echo "$VERSION" | cut -d. -f1-2)"
@@ -40,6 +41,7 @@ case "$REF" in
         ;;
     refs/tags/*)
         TAG="${REF#refs/tags/}"
+        echo "-t ${IMAGE}:latest" >> "$OUTPUT"
         echo "-t ${IMAGE}:${TAG}" >> "$OUTPUT"
         ;;
 esac
