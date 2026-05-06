@@ -26,6 +26,7 @@ from .commands import Command
 from .config import BotConfig
 from .events import Event, EventManager, EventPriority
 from .help import HelpSystem
+from .lxmf_fields import FIELD_RESULTS, pack_result, unpack_commands
 from .middleware import MiddlewareContext, MiddlewareManager, MiddlewareType
 from .moderation import SpamProtection
 from .nlp import IntentClassifier
@@ -481,14 +482,89 @@ class LXMFBot:
 
             self._reset_delivery_attempts(sender)
 
+    def _execute_command(self, cmd_name: str, args: list, msg) -> bool:
+        """Execute a registered command by name.
+
+        Returns:
+            True if the command was found and executed (or raised an error),
+            False if no command with that name exists.
+
+        """
+        if cmd_name not in self.commands:
+            return False
+
+        cmd = self.commands[cmd_name]
+
+        if not self.permissions.has_permission(msg.sender, cmd.permissions):
+            self.send(msg.sender, "You don't have permission to use this command.")
+            return True
+
+        try:
+            sig = inspect.signature(cmd.callback)
+            params = list(sig.parameters.values())
+
+            converted_args = []
+            for i, arg_val in enumerate(args):
+                param_idx = i + 1
+                if param_idx < len(params):
+                    param = params[param_idx]
+                    annotation = param.annotation
+                    if (
+                        annotation != inspect.Parameter.empty
+                        and hasattr(annotation, "__call__")
+                        and not isinstance(annotation, str)
+                    ):
+                        try:
+                            converted_args.append(annotation(arg_val))
+                        except (ValueError, TypeError):
+                            converted_args.append(arg_val)
+                    else:
+                        converted_args.append(arg_val)
+                else:
+                    converted_args.append(arg_val)
+
+            msg.args = converted_args
+            msg.is_admin = msg.sender in self.admins
+
+            if cmd.threaded:
+                self.thread_pool.submit(cmd.callback, msg)
+            else:
+                cmd.callback(msg)
+
+            self.middleware.execute(MiddlewareType.POST_COMMAND, msg)
+            return True
+
+        except Exception as e:
+            self.logger.error(
+                "Error executing command %s: %s",
+                cmd_name,
+                str(e),
+            )
+            self.send(msg.sender, f"Error executing command: {e}")
+            return True
+
     def _process_message(self, message, sender):
         """Process an incoming message."""
         try:
-            content = message.content.decode("utf-8")
+            content = message.content.decode("utf-8") if message.content else ""
             receipt = RNS.hexrep(message.hash, delimit=False)
+            msg_fields = getattr(message, "fields", None) or {}
+
+            field_commands = unpack_commands(msg_fields)
+            request_id = None
+            if field_commands:
+                request_id = field_commands[0].get("request_id")
+            has_field_commands = bool(field_commands)
 
             def reply(response, **kwargs):
                 """Helper function to reply to a message."""
+                lxmf_fields = kwargs.pop("lxmf_fields", None) or {}
+                if has_field_commands or request_id is not None:
+                    lxmf_fields[FIELD_RESULTS] = pack_result(
+                        response, request_id, kwargs.pop("status", "ok")
+                    )
+                if lxmf_fields:
+                    kwargs["lxmf_fields"] = lxmf_fields
                 self.send(sender, response, **kwargs)
 
             if self.config.first_message_enabled:
@@ -518,6 +594,8 @@ class LXMFBot:
                 "sender": sender,
                 "content": content,
                 "hash": receipt,
+                "fields": msg_fields,
+                "request_id": request_id,
             }
             msg = SimpleNamespace(**msg_ctx)
 
@@ -525,67 +603,30 @@ class LXMFBot:
             if self.middleware.execute(MiddlewareType.PRE_COMMAND, ctx) is None:
                 return
 
+            # Process structured commands from LXMF fields
+            if getattr(self.config, "lxmf_commands_enabled", True) and field_commands:
+                for cmd_data in field_commands:
+                    cmd_name = cmd_data.get("command") or cmd_data.get("cmd")
+                    cmd_args = cmd_data.get("args", [])
+                    if isinstance(cmd_args, str):
+                        cmd_args = [cmd_args]
+                    if not isinstance(cmd_args, list):
+                        cmd_args = []
+                    if self._execute_command(cmd_name, cmd_args, msg):
+                        return
+                    else:
+                        reply(f"Unknown command: {cmd_name}", status="error")
+                        return
+
             if self.command_prefix is None or content.startswith(self.command_prefix):
                 command_name = (
                     content.split()[0][len(self.command_prefix) :]
                     if self.command_prefix
                     else content.split()[0]
                 )
-                if command_name in self.commands:
-                    cmd = self.commands[command_name]
-
-                    if not self.permissions.has_permission(sender, cmd.permissions):
-                        self.send(
-                            sender,
-                            "You don't have permission to use this command.",
-                        )
-                        return
-
-                    try:
-                        args = content.split()[1:] if len(content.split()) > 1 else []
-
-                        sig = inspect.signature(cmd.callback)
-                        params = list(sig.parameters.values())
-
-                        converted_args = []
-                        for i, arg_val in enumerate(args):
-                            param_idx = i + 1
-                            if param_idx < len(params):
-                                param = params[param_idx]
-                                annotation = param.annotation
-                                if (
-                                    annotation != inspect.Parameter.empty
-                                    and hasattr(annotation, "__call__")
-                                    and not isinstance(annotation, str)
-                                ):
-                                    try:
-                                        converted_args.append(annotation(arg_val))
-                                    except (ValueError, TypeError):
-                                        converted_args.append(arg_val)
-                                else:
-                                    converted_args.append(arg_val)
-                            else:
-                                converted_args.append(arg_val)
-
-                        msg.args = converted_args
-                        msg.is_admin = sender in self.admins
-
-                        if cmd.threaded:
-                            self.thread_pool.submit(cmd.callback, msg)
-                        else:
-                            cmd.callback(msg)
-
-                        self.middleware.execute(MiddlewareType.POST_COMMAND, msg)
-                        return
-
-                    except Exception as e:
-                        self.logger.error(
-                            "Error executing command %s: %s",
-                            command_name,
-                            str(e),
-                        )
-                        self.send(sender, "Error executing command: %s", str(e))
-                        return
+                args = content.split()[1:] if len(content.split()) > 1 else []
+                if self._execute_command(command_name, args, msg):
+                    return
 
             # NLP Intent matching
             if self.config.nlp_enabled:

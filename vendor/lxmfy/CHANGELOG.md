@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.6.3] - 2026-05-06
+
+### Features
+- **LXMF FIELD_COMMANDS / FIELD_RESULTS support**: Bots can now receive structured commands and requests sent via LXMF message fields (`FIELD_COMMANDS = 0x09`) and automatically reply with results (`FIELD_RESULTS = 0x0A`).
+  - `unpack_commands(fields)` helper parses `FIELD_COMMANDS` whether sent as a single dict or a list of dicts.
+  - `pack_result(result, request_id, status)` helper builds `FIELD_RESULTS` reply payloads.
+  - Incoming field commands are routed through the existing command registry, sharing the same permission checks, type-hinted argument parsing, threading, and middleware hooks as text commands.
+  - `ctx.reply("...")` automatically includes `FIELD_RESULTS` in the outgoing LXMF message when responding to a field command. If the incoming command contained a `request_id`, it is preserved in the result for request/response correlation.
+  - The `msg` context object passed to command callbacks now exposes `.fields` (raw LXMF fields dict) and `.request_id`.
+  - New `BotConfig` option: `lxmf_commands_enabled` (default `True`). Set to `False` to ignore field commands and fall back to text-only processing.
+  - New exports: `FIELD_COMMANDS`, `FIELD_RESULTS`, `pack_result`, `unpack_commands` from `lxmfy` package.
+
 ## [1.6.2] - 2026-04-15
 
 ### Features

@@ -17,6 +17,7 @@ from .config import BotConfig
 from .core import LXMFBot, BOT_DISPLAY_NAME_FILE
 from .events import Event, EventManager, EventPriority
 from .help import HelpFormatter, HelpSystem
+from .lxmf_fields import FIELD_COMMANDS, FIELD_RESULTS, pack_result, unpack_commands
 from .middleware import MiddlewareContext, MiddlewareManager, MiddlewareType
 from .permissions import DefaultPerms, PermissionManager, Role
 from .scheduler import ScheduledTask, TaskScheduler
@@ -32,6 +33,8 @@ __all__ = [
     "Event",
     "EventManager",
     "EventPriority",
+    "FIELD_COMMANDS",
+    "FIELD_RESULTS",
     "HelpFormatter",
     "HelpSystem",
     "IconAppearance",
@@ -53,6 +56,8 @@ __all__ = [
     "load_cogs_from_directory",
     "pack_attachment",
     "pack_icon_appearance_field",
+    "pack_result",
+    "unpack_commands",
     "validate_bot",
 ]
 

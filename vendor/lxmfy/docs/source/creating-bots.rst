@@ -148,6 +148,68 @@ Then, you can define and use the icon:
 
 This :code:`self.bot_icon_field` can be pre-calculated and reused for all messages sent by the bot.
 
+Structured Commands via LXMF Fields
+-----------------------------------
+
+In addition to text-based commands, LXMFy supports commands sent through LXMF message fields using ``FIELD_COMMANDS`` (``0x09``). This is useful for structured request/response workflows between LXMF clients and bots.
+
+When a message contains ``FIELD_COMMANDS``, the bot extracts the command name and arguments, routes them through the same command registry as text commands, and automatically includes ``FIELD_RESULTS`` (``0x0A``) in the reply.
+
+**Receiving structured commands**
+
+.. code-block:: python
+
+    from lxmfy import LXMFBot
+
+    bot = LXMFBot(name="FieldBot")
+
+    @bot.command(name="add", description="Add two numbers")
+    def add_command(ctx):
+        if len(ctx.args) >= 2:
+            try:
+                result = float(ctx.args[0]) + float(ctx.args[1])
+                ctx.reply(str(result))
+            except ValueError:
+                ctx.reply("Invalid numbers")
+        else:
+            ctx.reply("Usage: add <a> <b>")
+
+The ``ctx`` object in field command callbacks includes:
+
+- :code:`ctx.fields` — the raw LXMF fields dict from the incoming message
+- :code:`ctx.request_id` — the ``request_id`` from the incoming ``FIELD_COMMANDS`` (if any)
+
+**Sending a structured command from an LXMF client**
+
+.. code-block:: python
+
+    import LXMF
+    from lxmfy import FIELD_COMMANDS
+
+    lxm = LXMF.LXMessage(
+        destination,
+        source,
+        b"",  # content can be empty for field-only commands
+        desired_method=LXMF.LXMessage.DIRECT,
+    )
+    lxm.fields[FIELD_COMMANDS] = {
+        "command": "add",
+        "args": ["3", "5"],
+        "request_id": "req-42",  # optional, for correlation
+    }
+    router.handle_outbound(lxm)
+
+**Disabling field commands**
+
+If you want the bot to ignore ``FIELD_COMMANDS`` and only process text commands, set:
+
+.. code-block:: python
+
+    bot = LXMFBot(
+        name="TextOnlyBot",
+        lxmf_commands_enabled=False,
+    )
+
 Using Cogs (Extensions)
 -----------------------
 

@@ -95,6 +95,7 @@ class BotConfig:
     nlp_threshold: float = 0.5
     link_support_enabled: bool = False
     opportunistic_sending: bool = True
+    lxmf_commands_enabled: bool = True
 
     def __post_init__(self):
         """Post-initialization to ensure admins is a set."""

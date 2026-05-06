@@ -42,7 +42,8 @@ The main bot class that handles message routing, command processing, and bot lif
         external_cogs_timeout=30,
         nlp_enabled=False,
         nlp_threshold=0.5,
-        link_support_enabled=False
+        link_support_enabled=False,
+        lxmf_commands_enabled=True
     )
 
 Key Methods
@@ -64,6 +65,33 @@ Key Methods
 - :code:`on_first_message()`: Decorator for handling first messages from users
 - :code:`on_message()`: Decorator for handling all messages (called before command processing)
 - :code:`validate()`: Run validation checks on the bot configuration
+
+Structured Commands via LXMF Fields
+-----------------------------------
+
+Bots can receive commands sent via LXMF ``FIELD_COMMANDS`` (``0x09``) and automatically reply with ``FIELD_RESULTS`` (``0x0A``). This enables structured request/response workflows alongside normal text commands.
+
+Incoming ``FIELD_COMMANDS`` are parsed and routed through the same command registry as text commands, sharing permission checks, type-hinted argument parsing, threading, and middleware.
+
+.. code-block:: python
+
+    from lxmfy import LXMFBot, FIELD_COMMANDS, FIELD_RESULTS, pack_result, unpack_commands
+
+    bot = LXMFBot(name="FieldBot")
+
+    @bot.command(name="status", description="Return bot status")
+    def status_cmd(ctx):
+        # ctx.fields contains the raw LXMF fields dict
+        # ctx.request_id is set automatically if the command included one
+        ctx.reply("Bot is online")
+
+    # Sending a structured command from another LXMF client:
+    # lxm.fields[FIELD_COMMANDS] = {"command": "status", "args": [], "request_id": "abc123"}
+    # router.handle_outbound(lxm)
+
+    # The bot reply automatically includes FIELD_RESULTS with the response and request_id.
+
+To disable field command processing, set ``lxmf_commands_enabled=False`` in :code:`BotConfig`.
 
 Storage
 -------
