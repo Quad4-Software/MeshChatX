@@ -14,6 +14,10 @@ import RNS
 from meshchatx.meshchat import ReticulumMeshChat
 
 
+def _rns_default_config_text_at(path: str) -> str:
+    return ReticulumMeshChat._write_rns_reticulum_default_config_file(path)
+
+
 @pytest.fixture
 def temp_dir():
     dir_path = tempfile.mkdtemp()
@@ -71,22 +75,26 @@ def _make_request(json_body=None):
     return request
 
 
-def test_default_reticulum_config_text_contains_required_sections():
-    text = ReticulumMeshChat._default_reticulum_config_text()
+def test_write_rns_reticulum_default_config_contains_required_sections(tmp_path):
+    path = str(tmp_path / "config")
+    text = _rns_default_config_text_at(path)
     assert "[reticulum]" in text
     assert "[interfaces]" in text
     assert "[logging]" in text
     assert "AutoInterface" in text
 
 
-def test_default_config_text_is_idempotent_across_calls():
-    a = ReticulumMeshChat._default_reticulum_config_text()
-    b = ReticulumMeshChat._default_reticulum_config_text()
+def test_write_rns_reticulum_default_config_is_idempotent(tmp_path):
+    p1 = str(tmp_path / "a")
+    p2 = str(tmp_path / "b")
+    a = _rns_default_config_text_at(p1)
+    b = _rns_default_config_text_at(p2)
     assert a == b
 
 
 @pytest.mark.asyncio
 async def test_endpoint_get_returns_current_config(app_instance):
+    _rns_default_config_text_at(app_instance._reticulum_config_file_path())
     handler = _find_handler(app_instance, "GET", "/api/v1/reticulum/config/raw")
 
     response = await handler(_make_request())
@@ -150,6 +158,7 @@ async def test_endpoint_reset_restores_defaults(app_instance):
     )
 
     config_path = app_instance._reticulum_config_file_path()
+    os.makedirs(os.path.dirname(config_path), exist_ok=True)
     with open(config_path, "w") as f:
         f.write(
             "[reticulum]\n  enable_transport = True\n\n"
@@ -159,20 +168,25 @@ async def test_endpoint_reset_restores_defaults(app_instance):
     response = await reset_handler(_make_request())
     assert response.status == 200
     payload = json.loads(response.body)
-    assert payload["content"] == ReticulumMeshChat._default_reticulum_config_text()
+    expected = _rns_default_config_text_at(
+        os.path.join(app_instance.storage_dir, "_rns_default_ref"),
+    )
+    assert payload["content"] == expected
 
     with open(config_path) as f:
         on_disk = f.read()
-    assert on_disk == ReticulumMeshChat._default_reticulum_config_text()
+    assert on_disk == expected
 
 
 @pytest.mark.asyncio
-async def test_endpoint_get_recreates_config_if_missing(app_instance):
+async def test_endpoint_get_returns_404_if_config_missing(app_instance):
     config_path = app_instance._reticulum_config_file_path()
-    os.remove(config_path)
+    config_dir = os.path.dirname(config_path)
+    os.makedirs(config_dir, exist_ok=True)
+    if os.path.isfile(config_path):
+        os.remove(config_path)
     assert not os.path.exists(config_path)
 
     handler = _find_handler(app_instance, "GET", "/api/v1/reticulum/config/raw")
     response = await handler(_make_request())
-    assert response.status == 200
-    assert os.path.exists(config_path)
+    assert response.status == 404

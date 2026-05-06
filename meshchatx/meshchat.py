@@ -632,117 +632,23 @@ class ReticulumMeshChat:
         )
 
     @staticmethod
-    def _default_reticulum_config_text() -> str:
-        """Return the default Reticulum config file contents.
+    def _write_rns_reticulum_default_config_file(config_path: str) -> str:
+        """Write RNS stock default config to ``config_path``; return on-disk text.
 
-        Used when creating a fresh config or restoring defaults via the
-        Reticulum Config Editor utility.
+        Uses the same template and ConfigObj path as ``Reticulum.__create_default_config``.
         """
-        return """# This is the default Reticulum config file.
-# You should probably edit it to include any additional,
-# interfaces and settings you might need.
+        from RNS.vendor.configobj import ConfigObj
 
-# Only the most basic options are included in this default
-# configuration. To see a more verbose, and much longer,
-# configuration example, you can run the command:
-# rnsd --exampleconfig
-
-
-[reticulum]
-  
-  # If you enable Transport, your system will route traffic
-  # for other peers, pass announces and serve path requests.
-  # This should only be done for systems that are suited to
-  # act as transport nodes, ie. if they are stationary and
-  # always-on. This directive is optional and can be removed
-  # for brevity.
-  
-  enable_transport = False
-  
-  
-  # By default, the first program to launch the Reticulum
-  # Network Stack will create a shared instance, that other
-  # programs can communicate with. Only the shared instance
-  # opens all the configured interfaces directly, and other
-  # local programs communicate with the shared instance over
-  # a local socket. This is completely transparent to the
-  # user, and should generally be turned on. This directive
-  # is optional and can be removed for brevity.
-  
-  share_instance = Yes
-  
-  
-  # If you want to run multiple *different* shared instances
-  # on the same system, you will need to specify different
-  # instance names for each. On platforms supporting domain
-  # sockets, this can be done with the instance_name option:
-  
-  instance_name = default
-  discover_interfaces = True
-  autoconnect_discovered_interfaces = 3
-  default_bootstrap_only = True
-  required_discovery_value = 16
-
-# Some platforms don't support domain sockets, and if that
-# is the case, you can isolate different instances by
-# specifying a unique set of ports for each:
-
-# shared_instance_port = 37428
-# instance_control_port = 37429
-
-
-# If you want to explicitly use TCP for shared instance
-# communication, instead of domain sockets, this is also
-# possible, by using the following option:
-
-# shared_instance_type = tcp
-
-
-# You can configure Reticulum to panic and forcibly close
-# if an unrecoverable interface error occurs, such as the
-# hardware device for an interface disappearing. This is
-# an optional directive, and can be left out for brevity.
-# This behaviour is disabled by default.
-
-# panic_on_interface_error = No
-
-
-[logging]
-  # Valid log levels are 0 through 7:
-  #   0: Log only critical information
-  #   1: Log errors and lower log levels
-  #   2: Log warnings and lower log levels
-  #   3: Log notices and lower log levels
-  #   4: Log info and lower (this is the default)
-  #   5: Verbose logging
-  #   6: Debug logging
-  #   7: Extreme logging
-  
-  loglevel = 4
-
-
-# The interfaces section defines the physical and virtual
-# interfaces Reticulum will use to communicate on. This
-# section will contain examples for a variety of interface
-# types. You can modify these or use them as a basis for
-# your own config, or simply remove the unused ones.
-
-[interfaces]
-  
-  # This interface enables communication with other
-  # link-local Reticulum nodes over UDP. It does not
-  # need any functional IP infrastructure like routers
-  # or DHCP servers, but will require that at least link-
-  # local IPv6 is enabled in your operating system, which
-  # should be enabled by default in almost any OS. See
-  # the Reticulum Manual for more configuration options.
-  
-  [[Default Interface]]
-    type = AutoInterface
-    enabled = true
-    name = Default Interface
-    selected_interface_mode = 1
-"""
+        rns_reticulum_mod = importlib.import_module("RNS.Reticulum")
+        default_spec = rns_reticulum_mod.__default_rns_config__
+        config_dir = os.path.dirname(config_path) or os.path.abspath(".")
+        if not os.path.isdir(config_dir):
+            os.makedirs(config_dir, exist_ok=True)
+        cfg = ConfigObj(default_spec)
+        cfg.filename = config_path
+        cfg.write()
+        with open(config_path) as f:
+            return f.read()
 
     def backup_database(self, backup_path=None):
         if not self.database:
@@ -755,48 +661,9 @@ class ReticulumMeshChat:
         return self.database.restore_database(backup_path)
 
     def _ensure_reticulum_config(self):
-        """Ensure a valid Reticulum config exists at the expected location.
-
-        If the config is missing or invalid, create a sane default.
-        """
+        """Normalize ``reticulum_config_dir``; RNS creates ``config`` on first startup."""
         config_dir = self._normalize_reticulum_config_dir(self.reticulum_config_dir)
         self.reticulum_config_dir = config_dir
-        config_file = self._reticulum_config_file_path()
-
-        should_recreate = False
-
-        if not os.path.exists(config_file):
-            should_recreate = True
-            print(
-                f"Reticulum config file not found at {config_file}, creating a default one...",
-            )
-        else:
-            try:
-                with open(config_file) as f:
-                    content = f.read()
-                    if "[reticulum]" not in content or "[interfaces]" not in content:
-                        print(
-                            f"Reticulum config file at {config_file} is invalid (missing essential sections), recreating...",
-                        )
-                        should_recreate = True
-            except Exception as e:
-                print(
-                    f"Failed to read Reticulum config at {config_file} ({e}), recreating...",
-                )
-                should_recreate = True
-
-        if should_recreate:
-            try:
-                if not os.path.exists(config_dir):
-                    os.makedirs(config_dir, exist_ok=True)
-
-                with open(config_file, "w") as f:
-                    f.write(self._default_reticulum_config_text())
-                print(f"Default Reticulum config created at {config_file}")
-            except Exception as e:
-                print(
-                    f"Failed to create default Reticulum config at {config_file}: {e}",
-                )
 
     def setup_identity(self, identity: RNS.Identity):
         identity_hash = identity.hash.hex()
@@ -6871,17 +6738,15 @@ class ReticulumMeshChat:
 
         @routes.post("/api/v1/reticulum/config/reset")
         async def reticulum_config_reset(request):
-            """Restore the Reticulum config file to the bundled defaults."""
+            """Restore the Reticulum config file to RNS stock defaults."""
             try:
-                config_dir = self._normalize_reticulum_config_dir(
+                self.reticulum_config_dir = self._normalize_reticulum_config_dir(
                     self.reticulum_config_dir,
                 )
-                if not os.path.exists(config_dir):
-                    os.makedirs(config_dir, exist_ok=True)
                 config_path = self._reticulum_config_file_path()
-                default_text = self._default_reticulum_config_text()
-                with open(config_path, "w") as f:
-                    f.write(default_text)
+                default_text = self._write_rns_reticulum_default_config_file(
+                    config_path,
+                )
                 return web.json_response(
                     {
                         "message": "Reticulum config restored to defaults",
