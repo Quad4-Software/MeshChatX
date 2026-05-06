@@ -86,6 +86,7 @@
         "eslint-plugin-prettier": "^5.5.5",
         "eslint-plugin-security": "^3.0.1",
         "eslint-plugin-vue": "^10.9.1",
+        "vue-eslint-parser": "^10.4.0",
         "fake-indexeddb": "^6.2.5",
         "globals": "^17.6.0",
         "jsdom": "^29.1.1",
