@@ -46,8 +46,8 @@ android {
         applicationId "com.meshchatx"
         minSdk 24
         targetSdk 35
-        versionCode 46001
-        versionName "4.6.1"
+        versionCode 46002
+        versionName "4.6.2"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         ndk {
