@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: 0BSD
 
 import asyncio
+import importlib
 import json
 import shutil
 import tempfile
@@ -134,6 +135,13 @@ async def test_app_shutdown_endpoint(mock_rns_minimal, temp_dir):
 
 @pytest.mark.asyncio
 async def test_app_info_tolerates_missing_runtime_objects(mock_rns_minimal, temp_dir):
+    real_import_module = importlib.import_module
+
+    def import_module_side_effect(name, package=None):
+        if name == "RNS.Reticulum":
+            return real_import_module(name, package)
+        raise Exception
+
     with (
         patch("meshchatx.meshchat.generate_ssl_certificate"),
         patch("psutil.Process") as mock_process,
@@ -141,7 +149,7 @@ async def test_app_info_tolerates_missing_runtime_objects(mock_rns_minimal, temp
         patch("importlib.metadata.version", side_effect=Exception),
         patch("importlib.metadata.distribution", side_effect=Exception),
         patch("importlib.metadata.packages_distributions", return_value={}),
-        patch("importlib.import_module", side_effect=Exception),
+        patch("importlib.import_module", side_effect=import_module_side_effect),
     ):
         mock_proc_instance = mock_process.return_value
         mock_proc_instance.memory_info.side_effect = PermissionError
