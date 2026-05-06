@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: 0BSD AND MIT
 
 import asyncio
-import sys
 import threading
 from collections.abc import Coroutine
 from typing import Any, ClassVar
@@ -14,42 +13,6 @@ class AsyncUtils:
     _futures_lock = threading.Lock()
     _FUTURES_SWEEP_THRESHOLD = 32
     _COROUTINES_MAX = 256
-
-    @staticmethod
-    def apply_asyncio_313_patch():
-        """Patch asyncio on Python 3.13 to avoid sendfile + SSL failures.
-
-        See https://github.com/python/cpython/issues/124448 and
-        https://github.com/aio-libs/aiohttp/issues/8863.
-        """
-        if sys.version_info >= (3, 13):
-            import asyncio.base_events
-
-            original_sendfile = asyncio.base_events.BaseEventLoop.sendfile
-
-            async def patched_sendfile(
-                self,
-                transport,
-                file,
-                offset=0,
-                count=None,
-                *,
-                fallback=True,
-            ):
-                if transport.get_extra_info("sslcontext"):
-                    raise NotImplementedError(
-                        "sendfile is broken on SSL transports in Python 3.13",
-                    )
-                return await original_sendfile(
-                    self,
-                    transport,
-                    file,
-                    offset,
-                    count,
-                    fallback=fallback,
-                )
-
-            asyncio.base_events.BaseEventLoop.sendfile = patched_sendfile
 
     @staticmethod
     def set_main_loop(loop: asyncio.AbstractEventLoop):

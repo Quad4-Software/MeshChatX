@@ -16921,9 +16921,6 @@ class ReticulumMeshChat:
 
 # class to manage config stored in database
 def main():
-    # apply asyncio 3.13 patch if needed
-    AsyncUtils.apply_asyncio_313_patch()
-
     # Initialize crash recovery system early to catch startup errors
     recovery = CrashRecovery()
     recovery.install()
