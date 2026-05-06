@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.6.2] - 2026-05-06
+
+### Fixed
+
+- **Build backend**: Bytecode cleanup now only removes .pyc and .pyo files when a matching .py source file is present, so standalone compiled artifacts are not deleted accidentally.
+
+### Added
+
+- **Android notifications**: JavaScript interfaces in MainActivity handle notifications and incoming calls from the web layer. NotificationUtils now covers incoming calls, missed calls, voicemails, and messages on Android, with comprehensive tests across Electron, Android, and browser fallback.
+- **Telephony**: Voicemail session management and configuration updates.
+
+### Changed
+
+- **Dependencies**: RNS package updated to 1.2.3 and micron-parser dependency refreshed.
+- **CI**: Docker images publish the :latest tag on version tag pushes, main and master branch builds are enabled, and the Bunny Storage release folder is pruned before uploads.
+
 ## [4.6.1] - 2026-05-04
 
 ### Fixed
