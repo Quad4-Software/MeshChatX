@@ -181,6 +181,7 @@ chaquopy {
             install "cryptography==46.0.7"
             install "pycparser>=3.0"
             install "pyserial>=3.5"
+            install "usbserial4a==0.4.0"
             install "jaraco.context>=6.1.1"
             install "ply>=3.11,<4.0"
         }
