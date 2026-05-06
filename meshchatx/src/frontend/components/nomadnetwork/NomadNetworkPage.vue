@@ -493,6 +493,15 @@
                         v-html="renderedNodePageHtml"
                     ></div>
                     <!-- eslint-enable vue/no-v-html -->
+                    <Teleport to="body">
+                        <div
+                            v-if="multilineHintVisible"
+                            class="multiline-hint pointer-events-none fixed bottom-3 right-3 px-2 py-1 rounded text-xs bg-amber-300 text-zinc-900 shadow"
+                            style="z-index: 9999"
+                        >
+                            {{ $t("nomadnet.multiline_hint") }}
+                        </div>
+                    </Teleport>
                 </div>
 
                 <!-- file download bottom bar -->
@@ -661,6 +670,8 @@ export default {
             partialRefreshByKey: {},
             partialRefreshTimers: {},
             processPartialsRaf: null,
+            multilineCleanup: null,
+            multilineHintVisible: false,
 
             pathfinderInProgress: false,
             pendingLoadLatestArchive: false,
@@ -876,6 +887,7 @@ export default {
                 this.loadedPartialIds = {};
             }
             this.scheduleProcessPartials();
+            this.$nextTick(() => this.refreshMultilineExpansion());
         },
         selectedNode: {
             handler() {
@@ -900,6 +912,7 @@ export default {
         this.nodesListAbortController?.abort();
         this.nodeDetailAbortController?.abort();
         this.clearPartials();
+        this.teardownMultilineExpansion();
 
         WebSocketConnection.off("message", this.onWebsocketMessage);
     },
@@ -1040,6 +1053,52 @@ export default {
                 this.processPartialsRaf = null;
                 this.processPartials();
             });
+        },
+        teardownMultilineExpansion() {
+            if (typeof this.multilineCleanup === "function") {
+                try {
+                    this.multilineCleanup();
+                } catch (e) {
+                    console.warn("nomadnet: multiline cleanup failed", e);
+                }
+            }
+            this.multilineCleanup = null;
+            this.multilineHintVisible = false;
+        },
+        refreshMultilineExpansion() {
+            this.teardownMultilineExpansion();
+            if (this.isShowingNodePageSource) return;
+            if (this.nomadMicronWasmActive) return;
+            const path = this.nodePagePath || "";
+            const [pagePathWithoutData] = path.split("`");
+            if (!pagePathWithoutData.toLowerCase().endsWith(".mu")) return;
+            const container = this.$el?.querySelector?.(".nodeContainer");
+            if (!container) return;
+            const onArmed = (e) => {
+                e.detail?.element?.classList?.add("Mu-armed");
+                this.multilineHintVisible = true;
+            };
+            const onDisarmed = (e) => {
+                e.detail?.element?.classList?.remove("Mu-armed");
+                this.multilineHintVisible = false;
+            };
+            const onExpanded = (e) => {
+                e.detail?.element?.classList?.add("Mu-multiline");
+                this.multilineHintVisible = false;
+            };
+            container.addEventListener("micron-multiline-armed", onArmed);
+            container.addEventListener("micron-multiline-disarmed", onDisarmed);
+            container.addEventListener("micron-field-multiline-enabled", onExpanded);
+            const detach = MicronParser.enableDoubleEnterMultiline(container, {
+                windowMs: 500,
+                rows: 4,
+            });
+            this.multilineCleanup = () => {
+                container.removeEventListener("micron-multiline-armed", onArmed);
+                container.removeEventListener("micron-multiline-disarmed", onDisarmed);
+                container.removeEventListener("micron-field-multiline-enabled", onExpanded);
+                if (typeof detach === "function") detach();
+            };
         },
         openNomadnetPopout() {
             if (!this.selectedNode) {
@@ -1914,7 +1973,7 @@ export default {
 
             if (options === "*") {
                 useCache = false; // we want to send another request with the field data
-                const inputs = document.querySelectorAll(".nodeContainer input");
+                const inputs = document.querySelectorAll(".nodeContainer input, .nodeContainer textarea");
 
                 const inputValues = {};
 
@@ -1937,7 +1996,7 @@ export default {
                 const validNames = options.split("|");
 
                 // Select inputs within the container
-                const inputs = document.querySelectorAll(".nodeContainer input");
+                const inputs = document.querySelectorAll(".nodeContainer input, .nodeContainer textarea");
 
                 const inputValues = {};
 
@@ -2389,6 +2448,23 @@ export default {
 </script>
 
 <style>
+.nodeContainer input.Mu-armed {
+    outline: 1px dashed #fbbf24;
+    outline-offset: 1px;
+}
+
+.nodeContainer textarea {
+    font: inherit;
+    color: inherit;
+    background: inherit;
+}
+
+.nodeContainer textarea.Mu-multiline {
+    outline: 1px solid #34d399;
+    outline-offset: 1px;
+    resize: vertical;
+}
+
 .nodeContainer {
     font-family: "Roboto Mono Nerd Font", ui-monospace, monospace;
     letter-spacing: normal;
