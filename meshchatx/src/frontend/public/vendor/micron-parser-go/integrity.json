@@ -1,5 +1,7 @@
 {
   "version": "v1.0.5",
   "wasm": "sha384-E16yCcmQKfjrg2OxZQ2uY8ZnQoJvQK9y7NmH4BJOO8qO5Eg677HPie1AbZqWKfcK",
-  "wasmExec": "sha384-PWCs+V4BDf9yY1yjkD/p+9xNEs4iEbuvq+HezAOJiY3XL5GI6VyJXMsvnjiwNbce"
+  "wasmExec": "sha384-PWCs+V4BDf9yY1yjkD/p+9xNEs4iEbuvq+HezAOJiY3XL5GI6VyJXMsvnjiwNbce",
+  "wasmExecSourceUrl": "https://raw.githubusercontent.com/golang/go/go1.26.2/lib/wasm/wasm_exec.js",
+  "wasmExecEtag": "W/\"97232acf11bb7ff454a8c640d2a6c59e000ceebfee1e4478f2f250d98618a007\""
 }
