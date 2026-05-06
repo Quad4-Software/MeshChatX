@@ -193,7 +193,7 @@ importers:
         version: 29.0.2
       micron-parser:
         specifier: github:RFnexus/micron-parser-js
-        version: https://codeload.github.com/RFnexus/micron-parser-js/tar.gz/45a332c7f93b034e2f9931ba7ea232edda3f6bc1
+        version: https://codeload.github.com/RFnexus/micron-parser-js/tar.gz/c1e90ade55b134ebbdff217cc879dac42ba1e164
       postcss:
         specifier: ^8.5.10
         version: 8.5.10
@@ -2683,8 +2683,8 @@ packages:
     resolution: {integrity: sha512-PXwfBhYu0hBCPw8Dn0E+WDYb7af3dSLVWKi3HGv84IdF4TyFoC0ysxFd0Goxw7nSv4T/PzEJQxsYsEiFCKo2BA==}
     engines: {node: '>=8.6'}
 
-  micron-parser@https://codeload.github.com/RFnexus/micron-parser-js/tar.gz/45a332c7f93b034e2f9931ba7ea232edda3f6bc1:
-    resolution: {tarball: https://codeload.github.com/RFnexus/micron-parser-js/tar.gz/45a332c7f93b034e2f9931ba7ea232edda3f6bc1}
+  micron-parser@https://codeload.github.com/RFnexus/micron-parser-js/tar.gz/c1e90ade55b134ebbdff217cc879dac42ba1e164:
+    resolution: {tarball: https://codeload.github.com/RFnexus/micron-parser-js/tar.gz/c1e90ade55b134ebbdff217cc879dac42ba1e164}
     version: 0.0.0
 
   mime-db@1.52.0:
@@ -7022,7 +7022,7 @@ snapshots:
       braces: 3.0.3
       picomatch: 2.3.2
 
-  micron-parser@https://codeload.github.com/RFnexus/micron-parser-js/tar.gz/45a332c7f93b034e2f9931ba7ea232edda3f6bc1: {}
+  micron-parser@https://codeload.github.com/RFnexus/micron-parser-js/tar.gz/c1e90ade55b134ebbdff217cc879dac42ba1e164: {}
 
   mime-db@1.52.0: {}
 
