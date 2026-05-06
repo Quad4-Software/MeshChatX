@@ -57,6 +57,7 @@ def test_database_provider_disposal():
 def test_web_audio_bridge_disposal():
     """Test that WebAudioBridge correctly manages clients and cleanup."""
     mock_tele_mgr = MagicMock()
+    mock_tele_mgr.is_voicemail_session_active = False
     mock_config_mgr = MagicMock()
     bridge = WebAudioBridge(mock_tele_mgr, mock_config_mgr)
 

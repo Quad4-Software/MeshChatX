@@ -660,10 +660,33 @@ class ReticulumMeshChat:
             raise RuntimeError("Database not initialized")
         return self.database.restore_database(backup_path)
 
-    def _ensure_reticulum_config(self):
-        """Normalize ``reticulum_config_dir``; RNS creates ``config`` on first startup."""
+    def _ensure_reticulum_config(self, materialize: bool = True):
+        """Normalize ``reticulum_config_dir`` and optionally ensure a ``config`` file exists.
+
+        When ``materialize`` is true (default), write RNS stock defaults if the file
+        is missing or lacks required sections so first Reticulum startup is reliable.
+
+        API handlers that must distinguish a missing file (e.g. raw config GET) pass
+        ``materialize=False`` to only normalize the directory path.
+        """
         config_dir = self._normalize_reticulum_config_dir(self.reticulum_config_dir)
         self.reticulum_config_dir = config_dir
+        if not materialize:
+            return
+        config_path = os.path.join(config_dir, "config")
+        needs_default = True
+        if os.path.isfile(config_path):
+            try:
+                with open(config_path) as f:
+                    content = f.read()
+                if "[reticulum]" in content and "[interfaces]" in content:
+                    needs_default = False
+            except OSError:
+                pass
+        if needs_default:
+            if not os.path.isdir(config_dir):
+                os.makedirs(config_dir, exist_ok=True)
+            self._write_rns_reticulum_default_config_file(config_path)
 
     def setup_identity(self, identity: RNS.Identity):
         identity_hash = identity.hash.hex()
@@ -6668,7 +6691,7 @@ class ReticulumMeshChat:
             cannot easily be opened with an external editor).
             """
             try:
-                self._ensure_reticulum_config()
+                self._ensure_reticulum_config(materialize=False)
                 config_path = self._reticulum_config_file_path()
                 if not os.path.exists(config_path):
                     return web.json_response(
