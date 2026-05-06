@@ -99,4 +99,12 @@ describe("Toast.vue", () => {
         const toast = wrapper.find(".pointer-events-auto");
         expect(toast.find("button").exists()).toBe(true);
     });
+
+    it("positions container with mobile-safe bottom offset", () => {
+        const container = wrapper.find("[class*='fixed']");
+        expect(container.exists()).toBe(true);
+        const cls = container.classes().join(" ");
+        expect(cls).toContain("max-sm:bottom-");
+        expect(cls).not.toContain("max-sm:bottom-[calc(5.75rem");
+    });
 });
