@@ -293,7 +293,9 @@ export default {
             }
             const st = this.iface._stats;
             if (!st || typeof st !== "object") {
-                return null;
+                // If stats are missing, the interface is likely detached or
+                // not yet initialised; show down rather than unknown.
+                return false;
             }
             if ("status" in st) {
                 const s = st.status;

@@ -752,7 +752,7 @@ export default {
                 interface_discovery_whitelist: "",
                 interface_discovery_blacklist: "",
                 required_discovery_value: null,
-                autoconnect_discovered_interfaces: 0,
+                autoconnect_discovered_interfaces: null,
                 default_bootstrap_only: true,
                 network_identity: "",
             },
@@ -1242,7 +1242,7 @@ export default {
                     discovery.autoconnect_discovered_interfaces !== null &&
                     discovery.autoconnect_discovered_interfaces !== ""
                         ? Number(discovery.autoconnect_discovered_interfaces)
-                        : 0;
+                        : null;
                 this.discoveryConfig.default_bootstrap_only = this.parseBool(discovery.default_bootstrap_only ?? true);
                 this.discoveryConfig.network_identity = discovery.network_identity ?? "";
             } catch (e) {
@@ -1266,7 +1266,7 @@ export default {
                     autoconnect_discovered_interfaces:
                         this.discoveryConfig.autoconnect_discovered_interfaces === null ||
                         this.discoveryConfig.autoconnect_discovered_interfaces === ""
-                            ? 0
+                            ? null
                             : Number(this.discoveryConfig.autoconnect_discovered_interfaces),
                     default_bootstrap_only: this.discoveryConfig.default_bootstrap_only,
                     network_identity: this.discoveryConfig.network_identity || null,

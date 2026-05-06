@@ -685,6 +685,7 @@ export default {
             ElectronUtils,
             reloadInterval: null,
             appInfoInterval: null,
+            unreadCountInterval: null,
 
             isShowingMyIdentitySection: true,
             isShowingAnnounceSection: true,
@@ -915,6 +916,10 @@ export default {
             this.appInfoInterval = setInterval(() => {
                 this.getAppInfo();
             }, 15000);
+            this.unreadCountInterval = setInterval(() => {
+                this.updateUnreadConversationsCount();
+            }, 5000);
+            this.updateUnreadConversationsCount();
         },
         stopShell() {
             if (!this.shellRunning) {
@@ -925,6 +930,8 @@ export default {
             this.reloadInterval = null;
             clearInterval(this.appInfoInterval);
             this.appInfoInterval = null;
+            clearInterval(this.unreadCountInterval);
+            this.unreadCountInterval = null;
             WebSocketConnection.off("message", this.onWebsocketMessage);
             WebSocketConnection.off("disconnected", this.onWsShellDisconnected);
             WebSocketConnection.off("connected", this.onWsShellConnected);
@@ -1084,6 +1091,21 @@ export default {
         onShowTutorialShell() {
             this.$refs.tutorialModal?.show();
         },
+        updateUnreadConversationsCount() {
+            if (this._unreadCountTimeout) {
+                clearTimeout(this._unreadCountTimeout);
+            }
+            this._unreadCountTimeout = setTimeout(async () => {
+                try {
+                    const response = await window.api.get("/api/v1/notifications", {
+                        params: { unread: true, limit: 1 },
+                    });
+                    GlobalState.unreadConversationsCount = response.data?.lxmf_total_unread_count ?? 0;
+                } catch (e) {
+                    console.error("Failed to update unread conversations count", e);
+                }
+            }, 300);
+        },
         onConfigUpdatedExternally(newConfig) {
             if (!newConfig || typeof newConfig !== "object") {
                 return;
@@ -1144,7 +1166,9 @@ export default {
                     if (this.initiationStatus) {
                         break;
                     }
-                    NotificationUtils.showIncomingCallNotification();
+                    NotificationUtils.showIncomingCallNotification(
+                        json.remote_identity_name || json.remote_identity_hash
+                    );
                     this.updateTelephoneStatus();
                     this.playRingtone();
                     break;
@@ -1181,11 +1205,13 @@ export default {
                     this.stopRingtone();
                     this.ringtonePlayer = null;
                     this.toneGenerator.stop();
+                    NotificationUtils.cancelIncomingCallNotification();
                     this.updateTelephoneStatus();
                     break;
                 }
                 case "telephone_call_ended": {
                     this.stopRingtone();
+                    NotificationUtils.cancelIncomingCallNotification();
                     this.ringtonePlayer = null;
                     if (this.config?.telephone_tone_generator_enabled) {
                         this.toneGenerator.setVolume(this.config.telephone_tone_generator_volume);
@@ -1201,6 +1227,10 @@ export default {
                     if (json.sieve_suppress_notifications) {
                         break;
                     }
+
+                    // Update sidebar unread count so the badge appears
+                    // immediately even when not on the Messages page.
+                    this.updateUnreadConversationsCount();
 
                     // show notification for new messages if window is not focussed
                     // only for incoming messages from people (with content)

@@ -1937,7 +1937,7 @@ export default {
                 interface_discovery_whitelist: "",
                 interface_discovery_blacklist: "",
                 required_discovery_value: null,
-                autoconnect_discovered_interfaces: 0,
+                autoconnect_discovered_interfaces: null,
                 default_bootstrap_only: true,
                 network_identity: "",
             },

@@ -671,6 +671,36 @@
                         </div>
                     </section>
 
+                    <!-- Telephony Settings -->
+                    <section
+                        v-show="matchesSearch(...sectionKeywords.telephony)"
+                        class="settings-section break-inside-avoid"
+                    >
+                        <header class="settings-section__header">
+                            <div>
+                                <div class="settings-section__eyebrow">Telephony</div>
+                                <h2>Telephone (LXST)</h2>
+                                <p>Enable or disable the integrated voice calling system.</p>
+                            </div>
+                        </header>
+                        <div class="settings-section__body space-y-4">
+                            <label class="setting-toggle">
+                                <Toggle
+                                    id="telephone-enabled-toggle"
+                                    v-model="config.telephone_enabled"
+                                    @update:model-value="onTelephoneEnabledChange"
+                                />
+                                <span class="setting-toggle__label">
+                                    <span class="setting-toggle__title">Enable Telephone (LXST)</span>
+                                    <span class="setting-toggle__description">
+                                        Allow incoming and outgoing voice calls over the mesh network.
+                                    </span>
+                                    <span class="setting-toggle__hint">Disabling will end any active calls.</span>
+                                </span>
+                            </label>
+                        </div>
+                    </section>
+
                     <!-- Desktop / Electron Settings -->
                     <section
                         v-if="ElectronUtils.isElectron()"
@@ -2669,6 +2699,16 @@ export default {
             visualiserShowDisabledInterfaces: false,
             visualiserShowDiscoveredInterfaces: false,
             sectionKeywords: {
+                telephony: [
+                    "Telephony",
+                    "Telephone",
+                    "LXST",
+                    "Enable Telephone",
+                    "voice",
+                    "calling",
+                    "call",
+                    "mesh network",
+                ],
                 strangerProtection: [
                     "Security",
                     "app.stranger_protection",
@@ -3738,6 +3778,16 @@ export default {
                     "smart_crawler"
                 );
             }, 1000);
+        },
+        async onTelephoneEnabledChange(value) {
+            this.config.telephone_enabled = value;
+            try {
+                const newConfig = await patchServerConfig({ telephone_enabled: value }, window.api);
+                this.config = newConfig;
+                ToastUtils.success(value ? "Telephone enabled" : "Telephone disabled");
+            } catch {
+                ToastUtils.error("Failed to update telephone setting");
+            }
         },
         async onDesktopOpenCallsInSeparateWindowChange(value) {
             this.config.desktop_open_calls_in_separate_window = value;

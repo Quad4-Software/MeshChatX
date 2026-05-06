@@ -135,7 +135,7 @@
                                 </div>
                             </div>
 
-                            <div class="relative z-10 space-y-1 mb-8">
+                            <div class="relative z-10 space-y-1 mb-8 flex flex-col items-center text-center">
                                 <h2 class="text-2xl font-bold text-gray-900 dark:text-white truncate max-w-[280px]">
                                     {{
                                         (activeCall || lastCall)?.remote_identity_name ||
@@ -528,34 +528,36 @@
                                     class="pt-2 flex flex-col items-stretch gap-4 lg:flex-row lg:items-start lg:justify-between"
                                 >
                                     <div class="flex min-w-0 flex-1 flex-col gap-2">
-                                        <Toggle
-                                            id="dnd-toggle"
-                                            :model-value="config?.do_not_disturb_enabled"
-                                            :label="$t('call.do_not_disturb')"
-                                            @update:model-value="toggleDoNotDisturb"
-                                        />
-                                        <Toggle
-                                            id="contacts-only-toggle"
-                                            :model-value="config?.telephone_allow_calls_from_contacts_only"
-                                            :label="$t('call.allow_calls_from_contacts_only')"
-                                            @update:model-value="toggleAllowCallsFromContactsOnly"
-                                        />
-                                        <Toggle
-                                            id="telephone-announce-toggle"
-                                            :model-value="config?.telephone_announce_enabled"
-                                            label="Announce Telephone Presence (LXST)"
-                                            @update:model-value="toggleTelephoneAnnounceEnabled"
-                                        />
-                                        <div class="flex flex-col gap-1">
+                                        <div v-if="config?.telephone_enabled" class="flex flex-col gap-2">
                                             <Toggle
-                                                id="web-audio-toggle"
-                                                :model-value="config?.telephone_web_audio_enabled"
-                                                label="Web Audio Bridge"
-                                                @update:model-value="onToggleWebAudio"
+                                                id="dnd-toggle"
+                                                :model-value="config?.do_not_disturb_enabled"
+                                                :label="$t('call.do_not_disturb')"
+                                                @update:model-value="toggleDoNotDisturb"
                                             />
-                                            <div class="text-xs text-gray-500 dark:text-zinc-400 px-1">
-                                                Web audio bridge allows web/electron to hook into LXST backend for
-                                                passing microphone and audio streams to active telephone calls.
+                                            <Toggle
+                                                id="contacts-only-toggle"
+                                                :model-value="config?.telephone_allow_calls_from_contacts_only"
+                                                :label="$t('call.allow_calls_from_contacts_only')"
+                                                @update:model-value="toggleAllowCallsFromContactsOnly"
+                                            />
+                                            <Toggle
+                                                id="telephone-announce-toggle"
+                                                :model-value="config?.telephone_announce_enabled"
+                                                label="Announce Telephone Presence (LXST)"
+                                                @update:model-value="toggleTelephoneAnnounceEnabled"
+                                            />
+                                            <div class="flex flex-col gap-1">
+                                                <Toggle
+                                                    id="web-audio-toggle"
+                                                    :model-value="config?.telephone_web_audio_enabled"
+                                                    label="Web Audio Bridge"
+                                                    @update:model-value="onToggleWebAudio"
+                                                />
+                                                <div class="text-xs text-gray-500 dark:text-zinc-400 px-1">
+                                                    Web audio bridge allows web/electron to hook into LXST backend for
+                                                    passing microphone and audio streams to active telephone calls.
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -2712,6 +2714,11 @@ export default {
         },
         async ensureWebAudio(webAudioStatus) {
             if (!webAudioStatus?.enabled) {
+                this.stopWebAudio();
+                return;
+            }
+            // Do not start web audio during voicemail
+            if (this.activeCall?.is_voicemail) {
                 this.stopWebAudio();
                 return;
             }
