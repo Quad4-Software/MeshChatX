@@ -1588,6 +1588,7 @@
         "renderer_menu_js": "Micron: JavaScript",
         "renderer_menu_wasm": "Micron: WebAssembly",
         "renderer_setting_failed": "Impossibile aggiornare il renderer Micron",
+        "multiline_hint": "Premi di nuovo Invio per espandere su più righe",
         "renderer_chip_markdown": "Markdown",
         "renderer_chip_html": "HTML",
         "renderer_chip_plaintext": "Text",
