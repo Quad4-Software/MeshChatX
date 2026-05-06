@@ -653,6 +653,10 @@ class TestNotificationsGetUserFacingFilter:
         body = await self._get(bell_app, unread="true", limit=10)
         assert body["unread_count"] == 1
         assert len(body["notifications"]) == 1
+        peer_label = f"peer-{PEER_HASH[:6]}"
+        assert body["notifications"][0]["latest_message_preview"] == (
+            f"{peer_label} sent an image"
+        )
 
     async def test_badge_count_matches_dropdown_items(self, bell_app):
         # Mix of user-facing and silent messages across multiple peers must

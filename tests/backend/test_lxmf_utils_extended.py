@@ -416,3 +416,71 @@ def test_sidebar_preview_telemetry_stream():
         peer_display_name="Jordan",
     )
     assert out == "Jordan sent a telemetry stream"
+
+
+def test_sidebar_preview_image_incoming():
+    row = {
+        "content": "",
+        "fields": json.dumps({"image": {"image_type": "png", "image_size": 12}}),
+        "is_incoming": 1,
+        "source_hash": "b" * 32,
+    }
+    out = lxmf_sidebar_preview_for_conversation_latest_row(
+        row,
+        local_hash="a" * 32,
+        peer_display_name="Quinn",
+    )
+    assert out == "Quinn sent an image"
+
+
+def test_sidebar_preview_image_outbound_you():
+    me = "c" * 32
+    row = {
+        "content": "",
+        "fields": json.dumps({"image": {"image_type": "jpeg", "image_size": 99}}),
+        "is_incoming": 0,
+        "source_hash": me,
+    }
+    out = lxmf_sidebar_preview_for_conversation_latest_row(
+        row,
+        local_hash=me,
+        peer_display_name="Pat",
+    )
+    assert out == "You sent an image"
+
+
+def test_sidebar_preview_audio_voice_note():
+    row = {
+        "content": "",
+        "fields": json.dumps({"audio": {"audio_mode": "opus", "audio_size": 500}}),
+        "is_incoming": 1,
+        "source_hash": "b" * 32,
+    }
+    out = lxmf_sidebar_preview_for_conversation_latest_row(
+        row,
+        local_hash="a" * 32,
+        peer_display_name="Morgan",
+    )
+    assert out == "Morgan sent a voice note"
+
+
+def test_sidebar_preview_file_attachments_plural():
+    row = {
+        "content": "",
+        "fields": json.dumps(
+            {
+                "file_attachments": [
+                    {"file_name": "a.txt", "file_size": 1},
+                    {"file_name": "b.txt", "file_size": 2},
+                ],
+            },
+        ),
+        "is_incoming": 0,
+        "source_hash": "d" * 32,
+    }
+    out = lxmf_sidebar_preview_for_conversation_latest_row(
+        row,
+        local_hash="d" * 32,
+        peer_display_name="Casey",
+    )
+    assert out == "You sent 2 files"

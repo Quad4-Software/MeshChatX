@@ -96,4 +96,61 @@ describe("lxmfConversationListPreview", () => {
         );
         expect(s).toBe("Riley requested your location");
     });
+
+    it("shows image preview when body is empty", () => {
+        const s = lxmfConversationListPreview(
+            {
+                content: "",
+                is_incoming: true,
+                source_hash: peer,
+                fields: { image: { image_type: "png", image_size: 10 } },
+            },
+            { myLxmfAddressHash: me, peerDisplayName: "Jo" }
+        );
+        expect(s).toBe("Jo sent an image");
+    });
+
+    it("shows outbound image preview as You", () => {
+        const s = lxmfConversationListPreview(
+            {
+                content: "",
+                is_incoming: false,
+                source_hash: me,
+                fields: { image: { image_type: "webp", image_size: 20 } },
+            },
+            { myLxmfAddressHash: me, peerDisplayName: "Jo" }
+        );
+        expect(s).toBe("You sent an image");
+    });
+
+    it("shows voice note preview for audio field", () => {
+        const s = lxmfConversationListPreview(
+            {
+                content: "",
+                is_incoming: true,
+                source_hash: peer,
+                fields: { audio: { audio_mode: "opus", audio_size: 100 } },
+            },
+            { myLxmfAddressHash: me, peerDisplayName: "Max" }
+        );
+        expect(s).toBe("Max sent a voice note");
+    });
+
+    it("shows multiple file attachment preview", () => {
+        const s = lxmfConversationListPreview(
+            {
+                content: "",
+                is_incoming: false,
+                source_hash: me,
+                fields: {
+                    file_attachments: [
+                        { file_name: "a.bin", file_size: 1 },
+                        { file_name: "b.bin", file_size: 2 },
+                    ],
+                },
+            },
+            { myLxmfAddressHash: me, peerDisplayName: "Jo" }
+        );
+        expect(s).toBe("You sent 2 files");
+    });
 });

@@ -1175,6 +1175,8 @@
         "hops_away": "в {count} прыжках",
         "snr": "SNR {snr}",
         "stamp_cost": "Стоимость штампа {cost}",
+        "stamp_ticket_valid": "Активный исходящий билет штампа (мгновенная отправка). Истекает {expires}.",
+        "stamp_ticket_expired": "Билет штампа истёк; следующее сообщение может потребовать proof-of-work.",
         "pop_out_chat": "Открыть в отдельном окне",
         "custom_display_name": "Свое имя для контакта",
         "stranger_banner_text": "Этот узел не в ваших контактах. Вложения от незнакомцев заблокированы.",
@@ -1379,6 +1381,14 @@
         "conversation_telemetry_stream_preview": "{name} отправил(а) поток телеметрии",
         "conversation_location_request_in_preview": "{name} запросил(а) ваше местоположение",
         "conversation_location_request_out_preview": "{name} отправил(а) запрос местоположения",
+        "conversation_image_you": "Вы отправили изображение",
+        "conversation_image_other": "{name} отправил(а) изображение",
+        "conversation_voice_you": "Вы отправили голосовое сообщение",
+        "conversation_voice_other": "{name} отправил(а) голосовое сообщение",
+        "conversation_file_you": "Вы отправили файл",
+        "conversation_file_other": "{name} отправил(а) файл",
+        "conversation_files_you": "Вы отправили файлов: {count}",
+        "conversation_files_other": "{name} отправил(а) файлов: {count}",
         "message_not_found_in_cache": "Сообщение не найдено в кэше"
     },
     "nomadnet": {

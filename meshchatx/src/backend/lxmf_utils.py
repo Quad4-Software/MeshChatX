@@ -152,7 +152,7 @@ def lxmf_sidebar_preview_for_conversation_latest_row(
     local_hash: str,
     peer_display_name: str,
 ) -> str:
-    """Single-line preview for conversation list APIs (reactions have empty body)."""
+    """Single-line preview for conversation list APIs (reactions and some media have empty body)."""
     content = row.get("content")
     if content is not None and str(content).strip():
         return str(content)
@@ -201,6 +201,29 @@ def lxmf_sidebar_preview_for_conversation_latest_row(
                 if incoming:
                     return f"{actor} requested your location"
                 return f"{actor} sent a location request"
+
+    image = fields.get("image")
+    if isinstance(image, dict) and image:
+        if actor == "You":
+            return "You sent an image"
+        return f"{actor} sent an image"
+
+    audio = fields.get("audio")
+    if isinstance(audio, dict) and audio:
+        if actor == "You":
+            return "You sent a voice note"
+        return f"{actor} sent a voice note"
+
+    file_attachments = fields.get("file_attachments")
+    if isinstance(file_attachments, list) and len(file_attachments) > 0:
+        n = len(file_attachments)
+        if n == 1:
+            if actor == "You":
+                return "You sent a file"
+            return f"{actor} sent a file"
+        if actor == "You":
+            return f"You sent {n} files"
+        return f"{actor} sent {n} files"
 
     return str(content or "")
 

@@ -1123,6 +1123,8 @@
         "hops_away": "{count} hops away",
         "snr": "SNR {snr}",
         "stamp_cost": "Stamp Cost {cost}",
+        "stamp_ticket_valid": "Outbound stamp ticket active (instant send). Expires {expires}.",
+        "stamp_ticket_expired": "Stamp ticket expired; the next message may require proof-of-work.",
         "pop_out_chat": "Pop out chat",
         "more_actions": "More actions",
         "retry_failed": "Retry failed messages",
@@ -1327,6 +1329,14 @@
         "conversation_telemetry_stream_preview": "{name} sent a telemetry stream",
         "conversation_location_request_in_preview": "{name} requested your location",
         "conversation_location_request_out_preview": "{name} sent a location request",
+        "conversation_image_you": "You sent an image",
+        "conversation_image_other": "{name} sent an image",
+        "conversation_voice_you": "You sent a voice note",
+        "conversation_voice_other": "{name} sent a voice note",
+        "conversation_file_you": "You sent a file",
+        "conversation_file_other": "{name} sent a file",
+        "conversation_files_you": "You sent {count} files",
+        "conversation_files_other": "{name} sent {count} files",
         "message_not_found_in_cache": "Message not found in cache"
     },
     "settings": {

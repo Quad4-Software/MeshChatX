@@ -1123,6 +1123,8 @@
         "hops_away": "{count}houblon loin",
         "snr": "SNR{snr}",
         "stamp_cost": "Coût du timbre{cost}",
+        "stamp_ticket_valid": "Ticket de timbre sortant actif (envoi instantané). Expire {expires}.",
+        "stamp_ticket_expired": "Ticket de timbre expiré ; le prochain message peut nécessiter une preuve de travail.",
         "pop_out_chat": "Clavardage",
         "more_actions": "Autres actions",
         "retry_failed": "Réessayer les messages échoués",
@@ -1327,6 +1329,14 @@
         "conversation_telemetry_stream_preview": "{name} a envoyé un flux de télémétrie",
         "conversation_location_request_in_preview": "{name} a demandé votre position",
         "conversation_location_request_out_preview": "{name} a envoyé une demande de position",
+        "conversation_image_you": "Vous avez envoyé une image",
+        "conversation_image_other": "{name} a envoyé une image",
+        "conversation_voice_you": "Vous avez envoyé une note vocale",
+        "conversation_voice_other": "{name} a envoyé une note vocale",
+        "conversation_file_you": "Vous avez envoyé un fichier",
+        "conversation_file_other": "{name} a envoyé un fichier",
+        "conversation_files_you": "Vous avez envoyé {count} fichiers",
+        "conversation_files_other": "{name} a envoyé {count} fichiers",
         "message_not_found_in_cache": "Message non trouvé dans cache"
     },
     "settings": {

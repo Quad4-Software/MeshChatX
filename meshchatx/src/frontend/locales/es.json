@@ -1123,6 +1123,8 @@
         "hops_away": "{count}salta lejos",
         "snr": "SNR{snr}",
         "stamp_cost": "Costo de sello{cost}",
+        "stamp_ticket_valid": "Boleto de sello saliente activo (envío instantáneo). Caduca {expires}.",
+        "stamp_ticket_expired": "Boleto de sello caducado; el próximo mensaje puede requerir prueba de trabajo.",
         "pop_out_chat": "Apágalo.",
         "more_actions": "Más acciones",
         "retry_failed": "Retry falló mensajes",
@@ -1327,6 +1329,14 @@
         "conversation_telemetry_stream_preview": "{name} envió un flujo de telemetría",
         "conversation_location_request_in_preview": "{name} solicitó tu ubicación",
         "conversation_location_request_out_preview": "{name} envió una solicitud de ubicación",
+        "conversation_image_you": "Enviaste una imagen",
+        "conversation_image_other": "{name} envió una imagen",
+        "conversation_voice_you": "Enviaste una nota de voz",
+        "conversation_voice_other": "{name} envió una nota de voz",
+        "conversation_file_you": "Enviaste un archivo",
+        "conversation_file_other": "{name} envió un archivo",
+        "conversation_files_you": "Enviaste {count} archivos",
+        "conversation_files_other": "{name} envió {count} archivos",
         "message_not_found_in_cache": "Mensaje no encontrado en caché"
     },
     "settings": {

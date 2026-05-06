@@ -1123,6 +1123,8 @@
         "hops_away": "{count} 跳远",
         "snr": "SNR {snr} dB",
         "stamp_cost": "邮戳成本 {cost}",
+        "stamp_ticket_valid": "出站邮戳票据有效（即时发送）。将于 {expires} 过期。",
+        "stamp_ticket_expired": "邮戳票据已过期；下一条消息可能需要工作量证明。",
         "pop_out_chat": "弹出聊天",
         "more_actions": "更多操作",
         "retry_failed": "重试失败的消息",
@@ -1327,6 +1329,14 @@
         "conversation_telemetry_stream_preview": "{name} 发送了遥测流",
         "conversation_location_request_in_preview": "{name} 请求你的位置",
         "conversation_location_request_out_preview": "{name} 发送了位置请求",
+        "conversation_image_you": "你发送了一张图片",
+        "conversation_image_other": "{name} 发送了一张图片",
+        "conversation_voice_you": "你发送了一条语音",
+        "conversation_voice_other": "{name} 发送了一条语音",
+        "conversation_file_you": "你发送了一个文件",
+        "conversation_file_other": "{name} 发送了一个文件",
+        "conversation_files_you": "你发送了 {count} 个文件",
+        "conversation_files_other": "{name} 发送了 {count} 个文件",
         "message_not_found_in_cache": "缓存中未找到消息"
     },
     "settings": {

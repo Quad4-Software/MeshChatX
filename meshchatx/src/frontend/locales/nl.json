@@ -1123,6 +1123,8 @@
         "hops_away": "{count}hop weg",
         "snr": "SNR{snr}",
         "stamp_cost": "Postzegelkosten{cost}",
+        "stamp_ticket_valid": "Uitgaand postzegelticket actief (direct verzenden). Verloopt {expires}.",
+        "stamp_ticket_expired": "Postzegelticket verlopen; het volgende bericht kan proof-of-work vereisen.",
         "pop_out_chat": "Pop out chat",
         "more_actions": "Meer acties",
         "retry_failed": "Opnieuw proberen van mislukte berichten",
@@ -1327,6 +1329,14 @@
         "conversation_telemetry_stream_preview": "{name} stuurde een telemetriestroom",
         "conversation_location_request_in_preview": "{name} vroeg om jouw locatie",
         "conversation_location_request_out_preview": "{name} stuurde een locatieverzoek",
+        "conversation_image_you": "Je hebt een afbeelding gestuurd",
+        "conversation_image_other": "{name} heeft een afbeelding gestuurd",
+        "conversation_voice_you": "Je hebt een spraakbericht gestuurd",
+        "conversation_voice_other": "{name} heeft een spraakbericht gestuurd",
+        "conversation_file_you": "Je hebt een bestand gestuurd",
+        "conversation_file_other": "{name} heeft een bestand gestuurd",
+        "conversation_files_you": "Je hebt {count} bestanden gestuurd",
+        "conversation_files_other": "{name} heeft {count} bestanden gestuurd",
         "message_not_found_in_cache": "Bericht niet gevonden in cache"
     },
     "settings": {

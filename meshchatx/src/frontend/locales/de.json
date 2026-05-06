@@ -1175,6 +1175,8 @@
         "hops_away": "{count} Hops entfernt",
         "snr": "SNR {snr}",
         "stamp_cost": "Stempelkosten {cost}",
+        "stamp_ticket_valid": "Ausgehendes Stempel-Ticket aktiv (sofortiger Versand). Läuft ab {expires}.",
+        "stamp_ticket_expired": "Stempel-Ticket abgelaufen; die nächste Nachricht kann einen Proof-of-Work erfordern.",
         "pop_out_chat": "Chat auslagern",
         "custom_display_name": "Benutzerdefinierter Anzeigename",
         "stranger_banner_text": "Dieser Peer ist nicht in Ihren Kontakten. Anhänge von Fremden werden blockiert.",
@@ -1379,6 +1381,14 @@
         "conversation_telemetry_stream_preview": "{name} hat einen Telemetrie-Datenstrom gesendet",
         "conversation_location_request_in_preview": "{name} hat den Standort angefordert",
         "conversation_location_request_out_preview": "{name} hat eine Standortanfrage gesendet",
+        "conversation_image_you": "Du hast ein Bild gesendet",
+        "conversation_image_other": "{name} hat ein Bild gesendet",
+        "conversation_voice_you": "Du hast eine Sprachnachricht gesendet",
+        "conversation_voice_other": "{name} hat eine Sprachnachricht gesendet",
+        "conversation_file_you": "Du hast eine Datei gesendet",
+        "conversation_file_other": "{name} hat eine Datei gesendet",
+        "conversation_files_you": "Du hast {count} Dateien gesendet",
+        "conversation_files_other": "{name} hat {count} Dateien gesendet",
         "message_not_found_in_cache": "Nachricht nicht im Cache gefunden"
     },
     "nomadnet": {

@@ -1,7 +1,8 @@
 /**
  * One-line preview text for the conversation list / sidebar (LXMF latest row).
- * Handles plain content, Columba reactions, location/telemetry fields, and
- * Sideband location-request commands. Pairs with the Python helper
+ * Handles plain content, Columba reactions, location/telemetry fields,
+ * Sideband location-request commands, and media-only payloads (image, audio,
+ * file attachments). Pairs with the Python helper
  * lxmf_sidebar_preview_for_conversation_latest_row.
  */
 
@@ -100,6 +101,42 @@ export function lxmfConversationListPreview(msg, { myLxmfAddressHash, peerDispla
                 : t("messages.conversation_location_request_out_preview", { name });
         }
         return msg?.is_incoming ? `${name} requested your location` : `${name} sent a location request`;
+    }
+
+    const imageField = fields?.image;
+    if (imageField && typeof imageField === "object" && Object.keys(imageField).length > 0) {
+        const fromSelf = isOutboundFromSelf(msg, myLxmfAddressHash);
+        if (typeof t === "function") {
+            return fromSelf ? t("messages.conversation_image_you") : t("messages.conversation_image_other", { name });
+        }
+        return fromSelf ? "You sent an image" : `${name} sent an image`;
+    }
+
+    const audioField = fields?.audio;
+    if (audioField && typeof audioField === "object" && Object.keys(audioField).length > 0) {
+        const fromSelf = isOutboundFromSelf(msg, myLxmfAddressHash);
+        if (typeof t === "function") {
+            return fromSelf ? t("messages.conversation_voice_you") : t("messages.conversation_voice_other", { name });
+        }
+        return fromSelf ? "You sent a voice note" : `${name} sent a voice note`;
+    }
+
+    const files = fields?.file_attachments;
+    if (Array.isArray(files) && files.length > 0) {
+        const fromSelf = isOutboundFromSelf(msg, myLxmfAddressHash);
+        const n = files.length;
+        if (typeof t === "function") {
+            if (n === 1) {
+                return fromSelf ? t("messages.conversation_file_you") : t("messages.conversation_file_other", { name });
+            }
+            return fromSelf
+                ? t("messages.conversation_files_you", { count: n })
+                : t("messages.conversation_files_other", { name, count: n });
+        }
+        if (n === 1) {
+            return fromSelf ? "You sent a file" : `${name} sent a file`;
+        }
+        return fromSelf ? `You sent ${n} files` : `${name} sent ${n} files`;
     }
 
     return raw ?? "";

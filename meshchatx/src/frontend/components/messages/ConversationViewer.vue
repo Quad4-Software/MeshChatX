@@ -3130,9 +3130,7 @@ export default {
                     }
                 );
 
-                // do nothing if response is for a previous request
                 if (seq !== this.lxmfMessagesRequestSequence) {
-                    console.log("ignoring response for previous lxmf messages request");
                     return;
                 }
 
@@ -4153,12 +4151,35 @@ export default {
         lxmfImageUrl(hash) {
             return `/api/v1/lxmf-messages/attachment/${hash}/image`;
         },
+        lxmfDataUrlFromOutboundJobImage(img) {
+            if (!img?.image_bytes || typeof img.image_bytes !== "string") {
+                return null;
+            }
+            const raw = (img.image_type || "png").toLowerCase().replace(/^image\//, "");
+            let mime = "image/png";
+            if (raw === "jpg" || raw === "jpeg") {
+                mime = "image/jpeg";
+            } else if (raw === "png" || raw === "gif" || raw === "webp" || raw === "bmp") {
+                mime = `image/${raw}`;
+            } else if (raw === "webm") {
+                mime = "video/webm";
+            } else if (raw === "svg" || raw === "svg+xml") {
+                mime = "image/svg+xml";
+            } else {
+                mime = `image/${raw}`;
+            }
+            return `data:${mime};base64,${img.image_bytes}`;
+        },
         pendingOutboundImageSrc(chatItem) {
             const prev = chatItem.lxmf_message?.fields?.image?._preview_url;
             if (prev) {
                 return prev;
             }
-            return this.lxmfImageUrl(chatItem.lxmf_message.hash);
+            const h = chatItem.lxmf_message?.hash;
+            if (typeof h === "string" && h.startsWith("pending-")) {
+                return "";
+            }
+            return this.lxmfImageUrl(h);
         },
         removePendingOutboundPlaceholder(hash) {
             if (!hash) {
@@ -4836,10 +4857,12 @@ export default {
                     job.pendingHash = pendingHash;
                     const pendingFields = {};
                     if (job.images.length > 0) {
+                        const previewUrl =
+                            job.imagePreviewUrls[0] || this.lxmfDataUrlFromOutboundJobImage(job.images[0]);
                         pendingFields.image = {
                             image_type: job.images[0].image_type,
                             image_size: job.images[0].image_size,
-                            _preview_url: job.imagePreviewUrls[0],
+                            _preview_url: previewUrl,
                         };
                     }
                     this.chatItems.push({

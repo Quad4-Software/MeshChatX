@@ -48,7 +48,8 @@
                     v-if="
                         selectedPeerPath ||
                         selectedPeerSignalMetrics?.snr != null ||
-                        selectedPeerLxmfStampInfo?.stamp_cost
+                        selectedPeerLxmfStampInfo?.stamp_cost ||
+                        lxmfHasOutboundTicket
                     "
                     class="flex items-center gap-2 min-w-0"
                 >
@@ -77,9 +78,30 @@
                             >
                         </span>
 
-                        <span v-if="selectedPeerLxmfStampInfo?.stamp_cost" class="flex items-center gap-2 shrink-0">
+                        <span
+                            v-if="selectedPeerLxmfStampInfo?.stamp_cost || lxmfHasOutboundTicket"
+                            class="flex items-center gap-1 shrink-0"
+                        >
                             <span class="text-gray-300 dark:text-zinc-700 opacity-50">•</span>
+                            <MaterialDesignIcon
+                                v-if="lxmfHasOutboundTicket"
+                                icon-name="ticket-confirmation"
+                                class="size-3.5 shrink-0"
+                                :class="
+                                    lxmfStampTicketValid
+                                        ? 'text-emerald-600 dark:text-emerald-400'
+                                        : 'text-amber-600 dark:text-amber-500'
+                                "
+                                :title="
+                                    lxmfStampTicketValid
+                                        ? $t('messages.stamp_ticket_valid', {
+                                              expires: lxmfStampTicketExpiresRelative,
+                                          })
+                                        : $t('messages.stamp_ticket_expired')
+                                "
+                            />
                             <span
+                                v-if="selectedPeerLxmfStampInfo?.stamp_cost"
                                 class="cursor-pointer hover:text-gray-700 dark:hover:text-zinc-200"
                                 title="LXMF stamp requirement"
                                 @click="$emit('stamp-info-click', selectedPeerLxmfStampInfo)"
@@ -115,10 +137,14 @@
 
 <script>
 import Utils from "../../js/Utils";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import IconButton from "../IconButton.vue";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 import ConversationDropDownMenu from "./ConversationDropDownMenu.vue";
+
+dayjs.extend(relativeTime);
 
 export default {
     name: "ConversationPeerHeader",
@@ -175,6 +201,34 @@ export default {
     computed: {
         destinationDisplay() {
             return Utils.formatDestinationHash(this.selectedPeer?.destination_hash);
+        },
+        lxmfHasOutboundTicket() {
+            return this.selectedPeerLxmfStampInfo?.outbound_ticket_expiry != null;
+        },
+        lxmfStampTicketExpiryMs() {
+            const e = this.selectedPeerLxmfStampInfo?.outbound_ticket_expiry;
+            if (e == null) {
+                return null;
+            }
+            const n = Number(e);
+            if (!Number.isFinite(n)) {
+                return null;
+            }
+            return n * 1000;
+        },
+        lxmfStampTicketValid() {
+            const ms = this.lxmfStampTicketExpiryMs;
+            if (ms == null) {
+                return false;
+            }
+            return ms > Date.now();
+        },
+        lxmfStampTicketExpiresRelative() {
+            const ms = this.lxmfStampTicketExpiryMs;
+            if (ms == null) {
+                return "";
+            }
+            return dayjs(ms).fromNow();
         },
     },
 };

@@ -1175,6 +1175,8 @@
         "hops_away": "{count} salti di distanza",
         "snr": "SNR {snr}",
         "stamp_cost": "Costo Francobollo {cost}",
+        "stamp_ticket_valid": "Biglietto di francobollo in uscita attivo (invio istantaneo). Scade {expires}.",
+        "stamp_ticket_expired": "Biglietto scaduto; il prossimo messaggio potrebbe richiedere proof-of-work.",
         "pop_out_chat": "Estrai chat",
         "custom_display_name": "Nome Visualizzato Personalizzato",
         "stranger_banner_text": "Questo peer non è nei tuoi contatti. Gli allegati da sconosciuti sono bloccati.",
@@ -1379,6 +1381,14 @@
         "conversation_telemetry_stream_preview": "{name} ha inviato un flusso di telemetria",
         "conversation_location_request_in_preview": "{name} ha richiesto la tua posizione",
         "conversation_location_request_out_preview": "{name} ha inviato una richiesta di posizione",
+        "conversation_image_you": "Hai inviato un'immagine",
+        "conversation_image_other": "{name} ha inviato un'immagine",
+        "conversation_voice_you": "Hai inviato una nota vocale",
+        "conversation_voice_other": "{name} ha inviato una nota vocale",
+        "conversation_file_you": "Hai inviato un file",
+        "conversation_file_other": "{name} ha inviato un file",
+        "conversation_files_you": "Hai inviato {count} file",
+        "conversation_files_other": "{name} ha inviato {count} file",
         "message_not_found_in_cache": "Messaggio non trovato nella cache"
     },
     "settings": {
