@@ -12,7 +12,8 @@ class AsyncUtils:
     _pending_futures: ClassVar[list[Any]] = []
     _pending_coroutines: ClassVar[list[Any]] = []
     _futures_lock = threading.Lock()
-    _FUTURES_SWEEP_THRESHOLD = 64
+    _FUTURES_SWEEP_THRESHOLD = 32
+    _COROUTINES_MAX = 256
 
     @staticmethod
     def apply_asyncio_313_patch():
@@ -80,4 +81,17 @@ class AsyncUtils:
                     ]
             return
 
+        # If the loop isn't available yet (or has stopped), buffer the coroutine
+        # but cap the backlog so we don't leak memory indefinitely.
         AsyncUtils._pending_coroutines.append(coroutine)
+        if len(AsyncUtils._pending_coroutines) > AsyncUtils._COROUTINES_MAX:
+            dropped = len(AsyncUtils._pending_coroutines) - AsyncUtils._COROUTINES_MAX
+            AsyncUtils._pending_coroutines = AsyncUtils._pending_coroutines[
+                -AsyncUtils._COROUTINES_MAX :
+            ]
+            import logging
+
+            logging.getLogger("meshchatx.async").warning(
+                "Dropped %d buffered coroutine(s) because the event loop is not running",
+                dropped,
+            )
