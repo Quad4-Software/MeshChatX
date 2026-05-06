@@ -8,8 +8,14 @@
             <div
                 v-for="toast in toasts"
                 :key="toast.id"
-                class="pointer-events-auto flex items-center p-4 w-full sm:min-w-[300px] sm:max-w-md rounded-xl shadow-lg border backdrop-blur-md transition-all duration-300"
-                :class="toastClass(toast.type)"
+                ref="toastRefs"
+                class="pointer-events-auto flex items-center p-4 w-full sm:min-w-[300px] sm:max-w-md rounded-xl shadow-lg border backdrop-blur-md transition-all duration-300 select-none touch-pan-y"
+                :class="[toastClass(toast.type), toast.swipeClass]"
+                :style="toastSwipeStyle(toast)"
+                @touchstart="onTouchStart($event, toast)"
+                @touchmove="onTouchMove($event, toast)"
+                @touchend="onTouchEnd(toast)"
+                @touchcancel="onTouchEnd(toast)"
             >
                 <!-- icon -->
                 <div class="mr-3 shrink-0">
@@ -66,6 +72,7 @@ export default {
         return {
             toasts: [],
             counter: 0,
+            swipeThreshold: 100,
         };
     },
     mounted() {
@@ -125,6 +132,9 @@ export default {
                 type: toast.type || "info",
                 duration: toast.duration !== undefined ? toast.duration : 5000,
                 timer: null,
+                _swipeX: 0,
+                _swiping: false,
+                swipeClass: "",
             };
 
             if (newToast.duration > 0) {
@@ -157,6 +167,39 @@ export default {
                     return "bg-white/90 dark:bg-zinc-900/90 border-blue-500/30";
             }
         },
+        toastSwipeStyle(toast) {
+            const x = toast._swipeX || 0;
+            if (x === 0) return {};
+            return {
+                transform: `translateX(${x}px)`,
+                transition: toast._swiping ? "none" : "transform 0.3s ease",
+                opacity: `${1 - Math.min(Math.abs(x) / this.swipeThreshold, 0.6)}`,
+            };
+        },
+        onTouchStart(event, toast) {
+            if (event.touches.length !== 1) return;
+            toast._startX = event.touches[0].clientX;
+            toast._swipeX = 0;
+            toast._swiping = true;
+            toast.swipeClass = "";
+        },
+        onTouchMove(event, toast) {
+            if (!toast._swiping || event.touches.length !== 1) return;
+            const deltaX = event.touches[0].clientX - toast._startX;
+            toast._swipeX = deltaX;
+        },
+        onTouchEnd(toast) {
+            if (!toast._swiping) return;
+            toast._swiping = false;
+            if (Math.abs(toast._swipeX) >= this.swipeThreshold) {
+                toast.swipeClass = toast._swipeX > 0 ? "toast-swipe-out-right" : "toast-swipe-out-left";
+                this.$nextTick(() => {
+                    setTimeout(() => this.remove(toast.id), 250);
+                });
+            } else {
+                toast._swipeX = 0;
+            }
+        },
     },
 };
 </script>
@@ -181,5 +224,15 @@ export default {
     .toast-leave-to {
         transform: translateX(30px);
     }
+}
+.toast-swipe-out-left {
+    transform: translateX(-120%) !important;
+    opacity: 0 !important;
+    transition: transform 0.25s ease, opacity 0.25s ease !important;
+}
+.toast-swipe-out-right {
+    transform: translateX(120%) !important;
+    opacity: 0 !important;
+    transition: transform 0.25s ease, opacity 0.25s ease !important;
 }
 </style>

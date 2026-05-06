@@ -107,4 +107,36 @@ describe("Toast.vue", () => {
         expect(cls).toContain("max-sm:bottom-");
         expect(cls).not.toContain("max-sm:bottom-[calc(5.75rem");
     });
+
+    it("dismisses toast on horizontal swipe past threshold", async () => {
+        GlobalEmitter.emit("toast", { message: "Swipe me", duration: 0 });
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.text()).toContain("Swipe me");
+        const toastVm = wrapper.vm.toasts[0];
+
+        // Simulate swipe right by 120px (past 100px threshold)
+        wrapper.vm.onTouchStart({ touches: [{ clientX: 100, clientY: 50 }] }, toastVm);
+        wrapper.vm.onTouchMove({ touches: [{ clientX: 220, clientY: 50 }] }, toastVm);
+        wrapper.vm.onTouchEnd(toastVm);
+        await vi.advanceTimersByTimeAsync(300);
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.text()).not.toContain("Swipe me");
+    });
+
+    it("snaps toast back when swipe is below threshold", async () => {
+        GlobalEmitter.emit("toast", { message: "Stay", duration: 0 });
+        await wrapper.vm.$nextTick();
+
+        const toastVm = wrapper.vm.toasts[0];
+
+        wrapper.vm.onTouchStart({ touches: [{ clientX: 100, clientY: 50 }] }, toastVm);
+        wrapper.vm.onTouchMove({ touches: [{ clientX: 140, clientY: 50 }] }, toastVm);
+        wrapper.vm.onTouchEnd(toastVm);
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.text()).toContain("Stay");
+        expect(toastVm._swipeX).toBe(0);
+    });
 });
