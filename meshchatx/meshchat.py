@@ -272,6 +272,8 @@ def list_host_network_interfaces():
 
 
 class ReticulumMeshChat:
+    DEFAULT_AUTOCONNECT_DISCOVERED_INTERFACES = 3
+
     def __init__(
         self,
         identity: RNS.Identity,
@@ -2929,6 +2931,12 @@ class ReticulumMeshChat:
         if not ctx:
             return
 
+        # Reject all calls if telephony is disabled
+        if not ctx.config.telephone_enabled.get():
+            if ctx.telephone_manager.telephone:
+                ctx.telephone_manager.telephone.hangup()
+            return
+
         if ctx.telephone_manager and ctx.telephone_manager.initiation_status:
             print(
                 "on_incoming_telephone_call: Ignoring as we are currently initiating an outgoing call.",
@@ -2938,40 +2946,40 @@ class ReticulumMeshChat:
         caller_hash = caller_identity.hash.hex()
 
         # Check if caller is blocked
-        if self.is_destination_blocked(caller_hash):
+        if self.is_destination_blocked(caller_hash, context=ctx):
             print(f"Rejecting incoming call from blocked source: {caller_hash}")
-            if self.telephone_manager.telephone:
-                self.telephone_manager.telephone.hangup()
+            if ctx.telephone_manager.telephone:
+                ctx.telephone_manager.telephone.hangup()
             return
 
         # Check for Do Not Disturb
-        if self.config.do_not_disturb_enabled.get():
+        if ctx.config.do_not_disturb_enabled.get():
             print(f"Rejecting incoming call due to Do Not Disturb: {caller_hash}")
-            if self.telephone_manager.telephone:
+            if ctx.telephone_manager.telephone:
                 # Use a small delay to ensure LXST state is ready for hangup
                 threading.Timer(
                     0.5,
-                    lambda: self.telephone_manager.telephone.hangup(),
+                    lambda: ctx.telephone_manager.telephone.hangup(),
                 ).start()
             return
 
         # Check if only allowing calls from contacts, or blocking all from strangers
         if (
-            self.config.telephone_allow_calls_from_contacts_only.get()
-            or self.config.block_all_from_strangers.get()
+            ctx.config.telephone_allow_calls_from_contacts_only.get()
+            or ctx.config.block_all_from_strangers.get()
         ):
-            contact = self.database.contacts.get_contact_by_identity_hash(caller_hash)
+            contact = ctx.database.contacts.get_contact_by_identity_hash(caller_hash)
             if not contact:
                 print(f"Rejecting incoming call from non-contact: {caller_hash}")
-                if self.telephone_manager.telephone:
+                if ctx.telephone_manager.telephone:
                     threading.Timer(
                         0.5,
-                        lambda: self.telephone_manager.telephone.hangup(),
+                        lambda: ctx.telephone_manager.telephone.hangup(),
                     ).start()
                 return
 
         # Trigger voicemail handling
-        self.voicemail_manager.handle_incoming_call(caller_identity)
+        ctx.voicemail_manager.handle_incoming_call(caller_identity)
 
         print(f"on_incoming_telephone_call: {caller_identity.hash.hex()}")
         ch = caller_identity.hash.hex()
@@ -3012,7 +3020,7 @@ class ReticulumMeshChat:
         if not ctx:
             return
         # Stop voicemail recording if active
-        self.voicemail_manager.stop_recording()
+        ctx.voicemail_manager.stop_recording()
 
         print(
             f"on_telephone_call_ended: {caller_identity.hash.hex() if caller_identity else 'Unknown'}",
@@ -3027,8 +3035,8 @@ class ReticulumMeshChat:
             remote_identity_hash = caller_identity.hash.hex()
             remote_identity_name = self.get_name_for_identity_hash(remote_identity_hash)
 
-            is_incoming = self.telephone_manager.call_is_incoming
-            status_code = self.telephone_manager.call_status_at_end
+            is_incoming = ctx.telephone_manager.call_is_incoming
+            status_code = ctx.telephone_manager.call_status_at_end
 
             status_map = {
                 0: "Busy",
@@ -3042,10 +3050,10 @@ class ReticulumMeshChat:
             status_text = status_map.get(status_code, f"Status {status_code}")
 
             duration = 0
-            if self.telephone_manager.call_start_time:
-                duration = int(time.time() - self.telephone_manager.call_start_time)
+            if ctx.telephone_manager.call_start_time:
+                duration = int(time.time() - ctx.telephone_manager.call_start_time)
 
-            self.database.telephone.add_call_history(
+            ctx.database.telephone.add_call_history(
                 remote_identity_hash=remote_identity_hash,
                 remote_identity_name=remote_identity_name,
                 is_incoming=is_incoming,
@@ -3055,12 +3063,12 @@ class ReticulumMeshChat:
             )
 
             # Trigger missed call notification if it was an incoming call that ended without being established
-            if is_incoming and not self.telephone_manager.call_was_established:
+            if is_incoming and not ctx.telephone_manager.call_was_established:
                 # Check if we should suppress the notification/websocket message
                 # If DND was on, we still record it but maybe skip the noisy websocket?
                 # Actually, persistent notification is good.
 
-                self.database.misc.add_notification(
+                ctx.database.misc.add_notification(
                     notification_type="telephone_missed_call",
                     remote_hash=remote_identity_hash,
                     title="Missed Call",
@@ -3069,10 +3077,10 @@ class ReticulumMeshChat:
 
                 # Skip websocket broadcast if DND or contacts-only was likely the reason
                 is_filtered = False
-                if self.config.do_not_disturb_enabled.get():
+                if ctx.config.do_not_disturb_enabled.get():
                     is_filtered = True
-                elif self.config.telephone_allow_calls_from_contacts_only.get():
-                    contact = self.database.contacts.get_contact_by_identity_hash(
+                elif ctx.config.telephone_allow_calls_from_contacts_only.get():
+                    contact = ctx.database.contacts.get_contact_by_identity_hash(
                         remote_identity_hash,
                     )
                     if not contact:
@@ -6510,6 +6518,7 @@ class ReticulumMeshChat:
                 ),
                 "autoconnect_discovered_interfaces": reticulum_config.get(
                     "autoconnect_discovered_interfaces",
+                    ReticulumMeshChat.DEFAULT_AUTOCONNECT_DISCOVERED_INTERFACES,
                 ),
                 "default_bootstrap_only": ReticulumMeshChat._reticulum_yes_no_preference(
                     reticulum_config.get("default_bootstrap_only"),
@@ -6536,7 +6545,14 @@ class ReticulumMeshChat:
                 if key not in data:
                     return
                 value = data.get(key)
-                if value is None or value == "":
+                # Treat 0 for autoconnect_discovered_interfaces the same as unset,
+                # since Reticulum interprets 0 as False, causing bootstrap_only
+                # interfaces to flap (0 >= 0 evaluates to True).
+                if (
+                    value is None
+                    or value == ""
+                    or (key == "autoconnect_discovered_interfaces" and value == 0)
+                ):
                     reticulum_config.pop(key, None)
                 else:
                     if key in (
@@ -6585,6 +6601,7 @@ class ReticulumMeshChat:
                 ),
                 "autoconnect_discovered_interfaces": reticulum_config.get(
                     "autoconnect_discovered_interfaces",
+                    ReticulumMeshChat.DEFAULT_AUTOCONNECT_DISCOVERED_INTERFACES,
                 ),
                 "default_bootstrap_only": ReticulumMeshChat._reticulum_yes_no_preference(
                     reticulum_config.get("default_bootstrap_only"),
@@ -7059,13 +7076,19 @@ class ReticulumMeshChat:
                     "initiation_status": self.telephone_manager.initiation_status,
                     "initiation_target_hash": initiation_target_hash,
                     "initiation_target_name": initiation_target_name,
+                    # Silence web audio during voicemail
                     "web_audio": {
-                        "enabled": getattr(
-                            self.config.telephone_web_audio_enabled,
-                            "get",
-                            lambda: False,
-                        )()
-                        or _is_chaquopy_android(),
+                        "enabled": (
+                            getattr(
+                                self.config.telephone_web_audio_enabled,
+                                "get",
+                                lambda: False,
+                            )()
+                            or _is_chaquopy_android()
+                        )
+                        and not bool(
+                            getattr(self.voicemail_manager, "is_recording", False),
+                        ),
                         "allow_fallback": getattr(
                             self.config.telephone_web_audio_allow_fallback,
                             "get",
@@ -10825,6 +10848,9 @@ class ReticulumMeshChat:
                     status=400,
                 )
             self.database.messages.mark_conversations_as_read(destination_hashes)
+            # Keep notification viewed state in sync so the bell never
+            # disagrees with the conversation list.
+            self.database.messages.mark_all_notifications_as_viewed(destination_hashes)
             return web.json_response({"message": "Conversations marked as read"})
 
         @routes.post("/api/v1/lxmf/conversations/bulk-delete")
@@ -10901,6 +10927,9 @@ class ReticulumMeshChat:
 
             # mark lxmf conversation as read
             self.database.messages.mark_conversation_as_read(destination_hash)
+            # Keep notification viewed state in sync so the bell never
+            # disagrees with the conversation list.
+            self.database.messages.mark_notification_as_viewed(destination_hash)
 
             return web.json_response(
                 {
@@ -10920,10 +10949,14 @@ class ReticulumMeshChat:
                 self.database.messages.mark_all_notifications_as_viewed(
                     destination_hashes,
                 )
+                # Keep conversation read state in sync
+                self.database.messages.mark_conversations_as_read(destination_hashes)
             else:
                 # mark all LXMF conversations as viewed if no hashes provided
                 # (this happens when "Clear All" is clicked)
                 self.database.messages.mark_all_notifications_as_viewed()
+                # Also mark all conversations as read
+                self.database.messages.mark_all_conversations_as_read()
 
             if notification_ids:
                 # mark system notifications as viewed
@@ -10955,6 +10988,7 @@ class ReticulumMeshChat:
                 # 2. Fetch unread LXMF conversations if requested
                 conversations = []
                 user_facing_peer_hashes = set()
+                total_unread_peer_hashes = set()
                 if filter_unread:
                     local_hash = self.local_lxmf_destination.hexhash
                     db_conversations = self.message_handler.get_conversations(
@@ -10972,10 +11006,17 @@ class ReticulumMeshChat:
                         else:
                             other_user_hash = db_message["source_hash"]
 
-                        # If the latest incoming message is not user-facing
-                        # (reaction, telemetry, icon update, empty payload)
-                        # fall back to the most recent user-facing incoming
-                        # message so silent activity never raises the bell.
+                        if not self._lxmf_sieve_suppresses_notifications(
+                            other_user_hash,
+                            message_title=db_message.get("title"),
+                            message_content=db_message.get("content"),
+                        ):
+                            if not self.database.messages.is_notification_viewed(
+                                other_user_hash,
+                                db_message["timestamp"],
+                            ):
+                                total_unread_peer_hashes.add(other_user_hash)
+
                         latest_for_preview = db_message
                         if not is_user_facing_lxmf_payload(
                             db_message.get("fields"),
@@ -11125,10 +11166,12 @@ class ReticulumMeshChat:
                 # dropdown contents (no false bell triggers from reactions,
                 # telemetry, icon updates, or empty payloads).
                 lxmf_unread_count = 0
+                lxmf_total_unread_count = 0
                 local_hash = self.local_lxmf_destination.hexhash
                 if filter_unread:
                     # Already computed during the listing pass.
                     lxmf_unread_count = len(user_facing_peer_hashes)
+                    lxmf_total_unread_count = len(total_unread_peer_hashes)
                 else:
                     unread_conversations = self.message_handler.get_conversations(
                         local_hash,
@@ -11142,6 +11185,18 @@ class ReticulumMeshChat:
                             other_user_hash = conv["destination_hash"]
                         else:
                             other_user_hash = conv["source_hash"]
+
+                        # Total unread count (regardless of user-facing)
+                        if not self._lxmf_sieve_suppresses_notifications(
+                            other_user_hash,
+                            message_title=conv.get("title"),
+                            message_content=conv.get("content"),
+                        ):
+                            if not self.database.messages.is_notification_viewed(
+                                other_user_hash,
+                                conv["timestamp"],
+                            ):
+                                lxmf_total_unread_count += 1
 
                         latest_for_check = conv
                         if not is_user_facing_lxmf_payload(
@@ -11192,6 +11247,7 @@ class ReticulumMeshChat:
                     {
                         "notifications": all_notifications[:limit],
                         "unread_count": total_unread_count,
+                        "lxmf_total_unread_count": lxmf_total_unread_count,
                     },
                 )
             except Exception as e:
@@ -13354,6 +13410,16 @@ class ReticulumMeshChat:
                 self._parse_bool(data["do_not_disturb_enabled"]),
             )
 
+        if "telephone_enabled" in data:
+            value = self._parse_bool(data["telephone_enabled"])
+            self.config.telephone_enabled.set(value)
+            if (
+                not value
+                and self.telephone_manager
+                and self.telephone_manager.telephone
+            ):
+                self.telephone_manager.telephone.hangup()
+
         if "telephone_allow_calls_from_contacts_only" in data:
             self.config.telephone_allow_calls_from_contacts_only.set(
                 self._parse_bool(data["telephone_allow_calls_from_contacts_only"]),
@@ -14543,6 +14609,7 @@ class ReticulumMeshChat:
             "map_tile_server_url": ctx.config.map_tile_server_url.get(),
             "map_nominatim_api_url": ctx.config.map_nominatim_api_url.get(),
             "do_not_disturb_enabled": ctx.config.do_not_disturb_enabled.get(),
+            "telephone_enabled": ctx.config.telephone_enabled.get(),
             "telephone_allow_calls_from_contacts_only": ctx.config.telephone_allow_calls_from_contacts_only.get(),
             "telephone_announce_enabled": ctx.config.telephone_announce_enabled.get(),
             "telephone_audio_profile_id": ctx.config.telephone_audio_profile_id.get(),

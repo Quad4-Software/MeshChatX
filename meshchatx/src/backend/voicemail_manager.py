@@ -246,7 +246,10 @@ class VoicemailManager:
             )
             return
 
-        # Stop microphone if it's active to prevent local noise being sent or recorded
+        # Mark voicemail session active
+        self.telephone_manager.is_voicemail_session_active = True
+
+        # Stop microphone if it's active
         if telephone.audio_input:
             with contextlib.suppress(Exception):
                 telephone.audio_input.stop()
@@ -270,7 +273,7 @@ class VoicemailManager:
         def session_job():
             prev_receive_muted = self.telephone_manager.receive_muted
             with contextlib.suppress(Exception):
-                # Prevent remote audio from playing locally while recording voicemail
+                # Prevent remote audio from playing locally
                 self.telephone_manager.mute_receive()
 
             try:
@@ -464,6 +467,8 @@ class VoicemailManager:
         except Exception as e:
             RNS.log(f"Error stopping recording: {e}", RNS.LOG_ERROR)
             self.is_recording = False
+        finally:
+            self.telephone_manager.is_voicemail_session_active = False
 
     def _fix_recording(self, filepath):
         """Ensure ``filepath`` is a valid OGG/Opus file.

@@ -88,6 +88,7 @@ class TelephoneManager:
         self._path_poll_interval_s = 0.05
         self._path_retry_interval_s = 1.5
         self._status_poll_interval_s = 0.1
+        self.is_voicemail_session_active = False
 
     @property
     def is_recording(self):
@@ -95,6 +96,8 @@ class TelephoneManager:
 
     def init_telephone(self):
         if self.telephone is not None:
+            return
+        if self.config_manager and not self.config_manager.telephone_enabled.get():
             return
 
         self.telephone = Telephone(self.identity)

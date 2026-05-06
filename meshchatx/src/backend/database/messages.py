@@ -338,14 +338,29 @@ class MessageDAO:
         with self.provider:
             self.provider.executemany(
                 """
-                INSERT INTO lxmf_conversation_read_state (destination_hash, last_read_at, created_at, updated_at) 
+                INSERT INTO lxmf_conversation_read_state (destination_hash, last_read_at, created_at, updated_at)
                 VALUES (?, ?, ?, ?)
-                ON CONFLICT(destination_hash) DO UPDATE SET 
+                ON CONFLICT(destination_hash) DO UPDATE SET
                     last_read_at = EXCLUDED.last_read_at,
                     updated_at = EXCLUDED.updated_at
                 """,
                 [(h, now, now, now) for h in destination_hashes],
             )
+
+    def mark_all_conversations_as_read(self):
+        now = datetime.now(UTC).isoformat()
+        self.provider.execute(
+            """
+            INSERT INTO lxmf_conversation_read_state (destination_hash, last_read_at, created_at, updated_at)
+            SELECT peer_hash, ?, ?, ? FROM lxmf_messages
+            WHERE peer_hash IS NOT NULL
+            GROUP BY peer_hash
+            ON CONFLICT(destination_hash) DO UPDATE SET
+                last_read_at = EXCLUDED.last_read_at,
+                updated_at = EXCLUDED.updated_at
+            """,
+            (now, now, now),
+        )
 
     def is_conversation_unread(self, destination_hash):
         row = self.provider.fetchone(

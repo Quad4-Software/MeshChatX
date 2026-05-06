@@ -188,6 +188,11 @@ class ConfigManager:
         self.ringtone_volume = self.IntConfig(self, "ringtone_volume", 100)
 
         # telephony config
+        self.telephone_enabled = self.BoolConfig(
+            self,
+            "telephone_enabled",
+            True,
+        )
         self.do_not_disturb_enabled = self.BoolConfig(
             self,
             "do_not_disturb_enabled",
@@ -196,7 +201,7 @@ class ConfigManager:
         self.telephone_allow_calls_from_contacts_only = self.BoolConfig(
             self,
             "telephone_allow_calls_from_contacts_only",
-            False,
+            True,
         )
         self.telephone_announce_enabled = self.BoolConfig(
             self,

@@ -74,3 +74,35 @@ def test_set_callbacks(tel_manager):
     assert tel_manager.on_ringing_callback == cb1
     assert tel_manager.on_established_callback == cb2
     assert tel_manager.on_ended_callback == cb3
+
+
+def test_is_voicemail_session_active_defaults_false(tel_manager):
+    assert tel_manager.is_voicemail_session_active is False
+
+
+@patch("meshchatx.src.backend.telephone_manager.Telephone")
+def test_init_telephone_skips_when_disabled(mock_tel_class, mock_identity, tmp_path):
+    storage_dir = tmp_path / "tel"
+    storage_dir.mkdir()
+    cfg = MagicMock()
+    cfg.telephone_enabled.get.return_value = False
+    tm = TelephoneManager(
+        mock_identity, config_manager=cfg, storage_dir=str(storage_dir)
+    )
+    tm.init_telephone()
+    assert tm.telephone is None
+    mock_tel_class.assert_not_called()
+
+
+@patch("meshchatx.src.backend.telephone_manager.Telephone")
+def test_init_telephone_creates_when_enabled(mock_tel_class, mock_identity, tmp_path):
+    storage_dir = tmp_path / "tel"
+    storage_dir.mkdir()
+    cfg = MagicMock()
+    cfg.telephone_enabled.get.return_value = True
+    tm = TelephoneManager(
+        mock_identity, config_manager=cfg, storage_dir=str(storage_dir)
+    )
+    tm.init_telephone()
+    assert tm.telephone is not None
+    mock_tel_class.assert_called_once()

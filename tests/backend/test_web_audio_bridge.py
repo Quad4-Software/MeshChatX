@@ -205,11 +205,43 @@ def test_push_client_frame_no_op_without_tx_source():
 
 
 def test_push_client_frame_forwards_to_tx_source():
-    bridge = WebAudioBridge(MagicMock(), MagicMock())
+    tele_mgr = MagicMock()
+    tele_mgr.is_voicemail_session_active = False
+    bridge = WebAudioBridge(tele_mgr, MagicMock())
     mock_tx = MagicMock()
     bridge.tx_source = mock_tx
     bridge.push_client_frame(b"\x01\x02")
     mock_tx.push_pcm.assert_called_once_with(b"\x01\x02")
+
+
+def test_push_client_frame_drops_during_voicemail():
+    tele_mgr = MagicMock()
+    tele_mgr.is_voicemail_session_active = True
+    bridge = WebAudioBridge(tele_mgr, MagicMock())
+    mock_tx = MagicMock()
+    bridge.tx_source = mock_tx
+    bridge.push_client_frame(b"\x01\x02")
+    mock_tx.push_pcm.assert_not_called()
+
+
+def test_attach_client_returns_false_during_voicemail():
+    tele = MagicMock()
+    tele.active_call = object()
+    tele_mgr = MagicMock()
+    tele_mgr.telephone = tele
+    tele_mgr.is_voicemail_session_active = True
+    bridge = WebAudioBridge(tele_mgr, MagicMock())
+    assert bridge.attach_client(MagicMock()) is False
+
+
+def test_ensure_remote_tx_skips_during_voicemail():
+    tele = MagicMock()
+    tele_mgr = MagicMock()
+    tele_mgr.telephone = tele
+    tele_mgr.is_voicemail_session_active = True
+    bridge = WebAudioBridge(tele_mgr, MagicMock())
+    bridge._ensure_remote_tx(tele)
+    assert bridge.tx_source is None
 
 
 @pytest.mark.asyncio
@@ -263,6 +295,7 @@ def test_attach_client_success_wires_telephony_and_dedupes_client(mock_pipeline_
     tele.receive_pipeline = None
     tele_mgr = MagicMock()
     tele_mgr.telephone = tele
+    tele_mgr.is_voicemail_session_active = False
     bridge = WebAudioBridge(tele_mgr, MagicMock())
     client = MagicMock()
 
@@ -300,6 +333,7 @@ def test_attach_rx_tee_includes_base_sink_when_audio_output_exists(mock_pipeline
     tele.receive_pipeline = None
     tele_mgr = MagicMock()
     tele_mgr.telephone = tele
+    tele_mgr.is_voicemail_session_active = False
     bridge = WebAudioBridge(tele_mgr, MagicMock())
     assert bridge.attach_client(MagicMock()) is True
     assert len(bridge.rx_tee.sinks) == 2
@@ -321,6 +355,7 @@ def test_attach_rx_tee_single_sink_when_no_base_audio_output(mock_pipeline_cls):
     tele.receive_pipeline = None
     tele_mgr = MagicMock()
     tele_mgr.telephone = tele
+    tele_mgr.is_voicemail_session_active = False
     bridge = WebAudioBridge(tele_mgr, MagicMock())
     assert bridge.attach_client(MagicMock()) is True
     assert len(bridge.rx_tee.sinks) == 1
@@ -405,7 +440,9 @@ def test_ensure_remote_tx_swallows_source_init_failure(mock_log):
     tele = MagicMock()
     tele.transmit_mixer = MagicMock()
     tele.transmit_mixer.should_run = True
-    bridge = WebAudioBridge(MagicMock(), MagicMock())
+    tele_mgr = MagicMock()
+    tele_mgr.is_voicemail_session_active = False
+    bridge = WebAudioBridge(tele_mgr, MagicMock())
     bridge.tx_source = None
     with patch(
         "meshchatx.src.backend.web_audio_bridge.WebAudioSource",

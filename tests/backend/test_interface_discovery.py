@@ -151,6 +151,54 @@ async def test_reticulum_discovery_get_and_patch(temp_dir):
 
 
 @pytest.mark.asyncio
+async def test_discovery_patch_rejects_zero_autoconnect_as_unset(temp_dir):
+    config = ConfigDict(
+        {
+            "reticulum": {
+                "autoconnect_discovered_interfaces": 2,
+            },
+            "interfaces": {},
+        },
+    )
+
+    with (
+        patch("meshchatx.meshchat.generate_ssl_certificate"),
+        patch("RNS.Reticulum") as mock_rns,
+        patch("RNS.Transport"),
+        patch("LXMF.LXMRouter"),
+    ):
+        mock_reticulum = mock_rns.return_value
+        mock_reticulum.config = config
+        mock_reticulum.configpath = "/tmp/mock_config"
+        mock_reticulum.is_connected_to_shared_instance = False
+        mock_reticulum.transport_enabled.return_value = True
+
+        app = ReticulumMeshChat(
+            identity=build_identity(),
+            storage_dir=str(temp_dir),
+            reticulum_config_dir=str(temp_dir),
+        )
+
+        patch_handler = await find_route_handler(
+            app,
+            "/api/v1/reticulum/discovery",
+            "PATCH",
+        )
+        assert patch_handler
+
+        class PatchRequest:
+            @staticmethod
+            async def json():
+                return {"autoconnect_discovered_interfaces": 0}
+
+        patch_response = await patch_handler(PatchRequest())
+        patch_data = json.loads(patch_response.body)
+        # Backend treats 0 as unset and falls back to the default
+        assert patch_data["discovery"]["autoconnect_discovered_interfaces"] == 3
+        assert "autoconnect_discovered_interfaces" not in config["reticulum"]
+
+
+@pytest.mark.asyncio
 async def test_discovered_interfaces_respect_whitelist_and_blacklist(temp_dir):
     config = ConfigDict(
         {

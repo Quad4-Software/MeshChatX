@@ -195,3 +195,37 @@ def test_ignores_incoming_while_outgoing_initiation(policy_app):
 
     policy_app.current_context.voicemail_manager.handle_incoming_call.assert_not_called()
     async_utils.run_async.assert_not_called()
+
+
+def test_uses_passed_context_not_app_current_context(policy_app):
+    """Ensure on_incoming_telephone_call uses the ctx parameter, not self.current_context."""
+    policy_app.is_destination_blocked.return_value = False
+    policy_app.config.do_not_disturb_enabled.get.return_value = False
+    policy_app.config.telephone_allow_calls_from_contacts_only.get.return_value = True
+    policy_app.config.block_all_from_strangers.get.return_value = False
+
+    # current_context has no contact
+    policy_app.current_context.database.contacts.get_contact_by_identity_hash.return_value = None
+
+    # But a different ctx passed to the method DOES have the contact
+    other_ctx = MagicMock()
+    other_ctx.telephone_manager = policy_app.current_context.telephone_manager
+    other_ctx.config = policy_app.config
+    other_ctx.database = MagicMock()
+    other_ctx.database.contacts.get_contact_by_identity_hash.return_value = {
+        "id": 1,
+        "name": "Friend",
+    }
+    other_ctx.voicemail_manager = MagicMock()
+
+    caller = _caller_identity()
+
+    with patch("meshchatx.meshchat.AsyncUtils") as async_utils:
+        async_utils.run_async = MagicMock()
+        _run_incoming(policy_app, caller, ctx=other_ctx)
+
+    other_ctx.database.contacts.get_contact_by_identity_hash.assert_called_once_with(
+        CALLER_HASH_HEX,
+    )
+    policy_app.current_context.database.contacts.get_contact_by_identity_hash.assert_not_called()
+    other_ctx.voicemail_manager.handle_incoming_call.assert_called_once_with(caller)

@@ -79,15 +79,20 @@ def test_telephony_config(db):
     config.do_not_disturb_enabled.set(True)
     assert config.do_not_disturb_enabled.get() is True
 
-    # Test Contacts Only
-    assert config.telephone_allow_calls_from_contacts_only.get() is False
-    config.telephone_allow_calls_from_contacts_only.set(True)
+    # Test Contacts Only (defaults to True for security)
     assert config.telephone_allow_calls_from_contacts_only.get() is True
+    config.telephone_allow_calls_from_contacts_only.set(False)
+    assert config.telephone_allow_calls_from_contacts_only.get() is False
 
     # Test Call Recording
     assert config.call_recording_enabled.get() is False
     config.call_recording_enabled.set(True)
     assert config.call_recording_enabled.get() is True
+
+    # Test Telephone Enabled (defaults to True)
+    assert config.telephone_enabled.get() is True
+    config.telephone_enabled.set(False)
+    assert config.telephone_enabled.get() is False
 
 
 def test_auto_propagation_config(db):

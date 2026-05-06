@@ -178,3 +178,53 @@ def test_start_voicemail_session(mock_deps, temp_dir):
             # Run the job
             job_func()
             mock_start_rec.assert_called()
+
+
+def test_voicemail_session_sets_active_flag(mock_deps, temp_dir):
+    mock_db = MagicMock()
+    mock_config = MagicMock()
+    mock_tel_manager = MagicMock()
+    mock_tel = MagicMock()
+    mock_tel_manager.telephone = mock_tel
+    mock_tel_manager.is_voicemail_session_active = False
+
+    vm = VoicemailManager(mock_db, mock_config, mock_tel_manager, temp_dir)
+
+    mock_caller = MagicMock()
+    mock_caller.hash = b"caller"
+    mock_tel.call_status = 4
+    mock_tel.answer.return_value = True
+    mock_tel.audio_input = MagicMock()
+
+    with patch("threading.Thread"), patch("time.sleep"):
+        vm.start_voicemail_session(mock_caller)
+        assert mock_tel_manager.is_voicemail_session_active is True
+
+
+def test_stop_recording_clears_active_flag(mock_deps, temp_dir):
+    mock_db = MagicMock()
+    mock_config = MagicMock()
+    mock_tel_manager = MagicMock()
+    mock_tel = MagicMock()
+    mock_tel_manager.telephone = mock_tel
+    vm = VoicemailManager(mock_db, mock_config, mock_tel_manager, temp_dir)
+
+    vm.is_recording = True
+    vm.recording_pipeline = MagicMock()
+    vm.recording_sink = MagicMock()
+    vm.recording_filename = "test.opus"
+    vm.recording_start_time = 100
+    mock_remote_id = MagicMock()
+    mock_remote_id.hash.hex.return_value = "72656d6f7465"
+    vm.recording_remote_identity = mock_remote_id
+    vm.get_name_for_identity_hash = MagicMock(return_value="Test User")
+
+    recording_path = os.path.join(vm.recordings_dir, "test.opus")
+    os.makedirs(vm.recordings_dir, exist_ok=True)
+    with open(recording_path, "wb") as f:
+        f.write(b"fake opus data")
+
+    with patch("time.time", return_value=110), patch.object(vm, "_fix_recording"):
+        vm.stop_recording()
+
+    assert mock_tel_manager.is_voicemail_session_active is False

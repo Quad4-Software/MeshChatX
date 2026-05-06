@@ -134,6 +134,9 @@ class WebAudioBridge:
             tele = self._tele()
             if not tele or not tele.active_call:
                 return False
+            # Do not attach during voicemail
+            if getattr(self.telephone_manager, "is_voicemail_session_active", False):
+                return False
             self.clients.add(client)
             self._ensure_remote_tx(tele)
             self._ensure_rx_tee(tele)
@@ -162,6 +165,9 @@ class WebAudioBridge:
         with self.lock:
             if not self.tx_source:
                 return
+            # Drop frames during voicemail
+            if getattr(self.telephone_manager, "is_voicemail_session_active", False):
+                return
             self.tx_source.push_pcm(pcm_bytes)
 
     async def _send_bytes_to_all(self, pcm_bytes: bytes):
@@ -177,6 +183,9 @@ class WebAudioBridge:
     def _ensure_remote_tx(self, tele):
         # Rebuild transmit path with websocket-backed source
         if self.tx_source:
+            return
+        # Do not create transmit source during voicemail
+        if getattr(self.telephone_manager, "is_voicemail_session_active", False):
             return
         try:
             if hasattr(tele, "audio_input") and tele.audio_input:
