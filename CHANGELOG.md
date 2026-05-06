@@ -8,19 +8,30 @@ All notable changes to this project will be documented in this file.
 
 - **Build backend**: Bytecode cleanup now only removes .pyc and .pyo files when a matching .py source file is present, so standalone compiled artifacts are not deleted accidentally.
 - **Propagation sync**: Auto-select no longer lets a sync get stuck on an unreachable node. When `auto_propagation` is enabled and the current propagation node loses its path while syncing, the manager stops the stuck sync and evaluates candidates to find one with a working path. If no candidate works, the broken active node is removed rather than restored.
+- **LXMF / chat UI**: Conversation sidebar and list APIs show one-line previews for **image-only**, **voice-note (audio)**, and **file-attachment** messages (plus notification previews) instead of an empty subtitle. Server (`lxmf_sidebar_preview_for_conversation_latest_row`) and client (`lxmfConversationListPreview`) stay aligned, with locale strings and tests.
+- **Outbound images (pending row)**: Optimistic `pending-*` messages no longer trigger a `GET /api/v1/lxmf-messages/attachment/pending-*/image` **404** when the FileReader preview URL is not ready yet. The client falls back to an inline **data URL** from the outbound job payload and avoids using the attachment endpoint for pending hashes without a preview.
+- **Conversation loads**: Stale responses from an older `lxmf-messages/conversation` fetch (e.g. after switching peers quickly) are still discarded safely, without noisy console logging.
 
 ### Added
 
 - **Android notifications**: JavaScript interfaces in MainActivity handle notifications and incoming calls from the web layer. NotificationUtils now covers incoming calls, missed calls, voicemails, and messages on Android, with comprehensive tests across Electron, Android, and browser fallback.
-- **Telephony**: Voicemail session management and configuration updates.
-- **Toasts**: Swipe-to-dismiss on touch devices. Horizontal swipes past 100px slide the toast out with opacity and transform feedback; shorter swipes snap back.
+- **App / Messages**: Unread conversation count updates when new LXMF deliveries arrive, including when the Messages page is not focused.
+- **Telephony**: Voicemail session management and configuration updates. Telephony-related settings are surfaced in the UI.
+- **Toasts**: Swipe-to-dismiss on touch devices. Horizontal swipes past 100px slide the toast out with opacity and transform feedback. Shorter swipes snap back.
 - **Mobile header**: Propagation node sync refresh icon (`refresh`) visible on small screens, mirroring the desktop button with the same loading spinner state and click handler.
+- **Micron (Nomad)** (thanks to @RFnexus): MicronParser text inputs can upgrade to **multiline** textareas. Pressing **Enter twice** shows a hint. **`multiline_hint`** was added for NomadNet strings across supported locales.
+- **Chat header (LXMF stamps)**: When the peer has an **outbound stamp ticket** (`outbound_ticket_expiry` from stamp info), a **ticket** icon appears beside stamp cost. The icon is **green** while the ticket is still valid, **amber** after expiry, with localized tooltips.
+- **Connectivity (Android tooling)**: **`usbserial4a`** dependency for USB serial support in the stack where used.
 
 ### Changed
 
-- **Dependencies**: RNS package updated to 1.2.3 and micron-parser dependency refreshed.
-- **Vendored LXMFy**: Refreshed `vendor/lxmfy` from upstream [LXMFy/LXMFy](https://git.quad4.io/LXMFy/LXMFy) at `0a6ba8c9fd0f306be614d0edce44e4e805c025b0` (LXMF field helpers for structured bot commands, expanded docs, and new tests). Bundled package version remains **1.6.2**; `vendor/README.txt` lists the revision pointer.
-- **CI**: Docker images publish the :latest tag on version tag pushes, main and master branch builds are enabled, and the Bunny Storage release folder is pruned before uploads.
+- **Dependencies**: **RNS** updated to **1.2.3**, **aiohttp** to **3.13.5** in Python, **requirements.txt**, **Chaquopy** metadata, and Android **build.gradle**, **micron-parser** lockfile refresh, and general **pnpm** / **package** bumps for 4.6.2.
+- **Vendored LXMFy**: Refreshed `vendor/lxmfy` from upstream [LXMFy/LXMFy](https://git.quad4.io/LXMFy/LXMFy) at `0a6ba8c9fd0f306be614d0edce44e4e805c025b0` (LXMF field helpers for structured bot commands, expanded docs, and new tests). Bundled package version remains **1.6.2**. `vendor/README.txt` lists the revision pointer.
+- **CI**: Docker images publish the **:latest** tag on version tag pushes, **main** and **master** branch builds are enabled, and the Bunny Storage release folder is pruned before uploads.
+- **async_utils**: Tighter coroutine scheduling limits with **logging when work is dropped**. Removed the **Python 3.13 asyncio** compatibility patch in favor of cleaner scheduling assumptions. Adds regression tests for **HTTPS file responses** (including sendfile-style paths).
+- **reticulum_config**: Default Reticulum configuration is applied via **file-backed writes** instead of embedding large default text only through the previous helper path (tests updated).
+- **Lint tooling**: **`vue-eslint-parser`** added/updated (**10.4.0**) for frontend ESLint alignment.
+- **Contributors**: **zenith** added to **CONTRIBUTORS**.
 
 ## [4.6.1] - 2026-05-04
 
