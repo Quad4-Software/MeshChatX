@@ -1195,6 +1195,26 @@ public class MainActivity extends AppCompatActivity {
                 activity.attachmentPcmRecorder = null;
             }
         }
+
+        @JavascriptInterface
+        public void showNotification(String title, String body) {
+            AndroidNotificationBridge.showInboundMessage(title, body, null);
+        }
+
+        @JavascriptInterface
+        public void showIncomingCallNotification(String callerName) {
+            AndroidNotificationBridge.showIncomingCall(callerName, null);
+        }
+
+        @JavascriptInterface
+        public void showMissedCallNotification(String title, String body) {
+            AndroidNotificationBridge.showMissedCall(title, body, null);
+        }
+
+        @JavascriptInterface
+        public void cancelIncomingCallNotification() {
+            AndroidNotificationBridge.cancelIncomingCallNotification();
+        }
     }
 }
 
