@@ -573,6 +573,35 @@ describe("Conditional Rendering", () => {
         const sidebarButton = wrapper.find("button.sm\\:hidden");
         expect(sidebarButton.exists()).toBe(true);
     });
+
+    it("App shows propagation sync refresh icon on mobile", async () => {
+        const wrapper = mount(App, {
+            global: {
+                stubs: {
+                    RouterView: { template: "<div>Router View</div>" },
+                    RouterLink: createRouterLinkStub(),
+                    MaterialDesignIcon: { template: '<div data-icon-name="{{ iconName }}"></div>' },
+                    LanguageSelector: { template: "<div></div>" },
+                    NotificationBell: { template: "<div></div>" },
+                    SidebarLink: {
+                        template: '<div><slot name="icon"></slot><slot name="text"></slot></div>',
+                        props: ["to", "isCollapsed"],
+                    },
+                },
+                mocks: {
+                    $route: { name: "messages", meta: {}, query: {} },
+                    $router: { push: vi.fn() },
+                    $t: (key) => key,
+                },
+            },
+        });
+
+        const mobileRefreshButtons = wrapper.findAll("button").filter((b) => {
+            const cls = b.classes().join(" ");
+            return cls.includes("sm:hidden") && b.attributes("title") === "app.sync_messages";
+        });
+        expect(mobileRefreshButtons.length).toBe(1);
+    });
 });
 
 describe("Dark Mode Class Application", () => {

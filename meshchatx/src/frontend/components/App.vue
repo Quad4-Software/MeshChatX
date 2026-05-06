@@ -101,6 +101,18 @@
                             >
                                 <MaterialDesignIcon icon-name="phone" class="w-5 h-5 sm:w-6 sm:h-6" />
                             </button>
+                            <button
+                                type="button"
+                                class="sm:hidden rounded-full p-1.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                                :title="isSyncingPropagationNode ? $t('app.syncing') : $t('app.sync_messages')"
+                                @click="syncPropagationNode"
+                            >
+                                <MaterialDesignIcon
+                                    icon-name="refresh"
+                                    class="w-5 h-5"
+                                    :class="{ 'animate-spin': isSyncingPropagationNode }"
+                                />
+                            </button>
                             <button type="button" class="hidden sm:flex rounded-full" @click="syncPropagationNode">
                                 <span
                                     class="flex text-gray-800 dark:text-zinc-100 bg-white dark:bg-zinc-800/80 border border-gray-200 dark:border-zinc-700 hover:border-blue-400 dark:hover:border-blue-400/60 px-3 py-1.5 rounded-full shadow-xs transition"

@@ -228,11 +228,15 @@ export default {
 .toast-swipe-out-left {
     transform: translateX(-120%) !important;
     opacity: 0 !important;
-    transition: transform 0.25s ease, opacity 0.25s ease !important;
+    transition:
+        transform 0.25s ease,
+        opacity 0.25s ease !important;
 }
 .toast-swipe-out-right {
     transform: translateX(120%) !important;
     opacity: 0 !important;
-    transition: transform 0.25s ease, opacity 0.25s ease !important;
+    transition:
+        transform 0.25s ease,
+        opacity 0.25s ease !important;
 }
 </style>

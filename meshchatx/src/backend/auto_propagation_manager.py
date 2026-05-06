@@ -106,8 +106,27 @@ class AutoPropagationManager:
         ctx = self.context
         router = ctx.message_router
 
+        previous_hex = (
+            self.config.lxmf_preferred_propagation_node_destination_hash.get()
+        )
+
+        # If a sync is in progress, only interrupt it when the current node
+        # appears unreachable.  This prevents getting stuck on a node we
+        # cannot get a path to.
         if router.propagation_transfer_state != LXMRouter.PR_IDLE:
-            return
+            current_has_path = False
+            if previous_hex:
+                try:
+                    current_dest = bytes.fromhex(previous_hex)
+                    current_has_path = RNS.Transport.has_path(current_dest)
+                except Exception:
+                    pass
+            if current_has_path:
+                # Sync is likely making progress – let it finish.
+                return
+            # Current node is unreachable – stop the stuck sync so we can
+            # look for a working alternative.
+            self.app.stop_propagation_node_sync(context=ctx)
 
         announces = self.database.announces.get_announces(aspect="lxmf.propagation")
 
@@ -133,9 +152,6 @@ class AutoPropagationManager:
         if not sorted_candidates:
             return
 
-        previous_hex = (
-            self.config.lxmf_preferred_propagation_node_destination_hash.get()
-        )
         ordered: list[tuple[int, str]] = []
         seen_hex: set[str] = set()
         if previous_hex and previous_hex in best_by_hex:
@@ -172,7 +188,18 @@ class AutoPropagationManager:
                 )
             return
 
+        # None of the candidates worked.  If the previously-selected node is
+        # still unreachable, clear it rather than restoring a broken node.
         if previous_hex:
-            self.app.set_active_propagation_node(previous_hex, context=self.context)
+            try:
+                previous_dest = bytes.fromhex(previous_hex)
+                if RNS.Transport.has_path(previous_dest):
+                    self.app.set_active_propagation_node(
+                        previous_hex, context=self.context
+                    )
+                    return
+            except Exception:
+                pass
+            self.app.remove_active_propagation_node(context=self.context)
         else:
             self.app.remove_active_propagation_node(context=self.context)
