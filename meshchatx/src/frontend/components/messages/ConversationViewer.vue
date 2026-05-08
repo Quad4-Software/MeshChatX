@@ -2,10 +2,7 @@
 
 <template>
     <!-- peer selected -->
-    <div
-        v-if="selectedPeer"
-        class="flex flex-col h-full bg-white dark:bg-zinc-950 overflow-hidden transition-all relative"
-    >
+    <div v-if="selectedPeer" class="flex flex-col h-full bg-white dark:bg-zinc-950 overflow-hidden relative">
         <!-- banished overlay -->
         <div
             v-if="GlobalState?.config?.banished_effect_enabled && isSelectedPeerBlocked"
@@ -179,35 +176,62 @@
             </div>
 
             <!-- chat items -->
-            <div
-                id="messages"
-                ref="messagesScroll"
-                class="flex-1 min-h-0 overflow-y-scroll bg-white dark:bg-zinc-950 transition-none"
-                style="overflow-anchor: none; overscroll-behavior-y: contain"
-                :class="!messagesViewportReady ? 'invisible opacity-0 pointer-events-none select-none' : ''"
-                :data-message-list-mode="useVirtualMessageList ? 'virtual' : 'reverse'"
-                :aria-busy="!messagesViewportReady ? 'true' : undefined"
-                @scroll="onMessagesScroll"
-            >
+            <div class="flex-1 min-h-0 min-w-0 relative flex flex-col">
                 <div
-                    v-if="selectedPeerChatItems.length > 0"
-                    class="min-w-0 px-4 py-6"
-                    :class="useVirtualMessageList ? 'relative flex flex-col' : ''"
+                    id="messages"
+                    ref="messagesScroll"
+                    class="flex-1 min-h-0 overflow-y-scroll bg-white dark:bg-zinc-950"
+                    style="overflow-anchor: none; overscroll-behavior-y: contain"
+                    :data-message-list-mode="useVirtualMessageList ? 'virtual' : 'reverse'"
+                    :aria-busy="!messagesViewportReady ? 'true' : undefined"
+                    @scroll="onMessagesScroll"
                 >
-                    <template v-if="!useVirtualMessageList">
-                        <div class="flex flex-col flex-col-reverse min-w-0">
-                            <template
-                                v-for="entry in selectedPeerChatDisplayGroupsNewestFirstAugmented"
-                                :key="entry.key"
-                            >
-                                <ConversationMessageEntry :entry="entry" :cv="conversationViewerSelf" />
-                            </template>
-                            <!-- load previous -->
+                    <div
+                        v-if="selectedPeerChatItems.length > 0"
+                        :key="selectedPeer ? selectedPeer.destination_hash : ''"
+                        class="min-w-0 px-4 py-6"
+                        :class="useVirtualMessageList ? 'relative flex flex-col' : ''"
+                    >
+                        <template v-if="!useVirtualMessageList">
+                            <div class="flex flex-col flex-col-reverse min-w-0">
+                                <template
+                                    v-for="entry in selectedPeerChatDisplayGroupsNewestFirstAugmented"
+                                    :key="entry.key"
+                                >
+                                    <ConversationMessageEntry :entry="entry" :cv="conversationViewerSelf" />
+                                </template>
+                                <!-- load previous -->
+                                <button
+                                    v-show="!isLoadingPrevious && hasMorePrevious"
+                                    id="load-previous"
+                                    type="button"
+                                    class="flex items-center gap-2 mx-auto mt-4 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 px-4 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-full shadow-xs text-sm font-medium text-gray-700 dark:text-zinc-300 transition-colors"
+                                    @click="loadPrevious"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke-width="1.5"
+                                        stroke="currentColor"
+                                        class="w-4 h-4"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            d="m15 11.25-3-3m0 0-3 3m3-3v7.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                                        />
+                                    </svg>
+                                    <span>Load Previous</span>
+                                </button>
+                            </div>
+                        </template>
+                        <template v-else>
                             <button
                                 v-show="!isLoadingPrevious && hasMorePrevious"
                                 id="load-previous"
                                 type="button"
-                                class="flex items-center gap-2 mx-auto mt-4 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 px-4 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-full shadow-xs text-sm font-medium text-gray-700 dark:text-zinc-300 transition-colors"
+                                class="absolute top-2 left-1/2 z-20 -translate-x-1/2 flex items-center gap-2 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-sm border border-gray-200 dark:border-zinc-800 px-4 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-full shadow-xs text-sm font-medium text-gray-700 dark:text-zinc-300 transition-colors"
                                 @click="loadPrevious"
                             >
                                 <svg
@@ -226,40 +250,20 @@
                                 </svg>
                                 <span>Load Previous</span>
                             </button>
-                        </div>
-                    </template>
-                    <template v-else>
-                        <button
-                            v-show="!isLoadingPrevious && hasMorePrevious"
-                            id="load-previous"
-                            type="button"
-                            class="absolute top-2 left-1/2 z-20 -translate-x-1/2 flex items-center gap-2 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-sm border border-gray-200 dark:border-zinc-800 px-4 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 rounded-full shadow-xs text-sm font-medium text-gray-700 dark:text-zinc-300 transition-colors"
-                            @click="loadPrevious"
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="w-4 h-4"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="m15 11.25-3-3m0 0-3 3m3-3v7.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-                                />
-                            </svg>
-                            <span>Load Previous</span>
-                        </button>
-                        <ConversationMessageListVirtual
-                            ref="messageListVirtual"
-                            :groups="selectedPeerChatDisplayGroupsOldestFirstAugmented"
-                            :get-scroll-element="getMessagesScrollElement"
-                            :cv="conversationViewerSelf"
-                        />
-                    </template>
+                            <ConversationMessageListVirtual
+                                ref="messageListVirtual"
+                                :groups="selectedPeerChatDisplayGroupsOldestFirstAugmented"
+                                :get-scroll-element="getMessagesScrollElement"
+                                :cv="conversationViewerSelf"
+                            />
+                        </template>
+                    </div>
                 </div>
+                <div
+                    v-if="!messagesViewportReady"
+                    class="absolute inset-0 z-20 bg-white dark:bg-zinc-950 pointer-events-none select-none"
+                    aria-hidden="true"
+                />
             </div>
 
             <Transition name="scroll-fab">
@@ -271,7 +275,7 @@
                         type="button"
                         class="flex items-center justify-center size-8 rounded-full bg-white/90 dark:bg-zinc-800/90 backdrop-blur-sm border border-gray-200 dark:border-zinc-700 shadow-sm text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700 hover:text-gray-700 dark:hover:text-zinc-200 transition-colors"
                         title="Scroll to bottom"
-                        @click="scrollMessagesToBottom"
+                        @click="scrollMessagesToBottom()"
                     >
                         <MaterialDesignIcon icon-name="chevron-down" class="size-5" />
                     </button>
@@ -1712,7 +1716,13 @@ import { MESSAGE_BODY_MAX_DISPLAY_CHARS, isStringTooLargeForInlineDisplay } from
 import { buildTimestampGroupedOldestFirst } from "../../js/messageTimestampGrouping.js";
 import DownloadUtils from "../../js/DownloadUtils";
 import { clampFloatingToViewport } from "../../js/clampFloatingToViewport.js";
-import { isNearBottom, scrollContainerToBottom, shouldLoadPreviousMessages } from "./conversationScroll.js";
+import {
+    canTrustScrollNearBottomHeuristic,
+    isNearBottom,
+    resetMessagesScrollSurface,
+    scrollContainerToBottom,
+    shouldLoadPreviousMessages,
+} from "./conversationScroll.js";
 import {
     isTelemetryOnly as isTelemetryOnlyMessage,
     hasRenderableContent as messageHasRenderableContent,
@@ -1733,6 +1743,10 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 
 dayjs.extend(relativeTime);
+
+const SCROLL_SETTLE_MAX_PASSES = 24;
+const OPEN_CONVERSATION_SCROLL_PIN_MS = 900;
+
 import SendMessageButton from "./SendMessageButton.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ContextMenuDivider from "../contextmenu/ContextMenuDivider.vue";
@@ -1915,6 +1929,8 @@ export default {
             prevScrollWantedLoadPrevious: false,
             initialLoadActive: false,
             messagesViewportReady: true,
+            openConversationScrollObserver: null,
+            conversationOpenPinUntil: 0,
         };
     },
     computed: {
@@ -2335,7 +2351,9 @@ export default {
                     this.saveDraft(oldPeer.destination_hash);
                 }
                 this.teardownPeerHeaderResizeObserver();
+                this.disconnectOpenConversationScrollObserver();
                 this.scrollBottomGen += 1;
+                this.autoScrollOnNewMessage = true;
                 this.messagesViewportReady = false;
                 if (!newPeer) {
                     this.peerHeaderCompact = false;
@@ -2345,6 +2363,9 @@ export default {
                 this.checkIfStrangerPeer();
                 this.prevScrollWantedLoadPrevious = false;
                 this.initialLoad();
+                this.$nextTick(() => {
+                    this.resetStaleConversationScrollSurface();
+                });
                 if (newPeer) {
                     this.loadDraft(newPeer.destination_hash);
                     this.$nextTick(() => this.setupPeerHeaderResizeObserver());
@@ -2456,6 +2477,7 @@ export default {
         if (this.propagationStatusInterval) {
             clearInterval(this.propagationStatusInterval);
         }
+        this.disconnectOpenConversationScrollObserver();
     },
     methods: {
         isMeshChatXAndroid() {
@@ -3067,7 +3089,12 @@ export default {
         },
         onMessagesScroll(event) {
             const element = event.target;
-            this.autoScrollOnNewMessage = isNearBottom(element);
+            const nearBottom = isNearBottom(element);
+            this.autoScrollOnNewMessage = nearBottom;
+            if (!nearBottom) {
+                this.conversationOpenPinUntil = 0;
+                this.disconnectOpenConversationScrollObserver();
+            }
 
             const wantLoad = shouldLoadPreviousMessages(element);
             if (wantLoad && !this.prevScrollWantedLoadPrevious) {
@@ -3089,6 +3116,9 @@ export default {
                 return;
             }
 
+            await this.$nextTick();
+            this.resetStaleConversationScrollSurface();
+
             this.getPeerPath();
             this.getPeerLxmfStampInfo();
             this.getPeerSignalMetrics();
@@ -3098,8 +3128,14 @@ export default {
 
             await this.loadPrevious();
 
+            await this.$nextTick();
+            await this.$nextTick();
+            await new Promise((resolve) => {
+                requestAnimationFrame(() => resolve());
+            });
+
             this.initialLoadActive = false;
-            this.scrollMessagesToBottom();
+            this.scrollMessagesToBottom({ pinAfter: true });
 
             this.autoLoadAudioAttachments();
         },
@@ -3602,10 +3638,84 @@ export default {
                 ].join("\n")
             );
         },
-        scrollMessagesToBottom: function () {
+        resetStaleConversationScrollSurface() {
+            resetMessagesScrollSurface(this.$refs.messagesScroll ?? null);
+        },
+
+        disconnectOpenConversationScrollObserver() {
+            if (this.openConversationScrollObserver) {
+                try {
+                    this.openConversationScrollObserver.disconnect();
+                } catch {
+                    /* ignore */
+                }
+                this.openConversationScrollObserver = null;
+            }
+            if (this._openConversationScrollPinTimer) {
+                clearTimeout(this._openConversationScrollPinTimer);
+                this._openConversationScrollPinTimer = null;
+            }
+        },
+
+        _startOpenConversationScrollPin(gen, stale) {
+            this.disconnectOpenConversationScrollObserver();
+            const container = this.$refs.messagesScroll;
+            const observed = container?.firstElementChild;
+            if (!observed || typeof ResizeObserver === "undefined") {
+                return;
+            }
+            this.conversationOpenPinUntil = Date.now() + OPEN_CONVERSATION_SCROLL_PIN_MS;
+            const ro = new ResizeObserver(() => {
+                if (stale() || Date.now() > this.conversationOpenPinUntil || !this.autoScrollOnNewMessage) {
+                    this.disconnectOpenConversationScrollObserver();
+                    return;
+                }
+                requestAnimationFrame(() => {
+                    if (stale() || Date.now() > this.conversationOpenPinUntil || !this.autoScrollOnNewMessage) {
+                        return;
+                    }
+                    const c = this.$refs.messagesScroll;
+                    if (!c) {
+                        return;
+                    }
+                    try {
+                        if (this.useVirtualMessageList && this.$refs.messageListVirtual) {
+                            this.$refs.messageListVirtual.scrollToBottom();
+                        }
+                        scrollContainerToBottom(c);
+                    } catch (e) {
+                        console.error(e);
+                    }
+                });
+            });
+            this.openConversationScrollObserver = ro;
+            ro.observe(observed);
+            this._openConversationScrollPinTimer = setTimeout(() => {
+                this.disconnectOpenConversationScrollObserver();
+            }, OPEN_CONVERSATION_SCROLL_PIN_MS + 80);
+        },
+
+        scrollMessagesToBottom: function (options) {
+            const pinAfter = options && options.pinAfter === true;
             this.scrollBottomGen += 1;
             const gen = this.scrollBottomGen;
             const stale = () => gen !== this.scrollBottomGen;
+
+            const pump = () => {
+                const container = this.$refs.messagesScroll;
+                if (!container) {
+                    return;
+                }
+                try {
+                    if (this.useVirtualMessageList && this.$refs.messageListVirtual) {
+                        this.$refs.messageListVirtual.scrollToBottom();
+                    }
+                    scrollContainerToBottom(container);
+                } catch (e) {
+                    console.error(e);
+                }
+            };
+
             this.$nextTick(() => {
                 if (stale()) return;
                 this.$nextTick(() => {
@@ -3615,40 +3725,36 @@ export default {
                         this.messagesViewportReady = true;
                         return;
                     }
-                    const pump = () => {
-                        if (this.useVirtualMessageList && this.$refs.messageListVirtual) {
-                            this.$refs.messageListVirtual.scrollToBottom();
-                        }
-                        scrollContainerToBottom(container);
-                    };
-                    const safePump = () => {
-                        try {
-                            pump();
-                        } catch (e) {
-                            console.error(e);
-                        }
-                    };
-                    safePump();
-                    if (!this.useVirtualMessageList) {
+                    const hasItems = this.selectedPeerChatItems.length > 0;
+                    if (!hasItems) {
+                        pump();
                         requestAnimationFrame(() => {
                             if (stale()) return;
-                            safePump();
                             this.messagesViewportReady = true;
-                        });
-                    } else {
-                        let passes = 0;
-                        const settle = () => {
-                            if (stale()) return;
-                            safePump();
-                            passes++;
-                            if (isNearBottom(container) || passes >= 6) {
-                                this.messagesViewportReady = true;
-                            } else {
-                                requestAnimationFrame(settle);
+                            if (pinAfter) {
+                                this._startOpenConversationScrollPin(gen, stale);
                             }
-                        };
-                        requestAnimationFrame(settle);
+                        });
+                        return;
                     }
+
+                    let passes = 0;
+                    const settle = () => {
+                        if (stale()) return;
+                        pump();
+                        passes++;
+                        const trustNear = canTrustScrollNearBottomHeuristic(container);
+                        if ((trustNear && isNearBottom(container)) || passes >= SCROLL_SETTLE_MAX_PASSES) {
+                            this.messagesViewportReady = true;
+                            if (pinAfter) {
+                                this._startOpenConversationScrollPin(gen, stale);
+                            }
+                        } else {
+                            requestAnimationFrame(settle);
+                        }
+                    };
+                    pump();
+                    requestAnimationFrame(settle);
                 });
             });
         },
