@@ -69,6 +69,8 @@ class AutoPropagationManager:
     async def _probe_propagation_sync(self, node_hex: str) -> bool:
         ctx = self.context
         router = ctx.message_router
+        if not router:
+            return False
         try:
             dest = bytes.fromhex(node_hex)
             if len(dest) != RNS.Identity.TRUNCATED_HASHLENGTH // 8:
@@ -105,6 +107,8 @@ class AutoPropagationManager:
     async def check_and_update_propagation_node(self):
         ctx = self.context
         router = ctx.message_router
+        if not router:
+            return
 
         previous_hex = (
             self.config.lxmf_preferred_propagation_node_destination_hash.get()
