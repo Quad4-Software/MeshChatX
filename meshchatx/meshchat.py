@@ -214,6 +214,29 @@ def _resolve_rns_loglevel(cli_override: str | None) -> int | None:
     return _parse_rns_loglevel_value(os.environ.get("MESHCHAT_RNS_LOG_LEVEL"))
 
 
+def _restore_rns_console_logging_after_reticulum_init(app) -> None:
+    """Undo shutdown side effects from ``RNS.Reticulum.exit_handler``.
+
+    That handler sets ``RNS.loglevel`` to ``LOG_NONE`` and points ``sys.stdout`` /
+    ``sys.stderr`` at ``os.devnull``. Without this, hot reload appears to stop all
+    announce traffic logging even though interfaces are up.
+
+    When no CLI or ``MESHCHAT_RNS_LOG_LEVEL`` value applies and the level is still
+    ``LOG_NONE`` after reading config, fall back to ``LOG_WARNING`` so notices are
+    visible. Explicit ``none`` in the environment remains respected.
+    """
+    try:
+        if hasattr(sys, "__stdout__"):
+            sys.stdout = sys.__stdout__
+        if hasattr(sys, "__stderr__"):
+            sys.stderr = sys.__stderr__
+    except Exception:
+        pass
+    resolved = _resolve_rns_loglevel(getattr(app, "_rns_loglevel_cli", None))
+    if resolved is None and RNS.loglevel == RNS.LOG_NONE:
+        RNS.loglevel = RNS.LOG_WARNING
+
+
 def _python_jit_status_line() -> str:
     jit_runtime = getattr(sys, "_jit", None)
     if jit_runtime is None:
@@ -673,6 +696,9 @@ class ReticulumMeshChat:
         self.reticulum_config_dir = config_dir
         if not materialize:
             return
+        if not getattr(self, "_reticulum_instance_name_startup_repair_done", False):
+            self._repair_reticulum_instance_name_corruption()
+            self._reticulum_instance_name_startup_repair_done = True
         config_path = os.path.join(config_dir, "config")
         needs_default = True
         if os.path.isfile(config_path):
@@ -715,6 +741,7 @@ class ReticulumMeshChat:
                 )
             else:
                 self.reticulum = RNS.Reticulum(self.reticulum_config_dir)
+            _restore_rns_console_logging_after_reticulum_init(self)
             self.page_node_manager.load_nodes()
             self.page_node_manager.start_all()
 
@@ -983,6 +1010,49 @@ class ReticulumMeshChat:
 
         return closed_any
 
+    _reload_instance_suffix_re = re.compile(r"-reload-(\d+)-(\d+)$")
+    _meshchat_reload_pid_max = 4_194_304
+    _meshchat_reload_epoch_min = 1_577_836_800
+    _meshchat_reload_epoch_max = 4_102_444_800
+
+    @staticmethod
+    def _looks_like_meshchat_hot_reload_tail(pid: int, epoch: int) -> bool:
+        """Limit repairs to suffixes :meth:`reload_reticulum` actually writes.
+
+        Hot reload uses ``-reload-{os.getpid()}-{int(time.time())}``. Names like
+        ``my-net-reload-peer`` must not be truncated.
+        """
+        if pid < 1 or pid > ReticulumMeshChat._meshchat_reload_pid_max:
+            return False
+        if (
+            epoch < ReticulumMeshChat._meshchat_reload_epoch_min
+            or epoch > ReticulumMeshChat._meshchat_reload_epoch_max
+        ):
+            return False
+        return True
+
+    @staticmethod
+    def _strip_reload_instance_suffix(name):
+        """Remove stacked MeshChat hot-reload tails only (validated pid + unix time)."""
+        if not isinstance(name, str):
+            return None
+        out = name.strip()
+        if not out:
+            return None
+        while True:
+            m = ReticulumMeshChat._reload_instance_suffix_re.search(out)
+            if not m or m.end() != len(out):
+                break
+            try:
+                pid = int(m.group(1))
+                epoch = int(m.group(2))
+            except ValueError:
+                break
+            if not ReticulumMeshChat._looks_like_meshchat_hot_reload_tail(pid, epoch):
+                break
+            out = out[: m.start()].strip()
+        return out if out else None
+
     def _read_reticulum_instance_name(self):
         """Return current Reticulum instance_name from config or None."""
         config_dir = self._normalize_reticulum_config_dir(
@@ -997,6 +1067,16 @@ class ReticulumMeshChat:
         if not cp.has_section("reticulum"):
             return None
         return cp.get("reticulum", "instance_name", fallback=None)
+
+    def _repair_reticulum_instance_name_corruption(self):
+        """Rewrite persisted ``instance_name`` if hot-reload suffixes were left on disk."""
+        raw = self._read_reticulum_instance_name()
+        if not raw:
+            return
+        cleaned = ReticulumMeshChat._strip_reload_instance_suffix(raw)
+        if cleaned == raw or cleaned is None:
+            return
+        self._write_reticulum_instance_name(cleaned)
 
     def _write_reticulum_instance_name(self, instance_name):
         """Persist a Reticulum instance_name value into the config."""
@@ -1469,13 +1549,18 @@ class ReticulumMeshChat:
             if hasattr(RNS.Reticulum, "_Reticulum__instance"):
                 RNS.Reticulum._Reticulum__instance = None
 
-            original_instance_name = None
             switched_instance_name = None
+            instance_restore_name = None
             if abstract_unix_addr_in_use_after_wait:
-                original_instance_name = self._read_reticulum_instance_name()
-                base_name = original_instance_name or "default"
+                stored_instance_name = self._read_reticulum_instance_name()
+                stable_base = ReticulumMeshChat._strip_reload_instance_suffix(
+                    stored_instance_name,
+                )
+                instance_restore_name = (
+                    stable_base if stable_base is not None else "default"
+                )
                 switched_instance_name = (
-                    f"{base_name}-reload-{os.getpid()}-{int(time.time())}"
+                    f"{instance_restore_name}-reload-{os.getpid()}-{int(time.time())}"
                 )
                 self._write_reticulum_instance_name(switched_instance_name)
                 print(
@@ -1492,9 +1577,7 @@ class ReticulumMeshChat:
                 self.setup_identity(identity_to_restore)
             finally:
                 if switched_instance_name:
-                    self._write_reticulum_instance_name(
-                        original_instance_name or "default",
-                    )
+                    self._write_reticulum_instance_name(instance_restore_name)
             await self._send_rns_reload_status(
                 "done",
                 "RNS reload complete.",
@@ -1920,7 +2003,13 @@ class ReticulumMeshChat:
         return None
 
     @staticmethod
-    def apply_bootstrap_only_to_interface(interface_details, data, default_enabled):
+    def apply_bootstrap_only_to_interface(
+        interface_details,
+        data,
+        default_enabled,
+        *,
+        updating_existing=False,
+    ):
         if "bootstrap_only" in data:
             yn = ReticulumMeshChat._bootstrap_only_request_yes_no(
                 data.get("bootstrap_only")
@@ -1931,6 +2020,8 @@ class ReticulumMeshChat:
                 interface_details["bootstrap_only"] = "no"
             else:
                 interface_details.pop("bootstrap_only", None)
+            return
+        if updating_existing:
             return
         if default_enabled:
             interface_details["bootstrap_only"] = "yes"
@@ -2309,7 +2400,7 @@ class ReticulumMeshChat:
     # uses the provided destination hash as the active propagation node
     def set_active_propagation_node(self, destination_hash: str | None, context=None):
         ctx = context or self.current_context
-        if not ctx:
+        if not ctx or not ctx.message_router:
             return
 
         # set outbound propagation node
@@ -2332,7 +2423,7 @@ class ReticulumMeshChat:
     # stops the in progress propagation node sync
     def stop_propagation_node_sync(self, context=None):
         ctx = context or self.current_context
-        if not ctx:
+        if not ctx or not ctx.message_router:
             return
         ctx.message_router.cancel_propagation_node_requests()
 
@@ -2395,6 +2486,13 @@ class ReticulumMeshChat:
                 "messages_hidden": 0,
             }
 
+        if not ctx.message_router:
+            return {
+                "messages_stored": 0,
+                "delivery_confirmations": 0,
+                "messages_hidden": 0,
+            }
+
         messages_received = ctx.message_router.propagation_transfer_last_result or 0
         current_total_messages = ctx.database.messages.count_lxmf_messages()
         current_delivered_messages = ctx.database.messages.count_lxmf_messages_by_state(
@@ -2433,12 +2531,13 @@ class ReticulumMeshChat:
         # this still happens even if we cancel the propagation node requests
         # for now, the user can just manually cancel syncing in the ui if they think it's stuck...
         self.stop_propagation_node_sync(context=ctx)
-        ctx.message_router.outbound_propagation_node = None
+        if ctx.message_router:
+            ctx.message_router.outbound_propagation_node = None
 
     # enables or disables the local lxmf propagation node
     def enable_local_propagation_node(self, enabled: bool = True, context=None):
         ctx = context or self.current_context
-        if not ctx:
+        if not ctx or not ctx.message_router:
             return
         try:
             if enabled:
@@ -2469,6 +2568,9 @@ class ReticulumMeshChat:
             return None
 
         router = ctx.message_router
+        if not router:
+            return None
+
         is_running = bool(getattr(router, "propagation_node", False))
         stats = None
         if is_running:
@@ -2479,13 +2581,13 @@ class ReticulumMeshChat:
             return value if isinstance(value, (int, float)) else default
 
         destination_hash_raw = getattr(
-            ctx.message_router.propagation_destination,
+            router.propagation_destination,
             "hexhash",
             None,
         )
         if destination_hash_raw is None:
             destination_hash_raw = getattr(
-                ctx.message_router.propagation_destination,
+                router.propagation_destination,
                 "hash",
                 None,
             )
@@ -4912,12 +5014,13 @@ class ReticulumMeshChat:
             ):
                 default_boot = ReticulumMeshChat._reticulum_yes_no_preference(
                     self._get_reticulum_section().get("default_bootstrap_only"),
-                    default=True,
+                    default=False,
                 )
                 ReticulumMeshChat.apply_bootstrap_only_to_interface(
                     interface_details,
                     data,
                     default_boot,
+                    updating_existing=allow_overwriting_interface,
                 )
 
             # set common interface options
@@ -6412,7 +6515,7 @@ class ReticulumMeshChat:
                 ),
                 "default_bootstrap_only": ReticulumMeshChat._reticulum_yes_no_preference(
                     reticulum_config.get("default_bootstrap_only"),
-                    default=True,
+                    default=False,
                 ),
                 "network_identity": reticulum_config.get("network_identity"),
             }
@@ -6495,7 +6598,7 @@ class ReticulumMeshChat:
                 ),
                 "default_bootstrap_only": ReticulumMeshChat._reticulum_yes_no_preference(
                     reticulum_config.get("default_bootstrap_only"),
-                    default=True,
+                    default=False,
                 ),
                 "network_identity": reticulum_config.get("network_identity"),
             }
@@ -6578,9 +6681,12 @@ class ReticulumMeshChat:
                                     "listen_ip": s.get("listen_ip"),
                                     "connected": s.get("connected"),
                                     "online": s.get("online"),
+                                    "status": s.get("status"),
                                     "transport_id": transport_id,
                                     "network_id": s.get("network_id"),
                                     "autoconnect_source": s.get("autoconnect_source"),
+                                    "txb": s.get("txb"),
+                                    "rxb": s.get("rxb"),
                                 },
                             )
                 except Exception as e:
