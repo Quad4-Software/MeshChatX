@@ -2177,7 +2177,7 @@ export default {
             discoveryInterval: null,
             markingSeen: false,
             windowWidth: typeof window !== "undefined" ? window.innerWidth : 1024,
-            defaultBootstrapOnly: true,
+            defaultBootstrapOnly: false,
             refreshingCommunityPresets: false,
             bootstrapListSearch: "",
             bootstrapDiscoveredSectionOpen: true,
@@ -2802,7 +2802,7 @@ export default {
                 bootstrap_only: this.defaultBootstrapOnly === true,
             };
         },
-        parseDiscoveryBool(value, defaultValue = true) {
+        parseDiscoveryBool(value, defaultValue = false) {
             if (value === undefined || value === null || value === "") {
                 return defaultValue;
             }
@@ -2815,10 +2815,10 @@ export default {
             try {
                 const response = await window.api.get("/api/v1/reticulum/discovery");
                 const d = response.data?.discovery ?? {};
-                this.defaultBootstrapOnly = this.parseDiscoveryBool(d.default_bootstrap_only, true);
+                this.defaultBootstrapOnly = this.parseDiscoveryBool(d.default_bootstrap_only, false);
             } catch (e) {
                 console.error(e);
-                this.defaultBootstrapOnly = true;
+                this.defaultBootstrapOnly = false;
             }
         },
         async persistDefaultBootstrapOnly(value) {

@@ -1938,7 +1938,7 @@ export default {
                 interface_discovery_blacklist: "",
                 required_discovery_value: null,
                 autoconnect_discovered_interfaces: null,
-                default_bootstrap_only: true,
+                default_bootstrap_only: false,
                 network_identity: "",
             },
 
@@ -2128,7 +2128,7 @@ export default {
                 this.reticulumDiscovery.interface_discovery_whitelist = discovery.interface_discovery_whitelist ?? "";
                 this.reticulumDiscovery.interface_discovery_blacklist = discovery.interface_discovery_blacklist ?? "";
                 this.reticulumDiscovery.default_bootstrap_only = this.parseBool(
-                    discovery.default_bootstrap_only ?? true
+                    discovery.default_bootstrap_only ?? false
                 );
                 if (!this.isEditingInterface) {
                     this.newInterfaceBootstrapOnly = this.reticulumDiscovery.default_bootstrap_only;

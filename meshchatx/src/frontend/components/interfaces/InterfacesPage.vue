@@ -347,6 +347,16 @@
                                                 >
                                                     Heard: {{ formatLastHeard(iface.last_heard) }}
                                                 </span>
+                                                <template v-if="discoveredBytes(iface)">
+                                                    <span class="stat-chip bg-gray-50 dark:bg-zinc-800/50">
+                                                        {{ $t("interface.tx") }}
+                                                        {{ discoveredBytes(iface).tx }}
+                                                    </span>
+                                                    <span class="stat-chip bg-gray-50 dark:bg-zinc-800/50">
+                                                        {{ $t("interface.rx") }}
+                                                        {{ discoveredBytes(iface).rx }}
+                                                    </span>
+                                                </template>
                                             </div>
 
                                             <div class="grid gap-1.5 text-[10px] sm:text-[11px] pt-1 min-w-0">
@@ -454,20 +464,6 @@
                                                     />
                                                     <span class="truncate"
                                                         >Loc: {{ iface.latitude }}, {{ iface.longitude }}</span
-                                                    >
-                                                </div>
-
-                                                <div
-                                                    v-if="discoveredBytes(iface)"
-                                                    class="flex items-center gap-2 text-gray-500 dark:text-gray-500 min-w-0"
-                                                >
-                                                    <MaterialDesignIcon
-                                                        icon-name="swap-vertical"
-                                                        class="w-3.5 h-3.5 shrink-0"
-                                                    />
-                                                    <span class="truncate"
-                                                        >TX {{ discoveredBytes(iface).tx }} · RX
-                                                        {{ discoveredBytes(iface).rx }}</span
                                                     >
                                                 </div>
                                             </div>
@@ -753,7 +749,7 @@ export default {
                 interface_discovery_blacklist: "",
                 required_discovery_value: null,
                 autoconnect_discovered_interfaces: null,
-                default_bootstrap_only: true,
+                default_bootstrap_only: false,
                 network_identity: "",
             },
             savingDiscovery: false,
@@ -887,7 +883,7 @@ export default {
             const set = new Set();
             this.discoveredActive.forEach((a) => {
                 if (a.transport_id) {
-                    set.add(a.transport_id);
+                    set.add(String(a.transport_id).toLowerCase());
                 }
             });
             return set;
@@ -1141,7 +1137,7 @@ export default {
             const reach = iface.reachable_on;
             const port = iface.port;
             const nid = iface.network_id ? String(iface.network_id).toLowerCase() : null;
-            if (iface.transport_id && this.discoveredActiveTransportIds.has(iface.transport_id)) {
+            if (iface.transport_id && this.discoveredActiveTransportIds.has(String(iface.transport_id).toLowerCase())) {
                 return true;
             }
             const hasMeta = this.discoveryAutoconnectMetadataPresent;
@@ -1163,7 +1159,7 @@ export default {
                 const portMatch =
                     (s.target_port && port && Number(s.target_port) === Number(port)) ||
                     (s.listen_port && port && Number(s.listen_port) === Number(port));
-                if (!hostMatch || !portMatch || !(s.connected || s.online)) return false;
+                if (!hostMatch || !portMatch || !this.interfaceStatLinkUp(s)) return false;
                 const asrc = s.autoconnect_source;
                 if (asrc != null && asrc !== undefined) {
                     if (nid !== null) return String(asrc).toLowerCase() === nid;
@@ -1189,18 +1185,62 @@ export default {
                 query: { view: "discovered" },
             });
         },
+        interfaceStatLinkUp(s) {
+            if (!s || typeof s !== "object") return false;
+            if (s.status === false || s.connected === false || s.online === false) return false;
+            if (s.status === true || s.connected === true || s.online === true) return true;
+            return true;
+        },
         discoveredBytes(iface) {
+            if (!this.isDiscoveredConnected(iface)) return null;
+
+            const tid = iface.transport_id ? String(iface.transport_id).toLowerCase() : null;
+            if (tid) {
+                const byTid = (this.discoveredActive || []).find((a) => {
+                    if (!a.transport_id) return false;
+                    if (String(a.transport_id).toLowerCase() !== tid) return false;
+                    return this.interfaceStatLinkUp(a);
+                });
+                if (byTid && (byTid.txb !== undefined || byTid.rxb !== undefined)) {
+                    return {
+                        tx: this.formatBytes(byTid.txb ?? 0),
+                        rx: this.formatBytes(byTid.rxb ?? 0),
+                    };
+                }
+            }
+
             const reach = iface.reachable_on;
             const port = iface.port;
             const nid = iface.network_id ? String(iface.network_id).toLowerCase() : null;
-            const stats = this.activeInterfaceStats || [];
             const hasMeta = this.discoveryAutoconnectMetadataPresent;
+
+            const byActive = (this.discoveredActive || []).find((a) => {
+                const host = a.target_host || a.remote || a.listen_ip;
+                const p = a.target_port || a.listen_port;
+                if (!host || p == null || !reach || port == null) return false;
+                if (String(host) !== String(reach) || Number(p) !== Number(port)) return false;
+                if (!this.interfaceStatLinkUp(a)) return false;
+                const asrc = a.autoconnect_source;
+                if (asrc != null && asrc !== undefined) {
+                    if (nid !== null) return String(asrc).toLowerCase() === nid;
+                    return true;
+                }
+                return !hasMeta;
+            });
+            if (byActive && (byActive.txb !== undefined || byActive.rxb !== undefined)) {
+                return {
+                    tx: this.formatBytes(byActive.txb ?? 0),
+                    rx: this.formatBytes(byActive.rxb ?? 0),
+                };
+            }
+
+            const stats = this.activeInterfaceStats || [];
             const match = stats.find((s) => {
-                const host = s.target_host || s.remote || s.interface_name;
+                const host = s.target_host || s.remote || s.listen_ip;
                 const p = s.target_port || s.listen_port;
-                const hostMatch = host && reach && host === reach;
-                const portMatch = p && port && Number(p) === Number(port);
-                if (!hostMatch || !portMatch || !(s.connected || s.online)) return false;
+                if (!host || !reach || port == null || p == null) return false;
+                if (String(host) !== String(reach) || Number(p) !== Number(port)) return false;
+                if (!this.interfaceStatLinkUp(s)) return false;
                 const asrc = s.autoconnect_source;
                 if (asrc != null && asrc !== undefined) {
                     if (nid !== null) return String(asrc).toLowerCase() === nid;
@@ -1208,10 +1248,10 @@ export default {
                 }
                 return !hasMeta;
             });
-            if (!match) return null;
+            if (!match || (match.txb === undefined && match.rxb === undefined)) return null;
             return {
-                tx: this.formatBytes(match.txb || 0),
-                rx: this.formatBytes(match.rxb || 0),
+                tx: this.formatBytes(match.txb ?? 0),
+                rx: this.formatBytes(match.rxb ?? 0),
             };
         },
         formatBytes(bytes) {
@@ -1243,7 +1283,7 @@ export default {
                     discovery.autoconnect_discovered_interfaces !== ""
                         ? Number(discovery.autoconnect_discovered_interfaces)
                         : null;
-                this.discoveryConfig.default_bootstrap_only = this.parseBool(discovery.default_bootstrap_only ?? true);
+                this.discoveryConfig.default_bootstrap_only = this.parseBool(discovery.default_bootstrap_only ?? false);
                 this.discoveryConfig.network_identity = discovery.network_identity ?? "";
             } catch (e) {
                 console.log(e);
