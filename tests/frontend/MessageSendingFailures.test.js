@@ -5,13 +5,6 @@ import WebSocketConnection from "@/js/WebSocketConnection";
 import GlobalState from "@/js/GlobalState";
 import DialogUtils from "@/js/DialogUtils";
 
-vi.mock("@/js/DialogUtils", () => ({
-    default: {
-        confirm: vi.fn(() => Promise.resolve(true)),
-        alert: vi.fn(() => Promise.resolve()),
-    },
-}));
-
 describe("MessageSendingFailures.test.js", () => {
     let axiosMock;
 
@@ -36,12 +29,16 @@ describe("MessageSendingFailures.test.js", () => {
         // Mock URL.createObjectURL
         window.URL.createObjectURL = vi.fn(() => "mock-url");
         vi.spyOn(window, "open").mockImplementation(() => null);
+
+        vi.spyOn(DialogUtils, "confirm").mockResolvedValue(true);
+        vi.spyOn(DialogUtils, "alert").mockImplementation(() => {});
     });
 
     afterEach(() => {
         delete window.api;
         vi.unstubAllGlobals();
         WebSocketConnection.destroy();
+        vi.restoreAllMocks();
     });
 
     const mountConversationViewer = (props = {}) => {
@@ -72,24 +69,31 @@ describe("MessageSendingFailures.test.js", () => {
     };
 
     it("handles API 503 failure when sending message", async () => {
+        axiosMock.post.mockImplementation((url) => {
+            if (typeof url === "string" && url.includes("/lxmf-messages/send")) {
+                return Promise.reject({
+                    response: {
+                        status: 503,
+                        data: { message: "Sending failed" },
+                    },
+                });
+            }
+            return Promise.resolve({ data: {} });
+        });
+
         const wrapper = mountConversationViewer();
         wrapper.vm.newMessageText = "Hello failure";
 
-        axiosMock.post.mockRejectedValueOnce({
-            response: {
-                status: 503,
-                data: { message: "Sending failed" },
-            },
-        });
-
         await wrapper.vm.sendMessage();
+        await vi.waitFor(
+            () => {
+                expect(DialogUtils.alert).toHaveBeenCalledWith("Sending failed");
+            },
+            { timeout: 5000 }
+        );
 
-        // Optimistic placeholder should be gone
         const pendingItems = wrapper.vm.chatItems.filter((item) => item.lxmf_message.hash.startsWith("pending-"));
         expect(pendingItems).toHaveLength(0);
-
-        // Alert should be shown
-        expect(DialogUtils.alert).toHaveBeenCalledWith("Sending failed");
     });
 
     it("sends plain text when crypto.randomUUID is unavailable (non-secure context)", async () => {
