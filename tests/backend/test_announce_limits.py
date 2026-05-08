@@ -166,6 +166,91 @@ def test_get_filtered_announces_resolves_default_limit(mock_db, mock_config):
     assert 33 in params
 
 
+def test_max_stored_clamps_to_one_million(mock_db, mock_config):
+    mock_config.announce_max_stored_lxmf_delivery.get.return_value = 9_999_999
+
+    manager = _make_manager(mock_db, mock_config)
+
+    assert manager._get_max_stored_for_aspect("lxmf.delivery") == 1_000_000
+
+
+def test_trim_called_with_clamped_max_stored(mock_db, mock_config):
+    mock_config.announce_max_stored_lxmf_delivery.get.return_value = 5_000_000
+
+    manager = _make_manager(mock_db, mock_config)
+    reticulum = MagicMock()
+    identity = MagicMock()
+    identity.hash.hex.return_value = "ab" * 16
+    identity.get_public_key.return_value = b"pub_key"
+
+    manager.upsert_announce(
+        reticulum,
+        identity,
+        b"\x01" * 16,
+        "lxmf.delivery",
+        b"app_data",
+        b"packet_hash",
+    )
+
+    mock_db.announces.trim_announces_for_aspect.assert_called_once_with(
+        "lxmf.delivery",
+        1_000_000,
+    )
+
+
+def test_max_stored_zero_skips_cap(mock_db, mock_config):
+    mock_config.announce_max_stored_lxmf_delivery.get.return_value = 0
+
+    manager = _make_manager(mock_db, mock_config)
+
+    assert manager._get_max_stored_for_aspect("lxmf.delivery") is None
+
+
+def test_fetch_limit_clamps_to_hundred_thousand(mock_db, mock_config):
+    mock_config.announce_fetch_limit_lxmf_delivery = MagicMock()
+    mock_config.announce_fetch_limit_lxmf_delivery.get.return_value = 800_000
+
+    manager = _make_manager(mock_db, mock_config)
+
+    assert manager._get_fetch_limit_for_aspect("lxmf.delivery") == 100_000
+
+
+def test_fetch_limit_invalid_falls_back_to_default(mock_db, mock_config):
+    mock_config.announce_fetch_limit_lxmf_delivery = MagicMock()
+    mock_config.announce_fetch_limit_lxmf_delivery.get.return_value = 0
+
+    manager = _make_manager(mock_db, mock_config)
+
+    assert manager._get_fetch_limit_for_aspect("lxmf.delivery") == 500
+
+
+def test_fetch_limit_unknown_aspect_returns_default(mock_db, mock_config):
+    manager = _make_manager(mock_db, mock_config)
+
+    assert manager._get_fetch_limit_for_aspect("unknown.aspect") == 500
+
+
+def test_fetch_limit_none_falls_back_to_default(mock_db, mock_config):
+    mock_config.announce_fetch_limit_lxmf_delivery = MagicMock()
+    mock_config.announce_fetch_limit_lxmf_delivery.get.return_value = None
+
+    manager = _make_manager(mock_db, mock_config)
+
+    assert manager._get_fetch_limit_for_aspect("lxmf.delivery") == 500
+
+
+def test_get_filtered_announces_uses_clamped_fetch_limit(mock_db, mock_config):
+    mock_config.announce_fetch_limit_lxmf_delivery = MagicMock()
+    mock_config.announce_fetch_limit_lxmf_delivery.get.return_value = 400_000
+
+    manager = _make_manager(mock_db, mock_config)
+    manager.get_filtered_announces(aspect="lxmf.delivery", limit=None)
+
+    args, _ = mock_db.provider.fetchall.call_args
+    _sql, params = args
+    assert 100_000 in params
+
+
 def test_announce_handles_none_packet_hash(mock_db):
     manager = AnnounceManager(mock_db)
     reticulum = MagicMock()

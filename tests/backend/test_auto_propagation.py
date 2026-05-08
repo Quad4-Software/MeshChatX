@@ -214,3 +214,24 @@ async def test_auto_propagation_removes_broken_node_when_all_candidates_fail():
 
     app.set_active_propagation_node.assert_not_called()
     app.remove_active_propagation_node.assert_called_once_with(context=context)
+
+
+@pytest.mark.asyncio
+async def test_check_and_update_propagation_node_noops_without_message_router():
+    manager, app, context, config, _database = _make_manager()
+    context.message_router = None
+    config.lxmf_preferred_propagation_node_auto_select.get.return_value = True
+
+    await manager.check_and_update_propagation_node()
+
+    app.set_active_propagation_node.assert_not_called()
+    app.remove_active_propagation_node.assert_not_called()
+
+
+def test_stop_propagation_node_sync_noops_when_message_router_none():
+    from meshchatx.meshchat import ReticulumMeshChat
+
+    app = ReticulumMeshChat.__new__(ReticulumMeshChat)
+    ctx = MagicMock()
+    ctx.message_router = None
+    ReticulumMeshChat.stop_propagation_node_sync(app, context=ctx)

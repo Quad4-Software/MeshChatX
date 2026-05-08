@@ -109,6 +109,57 @@ async def test_websocket_broadcast_drops_dead_clients(mock_app):
     assert good.send_str.await_count == 1
 
 
+@pytest.mark.asyncio
+async def test_websocket_broadcast_all_clients_dead_empties_list(mock_app):
+    mock_app.websocket_clients.clear()
+    clients = []
+    for _ in range(80):
+        c = MagicWs()
+        c.send_str = AsyncMock(side_effect=ConnectionError("closed"))
+        clients.append(c)
+    mock_app.websocket_clients.extend(clients)
+
+    real = _bind_real_websocket_broadcast(mock_app)
+    await real("{}")
+
+    assert mock_app.websocket_clients == []
+
+
+@pytest.mark.asyncio
+async def test_websocket_broadcast_fanout_large_client_pool(mock_app):
+    mock_app.websocket_clients.clear()
+    n = 1500
+    clients = [MagicWs() for _ in range(n)]
+    mock_app.websocket_clients.extend(clients)
+
+    real = _bind_real_websocket_broadcast(mock_app)
+    payload = '{"type":"metrics","x":1}'
+    await real(payload)
+
+    for c in clients:
+        assert c.send_str.await_count == 1
+        assert c.send_str.await_args[0][0] == payload
+
+
+@pytest.mark.asyncio
+async def test_websocket_broadcast_mixed_failures_still_delivers_to_healthy(mock_app):
+    mock_app.websocket_clients.clear()
+    failing = [MagicWs() for _ in range(40)]
+    for c in failing:
+        c.send_str = AsyncMock(side_effect=BrokenPipeError())
+    healthy = [MagicWs() for _ in range(60)]
+    mock_app.websocket_clients.extend(failing + healthy)
+
+    real = _bind_real_websocket_broadcast(mock_app)
+    await real('{"type":"ping"}')
+
+    for c in failing:
+        assert c not in mock_app.websocket_clients
+    assert mock_app.websocket_clients == healthy
+    for c in healthy:
+        assert c.send_str.await_count == 1
+
+
 class MagicWs:
     def __init__(self):
         self.send_str = AsyncMock(return_value=None)
