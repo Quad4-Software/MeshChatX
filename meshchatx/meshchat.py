@@ -1072,7 +1072,10 @@ class ReticulumMeshChat:
             return None
 
         cp = configparser.ConfigParser()
-        cp.read(config_path)
+        try:
+            cp.read(config_path)
+        except configparser.Error:
+            return None
         if not cp.has_section("reticulum"):
             return None
         return cp.get("reticulum", "instance_name", fallback=None)
@@ -1094,7 +1097,10 @@ class ReticulumMeshChat:
         )
         config_path = os.path.join(config_dir, "config")
         cp = configparser.ConfigParser()
-        cp.read(config_path)
+        try:
+            cp.read(config_path)
+        except configparser.Error:
+            cp = configparser.ConfigParser()
         if not cp.has_section("reticulum"):
             cp.add_section("reticulum")
         cp.set("reticulum", "instance_name", instance_name)
@@ -1297,30 +1303,41 @@ class ReticulumMeshChat:
                 config_path = os.path.join(config_dir, "config")
                 if os.path.isfile(config_path):
                     cp = configparser.ConfigParser()
-                    cp.read(config_path)
-                    if cp.has_section("reticulum"):
-                        rpc_port = cp.getint("reticulum", "rpc_port", fallback=37429)
-                        rpc_bind = cp.get("reticulum", "rpc_bind", fallback="127.0.0.1")
-                        shared_port = cp.getint(
-                            "reticulum",
-                            "shared_instance_port",
-                            fallback=37428,
-                        )
-                        shared_bind = cp.get(
-                            "reticulum",
-                            "shared_instance_bind",
-                            fallback="127.0.0.1",
-                        )
+                    try:
+                        cp.read(config_path)
+                    except configparser.Error:
+                        pass
+                    else:
+                        if cp.has_section("reticulum"):
+                            rpc_port = cp.getint(
+                                "reticulum", "rpc_port", fallback=37429
+                            )
+                            rpc_bind = cp.get(
+                                "reticulum", "rpc_bind", fallback="127.0.0.1"
+                            )
+                            shared_port = cp.getint(
+                                "reticulum",
+                                "shared_instance_port",
+                                fallback=37428,
+                            )
+                            shared_bind = cp.get(
+                                "reticulum",
+                                "shared_instance_bind",
+                                fallback="127.0.0.1",
+                            )
 
-                        # Only add if not already there
-                        if not any(
-                            addr == (rpc_bind, rpc_port) for addr, _ in rpc_addrs
-                        ):
-                            rpc_addrs.append(((rpc_bind, rpc_port), "AF_INET"))
-                        if not any(
-                            addr == (shared_bind, shared_port) for addr, _ in rpc_addrs
-                        ):
-                            rpc_addrs.append(((shared_bind, shared_port), "AF_INET"))
+                            # Only add if not already there
+                            if not any(
+                                addr == (rpc_bind, rpc_port) for addr, _ in rpc_addrs
+                            ):
+                                rpc_addrs.append(((rpc_bind, rpc_port), "AF_INET"))
+                            if not any(
+                                addr == (shared_bind, shared_port)
+                                for addr, _ in rpc_addrs
+                            ):
+                                rpc_addrs.append(
+                                    ((shared_bind, shared_port), "AF_INET")
+                                )
             except Exception as e:
                 print(f"Warning reading Reticulum config for ports: {e}")
 
@@ -5463,7 +5480,10 @@ class ReticulumMeshChat:
                             config_path = os.path.join(config_dir, "config")
                             if os.path.isfile(config_path):
                                 cp = configparser.ConfigParser()
-                                cp.read(config_path)
+                                try:
+                                    cp.read(config_path)
+                                except configparser.Error:
+                                    pass
                                 if cp.has_section("reticulum"):
                                     shared_port = cp.getint(
                                         "reticulum",
