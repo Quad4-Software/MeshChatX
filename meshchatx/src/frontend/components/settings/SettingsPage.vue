@@ -4262,9 +4262,17 @@ export default {
             } catch {
                 // keep empty layout
             }
+            let favourites = [];
+            try {
+                const response = await window.api.get("/api/v1/favourites");
+                favourites = response.data.favourites || [];
+            } catch {
+                // continue without favourite records
+            }
             const body = {
                 format: "meshchatx/nomadnet_favourites/v1",
                 exported_at: new Date().toISOString(),
+                favourites,
                 layout,
             };
             const blob = new Blob([JSON.stringify(body, null, 2)], { type: "application/json" });
@@ -4287,12 +4295,17 @@ export default {
                 return;
             }
             const reader = new FileReader();
-            reader.onload = (e) => {
+            reader.onload = async (e) => {
                 try {
                     const data = JSON.parse(e.target.result);
                     const parsed = this.parseNomadnetFavouritesImportData(data);
                     if (!parsed) {
                         throw new Error("invalid file");
+                    }
+                    if (Array.isArray(data.favourites) && data.favourites.length > 0) {
+                        await window.api.post("/api/v1/favourites/import", {
+                            favourites: data.favourites,
+                        });
                     }
                     if (parsed.kind === "full") {
                         localStorage.setItem("meshchat.nomadnet.favourites.layout", JSON.stringify(parsed.layout));
