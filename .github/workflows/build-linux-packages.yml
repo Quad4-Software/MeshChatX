@@ -1,5 +1,5 @@
 # Linux packaging build test: Flatpak (branches and PRs). Tagged Flatpak releases
-# run in `.github/workflows/build-release.yml` with Linux + desktop + draft.
+# run in .github/workflows/build-release.yml with Linux + desktop + draft.
 #
 # Pinned first-party actions (bump tag and SHA together when upgrading):
 #   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8

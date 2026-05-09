@@ -1,6 +1,6 @@
 # Reusable workflow that builds the Vite frontend, bundles the offline Reticulum
-# manual and repository wheels into ``meshchatx/public/``. Other workflows invoke this once
-# via ``workflow_call`` and download the resulting artifact instead of
+# manual and repository wheels into meshchatx/public/. Other workflows invoke this once
+# via workflow_call and download the resulting artifact instead of
 # re-running the same node/pnpm pipeline on every job.
 #
 # Pinned first-party actions (bump tag and SHA together when upgrading):
@@ -17,7 +17,7 @@ on:
             artifact_name:
                 description: >-
                     Name of the artifact uploaded to the calling workflow run.
-                    Defaults to ``meshchatx-frontend-<run_id>-<run_attempt>``.
+                    Defaults to meshchatx-frontend-<run_id>-<run_attempt>.
                 required: false
                 type: string
                 default: ""
