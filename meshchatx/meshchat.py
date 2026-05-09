@@ -683,6 +683,13 @@ class ReticulumMeshChat:
             raise RuntimeError("Database not initialized")
         return self.database.restore_database(backup_path)
 
+    def reset_password(self):
+        """Clear the stored password hash so a new password can be set via the web UI."""
+        if self.config.auth_password_hash.get() is not None:
+            self.config.auth_password_hash.set(None)
+            return True
+        return False
+
     def _ensure_reticulum_config(self, materialize: bool = True):
         """Normalize ``reticulum_config_dir`` and optionally ensure a ``config`` file exists.
 
@@ -6441,6 +6448,20 @@ class ReticulumMeshChat:
                 if len(page) < page_size:
                     break
                 offset += page_size
+            icon_hashes = set()
+            for m in messages_list:
+                h = m.get("peer_hash") or m.get("source_hash")
+                if h:
+                    icon_hashes.add(h)
+            icons = {}
+            if icon_hashes:
+                icon_rows = self.database.misc.get_user_icons(list(icon_hashes))
+                for ir in icon_rows:
+                    icons[ir["destination_hash"]] = dict(ir)
+            for m in messages_list:
+                h = m.get("peer_hash") or m.get("source_hash")
+                if h and h in icons:
+                    m["lxmf_icon"] = icons[h]
             return web.json_response({"messages": messages_list})
 
         # maintenance - import messages
@@ -7970,11 +7991,23 @@ class ReticulumMeshChat:
         async def telephone_contacts_export(request):
             try:
                 rows = self.database.contacts.get_contacts(limit=10000, offset=0)
+                hashes = [
+                    r["remote_identity_hash"]
+                    for r in rows
+                    if r.get("remote_identity_hash")
+                ]
+                icons = {}
+                if hashes:
+                    icon_rows = self.database.misc.get_user_icons(hashes)
+                    for ir in icon_rows:
+                        icons[ir["destination_hash"]] = dict(ir)
                 export_data = []
                 for row in rows:
                     d = dict(row)
-                    for k in ("id", "created_at", "updated_at"):
-                        d.pop(k, None)
+                    d.pop("id", None)
+                    h = d.get("remote_identity_hash")
+                    if h and h in icons:
+                        d["lxmf_icon"] = icons[h]
                     export_data.append(d)
                 return web.json_response({"contacts": export_data})
             except Exception as e:
@@ -7993,9 +8026,18 @@ class ReticulumMeshChat:
                         {"message": "Invalid import format: contacts must be an array"},
                         status=400,
                     )
+                seen = {}
+                no_hash = []
+                for c in contacts:
+                    h = c.get("remote_identity_hash")
+                    if h:
+                        seen[h] = c
+                    else:
+                        no_hash.append(c)
+                unique_contacts = list(seen.values()) + no_hash
                 added = 0
                 skipped = 0
-                for c in contacts:
+                for c in unique_contacts:
                     name = c.get("name")
                     remote_identity_hash = c.get("remote_identity_hash")
                     if not name or not remote_identity_hash:
@@ -8385,6 +8427,59 @@ class ReticulumMeshChat:
                     "message": "Favourite has been deleted!",
                 },
             )
+
+        # bulk import favourites
+        @routes.post("/api/v1/favourites/import")
+        async def favourites_import(request):
+            try:
+                data = await request.json()
+                entries = data.get("favourites", [])
+                if not isinstance(entries, list):
+                    return web.json_response(
+                        {
+                            "message": "Invalid import format: favourites must be an array"
+                        },
+                        status=400,
+                    )
+                seen = {}
+                no_hash = []
+                for entry in entries:
+                    h = entry.get("destination_hash")
+                    if h:
+                        seen[h] = entry
+                    else:
+                        no_hash.append(entry)
+                unique_entries = list(seen.values()) + no_hash
+                imported = 0
+                skipped = 0
+                for entry in unique_entries:
+                    dest_hash = entry.get("destination_hash")
+                    display_name = entry.get("display_name", "")
+                    aspect = entry.get("aspect")
+                    if not dest_hash or not aspect:
+                        skipped += 1
+                        continue
+                    try:
+                        self.database.announces.upsert_favourite(
+                            dest_hash,
+                            display_name,
+                            aspect,
+                        )
+                        imported += 1
+                    except Exception:
+                        skipped += 1
+                return web.json_response(
+                    {
+                        "message": "Favourites import complete",
+                        "imported": imported,
+                        "skipped": skipped,
+                    }
+                )
+            except Exception as e:
+                return web.json_response(
+                    {"message": f"Failed to import favourites: {e!s}"},
+                    status=500,
+                )
 
         # serve archived pages
         @routes.get("/api/v1/nomadnet/archives")
@@ -17216,6 +17311,13 @@ def main():
         default=os.environ.get("MESHCHAT_RESTORE_SNAPSHOT"),
     )
 
+    parser.add_argument(
+        "--reset-password",
+        action="store_true",
+        default=env_bool("MESHCHAT_RESET_PASSWORD", False),
+        help="Clear the stored password hash on startup so a new password can be set via the web UI. Can also be set via MESHCHAT_RESET_PASSWORD environment variable.",
+    )
+
     args = parser.parse_args()
 
     ssl_cert = (args.ssl_cert or "").strip() or None
@@ -17354,6 +17456,12 @@ def main():
         public_dir=reticulum_meshchat.public_dir_override or get_file_path("public"),
         reticulum_config_dir=reticulum_meshchat.reticulum_config_dir,
     )
+
+    if args.reset_password:
+        if reticulum_meshchat.reset_password():
+            print("Password has been reset. Set a new password via the web UI.")
+        else:
+            print("No password was set; nothing to reset.")
 
     if args.backup_db:
         result = reticulum_meshchat.backup_database(args.backup_db)
