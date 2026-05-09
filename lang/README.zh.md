@@ -306,6 +306,7 @@ cd android
 | `--rns-log-level`          | `MESHCHAT_RNS_LOG_LEVEL`                 | （无）      | Reticulum（RNS）日志级别：`none`、`critical`、`error` 等或数值。同时设置时 CLI 优先于环境变量。 |
 | `--headless`               | `MESHCHAT_HEADLESS`                      | `false`     | 不自动打开浏览器                                                                                |
 | `--auth`                   | `MESHCHAT_AUTH`                          | `false`     | 启用基本认证                                                                                    |
+| `--reset-password`         | `MESHCHAT_RESET_PASSWORD`                | `false`     | 清除已保存的密码哈希，以便通过 Web UI 设置新密码                                                |
 | `--storage-dir`            | `MESHCHAT_STORAGE_DIR`                   | `./storage` | 数据目录                                                                                        |
 | `--public-dir`             | `MESHCHAT_PUBLIC_DIR`                    | 自动/捆绑   | 前端文件目录（源码安装且未捆绑资源时需要）                                                      |
 

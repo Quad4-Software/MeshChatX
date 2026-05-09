@@ -297,17 +297,18 @@ cd android
 
 ## 設定
 
-| 引数                       | 環境変数                                 | デフォルト  | 説明                                                                                   |
-| -------------------------- | ---------------------------------------- | ----------- | -------------------------------------------------------------------------------------- |
-| `--host`                   | `MESHCHAT_HOST`                          | `127.0.0.1` | Web サーバーのバインドアドレス                                                         |
-| `--port`                   | `MESHCHAT_PORT`                          | `8000`      | Web サーバーポート                                                                     |
-| `--no-https`               | `MESHCHAT_NO_HTTPS`                      | `false`     | HTTPS を無効化                                                                         |
-| `--ssl-cert` / `--ssl-key` | `MESHCHAT_SSL_CERT` / `MESHCHAT_SSL_KEY` | （なし）    | PEM 証明書と鍵のパス。両方指定。アイデンティティの `ssl/` 下の自動生成証明書を上書き。 |
-| `--rns-log-level`          | `MESHCHAT_RNS_LOG_LEVEL`                 | （なし）    | Reticulum（RNS）のログレベル（上記の名前または数値）。CLI は環境変数より優先。         |
-| `--headless`               | `MESHCHAT_HEADLESS`                      | `false`     | ブラウザを自動で開かない                                                               |
-| `--auth`                   | `MESHCHAT_AUTH`                          | `false`     | 基本認証を有効化                                                                       |
-| `--storage-dir`            | `MESHCHAT_STORAGE_DIR`                   | `./storage` | データディレクトリ                                                                     |
-| `--public-dir`             | `MESHCHAT_PUBLIC_DIR`                    | 自動/同梱   | フロントエンドのディレクトリ（同梱資産なしのソースインストールで必要）                 |
+| 引数                       | 環境変数                                 | デフォルト  | 説明                                                                                    |
+| -------------------------- | ---------------------------------------- | ----------- | --------------------------------------------------------------------------------------- |
+| `--host`                   | `MESHCHAT_HOST`                          | `127.0.0.1` | Web サーバーのバインドアドレス                                                          |
+| `--port`                   | `MESHCHAT_PORT`                          | `8000`      | Web サーバーポート                                                                      |
+| `--no-https`               | `MESHCHAT_NO_HTTPS`                      | `false`     | HTTPS を無効化                                                                          |
+| `--ssl-cert` / `--ssl-key` | `MESHCHAT_SSL_CERT` / `MESHCHAT_SSL_KEY` | （なし）    | PEM 証明書と鍵のパス。両方指定。アイデンティティの `ssl/` 下の自動生成証明書を上書き。  |
+| `--rns-log-level`          | `MESHCHAT_RNS_LOG_LEVEL`                 | （なし）    | Reticulum（RNS）のログレベル（上記の名前または数値）。CLI は環境変数より優先。          |
+| `--headless`               | `MESHCHAT_HEADLESS`                      | `false`     | ブラウザを自動で開かない                                                                |
+| `--auth`                   | `MESHCHAT_AUTH`                          | `false`     | 基本認証を有効化                                                                        |
+| `--reset-password`         | `MESHCHAT_RESET_PASSWORD`                | `false`     | 保存されたパスワードハッシュを消去し、Web UI から新しいパスワードを設定できるようにする |
+| `--storage-dir`            | `MESHCHAT_STORAGE_DIR`                   | `./storage` | データディレクトリ                                                                      |
+| `--public-dir`             | `MESHCHAT_PUBLIC_DIR`                    | 自動/同梱   | フロントエンドのディレクトリ（同梱資産なしのソースインストールで必要）                  |
 
 ## ブランチ
 
