@@ -12,6 +12,7 @@ from in-memory deques kept by PersistentLogHandler and psutil.
 
 import asyncio
 import collections
+import gc
 import json
 import logging
 import threading
@@ -59,6 +60,7 @@ class HealthMonitor:
                 self._check()
             except Exception as exc:
                 _log.debug("HealthMonitor check error: %s", exc)
+            gc.collect()
             await asyncio.sleep(self.CHECK_INTERVAL)
 
     def _check(self):

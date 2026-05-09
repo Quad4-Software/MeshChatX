@@ -850,6 +850,7 @@ class ReticulumMeshChat:
             if identity_hash in self.contexts:
                 del self.contexts[identity_hash]
             self.current_context = None
+            gc.collect()
 
     def _teardown_all_contexts_for_reload(self):
         # Stop per-identity long-running services before tearing down contexts.
@@ -879,6 +880,7 @@ class ReticulumMeshChat:
         self.contexts.clear()
         self.current_context = None
         self.running = False
+        gc.collect()
 
     async def _send_rns_reload_status(
         self,
