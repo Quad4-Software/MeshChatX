@@ -11436,6 +11436,9 @@ class ReticulumMeshChat:
 
             self._lxmf_reticulum_enforce_block(destination_hash)
 
+            local_hash = self.local_lxmf_destination.hash.hex()
+            self.message_handler.delete_conversation(local_hash, destination_hash)
+
             return web.json_response({"message": "ok"})
 
         # remove blocked destination
