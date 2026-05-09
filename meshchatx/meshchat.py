@@ -2932,8 +2932,12 @@ class ReticulumMeshChat:
 
         # Reject all calls if telephony is disabled
         if not ctx.config.telephone_enabled.get():
-            if ctx.telephone_manager.telephone:
-                ctx.telephone_manager.telephone.hangup()
+            telephone = getattr(ctx.telephone_manager, "telephone", None)
+            if telephone:
+                threading.Timer(
+                    0.5,
+                    lambda t=telephone: t.hangup(),
+                ).start()
             return
 
         if ctx.telephone_manager and ctx.telephone_manager.initiation_status:
@@ -2947,18 +2951,24 @@ class ReticulumMeshChat:
         # Check if caller is blocked
         if self.is_destination_blocked(caller_hash, context=ctx):
             print(f"Rejecting incoming call from blocked source: {caller_hash}")
-            if ctx.telephone_manager.telephone:
-                ctx.telephone_manager.telephone.hangup()
+            telephone = getattr(ctx.telephone_manager, "telephone", None)
+            if telephone:
+                # Use a small delay to avoid deadlocking with LXST call_handler_lock
+                threading.Timer(
+                    0.5,
+                    lambda t=telephone: t.hangup(),
+                ).start()
             return
 
         # Check for Do Not Disturb
         if ctx.config.do_not_disturb_enabled.get():
             print(f"Rejecting incoming call due to Do Not Disturb: {caller_hash}")
-            if ctx.telephone_manager.telephone:
+            telephone = getattr(ctx.telephone_manager, "telephone", None)
+            if telephone:
                 # Use a small delay to ensure LXST state is ready for hangup
                 threading.Timer(
                     0.5,
-                    lambda: ctx.telephone_manager.telephone.hangup(),
+                    lambda t=telephone: t.hangup(),
                 ).start()
             return
 
@@ -2967,13 +2977,21 @@ class ReticulumMeshChat:
             ctx.config.telephone_allow_calls_from_contacts_only.get()
             or ctx.config.block_all_from_strangers.get()
         ):
-            contact = ctx.database.contacts.get_contact_by_identity_hash(caller_hash)
+            contact = None
+            try:
+                contact = ctx.database.contacts.get_contact_by_identity_hash(
+                    caller_hash
+                )
+            except Exception:
+                # Treat lookup failure as non-contact to avoid accidentally allowing spam
+                pass
             if not contact:
                 print(f"Rejecting incoming call from non-contact: {caller_hash}")
-                if ctx.telephone_manager.telephone:
+                telephone = getattr(ctx.telephone_manager, "telephone", None)
+                if telephone:
                     threading.Timer(
                         0.5,
-                        lambda: ctx.telephone_manager.telephone.hangup(),
+                        lambda t=telephone: t.hangup(),
                     ).start()
                 return
 
@@ -2983,6 +3001,13 @@ class ReticulumMeshChat:
         print(f"on_incoming_telephone_call: {caller_identity.hash.hex()}")
         ch = caller_identity.hash.hex()
         caller_name = (self.get_name_for_identity_hash(ch) or "").strip() or "Mesh"
+        is_contact = False
+        try:
+            is_contact = (
+                ctx.database.contacts.get_contact_by_identity_hash(ch) is not None
+            )
+        except Exception:
+            pass
         AsyncUtils.run_async(
             self.websocket_broadcast(
                 json.dumps(
@@ -2990,6 +3015,7 @@ class ReticulumMeshChat:
                         "type": "telephone_ringing",
                         "remote_identity_hash": ch,
                         "remote_identity_name": caller_name,
+                        "is_contact": is_contact,
                     },
                 ),
             ),
@@ -3079,10 +3105,14 @@ class ReticulumMeshChat:
                 if ctx.config.do_not_disturb_enabled.get():
                     is_filtered = True
                 elif ctx.config.telephone_allow_calls_from_contacts_only.get():
-                    contact = ctx.database.contacts.get_contact_by_identity_hash(
-                        remote_identity_hash,
-                    )
-                    if not contact:
+                    try:
+                        contact = ctx.database.contacts.get_contact_by_identity_hash(
+                            remote_identity_hash,
+                        )
+                        if not contact:
+                            is_filtered = True
+                    except Exception:
+                        # Treat lookup failure as filtered to avoid leaking missed-call noise
                         is_filtered = True
 
                 if not is_filtered:

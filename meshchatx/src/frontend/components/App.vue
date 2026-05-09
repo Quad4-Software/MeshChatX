@@ -1174,7 +1174,9 @@ export default {
                     if (this.config?.do_not_disturb_enabled) {
                         break;
                     }
-                    // If we are the caller (outgoing initiation), skip playing the incoming ringtone
+                    if (this.config?.telephone_allow_calls_from_contacts_only && !json.is_contact) {
+                        break;
+                    }
                     if (this.initiationStatus) {
                         break;
                     }
