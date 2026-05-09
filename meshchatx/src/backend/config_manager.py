@@ -206,7 +206,7 @@ class ConfigManager:
         self.telephone_announce_enabled = self.BoolConfig(
             self,
             "telephone_announce_enabled",
-            True,
+            False,
         )
         self.telephone_audio_profile_id = self.IntConfig(
             self,
