@@ -14080,6 +14080,10 @@ class ReticulumMeshChat:
             destination_hash_hex = download_data.get("destination_hash")
             file_path = download_data.get("file_path")
             request_data = download_data.get("data")
+            if isinstance(request_data, str):
+                request_data = convert_nomadnet_string_data_to_map(request_data)
+            elif request_data is None:
+                request_data = {}
 
             if not destination_hash_hex or not file_path:
                 return
@@ -15506,7 +15510,9 @@ class ReticulumMeshChat:
         except Exception as e:
             print(f"_lxmf_reticulum_enforce_block: failed: {e}")
 
-    def _delete_contact_and_stamp_ticket(self, destination_hash: str, context=None) -> None:
+    def _delete_contact_and_stamp_ticket(
+        self, destination_hash: str, context=None
+    ) -> None:
         """Remove contact and stamp/ticket state for a blocked destination."""
         ctx = context or self.current_context
         if not ctx or not ctx.database:

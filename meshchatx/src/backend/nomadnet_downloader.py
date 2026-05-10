@@ -107,7 +107,22 @@ class NomadnetDownloader:
 
         if self.request_receipt is not None:
             try:
-                self.request_receipt.cancel()
+                if (
+                    hasattr(self.request_receipt, "resource")
+                    and self.request_receipt.resource is not None
+                ):
+                    self.request_receipt.resource.cancel()
+                else:
+                    self.request_receipt.status = RNS.RequestReceipt.FAILED
+                    if (
+                        hasattr(self.request_receipt, "link")
+                        and self.request_receipt.link is not None
+                        and self.request_receipt
+                        in self.request_receipt.link.pending_requests
+                    ):
+                        self.request_receipt.link.pending_requests.remove(
+                            self.request_receipt
+                        )
             except Exception as e:
                 print(f"Failed to cancel request: {e}")
 
