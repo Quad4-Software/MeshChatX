@@ -30,6 +30,7 @@ def _get_android_external_files_dir() -> str | None:
         return None
     try:
         from com.chaquo.python import Python
+
         context = Python.getPlatform().getApplication()
         external = context.getExternalFilesDir(None)
         if external is not None:

@@ -724,7 +724,12 @@ class ReticulumMeshChat:
                 continue
             iface_type = iface.get("type", "")
             if isinstance(iface_type, str) and iface_type.startswith("RNode"):
-                if str(iface.get("interface_enabled", "")).lower() in ("true", "yes", "1", "on"):
+                if str(iface.get("interface_enabled", "")).lower() in (
+                    "true",
+                    "yes",
+                    "1",
+                    "on",
+                ):
                     iface["interface_enabled"] = "false"
                     modified = True
         if modified:

@@ -1,6 +1,5 @@
 # SPDX-License-Identifier: 0BSD
 
-import os
 
 import pytest
 

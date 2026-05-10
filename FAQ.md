@@ -33,4 +33,3 @@ Electron has to be kept up-to-date with a stable release cycle in order to get a
 **Can you make it so MeshChatX uses system RNS/LXMF packages?**
 
 The Python wheels can use system RNS/LXMF, and you can update them easily. With Docker, you can grab the Dockerfile, update it, and build manually. You can also build from source. As for Electron builds, there is not much that can be done right now, but I will keep exploring options.
-
