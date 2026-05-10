@@ -8,7 +8,7 @@ Grow some patience, send it to a propagation node, and chill. Sometimes I go off
 
 **Why did you create MeshChatX?**
 
-I noticed Liam Cottle became busy with MeshChat stuff, but I also wanted something modern and easier to use for myself and some friends. Eventually more people discovered my fork and started using it. I have since reworked the architecture and modernized most of the frontend and backend. I am not a fan of Electron, but I do what I can to make it a worthy Electron application by taking advantage of everything it has to offer, from packaging to security and integrity.
+I noticed Liam Cottle became busy with MeshCore stuff, but I also wanted something modern and easier to use for myself and some friends. Eventually more people discovered my fork and started using it. I have since reworked the architecture and modernized most of the frontend and backend. I am not a fan of Electron, but I do what I can to make it a worthy Electron application by taking advantage of everything it has to offer, from packaging to security and integrity.
 
 **Will MeshChatX move to a different implementation?**
 
