@@ -1,6 +1,6 @@
 [project]
 name = "reticulum-meshchatx"
-version = "4.6.2"
+version = "4.6.3"
 description = "A simple mesh network communications app powered by the Reticulum Network Stack"
 authors = [
   {name = "Quad4"}
@@ -21,7 +21,7 @@ classifiers = [
 ]
 dependencies = [
   "aiohttp>=3.13.5",
-  "lxmf>=0.9.7",
+  "lxmf>=0.9.8",
   "psutil>=7.2.2",
   "bleak==3.0.1",
   "rns>=1.2.5",

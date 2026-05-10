@@ -46,8 +46,8 @@ android {
         applicationId "com.meshchatx"
         minSdk 24
         targetSdk 35
-        versionCode 46002
-        versionName "4.6.2"
+        versionCode 46003
+        versionName "4.6.3"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         ndk {
@@ -165,7 +165,7 @@ chaquopy {
             install "aiohttp==3.13.5"
             install "rns>=1.2.4"
             install "bleak==3.0.1"
-            install "lxmf>=0.9.4"
+            install "lxmf>=0.9.8"
             install "numpy==1.26.2"
             install "chaquopy-libcodec2==1.2.0"
             install "pycodec2==4.1.1"

@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.6.3] - 2026-05-16
+
+### Changed
+
+- **Dependencies**: **LXMF** updated to **0.9.8**.
+
 ## [4.6.2] - 2026-05-10
 
 ### Fixed
