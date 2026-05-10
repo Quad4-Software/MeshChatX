@@ -31,12 +31,6 @@ MeshChatX NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
 - i18n
 - PNPM and Poetry for dependency management.
 
-> [!WARNING]
-> MeshChatX is not guaranteed to be wire/data compatible with older Reticulum MeshChat releases. Back up data before migration/testing.
-
-> [!WARNING]
-> Legacy systems are not supported yet. Current baseline is Python `>=3.11` and Node `>=24` (Electron 41 aligns with Node 24; `package.json` `engines` and CI use the same line).
-
 ## Requirements
 
 - Python `>=3.11` (from `pyproject.toml`)
