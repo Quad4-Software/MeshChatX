@@ -1938,20 +1938,10 @@ export default {
                 }
 
                 const queryIndex = path.indexOf("?");
-                const backtickIndex = path.indexOf("`");
-                let separatorIndex = -1;
-                if (queryIndex >= 0 && backtickIndex >= 0) {
-                    separatorIndex = Math.min(queryIndex, backtickIndex);
-                } else if (queryIndex >= 0) {
-                    separatorIndex = queryIndex;
-                } else if (backtickIndex >= 0) {
-                    separatorIndex = backtickIndex;
-                }
-
                 return {
                     destination_hash: null, // node hash was not in provided url
-                    path: separatorIndex >= 0 ? path.substring(0, separatorIndex) : path,
-                    query: separatorIndex >= 0 ? path.substring(separatorIndex + 1) : null,
+                    path: queryIndex >= 0 ? path.substring(0, queryIndex) : path,
+                    query: queryIndex >= 0 ? path.substring(queryIndex + 1) : null,
                 };
             }
 
@@ -1964,20 +1954,10 @@ export default {
                 if (destinationHash.length === 32) {
                     const joined = relativeUrl.join(":");
                     const queryIndex = joined.indexOf("?");
-                    const backtickIndex = joined.indexOf("`");
-                    let separatorIndex = -1;
-                    if (queryIndex >= 0 && backtickIndex >= 0) {
-                        separatorIndex = Math.min(queryIndex, backtickIndex);
-                    } else if (queryIndex >= 0) {
-                        separatorIndex = queryIndex;
-                    } else if (backtickIndex >= 0) {
-                        separatorIndex = backtickIndex;
-                    }
-
                     return {
                         destination_hash: destinationHash,
-                        path: separatorIndex >= 0 ? joined.substring(0, separatorIndex) : joined,
-                        query: separatorIndex >= 0 ? joined.substring(separatorIndex + 1) : null,
+                        path: queryIndex >= 0 ? joined.substring(0, queryIndex) : joined,
+                        query: queryIndex >= 0 ? joined.substring(queryIndex + 1) : null,
                     };
                 }
             }
@@ -2087,9 +2067,18 @@ export default {
                         return;
                     }
 
+                    // NomadNet file URLs may use backticks to separate path from parameters
+                    let filePath = parsedUrl.path;
+                    let fileData = parsedUrl.query;
+                    const pathBacktickIndex = filePath.indexOf("`");
+                    if (pathBacktickIndex >= 0) {
+                        fileData = filePath.substring(pathBacktickIndex + 1);
+                        filePath = filePath.substring(0, pathBacktickIndex);
+                    }
+
                     // update ui
                     this.isDownloadingNodeFile = true;
-                    this.nodeFilePath = parsedUrl.path.split("/").pop();
+                    this.nodeFilePath = filePath.split("/").pop();
                     this.nodeFileProgress = 0;
                     this.nodeFileDownloadStartTime = Date.now();
                     this.nodeFileLastProgressTime = Date.now();
@@ -2099,8 +2088,8 @@ export default {
                     // start file download
                     this.downloadNomadNetFile(
                         destinationHash,
-                        parsedUrl.path,
-                        parsedUrl.query,
+                        filePath,
+                        fileData,
                         (fileName, fileBytesBase64) => {
                             // Calculate final download speed based on actual file size
                             if (this.nodeFileDownloadStartTime) {
