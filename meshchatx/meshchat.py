@@ -764,6 +764,17 @@ class ReticulumMeshChat:
             if not os.path.isdir(config_dir):
                 os.makedirs(config_dir, exist_ok=True)
             self._write_rns_reticulum_default_config_file(config_path)
+        # Scrub stale default_bootstrap_only from Reticulum config so it never
+        # affects discovered/auto-connected interfaces.
+        try:
+            from RNS.vendor.configobj import ConfigObj
+
+            cfg = ConfigObj(config_path)
+            if "default_bootstrap_only" in cfg.get("reticulum", {}):
+                cfg["reticulum"].pop("default_bootstrap_only", None)
+                cfg.write()
+        except Exception:
+            pass
         # Android: RNodeInterface crashes because serial port access isn't available
         if _is_chaquopy_android():
             disabled = self._disable_rnode_interfaces_on_android(config_path)
@@ -5126,9 +5137,10 @@ class ReticulumMeshChat:
                 interface_type == "BackboneInterface"
                 and str(interface_details.get("remote") or "").strip() != ""
             ):
-                default_boot = ReticulumMeshChat._reticulum_yes_no_preference(
-                    self._get_reticulum_section().get("default_bootstrap_only"),
-                    default=False,
+                default_boot = bool(
+                    self.current_context.config.default_bootstrap_only.get()
+                    if self.current_context and self.current_context.config
+                    else False,
                 )
                 ReticulumMeshChat.apply_bootstrap_only_to_interface(
                     interface_details,
@@ -6644,9 +6656,10 @@ class ReticulumMeshChat:
                     "autoconnect_discovered_interfaces",
                     ReticulumMeshChat.DEFAULT_AUTOCONNECT_DISCOVERED_INTERFACES,
                 ),
-                "default_bootstrap_only": ReticulumMeshChat._reticulum_yes_no_preference(
-                    reticulum_config.get("default_bootstrap_only"),
-                    default=False,
+                "default_bootstrap_only": bool(
+                    self.current_context.config.default_bootstrap_only.get()
+                    if self.current_context and self.current_context.config
+                    else False,
                 ),
                 "network_identity": reticulum_config.get("network_identity"),
             }
@@ -6698,10 +6711,22 @@ class ReticulumMeshChat:
                 "interface_discovery_blacklist",
                 "required_discovery_value",
                 "autoconnect_discovered_interfaces",
-                "default_bootstrap_only",
                 "network_identity",
             ):
                 update_config_value(key)
+
+            # default_bootstrap_only is a MeshChatX-only setting; do NOT write it
+            # to Reticulum config so discovered/auto-connected interfaces are
+            # never affected. Clean up any stale value in Reticulum config.
+            reticulum_config.pop("default_bootstrap_only", None)
+            if (
+                self.current_context
+                and self.current_context.config
+                and "default_bootstrap_only" in data
+            ):
+                self.current_context.config.default_bootstrap_only.set(
+                    bool(data.get("default_bootstrap_only")),
+                )
 
             if not self._write_reticulum_config():
                 return web.json_response(
@@ -6727,9 +6752,10 @@ class ReticulumMeshChat:
                     "autoconnect_discovered_interfaces",
                     ReticulumMeshChat.DEFAULT_AUTOCONNECT_DISCOVERED_INTERFACES,
                 ),
-                "default_bootstrap_only": ReticulumMeshChat._reticulum_yes_no_preference(
-                    reticulum_config.get("default_bootstrap_only"),
-                    default=False,
+                "default_bootstrap_only": bool(
+                    self.current_context.config.default_bootstrap_only.get()
+                    if self.current_context and self.current_context.config
+                    else False,
                 ),
                 "network_identity": reticulum_config.get("network_identity"),
             }

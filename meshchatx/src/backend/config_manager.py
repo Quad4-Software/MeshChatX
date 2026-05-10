@@ -505,6 +505,11 @@ class ConfigManager:
             "nomad_default_page_path",
             "/page/index.mu",
         )
+        self.default_bootstrap_only = self.BoolConfig(
+            self,
+            "default_bootstrap_only",
+            False,
+        )
         self.lxmf_sieve_filters_json = self.StringConfig(
             self,
             "lxmf_sieve_filters_json",
