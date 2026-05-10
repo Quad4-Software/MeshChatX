@@ -16,17 +16,19 @@ ARG PYTHON_HASH=sha256:dd4d2bd5b53d9b25a51da13addf2be586beebd5387e289e798e4083d9
 # ---- STAGE 1: Frontend Build ----
 FROM --platform=linux/amd64 ${NODE_IMAGE}@${NODE_HASH} AS build-frontend
 WORKDIR /src
-RUN apk add --no-cache git
+RUN apk add --no-cache git python3
 COPY package.json pnpm-lock.yaml vite.config.js ./
 COPY patches ./patches
 COPY scripts/fetch-micron-wasm.mjs scripts/fetch-micron-wasm.mjs
 COPY scripts/micron-wasm-resolve-bundled.mjs scripts/micron-wasm-resolve-bundled.mjs
 COPY scripts/micron-parser-go-version.mjs scripts/micron-parser-go-version.mjs
+COPY scripts/build/fetch_reticulum_manual.py scripts/build/fetch_reticulum_manual.py
 COPY meshchatx/src/frontend ./meshchatx/src/frontend
 RUN npm install -g pnpm@10.33.0 && \
     pnpm config set verify-store-integrity true && \
     pnpm install --frozen-lockfile && \
-    pnpm run build-frontend
+    pnpm run build-frontend && \
+    pnpm run build-docs
 
 # ---- STAGE 2: Python Builder ----
 
@@ -45,7 +47,8 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Install essential runtime tools in the venv (cffi verify needs setuptools on Python 3.12+)
 RUN pip install --no-cache-dir --upgrade "pip>=26.0" "setuptools" "jaraco.context>=6.1.0"
 
-COPY pyproject.toml uv.lock README.md ./
+COPY pyproject.toml uv.lock README.md CHANGELOG.md ./
+COPY logo ./logo
 COPY vendor ./vendor
 RUN uv sync --no-group dev --no-install-project && \
     rm -rf /root/.cache/pip /root/.cache/uv

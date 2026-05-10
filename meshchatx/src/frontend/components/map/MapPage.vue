@@ -149,7 +149,24 @@
                 />
             </div>
 
-            <div ref="mapContainer" class="absolute inset-0" :class="{ 'cursor-crosshair': isExportMode }"></div>
+            <div
+                ref="mapContainer"
+                class="absolute inset-0"
+                :class="{ 'cursor-crosshair': isExportMode }"
+                @dragover.prevent="onMapDragOver"
+                @dragleave="onMapDragLeave"
+                @drop.prevent="onMapDrop"
+            ></div>
+
+            <!-- Drag-and-drop file indicator -->
+            <div
+                v-if="isMapDropTarget"
+                class="absolute inset-0 z-40 flex flex-col items-center justify-center bg-blue-500/20 backdrop-blur-sm border-4 border-blue-500 border-dashed m-4 rounded-2xl pointer-events-none transition-opacity"
+            >
+                <MaterialDesignIcon icon-name="map-plus" class="w-16 h-16 text-blue-600 dark:text-blue-400 mb-4" />
+                <h3 class="text-lg font-bold text-blue-700 dark:text-blue-300">{{ $t("map.drop_geo_files") }}</h3>
+                <p class="text-sm text-blue-600 dark:text-blue-400 mt-1">GeoJSON, KML, or KMZ</p>
+            </div>
 
             <!-- note hover tooltip -->
             <div
@@ -1147,9 +1164,9 @@ import MapExportProgressPanel from "./internal/MapExportProgressPanel.vue";
 import MapLoadingOverlay from "./internal/MapLoadingOverlay.vue";
 import MapVectorExchangePanel from "./internal/MapVectorExchangePanel.vue";
 import { buildMeshchatMapUri, buildWebHashMapUrl } from "../../js/mapLinkUtils.js";
-import { writeFeaturesToGeoJson } from "../../js/mapExchange/geoJsonCodec.js";
-import { writeFeaturesToKml } from "../../js/mapExchange/kmlCodec.js";
-import { writeFeaturesToKmzBlob } from "../../js/mapExchange/kmzCodec.js";
+import { readGeoJsonToFeatures, writeFeaturesToGeoJson } from "../../js/mapExchange/geoJsonCodec.js";
+import { readKmlToFeatures, writeFeaturesToKml } from "../../js/mapExchange/kmlCodec.js";
+import { readKmzToFeatures, writeFeaturesToKmzBlob } from "../../js/mapExchange/kmzCodec.js";
 import { getDrawFeatureMetadataPayload, getFeatureAnchorCoordinate } from "../../js/mapExchange/metadataUtils.js";
 import { styleFromMcxProperties } from "../../js/mapExchange/styleFromProperties.js";
 import { computeSegmentMetrics, buildBearingOverlayHtml, buildBearingLiveTooltipHtml } from "../../js/mapGeodesy.js";
@@ -1191,6 +1208,7 @@ export default {
             hasOfflineMap: false,
             metadata: null,
             isUploading: false,
+            isMapDropTarget: false,
             isSettingsOpen: false,
             settingsPanelPos: null,
             settingsPanelDrag: null,
@@ -4306,6 +4324,71 @@ export default {
 
         onVectorExchangeImportError() {
             ToastUtils.error(this.$t("map.vector_import_failed"));
+        },
+
+        onMapDragOver(ev) {
+            if (ev.dataTransfer && ev.dataTransfer.types.includes("Files")) {
+                this.isMapDropTarget = true;
+            }
+        },
+        onMapDragLeave() {
+            this.isMapDropTarget = false;
+        },
+        async onMapDrop(ev) {
+            this.isMapDropTarget = false;
+            const files = Array.from(ev.dataTransfer?.files || []);
+            if (!files.length) return;
+
+            const geoFiles = files.filter((f) => {
+                const name = f.name.toLowerCase();
+                return (
+                    name.endsWith(".geojson") ||
+                    name.endsWith(".json") ||
+                    name.endsWith(".kml") ||
+                    name.endsWith(".kmz")
+                );
+            });
+            if (!geoFiles.length) {
+                ToastUtils.warning(this.$t("map.drop_no_geo_files"));
+                return;
+            }
+
+            for (const file of geoFiles) {
+                try {
+                    const name = file.name.toLowerCase();
+                    let features = [];
+                    if (name.endsWith(".kmz")) {
+                        const buf = await this.readFileArrayBuffer(file);
+                        features = await readKmzToFeatures(buf, "EPSG:3857");
+                    } else if (name.endsWith(".kml")) {
+                        const text = await this.readFileText(file);
+                        features = readKmlToFeatures(text, "EPSG:3857");
+                    } else {
+                        const text = await this.readFileText(file);
+                        features = readGeoJsonToFeatures(text, "EPSG:3857");
+                    }
+                    this.onVectorExchangeImport({ features, merge: true });
+                } catch (e) {
+                    console.error("Map drop import failed:", e);
+                    ToastUtils.error(this.$t("map.vector_import_failed") + ` — ${file.name}`);
+                }
+            }
+        },
+        readFileText(file) {
+            return new Promise((resolve, reject) => {
+                const r = new FileReader();
+                r.onload = () => resolve(String(r.result || ""));
+                r.onerror = () => reject(new Error("read failed"));
+                r.readAsText(file);
+            });
+        },
+        readFileArrayBuffer(file) {
+            return new Promise((resolve, reject) => {
+                const r = new FileReader();
+                r.onload = () => resolve(/** @type {ArrayBuffer} */ (r.result));
+                r.onerror = () => reject(new Error("read failed"));
+                r.readAsArrayBuffer(file);
+            });
         },
 
         exportVectorGeoJson() {
