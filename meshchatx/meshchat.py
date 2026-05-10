@@ -143,7 +143,10 @@ from meshchatx.src.backend.sticker_utils import (
     validate_export_document,
 )
 from meshchatx.src.backend.telemetry_utils import Telemeter
-from meshchatx.android_push_bridge import _is_chaquopy_android
+from meshchatx.android_push_bridge import (
+    _get_android_external_files_dir,
+    _is_chaquopy_android,
+)
 from meshchatx.src.backend.web_audio_bridge import WebAudioBridge
 from meshchatx.src.env_utils import env_bool
 from meshchatx.src.path_utils import (
@@ -695,6 +698,42 @@ class ReticulumMeshChat:
             return True
         return False
 
+    @staticmethod
+    def _disable_rnode_interfaces_on_android(config_path: str) -> bool:
+        """If running on Android, disable RNode* interfaces in Reticulum config.
+
+        Returns True if any interfaces were disabled.
+        """
+        if not _is_chaquopy_android():
+            return False
+        if not os.path.isfile(config_path):
+            return False
+        try:
+            from RNS.vendor.configobj import ConfigObj
+
+            cfg = ConfigObj(config_path)
+        except Exception:
+            return False
+
+        modified = False
+        interfaces = cfg.get("interfaces")
+        if not isinstance(interfaces, dict):
+            return False
+        for _iface_name, iface in interfaces.items():
+            if not isinstance(iface, dict):
+                continue
+            iface_type = iface.get("type", "")
+            if isinstance(iface_type, str) and iface_type.startswith("RNode"):
+                if str(iface.get("interface_enabled", "")).lower() in ("true", "yes", "1", "on"):
+                    iface["interface_enabled"] = "false"
+                    modified = True
+        if modified:
+            try:
+                cfg.write()
+            except Exception:
+                pass
+        return modified
+
     def _ensure_reticulum_config(self, materialize: bool = True):
         """Normalize ``reticulum_config_dir`` and optionally ensure a ``config`` file exists.
 
@@ -725,6 +764,13 @@ class ReticulumMeshChat:
             if not os.path.isdir(config_dir):
                 os.makedirs(config_dir, exist_ok=True)
             self._write_rns_reticulum_default_config_file(config_path)
+        # Android: RNodeInterface crashes because serial port access isn't available
+        if _is_chaquopy_android():
+            disabled = self._disable_rnode_interfaces_on_android(config_path)
+            if disabled:
+                logging.getLogger(__name__).warning(
+                    "RNodeInterface is not supported on Android; disabled in config.",
+                )
 
     def setup_identity(self, identity: RNS.Identity):
         identity_hash = identity.hash.hex()
@@ -17592,7 +17638,14 @@ def main():
     if args.no_crash_recovery:
         recovery.disable()
 
-    planned_storage_dir = args.storage_dir or os.path.join("storage")
+    planned_storage_dir = args.storage_dir
+    if not planned_storage_dir:
+        # On Android, prefer user-accessible external storage
+        android_external = _get_android_external_files_dir()
+        if android_external:
+            planned_storage_dir = android_external
+        else:
+            planned_storage_dir = os.path.join("storage")
     effective_storage_dir, migration_context = resolve_startup_storage(
         planned_storage_dir,
     )
