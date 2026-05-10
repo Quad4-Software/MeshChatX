@@ -4341,7 +4341,12 @@ export default {
 
             const geoFiles = files.filter((f) => {
                 const name = f.name.toLowerCase();
-                return name.endsWith(".geojson") || name.endsWith(".json") || name.endsWith(".kml") || name.endsWith(".kmz");
+                return (
+                    name.endsWith(".geojson") ||
+                    name.endsWith(".json") ||
+                    name.endsWith(".kml") ||
+                    name.endsWith(".kmz")
+                );
             });
             if (!geoFiles.length) {
                 ToastUtils.warning(this.$t("map.drop_no_geo_files"));

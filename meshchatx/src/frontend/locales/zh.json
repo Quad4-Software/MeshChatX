@@ -1079,7 +1079,9 @@
         "vector_import_ok": "Imported {count} feature(s).",
         "vector_import_empty": "No features found in file.",
         "vector_import_failed": "Could not read vector file.",
-        "vector_export_ok": "Export started."
+        "vector_export_ok": "Export started.",
+        "drop_geo_files": "将地图文件拖放到此处",
+        "drop_no_geo_files": "未检测到 GeoJSON、KML 或 KMZ 文件。"
     },
     "interface": {
         "disable": "禁用",

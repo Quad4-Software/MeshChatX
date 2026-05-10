@@ -1131,7 +1131,9 @@
         "vector_import_ok": "Imported {count} feature(s).",
         "vector_import_empty": "No features found in file.",
         "vector_import_failed": "Could not read vector file.",
-        "vector_export_ok": "Export started."
+        "vector_export_ok": "Export started.",
+        "drop_geo_files": "Rilascia il file della mappa qui",
+        "drop_no_geo_files": "Nessun file GeoJSON, KML o KMZ rilevato."
     },
     "interface": {
         "disable": "Disabilita",

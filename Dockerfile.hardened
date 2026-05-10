@@ -13,7 +13,7 @@ ARG PYTHON_RUNTIME_IMAGE=cgr.dev/chainguard/python:latest-dev
 FROM --platform=linux/amd64 ${NODE_IMAGE} AS build-frontend
 USER root
 WORKDIR /src
-RUN apk add --no-cache git
+RUN apk add --no-cache git python3
 COPY package.json pnpm-lock.yaml vite.config.js ./
 COPY patches ./patches
 COPY scripts/fetch-micron-wasm.mjs scripts/fetch-micron-wasm.mjs
