@@ -26,7 +26,12 @@ if ! command -v node >/dev/null 2>&1; then
 fi
 
 TASK_VER="${TASK_VERSION:-3.46.4}"
-curl -fsSL "https://github.com/go-task/task/releases/download/v${TASK_VER}/task_linux_amd64.tar.gz" \
+_TASK_ARCH="$(uname -m)"
+case "$_TASK_ARCH" in
+    x86_64) _TASK_ARCH="amd64" ;;
+    aarch64) _TASK_ARCH="arm64" ;;
+esac
+curl -fsSL "https://github.com/go-task/task/releases/download/v${TASK_VER}/task_linux_${_TASK_ARCH}.tar.gz" \
     | tar xz -C /usr/local/bin task
 
 corepack enable

@@ -12,23 +12,38 @@ cd "$ROOT"
 
 mkdir -p release-assets
 
+HOST_ARCH="$(uname -m)"
+case "$HOST_ARCH" in
+    x86_64) NATIVE_ARCH="x64" ;;
+    aarch64|arm64) NATIVE_ARCH="arm64" ;;
+    *) NATIVE_ARCH="$HOST_ARCH" ;;
+esac
+
 if [ "${SKIP_WHEEL:-0}" != 1 ]; then
-    echo "Building Python wheel..."
-    task build:wheel
+    if [ "$NATIVE_ARCH" = "x64" ]; then
+        echo "Building Python wheel..."
+        task build:wheel
+    else
+        echo "Skipping wheel on $NATIVE_ARCH runner (pure-Python wheel built on x64)."
+    fi
 else
     echo "Skipping wheel (SKIP_WHEEL=1)."
 fi
 
 if [ "${SKIP_ELECTRON:-0}" != 1 ]; then
-    echo "Electron linux x64..."
-    pnpm run dist:linux-x64
+    if [ "$NATIVE_ARCH" = "x64" ]; then
+        echo "Electron linux x64..."
+        pnpm run dist:linux-x64
+    elif [ "$NATIVE_ARCH" = "arm64" ]; then
+        echo "Electron linux arm64..."
+        pnpm run dist:linux-arm64
+    fi
 
-    echo "Electron linux arm64..."
-    pnpm run dist:linux-arm64
-
-    echo "RPM (best-effort)..."
-    if ! task dist:fe:rpm; then
-        echo "RPM build failed or skipped; continuing." >&2
+    if [ "$NATIVE_ARCH" = "x64" ]; then
+        echo "RPM (best-effort)..."
+        if ! task dist:fe:rpm; then
+            echo "RPM build failed or skipped; continuing." >&2
+        fi
     fi
 else
     echo "Skipping Electron packages (SKIP_ELECTRON=1)."
