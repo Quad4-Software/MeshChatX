@@ -1962,6 +1962,16 @@ export default {
                 }
             }
 
+            // parse relative page/file urls (e.g. /file/artifact`g=reticulum|r=lxmf)
+            if (url.startsWith("/page/") || url.startsWith("/file/")) {
+                const queryIndex = url.indexOf("?");
+                return {
+                    destination_hash: null,
+                    path: queryIndex >= 0 ? url.substring(0, queryIndex) : url,
+                    query: queryIndex >= 0 ? url.substring(queryIndex + 1) : null,
+                };
+            }
+
             // parse node id only
             if (url.length === 32) {
                 return {

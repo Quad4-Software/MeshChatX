@@ -160,6 +160,15 @@ export function isolateNomadLinksInHtml(html, destinationHash) {
                 a.classList.add("nomadnet-link", "text-blue-600", "dark:text-blue-400", "hover:underline");
             } else {
                 a.setAttribute("href", "#");
+                // For micron parser links with data-destination, update title so hover shows the full URL
+                const dataDest = a.getAttribute("data-destination");
+                if (dataDest) {
+                    let titleUrl = dataDest.trim();
+                    if (!/^[a-f0-9]{32}:/i.test(titleUrl)) {
+                        titleUrl = `${dh}:${titleUrl.startsWith(":") ? titleUrl.slice(1) : titleUrl}`;
+                    }
+                    a.setAttribute("title", titleUrl);
+                }
             }
             a.removeAttribute("target");
             a.removeAttribute("rel");

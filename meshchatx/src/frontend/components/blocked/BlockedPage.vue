@@ -43,7 +43,10 @@
         </div>
 
         <div class="flex-1 overflow-y-auto p-4 md:p-6">
-            <div v-if="isLoading && filteredBlockedIdentities.length === 0" class="flex flex-col items-center justify-center h-64">
+            <div
+                v-if="isLoading && filteredBlockedIdentities.length === 0"
+                class="flex flex-col items-center justify-center h-64"
+            >
                 <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
                 <p class="text-gray-500 dark:text-gray-400">{{ $t("banishment.loading_items") }}</p>
             </div>
@@ -126,14 +129,20 @@
                                             class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 font-mono bg-gray-50 dark:bg-zinc-800 px-2 py-1 rounded"
                                         >
                                             <span class="break-all">{{ dest.destination_hash }}</span>
-                                            <span v-if="dest.created_at" class="shrink-0 ml-2 text-gray-400 dark:text-zinc-500">
+                                            <span
+                                                v-if="dest.created_at"
+                                                class="shrink-0 ml-2 text-gray-400 dark:text-zinc-500"
+                                            >
                                                 {{ formatTimeAgo(dest.created_at) }}
                                             </span>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div v-if="identity.rns_reason" class="text-xs italic text-zinc-500 dark:text-zinc-400 mb-2">
+                                <div
+                                    v-if="identity.rns_reason"
+                                    class="text-xs italic text-zinc-500 dark:text-zinc-400 mb-2"
+                                >
                                     "{{ identity.rns_reason }}"
                                 </div>
                                 <div
@@ -192,9 +201,7 @@ export default {
             return this.allBlockedIdentities.filter((identity) => {
                 if (identity.identity_hash.toLowerCase().includes(query)) return true;
                 if ((identity.display_name || "").toLowerCase().includes(query)) return true;
-                return identity.blocked_destinations.some((d) =>
-                    d.destination_hash.toLowerCase().includes(query)
-                );
+                return identity.blocked_destinations.some((d) => d.destination_hash.toLowerCase().includes(query));
             });
         },
     },
@@ -313,7 +320,9 @@ export default {
         async onUnblock(identity) {
             if (
                 !(await DialogUtils.confirm(
-                    this.$t("banishment.lift_banishment_confirm", { name: identity.display_name || identity.identity_hash })
+                    this.$t("banishment.lift_banishment_confirm", {
+                        name: identity.display_name || identity.identity_hash,
+                    })
                 ))
             ) {
                 return;
@@ -321,9 +330,10 @@ export default {
 
             try {
                 // Use the first blocked destination hash, or fall back to identity hash
-                const targetHash = identity.blocked_destinations.length > 0
-                    ? identity.blocked_destinations[0].destination_hash
-                    : identity.identity_hash;
+                const targetHash =
+                    identity.blocked_destinations.length > 0
+                        ? identity.blocked_destinations[0].destination_hash
+                        : identity.identity_hash;
 
                 await window.api.delete(`/api/v1/blocked-destinations/${targetHash}`);
                 await this.loadBlockedDestinations();
