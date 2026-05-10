@@ -106,6 +106,31 @@ class ConfigManager:
             "lxmf_propagation_node_stamp_cost",
             16,
         )  # for propagation node messages
+        self.lxmf_inbound_stamp_cost_before_block = self.IntConfig(
+            self,
+            "lxmf_inbound_stamp_cost_before_block",
+            0,
+        )  # saved stamp cost before block strangers was enabled
+        self.lxmf_flood_protection_enabled = self.BoolConfig(
+            self,
+            "lxmf_flood_protection_enabled",
+            False,
+        )
+        self.lxmf_flood_threshold_per_minute = self.IntConfig(
+            self,
+            "lxmf_flood_threshold_per_minute",
+            30,
+        )
+        self.lxmf_flood_max_stamp_cost = self.IntConfig(
+            self,
+            "lxmf_flood_max_stamp_cost",
+            24,
+        )
+        self.lxmf_flood_cooldown_seconds = self.IntConfig(
+            self,
+            "lxmf_flood_cooldown_seconds",
+            300,
+        )
         self.page_archiver_enabled = self.BoolConfig(
             self,
             "page_archiver_enabled",
