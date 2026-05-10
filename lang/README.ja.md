@@ -166,11 +166,11 @@ cd MeshChatX
 corepack enable
 pnpm config set verify-store-integrity true
 pnpm install --frozen-lockfile
-pip install "poetry==2.3.4"
-poetry check --lock
-poetry install
+pip install "uv==0.11.12"
+uv lock --check
+uv sync --group dev
 pnpm run build-frontend
-poetry run python -m meshchatx.meshchat --headless --host 127.0.0.1
+uv run python -m meshchatx.meshchat --headless --host 127.0.0.1
 ```
 
 上記インストールコマンドに関する補足:
@@ -178,10 +178,10 @@ poetry run python -m meshchatx.meshchat --headless --host 127.0.0.1
 - `pnpm install --frozen-lockfile` は `pnpm-lock.yaml` の更新を拒否し、ロックファイルが `package.json` と一致しない場合は失敗します。これにより、想定外の上流バージョンが暗黙的にインストールされるのを防げます。
 - `verify-store-integrity=true` はプロジェクトの `.npmrc` にも設定されています。上記の `pnpm config set` の行はユーザー設定側も明示的に固めるためのものです。
 - pnpm v10 以降、ライフサイクルスクリプト (`preinstall`/`postinstall`) はデフォルトでブロックされます。インストールスクリプトを実行できるのは `package.json` の `pnpm.onlyBuiltDependencies` に列挙されたパッケージ（現在 `electron`、`electron-winstaller`、`esbuild`）だけです。
-- `poetry check --lock` は `poetry.lock` と `pyproject.toml` が同期していない場合に即時失敗します。その後の `poetry install` はロックファイルからのみ解決します。
-- 厳密にロックファイルだけで Poetry をインストールしたい場合は、CI と揃えるために `pip install "poetry==2.3.4"` で Poetry バージョンを固定してください。
+- `uv lock --check` は `uv.lock` と `pyproject.toml` が同期していない場合に即時失敗します。その後の `uv sync --group dev` はロックファイルからのみ解決します。
+- 厳密にロックファイルだけで Poetry をインストールしたい場合は、CI と揃えるために `pip install "uv==0.11.12"` で Poetry バージョンを固定してください。
 
-意図的に依存を更新する場合は、`pnpm update` / `poetry update` を専用コミットで実行し、push 前にロックファイルの diff を必ず確認してください。
+意図的に依存を更新する場合は、`pnpm update` / `uv lock` を専用コミットで実行し、push 前にロックファイルの diff を必ず確認してください。
 
 ## サンドボックスで実行（Linux）
 
@@ -336,8 +336,8 @@ task build:all
 
 | コマンド       | 説明                                    |
 | -------------- | --------------------------------------- |
-| `make install` | pnpm と poetry の依存関係をインストール |
-| `make run`     | poetry 経由で MeshChatX を実行          |
+| `make install` | pnpm と UV の依存関係をインストール     |
+| `make run`     | UV 経由で MeshChatX を実行              |
 | `make build`   | フロントエンドをビルド                  |
 | `make lint`    | eslint と ruff を実行                   |
 | `make test`    | フロントエンドとバックエンドのテスト    |

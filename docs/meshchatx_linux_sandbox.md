@@ -55,26 +55,26 @@ firejail --noprofile --whitelist="$DATA" \
 
 `--noprofile` disables many Firejail restrictions; treat it as a stepping stone, not the final hardening.
 
-### From source with Poetry
+### From source with UV
 
 Poetry needs the project tree and the virtualenv. Example:
 
 ```bash
 cd /path/to/reticulum-meshchatX
 DATA="${XDG_DATA_HOME:-$HOME/.local/share}/meshchatx-sandbox"
-VENV="$(poetry env info -p)"
+VENV="$(pwd)/.venv"
 mkdir -p "$DATA/storage" "$DATA/.reticulum"
 
 firejail --quiet \
   --whitelist="$(pwd)" \
   --whitelist="$VENV" \
   --whitelist="$DATA" \
-  poetry run python -m meshchatx.meshchat --headless --host 127.0.0.1 \
+  uv run python -m meshchatx.meshchat --headless --host 127.0.0.1 \
     --storage-dir="$DATA/storage" \
     --reticulum-config-dir="$DATA/.reticulum"
 ```
 
-You may need extra `--whitelist=` entries if Poetry or dependencies read config elsewhere (for example under `$HOME/.config`).
+You may need extra `--whitelist=` entries if UV or dependencies read config elsewhere (for example under `$HOME/.config`).
 
 ### USB serial (RNode or similar)
 
@@ -116,14 +116,14 @@ Notes:
 - If `meshchatx` lives only inside a venv that is **not** under `$DATA`, the read-only root still allows **reading** that path; you do not have to bind-mount the venv separately unless you also need writes there.
 - Distributions that merge `/` and `/usr` (merged-usr) still work with `--ro-bind / /` on typical glibc setups. If `bwrap` fails with missing library paths, add the extra `--ro-bind` lines your distro documents (for example `/lib64`).
 
-### From source with Poetry
+### From source with UV
 
-Bind the repository and the Poetry venv read-only, and keep `DATA` writable:
+Bind the repository and the UV venv read-only, and keep `DATA` writable:
 
 ```bash
 cd /path/to/reticulum-meshchatX
 DATA="${XDG_DATA_HOME:-$HOME/.local/share}/meshchatx-sandbox"
-VENV="$(poetry env info -p)"
+VENV="$(pwd)/.venv"
 mkdir -p "$DATA/storage" "$DATA/.reticulum"
 PROJ="$(pwd)"
 
@@ -140,12 +140,12 @@ exec bwrap \
   --uid "$(id -u)" --gid "$(id -g)" \
   --setenv PATH "$VENV/bin:$PATH" \
   --chdir "$PROJ" \
-  poetry run python -m meshchatx.meshchat --headless --host 127.0.0.1 \
+  uv run python -m meshchatx.meshchat --headless --host 127.0.0.1 \
     --storage-dir="$DATA/storage" \
     --reticulum-config-dir="$DATA/.reticulum"
 ```
 
-`poetry` itself must be reachable on `PATH` inside the sandbox (often under `/usr` or `$HOME/.local/bin`, both visible with `--ro-bind / /`). If `poetry run` fails because it cannot read `~/.config/poetry`, add a read-only bind for that directory or invoke the venv interpreter directly instead of `poetry run`:
+`uv` itself must be reachable on `PATH` inside the sandbox (often under `/usr` or `$HOME/.local/bin`, both visible with `--ro-bind / /`). If `uv run` fails because it cannot read `~/.cache/uv`, add a read-only bind for that directory or invoke the venv interpreter directly instead of `uv run`:
 
 ```bash
 exec bwrap \

@@ -166,11 +166,11 @@ cd MeshChatX
 corepack enable
 pnpm config set verify-store-integrity true
 pnpm install --frozen-lockfile
-pip install "poetry==2.3.4"
-poetry check --lock
-poetry install
+pip install "uv==0.11.12"
+uv lock --check
+uv sync --group dev
 pnpm run build-frontend
-poetry run python -m meshchatx.meshchat --headless --host 127.0.0.1
+uv run python -m meshchatx.meshchat --headless --host 127.0.0.1
 ```
 
 Пояснения к командам установки:
@@ -178,10 +178,10 @@ poetry run python -m meshchatx.meshchat --headless --host 127.0.0.1
 - `pnpm install --frozen-lockfile` запрещает обновление `pnpm-lock.yaml` и завершится с ошибкой, если lock-файл не соответствует `package.json`. Это исключает скрытую установку неожиданной upstream-версии.
 - `verify-store-integrity=true` уже задан в `.npmrc` проекта; явный `pnpm config set` дополнительно ужесточает пользовательскую конфигурацию.
 - Lifecycle-скрипты (`preinstall`/`postinstall`) по умолчанию заблокированы в pnpm v10+. Скрипты установки могут запускать только пакеты из `pnpm.onlyBuiltDependencies` в `package.json` (сейчас `electron`, `electron-winstaller`, `esbuild`).
-- `poetry check --lock` сразу падает, если `poetry.lock` не синхронизирован с `pyproject.toml`; затем `poetry install` ставит зависимости только из lock-файла.
-- Для строгой установки Poetry только из lock-файла зафиксируйте версию Poetry через `pip install "poetry==2.3.4"`, как это делает CI.
+- `uv lock --check` сразу падает, если `uv.lock` не синхронизирован с `pyproject.toml`; затем `uv sync --group dev` ставит зависимости только из lock-файла.
+- Для строгой установки Poetry только из lock-файла зафиксируйте версию Poetry через `pip install "uv==0.11.12"`, как это делает CI.
 
-Если вы намеренно хотите обновить зависимости, выполните `pnpm update` / `poetry update` отдельным коммитом и проверьте diff lock-файлов до пуша.
+Если вы намеренно хотите обновить зависимости, выполните `pnpm update` / `uv lock` отдельным коммитом и проверьте diff lock-файлов до пуша.
 
 ## Запуск в песочнице (Linux)
 
@@ -336,8 +336,8 @@ task build:all
 
 | Команда        | Описание                                |
 | -------------- | --------------------------------------- |
-| `make install` | Установить зависимости pnpm и poetry    |
-| `make run`     | Запуск MeshChatX через poetry           |
+| `make install` | Установить зависимости pnpm и UV        |
+| `make run`     | Запуск MeshChatX через UV               |
 | `make build`   | Сборка фронтенда                        |
 | `make lint`    | eslint и ruff                           |
 | `make test`    | Тесты фронтенда и бэкенда               |

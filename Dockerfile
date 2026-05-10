@@ -36,7 +36,7 @@ RUN apk upgrade --no-cache && \
     apk add --no-cache gcc g++ musl-dev linux-headers python3-dev libffi-dev openssl-dev git
 
 # Install build tools in the system python
-RUN pip install --no-cache-dir --upgrade "pip>=26.0" poetry setuptools wheel "jaraco.context>=6.1.0"
+RUN pip install --no-cache-dir --upgrade "pip>=26.0" uv setuptools wheel "jaraco.context>=6.1.0"
 
 # Create the clean venv for our application dependencies
 RUN python -m venv /opt/venv
@@ -45,12 +45,10 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Install essential runtime tools in the venv (cffi verify needs setuptools on Python 3.12+)
 RUN pip install --no-cache-dir --upgrade "pip>=26.0" "setuptools" "jaraco.context>=6.1.0"
 
-COPY pyproject.toml poetry.lock README.md ./
+COPY pyproject.toml uv.lock README.md ./
 COPY vendor ./vendor
-RUN poetry config virtualenvs.create false && \
-    poetry check --lock && \
-    poetry install --no-root --only main --no-interaction --no-ansi && \
-    rm -rf /root/.cache/pip /root/.cache/pypoetry
+RUN uv sync --no-group dev --no-install-project && \
+    rm -rf /root/.cache/pip /root/.cache/uv
 
 COPY meshchatx ./meshchatx
 COPY scripts/docker-bake-lxst-filterlib-musl.py ./scripts/docker-bake-lxst-filterlib-musl.py

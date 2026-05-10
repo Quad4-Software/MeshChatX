@@ -166,11 +166,11 @@ cd MeshChatX
 corepack enable
 pnpm config set verify-store-integrity true
 pnpm install --frozen-lockfile
-pip install "poetry==2.3.4"
-poetry check --lock
-poetry install
+pip install "uv==0.11.12"
+uv lock --check
+uv sync --group dev
 pnpm run build-frontend
-poetry run python -m meshchatx.meshchat --headless --host 127.0.0.1
+uv run python -m meshchatx.meshchat --headless --host 127.0.0.1
 ```
 
 关于上述安装命令的说明：
@@ -178,10 +178,10 @@ poetry run python -m meshchatx.meshchat --headless --host 127.0.0.1
 - `pnpm install --frozen-lockfile` 禁止更新 `pnpm-lock.yaml`，若 lockfile 与 `package.json` 不一致则直接失败。这能阻止意外的上游版本被静默安装。
 - `verify-store-integrity=true` 已在项目的 `.npmrc` 中设置；显式的 `pnpm config set` 行同时加固用户级配置。
 - pnpm v10+ 默认禁用所有生命周期脚本（`preinstall`/`postinstall`）。仅 `package.json` 中 `pnpm.onlyBuiltDependencies` 列出的包允许执行安装脚本（当前为 `electron`、`electron-winstaller`、`esbuild`）。
-- `poetry check --lock` 会在 `poetry.lock` 与 `pyproject.toml` 不同步时立即失败；随后的 `poetry install` 只会从 lock 文件解析依赖。
-- 若需严格按 lock 文件安装 Poetry 依赖（不进行隐式刷新），用 `pip install "poetry==2.3.4"` 固定 Poetry 版本，与 CI 保持一致。
+- `uv lock --check` 会在 `uv.lock` 与 `pyproject.toml` 不同步时立即失败；随后的 `uv sync --group dev` 只会从 lock 文件解析依赖。
+- 若需严格按 lock 文件安装 Poetry 依赖（不进行隐式刷新），用 `pip install "uv==0.11.12"` 固定 Poetry 版本，与 CI 保持一致。
 
-如果确有意愿更新依赖，请在独立提交中运行 `pnpm update` / `poetry update`，并在推送前审查生成的 lock 文件 diff。
+如果确有意愿更新依赖，请在独立提交中运行 `pnpm update` / `uv lock`，并在推送前审查生成的 lock 文件 diff。
 
 ## 在沙盒中运行（Linux）
 
@@ -336,8 +336,8 @@ task build:all
 
 | 命令           | 说明                        |
 | -------------- | --------------------------- |
-| `make install` | 安装 pnpm 与 poetry 依赖    |
-| `make run`     | 通过 poetry 运行 MeshChatX  |
+| `make install` | 安装 pnpm 与 UV 依赖        |
+| `make run`     | 通过 UV 运行 MeshChatX      |
 | `make build`   | 构建前端                    |
 | `make lint`    | 运行 eslint 与 ruff         |
 | `make test`    | 运行前端与后端测试          |

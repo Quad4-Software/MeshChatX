@@ -166,11 +166,11 @@ cd MeshChatX
 corepack enable
 pnpm config set verify-store-integrity true
 pnpm install --frozen-lockfile
-pip install "poetry==2.3.4"
-poetry check --lock
-poetry install
+pip install "uv==0.11.12"
+uv lock --check
+uv sync --group dev
 pnpm run build-frontend
-poetry run python -m meshchatx.meshchat --headless --host 127.0.0.1
+uv run python -m meshchatx.meshchat --headless --host 127.0.0.1
 ```
 
 Hinweise zu den Installationsbefehlen:
@@ -178,10 +178,10 @@ Hinweise zu den Installationsbefehlen:
 - `pnpm install --frozen-lockfile` verweigert Aenderungen an `pnpm-lock.yaml` und schlaegt fehl, wenn die Lockdatei nicht zu `package.json` passt. Damit wird verhindert, dass eine unerwartete Upstream-Version still eingespielt wird.
 - `verify-store-integrity=true` ist auch in der projektweiten `.npmrc` gesetzt; die explizite `pnpm config set`-Zeile haertet zusaetzlich die Benutzerkonfiguration.
 - Lifecycle-Skripte (`preinstall`/`postinstall`) sind in pnpm v10+ standardmaessig blockiert. Nur die unter `pnpm.onlyBuiltDependencies` in `package.json` aufgefuehrten Pakete duerfen Installationsskripte ausfuehren (aktuell `electron`, `electron-winstaller`, `esbuild`).
-- `poetry check --lock` schlaegt frueh fehl, wenn `poetry.lock` nicht mit `pyproject.toml` synchron ist; `poetry install` aufloest danach nur aus der Lockdatei.
-- Fuer eine strikte Lockfile-Installation (ohne implizite Lock-Aktualisierung) Poetry mit `pip install "poetry==2.3.4"` pinnen, passend zur CI-Version.
+- `uv lock --check` schlaegt frueh fehl, wenn `uv.lock` nicht mit `pyproject.toml` synchron ist; `uv sync --group dev` aufloest danach nur aus der Lockdatei.
+- Fuer eine strikte Lockfile-Installation (ohne implizite Lock-Aktualisierung) Poetry mit `pip install "uv==0.11.12"` pinnen, passend zur CI-Version.
 
-Wenn Sie absichtlich Abhaengigkeiten aktualisieren wollen, fuehren Sie `pnpm update` / `poetry update` in einem dedizierten Commit aus und pruefen Sie das resultierende Lockdatei-Diff vor dem Push.
+Wenn Sie absichtlich Abhaengigkeiten aktualisieren wollen, fuehren Sie `pnpm update` / `uv lock` in einem dedizierten Commit aus und pruefen Sie das resultierende Lockdatei-Diff vor dem Push.
 
 ## Sandboxing (Linux)
 
