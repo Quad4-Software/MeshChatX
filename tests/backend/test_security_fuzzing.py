@@ -1430,9 +1430,10 @@ def test_nomadnet_page_archive_add_fuzzing(
 @given(
     destination_hash=st.text(min_size=0, max_size=200),
     file_path=st.text(min_size=0, max_size=2000),
+    data=st.one_of(st.none(), st.text(min_size=0, max_size=2000)),
 )
-def test_nomadnet_file_download_fuzzing(mock_app, destination_hash, file_path):
-    """Fuzz nomadnet.file.download WebSocket handler (path traversal, malformed hash)."""
+def test_nomadnet_file_download_fuzzing(mock_app, destination_hash, file_path, data):
+    """Fuzz nomadnet.file.download WebSocket handler (path traversal, malformed hash, data)."""
     import asyncio
 
     loop = asyncio.new_event_loop()
@@ -1443,6 +1444,7 @@ def test_nomadnet_file_download_fuzzing(mock_app, destination_hash, file_path):
             "nomadnet_file_download": {
                 "destination_hash": destination_hash,
                 "file_path": file_path,
+                "data": data,
             },
         }
         loop.run_until_complete(
