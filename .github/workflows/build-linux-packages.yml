@@ -116,6 +116,9 @@ jobs:
                   test -d meshchatx/public/assets
                   test -d meshchatx/public/reticulum-docs-bundled/current
 
+            - name: Setup Task
+              run: sh scripts/ci/setup-task.sh
+
             - name: Build release-assets
               run: bash scripts/ci/github-build-linux-release-assets.sh
 
@@ -188,6 +191,9 @@ jobs:
                   test -f meshchatx/public/index.html
                   test -d meshchatx/public/assets
                   test -d meshchatx/public/reticulum-docs-bundled/current
+
+            - name: Setup Task
+              run: sh scripts/ci/setup-task.sh
 
             - name: Build release-assets
               run: bash scripts/ci/github-build-linux-release-assets.sh
