@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: 0BSD
 
 import asyncio
+import contextlib
 import time
 
 import RNS
@@ -69,6 +70,8 @@ class AutoPropagationManager:
     async def _probe_propagation_sync(self, node_hex: str) -> bool:
         ctx = self.context
         router = ctx.message_router
+        if not router:
+            return False
         try:
             dest = bytes.fromhex(node_hex)
             if len(dest) != RNS.Identity.TRUNCATED_HASHLENGTH // 8:
@@ -76,7 +79,17 @@ class AutoPropagationManager:
         except Exception:
             return False
 
+        # Ensure any previous sync is fully cancelled and state is idle
         self.app.stop_propagation_node_sync(context=ctx)
+        settle_deadline = time.monotonic() + 5.0
+        while time.monotonic() < settle_deadline:
+            if router.propagation_transfer_state == LXMRouter.PR_IDLE:
+                break
+            await asyncio.sleep(POLL_INTERVAL_SECONDS)
+        else:
+            with contextlib.suppress(Exception):
+                router.propagation_transfer_state = LXMRouter.PR_IDLE
+
         try:
             router.set_outbound_propagation_node(dest)
         except Exception:
@@ -85,16 +98,29 @@ class AutoPropagationManager:
         router.request_messages_from_propagation_node(ctx.identity)
 
         deadline = time.monotonic() + SYNC_PROBE_TIMEOUT_SECONDS
-        seen_progress = False
 
+        # Wait for the sync to actually start (leave idle)
         while time.monotonic() < deadline:
             state = router.propagation_transfer_state
             if state in _PROP_FAILURE_STATES:
                 self.app.stop_propagation_node_sync(context=ctx)
                 return False
             if state != LXMRouter.PR_IDLE:
-                seen_progress = True
-            elif seen_progress:
+                break
+            await asyncio.sleep(POLL_INTERVAL_SECONDS)
+        else:
+            # Never left idle -> failed to start
+            self.app.stop_propagation_node_sync(context=ctx)
+            return False
+
+        # Wait for the sync to finish (return to idle)
+        while time.monotonic() < deadline:
+            state = router.propagation_transfer_state
+            if state in _PROP_FAILURE_STATES:
+                self.app.stop_propagation_node_sync(context=ctx)
+                return False
+            if state == LXMRouter.PR_IDLE:
+                # Success: we left idle and now we're back
                 self.app.stop_propagation_node_sync(context=ctx)
                 return True
             await asyncio.sleep(POLL_INTERVAL_SECONDS)
@@ -105,28 +131,47 @@ class AutoPropagationManager:
     async def check_and_update_propagation_node(self):
         ctx = self.context
         router = ctx.message_router
+        if not router:
+            return
 
         previous_hex = (
             self.config.lxmf_preferred_propagation_node_destination_hash.get()
         )
 
         # If a sync is in progress, only interrupt it when the current node
-        # appears unreachable.  This prevents getting stuck on a node we
-        # cannot get a path to.
+        # appears unreachable or the path is stale/unresponsive.  This prevents
+        # getting stuck on a node we cannot actually reach.
         if router.propagation_transfer_state != LXMRouter.PR_IDLE:
-            current_has_path = False
+            current_path_ok = False
             if previous_hex:
                 try:
                     current_dest = bytes.fromhex(previous_hex)
                     current_has_path = RNS.Transport.has_path(current_dest)
+                    current_path_ok = (
+                        current_has_path
+                        and not RNS.Transport.path_is_unresponsive(current_dest)
+                        and not reticulum_pathfinding.transport_path_table_entry_is_expired(
+                            current_dest,
+                        )
+                    )
                 except Exception:
                     pass
-            if current_has_path:
+            if current_path_ok:
                 # Sync is likely making progress – let it finish.
                 return
             # Current node is unreachable – stop the stuck sync so we can
             # look for a working alternative.
             self.app.stop_propagation_node_sync(context=ctx)
+            # Wait briefly for the router to settle back to idle before we
+            # start probing other nodes.
+            settle_deadline = time.monotonic() + 5.0
+            while time.monotonic() < settle_deadline:
+                if router.propagation_transfer_state == LXMRouter.PR_IDLE:
+                    break
+                await asyncio.sleep(POLL_INTERVAL_SECONDS)
+            else:
+                with contextlib.suppress(Exception):
+                    router.propagation_transfer_state = LXMRouter.PR_IDLE
 
         announces = self.database.announces.get_announces(aspect="lxmf.propagation")
 

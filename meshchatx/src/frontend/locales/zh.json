@@ -357,7 +357,13 @@
         "telemetry_trust_revoke": "撤销遥测信任",
         "telemetry_trust_grant": "授予遥测信任",
         "location_manage_desc": "管理您的位置共享方式。",
-        "restart_rns": "重启 RNS"
+        "restart_rns": "重启 RNS",
+        "flood_protection": "Flood Protection",
+        "flood_protection_description": "Automatically raise the inbound stamp cost when receiving too many messages per minute from many sources. This makes coordinated spam attacks computationally expensive while keeping normal conversations affordable.",
+        "flood_protection_enabled": "Enable auto-adjusting stamp cost",
+        "flood_threshold": "Messages per minute threshold",
+        "flood_max_stamp_cost": "Maximum stamp cost during flood",
+        "flood_cooldown": "Cooldown before lowering cost (seconds)"
     },
     "common": {
         "open": "打开",
@@ -1476,6 +1482,7 @@
         "type": "类型",
         "user": "用户",
         "node": "节点",
+        "blocked_destinations": "被阻止的目的地",
         "banishment_lifted": "放逐已解除",
         "failed_lift_banishment": "解除放逐失败"
     },

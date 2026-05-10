@@ -65,6 +65,28 @@ export function scrollContainerToBottom(container) {
 }
 
 /**
+ * Clears stale scroll position when reusing the same scroll element for another thread.
+ * `scrollMessagesToBottom` / `scrollContainerToBottom` run after content is mounted.
+ * @param {Element | null | undefined} container
+ */
+export function resetMessagesScrollSurface(container) {
+    if (!container) {
+        return;
+    }
+    container.scrollTop = 0;
+}
+
+/**
+ * When the scroll area has no inner content yet, `isScrollColumnReverse` is false and
+ * `isNearBottom` is misleading (empty scroller looks "at bottom"). Do not use it to settle.
+ * @param {Element | null | undefined} container
+ * @returns {boolean}
+ */
+export function canTrustScrollNearBottomHeuristic(container) {
+    return Boolean(container?.firstElementChild);
+}
+
+/**
  * Whether the user has scrolled into the region where older messages should be loaded.
  * @param {Element} container
  * @returns {boolean}

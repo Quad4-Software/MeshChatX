@@ -89,3 +89,53 @@ async def test_nomadnet_file_download_started_before_download_async_scheduled(
     assert events[0][1]["type"] == "nomadnet.file.download"
     assert events[0][1]["nomadnet_file_download"]["status"] == "started"
     assert events[1][0] == "run_async"
+
+
+@pytest.mark.asyncio
+async def test_nomadnet_file_download_with_data_passed_to_downloader(
+    mock_app, monkeypatch
+):
+    """Query-param data from the WS payload must reach NomadnetFileDownloader."""
+    mock_app._try_serve_local_page_node_file = MagicMock(return_value=None)
+
+    from meshchatx.src.backend import nomadnet_downloader
+
+    captured = {}
+    orig_init = nomadnet_downloader.NomadnetFileDownloader.__init__
+
+    def capturing_init(self, *args, **kwargs):
+        captured["args"] = args
+        captured["kwargs"] = kwargs
+        # Don't call real init to avoid RNS side-effects
+        self.is_cancelled = False
+        self.destination_hash = args[0]
+        self.path = args[1]
+        self.data = kwargs.get("data")
+
+    monkeypatch.setattr(
+        nomadnet_downloader.NomadnetFileDownloader, "__init__", capturing_init
+    )
+
+    mock_ws = MagicMock()
+    mock_ws.send_str = AsyncMock()
+
+    dh = "c" * 32
+    await mock_app.on_websocket_data_received(
+        mock_ws,
+        {
+            "type": "nomadnet.file.download",
+            "nomadnet_file_download": {
+                "destination_hash": dh,
+                "file_path": "/files/report.pdf",
+                "data": "version=2&format=raw",
+            },
+        },
+    )
+
+    assert captured["kwargs"].get("data") == {"var_version": "2&format=raw"}
+    assert captured["args"][0] == bytes.fromhex(dh)
+    assert captured["args"][1] == "/files/report.pdf"
+
+    monkeypatch.setattr(
+        nomadnet_downloader.NomadnetFileDownloader, "__init__", orig_init
+    )

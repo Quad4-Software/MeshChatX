@@ -22,7 +22,8 @@ describe("CallPage.vue", () => {
                     voicemail: { unread_count: 0 },
                 };
 
-                if (url.includes("/api/v1/config")) return Promise.resolve({ data: { config: {} } });
+                if (url.includes("/api/v1/config"))
+                    return Promise.resolve({ data: { config: { telephone_enabled: true } } });
                 if (url.includes("/api/v1/telephone/history")) return Promise.resolve({ data: { call_history: [] } });
                 if (url.includes("/api/v1/announces")) return Promise.resolve({ data: { announces: [] } });
                 if (url.includes("/api/v1/telephone/status")) return Promise.resolve({ data: { active_call: null } });
@@ -160,7 +161,7 @@ describe("CallPage.vue", () => {
 
     it("displays 'New Call' UI by default when no active call", async () => {
         const wrapper = mountCallPage();
-        await wrapper.vm.$nextTick();
+        await flushPromises();
 
         expect(wrapper.text()).toContain("New Call");
         expect(wrapper.find('input[type="text"]').exists()).toBe(true);
@@ -168,7 +169,7 @@ describe("CallPage.vue", () => {
 
     it("renders call hops and interface metadata below address", async () => {
         const wrapper = mountCallPage();
-        await wrapper.vm.$nextTick();
+        await flushPromises();
         wrapper.vm.activeCall = {
             status: 6,
             remote_identity_hash: "ab".repeat(16),
@@ -196,7 +197,7 @@ describe("CallPage.vue", () => {
 
     it("attempts to place a call when 'Call' button is clicked", async () => {
         const wrapper = mountCallPage();
-        await wrapper.vm.$nextTick();
+        await flushPromises();
 
         const input = wrapper.find('input[type="text"]');
         await input.setValue("test-destination");

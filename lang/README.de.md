@@ -11,12 +11,16 @@ Dieses Projekt ist unabhaengig vom originalen Reticulum MeshChat und steht in ke
 - Offizielles GitHub-Mirror: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - Releases: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - Aenderungsprotokoll: [`CHANGELOG.md`](../CHANGELOG.md)
-- Spenden: [`donate.md`](../donate.md)
+- Spenden: [`donate.md`](../donate.md) ([Spenden](#spenden))
+- Umbrel App Store: [apps.umbrel.com/app/meshchatx](https://apps.umbrel.com/app/meshchatx)
 
 <a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/Quad4-Software/MeshChatX"><img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" height="60" alt="Get it on Obtainium"></a>
 
+rngit NomadNet Node: `5399f5a0212477618821e91e88ce053b:/page/index.mu`
+
 rngit: `git clone rns://926baefe13daf5178c174f158dae1b45/quad4/MeshChatX`
-NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
+
+MeshChatX NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
 
 ## Wichtige Aenderungen gegenueber Reticulum MeshChat
 
@@ -162,11 +166,11 @@ cd MeshChatX
 corepack enable
 pnpm config set verify-store-integrity true
 pnpm install --frozen-lockfile
-pip install "poetry==2.3.4"
-poetry check --lock
-poetry install
+pip install "uv==0.11.12"
+uv lock --check
+uv sync --group dev
 pnpm run build-frontend
-poetry run python -m meshchatx.meshchat --headless --host 127.0.0.1
+uv run python -m meshchatx.meshchat --headless --host 127.0.0.1
 ```
 
 Hinweise zu den Installationsbefehlen:
@@ -174,10 +178,10 @@ Hinweise zu den Installationsbefehlen:
 - `pnpm install --frozen-lockfile` verweigert Aenderungen an `pnpm-lock.yaml` und schlaegt fehl, wenn die Lockdatei nicht zu `package.json` passt. Damit wird verhindert, dass eine unerwartete Upstream-Version still eingespielt wird.
 - `verify-store-integrity=true` ist auch in der projektweiten `.npmrc` gesetzt; die explizite `pnpm config set`-Zeile haertet zusaetzlich die Benutzerkonfiguration.
 - Lifecycle-Skripte (`preinstall`/`postinstall`) sind in pnpm v10+ standardmaessig blockiert. Nur die unter `pnpm.onlyBuiltDependencies` in `package.json` aufgefuehrten Pakete duerfen Installationsskripte ausfuehren (aktuell `electron`, `electron-winstaller`, `esbuild`).
-- `poetry check --lock` schlaegt frueh fehl, wenn `poetry.lock` nicht mit `pyproject.toml` synchron ist; `poetry install` aufloest danach nur aus der Lockdatei.
-- Fuer eine strikte Lockfile-Installation (ohne implizite Lock-Aktualisierung) Poetry mit `pip install "poetry==2.3.4"` pinnen, passend zur CI-Version.
+- `uv lock --check` schlaegt frueh fehl, wenn `uv.lock` nicht mit `pyproject.toml` synchron ist; `uv sync --group dev` aufloest danach nur aus der Lockdatei.
+- Fuer eine strikte Lockfile-Installation (ohne implizite Lock-Aktualisierung) Poetry mit `pip install "uv==0.11.12"` pinnen, passend zur CI-Version.
 
-Wenn Sie absichtlich Abhaengigkeiten aktualisieren wollen, fuehren Sie `pnpm update` / `poetry update` in einem dedizierten Commit aus und pruefen Sie das resultierende Lockdatei-Diff vor dem Push.
+Wenn Sie absichtlich Abhaengigkeiten aktualisieren wollen, fuehren Sie `pnpm update` / `uv lock` in einem dedizierten Commit aus und pruefen Sie das resultierende Lockdatei-Diff vor dem Push.
 
 ## Sandboxing (Linux)
 
@@ -306,6 +310,7 @@ Weitere Dokumentation:
 | `--rns-log-level`          | `MESHCHAT_RNS_LOG_LEVEL`                 | (keine)      | Reticulum (RNS) Log-Level: `none`, `critical`, `error`, `warning`, `notice`, `verbose`, `debug`, `extreme` oder numerisch. CLI ueberschreibt die Umgebungsvariable, wenn beide gesetzt sind. |
 | `--headless`               | `MESHCHAT_HEADLESS`                      | `false`      | Browser nicht automatisch oeffnen                                                                                                                                                            |
 | `--auth`                   | `MESHCHAT_AUTH`                          | `false`      | Basis-Authentifizierung aktivieren                                                                                                                                                           |
+| `--reset-password`         | `MESHCHAT_RESET_PASSWORD`                | `false`      | Gespeicherten Passwort-Hash loeschen, damit ein neues Passwort ueber die Web-Oberflaeche gesetzt werden kann                                                                                 |
 | `--storage-dir`            | `MESHCHAT_STORAGE_DIR`                   | `./storage`  | Datenverzeichnis                                                                                                                                                                             |
 | `--public-dir`             | `MESHCHAT_PUBLIC_DIR`                    | auto/bundled | Frontend-Verzeichnis (fuer Quell-Installationen ohne gebundelte Assets)                                                                                                                      |
 

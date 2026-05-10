@@ -1,9 +1,9 @@
 # Single tagged-release pipeline: Linux release assets, Windows + macOS Electron
 # builds, Flatpak, Android APKs (dev/master track tags via android-apk-tag.yml), SLSA
 # provenance (generic generator: Linux, desktop, optional Android+Flatpak), optional cosign bundles, and one draft GitHub release.
-# Optional: same draft ``upload/`` tree is mirrored to bunny.net Edge Storage for master/dev
-# tags when ``BUNNY_STORAGE_ACCESS_KEY`` is set (see draft job). ``-rc`` tags always use the
-# ``dev/`` prefix; previous release folders under ``master/`` and ``dev/`` are pruned after each upload.
+# Optional: same draft upload/ tree is mirrored to bunny.net Edge Storage for master/dev
+# tags when BUNNY_STORAGE_ACCESS_KEY is set (see draft job). -rc tags always use the
+# dev/ prefix; previous release folders under master/ and dev/ are pruned after each upload.
 # One workflow run per tag keeps the release graph immutable.
 #
 # Pinned first-party actions (bump tag and SHA together when upgrading):
@@ -40,7 +40,7 @@ env:
     NODE_OPTIONS: --max-old-space-size=8192
     PYTHON_VERSION: "3.14"
     NODE_VERSION: "24"
-    POETRY_VERSION: "2.3.4"
+    UV_VERSION: "0.11.12"
     PNPM_VERSION: "10.33.0"
     COSIGN_VERSION: "3.0.6"
     # Official .deb from aquasecurity/trivy releases; scripts/ci/setup-trivy.sh verifies
@@ -81,12 +81,10 @@ jobs:
             run_unit_tests: true
 
     linux-release:
-        name: Linux release assets
+        name: Linux release assets (x64)
         needs: frontend
         runs-on: ubuntu-latest
         timeout-minutes: 120
-        outputs:
-            hashes: ${{ steps.slsa-hashes.outputs.hashes }}
         permissions:
             contents: read
             actions: write
@@ -102,18 +100,18 @@ jobs:
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
 
-            - name: Install Poetry (PyPI pin)
+            - name: Install UV (PyPI pin)
               env:
-                  POETRY_VERSION: ${{ env.POETRY_VERSION }}
-              run: bash scripts/ci/github-install-poetry.sh
+                  UV_VERSION: ${{ env.UV_VERSION }}
+              run: bash scripts/ci/github-install-uv.sh
 
-            - name: Cache Poetry downloads
+            - name: Cache UV downloads
               uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
               with:
-                  path: ~/.cache/pypoetry
-                  key: ${{ runner.os }}-pypoetry-${{ hashFiles('poetry.lock') }}
+                  path: ~/.cache/uv
+                  key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock') }}
                   restore-keys: |
-                      ${{ runner.os }}-pypoetry-
+                      ${{ runner.os }}-uv-
 
             - name: Enable pnpm (corepack)
               run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
@@ -156,9 +154,116 @@ jobs:
             - name: Build release-assets
               run: bash scripts/ci/github-build-linux-release-assets.sh
 
+            - name: Upload Linux release artifact (x64)
+              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              with:
+                  name: meshchatx-linux-release-x64-${{ github.ref_name }}-${{ github.run_id }}
+                  path: release-assets/
+                  if-no-files-found: error
+                  retention-days: 30
+
+    linux-release-arm64:
+        name: Linux release assets (arm64)
+        needs: frontend
+        runs-on: ubuntu-24.04-arm
+        timeout-minutes: 120
+        permissions:
+            contents: read
+            actions: write
+        env:
+            FRONTEND_ARTIFACT_NAME: ${{ needs.frontend.outputs.artifact_name }}
+            MESHCHATX_FRONTEND_PREBUILT: "1"
+        steps:
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+
+            - name: Set up Python
+              uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+
+            - name: Install UV (PyPI pin)
+              env:
+                  UV_VERSION: ${{ env.UV_VERSION }}
+              run: bash scripts/ci/github-install-uv.sh
+
+            - name: Cache UV downloads
+              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              with:
+                  path: ~/.cache/uv
+                  key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock') }}
+                  restore-keys: |
+                      ${{ runner.os }}-uv-
+
+            - name: Enable pnpm (corepack)
+              run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+
+            - name: Set up Node
+              uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  cache: pnpm
+                  cache-dependency-path: pnpm-lock.yaml
+
+            - name: Linux packaging APT dependencies
+              run: bash scripts/ci/github-apt-linux-packaging.sh
+
+            - name: Install project dependencies
+              run: bash scripts/ci/github-install-deps.sh
+
+            - name: Download frontend artifact
+              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              with:
+                  name: ${{ env.FRONTEND_ARTIFACT_NAME }}
+                  path: meshchatx/public
+
+            - name: Verify frontend artifact contents
+              run: |
+                  set -euo pipefail
+                  test -f meshchatx/public/index.html
+                  test -d meshchatx/public/assets
+                  test -d meshchatx/public/reticulum-docs-bundled/current
+
+            - name: Build release-assets
+              run: bash scripts/ci/github-build-linux-release-assets.sh
+
+            - name: Upload Linux release artifact (arm64)
+              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              with:
+                  name: meshchatx-linux-release-arm64-${{ github.ref_name }}-${{ github.run_id }}
+                  path: release-assets/
+                  if-no-files-found: error
+                  retention-days: 30
+
+    collect-linux-slsa-subjects:
+        name: SLSA subjects + cosign (Linux)
+        needs: [linux-release, linux-release-arm64]
+        if: startsWith(github.ref, 'refs/tags/')
+        runs-on: ubuntu-latest
+        outputs:
+            hashes: ${{ steps.hash.outputs.hashes }}
+        permissions:
+            contents: read
+            actions: write
+            id-token: write
+        steps:
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+
+            - name: Download x64 artifacts
+              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              with:
+                  name: meshchatx-linux-release-x64-${{ github.ref_name }}-${{ github.run_id }}
+                  path: release-assets
+
+            - name: Download arm64 artifacts
+              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              with:
+                  name: meshchatx-linux-release-arm64-${{ github.ref_name }}-${{ github.run_id }}
+                  path: release-assets
+
             - name: SLSA subject hashes
-              id: slsa-hashes
-              if: startsWith(github.ref, 'refs/tags/')
+              id: hash
               run: bash scripts/ci/github-slsa-hashes-release-assets.sh
 
             - name: SLSA attestations (cosign)
@@ -186,14 +291,6 @@ jobs:
                   export COSIGN_KEY_PATH=/tmp/cosign.key
                   sh scripts/ci/attest-release-assets.sh ./release-assets
                   rm -f /tmp/cosign.key
-
-            - name: Upload Linux release artifact
-              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
-              with:
-                  name: meshchatx-linux-release-${{ github.ref_name }}-${{ github.run_id }}
-                  path: release-assets/
-                  if-no-files-found: error
-                  retention-days: 30
 
     flatpak:
         name: Flatpak (electron-forge)
@@ -237,18 +334,18 @@ jobs:
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
 
-            - name: Install Poetry (PyPI pin)
+            - name: Install UV (PyPI pin)
               env:
-                  POETRY_VERSION: ${{ env.POETRY_VERSION }}
-              run: bash scripts/ci/github-install-poetry.sh
+                  UV_VERSION: ${{ env.UV_VERSION }}
+              run: bash scripts/ci/github-install-uv.sh
 
-            - name: Cache Poetry downloads
+            - name: Cache UV downloads
               uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
               with:
-                  path: ~/.cache/pypoetry
-                  key: ${{ runner.os }}-pypoetry-${{ hashFiles('poetry.lock') }}
+                  path: ~/.cache/uv
+                  key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock') }}
                   restore-keys: |
-                      ${{ runner.os }}-pypoetry-
+                      ${{ runner.os }}-uv-
 
             - name: Enable pnpm (corepack)
               run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
@@ -332,10 +429,10 @@ jobs:
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
 
-            - name: Install Poetry (PyPI pin)
+            - name: Install UV (PyPI pin)
               env:
-                  POETRY_VERSION: ${{ env.POETRY_VERSION }}
-              run: bash scripts/ci/github-install-poetry.sh
+                  UV_VERSION: ${{ env.UV_VERSION }}
+              run: bash scripts/ci/github-install-uv.sh
 
             - name: Enable pnpm (corepack)
               run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
@@ -467,7 +564,7 @@ jobs:
 
     slsa-provenance-linux:
         name: SLSA provenance (Linux)
-        needs: [linux-release]
+        needs: [collect-linux-slsa-subjects]
         if: startsWith(github.ref, 'refs/tags/')
         permissions:
             id-token: write
@@ -475,7 +572,7 @@ jobs:
             actions: read
         uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
         with:
-            base64-subjects: ${{ needs.linux-release.outputs.hashes }}
+            base64-subjects: ${{ needs.collect-linux-slsa-subjects.outputs.hashes }}
             upload-assets: false
             provenance-name: meshchatx-linux-${{ github.ref_name }}.intoto.jsonl
 
@@ -541,6 +638,8 @@ jobs:
         name: Draft GitHub release (all assets + SLSA)
         needs:
             - linux-release
+            - linux-release-arm64
+            - collect-linux-slsa-subjects
             - slsa-provenance-linux
             - build-release
             - slsa-provenance-desktop
@@ -553,6 +652,8 @@ jobs:
             !cancelled() &&
             startsWith(github.ref, 'refs/tags/') &&
             needs.linux-release.result == 'success' &&
+            needs.linux-release-arm64.result == 'success' &&
+            needs.collect-linux-slsa-subjects.result == 'success' &&
             needs.slsa-provenance-linux.result == 'success' &&
             needs.build-release.result == 'success' &&
             needs.collect-desktop-slsa-subjects.result == 'success' &&
@@ -597,10 +698,16 @@ jobs:
                   echo "track=${track}" >> "${GITHUB_OUTPUT}"
                   echo "Resolved tag ${GITHUB_REF_NAME} -> track=${track}"
 
-            - name: Download Linux release assets
+            - name: Download Linux release assets (x64)
               uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
               with:
-                  name: meshchatx-linux-release-${{ github.ref_name }}-${{ github.run_id }}
+                  name: meshchatx-linux-release-x64-${{ github.ref_name }}-${{ github.run_id }}
+                  path: upload
+
+            - name: Download Linux release assets (arm64)
+              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              with:
+                  name: meshchatx-linux-release-arm64-${{ github.ref_name }}-${{ github.run_id }}
                   path: upload
 
             - name: Download Windows dist

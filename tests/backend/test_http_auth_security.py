@@ -157,3 +157,33 @@ def test_auth_login_fuzz_never_500(mock_app, body):
             assert r.status != 500
 
     asyncio.run(run())
+
+
+def test_reset_password_clears_hash_when_set(mock_app):
+    mock_app.config.auth_enabled.set(True)
+    h = bcrypt.hashpw(b"old-password", bcrypt.gensalt()).decode("utf-8")
+    mock_app.config.auth_password_hash.set(h)
+    assert mock_app.reset_password() is True
+    assert mock_app.config.auth_password_hash.get() is None
+
+
+def test_reset_password_no_op_when_no_hash(mock_app):
+    mock_app.config.auth_password_hash.set(None)
+    assert mock_app.reset_password() is False
+    assert mock_app.config.auth_password_hash.get() is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("require_loopback_tcp")
+async def test_reset_password_exposes_setup_screen(mock_app):
+    mock_app.config.auth_enabled.set(True)
+    h = bcrypt.hashpw(b"old-password", bcrypt.gensalt()).decode("utf-8")
+    mock_app.config.auth_password_hash.set(h)
+    assert mock_app.reset_password() is True
+
+    aio_app = _make_aio_app(mock_app, use_https=False)
+    async with TestClient(TestServer(aio_app)) as client:
+        status = await client.get("/api/v1/auth/status")
+        assert status.status == 200
+        body = await status.json()
+        assert body["password_set"] is False

@@ -2,15 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.6.2] - 2026-05-06
+## [4.6.2] - 2026-05-10
 
 ### Fixed
 
 - **Build backend**: Bytecode cleanup now only removes .pyc and .pyo files when a matching .py source file is present, so standalone compiled artifacts are not deleted accidentally.
-- **Propagation sync**: Auto-select no longer lets a sync get stuck on an unreachable node. When `auto_propagation` is enabled and the current propagation node loses its path while syncing, the manager stops the stuck sync and evaluates candidates to find one with a working path. If no candidate works, the broken active node is removed rather than restored.
+- **Propagation sync**: Auto-select no longer lets a sync get stuck on an unreachable node. When `auto_propagation` is enabled and the current propagation node loses its path while syncing, the manager stops the stuck sync and evaluates candidates to find one with a working path. If no candidate works, the broken active node is removed rather than restored. Stuck-sync detection also monitors path unresponsiveness and stale paths.
 - **LXMF / chat UI**: Conversation sidebar and list APIs show one-line previews for **image-only**, **voice-note (audio)**, and **file-attachment** messages (plus notification previews) instead of an empty subtitle. Server (`lxmf_sidebar_preview_for_conversation_latest_row`) and client (`lxmfConversationListPreview`) stay aligned, with locale strings and tests.
 - **Outbound images (pending row)**: Optimistic `pending-*` messages no longer trigger a `GET /api/v1/lxmf-messages/attachment/pending-*/image` **404** when the FileReader preview URL is not ready yet. The client falls back to an inline **data URL** from the outbound job payload and avoids using the attachment endpoint for pending hashes without a preview.
 - **Conversation loads**: Stale responses from an older `lxmf-messages/conversation` fetch (e.g. after switching peers quickly) are still discarded safely, without noisy console logging.
+- **Identity context**: Guarded `inbound_stamp_cost` comparison against non-integer values to prevent `TypeError`.
+- **Config parsing**: `configparser` errors when reading configuration files are now handled gracefully to prevent crashes.
+- **Conversation cleanup**: Blocking a destination now deletes the associated conversation to ensure proper cleanup.
+- **Call handling**: Delayed hangup for rejected calls with improved contact lookup handling.
+- **Docs manager**: `/meshchatx-docs/index.html` now resolves correctly after generating an `index.html` during docs population.
+- **Health monitor**: Added garbage collection calls during context teardown and health checks to clean up resources.
+- **Ping error logging**: Failed destination pings now log a clean `console.warn` message instead of dumping the full `HttpError` stack trace in browser dev tools.
+- **Trivy CI setup**: Added curl retries (`--retry 5 --retry-delay 2`) to handle transient 502 errors during Trivy downloads.
+- **Tests**: Fixed multiple failing backend tests (`test_http_api_contract`, `test_interface_discovery`, `test_websocket_interfaces`, `test_security_fuzzing`, `test_telemetry_integration`) for pytest compatibility, BoolConfig mocking, and RNS `get_instance` changes. Added missing dev dependencies (`pytest-asyncio`, `pytest-xdist`, `pytest-cov`, `jsonschema`).
+- **Banishment**: Blocking now targets the **identity**, not just a single destination hash. All known destinations for the same identity are blocked, contacts are deleted, and LXMF stamp/ticket state is cleaned up from `LXMRouter`.
+- **Banishment (UI)**: Blocked destinations page groups entries by identity and shows all blocked destination hashes per identity. Unblocking one unblocks the entire identity.
+- **Banishment (Reticulum)**: `blackhole_identity()` is always applied when available to drop packets before LXMF delivery callbacks reach the sender, preventing "phantom deliveries" to blocked peers.
+- **NomadNet file downloads**: Backtick-separated request data (e.g. `/file/artifact`g=reticulum|r=lxmf|t=0.9.7`) is now parsed and forwarded as `var_*` request data dicts, matching upstream NomadNet behavior. Previously the raw string was passed and remote nodes could not resolve the artifact.
+- **NomadNet file downloads (cancel)**: Fixed `AttributeError` when cancelling a download — `RequestReceipt` has no `.cancel()`; we now cancel the underlying `Resource` if present, or mark the receipt `FAILED` and remove it from the link queue.
+- **NomadNet browser (links)**: Relative `/page/` and `/file/` URLs from the Micron parser (which include backtick parameters) are now parsed correctly so they no longer show "Unsupported URL".
+- **NomadNet browser (hover)**: Links with `data-destination` now show the full URL including backtick parameters in the browser hover title.
 
 ### Added
 
@@ -22,16 +38,29 @@ All notable changes to this project will be documented in this file.
 - **Micron (Nomad)** (thanks to @RFnexus): MicronParser text inputs can upgrade to **multiline** textareas. Pressing **Enter twice** shows a hint. **`multiline_hint`** was added for NomadNet strings across supported locales.
 - **Chat header (LXMF stamps)**: When the peer has an **outbound stamp ticket** (`outbound_ticket_expiry` from stamp info), a **ticket** icon appears beside stamp cost. The icon is **green** while the ticket is still valid, **amber** after expiry, with localized tooltips.
 - **Connectivity (Android tooling)**: **`usbserial4a`** dependency for USB serial support in the stack where used.
+- **FAQ**: Added `FAQ.md` covering common questions about LXMF reachability, project goals, AI usage, legacy support, and contribution policies.
+- **Password reset**: Added `--reset-password` CLI flag and `MESHCHAT_RESET_PASSWORD` environment variable to clear the stored password hash on startup so a new password can be set via the web UI.
+- **Favourites import/export**: Settings page now supports importing and exporting NomadNet favourites, with deduplication and icon handling.
+- **Bulk favourites import**: Server-side bulk import endpoint for favourites with proper validation and merge logic.
+- **Call page flood protection**: Added flood protection settings UI to the call page.
+- **NomadNet file downloads**: Support for query-parameter data in file downloads. URLs like `hash:/file/report.pdf?version=2` parse the query string and forward it as request data through the WebSocket to `NomadnetFileDownloader`, matching upstream NomadNet behavior.
+- **NomadNet query tests**: Frontend and backend tests for `parseNomadnetworkUrl` with query strings and `downloadNomadNetFile` data payload handling.
+- **Android RNode protection**: On Android, `RNodeInterface`, `RNodeIPInterface`, and `RNodeMultiInterface` entries in the Reticulum config are automatically disabled before startup to prevent crashes from missing serial/BLE support in Chaquopy.
+- **Android external storage**: On Android, MeshChatX now defaults to `getExternalFilesDir()` (user-accessible via file managers) instead of private internal storage.
 
 ### Changed
 
-- **Dependencies**: **RNS** updated to **1.2.3**, **aiohttp** to **3.13.5** in Python, **requirements.txt**, **Chaquopy** metadata, and Android **build.gradle**, **micron-parser** lockfile refresh, and general **pnpm** / **package** bumps for 4.6.2.
+- **Dependencies**: **RNS** updated to **1.2.5**, **LXMF** to **0.9.7**, **aiohttp** to **3.13.5** in Python, **requirements.txt**, **Chaquopy** metadata, and Android **build.gradle**, **micron-parser** lockfile refresh, and general **pnpm** / **package** bumps for 4.6.2.
 - **Vendored LXMFy**: Refreshed `vendor/lxmfy` from upstream [LXMFy/LXMFy](https://git.quad4.io/LXMFy/LXMFy) at `0a6ba8c9fd0f306be614d0edce44e4e805c025b0` (LXMF field helpers for structured bot commands, expanded docs, and new tests). Bundled package version remains **1.6.2**. `vendor/README.txt` lists the revision pointer.
-- **CI**: Docker images publish the **:latest** tag on version tag pushes, **main** and **master** branch builds are enabled, and the Bunny Storage release folder is pruned before uploads.
+- **CI**: Docker images publish the **:latest** tag on version tag pushes, **main** and **master** branch builds are enabled, and the Bunny Storage release folder is pruned before uploads. Release descriptions now include a SHA256 checksum table for all assets.
 - **async_utils**: Tighter coroutine scheduling limits with **logging when work is dropped**. Removed the **Python 3.13 asyncio** compatibility patch in favor of cleaner scheduling assumptions. Adds regression tests for **HTTPS file responses** (including sendfile-style paths).
 - **reticulum_config**: Default Reticulum configuration is applied via **file-backed writes** instead of embedding large default text only through the previous helper path (tests updated).
 - **Lint tooling**: **`vue-eslint-parser`** added/updated (**10.4.0**) for frontend ESLint alignment.
 - **Contributors**: **zenith** added to **CONTRIBUTORS**.
+- **Announce limits**: Default `announce_max_stored_*` raised from **1000** to **2500** and `announce_fetch_limit_*` from **500** to **2500** so the API lists everything stored in the database by default, matching public network usage.
+- **Sidebar order**: Reordered sidebar so **Telephone** appears directly below **Messages** for faster access.
+- **Telephone announce**: Disabled by default in `config_manager`.
+- **CONTRIBUTING.md**: Updated generative AI policy to emphasize local/offline models and reference the Reticulum Zen and License.
 
 ## [4.6.1] - 2026-05-04
 

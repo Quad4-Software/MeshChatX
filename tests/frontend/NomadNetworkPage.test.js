@@ -404,4 +404,103 @@ describe("NomadNetworkPage.vue", () => {
             expect(wrapper.vm.hasPageLoadFailed).toBe(false);
         });
     });
+
+    describe("parseNomadnetworkUrl", () => {
+        it("parses absolute URL with query string", () => {
+            const wrapper = mountNomadNetworkPage();
+            const dest = "a".repeat(32);
+            const result = wrapper.vm.parseNomadnetworkUrl(`${dest}:/file/report.pdf?version=2&format=raw`);
+            expect(result).toEqual({
+                destination_hash: dest,
+                path: "/file/report.pdf",
+                query: "version=2&format=raw",
+            });
+        });
+
+        it("parses relative URL with query string", () => {
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.defaultNodePagePath = "/page/index.mu";
+            const result = wrapper.vm.parseNomadnetworkUrl(":/file/data.bin?key=val");
+            expect(result).toEqual({
+                destination_hash: null,
+                path: "/file/data.bin",
+                query: "key=val",
+            });
+        });
+
+        it("parses node-only URL without query", () => {
+            const wrapper = mountNomadNetworkPage();
+            const dest = "b".repeat(32);
+            const result = wrapper.vm.parseNomadnetworkUrl(dest);
+            expect(result).toEqual({
+                destination_hash: dest,
+                path: wrapper.vm.defaultNodePagePath,
+                query: null,
+            });
+        });
+
+        it("parses absolute URL without query", () => {
+            const wrapper = mountNomadNetworkPage();
+            const dest = "c".repeat(32);
+            const result = wrapper.vm.parseNomadnetworkUrl(`${dest}:/page/index.mu`);
+            expect(result).toEqual({
+                destination_hash: dest,
+                path: "/page/index.mu",
+                query: null,
+            });
+        });
+
+        it("returns null for unsupported URL", () => {
+            const wrapper = mountNomadNetworkPage();
+            expect(wrapper.vm.parseNomadnetworkUrl("not-a-url")).toBeNull();
+        });
+
+        it("handles empty query string after ?", () => {
+            const wrapper = mountNomadNetworkPage();
+            const dest = "d".repeat(32);
+            const result = wrapper.vm.parseNomadnetworkUrl(`${dest}:/file/x.txt?`);
+            expect(result.path).toBe("/file/x.txt");
+            expect(result.query).toBe("");
+        });
+    });
+
+    describe("downloadNomadNetFile", () => {
+        let WebSocketConnection;
+
+        beforeEach(async () => {
+            // Re-import to get the mocked module
+            WebSocketConnection = (await import("@/js/WebSocketConnection")).default;
+            WebSocketConnection.send.mockClear();
+        });
+
+        it("includes data in websocket payload when provided", () => {
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.downloadNomadNetFile(
+                "a".repeat(32),
+                "/file/data.bin",
+                "version=2&format=raw",
+                vi.fn(),
+                vi.fn(),
+                vi.fn()
+            );
+            expect(WebSocketConnection.send).toHaveBeenCalledOnce();
+            const payload = JSON.parse(WebSocketConnection.send.mock.calls[0][0]);
+            expect(payload.type).toBe("nomadnet.file.download");
+            expect(payload.nomadnet_file_download.data).toBe("version=2&format=raw");
+        });
+
+        it("omits data field when data is null", () => {
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.downloadNomadNetFile("b".repeat(32), "/file/data.bin", null, vi.fn(), vi.fn(), vi.fn());
+            const payload = JSON.parse(WebSocketConnection.send.mock.calls[0][0]);
+            expect(payload.nomadnet_file_download).not.toHaveProperty("data");
+        });
+
+        it("omits data field when data is undefined", () => {
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.downloadNomadNetFile("c".repeat(32), "/file/data.bin", undefined, vi.fn(), vi.fn(), vi.fn());
+            const payload = JSON.parse(WebSocketConnection.send.mock.calls[0][0]);
+            expect(payload.nomadnet_file_download).not.toHaveProperty("data");
+        });
+    });
 });

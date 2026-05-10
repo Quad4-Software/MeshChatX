@@ -54,6 +54,16 @@ jobs:
     build:
         runs-on: ubuntu-latest
         timeout-minutes: 120
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - variant: standard
+                      dockerfile: ./Dockerfile
+                      tag_suffix: ""
+                    - variant: hardened
+                      dockerfile: ./Dockerfile.hardened
+                      tag_suffix: "-hardened"
         steps:
             - name: Verify action pins (GitHub API)
               env:
@@ -149,9 +159,10 @@ jobs:
               env:
                   GITHUB_REF: ${{ github.ref }}
                   GITHUB_REF_NAME: ${{ github.ref_name }}
+                  TAG_SUFFIX: ${{ matrix.tag_suffix }}
               run: |
                   set -euo pipefail
-                  sh scripts/ci/docker-tags.sh "${{ steps.image.outputs.name }}" /tmp/docker-tags.txt
+                  TAG_SUFFIX="${{ matrix.tag_suffix }}" sh scripts/ci/docker-tags.sh "${{ steps.image.outputs.name }}" /tmp/docker-tags.txt
                   {
                     echo 'tags<<EOF'
                     sed 's/^-t //' /tmp/docker-tags.txt
@@ -170,7 +181,7 @@ jobs:
                   set -euo pipefail
                   repo="${DH_REPO_NAME:-meshchatx}"
                   base="docker.io/$(printf '%s' "$DH_USER" | tr '[:upper:]' '[:lower:]')/$(printf '%s' "$repo" | tr '[:upper:]' '[:lower:]')"
-                  sh scripts/ci/docker-tags.sh "${base}" /tmp/docker-hub-tags.txt
+                  TAG_SUFFIX="${{ matrix.tag_suffix }}" sh scripts/ci/docker-tags.sh "${base}" /tmp/docker-hub-tags.txt
                   {
                     echo 'tags<<EOF'
                     sed 's/^-t //' /tmp/docker-hub-tags.txt
@@ -198,12 +209,12 @@ jobs:
               uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
               with:
                   context: .
-                  file: ./Dockerfile
+                  file: ${{ matrix.dockerfile }}
                   platforms: linux/amd64,linux/arm64
                   push: true
                   tags: ${{ steps.all_tags.outputs.tags }}
-                  cache-from: type=gha
-                  cache-to: type=gha,mode=max
+                  cache-from: type=gha,scope=${{ matrix.variant }}
+                  cache-to: type=gha,mode=max,scope=${{ matrix.variant }}
                   build-args: |
                       OCI_REVISION=${{ github.sha }}
                       OCI_VERSION=${{ steps.oci.outputs.version }}

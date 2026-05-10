@@ -23,10 +23,6 @@ if [ -z "${GH_REPO:-}" ] && [ -n "${GITHUB_REPOSITORY:-}" ]; then
     export GH_REPO="$GITHUB_REPOSITORY"
 fi
 
-if ! gh release view "$TAG" >/dev/null 2>&1; then
-    gh release create "$TAG" --draft --title "$TAG" --notes "Automated draft release. Review assets and provenance before publishing."
-fi
-
 mapfile -d '' -t all < <(find "$DIR" -type f -print0)
 
 skip_noise() {
@@ -74,4 +70,36 @@ for f in "${all[@]}"; do
 done
 
 mapfile -t files < <(find "$STAGE" -type f)
+
+# Build SHA256 section for release notes
+sha256_table=""
+for f in "${files[@]}"; do
+    b=$(basename "$f")
+    hash=$(sha256sum "$f" | awk '{print $1}')
+    sha256_table="${sha256_table}\n| ${b} | \`${hash}\` |"
+done
+
+notes=$(cat <<EOF
+Automated draft release. Review assets and provenance before publishing.
+
+## SHA256 Checksums
+
+| Asset | SHA256 |
+|-------|--------|
+${sha256_table}
+
+## Verification
+
+- **Cosign bundles** (\`.cosign.bundle\`) are attached for keyless sigstore verification.
+- **SLSA provenance** (\`.intoto.jsonl\`) is available for supply-chain attestation.
+- Or verify manually using the SHA256 table above.
+EOF
+)
+
+if ! gh release view "$TAG" >/dev/null 2>&1; then
+    gh release create "$TAG" --draft --title "$TAG" --notes "$notes"
+else
+    gh release edit "$TAG" --notes "$notes"
+fi
+
 gh release upload "$TAG" "${files[@]}" --clobber

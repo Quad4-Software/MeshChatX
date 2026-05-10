@@ -81,780 +81,836 @@
 
                 <!-- Phone Tab -->
                 <div v-if="activeTab === 'phone'" class="flex-1 flex flex-col pt-2">
+                    <!-- LXST Disabled State -->
                     <div
-                        v-if="activeCall || isCallEnded || initiationStatus"
+                        v-if="config && !config.telephone_enabled"
                         class="flex-1 flex flex-col items-center justify-center py-12 px-4"
                     >
                         <div
-                            class="w-full max-w-md border-b border-gray-200 dark:border-zinc-800 p-8! flex flex-col items-center text-center relative overflow-hidden"
+                            class="w-full max-w-md bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-8 flex flex-col items-center text-center shadow-xl"
                         >
-                            <!-- Recording indicator -->
                             <div
-                                v-if="activeCall && activeCall.is_recording"
-                                class="absolute top-4 right-4 z-20 flex items-center gap-1.5 px-2 py-1 bg-red-500/10 rounded-full border border-red-500/20"
+                                class="size-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-4"
                             >
-                                <div class="size-2 bg-red-500 rounded-full animate-pulse"></div>
-                                <span class="text-[10px] font-bold text-red-500 uppercase tracking-wider"
-                                    >Recording</span
-                                >
+                                <MaterialDesignIcon
+                                    icon-name="phone-off"
+                                    class="size-8 text-red-600 dark:text-red-400"
+                                />
                             </div>
-
-                            <div class="relative mb-8">
-                                <div
-                                    class="size-32 mx-auto bg-gray-100 dark:bg-zinc-800 rounded-full flex items-center justify-center border-4 border-white dark:border-zinc-900 shadow-2xl relative z-10"
-                                    :class="{
-                                        'ring-4 ring-blue-500/20 animate-pulse': activeCall && activeCall.status === 4,
-                                    }"
-                                >
-                                    <LxmfUserIcon
-                                        :custom-image="(activeCall || lastCall)?.custom_image"
-                                        :icon-name="
-                                            (activeCall || lastCall)?.remote_icon
-                                                ? (activeCall || lastCall).remote_icon.icon_name
-                                                : ''
-                                        "
-                                        :icon-foreground-colour="
-                                            (activeCall || lastCall)?.remote_icon
-                                                ? (activeCall || lastCall).remote_icon.foreground_colour
-                                                : ''
-                                        "
-                                        :icon-background-colour="
-                                            (activeCall || lastCall)?.remote_icon
-                                                ? (activeCall || lastCall).remote_icon.background_colour
-                                                : ''
-                                        "
-                                        icon-class="size-28"
-                                    />
-                                </div>
-
-                                <div
-                                    v-if="activeCall && activeCall.status === 6"
-                                    class="absolute -bottom-2 -right-2 bg-green-500 text-white p-2 rounded-full shadow-lg border-4 border-white dark:border-zinc-900 z-20"
-                                >
-                                    <MaterialDesignIcon icon-name="phone-in-talk" class="size-5" />
-                                </div>
-                            </div>
-
-                            <div class="relative z-10 space-y-1 mb-8 flex flex-col items-center text-center">
-                                <h2 class="text-2xl font-bold text-gray-900 dark:text-white truncate max-w-[280px]">
-                                    {{
-                                        (activeCall || lastCall)?.remote_identity_name ||
-                                        initiationTargetName ||
-                                        $t("call.unknown")
-                                    }}
-                                </h2>
-                                <div
-                                    v-if="(activeCall || lastCall)?.remote_identity_hash || initiationTargetHash"
-                                    class="text-xs font-mono text-gray-400 dark:text-zinc-500 tracking-wider"
-                                >
-                                    {{
-                                        formatDestinationHash(
-                                            (activeCall || lastCall)?.remote_identity_hash || initiationTargetHash
-                                        )
-                                    }}
-                                </div>
-                                <div
-                                    v-if="activeCall"
-                                    class="mt-1 flex items-center justify-center gap-2 text-[11px] text-gray-500 dark:text-zinc-400"
-                                >
-                                    <span
-                                        v-if="activeCall.path_hops != null"
-                                        class="inline-flex items-center gap-1 rounded-full bg-gray-100 dark:bg-zinc-800 px-2 py-0.5"
-                                    >
-                                        <MaterialDesignIcon icon-name="sitemap-outline" class="size-4" />
-                                        {{ activeCall.path_hops }} hops
-                                    </span>
-                                    <span
-                                        v-if="activeCall.path_interface"
-                                        class="inline-flex items-center gap-1 rounded-full bg-gray-100 dark:bg-zinc-800 px-2 py-0.5 max-w-[16rem]"
-                                    >
-                                        <MaterialDesignIcon icon-name="access-point-network" class="size-4" />
-                                        <span class="truncate">{{ activeCall.path_interface }}</span>
-                                    </span>
-                                </div>
-                                <div
-                                    v-if="(activeCall || lastCall)?.is_contact || !!initiationTargetName"
-                                    class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-bold rounded-full uppercase tracking-wider"
-                                >
-                                    <MaterialDesignIcon icon-name="check-decagram" class="size-3" />
-                                    Contact
-                                </div>
-                            </div>
-
-                            <!-- call status -->
-                            <div class="relative z-10 mb-8">
-                                <div
-                                    class="px-4 py-2 bg-gray-50 dark:bg-zinc-800/50 rounded-2xl inline-block border border-gray-100 dark:border-zinc-800"
-                                >
-                                    <template v-if="wasDeclined">
-                                        <span class="text-red-500 font-bold text-sm">{{
-                                            $t("call.call_declined")
-                                        }}</span>
-                                    </template>
-                                    <template v-else-if="isCallEnded">
-                                        <span class="text-gray-500 dark:text-zinc-400 font-bold text-sm">{{
-                                            $t("call.call_ended")
-                                        }}</span>
-                                    </template>
-                                    <template v-else-if="activeCall">
-                                        <div class="flex flex-col items-center">
-                                            <span
-                                                v-if="activeCall.is_voicemail"
-                                                class="text-red-500 font-bold text-sm animate-pulse flex items-center gap-2"
-                                            >
-                                                <MaterialDesignIcon icon-name="record" class="size-4" />
-                                                {{ $t("call.recording_voicemail") }}
-                                            </span>
-                                            <span
-                                                v-else-if="
-                                                    activeCall && activeCall.is_incoming && activeCall.status === 4
-                                                "
-                                                class="text-blue-600 dark:text-blue-400 font-bold text-sm"
-                                                >{{ $t("call.incoming_call") }}</span
-                                            >
-                                            <span
-                                                v-else
-                                                class="text-gray-700 dark:text-zinc-300 font-bold text-sm flex items-center gap-2"
-                                            >
-                                                <span v-if="activeCall && activeCall.status === 0">Busy...</span>
-                                                <span
-                                                    v-else-if="activeCall && activeCall.status === 1"
-                                                    class="text-red-500"
-                                                    >Rejected</span
-                                                >
-                                                <span
-                                                    v-else-if="activeCall && activeCall.status === 2"
-                                                    class="animate-pulse"
-                                                    >Calling...</span
-                                                >
-                                                <span v-else-if="activeCall && activeCall.status === 3">Available</span>
-                                                <span
-                                                    v-else-if="activeCall && activeCall.status === 4"
-                                                    class="animate-pulse"
-                                                    >Ringing...</span
-                                                >
-                                                <span v-else-if="activeCall && activeCall.status === 5">{{
-                                                    $t("call.establishing_link")
-                                                }}</span>
-                                                <span
-                                                    v-else-if="activeCall && activeCall.status === 6"
-                                                    class="text-green-500 flex items-center gap-2"
-                                                >
-                                                    <span class="size-2 bg-green-500 rounded-full animate-ping"></span>
-                                                    Connected
-                                                </span>
-                                                <span v-else-if="activeCall">Status: {{ activeCall.status }}</span>
-                                            </span>
-
-                                            <!-- Duration -->
-                                            <div
-                                                v-if="activeCall && activeCall.status === 6 && elapsedTime"
-                                                class="text-xs font-mono text-gray-400 dark:text-zinc-500 mt-1"
-                                            >
-                                                {{ elapsedTime }}
-                                            </div>
-                                            <div
-                                                v-if="activeCall && activeCall.status === 6"
-                                                class="mt-3 grid grid-cols-2 gap-2 text-xs w-full max-w-xs"
-                                            >
-                                                <div
-                                                    class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left"
-                                                >
-                                                    <div class="text-[10px] text-gray-500 dark:text-zinc-400">
-                                                        TX Pkts
-                                                    </div>
-                                                    <div class="font-semibold text-gray-800 dark:text-zinc-100">
-                                                        {{ formatNumber(activeCall.tx_packets) }}
-                                                    </div>
-                                                </div>
-                                                <div
-                                                    class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left"
-                                                >
-                                                    <div class="text-[10px] text-gray-500 dark:text-zinc-400">
-                                                        RX Pkts
-                                                    </div>
-                                                    <div class="font-semibold text-gray-800 dark:text-zinc-100">
-                                                        {{ formatNumber(activeCall.rx_packets) }}
-                                                    </div>
-                                                </div>
-                                                <div
-                                                    class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left"
-                                                >
-                                                    <div class="text-[10px] text-gray-500 dark:text-zinc-400">
-                                                        TX Data Out
-                                                    </div>
-                                                    <div class="font-semibold text-gray-800 dark:text-zinc-100">
-                                                        {{ formatBytes(activeCall.tx_bytes) }}
-                                                    </div>
-                                                </div>
-                                                <div
-                                                    class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left"
-                                                >
-                                                    <div class="text-[10px] text-gray-500 dark:text-zinc-400">
-                                                        RX Data In
-                                                    </div>
-                                                    <div class="font-semibold text-gray-800 dark:text-zinc-100">
-                                                        {{ formatBytes(activeCall.rx_bytes) }}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </template>
-                                    <template v-else-if="initiationStatus">
-                                        <div class="flex flex-col items-center">
-                                            <span
-                                                class="text-blue-600 dark:text-blue-400 font-bold text-sm animate-pulse"
-                                            >
-                                                {{ initiationStatus }}
-                                            </span>
-                                        </div>
-                                    </template>
-                                </div>
-                                <div
-                                    v-if="isCallEnded && callDuration"
-                                    class="text-xs font-mono text-gray-400 dark:text-zinc-500 mt-2"
-                                >
-                                    Duration: {{ callDuration }}
-                                </div>
-
-                                <!-- Play Voicemail Button -->
-                                <div v-if="isCallEnded && wasVoicemail" class="mt-6 animate-fade-in">
-                                    <button
-                                        type="button"
-                                        class="px-6 py-3 rounded-full bg-blue-500 hover:bg-blue-600 text-white font-bold flex items-center gap-2 shadow-lg shadow-blue-500/30 transition-all hover:scale-105"
-                                        @click="playLatestVoicemail"
-                                    >
-                                        <MaterialDesignIcon
-                                            :icon-name="playingVoicemailId ? 'stop' : 'play'"
-                                            class="size-6"
-                                        />
-                                        <span>{{ playingVoicemailId ? "Stop" : "Play Voicemail" }}</span>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- settings during connected call -->
-                            <div v-if="activeCall && activeCall.status === 6" class="w-full relative z-10 mb-8">
-                                <div class="flex flex-col gap-4">
-                                    <select
-                                        v-model="selectedAudioProfileId"
-                                        class="input-field rounded-xl! py-2! shadow-xs"
-                                        @change="switchAudioProfile(selectedAudioProfileId)"
-                                    >
-                                        <option
-                                            v-for="audioProfile in audioProfiles"
-                                            :key="audioProfile.id"
-                                            :value="audioProfile.id"
-                                        >
-                                            {{ audioProfile.name }}
-                                        </option>
-                                    </select>
-
-                                    <div class="flex justify-center gap-4">
-                                        <!-- mute/unmute mic -->
-                                        <button
-                                            type="button"
-                                            :class="[
-                                                isMicMuted
-                                                    ? 'bg-red-500 text-white shadow-red-500/20'
-                                                    : 'bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-200 hover:bg-gray-200 dark:hover:bg-zinc-700 shadow-gray-200/20 dark:shadow-black/20',
-                                            ]"
-                                            class="p-4 rounded-full shadow-lg transition-all duration-200"
-                                            @click="toggleMicrophone"
-                                        >
-                                            <MaterialDesignIcon
-                                                :icon-name="isMicMuted ? 'microphone-off' : 'microphone'"
-                                                class="size-6"
-                                            />
-                                        </button>
-
-                                        <!-- mute/unmute speaker -->
-                                        <button
-                                            type="button"
-                                            :class="[
-                                                isSpeakerMuted
-                                                    ? 'bg-red-500 text-white shadow-red-500/20'
-                                                    : 'bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-200 hover:bg-gray-200 dark:hover:bg-zinc-700 shadow-gray-200/20 dark:shadow-black/20',
-                                            ]"
-                                            class="p-4 rounded-full shadow-lg transition-all duration-200"
-                                            @click="toggleSpeaker"
-                                        >
-                                            <MaterialDesignIcon
-                                                :icon-name="isSpeakerMuted ? 'volume-off' : 'volume-high'"
-                                                class="size-6"
-                                            />
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- actions -->
-                            <div v-if="activeCall" class="w-full relative z-10 flex flex-col gap-3">
-                                <div class="flex gap-3">
-                                    <!-- answer call -->
-                                    <button
-                                        v-if="activeCall && activeCall.is_incoming && activeCall.status === 4"
-                                        type="button"
-                                        class="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-green-600 py-4 text-sm font-bold text-white shadow-xl shadow-green-600/20 hover:bg-green-500 transition-all duration-200"
-                                        @click="answerCall"
-                                    >
-                                        <MaterialDesignIcon icon-name="phone" class="size-5" />
-                                        <span>{{ $t("call.accept") }}</span>
-                                    </button>
-
-                                    <!-- send to voicemail -->
-                                    <button
-                                        v-if="activeCall && activeCall.is_incoming && activeCall.status === 4"
-                                        type="button"
-                                        class="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-blue-600 py-4 text-sm font-bold text-white shadow-xl shadow-blue-600/20 hover:bg-blue-500 transition-all duration-200"
-                                        @click="sendToVoicemail"
-                                    >
-                                        <MaterialDesignIcon icon-name="voicemail" class="size-5" />
-                                        <span>Voicemail</span>
-                                    </button>
-                                </div>
-
-                                <!-- hangup/decline call -->
-                                <button
-                                    type="button"
-                                    class="w-full flex items-center justify-center gap-2 rounded-2xl bg-red-600 py-4 text-sm font-bold text-white shadow-xl shadow-red-600/20 hover:bg-red-500 transition-all duration-200"
-                                    @click="hangupCall"
-                                >
-                                    <MaterialDesignIcon icon-name="phone-hangup" class="size-5 rotate-135" />
-                                    <span>{{
-                                        activeCall && activeCall.is_incoming && activeCall.status === 4
-                                            ? $t("call.decline")
-                                            : $t("call.hangup")
-                                    }}</span>
-                                </button>
-                            </div>
+                            <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-2">LXST is disabled</h2>
+                            <p class="text-sm text-gray-500 dark:text-zinc-400 mb-6">
+                                Telephony is currently disabled. Enable it to make and receive calls.
+                            </p>
+                            <button
+                                type="button"
+                                class="flex items-center justify-center gap-2 rounded-2xl bg-blue-600 py-3 px-6 text-sm font-bold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-500 transition-all duration-200"
+                                @click="updateConfig({ telephone_enabled: true })"
+                            >
+                                <MaterialDesignIcon icon-name="phone" class="size-5" />
+                                Enable LXST
+                            </button>
                         </div>
                     </div>
 
-                    <div v-else class="space-y-6 my-6 max-w-3xl mx-auto w-full">
-                        <div class="w-full border-b border-gray-200 dark:border-zinc-800 py-2">
-                            <div class="flex items-center gap-3 mb-6">
-                                <div class="bg-blue-100 dark:bg-blue-900/30 p-2.5 rounded-2xl">
-                                    <MaterialDesignIcon
-                                        icon-name="phone-plus"
-                                        class="size-6 text-blue-600 dark:text-blue-400"
-                                    />
+                    <template v-if="config?.telephone_enabled">
+                        <div
+                            v-if="activeCall || isCallEnded || initiationStatus"
+                            class="flex-1 flex flex-col items-center justify-center py-12 px-4"
+                        >
+                            <div
+                                class="w-full max-w-md border-b border-gray-200 dark:border-zinc-800 p-8! flex flex-col items-center text-center relative overflow-hidden"
+                            >
+                                <!-- Recording indicator -->
+                                <div
+                                    v-if="activeCall && activeCall.is_recording"
+                                    class="absolute top-4 right-4 z-20 flex items-center gap-1.5 px-2 py-1 bg-red-500/10 rounded-full border border-red-500/20"
+                                >
+                                    <div class="size-2 bg-red-500 rounded-full animate-pulse"></div>
+                                    <span class="text-[10px] font-bold text-red-500 uppercase tracking-wider"
+                                        >Recording</span
+                                    >
                                 </div>
-                                <div>
-                                    <h2 class="text-lg font-bold text-gray-900 dark:text-white leading-tight">
-                                        New Call
-                                    </h2>
-                                    <p class="text-xs text-gray-500 dark:text-zinc-400">Enter an identity to call.</p>
-                                </div>
-                            </div>
 
-                            <div class="space-y-4">
-                                <div class="relative">
-                                    <div class="flex gap-2">
-                                        <div class="relative flex-1">
-                                            <input
-                                                v-model="destinationHash"
-                                                type="text"
-                                                placeholder="Identity Hash or Name"
-                                                class="input-field"
-                                                @keydown.enter.prevent="handleCallInputEnter"
-                                                @keydown.up.prevent="handleCallInputUp"
-                                                @keydown.down.prevent="handleCallInputDown"
-                                                @focus="isCallInputFocused = true"
-                                                @blur="onCallInputBlur"
-                                            />
-                                            <!-- Suggestions Dropdown -->
-                                            <div
-                                                v-if="isCallInputFocused && newCallSuggestions.length > 0"
-                                                class="absolute z-50 left-0 right-0 mt-1 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
-                                            >
+                                <div class="relative mb-8">
+                                    <div
+                                        class="size-32 mx-auto bg-gray-100 dark:bg-zinc-800 rounded-full flex items-center justify-center border-4 border-white dark:border-zinc-900 shadow-2xl relative z-10"
+                                        :class="{
+                                            'ring-4 ring-blue-500/20 animate-pulse':
+                                                activeCall && activeCall.status === 4,
+                                        }"
+                                    >
+                                        <LxmfUserIcon
+                                            :custom-image="(activeCall || lastCall)?.custom_image"
+                                            :icon-name="
+                                                (activeCall || lastCall)?.remote_icon
+                                                    ? (activeCall || lastCall).remote_icon.icon_name
+                                                    : ''
+                                            "
+                                            :icon-foreground-colour="
+                                                (activeCall || lastCall)?.remote_icon
+                                                    ? (activeCall || lastCall).remote_icon.foreground_colour
+                                                    : ''
+                                            "
+                                            :icon-background-colour="
+                                                (activeCall || lastCall)?.remote_icon
+                                                    ? (activeCall || lastCall).remote_icon.background_colour
+                                                    : ''
+                                            "
+                                            icon-class="size-28"
+                                        />
+                                    </div>
+
+                                    <div
+                                        v-if="activeCall && activeCall.status === 6"
+                                        class="absolute -bottom-2 -right-2 bg-green-500 text-white p-2 rounded-full shadow-lg border-4 border-white dark:border-zinc-900 z-20"
+                                    >
+                                        <MaterialDesignIcon icon-name="phone-in-talk" class="size-5" />
+                                    </div>
+                                </div>
+
+                                <div class="relative z-10 space-y-1 mb-8 flex flex-col items-center text-center">
+                                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white truncate max-w-[280px]">
+                                        {{
+                                            (activeCall || lastCall)?.remote_identity_name ||
+                                            initiationTargetName ||
+                                            $t("call.unknown")
+                                        }}
+                                    </h2>
+                                    <div
+                                        v-if="(activeCall || lastCall)?.remote_identity_hash || initiationTargetHash"
+                                        class="text-xs font-mono text-gray-400 dark:text-zinc-500 tracking-wider"
+                                    >
+                                        {{
+                                            formatDestinationHash(
+                                                (activeCall || lastCall)?.remote_identity_hash || initiationTargetHash
+                                            )
+                                        }}
+                                    </div>
+                                    <div
+                                        v-if="activeCall"
+                                        class="mt-1 flex items-center justify-center gap-2 text-[11px] text-gray-500 dark:text-zinc-400"
+                                    >
+                                        <span
+                                            v-if="activeCall.path_hops != null"
+                                            class="inline-flex items-center gap-1 rounded-full bg-gray-100 dark:bg-zinc-800 px-2 py-0.5"
+                                        >
+                                            <MaterialDesignIcon icon-name="sitemap-outline" class="size-4" />
+                                            {{ activeCall.path_hops }} hops
+                                        </span>
+                                        <span
+                                            v-if="activeCall.path_interface"
+                                            class="inline-flex items-center gap-1 rounded-full bg-gray-100 dark:bg-zinc-800 px-2 py-0.5 max-w-[16rem]"
+                                        >
+                                            <MaterialDesignIcon icon-name="access-point-network" class="size-4" />
+                                            <span class="truncate">{{ activeCall.path_interface }}</span>
+                                        </span>
+                                    </div>
+                                    <div
+                                        v-if="(activeCall || lastCall)?.is_contact || !!initiationTargetName"
+                                        class="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-bold rounded-full uppercase tracking-wider"
+                                    >
+                                        <MaterialDesignIcon icon-name="check-decagram" class="size-3" />
+                                        Contact
+                                    </div>
+                                </div>
+
+                                <!-- call status -->
+                                <div class="relative z-10 mb-8">
+                                    <div
+                                        class="px-4 py-2 bg-gray-50 dark:bg-zinc-800/50 rounded-2xl inline-block border border-gray-100 dark:border-zinc-800"
+                                    >
+                                        <template v-if="wasDeclined">
+                                            <span class="text-red-500 font-bold text-sm">{{
+                                                $t("call.call_declined")
+                                            }}</span>
+                                        </template>
+                                        <template v-else-if="isCallEnded">
+                                            <span class="text-gray-500 dark:text-zinc-400 font-bold text-sm">{{
+                                                $t("call.call_ended")
+                                            }}</span>
+                                        </template>
+                                        <template v-else-if="activeCall">
+                                            <div class="flex flex-col items-center">
+                                                <span
+                                                    v-if="activeCall.is_voicemail"
+                                                    class="text-red-500 font-bold text-sm animate-pulse flex items-center gap-2"
+                                                >
+                                                    <MaterialDesignIcon icon-name="record" class="size-4" />
+                                                    {{ $t("call.recording_voicemail") }}
+                                                </span>
+                                                <span
+                                                    v-else-if="
+                                                        activeCall && activeCall.is_incoming && activeCall.status === 4
+                                                    "
+                                                    class="text-blue-600 dark:text-blue-400 font-bold text-sm"
+                                                    >{{ $t("call.incoming_call") }}</span
+                                                >
+                                                <span
+                                                    v-else
+                                                    class="text-gray-700 dark:text-zinc-300 font-bold text-sm flex items-center gap-2"
+                                                >
+                                                    <span v-if="activeCall && activeCall.status === 0">Busy...</span>
+                                                    <span
+                                                        v-else-if="activeCall && activeCall.status === 1"
+                                                        class="text-red-500"
+                                                        >Rejected</span
+                                                    >
+                                                    <span
+                                                        v-else-if="activeCall && activeCall.status === 2"
+                                                        class="animate-pulse"
+                                                        >Calling...</span
+                                                    >
+                                                    <span v-else-if="activeCall && activeCall.status === 3"
+                                                        >Available</span
+                                                    >
+                                                    <span
+                                                        v-else-if="activeCall && activeCall.status === 4"
+                                                        class="animate-pulse"
+                                                        >Ringing...</span
+                                                    >
+                                                    <span v-else-if="activeCall && activeCall.status === 5">{{
+                                                        $t("call.establishing_link")
+                                                    }}</span>
+                                                    <span
+                                                        v-else-if="activeCall && activeCall.status === 6"
+                                                        class="text-green-500 flex items-center gap-2"
+                                                    >
+                                                        <span
+                                                            class="size-2 bg-green-500 rounded-full animate-ping"
+                                                        ></span>
+                                                        Connected
+                                                    </span>
+                                                    <span v-else-if="activeCall">Status: {{ activeCall.status }}</span>
+                                                </span>
+
+                                                <!-- Duration -->
                                                 <div
-                                                    v-for="(suggestion, index) in newCallSuggestions"
-                                                    :key="suggestion.hash"
-                                                    class="px-4 py-2.5 flex items-center gap-3 cursor-pointer transition-colors"
-                                                    :class="[
-                                                        index === selectedSuggestionIndex
-                                                            ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                                                            : 'hover:bg-gray-50 dark:hover:bg-zinc-800/50 text-gray-700 dark:text-zinc-300',
-                                                    ]"
-                                                    @mousedown.prevent="selectSuggestion(suggestion)"
+                                                    v-if="activeCall && activeCall.status === 6 && elapsedTime"
+                                                    class="text-xs font-mono text-gray-400 dark:text-zinc-500 mt-1"
+                                                >
+                                                    {{ elapsedTime }}
+                                                </div>
+                                                <div
+                                                    v-if="activeCall && activeCall.status === 6"
+                                                    class="mt-3 grid grid-cols-2 gap-2 text-xs w-full max-w-xs"
                                                 >
                                                     <div
-                                                        class="shrink-0 size-8 rounded-full flex items-center justify-center text-xs"
-                                                        :class="
-                                                            suggestion.type === 'contact'
-                                                                ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600'
-                                                                : 'bg-gray-100 dark:bg-zinc-800 text-gray-500'
-                                                        "
+                                                        class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left"
                                                     >
-                                                        <MaterialDesignIcon
-                                                            :icon-name="suggestion.icon"
-                                                            class="size-4"
-                                                        />
-                                                    </div>
-                                                    <div class="flex-1 min-w-0">
-                                                        <div class="text-sm font-bold truncate">
-                                                            {{ suggestion.name }}
+                                                        <div class="text-[10px] text-gray-500 dark:text-zinc-400">
+                                                            TX Pkts
                                                         </div>
-                                                        <div
-                                                            class="text-[10px] font-mono opacity-50 truncate hover:text-blue-500 transition-colors cursor-copy"
-                                                            :title="suggestion.hash"
-                                                            @mousedown.stop="copyHash(suggestion.hash)"
-                                                        >
-                                                            {{ formatDestinationHash(suggestion.hash) }}
+                                                        <div class="font-semibold text-gray-800 dark:text-zinc-100">
+                                                            {{ formatNumber(activeCall.tx_packets) }}
                                                         </div>
                                                     </div>
                                                     <div
-                                                        v-if="suggestion.type === 'contact'"
-                                                        class="text-[10px] uppercase font-bold tracking-widest opacity-30"
+                                                        class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left"
                                                     >
-                                                        Contact
+                                                        <div class="text-[10px] text-gray-500 dark:text-zinc-400">
+                                                            RX Pkts
+                                                        </div>
+                                                        <div class="font-semibold text-gray-800 dark:text-zinc-100">
+                                                            {{ formatNumber(activeCall.rx_packets) }}
+                                                        </div>
+                                                    </div>
+                                                    <div
+                                                        class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left"
+                                                    >
+                                                        <div class="text-[10px] text-gray-500 dark:text-zinc-400">
+                                                            TX Data Out
+                                                        </div>
+                                                        <div class="font-semibold text-gray-800 dark:text-zinc-100">
+                                                            {{ formatBytes(activeCall.tx_bytes) }}
+                                                        </div>
+                                                    </div>
+                                                    <div
+                                                        class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left"
+                                                    >
+                                                        <div class="text-[10px] text-gray-500 dark:text-zinc-400">
+                                                            RX Data In
+                                                        </div>
+                                                        <div class="font-semibold text-gray-800 dark:text-zinc-100">
+                                                            {{ formatBytes(activeCall.rx_bytes) }}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
-                                        </div>
+                                        </template>
+                                        <template v-else-if="initiationStatus">
+                                            <div class="flex flex-col items-center">
+                                                <span
+                                                    class="text-blue-600 dark:text-blue-400 font-bold text-sm animate-pulse"
+                                                >
+                                                    {{ initiationStatus }}
+                                                </span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                    <div
+                                        v-if="isCallEnded && callDuration"
+                                        class="text-xs font-mono text-gray-400 dark:text-zinc-500 mt-2"
+                                    >
+                                        Duration: {{ callDuration }}
+                                    </div>
+
+                                    <!-- Play Voicemail Button -->
+                                    <div v-if="isCallEnded && wasVoicemail" class="mt-6 animate-fade-in">
                                         <button
                                             type="button"
-                                            class="bg-blue-600 hover:bg-blue-500 text-white px-6 rounded-2xl font-bold shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2"
-                                            @click="call(destinationHash)"
+                                            class="px-6 py-3 rounded-full bg-blue-500 hover:bg-blue-600 text-white font-bold flex items-center gap-2 shadow-lg shadow-blue-500/30 transition-all hover:scale-105"
+                                            @click="playLatestVoicemail"
                                         >
-                                            <MaterialDesignIcon icon-name="phone" class="size-5" />
-                                            Call
+                                            <MaterialDesignIcon
+                                                :icon-name="playingVoicemailId ? 'stop' : 'play'"
+                                                class="size-6"
+                                            />
+                                            <span>{{ playingVoicemailId ? "Stop" : "Play Voicemail" }}</span>
                                         </button>
                                     </div>
                                 </div>
 
-                                <div
-                                    class="pt-2 flex flex-col items-stretch gap-4 lg:flex-row lg:items-start lg:justify-between"
-                                >
-                                    <div class="flex min-w-0 flex-1 flex-col gap-2">
-                                        <div v-if="config?.telephone_enabled" class="flex flex-col gap-2">
-                                            <Toggle
-                                                id="dnd-toggle"
-                                                :model-value="config?.do_not_disturb_enabled"
-                                                :label="$t('call.do_not_disturb')"
-                                                @update:model-value="toggleDoNotDisturb"
-                                            />
-                                            <Toggle
-                                                id="contacts-only-toggle"
-                                                :model-value="config?.telephone_allow_calls_from_contacts_only"
-                                                :label="$t('call.allow_calls_from_contacts_only')"
-                                                @update:model-value="toggleAllowCallsFromContactsOnly"
-                                            />
-                                            <Toggle
-                                                id="telephone-announce-toggle"
-                                                :model-value="config?.telephone_announce_enabled"
-                                                label="Announce Telephone Presence (LXST)"
-                                                @update:model-value="toggleTelephoneAnnounceEnabled"
-                                            />
-                                            <div class="flex flex-col gap-1">
-                                                <Toggle
-                                                    id="web-audio-toggle"
-                                                    :model-value="config?.telephone_web_audio_enabled"
-                                                    label="Web Audio Bridge"
-                                                    @update:model-value="onToggleWebAudio"
+                                <!-- settings during connected call -->
+                                <div v-if="activeCall && activeCall.status === 6" class="w-full relative z-10 mb-8">
+                                    <div class="flex flex-col gap-4">
+                                        <select
+                                            v-model="selectedAudioProfileId"
+                                            class="input-field rounded-xl! py-2! shadow-xs"
+                                            @change="switchAudioProfile(selectedAudioProfileId)"
+                                        >
+                                            <option
+                                                v-for="audioProfile in audioProfiles"
+                                                :key="audioProfile.id"
+                                                :value="audioProfile.id"
+                                            >
+                                                {{ audioProfile.name }}
+                                            </option>
+                                        </select>
+
+                                        <div class="flex justify-center gap-4">
+                                            <!-- mute/unmute mic -->
+                                            <button
+                                                type="button"
+                                                :class="[
+                                                    isMicMuted
+                                                        ? 'bg-red-500 text-white shadow-red-500/20'
+                                                        : 'bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-200 hover:bg-gray-200 dark:hover:bg-zinc-700 shadow-gray-200/20 dark:shadow-black/20',
+                                                ]"
+                                                class="p-4 rounded-full shadow-lg transition-all duration-200"
+                                                @click="toggleMicrophone"
+                                            >
+                                                <MaterialDesignIcon
+                                                    :icon-name="isMicMuted ? 'microphone-off' : 'microphone'"
+                                                    class="size-6"
                                                 />
-                                                <div class="text-xs text-gray-500 dark:text-zinc-400 px-1">
-                                                    Web audio bridge allows web/electron to hook into LXST backend for
-                                                    passing microphone and audio streams to active telephone calls.
+                                            </button>
+
+                                            <!-- mute/unmute speaker -->
+                                            <button
+                                                type="button"
+                                                :class="[
+                                                    isSpeakerMuted
+                                                        ? 'bg-red-500 text-white shadow-red-500/20'
+                                                        : 'bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-200 hover:bg-gray-200 dark:hover:bg-zinc-700 shadow-gray-200/20 dark:shadow-black/20',
+                                                ]"
+                                                class="p-4 rounded-full shadow-lg transition-all duration-200"
+                                                @click="toggleSpeaker"
+                                            >
+                                                <MaterialDesignIcon
+                                                    :icon-name="isSpeakerMuted ? 'volume-off' : 'volume-high'"
+                                                    class="size-6"
+                                                />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- actions -->
+                                <div v-if="activeCall" class="w-full relative z-10 flex flex-col gap-3">
+                                    <div class="flex gap-3">
+                                        <!-- answer call -->
+                                        <button
+                                            v-if="activeCall && activeCall.is_incoming && activeCall.status === 4"
+                                            type="button"
+                                            class="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-green-600 py-4 text-sm font-bold text-white shadow-xl shadow-green-600/20 hover:bg-green-500 transition-all duration-200"
+                                            @click="answerCall"
+                                        >
+                                            <MaterialDesignIcon icon-name="phone" class="size-5" />
+                                            <span>{{ $t("call.accept") }}</span>
+                                        </button>
+
+                                        <!-- send to voicemail -->
+                                        <button
+                                            v-if="activeCall && activeCall.is_incoming && activeCall.status === 4"
+                                            type="button"
+                                            class="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-blue-600 py-4 text-sm font-bold text-white shadow-xl shadow-blue-600/20 hover:bg-blue-500 transition-all duration-200"
+                                            @click="sendToVoicemail"
+                                        >
+                                            <MaterialDesignIcon icon-name="voicemail" class="size-5" />
+                                            <span>Voicemail</span>
+                                        </button>
+                                    </div>
+
+                                    <!-- hangup/decline call -->
+                                    <button
+                                        type="button"
+                                        class="w-full flex items-center justify-center gap-2 rounded-2xl bg-red-600 py-4 text-sm font-bold text-white shadow-xl shadow-red-600/20 hover:bg-red-500 transition-all duration-200"
+                                        @click="hangupCall"
+                                    >
+                                        <MaterialDesignIcon icon-name="phone-hangup" class="size-5 rotate-135" />
+                                        <span>{{
+                                            activeCall && activeCall.is_incoming && activeCall.status === 4
+                                                ? $t("call.decline")
+                                                : $t("call.hangup")
+                                        }}</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div v-else class="space-y-6 my-6 max-w-3xl mx-auto w-full">
+                            <div class="w-full border-b border-gray-200 dark:border-zinc-800 py-2">
+                                <div class="flex items-center gap-3 mb-6">
+                                    <div class="bg-blue-100 dark:bg-blue-900/30 p-2.5 rounded-2xl">
+                                        <MaterialDesignIcon
+                                            icon-name="phone-plus"
+                                            class="size-6 text-blue-600 dark:text-blue-400"
+                                        />
+                                    </div>
+                                    <div>
+                                        <h2 class="text-lg font-bold text-gray-900 dark:text-white leading-tight">
+                                            New Call
+                                        </h2>
+                                        <p class="text-xs text-gray-500 dark:text-zinc-400">
+                                            Enter an identity to call.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-4">
+                                    <div class="relative">
+                                        <div class="flex gap-2">
+                                            <div class="relative flex-1">
+                                                <input
+                                                    v-model="destinationHash"
+                                                    type="text"
+                                                    placeholder="Identity Hash or Name"
+                                                    class="input-field"
+                                                    @keydown.enter.prevent="handleCallInputEnter"
+                                                    @keydown.up.prevent="handleCallInputUp"
+                                                    @keydown.down.prevent="handleCallInputDown"
+                                                    @focus="isCallInputFocused = true"
+                                                    @blur="onCallInputBlur"
+                                                />
+                                                <!-- Suggestions Dropdown -->
+                                                <div
+                                                    v-if="isCallInputFocused && newCallSuggestions.length > 0"
+                                                    class="absolute z-50 left-0 right-0 mt-1 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
+                                                >
+                                                    <div
+                                                        v-for="(suggestion, index) in newCallSuggestions"
+                                                        :key="suggestion.hash"
+                                                        class="px-4 py-2.5 flex items-center gap-3 cursor-pointer transition-colors"
+                                                        :class="[
+                                                            index === selectedSuggestionIndex
+                                                                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                                                                : 'hover:bg-gray-50 dark:hover:bg-zinc-800/50 text-gray-700 dark:text-zinc-300',
+                                                        ]"
+                                                        @mousedown.prevent="selectSuggestion(suggestion)"
+                                                    >
+                                                        <div
+                                                            class="shrink-0 size-8 rounded-full flex items-center justify-center text-xs"
+                                                            :class="
+                                                                suggestion.type === 'contact'
+                                                                    ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600'
+                                                                    : 'bg-gray-100 dark:bg-zinc-800 text-gray-500'
+                                                            "
+                                                        >
+                                                            <MaterialDesignIcon
+                                                                :icon-name="suggestion.icon"
+                                                                class="size-4"
+                                                            />
+                                                        </div>
+                                                        <div class="flex-1 min-w-0">
+                                                            <div class="text-sm font-bold truncate">
+                                                                {{ suggestion.name }}
+                                                            </div>
+                                                            <div
+                                                                class="text-[10px] font-mono opacity-50 truncate hover:text-blue-500 transition-colors cursor-copy"
+                                                                :title="suggestion.hash"
+                                                                @mousedown.stop="copyHash(suggestion.hash)"
+                                                            >
+                                                                {{ formatDestinationHash(suggestion.hash) }}
+                                                            </div>
+                                                        </div>
+                                                        <div
+                                                            v-if="suggestion.type === 'contact'"
+                                                            class="text-[10px] uppercase font-bold tracking-widest opacity-30"
+                                                        >
+                                                            Contact
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                class="bg-blue-600 hover:bg-blue-500 text-white px-6 rounded-2xl font-bold shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2"
+                                                @click="call(destinationHash)"
+                                            >
+                                                <MaterialDesignIcon icon-name="phone" class="size-5" />
+                                                Call
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div
+                                        class="pt-2 flex flex-col items-stretch gap-4 lg:flex-row lg:items-start lg:justify-between"
+                                    >
+                                        <div class="flex min-w-0 flex-1 flex-col gap-2">
+                                            <div v-if="config?.telephone_enabled" class="flex flex-col gap-2">
+                                                <Toggle
+                                                    id="dnd-toggle"
+                                                    :model-value="config?.do_not_disturb_enabled"
+                                                    :label="$t('call.do_not_disturb')"
+                                                    @update:model-value="toggleDoNotDisturb"
+                                                />
+                                                <Toggle
+                                                    id="contacts-only-toggle"
+                                                    :model-value="config?.telephone_allow_calls_from_contacts_only"
+                                                    :label="$t('call.allow_calls_from_contacts_only')"
+                                                    @update:model-value="toggleAllowCallsFromContactsOnly"
+                                                />
+                                                <Toggle
+                                                    id="telephone-announce-toggle"
+                                                    :model-value="config?.telephone_announce_enabled"
+                                                    label="Announce Telephone Presence (LXST)"
+                                                    @update:model-value="toggleTelephoneAnnounceEnabled"
+                                                />
+                                                <div class="flex flex-col gap-1">
+                                                    <Toggle
+                                                        id="web-audio-toggle"
+                                                        :model-value="config?.telephone_web_audio_enabled"
+                                                        label="Web Audio Bridge"
+                                                        @update:model-value="onToggleWebAudio"
+                                                    />
+                                                    <div class="text-xs text-gray-500 dark:text-zinc-400 px-1">
+                                                        Web audio bridge allows web/electron to hook into LXST backend
+                                                        for passing microphone and audio streams to active telephone
+                                                        calls.
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div class="flex w-full shrink-0 flex-col gap-2 lg:w-auto">
-                                        <!-- <Toggle
+                                        <div class="flex w-full shrink-0 flex-col gap-2 lg:w-auto">
+                                            <!-- <Toggle
                                             id="call-recording-toggle"
                                             :model-value="config?.call_recording_enabled"
                                             :label="$t('call.call_recording')"
                                             @update:model-value="toggleCallRecording"
                                         /> -->
-                                        <div class="flex flex-col gap-1">
-                                            <div
-                                                class="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-1"
-                                            >
-                                                {{ $t("call.default_quality") }}
-                                            </div>
-                                            <select
-                                                v-if="config"
-                                                v-model="config.telephone_audio_profile_id"
-                                                class="input-field min-w-0 rounded-lg! border-gray-200! py-1! px-2! text-xs! dark:border-zinc-800! lg:min-w-[120px]"
-                                                @change="
-                                                    updateConfig({
-                                                        telephone_audio_profile_id: config.telephone_audio_profile_id,
-                                                    })
-                                                "
-                                            >
-                                                <option
-                                                    v-for="audioProfile in audioProfiles"
-                                                    :key="audioProfile.id"
-                                                    :value="audioProfile.id"
+                                            <div class="flex flex-col gap-1">
+                                                <div
+                                                    class="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-1"
                                                 >
-                                                    {{ audioProfile.name }}
-                                                </option>
-                                            </select>
-                                        </div>
+                                                    {{ $t("call.default_quality") }}
+                                                </div>
+                                                <select
+                                                    v-if="config"
+                                                    v-model="config.telephone_audio_profile_id"
+                                                    class="input-field min-w-0 rounded-lg! border-gray-200! py-1! px-2! text-xs! dark:border-zinc-800! lg:min-w-[120px]"
+                                                    @change="
+                                                        updateConfig({
+                                                            telephone_audio_profile_id:
+                                                                config.telephone_audio_profile_id,
+                                                        })
+                                                    "
+                                                >
+                                                    <option
+                                                        v-for="audioProfile in audioProfiles"
+                                                        :key="audioProfile.id"
+                                                        :value="audioProfile.id"
+                                                    >
+                                                        {{ audioProfile.name }}
+                                                    </option>
+                                                </select>
+                                            </div>
 
-                                        <!-- Web Audio Device Selection -->
-                                        <div
-                                            v-if="config?.telephone_web_audio_enabled"
-                                            class="flex flex-col gap-2 mt-2"
-                                        >
-                                            <div class="flex flex-col gap-1">
-                                                <div
-                                                    class="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-1"
-                                                >
-                                                    Microphone
-                                                </div>
-                                                <select
-                                                    v-model="selectedAudioInputId"
-                                                    class="input-field py-1! px-2! text-[10px]! rounded-lg! border-gray-200! dark:border-zinc-800! min-w-[120px]"
-                                                    @change="
-                                                        stopWebAudio();
-                                                        startWebAudio();
-                                                    "
-                                                >
-                                                    <option
-                                                        v-for="(d, idx) in audioInputDevices"
-                                                        :key="d.deviceId || `in-${idx}`"
-                                                        :value="d.deviceId"
-                                                    >
-                                                        {{ d.label || "Microphone" }}
-                                                    </option>
-                                                </select>
-                                            </div>
-                                            <div class="flex flex-col gap-1">
-                                                <div
-                                                    class="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-1"
-                                                >
-                                                    Speaker
-                                                </div>
-                                                <select
-                                                    v-model="selectedAudioOutputId"
-                                                    class="input-field py-1! px-2! text-[10px]! rounded-lg! border-gray-200! dark:border-zinc-800! min-w-[120px]"
-                                                    @change="
-                                                        stopWebAudio();
-                                                        startWebAudio();
-                                                    "
-                                                >
-                                                    <option
-                                                        v-for="(d, idx) in audioOutputDevices"
-                                                        :key="d.deviceId || `out-${idx}`"
-                                                        :value="d.deviceId"
-                                                    >
-                                                        {{ d.label || "Speaker" }}
-                                                    </option>
-                                                </select>
-                                            </div>
-                                            <button
-                                                class="text-[10px] bg-gray-100 text-gray-600 dark:bg-zinc-800 dark:text-zinc-400 py-1 rounded-lg font-bold uppercase tracking-wider hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
-                                                type="button"
-                                                @click="requestAudioPermission"
+                                            <!-- Web Audio Device Selection -->
+                                            <div
+                                                v-if="config?.telephone_web_audio_enabled"
+                                                class="flex flex-col gap-2 mt-2"
                                             >
-                                                Refresh Devices
-                                            </button>
+                                                <div class="flex flex-col gap-1">
+                                                    <div
+                                                        class="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-1"
+                                                    >
+                                                        Microphone
+                                                    </div>
+                                                    <select
+                                                        v-model="selectedAudioInputId"
+                                                        class="input-field py-1! px-2! text-[10px]! rounded-lg! border-gray-200! dark:border-zinc-800! min-w-[120px]"
+                                                        @change="
+                                                            stopWebAudio();
+                                                            startWebAudio();
+                                                        "
+                                                    >
+                                                        <option
+                                                            v-for="(d, idx) in audioInputDevices"
+                                                            :key="d.deviceId || `in-${idx}`"
+                                                            :value="d.deviceId"
+                                                        >
+                                                            {{ d.label || "Microphone" }}
+                                                        </option>
+                                                    </select>
+                                                </div>
+                                                <div class="flex flex-col gap-1">
+                                                    <div
+                                                        class="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-1"
+                                                    >
+                                                        Speaker
+                                                    </div>
+                                                    <select
+                                                        v-model="selectedAudioOutputId"
+                                                        class="input-field py-1! px-2! text-[10px]! rounded-lg! border-gray-200! dark:border-zinc-800! min-w-[120px]"
+                                                        @change="
+                                                            stopWebAudio();
+                                                            startWebAudio();
+                                                        "
+                                                    >
+                                                        <option
+                                                            v-for="(d, idx) in audioOutputDevices"
+                                                            :key="d.deviceId || `out-${idx}`"
+                                                            :value="d.deviceId"
+                                                        >
+                                                            {{ d.label || "Speaker" }}
+                                                        </option>
+                                                    </select>
+                                                </div>
+                                                <button
+                                                    class="text-[10px] bg-gray-100 text-gray-600 dark:bg-zinc-800 dark:text-zinc-400 py-1 rounded-lg font-bold uppercase tracking-wider hover:bg-gray-200 dark:hover:bg-zinc-700 transition-colors"
+                                                    type="button"
+                                                    @click="requestAudioPermission"
+                                                >
+                                                    Refresh Devices
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Call History -->
-                    <div
-                        v-if="callHistory.length > 0 && !activeCall && !isCallEnded"
-                        class="space-y-4 max-w-3xl mx-auto w-full"
-                    >
-                        <div class="w-full border-b border-gray-200 dark:border-zinc-800 p-0! overflow-hidden">
-                            <div
-                                class="px-5 py-4 border-b border-gray-100 dark:border-zinc-800 flex flex-col gap-4 bg-transparent"
-                            >
-                                <div class="flex justify-between items-center">
-                                    <div class="flex items-center gap-2">
-                                        <div class="p-1.5 bg-gray-200/50 dark:bg-zinc-800 rounded-lg">
-                                            <MaterialDesignIcon
-                                                icon-name="history"
-                                                class="size-4 text-gray-600 dark:text-zinc-400"
-                                            />
-                                        </div>
-                                        <h3
-                                            class="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-widest"
-                                        >
-                                            Call History
-                                        </h3>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        class="text-[10px] text-gray-400 hover:text-red-500 font-bold uppercase tracking-wider transition-colors bg-white dark:bg-zinc-900 px-2 py-1 rounded-md border border-gray-200 dark:border-zinc-800"
-                                        @click="clearHistory"
-                                    >
-                                        {{ $t("app.clear_history") }}
-                                    </button>
-                                </div>
-                                <div class="relative">
-                                    <input
-                                        v-model="callHistorySearch"
-                                        type="text"
-                                        :placeholder="$t('call.search_history')"
-                                        class="input-field py-2! pl-10!"
-                                        @input="onCallHistorySearchInput"
-                                    />
-                                    <MaterialDesignIcon
-                                        icon-name="magnify"
-                                        class="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-gray-400"
-                                    />
-                                </div>
-                            </div>
-                            <ul class="divide-y divide-gray-100 dark:divide-zinc-800">
-                                <li
-                                    v-for="entry in callHistory"
-                                    :key="entry.id"
-                                    class="px-5 py-4 hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors group"
+                        <!-- Call History -->
+                        <div
+                            v-if="callHistory.length > 0 && !activeCall && !isCallEnded"
+                            class="space-y-4 max-w-3xl mx-auto w-full"
+                        >
+                            <div class="w-full border-b border-gray-200 dark:border-zinc-800 p-0! overflow-hidden">
+                                <div
+                                    class="px-5 py-4 border-b border-gray-100 dark:border-zinc-800 flex flex-col gap-4 bg-transparent"
                                 >
-                                    <div class="flex items-center space-x-4">
-                                        <div class="relative shrink-0">
-                                            <LxmfUserIcon
-                                                :custom-image="
-                                                    entry.contact_image ||
-                                                    getContactByHash(entry.remote_identity_hash)?.custom_image
-                                                "
-                                                :icon-name="entry.remote_icon ? entry.remote_icon.icon_name : ''"
-                                                :icon-foreground-colour="
-                                                    entry.remote_icon ? entry.remote_icon.foreground_colour : ''
-                                                "
-                                                :icon-background-colour="
-                                                    entry.remote_icon ? entry.remote_icon.background_colour : ''
-                                                "
-                                                icon-class="size-10"
-                                            />
-                                            <div
-                                                class="absolute -bottom-1 -right-1 bg-white dark:bg-zinc-900 rounded-full p-0.5 shadow-xs border border-gray-100 dark:border-zinc-800 shrink-0 flex items-center justify-center size-5"
-                                            >
+                                    <div class="flex justify-between items-center">
+                                        <div class="flex items-center gap-2">
+                                            <div class="p-1.5 bg-gray-200/50 dark:bg-zinc-800 rounded-lg">
                                                 <MaterialDesignIcon
-                                                    :icon-name="entry.is_incoming ? 'phone-incoming' : 'phone-outgoing'"
-                                                    :class="entry.is_incoming ? 'text-blue-500' : 'text-green-500'"
-                                                    class="size-3"
+                                                    icon-name="history"
+                                                    class="size-4 text-gray-600 dark:text-zinc-400"
                                                 />
                                             </div>
+                                            <h3
+                                                class="text-xs font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-widest"
+                                            >
+                                                Call History
+                                            </h3>
                                         </div>
-
-                                        <div class="flex-1 min-w-0">
-                                            <div class="flex items-center justify-between">
-                                                <div class="text-sm font-bold text-gray-900 dark:text-white truncate">
-                                                    {{ entry.remote_identity_name || $t("call.unknown") }}
-                                                </div>
+                                        <button
+                                            type="button"
+                                            class="text-[10px] text-gray-400 hover:text-red-500 font-bold uppercase tracking-wider transition-colors bg-white dark:bg-zinc-900 px-2 py-1 rounded-md border border-gray-200 dark:border-zinc-800"
+                                            @click="clearHistory"
+                                        >
+                                            {{ $t("app.clear_history") }}
+                                        </button>
+                                    </div>
+                                    <div class="relative">
+                                        <input
+                                            v-model="callHistorySearch"
+                                            type="text"
+                                            :placeholder="$t('call.search_history')"
+                                            class="input-field py-2! pl-10!"
+                                            @input="onCallHistorySearchInput"
+                                        />
+                                        <MaterialDesignIcon
+                                            icon-name="magnify"
+                                            class="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-gray-400"
+                                        />
+                                    </div>
+                                </div>
+                                <ul class="divide-y divide-gray-100 dark:divide-zinc-800">
+                                    <li
+                                        v-for="entry in callHistory"
+                                        :key="entry.id"
+                                        class="px-5 py-4 hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors group"
+                                    >
+                                        <div class="flex items-center space-x-4">
+                                            <div class="relative shrink-0">
+                                                <LxmfUserIcon
+                                                    :custom-image="
+                                                        entry.contact_image ||
+                                                        getContactByHash(entry.remote_identity_hash)?.custom_image
+                                                    "
+                                                    :icon-name="entry.remote_icon ? entry.remote_icon.icon_name : ''"
+                                                    :icon-foreground-colour="
+                                                        entry.remote_icon ? entry.remote_icon.foreground_colour : ''
+                                                    "
+                                                    :icon-background-colour="
+                                                        entry.remote_icon ? entry.remote_icon.background_colour : ''
+                                                    "
+                                                    icon-class="size-10"
+                                                />
                                                 <div
-                                                    class="text-[10px] text-gray-500 dark:text-zinc-500 font-mono shrink-0"
+                                                    class="absolute -bottom-1 -right-1 bg-white dark:bg-zinc-900 rounded-full p-0.5 shadow-xs border border-gray-100 dark:border-zinc-800 shrink-0 flex items-center justify-center size-5"
                                                 >
-                                                    {{ entry.timestamp ? formatDateTime(entry.timestamp * 1000) : "" }}
+                                                    <MaterialDesignIcon
+                                                        :icon-name="
+                                                            entry.is_incoming ? 'phone-incoming' : 'phone-outgoing'
+                                                        "
+                                                        :class="entry.is_incoming ? 'text-blue-500' : 'text-green-500'"
+                                                        class="size-3"
+                                                    />
                                                 </div>
                                             </div>
 
-                                            <div class="flex items-center justify-between mt-0.5">
-                                                <div class="min-w-0">
+                                            <div class="flex-1 min-w-0">
+                                                <div class="flex items-center justify-between">
                                                     <div
-                                                        class="flex items-center gap-2 text-[10px] text-gray-500 dark:text-zinc-400"
+                                                        class="text-sm font-bold text-gray-900 dark:text-white truncate"
                                                     >
-                                                        <span class="capitalize">{{ entry.status }}</span>
-                                                        <span
-                                                            v-if="entry.duration_seconds > 0"
-                                                            class="text-gray-300 dark:text-zinc-700"
-                                                            >•</span
-                                                        >
-                                                        <span v-if="entry.duration_seconds > 0">{{
-                                                            formatDuration(entry.duration_seconds)
-                                                        }}</span>
+                                                        {{ entry.remote_identity_name || $t("call.unknown") }}
                                                     </div>
                                                     <div
-                                                        class="text-[10px] font-mono text-gray-400 dark:text-zinc-600 truncate mt-0.5 cursor-pointer hover:text-blue-500 transition-colors"
-                                                        :title="
-                                                            entry.remote_telephony_hash ||
-                                                            entry.remote_destination_hash ||
-                                                            entry.remote_identity_hash
-                                                        "
-                                                        @click.stop="
-                                                            copyHash(
-                                                                entry.remote_telephony_hash ||
-                                                                    entry.remote_destination_hash ||
-                                                                    entry.remote_identity_hash
-                                                            )
-                                                        "
+                                                        class="text-[10px] text-gray-500 dark:text-zinc-500 font-mono shrink-0"
                                                     >
                                                         {{
-                                                            formatDestinationHash(
-                                                                entry.remote_telephony_hash ||
-                                                                    entry.remote_destination_hash ||
-                                                                    entry.remote_identity_hash
-                                                            )
+                                                            entry.timestamp
+                                                                ? formatDateTime(entry.timestamp * 1000)
+                                                                : ""
                                                         }}
                                                     </div>
                                                 </div>
 
-                                                <div
-                                                    class="flex items-center gap-1.5 opacity-100 transition-opacity shrink-0 ml-4 lg:opacity-0 lg:group-hover:opacity-100"
-                                                >
-                                                    <button
-                                                        v-if="!entry.is_contact"
-                                                        type="button"
-                                                        class="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all shrink-0"
-                                                        title="Add to contacts"
-                                                        @click="addContactFromHistory(entry)"
-                                                    >
-                                                        <MaterialDesignIcon icon-name="account-plus" class="size-4" />
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        class="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all shrink-0"
-                                                        :title="$t('common.block')"
-                                                        @click="blockIdentity(entry.remote_identity_hash)"
-                                                    >
-                                                        <MaterialDesignIcon icon-name="account-remove" class="size-4" />
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        class="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all shrink-0"
-                                                        :title="$t('contacts.send_message')"
-                                                        @click="openMessageFromHistory(entry)"
-                                                    >
-                                                        <MaterialDesignIcon
-                                                            icon-name="message-text-outline"
-                                                            class="size-4"
-                                                        />
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        class="flex items-center gap-1.5 px-3 py-1 bg-blue-600 text-white rounded-lg text-[10px] font-bold hover:bg-blue-500 transition-all shadow-md shadow-blue-500/10 shrink-0"
-                                                        @click="
-                                                            destinationHash =
+                                                <div class="flex items-center justify-between mt-0.5">
+                                                    <div class="min-w-0">
+                                                        <div
+                                                            class="flex items-center gap-2 text-[10px] text-gray-500 dark:text-zinc-400"
+                                                        >
+                                                            <span class="capitalize">{{ entry.status }}</span>
+                                                            <span
+                                                                v-if="entry.duration_seconds > 0"
+                                                                class="text-gray-300 dark:text-zinc-700"
+                                                                >•</span
+                                                            >
+                                                            <span v-if="entry.duration_seconds > 0">{{
+                                                                formatDuration(entry.duration_seconds)
+                                                            }}</span>
+                                                        </div>
+                                                        <div
+                                                            class="text-[10px] font-mono text-gray-400 dark:text-zinc-600 truncate mt-0.5 cursor-pointer hover:text-blue-500 transition-colors"
+                                                            :title="
                                                                 entry.remote_telephony_hash ||
                                                                 entry.remote_destination_hash ||
-                                                                entry.remote_identity_hash;
-                                                            activeTab = 'phone';
-                                                            $nextTick(() => call(destinationHash));
-                                                        "
+                                                                entry.remote_identity_hash
+                                                            "
+                                                            @click.stop="
+                                                                copyHash(
+                                                                    entry.remote_telephony_hash ||
+                                                                        entry.remote_destination_hash ||
+                                                                        entry.remote_identity_hash
+                                                                )
+                                                            "
+                                                        >
+                                                            {{
+                                                                formatDestinationHash(
+                                                                    entry.remote_telephony_hash ||
+                                                                        entry.remote_destination_hash ||
+                                                                        entry.remote_identity_hash
+                                                                )
+                                                            }}
+                                                        </div>
+                                                    </div>
+
+                                                    <div
+                                                        class="flex items-center gap-1.5 opacity-100 transition-opacity shrink-0 ml-4 lg:opacity-0 lg:group-hover:opacity-100"
                                                     >
-                                                        <MaterialDesignIcon icon-name="phone" class="size-3" />
-                                                        {{ $t("call.call_back") }}
-                                                    </button>
+                                                        <button
+                                                            v-if="!entry.is_contact"
+                                                            type="button"
+                                                            class="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all shrink-0"
+                                                            title="Add to contacts"
+                                                            @click="addContactFromHistory(entry)"
+                                                        >
+                                                            <MaterialDesignIcon
+                                                                icon-name="account-plus"
+                                                                class="size-4"
+                                                            />
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            class="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all shrink-0"
+                                                            :title="$t('common.block')"
+                                                            @click="blockIdentity(entry.remote_identity_hash)"
+                                                        >
+                                                            <MaterialDesignIcon
+                                                                icon-name="account-remove"
+                                                                class="size-4"
+                                                            />
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            class="p-1.5 rounded-lg text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all shrink-0"
+                                                            :title="$t('contacts.send_message')"
+                                                            @click="openMessageFromHistory(entry)"
+                                                        >
+                                                            <MaterialDesignIcon
+                                                                icon-name="message-text-outline"
+                                                                class="size-4"
+                                                            />
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            class="flex items-center gap-1.5 px-3 py-1 bg-blue-600 text-white rounded-lg text-[10px] font-bold hover:bg-blue-500 transition-all shadow-md shadow-blue-500/10 shrink-0"
+                                                            @click="
+                                                                destinationHash =
+                                                                    entry.remote_telephony_hash ||
+                                                                    entry.remote_destination_hash ||
+                                                                    entry.remote_identity_hash;
+                                                                activeTab = 'phone';
+                                                                $nextTick(() => call(destinationHash));
+                                                            "
+                                                        >
+                                                            <MaterialDesignIcon icon-name="phone" class="size-3" />
+                                                            {{ $t("call.call_back") }}
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </li>
-                            </ul>
-                            <div
-                                v-if="hasMoreCallHistory"
-                                class="p-4 border-t border-gray-100 dark:border-zinc-800 text-center bg-gray-50/30 dark:bg-zinc-800/10"
-                            >
-                                <button
-                                    type="button"
-                                    class="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline uppercase tracking-wider"
-                                    @click="loadMoreCallHistory"
+                                    </li>
+                                </ul>
+                                <div
+                                    v-if="hasMoreCallHistory"
+                                    class="p-4 border-t border-gray-100 dark:border-zinc-800 text-center bg-gray-50/30 dark:bg-zinc-800/10"
                                 >
-                                    {{ $t("call.load_more") }}
-                                </button>
+                                    <button
+                                        type="button"
+                                        class="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline uppercase tracking-wider"
+                                        @click="loadMoreCallHistory"
+                                    >
+                                        {{ $t("call.load_more") }}
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    </template>
                 </div>
 
                 <!-- Phonebook Tab -->

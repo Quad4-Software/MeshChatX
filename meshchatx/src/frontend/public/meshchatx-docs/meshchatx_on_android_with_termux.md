@@ -66,11 +66,11 @@ corepack prepare pnpm@latest --activate
 ```
 git clone https://git.quad4.io/RNS-Things/MeshChatX.git
 cd MeshChatX
-pip install poetry
-poetry install
+pip install uv
+uv sync --group dev
 pnpm install
 pnpm run build-frontend
-poetry build -f wheel
+uv build --wheel
 pip install dist/*.whl
 ```
 

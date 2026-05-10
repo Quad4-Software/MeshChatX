@@ -30,7 +30,7 @@ env:
     FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     PYTHON_VERSION: "3.14"
     NODE_VERSION: "24"
-    POETRY_VERSION: "2.3.4"
+    UV_VERSION: "0.11.12"
     PNPM_VERSION: "10.32.1"
     COSIGN_VERSION: "3.0.6"
     # Official .deb; setup-trivy.sh verifies sigstore + SHA256 (see build-release.yml).
@@ -51,18 +51,18 @@ jobs:
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
 
-            - name: Install Poetry (PyPI pin)
+            - name: Install UV (PyPI pin)
               env:
-                  POETRY_VERSION: ${{ env.POETRY_VERSION }}
-              run: bash scripts/ci/github-install-poetry.sh
+                  UV_VERSION: ${{ env.UV_VERSION }}
+              run: bash scripts/ci/github-install-uv.sh
 
-            - name: Cache Poetry downloads
+            - name: Cache UV downloads
               uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
               with:
-                  path: ~/.cache/pypoetry
-                  key: ${{ runner.os }}-pypoetry-${{ hashFiles('poetry.lock') }}
+                  path: ~/.cache/uv
+                  key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock') }}
                   restore-keys: |
-                      ${{ runner.os }}-pypoetry-
+                      ${{ runner.os }}-uv-
 
             - name: Enable pnpm (corepack)
               run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
@@ -79,8 +79,8 @@ jobs:
 
             - name: pip-audit
               run: |
-                  poetry run pip install --upgrade "pip>=26.0" pip-audit
-                  poetry run pip-audit --ignore-vuln CVE-2026-3219
+                  uv run pip install --upgrade "pip>=26.0" pip-audit
+                  uv run pip-audit --ignore-vuln CVE-2026-3219
 
             - name: Apt update (for Trivy .deb)
               run: sh scripts/ci/exec-priv.sh apt-get update -qq

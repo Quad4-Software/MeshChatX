@@ -221,6 +221,7 @@ class DocsManager:
             return
 
         try:
+            index_links: list[str] = []
             for file, src_docs in sourced:
                 src_path = os.path.join(src_docs, file)
                 dest_path = os.path.join(self.meshchatx_docs_dir, file)
@@ -259,8 +260,38 @@ class DocsManager:
                         encoding="utf-8",
                     ) as f:
                         f.write(full_html)
+                    index_links.append(
+                        f'<li class="mb-2"><a href="{html_file}" class="text-blue-400 hover:text-blue-300">{html_file}</a></li>'
+                    )
                 except Exception as e:
                     logging.exception(f"Failed to render {file} to HTML: {e}")
+
+            # Generate an index.html so /meshchatx-docs/index.html resolves
+            if index_links and os.access(self.meshchatx_docs_dir, os.W_OK):
+                index_html = f"""<!DOCTYPE html>
+<html class="dark">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MeshChatX Documentation</title>
+    <script src="../assets/js/tailwindcss/tailwind-v3.4.3-forms-v0.5.7.js"></script>
+    <style>
+        body {{ background-color: #111827; color: #f3f4f6; }}
+    </style>
+</head>
+<body class="p-4 md:p-8 max-w-4xl mx-auto">
+    <h1 class="text-2xl font-bold mb-4">MeshChatX Documentation</h1>
+    <ul class="list-disc pl-5">
+        {"".join(index_links)}
+    </ul>
+</body>
+</html>"""
+                with open(
+                    os.path.join(self.meshchatx_docs_dir, "index.html"),
+                    "w",
+                    encoding="utf-8",
+                ) as f:
+                    f.write(index_html)
         except Exception as e:
             logging.exception(f"Failed to populate MeshChatX docs: {e}")
 
@@ -310,7 +341,7 @@ class DocsManager:
             return None
         if not full_path.startswith(base + os.sep) and full_path != base:
             return None
-        if not os.path.exists(full_path):
+        if not os.path.isfile(full_path):
             return None
 
         with open(full_path, encoding="utf-8", errors="ignore") as f:

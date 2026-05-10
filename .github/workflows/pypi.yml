@@ -1,14 +1,14 @@
-# Publish ``reticulum-meshchatx`` sdist and wheel to PyPI (Trusted Publishing).
+# Publish reticulum-meshchatx sdist and wheel to PyPI (Trusted Publishing).
 # Builds the Vite frontend and offline bundles via the reusable frontend workflow,
-# places them under ``meshchatx/public/``, then runs ``python -m build``.
+# places them under meshchatx/public/, then runs python -m build.
 #
-# Tag runs also emit SLSA generic provenance (``generator_generic_slsa3``) for the
-# exact ``dist/`` digests and optional Cosign ``*.cosign.bundle`` files next to each
-# distribution (same scripts as ``build-release.yml``; skips if ``COSIGN_PRIVATE_KEY`` unset).
+# Tag runs also emit SLSA generic provenance (generator_generic_slsa3) for the
+# exact dist/ digests and optional Cosign *.cosign.bundle files next to each
+# distribution (same scripts as build-release.yml; skips if COSIGN_PRIVATE_KEY unset).
 # PyPI upload uses a staging directory so bundles are not sent to the index.
 #
-# PyPI Trusted Publisher must reference this file as ``pypi.yml`` and use the
-# ``pypi`` GitHub Environment (with required reviewers if you enabled protection).
+# PyPI Trusted Publisher must reference this file as pypi.yml and use the
+# pypi GitHub Environment (with required reviewers if you enabled protection).
 #
 # Pinned first-party actions (bump tag and SHA together when upgrading):
 #   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
@@ -19,7 +19,7 @@
 # SLSA generator (must stay @vX.Y.Z semver per upstream):
 #   slsa-framework/slsa-github-generator/generator_generic_slsa3.yml@v2.1.0
 #
-# Third-party pin (resolve before bumping ``release/v1``):
+# Third-party pin (resolve before bumping release/v1):
 #   curl -sS "https://api.github.com/repos/pypa/gh-action-pypi-publish/commits/release/v1" | jq -r '.sha'
 #   pypa/gh-action-pypi-publish@release/v1 -> cef221092ed1bacb1cc03d23a2d87d1d172e277b
 

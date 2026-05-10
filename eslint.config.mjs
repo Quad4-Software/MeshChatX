@@ -25,7 +25,7 @@ export default [
             "**/.venv/**",
             "**/*.min.js",
             "**/pnpm-lock.yaml",
-            "**/poetry.lock",
+            "**/uv.lock",
             "**/linux-unpacked/**",
             "**/win-unpacked/**",
             "**/mac-unpacked/**",

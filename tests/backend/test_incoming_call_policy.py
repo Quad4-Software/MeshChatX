@@ -39,10 +39,22 @@ def _run_incoming(app, caller, ctx=None):
     bound(caller, context=ctx)
 
 
-def test_incoming_rejects_when_blocked_immediate_hangup(policy_app):
+def test_incoming_rejects_when_blocked_uses_delayed_hangup(policy_app):
     policy_app.is_destination_blocked.return_value = True
     caller = _caller_identity()
-    _run_incoming(policy_app, caller)
+
+    with patch("meshchatx.meshchat.threading.Timer") as mock_timer:
+
+        def run_timer(delay, fn):
+            assert delay == 0.5
+            fn()
+            t = MagicMock()
+            t.start = MagicMock()
+            return t
+
+        mock_timer.side_effect = run_timer
+
+        _run_incoming(policy_app, caller)
 
     policy_app.telephone_manager.telephone.hangup.assert_called_once()
     policy_app.voicemail_manager.handle_incoming_call.assert_not_called()
@@ -127,8 +139,13 @@ def test_contacts_only_accepts_matching_contact(policy_app):
         async_utils.run_async = MagicMock()
         _run_incoming(policy_app, caller)
 
-    policy_app.current_context.database.contacts.get_contact_by_identity_hash.assert_called_once_with(
+    # Called twice: once for policy check, once for websocket broadcast is_contact flag
+    policy_app.current_context.database.contacts.get_contact_by_identity_hash.assert_called_with(
         CALLER_HASH_HEX,
+    )
+    assert (
+        policy_app.current_context.database.contacts.get_contact_by_identity_hash.call_count
+        == 2
     )
     policy_app.current_context.voicemail_manager.handle_incoming_call.assert_called_once_with(
         caller
@@ -178,7 +195,10 @@ def test_when_policy_off_stranger_rings(policy_app):
         async_utils.run_async = MagicMock()
         _run_incoming(policy_app, caller)
 
-    policy_app.current_context.database.contacts.get_contact_by_identity_hash.assert_not_called()
+    # Called once for websocket broadcast is_contact flag even when policy is off
+    policy_app.current_context.database.contacts.get_contact_by_identity_hash.assert_called_once_with(
+        CALLER_HASH_HEX,
+    )
     policy_app.current_context.voicemail_manager.handle_incoming_call.assert_called_once_with(
         caller
     )
@@ -224,8 +244,10 @@ def test_uses_passed_context_not_app_current_context(policy_app):
         async_utils.run_async = MagicMock()
         _run_incoming(policy_app, caller, ctx=other_ctx)
 
-    other_ctx.database.contacts.get_contact_by_identity_hash.assert_called_once_with(
+    # Called twice: once for policy check, once for websocket broadcast is_contact flag
+    other_ctx.database.contacts.get_contact_by_identity_hash.assert_called_with(
         CALLER_HASH_HEX,
     )
+    assert other_ctx.database.contacts.get_contact_by_identity_hash.call_count == 2
     policy_app.current_context.database.contacts.get_contact_by_identity_hash.assert_not_called()
     other_ctx.voicemail_manager.handle_incoming_call.assert_called_once_with(caller)

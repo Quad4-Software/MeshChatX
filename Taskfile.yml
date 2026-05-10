@@ -73,17 +73,17 @@ tasks:
             - "{{.NPM}} install"
 
     deps:be:
-        desc: Install Python dependencies using Poetry
+        desc: Install Python dependencies using UV
         cmds:
-            - poetry install
-            - poetry run python scripts/patch_lxst_pyogg_ogg_ctypes.py
+            - uv sync --group dev
+            - uv run python scripts/patch_lxst_pyogg_ogg_ctypes.py
 
     setup:be:
         desc: Full backend environment setup
         cmds:
-            - poetry install
-            - poetry run python scripts/patch_lxst_pyogg_ogg_ctypes.py
-            - poetry run pip install ruff
+            - uv sync --group dev
+            - uv run python scripts/patch_lxst_pyogg_ogg_ctypes.py
+            - uv run pip install ruff
 
     # --- Execution ---
 
@@ -91,7 +91,7 @@ tasks:
         desc: Run the application
         deps: [install]
         cmds:
-            - poetry run python -m meshchatx.meshchat
+            - uv run python -m meshchatx.meshchat
 
     dev:
         desc: Run in development mode (builds frontend first)
@@ -127,8 +127,8 @@ tasks:
     lint:be:
         desc: Lint Python code (ruff)
         cmds:
-            - poetry run ruff check .
-            - poetry run ruff format --check .
+            - uv run ruff check .
+            - uv run ruff format --check .
 
     lint:fe:
         desc: Lint frontend code
@@ -142,8 +142,8 @@ tasks:
     fmt:be:
         desc: Format Python code (ruff)
         cmds:
-            - poetry run ruff format ./ --exclude tests
-            - poetry run ruff check --fix ./ --exclude tests
+            - uv run ruff format ./ --exclude tests
+            - uv run ruff check --fix ./ --exclude tests
 
     fmt:fe:
         desc: Format frontend code (Prettier/ESLint)
@@ -158,34 +158,34 @@ tasks:
         deps: [test:be, test:fe, test:lang]
 
     test:e2e:
-        desc: Playwright E2E (starts MeshChat backend + Vite; requires poetry, curl, pnpm exec playwright install chromium)
+        desc: Playwright E2E (starts MeshChat backend + Vite; requires uv, curl, pnpm exec playwright install chromium)
         cmds:
             - "{{.NPM}} run test:e2e"
 
     test:be:
         desc: Run Python tests (pytest; includes perf/memory profiling — same as GitHub CI)
         cmds:
-            - poetry run pytest tests/backend -n auto --cov=meshchatx/src/backend
+            - uv run pytest tests/backend -n auto --cov=meshchatx/src/backend
 
     test:be:cov:
         desc: Run Python tests with detailed coverage (includes performance and memory profiling tests)
         cmds:
-            - poetry run pytest tests/backend -n auto --cov=meshchatx/src/backend --cov-report=term-missing
+            - uv run pytest tests/backend -n auto --cov=meshchatx/src/backend --cov-report=term-missing
 
     test:be:perf:
         desc: Backend performance regression tests only (hot paths + bottlenecks)
         cmds:
-            - poetry run pytest tests/backend/test_performance_hotpaths.py tests/backend/test_performance_bottlenecks.py
+            - uv run pytest tests/backend/test_performance_hotpaths.py tests/backend/test_performance_bottlenecks.py
 
     test:be:full:
         desc: Same as test:be (full backend suite)
         cmds:
-            - poetry run pytest tests/backend -n auto --cov=meshchatx/src/backend
+            - uv run pytest tests/backend -n auto --cov=meshchatx/src/backend
 
     test:mutation:
         desc: Mutation testing (mutmut; slow; optional; default targets meshchat_utils)
         cmds:
-            - poetry run mutmut run "meshchatx.src.backend.meshchat_utils*"
+            - uv run mutmut run "meshchatx.src.backend.meshchat_utils*"
 
     test:fe:
         desc: Run frontend + Electron shell unit tests (vitest; excludes i18n — see test:lang; excludes LoadTimePerformance — use test:fe:loadtime locally)
@@ -201,12 +201,12 @@ tasks:
     test:be:media-fuzz:
         desc: Hypothesis fuzz tests for stickers, TGS/Lottie JSON, WebM, GIFs, pack exports
         cmds:
-            - poetry run pytest tests/backend/test_media_fuzzing.py -q
+            - uv run pytest tests/backend/test_media_fuzzing.py -q
 
     test:be:media-http:
         desc: aiohttp integration tests for /api/v1/stickers, sticker-packs, and /api/v1/gifs
         cmds:
-            - poetry run pytest tests/backend/test_media_http_api.py -q
+            - uv run pytest tests/backend/test_media_http_api.py -q
 
     test:fuzz:all:
         desc: Vitest fuzzing tag plus backend media Hypothesis fuzz
@@ -223,18 +223,18 @@ tasks:
         desc: Run localization tests
         cmds:
             - "{{.NPM}} exec vitest run tests/frontend/i18n.test.js"
-            - "poetry run pytest tests/backend/test_translator_handler.py"
+            - "uv run pytest tests/backend/test_translator_handler.py"
 
     test:integrity:
         desc: Run data integrity tests
         cmds:
-            - poetry run pytest tests/backend/test_integrity.py tests/backend/test_backend_integrity.py
+            - uv run pytest tests/backend/test_integrity.py tests/backend/test_backend_integrity.py
 
     test:cov:
         desc: Run all tests with coverage (Python + frontend JS/Vue + translator pytest)
         deps: [test:be:cov, test:fe:cov]
         cmds:
-            - "poetry run pytest tests/backend/test_translator_handler.py"
+            - "uv run pytest tests/backend/test_translator_handler.py"
 
     bench:
         desc: Default benchmark run (backend comprehensive suite; same as bench:be)
@@ -244,17 +244,17 @@ tasks:
     bench:be:
         desc: Run backend benchmarks
         cmds:
-            - poetry run python tests/backend/run_comprehensive_benchmarks.py
+            - uv run python tests/backend/run_comprehensive_benchmarks.py
 
     bench:be:extreme:
         desc: Run extreme stress benchmarks
         cmds:
-            - poetry run python tests/backend/run_comprehensive_benchmarks.py --extreme
+            - uv run python tests/backend/run_comprehensive_benchmarks.py --extreme
 
     profile:mem:
         desc: Run memory profiling
         cmds:
-            - poetry run pytest tests/backend/test_memory_profiling.py
+            - uv run pytest tests/backend/test_memory_profiling.py
 
     check:
         desc: Run formatting, linting, and testing sequentially
@@ -286,7 +286,7 @@ tasks:
         desc: Build Python wheel package
         deps: [install]
         cmds:
-            - poetry build -f wheel
+            - uv build --wheel
             - "{{.PYTHON}} scripts/move_wheels.py"
 
     # --- Electron Distribution ---

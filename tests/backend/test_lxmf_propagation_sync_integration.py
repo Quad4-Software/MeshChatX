@@ -61,6 +61,10 @@ class FakePropagationRouter:
         self.propagation_transfer_state = self.PR_PATH_REQUESTED
         self.propagation_transfer_progress = 0.0
 
+    def cancel_propagation_node_requests(self):
+        self.propagation_transfer_state = self.PR_IDLE
+        self.propagation_transfer_progress = 0.0
+
 
 @pytest.fixture
 def temp_dir():

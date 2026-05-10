@@ -106,6 +106,31 @@ class ConfigManager:
             "lxmf_propagation_node_stamp_cost",
             16,
         )  # for propagation node messages
+        self.lxmf_inbound_stamp_cost_before_block = self.IntConfig(
+            self,
+            "lxmf_inbound_stamp_cost_before_block",
+            0,
+        )  # saved stamp cost before block strangers was enabled
+        self.lxmf_flood_protection_enabled = self.BoolConfig(
+            self,
+            "lxmf_flood_protection_enabled",
+            False,
+        )
+        self.lxmf_flood_threshold_per_minute = self.IntConfig(
+            self,
+            "lxmf_flood_threshold_per_minute",
+            30,
+        )
+        self.lxmf_flood_max_stamp_cost = self.IntConfig(
+            self,
+            "lxmf_flood_max_stamp_cost",
+            24,
+        )
+        self.lxmf_flood_cooldown_seconds = self.IntConfig(
+            self,
+            "lxmf_flood_cooldown_seconds",
+            300,
+        )
         self.page_archiver_enabled = self.BoolConfig(
             self,
             "page_archiver_enabled",
@@ -206,7 +231,7 @@ class ConfigManager:
         self.telephone_announce_enabled = self.BoolConfig(
             self,
             "telephone_announce_enabled",
-            True,
+            False,
         )
         self.telephone_audio_profile_id = self.IntConfig(
             self,
@@ -388,37 +413,37 @@ class ConfigManager:
             True,
         )
 
-        # announce caps: max rows stored per aspect (oldest dropped). Default 1000.
+        # announce caps: max rows stored per aspect (oldest dropped). Default 2500.
         self.announce_max_stored_lxmf_delivery = self.IntConfig(
             self,
             "announce_max_stored_lxmf_delivery",
-            1000,
+            2500,
         )
         self.announce_max_stored_nomadnetwork_node = self.IntConfig(
             self,
             "announce_max_stored_nomadnetwork_node",
-            1000,
+            2500,
         )
         self.announce_max_stored_lxmf_propagation = self.IntConfig(
             self,
             "announce_max_stored_lxmf_propagation",
-            1000,
+            2500,
         )
-        # default API page size per aspect when limit query param omitted. Default 500.
+        # default API page size per aspect when limit query param omitted. Default 2500.
         self.announce_fetch_limit_lxmf_delivery = self.IntConfig(
             self,
             "announce_fetch_limit_lxmf_delivery",
-            500,
+            2500,
         )
         self.announce_fetch_limit_nomadnetwork_node = self.IntConfig(
             self,
             "announce_fetch_limit_nomadnetwork_node",
-            500,
+            2500,
         )
         self.announce_fetch_limit_lxmf_propagation = self.IntConfig(
             self,
             "announce_fetch_limit_lxmf_propagation",
-            500,
+            2500,
         )
         # lxst.telephony shares LXMF caps in announce_manager aspect mapping
         self.announce_search_max_fetch = self.IntConfig(
@@ -479,6 +504,11 @@ class ConfigManager:
             self,
             "nomad_default_page_path",
             "/page/index.mu",
+        )
+        self.default_bootstrap_only = self.BoolConfig(
+            self,
+            "default_bootstrap_only",
+            False,
         )
         self.lxmf_sieve_filters_json = self.StringConfig(
             self,

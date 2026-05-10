@@ -104,6 +104,7 @@ The project favors predictable SQL behavior and explicit migration control, whic
 - Cookie sessions via encrypted storage
 - Auth and access-attempt tracking integrated with IP/User-Agent aware controls
 - Debug endpoints provide visibility into logs and access-attempt records
+- Password reset via `--reset-password` (or `MESHCHAT_RESET_PASSWORD=true`) clears the stored bcrypt hash so a new password can be set through the web UI
 
 This is also very well tested, but I still would not recommend exposing MeshChatX to the internet.
 

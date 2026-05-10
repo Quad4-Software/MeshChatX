@@ -143,7 +143,10 @@ from meshchatx.src.backend.sticker_utils import (
     validate_export_document,
 )
 from meshchatx.src.backend.telemetry_utils import Telemeter
-from meshchatx.android_push_bridge import _is_chaquopy_android
+from meshchatx.android_push_bridge import (
+    _get_android_external_files_dir,
+    _is_chaquopy_android,
+)
 from meshchatx.src.backend.web_audio_bridge import WebAudioBridge
 from meshchatx.src.env_utils import env_bool
 from meshchatx.src.path_utils import (
@@ -212,6 +215,29 @@ def _resolve_rns_loglevel(cli_override: str | None) -> int | None:
     if cli_override is not None and str(cli_override).strip():
         return _parse_rns_loglevel_value(cli_override)
     return _parse_rns_loglevel_value(os.environ.get("MESHCHAT_RNS_LOG_LEVEL"))
+
+
+def _restore_rns_console_logging_after_reticulum_init(app) -> None:
+    """Undo shutdown side effects from ``RNS.Reticulum.exit_handler``.
+
+    That handler sets ``RNS.loglevel`` to ``LOG_NONE`` and points ``sys.stdout`` /
+    ``sys.stderr`` at ``os.devnull``. Without this, hot reload appears to stop all
+    announce traffic logging even though interfaces are up.
+
+    When no CLI or ``MESHCHAT_RNS_LOG_LEVEL`` value applies and the level is still
+    ``LOG_NONE`` after reading config, fall back to ``LOG_WARNING`` so notices are
+    visible. Explicit ``none`` in the environment remains respected.
+    """
+    try:
+        if hasattr(sys, "__stdout__"):
+            sys.stdout = sys.__stdout__
+        if hasattr(sys, "__stderr__"):
+            sys.stderr = sys.__stderr__
+    except Exception:
+        pass
+    resolved = _resolve_rns_loglevel(getattr(app, "_rns_loglevel_cli", None))
+    if resolved is None and RNS.loglevel == RNS.LOG_NONE:
+        RNS.loglevel = RNS.LOG_WARNING
 
 
 def _python_jit_status_line() -> str:
@@ -312,6 +338,11 @@ class ReticulumMeshChat:
 
         # track announce timestamps for rate calculation
         self.announce_timestamps = []
+
+        # track incoming lxmf message timestamps for flood protection
+        self._lxmf_incoming_timestamps = []
+        self._flood_protection_current_cost = None
+        self._flood_protection_last_bump_time = 0
 
         # track download speeds for nomadnetwork files
         self.download_speeds = []
@@ -660,6 +691,54 @@ class ReticulumMeshChat:
             raise RuntimeError("Database not initialized")
         return self.database.restore_database(backup_path)
 
+    def reset_password(self):
+        """Clear the stored password hash so a new password can be set via the web UI."""
+        if self.config.auth_password_hash.get() is not None:
+            self.config.auth_password_hash.set(None)
+            return True
+        return False
+
+    @staticmethod
+    def _disable_rnode_interfaces_on_android(config_path: str) -> bool:
+        """If running on Android, disable RNode* interfaces in Reticulum config.
+
+        Returns True if any interfaces were disabled.
+        """
+        if not _is_chaquopy_android():
+            return False
+        if not os.path.isfile(config_path):
+            return False
+        try:
+            from RNS.vendor.configobj import ConfigObj
+
+            cfg = ConfigObj(config_path)
+        except Exception:
+            return False
+
+        modified = False
+        interfaces = cfg.get("interfaces")
+        if not isinstance(interfaces, dict):
+            return False
+        for _iface_name, iface in interfaces.items():
+            if not isinstance(iface, dict):
+                continue
+            iface_type = iface.get("type", "")
+            if isinstance(iface_type, str) and iface_type.startswith("RNode"):
+                if str(iface.get("interface_enabled", "")).lower() in (
+                    "true",
+                    "yes",
+                    "1",
+                    "on",
+                ):
+                    iface["interface_enabled"] = "false"
+                    modified = True
+        if modified:
+            try:
+                cfg.write()
+            except Exception:
+                pass
+        return modified
+
     def _ensure_reticulum_config(self, materialize: bool = True):
         """Normalize ``reticulum_config_dir`` and optionally ensure a ``config`` file exists.
 
@@ -673,6 +752,9 @@ class ReticulumMeshChat:
         self.reticulum_config_dir = config_dir
         if not materialize:
             return
+        if not getattr(self, "_reticulum_instance_name_startup_repair_done", False):
+            self._repair_reticulum_instance_name_corruption()
+            self._reticulum_instance_name_startup_repair_done = True
         config_path = os.path.join(config_dir, "config")
         needs_default = True
         if os.path.isfile(config_path):
@@ -687,6 +769,24 @@ class ReticulumMeshChat:
             if not os.path.isdir(config_dir):
                 os.makedirs(config_dir, exist_ok=True)
             self._write_rns_reticulum_default_config_file(config_path)
+        # Scrub stale default_bootstrap_only from Reticulum config so it never
+        # affects discovered/auto-connected interfaces.
+        try:
+            from RNS.vendor.configobj import ConfigObj
+
+            cfg = ConfigObj(config_path)
+            if "default_bootstrap_only" in cfg.get("reticulum", {}):
+                cfg["reticulum"].pop("default_bootstrap_only", None)
+                cfg.write()
+        except Exception:
+            pass
+        # Android: RNodeInterface crashes because serial port access isn't available
+        if _is_chaquopy_android():
+            disabled = self._disable_rnode_interfaces_on_android(config_path)
+            if disabled:
+                logging.getLogger(__name__).warning(
+                    "RNodeInterface is not supported on Android; disabled in config.",
+                )
 
     def setup_identity(self, identity: RNS.Identity):
         identity_hash = identity.hash.hex()
@@ -715,6 +815,7 @@ class ReticulumMeshChat:
                 )
             else:
                 self.reticulum = RNS.Reticulum(self.reticulum_config_dir)
+            _restore_rns_console_logging_after_reticulum_init(self)
             self.page_node_manager.load_nodes()
             self.page_node_manager.start_all()
 
@@ -816,6 +917,7 @@ class ReticulumMeshChat:
             if identity_hash in self.contexts:
                 del self.contexts[identity_hash]
             self.current_context = None
+            gc.collect()
 
     def _teardown_all_contexts_for_reload(self):
         # Stop per-identity long-running services before tearing down contexts.
@@ -845,6 +947,7 @@ class ReticulumMeshChat:
         self.contexts.clear()
         self.current_context = None
         self.running = False
+        gc.collect()
 
     async def _send_rns_reload_status(
         self,
@@ -983,6 +1086,49 @@ class ReticulumMeshChat:
 
         return closed_any
 
+    _reload_instance_suffix_re = re.compile(r"-reload-(\d+)-(\d+)$")
+    _meshchat_reload_pid_max = 4_194_304
+    _meshchat_reload_epoch_min = 1_577_836_800
+    _meshchat_reload_epoch_max = 4_102_444_800
+
+    @staticmethod
+    def _looks_like_meshchat_hot_reload_tail(pid: int, epoch: int) -> bool:
+        """Limit repairs to suffixes :meth:`reload_reticulum` actually writes.
+
+        Hot reload uses ``-reload-{os.getpid()}-{int(time.time())}``. Names like
+        ``my-net-reload-peer`` must not be truncated.
+        """
+        if pid < 1 or pid > ReticulumMeshChat._meshchat_reload_pid_max:
+            return False
+        if (
+            epoch < ReticulumMeshChat._meshchat_reload_epoch_min
+            or epoch > ReticulumMeshChat._meshchat_reload_epoch_max
+        ):
+            return False
+        return True
+
+    @staticmethod
+    def _strip_reload_instance_suffix(name):
+        """Remove stacked MeshChat hot-reload tails only (validated pid + unix time)."""
+        if not isinstance(name, str):
+            return None
+        out = name.strip()
+        if not out:
+            return None
+        while True:
+            m = ReticulumMeshChat._reload_instance_suffix_re.search(out)
+            if not m or m.end() != len(out):
+                break
+            try:
+                pid = int(m.group(1))
+                epoch = int(m.group(2))
+            except ValueError:
+                break
+            if not ReticulumMeshChat._looks_like_meshchat_hot_reload_tail(pid, epoch):
+                break
+            out = out[: m.start()].strip()
+        return out if out else None
+
     def _read_reticulum_instance_name(self):
         """Return current Reticulum instance_name from config or None."""
         config_dir = self._normalize_reticulum_config_dir(
@@ -993,10 +1139,23 @@ class ReticulumMeshChat:
             return None
 
         cp = configparser.ConfigParser()
-        cp.read(config_path)
+        try:
+            cp.read(config_path)
+        except configparser.Error:
+            return None
         if not cp.has_section("reticulum"):
             return None
         return cp.get("reticulum", "instance_name", fallback=None)
+
+    def _repair_reticulum_instance_name_corruption(self):
+        """Rewrite persisted ``instance_name`` if hot-reload suffixes were left on disk."""
+        raw = self._read_reticulum_instance_name()
+        if not raw:
+            return
+        cleaned = ReticulumMeshChat._strip_reload_instance_suffix(raw)
+        if cleaned == raw or cleaned is None:
+            return
+        self._write_reticulum_instance_name(cleaned)
 
     def _write_reticulum_instance_name(self, instance_name):
         """Persist a Reticulum instance_name value into the config."""
@@ -1005,7 +1164,10 @@ class ReticulumMeshChat:
         )
         config_path = os.path.join(config_dir, "config")
         cp = configparser.ConfigParser()
-        cp.read(config_path)
+        try:
+            cp.read(config_path)
+        except configparser.Error:
+            cp = configparser.ConfigParser()
         if not cp.has_section("reticulum"):
             cp.add_section("reticulum")
         cp.set("reticulum", "instance_name", instance_name)
@@ -1208,30 +1370,41 @@ class ReticulumMeshChat:
                 config_path = os.path.join(config_dir, "config")
                 if os.path.isfile(config_path):
                     cp = configparser.ConfigParser()
-                    cp.read(config_path)
-                    if cp.has_section("reticulum"):
-                        rpc_port = cp.getint("reticulum", "rpc_port", fallback=37429)
-                        rpc_bind = cp.get("reticulum", "rpc_bind", fallback="127.0.0.1")
-                        shared_port = cp.getint(
-                            "reticulum",
-                            "shared_instance_port",
-                            fallback=37428,
-                        )
-                        shared_bind = cp.get(
-                            "reticulum",
-                            "shared_instance_bind",
-                            fallback="127.0.0.1",
-                        )
+                    try:
+                        cp.read(config_path)
+                    except configparser.Error:
+                        pass
+                    else:
+                        if cp.has_section("reticulum"):
+                            rpc_port = cp.getint(
+                                "reticulum", "rpc_port", fallback=37429
+                            )
+                            rpc_bind = cp.get(
+                                "reticulum", "rpc_bind", fallback="127.0.0.1"
+                            )
+                            shared_port = cp.getint(
+                                "reticulum",
+                                "shared_instance_port",
+                                fallback=37428,
+                            )
+                            shared_bind = cp.get(
+                                "reticulum",
+                                "shared_instance_bind",
+                                fallback="127.0.0.1",
+                            )
 
-                        # Only add if not already there
-                        if not any(
-                            addr == (rpc_bind, rpc_port) for addr, _ in rpc_addrs
-                        ):
-                            rpc_addrs.append(((rpc_bind, rpc_port), "AF_INET"))
-                        if not any(
-                            addr == (shared_bind, shared_port) for addr, _ in rpc_addrs
-                        ):
-                            rpc_addrs.append(((shared_bind, shared_port), "AF_INET"))
+                            # Only add if not already there
+                            if not any(
+                                addr == (rpc_bind, rpc_port) for addr, _ in rpc_addrs
+                            ):
+                                rpc_addrs.append(((rpc_bind, rpc_port), "AF_INET"))
+                            if not any(
+                                addr == (shared_bind, shared_port)
+                                for addr, _ in rpc_addrs
+                            ):
+                                rpc_addrs.append(
+                                    ((shared_bind, shared_port), "AF_INET")
+                                )
             except Exception as e:
                 print(f"Warning reading Reticulum config for ports: {e}")
 
@@ -1469,13 +1642,18 @@ class ReticulumMeshChat:
             if hasattr(RNS.Reticulum, "_Reticulum__instance"):
                 RNS.Reticulum._Reticulum__instance = None
 
-            original_instance_name = None
             switched_instance_name = None
+            instance_restore_name = None
             if abstract_unix_addr_in_use_after_wait:
-                original_instance_name = self._read_reticulum_instance_name()
-                base_name = original_instance_name or "default"
+                stored_instance_name = self._read_reticulum_instance_name()
+                stable_base = ReticulumMeshChat._strip_reload_instance_suffix(
+                    stored_instance_name,
+                )
+                instance_restore_name = (
+                    stable_base if stable_base is not None else "default"
+                )
                 switched_instance_name = (
-                    f"{base_name}-reload-{os.getpid()}-{int(time.time())}"
+                    f"{instance_restore_name}-reload-{os.getpid()}-{int(time.time())}"
                 )
                 self._write_reticulum_instance_name(switched_instance_name)
                 print(
@@ -1492,9 +1670,7 @@ class ReticulumMeshChat:
                 self.setup_identity(identity_to_restore)
             finally:
                 if switched_instance_name:
-                    self._write_reticulum_instance_name(
-                        original_instance_name or "default",
-                    )
+                    self._write_reticulum_instance_name(instance_restore_name)
             await self._send_rns_reload_status(
                 "done",
                 "RNS reload complete.",
@@ -1920,7 +2096,13 @@ class ReticulumMeshChat:
         return None
 
     @staticmethod
-    def apply_bootstrap_only_to_interface(interface_details, data, default_enabled):
+    def apply_bootstrap_only_to_interface(
+        interface_details,
+        data,
+        default_enabled,
+        *,
+        updating_existing=False,
+    ):
         if "bootstrap_only" in data:
             yn = ReticulumMeshChat._bootstrap_only_request_yes_no(
                 data.get("bootstrap_only")
@@ -1931,6 +2113,8 @@ class ReticulumMeshChat:
                 interface_details["bootstrap_only"] = "no"
             else:
                 interface_details.pop("bootstrap_only", None)
+            return
+        if updating_existing:
             return
         if default_enabled:
             interface_details["bootstrap_only"] = "yes"
@@ -2075,7 +2259,7 @@ class ReticulumMeshChat:
     def _default_announce_fetch_limit(self, aspect):
         ctx = self.current_context
         if not ctx or not ctx.config:
-            return 500
+            return 2500
         keys = {
             "lxmf.delivery": ctx.config.announce_fetch_limit_lxmf_delivery,
             "nomadnetwork.node": ctx.config.announce_fetch_limit_nomadnetwork_node,
@@ -2084,10 +2268,10 @@ class ReticulumMeshChat:
         }
         cfg = keys.get(aspect)
         if cfg is None:
-            return 500
+            return 2500
         v = cfg.get()
         if v is None or v < 1:
-            return 500
+            return 2500
         return min(int(v), 100_000)
 
     def get_lxst_version(self) -> str:
@@ -2309,8 +2493,12 @@ class ReticulumMeshChat:
     # uses the provided destination hash as the active propagation node
     def set_active_propagation_node(self, destination_hash: str | None, context=None):
         ctx = context or self.current_context
-        if not ctx:
+        if not ctx or not ctx.message_router:
             return
+
+        # Always cancel an in-flight sync before switching nodes so we don't
+        # orphan a transfer or leave the router in a stuck state.
+        self.stop_propagation_node_sync(context=ctx)
 
         # set outbound propagation node
         if destination_hash is not None and destination_hash != "":
@@ -2332,7 +2520,7 @@ class ReticulumMeshChat:
     # stops the in progress propagation node sync
     def stop_propagation_node_sync(self, context=None):
         ctx = context or self.current_context
-        if not ctx:
+        if not ctx or not ctx.message_router:
             return
         ctx.message_router.cancel_propagation_node_requests()
 
@@ -2395,6 +2583,13 @@ class ReticulumMeshChat:
                 "messages_hidden": 0,
             }
 
+        if not ctx.message_router:
+            return {
+                "messages_stored": 0,
+                "delivery_confirmations": 0,
+                "messages_hidden": 0,
+            }
+
         messages_received = ctx.message_router.propagation_transfer_last_result or 0
         current_total_messages = ctx.database.messages.count_lxmf_messages()
         current_delivered_messages = ctx.database.messages.count_lxmf_messages_by_state(
@@ -2429,16 +2624,20 @@ class ReticulumMeshChat:
         ctx = context or self.current_context
         if not ctx:
             return
-        # fixme: it's possible for internal transfer state to get stuck if we change propagation node during a sync
-        # this still happens even if we cancel the propagation node requests
-        # for now, the user can just manually cancel syncing in the ui if they think it's stuck...
         self.stop_propagation_node_sync(context=ctx)
-        ctx.message_router.outbound_propagation_node = None
+        if ctx.message_router:
+            ctx.message_router.outbound_propagation_node = None
+            # Force the transfer state back to idle so nothing remains stuck
+            # after the outbound node is removed.
+            with contextlib.suppress(Exception):
+                ctx.message_router.propagation_transfer_state = (
+                    ctx.message_router.PR_IDLE
+                )
 
     # enables or disables the local lxmf propagation node
     def enable_local_propagation_node(self, enabled: bool = True, context=None):
         ctx = context or self.current_context
-        if not ctx:
+        if not ctx or not ctx.message_router:
             return
         try:
             if enabled:
@@ -2469,6 +2668,9 @@ class ReticulumMeshChat:
             return None
 
         router = ctx.message_router
+        if not router:
+            return None
+
         is_running = bool(getattr(router, "propagation_node", False))
         stats = None
         if is_running:
@@ -2479,13 +2681,13 @@ class ReticulumMeshChat:
             return value if isinstance(value, (int, float)) else default
 
         destination_hash_raw = getattr(
-            ctx.message_router.propagation_destination,
+            router.propagation_destination,
             "hexhash",
             None,
         )
         if destination_hash_raw is None:
             destination_hash_raw = getattr(
-                ctx.message_router.propagation_destination,
+                router.propagation_destination,
                 "hash",
                 None,
             )
@@ -2823,8 +3025,12 @@ class ReticulumMeshChat:
 
         # Reject all calls if telephony is disabled
         if not ctx.config.telephone_enabled.get():
-            if ctx.telephone_manager.telephone:
-                ctx.telephone_manager.telephone.hangup()
+            telephone = getattr(ctx.telephone_manager, "telephone", None)
+            if telephone:
+                threading.Timer(
+                    0.5,
+                    lambda t=telephone: t.hangup(),
+                ).start()
             return
 
         if ctx.telephone_manager and ctx.telephone_manager.initiation_status:
@@ -2838,18 +3044,24 @@ class ReticulumMeshChat:
         # Check if caller is blocked
         if self.is_destination_blocked(caller_hash, context=ctx):
             print(f"Rejecting incoming call from blocked source: {caller_hash}")
-            if ctx.telephone_manager.telephone:
-                ctx.telephone_manager.telephone.hangup()
+            telephone = getattr(ctx.telephone_manager, "telephone", None)
+            if telephone:
+                # Use a small delay to avoid deadlocking with LXST call_handler_lock
+                threading.Timer(
+                    0.5,
+                    lambda t=telephone: t.hangup(),
+                ).start()
             return
 
         # Check for Do Not Disturb
         if ctx.config.do_not_disturb_enabled.get():
             print(f"Rejecting incoming call due to Do Not Disturb: {caller_hash}")
-            if ctx.telephone_manager.telephone:
+            telephone = getattr(ctx.telephone_manager, "telephone", None)
+            if telephone:
                 # Use a small delay to ensure LXST state is ready for hangup
                 threading.Timer(
                     0.5,
-                    lambda: ctx.telephone_manager.telephone.hangup(),
+                    lambda t=telephone: t.hangup(),
                 ).start()
             return
 
@@ -2858,13 +3070,21 @@ class ReticulumMeshChat:
             ctx.config.telephone_allow_calls_from_contacts_only.get()
             or ctx.config.block_all_from_strangers.get()
         ):
-            contact = ctx.database.contacts.get_contact_by_identity_hash(caller_hash)
+            contact = None
+            try:
+                contact = ctx.database.contacts.get_contact_by_identity_hash(
+                    caller_hash
+                )
+            except Exception:
+                # Treat lookup failure as non-contact to avoid accidentally allowing spam
+                pass
             if not contact:
                 print(f"Rejecting incoming call from non-contact: {caller_hash}")
-                if ctx.telephone_manager.telephone:
+                telephone = getattr(ctx.telephone_manager, "telephone", None)
+                if telephone:
                     threading.Timer(
                         0.5,
-                        lambda: ctx.telephone_manager.telephone.hangup(),
+                        lambda t=telephone: t.hangup(),
                     ).start()
                 return
 
@@ -2874,6 +3094,13 @@ class ReticulumMeshChat:
         print(f"on_incoming_telephone_call: {caller_identity.hash.hex()}")
         ch = caller_identity.hash.hex()
         caller_name = (self.get_name_for_identity_hash(ch) or "").strip() or "Mesh"
+        is_contact = False
+        try:
+            is_contact = (
+                ctx.database.contacts.get_contact_by_identity_hash(ch) is not None
+            )
+        except Exception:
+            pass
         AsyncUtils.run_async(
             self.websocket_broadcast(
                 json.dumps(
@@ -2881,6 +3108,7 @@ class ReticulumMeshChat:
                         "type": "telephone_ringing",
                         "remote_identity_hash": ch,
                         "remote_identity_name": caller_name,
+                        "is_contact": is_contact,
                     },
                 ),
             ),
@@ -2970,10 +3198,14 @@ class ReticulumMeshChat:
                 if ctx.config.do_not_disturb_enabled.get():
                     is_filtered = True
                 elif ctx.config.telephone_allow_calls_from_contacts_only.get():
-                    contact = ctx.database.contacts.get_contact_by_identity_hash(
-                        remote_identity_hash,
-                    )
-                    if not contact:
+                    try:
+                        contact = ctx.database.contacts.get_contact_by_identity_hash(
+                            remote_identity_hash,
+                        )
+                        if not contact:
+                            is_filtered = True
+                    except Exception:
+                        # Treat lookup failure as filtered to avoid leaking missed-call noise
                         is_filtered = True
 
                 if not is_filtered:
@@ -4910,14 +5142,16 @@ class ReticulumMeshChat:
                 interface_type == "BackboneInterface"
                 and str(interface_details.get("remote") or "").strip() != ""
             ):
-                default_boot = ReticulumMeshChat._reticulum_yes_no_preference(
-                    self._get_reticulum_section().get("default_bootstrap_only"),
-                    default=True,
+                default_boot = bool(
+                    self.current_context.config.default_bootstrap_only.get()
+                    if self.current_context and self.current_context.config
+                    else False,
                 )
                 ReticulumMeshChat.apply_bootstrap_only_to_interface(
                     interface_details,
                     data,
                     default_boot,
+                    updating_existing=allow_overwriting_interface,
                 )
 
             # set common interface options
@@ -5321,7 +5555,10 @@ class ReticulumMeshChat:
                             config_path = os.path.join(config_dir, "config")
                             if os.path.isfile(config_path):
                                 cp = configparser.ConfigParser()
-                                cp.read(config_path)
+                                try:
+                                    cp.read(config_path)
+                                except configparser.Error:
+                                    pass
                                 if cp.has_section("reticulum"):
                                     shared_port = cp.getint(
                                         "reticulum",
@@ -6338,6 +6575,20 @@ class ReticulumMeshChat:
                 if len(page) < page_size:
                     break
                 offset += page_size
+            icon_hashes = set()
+            for m in messages_list:
+                h = m.get("peer_hash") or m.get("source_hash")
+                if h:
+                    icon_hashes.add(h)
+            icons = {}
+            if icon_hashes:
+                icon_rows = self.database.misc.get_user_icons(list(icon_hashes))
+                for ir in icon_rows:
+                    icons[ir["destination_hash"]] = dict(ir)
+            for m in messages_list:
+                h = m.get("peer_hash") or m.get("source_hash")
+                if h and h in icons:
+                    m["lxmf_icon"] = icons[h]
             return web.json_response({"messages": messages_list})
 
         # maintenance - import messages
@@ -6410,9 +6661,10 @@ class ReticulumMeshChat:
                     "autoconnect_discovered_interfaces",
                     ReticulumMeshChat.DEFAULT_AUTOCONNECT_DISCOVERED_INTERFACES,
                 ),
-                "default_bootstrap_only": ReticulumMeshChat._reticulum_yes_no_preference(
-                    reticulum_config.get("default_bootstrap_only"),
-                    default=True,
+                "default_bootstrap_only": bool(
+                    self.current_context.config.default_bootstrap_only.get()
+                    if self.current_context and self.current_context.config
+                    else False,
                 ),
                 "network_identity": reticulum_config.get("network_identity"),
             }
@@ -6464,10 +6716,22 @@ class ReticulumMeshChat:
                 "interface_discovery_blacklist",
                 "required_discovery_value",
                 "autoconnect_discovered_interfaces",
-                "default_bootstrap_only",
                 "network_identity",
             ):
                 update_config_value(key)
+
+            # default_bootstrap_only is a MeshChatX-only setting; do NOT write it
+            # to Reticulum config so discovered/auto-connected interfaces are
+            # never affected. Clean up any stale value in Reticulum config.
+            reticulum_config.pop("default_bootstrap_only", None)
+            if (
+                self.current_context
+                and self.current_context.config
+                and "default_bootstrap_only" in data
+            ):
+                self.current_context.config.default_bootstrap_only.set(
+                    bool(data.get("default_bootstrap_only")),
+                )
 
             if not self._write_reticulum_config():
                 return web.json_response(
@@ -6493,9 +6757,10 @@ class ReticulumMeshChat:
                     "autoconnect_discovered_interfaces",
                     ReticulumMeshChat.DEFAULT_AUTOCONNECT_DISCOVERED_INTERFACES,
                 ),
-                "default_bootstrap_only": ReticulumMeshChat._reticulum_yes_no_preference(
-                    reticulum_config.get("default_bootstrap_only"),
-                    default=True,
+                "default_bootstrap_only": bool(
+                    self.current_context.config.default_bootstrap_only.get()
+                    if self.current_context and self.current_context.config
+                    else False,
                 ),
                 "network_identity": reticulum_config.get("network_identity"),
             }
@@ -6578,9 +6843,12 @@ class ReticulumMeshChat:
                                     "listen_ip": s.get("listen_ip"),
                                     "connected": s.get("connected"),
                                     "online": s.get("online"),
+                                    "status": s.get("status"),
                                     "transport_id": transport_id,
                                     "network_id": s.get("network_id"),
                                     "autoconnect_source": s.get("autoconnect_source"),
+                                    "txb": s.get("txb"),
+                                    "rxb": s.get("rxb"),
                                 },
                             )
                 except Exception as e:
@@ -7864,11 +8132,23 @@ class ReticulumMeshChat:
         async def telephone_contacts_export(request):
             try:
                 rows = self.database.contacts.get_contacts(limit=10000, offset=0)
+                hashes = [
+                    r["remote_identity_hash"]
+                    for r in rows
+                    if r.get("remote_identity_hash")
+                ]
+                icons = {}
+                if hashes:
+                    icon_rows = self.database.misc.get_user_icons(hashes)
+                    for ir in icon_rows:
+                        icons[ir["destination_hash"]] = dict(ir)
                 export_data = []
                 for row in rows:
                     d = dict(row)
-                    for k in ("id", "created_at", "updated_at"):
-                        d.pop(k, None)
+                    d.pop("id", None)
+                    h = d.get("remote_identity_hash")
+                    if h and h in icons:
+                        d["lxmf_icon"] = icons[h]
                     export_data.append(d)
                 return web.json_response({"contacts": export_data})
             except Exception as e:
@@ -7887,9 +8167,18 @@ class ReticulumMeshChat:
                         {"message": "Invalid import format: contacts must be an array"},
                         status=400,
                     )
+                seen = {}
+                no_hash = []
+                for c in contacts:
+                    h = c.get("remote_identity_hash")
+                    if h:
+                        seen[h] = c
+                    else:
+                        no_hash.append(c)
+                unique_contacts = list(seen.values()) + no_hash
                 added = 0
                 skipped = 0
-                for c in contacts:
+                for c in unique_contacts:
                     name = c.get("name")
                     remote_identity_hash = c.get("remote_identity_hash")
                     if not name or not remote_identity_hash:
@@ -8280,6 +8569,59 @@ class ReticulumMeshChat:
                 },
             )
 
+        # bulk import favourites
+        @routes.post("/api/v1/favourites/import")
+        async def favourites_import(request):
+            try:
+                data = await request.json()
+                entries = data.get("favourites", [])
+                if not isinstance(entries, list):
+                    return web.json_response(
+                        {
+                            "message": "Invalid import format: favourites must be an array"
+                        },
+                        status=400,
+                    )
+                seen = {}
+                no_hash = []
+                for entry in entries:
+                    h = entry.get("destination_hash")
+                    if h:
+                        seen[h] = entry
+                    else:
+                        no_hash.append(entry)
+                unique_entries = list(seen.values()) + no_hash
+                imported = 0
+                skipped = 0
+                for entry in unique_entries:
+                    dest_hash = entry.get("destination_hash")
+                    display_name = entry.get("display_name", "")
+                    aspect = entry.get("aspect")
+                    if not dest_hash or not aspect:
+                        skipped += 1
+                        continue
+                    try:
+                        self.database.announces.upsert_favourite(
+                            dest_hash,
+                            display_name,
+                            aspect,
+                        )
+                        imported += 1
+                    except Exception:
+                        skipped += 1
+                return web.json_response(
+                    {
+                        "message": "Favourites import complete",
+                        "imported": imported,
+                        "skipped": skipped,
+                    }
+                )
+            except Exception as e:
+                return web.json_response(
+                    {"message": f"Failed to import favourites: {e!s}"},
+                    status=500,
+                )
+
         # serve archived pages
         @routes.get("/api/v1/nomadnet/archives")
         async def get_all_archived_pages(request):
@@ -8411,7 +8753,7 @@ class ReticulumMeshChat:
                     RNS.Transport.request_path(outbound_node)
 
             # request messages from propagation node
-            await self.sync_propagation_nodes()
+            await self.sync_propagation_nodes(force=True)
 
             return web.json_response(
                 {
@@ -11175,6 +11517,23 @@ class ReticulumMeshChat:
 
             try:
                 self.database.misc.add_blocked_destination(destination_hash)
+                # Block all known destinations for the same identity
+                announce = self.database.announces.get_announce_by_hash(
+                    destination_hash
+                )
+                if announce and announce.get("identity_hash"):
+                    identity_hash = announce["identity_hash"]
+                    other_announces = (
+                        self.database.announces.get_announces_by_identity_hash(
+                            identity_hash
+                        )
+                    )
+                    for other in other_announces:
+                        other_hash = other["destination_hash"]
+                        if other_hash != destination_hash:
+                            self.database.misc.add_blocked_destination(other_hash)
+                            self._lxmf_reticulum_enforce_block(other_hash)
+                            self._delete_contact_and_stamp_ticket(other_hash)
             except Exception:
                 return web.json_response(
                     {"error": "Destination already blocked"},
@@ -11182,6 +11541,12 @@ class ReticulumMeshChat:
                 )
 
             self._lxmf_reticulum_enforce_block(destination_hash)
+            self._delete_contact_and_stamp_ticket(destination_hash)
+
+            local_hash = self.local_lxmf_destination.hash.hex()
+            self.message_handler.delete_conversation(local_hash, destination_hash)
+
+            AsyncUtils.run_async(self._broadcast_blocked_destinations())
 
             return web.json_response({"message": "ok"})
 
@@ -11198,26 +11563,41 @@ class ReticulumMeshChat:
             try:
                 self.database.misc.delete_blocked_destination(destination_hash)
 
-                # remove from Reticulum blackhole if available and enabled
-                if self.config.blackhole_integration_enabled.get():
-                    try:
-                        if hasattr(self, "reticulum") and self.reticulum:
-                            # Try to resolve identity hash from destination hash
-                            identity_hash = None
-                            announce = self.database.announces.get_announce_by_hash(
-                                destination_hash,
-                            )
-                            if announce and announce.get("identity_hash"):
-                                identity_hash = announce["identity_hash"]
+                # Unblock all known destinations for the same identity
+                announce = self.database.announces.get_announce_by_hash(
+                    destination_hash
+                )
+                if announce and announce.get("identity_hash"):
+                    identity_hash = announce["identity_hash"]
+                    other_announces = (
+                        self.database.announces.get_announces_by_identity_hash(
+                            identity_hash
+                        )
+                    )
+                    for other in other_announces:
+                        other_hash = other["destination_hash"]
+                        if other_hash != destination_hash:
+                            self.database.misc.delete_blocked_destination(other_hash)
 
-                            # Use resolved identity hash or fallback to destination hash
-                            target_hash = identity_hash or destination_hash
-                            dest_bytes = bytes.fromhex(target_hash)
+                # Always remove from Reticulum blackhole if available
+                try:
+                    if hasattr(self, "reticulum") and self.reticulum:
+                        identity_hash = None
+                        announce = self.database.announces.get_announce_by_hash(
+                            destination_hash,
+                        )
+                        if announce and announce.get("identity_hash"):
+                            identity_hash = announce["identity_hash"]
 
-                            if hasattr(self.reticulum, "unblackhole_identity"):
-                                self.reticulum.unblackhole_identity(dest_bytes)
-                    except Exception as e:
-                        print(f"Failed to unblackhole identity in Reticulum: {e}")
+                        target_hash = identity_hash or destination_hash
+                        dest_bytes = bytes.fromhex(target_hash)
+
+                        if hasattr(self.reticulum, "unblackhole_identity"):
+                            self.reticulum.unblackhole_identity(dest_bytes)
+                except Exception as e:
+                    print(f"Failed to unblackhole identity in Reticulum: {e}")
+
+                AsyncUtils.run_async(self._broadcast_blocked_destinations())
 
                 return web.json_response({"message": "ok"})
             except Exception as e:
@@ -12695,19 +13075,40 @@ class ReticulumMeshChat:
         await self.send_announced_to_websocket_clients(context=ctx)
 
     # handle syncing propagation nodes
-    async def sync_propagation_nodes(self, context=None):
+    async def sync_propagation_nodes(self, context=None, force=False):
         ctx = context or self.current_context
         if not ctx:
             return
+
+        router = ctx.message_router
+        if not router:
+            return
+
+        # Prevent overlapping auto-syncs from piling up requests.
+        # A manual/API call can force a restart by cancelling the old sync first.
+        if router.propagation_transfer_state != router.PR_IDLE:
+            if not force:
+                return
+            self.stop_propagation_node_sync(context=ctx)
+            # Give the router a moment to settle back to idle
+            settle_deadline = time.monotonic() + 5.0
+            while time.monotonic() < settle_deadline:
+                if router.propagation_transfer_state == router.PR_IDLE:
+                    break
+                await asyncio.sleep(0.2)
+            else:
+                # Force reset if it didn't settle
+                with contextlib.suppress(Exception):
+                    router.propagation_transfer_state = router.PR_IDLE
 
         self._begin_propagation_sync_metrics(context=ctx)
 
         # update last synced at timestamp
         ctx.config.lxmf_preferred_propagation_node_last_synced_at.set(int(time.time()))
 
-        outbound_node = ctx.message_router.get_outbound_propagation_node()
+        outbound_node = router.get_outbound_propagation_node()
         local_propagation_destination = getattr(
-            ctx.message_router,
+            router,
             "propagation_destination",
             None,
         )
@@ -12720,16 +13121,14 @@ class ReticulumMeshChat:
             # Local node selected as preferred: no transport path lookup is needed.
             # Mark sync as complete immediately to avoid getting stuck in PR_PATH_REQUESTED.
             with contextlib.suppress(Exception):
-                ctx.message_router.propagation_transfer_state = (
-                    ctx.message_router.PR_COMPLETE
-                )
-                ctx.message_router.propagation_transfer_progress = 1.0
-                ctx.message_router.propagation_transfer_last_result = 0
+                router.propagation_transfer_state = router.PR_COMPLETE
+                router.propagation_transfer_progress = 1.0
+                router.propagation_transfer_last_result = 0
             await self.send_config_to_websocket_clients(context=ctx)
             return
 
         # request messages from propagation node
-        ctx.message_router.request_messages_from_propagation_node(ctx.identity)
+        router.request_messages_from_propagation_node(ctx.identity)
 
         # send config to websocket clients (used to tell ui last synced at)
         await self.send_config_to_websocket_clients(context=ctx)
@@ -12860,17 +13259,24 @@ class ReticulumMeshChat:
                 value = 0
             elif value >= 255:
                 value = 254
-            self.config.lxmf_inbound_stamp_cost.set(value)
-            # update the inbound stamp cost on the delivery destination
-            self.message_router.set_inbound_stamp_cost(
-                self.local_lxmf_destination.hash,
-                value,
-            )
-            # re-announce to update the stamp cost in announces
-            self.local_lxmf_destination.display_name = self.config.display_name.get()
-            self.message_router.announce(
-                destination_hash=self.local_lxmf_destination.hash,
-            )
+            # If block strangers is active, store the desired value for later restore
+            # but keep the enforced max cost active
+            if self.config.block_all_from_strangers.get():
+                self.config.lxmf_inbound_stamp_cost_before_block.set(value)
+            else:
+                self.config.lxmf_inbound_stamp_cost.set(value)
+                # update the inbound stamp cost on the delivery destination
+                self.message_router.set_inbound_stamp_cost(
+                    self.local_lxmf_destination.hash,
+                    value,
+                )
+                # re-announce to update the stamp cost in announces
+                self.local_lxmf_destination.display_name = (
+                    self.config.display_name.get()
+                )
+                self.message_router.announce(
+                    destination_hash=self.local_lxmf_destination.hash,
+                )
 
         # update propagation node stamp cost (for messages propagated through your node)
         if "lxmf_propagation_node_stamp_cost" in data:
@@ -13122,9 +13528,73 @@ class ReticulumMeshChat:
             )
 
         if "block_all_from_strangers" in data:
-            self.config.block_all_from_strangers.set(
-                self._parse_bool(data["block_all_from_strangers"]),
+            new_value = self._parse_bool(data["block_all_from_strangers"])
+            old_value = self.config.block_all_from_strangers.get()
+            self.config.block_all_from_strangers.set(new_value)
+            if new_value and not old_value:
+                # Enabling block strangers: save current stamp cost and set to max
+                current_cost = self.config.lxmf_inbound_stamp_cost.get()
+                if current_cost < 254:
+                    self.config.lxmf_inbound_stamp_cost_before_block.set(current_cost)
+                self.config.lxmf_inbound_stamp_cost.set(254)
+                if self.message_router and self.local_lxmf_destination:
+                    self.message_router.set_inbound_stamp_cost(
+                        self.local_lxmf_destination.hash,
+                        254,
+                    )
+                    self.local_lxmf_destination.display_name = (
+                        self.config.display_name.get()
+                    )
+                    self.message_router.announce(
+                        destination_hash=self.local_lxmf_destination.hash,
+                    )
+            elif not new_value and old_value:
+                # Disabling block strangers: restore previous stamp cost
+                saved = self.config.lxmf_inbound_stamp_cost_before_block.get()
+                if saved > 0 and saved < 255:
+                    restore_cost = saved
+                else:
+                    restore_cost = 8
+                self.config.lxmf_inbound_stamp_cost.set(restore_cost)
+                self.config.lxmf_inbound_stamp_cost_before_block.set(0)
+                if self.message_router and self.local_lxmf_destination:
+                    self.message_router.set_inbound_stamp_cost(
+                        self.local_lxmf_destination.hash,
+                        restore_cost,
+                    )
+                    self.local_lxmf_destination.display_name = (
+                        self.config.display_name.get()
+                    )
+                    self.message_router.announce(
+                        destination_hash=self.local_lxmf_destination.hash,
+                    )
+
+        # update flood protection settings
+        if "lxmf_flood_protection_enabled" in data:
+            self.config.lxmf_flood_protection_enabled.set(
+                self._parse_bool(data["lxmf_flood_protection_enabled"]),
             )
+        if "lxmf_flood_threshold_per_minute" in data:
+            try:
+                value = int(data["lxmf_flood_threshold_per_minute"])
+                value = max(1, min(value, 1000))
+                self.config.lxmf_flood_threshold_per_minute.set(value)
+            except (TypeError, ValueError):
+                pass
+        if "lxmf_flood_max_stamp_cost" in data:
+            try:
+                value = int(data["lxmf_flood_max_stamp_cost"])
+                value = max(1, min(value, 254))
+                self.config.lxmf_flood_max_stamp_cost.set(value)
+            except (TypeError, ValueError):
+                pass
+        if "lxmf_flood_cooldown_seconds" in data:
+            try:
+                value = int(data["lxmf_flood_cooldown_seconds"])
+                value = max(30, min(value, 3600))
+                self.config.lxmf_flood_cooldown_seconds.set(value)
+            except (TypeError, ValueError):
+                pass
 
         if "show_unknown_contact_banner" in data:
             self.config.show_unknown_contact_banner.set(
@@ -13609,6 +14079,11 @@ class ReticulumMeshChat:
 
             destination_hash_hex = download_data.get("destination_hash")
             file_path = download_data.get("file_path")
+            request_data = download_data.get("data")
+            if isinstance(request_data, str):
+                request_data = convert_nomadnet_string_data_to_map(request_data)
+            elif request_data is None:
+                request_data = {}
 
             if not destination_hash_hex or not file_path:
                 return
@@ -13754,6 +14229,7 @@ class ReticulumMeshChat:
                 on_file_download_success,
                 on_file_download_failure,
                 on_file_download_progress,
+                data=request_data,
                 on_phase=on_file_download_phase,
                 reticulum=getattr(self, "reticulum", None),
             )
@@ -14426,6 +14902,27 @@ class ReticulumMeshChat:
             ),
         )
 
+    async def _broadcast_blocked_destinations(self):
+        try:
+            blocked = self.database.misc.get_blocked_destinations()
+            blocked_list = [
+                {
+                    "destination_hash": b["destination_hash"],
+                    "created_at": b["created_at"],
+                }
+                for b in blocked
+            ]
+            await self.websocket_broadcast(
+                json.dumps(
+                    {
+                        "type": "blocked_destinations",
+                        "blocked_destinations": blocked_list,
+                    },
+                ),
+            )
+        except Exception as e:
+            print(f"_broadcast_blocked_destinations: failed: {e}")
+
     # returns a dictionary of config
     def get_config_dict(self, context=None):
         ctx = context or self.current_context
@@ -14467,6 +14964,10 @@ class ReticulumMeshChat:
             "lxmf_user_icon_background_colour": ctx.config.lxmf_user_icon_background_colour.get(),
             "lxmf_inbound_stamp_cost": ctx.config.lxmf_inbound_stamp_cost.get(),
             "lxmf_propagation_node_stamp_cost": ctx.config.lxmf_propagation_node_stamp_cost.get(),
+            "lxmf_flood_protection_enabled": ctx.config.lxmf_flood_protection_enabled.get(),
+            "lxmf_flood_threshold_per_minute": ctx.config.lxmf_flood_threshold_per_minute.get(),
+            "lxmf_flood_max_stamp_cost": ctx.config.lxmf_flood_max_stamp_cost.get(),
+            "lxmf_flood_cooldown_seconds": ctx.config.lxmf_flood_cooldown_seconds.get(),
             "page_archiver_enabled": ctx.config.page_archiver_enabled.get(),
             "page_archiver_max_versions": ctx.config.page_archiver_max_versions.get(),
             "archives_max_storage_gb": ctx.config.archives_max_storage_gb.get(),
@@ -14967,40 +15468,90 @@ class ReticulumMeshChat:
         if not ctx or not ctx.database:
             return False
         try:
-            return ctx.database.misc.is_destination_blocked(destination_hash)
+            if ctx.database.misc.is_destination_blocked(destination_hash):
+                return True
+            # Check if any destination for this identity is blocked
+            announce = ctx.database.announces.get_announce_by_hash(destination_hash)
+            if announce and announce.get("identity_hash"):
+                identity_hash = announce["identity_hash"]
+                other_announces = ctx.database.announces.get_announces_by_identity_hash(
+                    identity_hash
+                )
+                for other in other_announces:
+                    if ctx.database.misc.is_destination_blocked(
+                        other["destination_hash"]
+                    ):
+                        return True
+            return False
         except Exception:
             return False
 
     def _lxmf_reticulum_enforce_block(self, destination_hash: str) -> None:
         """Apply Reticulum blackhole or drop_path after a peer was added to the block list."""
-        if self.config.blackhole_integration_enabled.get():
-            try:
-                if hasattr(self, "reticulum") and self.reticulum:
-                    identity_hash = None
-                    announce = self.database.announces.get_announce_by_hash(
-                        destination_hash,
+        try:
+            if hasattr(self, "reticulum") and self.reticulum:
+                identity_hash = None
+                announce = self.database.announces.get_announce_by_hash(
+                    destination_hash,
+                )
+                if announce and announce.get("identity_hash"):
+                    identity_hash = announce["identity_hash"]
+                target_hash = identity_hash or destination_hash
+                dest_bytes = bytes.fromhex(target_hash)
+                if hasattr(self.reticulum, "blackhole_identity"):
+                    reason = (
+                        f"Blocked in MeshChatX (from {destination_hash})"
+                        if identity_hash
+                        else "Blocked in MeshChatX"
                     )
-                    if announce and announce.get("identity_hash"):
-                        identity_hash = announce["identity_hash"]
-                    target_hash = identity_hash or destination_hash
-                    dest_bytes = bytes.fromhex(target_hash)
-                    if hasattr(self.reticulum, "blackhole_identity"):
-                        reason = (
-                            f"Blocked in MeshChatX (from {destination_hash})"
-                            if identity_hash
-                            else "Blocked in MeshChatX"
-                        )
-                        self.reticulum.blackhole_identity(dest_bytes, reason=reason)
-                    else:
-                        self.reticulum.drop_path(dest_bytes)
-            except Exception as e:
-                print(f"_lxmf_reticulum_enforce_block: blackhole failed: {e}")
-        else:
-            try:
-                if hasattr(self, "reticulum") and self.reticulum:
-                    self.reticulum.drop_path(bytes.fromhex(destination_hash))
-            except Exception as e:
-                print(f"_lxmf_reticulum_enforce_block: drop_path failed: {e}")
+                    self.reticulum.blackhole_identity(dest_bytes, reason=reason)
+                else:
+                    self.reticulum.drop_path(dest_bytes)
+        except Exception as e:
+            print(f"_lxmf_reticulum_enforce_block: failed: {e}")
+
+    def _delete_contact_and_stamp_ticket(
+        self, destination_hash: str, context=None
+    ) -> None:
+        """Remove contact and stamp/ticket state for a blocked destination."""
+        ctx = context or self.current_context
+        if not ctx or not ctx.database:
+            return
+        try:
+            # Delete contact if present
+            contact = ctx.database.contacts.get_contact_by_identity_hash(
+                destination_hash
+            )
+            if contact and contact.get("id"):
+                ctx.database.contacts.delete_contact(contact["id"])
+        except Exception as e:
+            print(f"_delete_contact_and_stamp_ticket: contact delete failed: {e}")
+
+        try:
+            # Remove stamp costs and tickets from LXMRouter
+            if ctx.message_router:
+                dest_bytes = bytes.fromhex(destination_hash)
+                # Remove outbound stamp cost
+                if hasattr(ctx.message_router, "outbound_stamp_costs"):
+                    ctx.message_router.outbound_stamp_costs.pop(dest_bytes, None)
+                # Remove tickets
+                if hasattr(ctx.message_router, "available_tickets"):
+                    ctx.message_router.available_tickets["outbound"].pop(
+                        dest_bytes, None
+                    )
+                    ctx.message_router.available_tickets["inbound"].pop(
+                        dest_bytes, None
+                    )
+                    ctx.message_router.available_tickets["last_deliveries"].pop(
+                        dest_bytes, None
+                    )
+                # Persist changes
+                if hasattr(ctx.message_router, "save_outbound_stamp_costs"):
+                    ctx.message_router.save_outbound_stamp_costs()
+                if hasattr(ctx.message_router, "save_available_tickets"):
+                    ctx.message_router.save_available_tickets()
+        except Exception as e:
+            print(f"_delete_contact_and_stamp_ticket: stamp/ticket cleanup failed: {e}")
 
     def banish_lxmf_peer(self, destination_hash: str, context=None) -> None:
         """Banish (block) an LXMF peer: persist block and apply Reticulum blackhole/drop when configured."""
@@ -15011,10 +15562,25 @@ class ReticulumMeshChat:
             return
         try:
             ctx.database.misc.add_blocked_destination(destination_hash)
+            # Block all known destinations for the same identity
+            announce = ctx.database.announces.get_announce_by_hash(destination_hash)
+            if announce and announce.get("identity_hash"):
+                identity_hash = announce["identity_hash"]
+                other_announces = ctx.database.announces.get_announces_by_identity_hash(
+                    identity_hash
+                )
+                for other in other_announces:
+                    other_hash = other["destination_hash"]
+                    if other_hash != destination_hash:
+                        ctx.database.misc.add_blocked_destination(other_hash)
+                        self._lxmf_reticulum_enforce_block(other_hash)
+                        self._delete_contact_and_stamp_ticket(other_hash, context=ctx)
         except Exception as e:
-            print(f"banish_lxmf_peer: add_blocked_destination failed: {e}")
+            print(f"banish_lxmf_peer: failed: {e}")
             return
         self._lxmf_reticulum_enforce_block(destination_hash)
+        self._delete_contact_and_stamp_ticket(destination_hash, context=ctx)
+        AsyncUtils.run_async(self._broadcast_blocked_destinations())
 
     def check_spam_keywords(self, title: str, content: str, context=None) -> bool:
         """Return whether title/content match configured spam keywords."""
@@ -15025,6 +15591,100 @@ class ReticulumMeshChat:
             return ctx.database.misc.check_spam_keywords(title, content)
         except Exception:
             return False
+
+    def _apply_lxmf_flood_stamp_cost(self, cost: int, context=None) -> None:
+        """Apply the given inbound stamp cost for flood protection and re-announce."""
+        ctx = context or self.current_context
+        if not ctx or not ctx.message_router or not ctx.local_lxmf_destination:
+            return
+        cost = max(0, min(254, cost))
+        if cost < 1:
+            cost = 0
+        ctx.config.lxmf_inbound_stamp_cost.set(cost)
+        ctx.message_router.set_inbound_stamp_cost(
+            ctx.local_lxmf_destination.hash,
+            cost,
+        )
+        try:
+            ctx.local_lxmf_destination.display_name = ctx.config.display_name.get()
+            ctx.message_router.announce(
+                destination_hash=ctx.local_lxmf_destination.hash,
+            )
+        except Exception as e:
+            print(f"_apply_lxmf_flood_stamp_cost: re-announce failed: {e}")
+
+    def _check_lxmf_flood_protection(self, context=None) -> None:
+        """Check incoming LXMF message rate and auto-adjust stamp cost if flooding."""
+        ctx = context or self.current_context
+        if not ctx or not ctx.config:
+            return
+        if not ctx.config.lxmf_flood_protection_enabled.get():
+            return
+        # Do not interfere when block strangers is active (it uses max stamp)
+        if ctx.config.block_all_from_strangers.get():
+            return
+
+        now = time.time()
+        # Clean old timestamps (> 1 hour)
+        self._lxmf_incoming_timestamps = [
+            t for t in self._lxmf_incoming_timestamps if now - t <= 3600.0
+        ]
+        msgs_per_minute = len(
+            [t for t in self._lxmf_incoming_timestamps if now - t <= 60.0],
+        )
+
+        threshold = ctx.config.lxmf_flood_threshold_per_minute.get()
+        max_cost = ctx.config.lxmf_flood_max_stamp_cost.get()
+        current_cost = ctx.config.lxmf_inbound_stamp_cost.get()
+        if current_cost < 0:
+            current_cost = 0
+
+        # Determine base cost (the normal non-flood cost)
+        if self._flood_protection_current_cost is not None:
+            base_cost = self._flood_protection_current_cost
+        else:
+            base_cost = current_cost
+
+        if msgs_per_minute > threshold:
+            # Flood detected: bump stamp cost
+            new_cost = min(current_cost + 2, max_cost)
+            if new_cost != current_cost:
+                print(
+                    f"LXMF flood detected: {msgs_per_minute} msg/min "
+                    f"(threshold {threshold}). Raising stamp cost from "
+                    f"{current_cost} to {new_cost}.",
+                )
+                if self._flood_protection_current_cost is None:
+                    self._flood_protection_current_cost = base_cost
+                self._flood_protection_last_bump_time = now
+                self._apply_lxmf_flood_stamp_cost(new_cost, context=ctx)
+        elif current_cost > base_cost:
+            cooldown = ctx.config.lxmf_flood_cooldown_seconds.get()
+            if now - self._flood_protection_last_bump_time > cooldown:
+                # Step down by 1 toward base cost
+                new_cost = max(current_cost - 1, base_cost)
+                if new_cost != current_cost:
+                    print(
+                        f"LXMF flood subsided: {msgs_per_minute} msg/min. "
+                        f"Lowering stamp cost from {current_cost} to {new_cost}.",
+                    )
+                    self._apply_lxmf_flood_stamp_cost(new_cost, context=ctx)
+                if new_cost == base_cost:
+                    self._flood_protection_current_cost = None
+                    self._flood_protection_last_bump_time = 0
+
+    async def lxmf_flood_protection_cooldown_loop(self, session_id, context=None):
+        """Background loop to step down flood protection stamp cost during quiet periods."""
+        ctx = context or self.current_context
+        if not ctx:
+            return
+        await asyncio.sleep(60)
+        while self.running and ctx.running and ctx.session_id == session_id:
+            try:
+                self._check_lxmf_flood_protection(context=ctx)
+            except Exception as e:
+                print(f"lxmf_flood_protection_cooldown_loop error: {e}")
+            await asyncio.sleep(30)
 
     def _collect_lxmf_sieve_peer_haystack(
         self,
@@ -15196,6 +15856,10 @@ class ReticulumMeshChat:
             if self.is_destination_blocked(source_hash, context=ctx):
                 print(f"Rejecting LXMF message from blocked source: {source_hash}")
                 return
+
+            # track incoming message timestamps for flood protection
+            self._lxmf_incoming_timestamps.append(time.time())
+            self._check_lxmf_flood_protection(context=ctx)
 
             is_sideband_telemetry_request = False
             lxmf_fields = lxmf_message.get_fields()
@@ -17110,6 +17774,13 @@ def main():
         default=os.environ.get("MESHCHAT_RESTORE_SNAPSHOT"),
     )
 
+    parser.add_argument(
+        "--reset-password",
+        action="store_true",
+        default=env_bool("MESHCHAT_RESET_PASSWORD", False),
+        help="Clear the stored password hash on startup so a new password can be set via the web UI. Can also be set via MESHCHAT_RESET_PASSWORD environment variable.",
+    )
+
     args = parser.parse_args()
 
     ssl_cert = (args.ssl_cert or "").strip() or None
@@ -17123,7 +17794,14 @@ def main():
     if args.no_crash_recovery:
         recovery.disable()
 
-    planned_storage_dir = args.storage_dir or os.path.join("storage")
+    planned_storage_dir = args.storage_dir
+    if not planned_storage_dir:
+        # On Android, prefer user-accessible external storage
+        android_external = _get_android_external_files_dir()
+        if android_external:
+            planned_storage_dir = android_external
+        else:
+            planned_storage_dir = os.path.join("storage")
     effective_storage_dir, migration_context = resolve_startup_storage(
         planned_storage_dir,
     )
@@ -17248,6 +17926,12 @@ def main():
         public_dir=reticulum_meshchat.public_dir_override or get_file_path("public"),
         reticulum_config_dir=reticulum_meshchat.reticulum_config_dir,
     )
+
+    if args.reset_password:
+        if reticulum_meshchat.reset_password():
+            print("Password has been reset. Set a new password via the web UI.")
+        else:
+            print("No password was set; nothing to reset.")
 
     if args.backup_db:
         result = reticulum_meshchat.backup_database(args.backup_db)

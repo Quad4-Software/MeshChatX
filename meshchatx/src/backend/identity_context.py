@@ -217,6 +217,14 @@ class IdentityContext:
 
         # Register LXMF delivery identity
         inbound_stamp_cost = self.config.lxmf_inbound_stamp_cost.get()
+        # Enforce max stamp cost when block strangers is enabled on startup
+        if (
+            self.config.block_all_from_strangers.get()
+            and isinstance(inbound_stamp_cost, int)
+            and inbound_stamp_cost < 254
+        ):
+            inbound_stamp_cost = 254
+            self.config.lxmf_inbound_stamp_cost.set(254)
         self.local_lxmf_destination = self.message_router.register_delivery_identity(
             identity=self.identity,
             display_name=self.config.display_name.get(),
@@ -408,6 +416,18 @@ class IdentityContext:
             target=asyncio.run,
             args=(
                 self.app.local_message_retention_loop(self.session_id, context=self),
+            ),
+        )
+        thread.daemon = True
+        thread.start()
+
+        # start background thread for LXMF flood protection cooldown
+        thread = threading.Thread(
+            target=asyncio.run,
+            args=(
+                self.app.lxmf_flood_protection_cooldown_loop(
+                    self.session_id, context=self
+                ),
             ),
         )
         thread.daemon = True

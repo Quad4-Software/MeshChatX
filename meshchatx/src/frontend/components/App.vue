@@ -225,16 +225,16 @@
                                         </SidebarLink>
                                     </li>
 
-                                    <!-- nomad network -->
+                                    <!-- telephone -->
                                     <li>
-                                        <SidebarLink :to="{ name: 'nomadnetwork' }" :is-collapsed="isSidebarCollapsed">
+                                        <SidebarLink :to="{ name: 'call' }" :is-collapsed="isSidebarCollapsed">
                                             <template #icon>
                                                 <MaterialDesignIcon
-                                                    icon-name="earth"
+                                                    icon-name="phone"
                                                     class="w-6 h-6 text-gray-700 dark:text-gray-200"
                                                 />
                                             </template>
-                                            <template #text>{{ $t("app.nomad_network") }}</template>
+                                            <template #text>{{ $t("app.audio_calls") }}</template>
                                         </SidebarLink>
                                     </li>
 
@@ -248,6 +248,19 @@
                                                 />
                                             </template>
                                             <template #text>{{ $t("app.contacts") }}</template>
+                                        </SidebarLink>
+                                    </li>
+
+                                    <!-- nomad network -->
+                                    <li>
+                                        <SidebarLink :to="{ name: 'nomadnetwork' }" :is-collapsed="isSidebarCollapsed">
+                                            <template #icon>
+                                                <MaterialDesignIcon
+                                                    icon-name="earth"
+                                                    class="w-6 h-6 text-gray-700 dark:text-gray-200"
+                                                />
+                                            </template>
+                                            <template #text>{{ $t("app.nomad_network") }}</template>
                                         </SidebarLink>
                                     </li>
 
@@ -277,16 +290,16 @@
                                         </SidebarLink>
                                     </li>
 
-                                    <!-- telephone -->
+                                    <!-- tools -->
                                     <li>
-                                        <SidebarLink :to="{ name: 'call' }" :is-collapsed="isSidebarCollapsed">
+                                        <SidebarLink :to="{ name: 'tools' }" :is-collapsed="isSidebarCollapsed">
                                             <template #icon>
                                                 <MaterialDesignIcon
-                                                    icon-name="phone"
-                                                    class="w-6 h-6 text-gray-700 dark:text-gray-200"
+                                                    icon-name="wrench"
+                                                    class="size-6 text-gray-700 dark:text-gray-200"
                                                 />
                                             </template>
-                                            <template #text>{{ $t("app.audio_calls") }}</template>
+                                            <template #text>{{ $t("app.tools") }}</template>
                                         </SidebarLink>
                                     </li>
 
@@ -319,16 +332,16 @@
                                         </SidebarLink>
                                     </li>
 
-                                    <!-- tools -->
+                                    <!-- banished -->
                                     <li>
-                                        <SidebarLink :to="{ name: 'tools' }" :is-collapsed="isSidebarCollapsed">
+                                        <SidebarLink :to="{ name: 'blocked' }" :is-collapsed="isSidebarCollapsed">
                                             <template #icon>
                                                 <MaterialDesignIcon
-                                                    icon-name="wrench"
-                                                    class="size-6 text-gray-700 dark:text-gray-200"
+                                                    icon-name="gavel"
+                                                    class="w-6 h-6 text-gray-700 dark:text-gray-200"
                                                 />
                                             </template>
-                                            <template #text>{{ $t("app.tools") }}</template>
+                                            <template #text>{{ $t("banishment.title") }}</template>
                                         </SidebarLink>
                                     </li>
 
@@ -1174,7 +1187,9 @@ export default {
                     if (this.config?.do_not_disturb_enabled) {
                         break;
                     }
-                    // If we are the caller (outgoing initiation), skip playing the incoming ringtone
+                    if (this.config?.telephone_allow_calls_from_contacts_only && !json.is_contact) {
+                        break;
+                    }
                     if (this.initiationStatus) {
                         break;
                     }
@@ -1230,6 +1245,10 @@ export default {
                         this.toneGenerator.playBusyTone();
                     }
                     this.updateTelephoneStatus();
+                    break;
+                }
+                case "blocked_destinations": {
+                    GlobalState.blockedDestinations = json.blocked_destinations || [];
                     break;
                 }
                 case "lxmf.delivery": {

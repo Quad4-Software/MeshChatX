@@ -182,7 +182,7 @@ function shouldRefreshLicenseArtifacts(repoRoot) {
 
     const inputFiles = [
         path.join(repoRoot, "pyproject.toml"),
-        path.join(repoRoot, "poetry.lock"),
+        path.join(repoRoot, "uv.lock"),
         path.join(repoRoot, "package.json"),
         path.join(repoRoot, "pnpm-lock.yaml"),
         path.join(repoRoot, "meshchatx", "src", "backend", "licenses_collector.py"),
@@ -199,12 +199,50 @@ function shouldRefreshLicenseArtifacts(repoRoot) {
     return newestInput >= oldestOutput;
 }
 
+function verifyBinaryArchitecture(buildDir, expectedArch, targetName) {
+    const binaryPath = path.join(buildDir, targetName);
+    if (!fs.existsSync(binaryPath)) {
+        console.warn(`Binary not found at ${binaryPath}, skipping architecture verification.`);
+        return true;
+    }
+
+    let output = "";
+    try {
+        const result = spawnSync("file", ["--brief", "--no-pad", binaryPath], {
+            encoding: "utf-8",
+            shell: false,
+        });
+        if (result.error || result.status !== 0) {
+            console.warn(`Could not verify binary architecture: ${result.error?.message || `exit ${result.status}`}`);
+            return true;
+        }
+        output = result.stdout.toLowerCase();
+    } catch (e) {
+        console.warn(`Architecture verification failed: ${e.message}`);
+        return true;
+    }
+
+    const isArm64 = output.includes("aarch64") || output.includes("arm64");
+    const isX64 = output.includes("x86-64") || output.includes("x86_64") || output.includes("amd64");
+
+    if (expectedArch === "arm64" && !isArm64) {
+        console.error(`Architecture mismatch: expected arm64 but binary is not arm64 (${output.trim()}).`);
+        return false;
+    }
+    if (expectedArch === "x64" && !isX64) {
+        console.error(`Architecture mismatch: expected x64 but binary is not x64 (${output.trim()}).`);
+        return false;
+    }
+    return true;
+}
+
 try {
     const platform = process.env.PLATFORM || process.platform;
     const arch = process.env.ARCH || process.arch;
     const isWin = platform === "win32" || platform === "win";
     const isDarwin = platform === "darwin";
     const targetName = isWin ? "ReticulumMeshChatX.exe" : "ReticulumMeshChatX";
+    const rosettaX64 = isDarwin && arch === "x64" && process.arch === "arm64";
 
     let platformFolder = "linux";
     if (isWin) {
@@ -215,8 +253,20 @@ try {
     const buildDirRelative = `build/exe/${platformFolder}-${arch}`;
     const buildDir = path.join(__dirname, "..", buildDirRelative);
 
+    if (arch !== process.arch && !rosettaX64 && !process.env.PYTHON_CMD) {
+        console.error(
+            `Cross-compilation detected (host: ${process.arch}, target: ${arch}).\n` +
+                `cx_Freeze produces binaries for the architecture of the Python interpreter it runs under.\n` +
+                `To build the backend for ${arch}, you must either:\n` +
+                `  - Build natively on ${arch} hardware (or in a VM/container of that architecture).\n` +
+                `  - Set PYTHON_CMD to a ${arch} Python interpreter (with Poetry dependencies installed).\n` +
+                `  - Use Docker with QEMU/binfmt support (e.g., docker run --platform ${platformFolder}/${arch}).`
+        );
+        process.exit(1);
+    }
+
     // Allow overriding the python command
-    const pythonCmd = process.env.PYTHON_CMD || "poetry run python";
+    const pythonCmd = process.env.PYTHON_CMD || "uv run python";
 
     console.log(
         `Building backend for ${platform} (target: ${targetName}, output: ${buildDirRelative}) using: ${pythonCmd}`
@@ -237,7 +287,6 @@ try {
 
     let spawnCmd = cmd;
     let spawnArgs = licensesArgs;
-    const rosettaX64 = isDarwin && arch === "x64" && process.arch === "arm64";
     if (rosettaX64) {
         spawnCmd = "arch";
         spawnArgs = ["-x86_64", cmd, ...licensesArgs];
@@ -277,6 +326,9 @@ try {
         stripFrozenPythonBloat(buildDir);
         if (isDarwin) {
             stripPythonBytecodeArtifacts(buildDir);
+        }
+        if (!verifyBinaryArchitecture(buildDir, arch, targetName)) {
+            process.exit(1);
         }
         const manifestPath = path.join(buildDir, "backend-manifest.json");
         const skipManifest =

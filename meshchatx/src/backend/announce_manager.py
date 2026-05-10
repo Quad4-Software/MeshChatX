@@ -46,16 +46,16 @@ class AnnounceManager:
 
     def _get_fetch_limit_for_aspect(self, aspect):
         if not self.config:
-            return 500
+            return 2500
         key = _ASPECT_FETCH_LIMIT_KEYS.get(aspect)
         if not key:
-            return 500
+            return 2500
         attr = getattr(self.config, key, None)
         if attr is None:
-            return 500
+            return 2500
         v = attr.get()
         if v is None or v < 1:
-            return 500
+            return 2500
         return min(v, 100_000)
 
     def is_storing_announce_for_aspect(self, aspect, force_store: bool = False) -> bool:

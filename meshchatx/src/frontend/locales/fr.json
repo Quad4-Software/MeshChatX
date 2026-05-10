@@ -153,7 +153,7 @@
         "local_message_auto_delete_unit_days": "jours",
         "local_message_auto_delete_unit_months": "mois (30 jours chacun)",
         "local_message_auto_delete_month_note": "Un mois compte comme 30 jours. Désactivé par défaut.",
-        "browse_nodes": "Parcourir les n\u0153uds",
+        "browse_nodes": "Parcourir les nœuds",
         "propagation_nodes_description": "Gardez les conversations qui circulent même lorsque les pairs sont hors ligne.",
         "nodes_info_1": "Les nœuds de propagation maintiennent les messages en toute sécurité jusqu'à ce que les destinataires se synchronisent à nouveau.",
         "nodes_info_2": "Des nœuds s'unissent pour distribuer des charges utiles chiffrées.",
@@ -357,7 +357,13 @@
         "telemetry_trust_revoke": "Revoquer la confiance en télémétrie",
         "telemetry_trust_grant": "Confiance pour la télémétrie",
         "location_manage_desc": "Gérez comment votre emplacement est partagé.",
-        "restart_rns": "Redémarrer RNS"
+        "restart_rns": "Redémarrer RNS",
+        "flood_protection": "Flood Protection",
+        "flood_protection_description": "Automatically raise the inbound stamp cost when receiving too many messages per minute from many sources. This makes coordinated spam attacks computationally expensive while keeping normal conversations affordable.",
+        "flood_protection_enabled": "Enable auto-adjusting stamp cost",
+        "flood_threshold": "Messages per minute threshold",
+        "flood_max_stamp_cost": "Maximum stamp cost during flood",
+        "flood_cooldown": "Cooldown before lowering cost (seconds)"
     },
     "common": {
         "open": "Ouvrir",
@@ -1476,6 +1482,7 @@
         "type": "Type",
         "user": "Utilisateur",
         "node": "Noeud",
+        "blocked_destinations": "Destinations bloquées",
         "banishment_lifted": "Interdiction levée avec succès",
         "failed_lift_banishment": "Échec à la levée du bannissement"
     },

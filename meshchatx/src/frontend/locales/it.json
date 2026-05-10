@@ -357,7 +357,13 @@
         "telemetry_trust_revoke": "Revoca Fiducia Telemetrica",
         "telemetry_trust_grant": "Fidati per la Telemetria",
         "location_manage_desc": "Gestisci come viene condivisa la tua posizione.",
-        "restart_rns": "Riavvia RNS"
+        "restart_rns": "Riavvia RNS",
+        "flood_protection": "Flood Protection",
+        "flood_protection_description": "Automatically raise the inbound stamp cost when receiving too many messages per minute from many sources. This makes coordinated spam attacks computationally expensive while keeping normal conversations affordable.",
+        "flood_protection_enabled": "Enable auto-adjusting stamp cost",
+        "flood_threshold": "Messages per minute threshold",
+        "flood_max_stamp_cost": "Maximum stamp cost during flood",
+        "flood_cooldown": "Cooldown before lowering cost (seconds)"
     },
     "common": {
         "open": "Apri",
@@ -1528,6 +1534,7 @@
         "type": "Tipo",
         "user": "Utente",
         "node": "Nodo",
+        "blocked_destinations": "Destinazioni bloccate",
         "banishment_lifted": "Esilio revocato con successo",
         "failed_lift_banishment": "Impossibile revocare l'esilio"
     },

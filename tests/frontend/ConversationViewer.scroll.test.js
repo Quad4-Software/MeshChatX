@@ -1,4 +1,4 @@
-import { mount } from "@vue/test-utils";
+import { mount, flushPromises } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import ConversationViewer from "@/components/messages/ConversationViewer.vue";
 import WebSocketConnection from "@/js/WebSocketConnection";
@@ -121,5 +121,42 @@ describe("ConversationViewer.vue scroll behavior", () => {
         wrapper.vm.onMessagesScroll({ target: el });
         expect(spy).toHaveBeenCalledTimes(1);
         el.remove();
+    });
+
+    it("runs resetStaleConversationScrollSurface after selectedPeer changes", async () => {
+        const peerA = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        const peerB = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+        const wrapper = mount(ConversationViewer, {
+            props: {
+                selectedPeer: { destination_hash: peerA, display_name: "A" },
+                myLxmfAddressHash: "myhashmyhashmyhashmyhashmyhashmyha",
+                conversations: [],
+            },
+            global: {
+                directives: { "click-outside": { mounted: () => {}, unmounted: () => {} } },
+                mocks: { $t: (key) => key },
+                stubs: {
+                    MaterialDesignIcon: true,
+                    AddImageButton: true,
+                    AddAudioButton: true,
+                    SendMessageButton: true,
+                    ConversationDropDownMenu: true,
+                    PaperMessageModal: true,
+                    AudioWaveformPlayer: true,
+                    LxmfUserIcon: true,
+                    ConversationPeerHeader: true,
+                    ConversationMessageEntry: true,
+                    ConversationMessageListVirtual: true,
+                    TelemetryHistoryModal: true,
+                },
+            },
+        });
+        const spy = vi.spyOn(wrapper.vm, "resetStaleConversationScrollSurface");
+        await wrapper.setProps({
+            selectedPeer: { destination_hash: peerB, display_name: "B" },
+        });
+        await flushPromises();
+        await wrapper.vm.$nextTick();
+        expect(spy).toHaveBeenCalled();
     });
 });

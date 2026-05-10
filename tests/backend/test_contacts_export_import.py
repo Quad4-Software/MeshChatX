@@ -73,6 +73,9 @@ async def test_contacts_export_with_data(mock_rns_minimal, temp_dir):
         )
         app.database.contacts.add_contact("Alice", "a" * 32, lxmf_address="b" * 32)
         app.database.contacts.add_contact("Bob", "c" * 32)
+        app.database.misc.update_lxmf_user_icon(
+            "a" * 32, "account", "#FFFFFF", "#000000"
+        )
 
         handler = None
         for route in app.get_routes():
@@ -93,8 +96,13 @@ async def test_contacts_export_with_data(mock_rns_minimal, temp_dir):
         assert names == {"Alice", "Bob"}
         for c in data["contacts"]:
             assert "id" not in c
-            assert "created_at" not in c
-            assert "updated_at" not in c
+            assert "created_at" in c
+            assert "updated_at" in c
+        alice = next(c for c in data["contacts"] if c["name"] == "Alice")
+        assert "lxmf_icon" in alice
+        assert alice["lxmf_icon"]["icon_name"] == "account"
+        bob = next(c for c in data["contacts"] if c["name"] == "Bob")
+        assert "lxmf_icon" not in bob
 
 
 @pytest.mark.asyncio
@@ -193,3 +201,41 @@ async def test_contacts_import_rejects_non_array(mock_rns_minimal, temp_dir):
         request.json = AsyncMock(return_value={"contacts": "not an array"})
         response = await handler(request)
         assert response.status == 400
+
+
+@pytest.mark.asyncio
+async def test_contacts_import_deduplicates(mock_rns_minimal, temp_dir):
+    with patch("meshchatx.meshchat.generate_ssl_certificate"):
+        app = ReticulumMeshChat(
+            identity=mock_rns_minimal,
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+        handler = None
+        for route in app.get_routes():
+            if (
+                route.path == "/api/v1/telephone/contacts/import"
+                and route.method == "POST"
+            ):
+                handler = route.handler
+                break
+        assert handler is not None
+
+        request = MagicMock()
+        request.json = AsyncMock(
+            return_value={
+                "contacts": [
+                    {"name": "First", "remote_identity_hash": "a" * 32},
+                    {"name": "Second", "remote_identity_hash": "a" * 32},
+                    {"name": "Third", "remote_identity_hash": "b" * 32},
+                ],
+            },
+        )
+        response = await handler(request)
+        data = json.loads(response.body)
+        assert data["added"] == 2
+        assert data["skipped"] == 0
+        rows = app.database.contacts.get_contacts(limit=10)
+        assert len(rows) == 2
+        names = {r["name"] for r in rows}
+        assert names == {"Second", "Third"}

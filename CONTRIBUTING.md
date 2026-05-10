@@ -59,10 +59,10 @@ You also confirm that you have the right to submit the contribution under these 
 
 ## Generative AI policy
 
-You may use generative AI tools when contributing, on the condition that your setup actually supplies the model with enough context to produce sound work: relevant files, constraints, failing tests, and project conventions. Vague prompts and thin context lead to wrong or generic patches; that burden is on the contributor, not the reviewers.
+You may use generative AI tools when contributing, on the condition that your setup actually supplies the model with enough context to produce sound work and your provider does not train on the code, read [Reticulum Zen](https://reticulum.network/manual/zen.html) and the [Reticulum License](https://reticulum.network/manual/license.html). Vague prompts and thin context lead to wrong or generic patches; that burden is on the contributor, not the reviewers.
 
 You must disclose AI usage in the patch message body (or commit message, if you prefer): state which tools or services you used in a material way for that change (for example, model or product name, and whether it was local or cloud). If a change was written without meaningful AI assistance, say so briefly. This is so reviewers can judge scope and provenance; it is not a substitute for your own review and testing.
 
-We prefer models that run locally or offline when that is practical for you.
+We strongly prefer models that run locally or offline when that is practical for you.
 
 Contributions must still be yours to justify and maintain. Do not submit bulk-generated changes you have not read, understood, and tested. We are not looking for unreviewed AI output or style-only churn from tools used without engineering/architectural judgment.

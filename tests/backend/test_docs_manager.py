@@ -331,3 +331,38 @@ def test_extract_docs_malformed_zip(docs_manager, temp_dirs):
     finally:
         if os.path.exists(zip_path):
             os.remove(zip_path)
+
+
+def test_populate_meshchatx_docs_generates_index_html(tmp_path):
+    public_dir = tmp_path / "public"
+    public_dir.mkdir()
+    docs_dir = tmp_path / "docs"
+    docs_dir.mkdir()
+    (docs_dir / "README.md").write_text("# Hello\nWorld")
+    (docs_dir / "FAQ.md").write_text("# FAQ\nQ&A")
+
+    config = MagicMock()
+    dm = DocsManager(config, str(public_dir), project_root=str(tmp_path))
+    dm.populate_meshchatx_docs()
+
+    index_path = os.path.join(dm.meshchatx_docs_dir, "index.html")
+    assert os.path.exists(index_path)
+    content = open(index_path, encoding="utf-8").read()
+    assert "MeshChatX Documentation" in content
+    assert "README.html" in content
+    assert "FAQ.html" in content
+
+
+def test_get_doc_content_rejects_directory_path(tmp_path):
+    public_dir = tmp_path / "public"
+    public_dir.mkdir()
+    config = MagicMock()
+    dm = DocsManager(config, str(public_dir))
+
+    # Ensure meshchatx_docs_dir exists as a directory
+    os.makedirs(dm.meshchatx_docs_dir, exist_ok=True)
+
+    # Passing "." should resolve to the directory itself, not a file
+    assert dm.get_doc_content(".") is None
+    assert dm.get_doc_content("..") is None
+    assert dm.get_doc_content("") is None

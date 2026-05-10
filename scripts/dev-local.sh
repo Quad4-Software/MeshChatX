@@ -17,7 +17,7 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-poetry run python -m meshchatx.meshchat &
+uv run python -m meshchatx.meshchat &
 BE_PID=$!
 
 sleep "${DEV_BACKEND_WAIT:-1}"

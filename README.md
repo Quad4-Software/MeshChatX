@@ -12,6 +12,7 @@ This project is independent from the original Reticulum MeshChat project and is 
 - Releases: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - Changelog: [`CHANGELOG.md`](CHANGELOG.md)
 - Donate: [`donate.md`](donate.md) ([Donation](#donation))
+- Umbrel App Store: [apps.umbrel.com/app/meshchatx](https://apps.umbrel.com/app/meshchatx)
 
 <a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/Quad4-Software/MeshChatX"><img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" height="60" alt="Get it on Obtainium"></a>
 
@@ -29,20 +30,14 @@ MeshChatX NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
 - Uses Electron 41.x (bundled Node 24 runtime).
 - .whls ships with webserver and built-in frontend assets for more deployment options.
 - i18n
-- PNPM and Poetry for dependency management.
-
-> [!WARNING]
-> MeshChatX is not guaranteed to be wire/data compatible with older Reticulum MeshChat releases. Back up data before migration/testing.
-
-> [!WARNING]
-> Legacy systems are not supported yet. Current baseline is Python `>=3.11` and Node `>=24` (Electron 41 aligns with Node 24; `package.json` `engines` and CI use the same line).
+- PNPM and UV for dependency management.
 
 ## Requirements
 
 - Python `>=3.11` (from `pyproject.toml`)
 - Node.js `>=24` (from `package.json` `engines`)
 - pnpm `10.33.0` (from `package.json` `packageManager`)
-- Poetry (used by `Taskfile.yml` and CI workflows)
+- UV (used by `Taskfile.yml` and CI workflows)
 
 **Browser Versions Required:**
 
@@ -166,11 +161,11 @@ cd MeshChatX
 corepack enable
 pnpm config set verify-store-integrity true
 pnpm install --frozen-lockfile
-pip install "poetry==2.3.4"
-poetry check --lock
-poetry install
+pip install "uv==0.11.12"
+uv lock --check
+uv sync --group dev
 pnpm run build-frontend
-poetry run python -m meshchatx.meshchat --headless --host 127.0.0.1
+uv run python -m meshchatx.meshchat --headless --host 127.0.0.1
 ```
 
 Notes on the install commands above:
@@ -178,10 +173,10 @@ Notes on the install commands above:
 - `pnpm install --frozen-lockfile` refuses to update `pnpm-lock.yaml` and fails if the lockfile does not match `package.json`. This is what blocks an unexpected upstream version from being silently pulled in.
 - `verify-store-integrity=true` is also set in the project `.npmrc`; the explicit `pnpm config set` line above just hardens the user-level config too.
 - Lifecycle scripts (`preinstall`/`postinstall`) are blocked by default in pnpm v10+. Only the packages listed under `pnpm.onlyBuiltDependencies` in `package.json` are allowed to run install scripts (currently `electron`, `electron-winstaller`, `esbuild`).
-- `poetry check --lock` fails fast if `poetry.lock` is out of sync with `pyproject.toml`; `poetry install` then resolves only from the lockfile.
-- For a strict lockfile-only Poetry install (no implicit lockfile refresh), pin Poetry with `pip install "poetry==2.3.4"` to match what CI uses.
+- `uv lock --check` fails fast if `uv.lock` is out of sync with `pyproject.toml`; `uv sync` then resolves only from the lockfile.
+- For a strict lockfile-only UV install (no implicit lockfile refresh), pin UV with `pip install "uv==0.11.12"` to match what CI uses.
 
-If you intentionally want to update dependencies, run `pnpm update` / `poetry update` in a dedicated commit and review the resulting lockfile diff before pushing.
+If you intentionally want to update dependencies, run `pnpm update` / `uv lock` in a dedicated commit and review the resulting lockfile diff before pushing.
 
 ## Run sandboxed (Linux)
 
@@ -323,6 +318,7 @@ MeshChatX supports both CLI args and env vars.
 | `--rns-log-level`          | `MESHCHAT_RNS_LOG_LEVEL`                 | (none)       | Reticulum (RNS) stack log level: `none`, `critical`, `error`, `warning`, `notice`, `verbose`, `debug`, `extreme`, or a numeric level. CLI overrides env when both are set. |
 | `--headless`               | `MESHCHAT_HEADLESS`                      | `false`      | Do not auto-launch browser                                                                                                                                                 |
 | `--auth`                   | `MESHCHAT_AUTH`                          | `false`      | Enable basic auth                                                                                                                                                          |
+| `--reset-password`         | `MESHCHAT_RESET_PASSWORD`                | `false`      | Clear the stored password hash so a new password can be set via the web UI                                                                                                 |
 | `--storage-dir`            | `MESHCHAT_STORAGE_DIR`                   | `./storage`  | Data directory                                                                                                                                                             |
 | `--public-dir`             | `MESHCHAT_PUBLIC_DIR`                    | auto/bundled | Frontend files directory (needed for source installs without bundled assets)                                                                                               |
 
@@ -348,8 +344,8 @@ task build:all
 
 | Command        | Description                             |
 | -------------- | --------------------------------------- |
-| `make install` | Install pnpm and poetry dependencies    |
-| `make run`     | Run MeshChatX via poetry                |
+| `make install` | Install pnpm and UV dependencies        |
+| `make run`     | Run MeshChatX via UV                    |
 | `make build`   | Build frontend                          |
 | `make lint`    | Run eslint and ruff                     |
 | `make test`    | Run frontend and backend tests          |

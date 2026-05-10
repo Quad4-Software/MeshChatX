@@ -21,6 +21,25 @@ def _is_chaquopy_android() -> bool:
     return True
 
 
+def _get_android_external_files_dir() -> str | None:
+    """Return the Android app-specific external files directory, or None.
+
+    This path is user-accessible via file managers (Android/data/<pkg>/files).
+    """
+    if not _is_chaquopy_android():
+        return None
+    try:
+        from com.chaquo.python import Python
+
+        context = Python.getPlatform().getApplication()
+        external = context.getExternalFilesDir(None)
+        if external is not None:
+            return str(external.getAbsolutePath())
+    except Exception:
+        pass
+    return None
+
+
 def lxmf_delivery_notification_text(payload: dict[str, Any]) -> tuple[str, str] | None:
     """Return (title, body) for a system notification, or None to skip."""
     if payload.get("type") != "lxmf.delivery":

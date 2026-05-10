@@ -5,16 +5,14 @@ set -euo pipefail
 # shellcheck source=scripts/ci/priv.sh
 . "$(dirname "$0")/priv.sh"
 
-run_priv dpkg --add-architecture i386 || true
+_HOST_ARCH="$(uname -m)"
+if [ "$_HOST_ARCH" = "x86_64" ]; then
+    run_priv dpkg --add-architecture i386 || true
+fi
 run_priv apt-get update -y
-run_priv apt-get install -y --no-install-recommends \
-    patchelf \
-    libopusfile0 \
-    espeak-ng \
-    zip \
-    rpm \
-    elfutils \
-    fakeroot \
-    file \
-    libc6:i386 \
-    libstdc++6:i386
+
+_PKGS="patchelf libopusfile0 espeak-ng zip rpm elfutils fakeroot file"
+if [ "$_HOST_ARCH" = "x86_64" ]; then
+    _PKGS="$_PKGS libc6:i386 libstdc++6:i386"
+fi
+run_priv apt-get install -y --no-install-recommends $_PKGS

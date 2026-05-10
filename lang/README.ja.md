@@ -11,12 +11,16 @@ Liam Cottle 氏による Reticulum MeshChat を大幅に改修・機能拡張し
 - 公式 GitHub ミラー: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - リリース: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - 変更履歴: [`CHANGELOG.md`](../CHANGELOG.md)
-- 寄付: [`donate.md`](../donate.md)
+- 寄付: [`donate.md`](../donate.md) ([寄付](#寄付))
+- Umbrel App Store: [apps.umbrel.com/app/meshchatx](https://apps.umbrel.com/app/meshchatx)
 
 <a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/Quad4-Software/MeshChatX"><img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" height="60" alt="Get it on Obtainium"></a>
 
+rngit NomadNet Node: `5399f5a0212477618821e91e88ce053b:/page/index.mu`
+
 rngit: `git clone rns://926baefe13daf5178c174f158dae1b45/quad4/MeshChatX`
-NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
+
+MeshChatX NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
 
 ## Reticulum MeshChat からの主な変更
 
@@ -162,11 +166,11 @@ cd MeshChatX
 corepack enable
 pnpm config set verify-store-integrity true
 pnpm install --frozen-lockfile
-pip install "poetry==2.3.4"
-poetry check --lock
-poetry install
+pip install "uv==0.11.12"
+uv lock --check
+uv sync --group dev
 pnpm run build-frontend
-poetry run python -m meshchatx.meshchat --headless --host 127.0.0.1
+uv run python -m meshchatx.meshchat --headless --host 127.0.0.1
 ```
 
 上記インストールコマンドに関する補足:
@@ -174,10 +178,10 @@ poetry run python -m meshchatx.meshchat --headless --host 127.0.0.1
 - `pnpm install --frozen-lockfile` は `pnpm-lock.yaml` の更新を拒否し、ロックファイルが `package.json` と一致しない場合は失敗します。これにより、想定外の上流バージョンが暗黙的にインストールされるのを防げます。
 - `verify-store-integrity=true` はプロジェクトの `.npmrc` にも設定されています。上記の `pnpm config set` の行はユーザー設定側も明示的に固めるためのものです。
 - pnpm v10 以降、ライフサイクルスクリプト (`preinstall`/`postinstall`) はデフォルトでブロックされます。インストールスクリプトを実行できるのは `package.json` の `pnpm.onlyBuiltDependencies` に列挙されたパッケージ（現在 `electron`、`electron-winstaller`、`esbuild`）だけです。
-- `poetry check --lock` は `poetry.lock` と `pyproject.toml` が同期していない場合に即時失敗します。その後の `poetry install` はロックファイルからのみ解決します。
-- 厳密にロックファイルだけで Poetry をインストールしたい場合は、CI と揃えるために `pip install "poetry==2.3.4"` で Poetry バージョンを固定してください。
+- `uv lock --check` は `uv.lock` と `pyproject.toml` が同期していない場合に即時失敗します。その後の `uv sync --group dev` はロックファイルからのみ解決します。
+- 厳密にロックファイルだけで Poetry をインストールしたい場合は、CI と揃えるために `pip install "uv==0.11.12"` で Poetry バージョンを固定してください。
 
-意図的に依存を更新する場合は、`pnpm update` / `poetry update` を専用コミットで実行し、push 前にロックファイルの diff を必ず確認してください。
+意図的に依存を更新する場合は、`pnpm update` / `uv lock` を専用コミットで実行し、push 前にロックファイルの diff を必ず確認してください。
 
 ## サンドボックスで実行（Linux）
 
@@ -297,17 +301,18 @@ cd android
 
 ## 設定
 
-| 引数                       | 環境変数                                 | デフォルト  | 説明                                                                                   |
-| -------------------------- | ---------------------------------------- | ----------- | -------------------------------------------------------------------------------------- |
-| `--host`                   | `MESHCHAT_HOST`                          | `127.0.0.1` | Web サーバーのバインドアドレス                                                         |
-| `--port`                   | `MESHCHAT_PORT`                          | `8000`      | Web サーバーポート                                                                     |
-| `--no-https`               | `MESHCHAT_NO_HTTPS`                      | `false`     | HTTPS を無効化                                                                         |
-| `--ssl-cert` / `--ssl-key` | `MESHCHAT_SSL_CERT` / `MESHCHAT_SSL_KEY` | （なし）    | PEM 証明書と鍵のパス。両方指定。アイデンティティの `ssl/` 下の自動生成証明書を上書き。 |
-| `--rns-log-level`          | `MESHCHAT_RNS_LOG_LEVEL`                 | （なし）    | Reticulum（RNS）のログレベル（上記の名前または数値）。CLI は環境変数より優先。         |
-| `--headless`               | `MESHCHAT_HEADLESS`                      | `false`     | ブラウザを自動で開かない                                                               |
-| `--auth`                   | `MESHCHAT_AUTH`                          | `false`     | 基本認証を有効化                                                                       |
-| `--storage-dir`            | `MESHCHAT_STORAGE_DIR`                   | `./storage` | データディレクトリ                                                                     |
-| `--public-dir`             | `MESHCHAT_PUBLIC_DIR`                    | 自動/同梱   | フロントエンドのディレクトリ（同梱資産なしのソースインストールで必要）                 |
+| 引数                       | 環境変数                                 | デフォルト  | 説明                                                                                    |
+| -------------------------- | ---------------------------------------- | ----------- | --------------------------------------------------------------------------------------- |
+| `--host`                   | `MESHCHAT_HOST`                          | `127.0.0.1` | Web サーバーのバインドアドレス                                                          |
+| `--port`                   | `MESHCHAT_PORT`                          | `8000`      | Web サーバーポート                                                                      |
+| `--no-https`               | `MESHCHAT_NO_HTTPS`                      | `false`     | HTTPS を無効化                                                                          |
+| `--ssl-cert` / `--ssl-key` | `MESHCHAT_SSL_CERT` / `MESHCHAT_SSL_KEY` | （なし）    | PEM 証明書と鍵のパス。両方指定。アイデンティティの `ssl/` 下の自動生成証明書を上書き。  |
+| `--rns-log-level`          | `MESHCHAT_RNS_LOG_LEVEL`                 | （なし）    | Reticulum（RNS）のログレベル（上記の名前または数値）。CLI は環境変数より優先。          |
+| `--headless`               | `MESHCHAT_HEADLESS`                      | `false`     | ブラウザを自動で開かない                                                                |
+| `--auth`                   | `MESHCHAT_AUTH`                          | `false`     | 基本認証を有効化                                                                        |
+| `--reset-password`         | `MESHCHAT_RESET_PASSWORD`                | `false`     | 保存されたパスワードハッシュを消去し、Web UI から新しいパスワードを設定できるようにする |
+| `--storage-dir`            | `MESHCHAT_STORAGE_DIR`                   | `./storage` | データディレクトリ                                                                      |
+| `--public-dir`             | `MESHCHAT_PUBLIC_DIR`                    | 自動/同梱   | フロントエンドのディレクトリ（同梱資産なしのソースインストールで必要）                  |
 
 ## ブランチ
 
@@ -331,8 +336,8 @@ task build:all
 
 | コマンド       | 説明                                    |
 | -------------- | --------------------------------------- |
-| `make install` | pnpm と poetry の依存関係をインストール |
-| `make run`     | poetry 経由で MeshChatX を実行          |
+| `make install` | pnpm と UV の依存関係をインストール     |
+| `make run`     | UV 経由で MeshChatX を実行              |
 | `make build`   | フロントエンドをビルド                  |
 | `make lint`    | eslint と ruff を実行                   |
 | `make test`    | フロントエンドとバックエンドのテスト    |

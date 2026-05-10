@@ -188,6 +188,37 @@ def test_file_downloader_list_response_short_list_no_crash():
     on_fail.assert_called_once_with("unsupported_response")
 
 
+def test_file_downloader_stores_data_parameter():
+    on_ok = MagicMock()
+    on_fail = MagicMock()
+    on_progress = MagicMock()
+    fd = NomadnetFileDownloader(
+        b"ab" * 8,
+        "/file/data.bin",
+        on_ok,
+        on_fail,
+        on_progress,
+        data="query=value&other=123",
+    )
+    assert fd.data == "query=value&other=123"
+
+
+def test_file_downloader_passes_data_to_parent():
+    on_ok = MagicMock()
+    on_fail = MagicMock()
+    on_progress = MagicMock()
+    fd = NomadnetFileDownloader(
+        b"ab" * 8,
+        "/file/data.bin",
+        on_ok,
+        on_fail,
+        on_progress,
+        data="foo=bar",
+    )
+    # NomadnetDownloader stores data as the 3rd positional arg
+    assert fd.data == "foo=bar"
+
+
 def test_cache_lock_serializes_mutations():
     mock_link = MagicMock()
     mock_link.status = RNS.Link.ACTIVE

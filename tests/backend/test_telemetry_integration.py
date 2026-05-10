@@ -34,6 +34,9 @@ def mock_app():
     # Mock websocket_broadcast
     app.websocket_broadcast = MagicMock()
 
+    # Required attribute for on_lxmf_delivery flood protection
+    app._lxmf_incoming_timestamps = []
+
     # Attach the actual method we want to test if possible,
     # but since it's an instance method, we might need to bind it.
     app.process_incoming_telemetry = (
@@ -112,12 +115,13 @@ async def test_telemetry_request_parsing(mock_app):
     )
 
     mock_app.is_destination_blocked.return_value = False
-    mock_app.current_context.config.telemetry_enabled.get.return_value = True
+    mock_app.current_context.config.telemetry_enabled.set(True)
     mock_app.database.contacts.get_contact_by_identity_hash.return_value = {
         "is_telemetry_trusted": True,
     }
     mock_app.database.messages.get_lxmf_message_by_hash.return_value = {}
-    mock_app.database.config.get.side_effect = lambda k: 50.0 if "lat" in k else 10.0
+    mock_app.database.config.set("map_default_lat", 50.0)
+    mock_app.database.config.set("map_default_lon", 10.0)
 
     mock_app.on_lxmf_delivery(mock_lxmf_message)
 
@@ -142,12 +146,12 @@ async def test_telemetry_request_no_location_does_not_call_handler(mock_app):
     )
 
     mock_app.is_destination_blocked.return_value = False
-    mock_app.current_context.config.telemetry_enabled.get.return_value = True
+    mock_app.current_context.config.telemetry_enabled.set(True)
     mock_app.database.contacts.get_contact_by_identity_hash.return_value = {
         "is_telemetry_trusted": True,
     }
     mock_app.database.messages.get_lxmf_message_by_hash.return_value = {}
-    mock_app.database.config.get.return_value = None
+    mock_app.database.config.get.side_effect = lambda key, default=None: None
 
     mock_app.on_lxmf_delivery(mock_lxmf_message)
 

@@ -357,7 +357,13 @@
         "telemetry_trust_revoke": "Отозвать доверие телеметрии",
         "telemetry_trust_grant": "Доверять телеметрии",
         "location_manage_desc": "Управление тем, как передается ваше местоположение.",
-        "restart_rns": "Перезапуск RNS"
+        "restart_rns": "Перезапуск RNS",
+        "flood_protection": "Flood Protection",
+        "flood_protection_description": "Automatically raise the inbound stamp cost when receiving too many messages per minute from many sources. This makes coordinated spam attacks computationally expensive while keeping normal conversations affordable.",
+        "flood_protection_enabled": "Enable auto-adjusting stamp cost",
+        "flood_threshold": "Messages per minute threshold",
+        "flood_max_stamp_cost": "Maximum stamp cost during flood",
+        "flood_cooldown": "Cooldown before lowering cost (seconds)"
     },
     "common": {
         "open": "Открыть",
@@ -2699,6 +2705,7 @@
         "type": "Type",
         "user": "User",
         "node": "Node",
+        "blocked_destinations": "Заблокированные направления",
         "banishment_lifted": "Banishment lifted successfully",
         "failed_lift_banishment": "Failed to lift banishment"
     }

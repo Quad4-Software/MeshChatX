@@ -1,4 +1,4 @@
-import { mount } from "@vue/test-utils";
+import { mount, flushPromises } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import ConversationViewer from "@/components/messages/ConversationViewer.vue";
 import WebSocketConnection from "@/js/WebSocketConnection";
@@ -544,6 +544,12 @@ describe("ConversationViewer.vue", () => {
             selectedPeer: { destination_hash: peer, display_name: "Peer" },
             myLxmfAddressHash: "c".repeat(32),
         });
+        let guard = 0;
+        while (wrapper.vm.initialLoadActive && guard < 200) {
+            await flushPromises();
+            await wrapper.vm.$nextTick();
+            guard += 1;
+        }
         const getCallsBefore = axiosMock.get.mock.calls.length;
         await wrapper.vm.showRawMessage({
             lxmf_message: {

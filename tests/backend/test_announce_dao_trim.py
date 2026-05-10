@@ -53,6 +53,19 @@ def _cleanup(db, path):
                 pass
 
 
+def test_trim_announces_for_aspect_noop_when_max_rows_below_one():
+    db = path = None
+    try:
+        db, path = _new_db()
+        aspect = "lxmf.delivery"
+        _insert(db, "01" * 16, aspect, "2000-01-01T00:00:00Z")
+        _insert(db, "02" * 16, aspect, "2000-01-02T00:00:00Z")
+        db.announces.trim_announces_for_aspect(aspect, 0)
+        assert db.announces.get_announce_count_by_aspect(aspect) == 2
+    finally:
+        _cleanup(db, path)
+
+
 def test_trim_announces_for_aspect_drops_oldest():
     db = path = None
     try:

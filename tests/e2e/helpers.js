@@ -5,6 +5,7 @@ const E2E_BACKEND_PORT = process.env.E2E_BACKEND_PORT || "18079";
 const E2E_BACKEND_ORIGIN = `http://127.0.0.1:${E2E_BACKEND_PORT}`;
 
 const E2E_SCROLL_PEER_HASH = `e2e0${"0".repeat(28)}`;
+const E2E_SCROLL_ALT_PEER_HASH = `e2e1${"0".repeat(28)}`;
 
 function buildE2eLxmfRow({ peerHash, localHash, index, total, inbound }) {
     const hash = crypto.randomBytes(16).toString("hex");
@@ -76,6 +77,34 @@ async function seedE2eLongConversationThread(request, opts = {}) {
     return { peerHash, localHash };
 }
 
+/**
+ * Second conversation for tests that switch between a long and a short thread.
+ * @param {import('@playwright/test').APIRequestContext} request
+ * @param {{ messageCount?: number }} [opts]
+ */
+async function seedE2eAltShortConversationThread(request, opts = {}) {
+    const messageCount = opts.messageCount ?? 12;
+    const localHash = await getE2eLocalLxmfHash(request);
+    const peerHash = E2E_SCROLL_ALT_PEER_HASH;
+    const messages = [];
+    for (let i = 0; i < messageCount; i++) {
+        const row = buildE2eLxmfRow({
+            peerHash,
+            localHash,
+            index: i,
+            total: messageCount,
+            inbound: i % 2 === 0,
+        });
+        row.content = `E2E alt short ${String(i).padStart(3, "0")} ${"x".repeat(48)}`;
+        messages.push(row);
+    }
+    const imp = await request.post(`${E2E_BACKEND_ORIGIN}/api/v1/maintenance/messages/import`, {
+        data: { messages },
+    });
+    expect(imp.ok()).toBeTruthy();
+    return { peerHash, localHash };
+}
+
 const PALETTE_PLACEHOLDER = /Search commands,\s*(routes|navigate),\s*or peers\.{0,3}/i;
 
 /**
@@ -125,10 +154,12 @@ async function dismissMapOnboardingTooltip(page) {
 module.exports = {
     E2E_BACKEND_ORIGIN,
     E2E_SCROLL_PEER_HASH,
+    E2E_SCROLL_ALT_PEER_HASH,
     PALETTE_PLACEHOLDER,
     dismissMapOnboardingTooltip,
     openCommandPalette,
     prepareE2eSession,
     getE2eLocalLxmfHash,
     seedE2eLongConversationThread,
+    seedE2eAltShortConversationThread,
 };

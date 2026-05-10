@@ -85,6 +85,27 @@ def test_filter_announced_dicts_by_search_query_destination_hash_substring():
     assert len(out) == 1
 
 
+def test_filter_announced_dicts_empty_search_matches_all():
+    """Empty substring matches every string in Python; callers should normalize UI input."""
+    items = [
+        {"display_name": "AAA"},
+        {"destination_hash": "0123abcd"},
+        {"identity_hash": "fedcba"},
+    ]
+    out = filter_announced_dicts_by_search_query(items, "")
+    assert len(out) == 3
+
+
+def test_filter_announced_dicts_whitespace_search_can_match():
+    items = [
+        {"display_name": " Hi "},
+        {"destination_hash": "99"},
+    ]
+    out = filter_announced_dicts_by_search_query(items, " ")
+    assert len(out) == 1
+    assert out[0]["display_name"] == " Hi "
+
+
 def test_filter_announced_dicts_by_search_query_case_insensitive():
     items = [
         {"display_name": "CamelCaseName", "destination_hash": "z" * 32},

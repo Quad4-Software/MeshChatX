@@ -1,9 +1,11 @@
 import { describe, it, expect } from "vitest";
 import {
     SCROLL_BOTTOM_EPS_PX,
+    canTrustScrollNearBottomHeuristic,
     isNearBottom,
     isScrollColumnReverse,
     maxScrollTop,
+    resetMessagesScrollSurface,
     scrollContainerToBottom,
     shouldLoadPreviousMessages,
 } from "@/components/messages/conversationScroll.js";
@@ -132,6 +134,40 @@ describe("conversationScroll.js", () => {
         expect(shouldLoadPreviousMessages(el)).toBe(true);
         el.scrollTop = 2000;
         expect(shouldLoadPreviousMessages(el)).toBe(false);
+        el.remove();
+    });
+
+    it("resetMessagesScrollSurface forces scrollTop to 0", () => {
+        const el = makeScrollContainer({
+            reverse: false,
+            scrollTop: 400,
+            scrollHeight: 900,
+            clientHeight: 100,
+        });
+        resetMessagesScrollSurface(el);
+        expect(el.scrollTop).toBe(0);
+        el.remove();
+    });
+
+    it("canTrustScrollNearBottomHeuristic requires an inner child", () => {
+        const outer = document.createElement("div");
+        document.body.appendChild(outer);
+        expect(canTrustScrollNearBottomHeuristic(outer)).toBe(false);
+        const inner = document.createElement("div");
+        outer.appendChild(inner);
+        expect(canTrustScrollNearBottomHeuristic(outer)).toBe(true);
+        outer.remove();
+    });
+
+    it("isNearBottom is misleading on empty container without inner (trust heuristic false)", () => {
+        const el = document.createElement("div");
+        document.body.appendChild(el);
+        Object.defineProperty(el, "scrollHeight", { value: 400, configurable: true });
+        Object.defineProperty(el, "clientHeight", { value: 400, configurable: true });
+        el.scrollTop = 0;
+        expect(isScrollColumnReverse(el)).toBe(false);
+        expect(isNearBottom(el, SCROLL_BOTTOM_EPS_PX)).toBe(true);
+        expect(canTrustScrollNearBottomHeuristic(el)).toBe(false);
         el.remove();
     });
 });

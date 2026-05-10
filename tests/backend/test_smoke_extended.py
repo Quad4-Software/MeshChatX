@@ -109,8 +109,8 @@ def test_config_manager_smoke():
         config.auto_announce_enabled.set(True)
         assert config.auto_announce_enabled.get() is True
 
-        assert config.announce_max_stored_lxmf_delivery.get() == 1000
-        assert config.announce_fetch_limit_lxmf_delivery.get() == 500
+        assert config.announce_max_stored_lxmf_delivery.get() == 2500
+        assert config.announce_fetch_limit_lxmf_delivery.get() == 2500
         assert config.discovered_interfaces_max_return.get() == 500
 
 

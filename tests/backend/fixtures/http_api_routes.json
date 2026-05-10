@@ -249,6 +249,10 @@
             "path": "/api/v1/favourites/add"
         },
         {
+            "method": "POST",
+            "path": "/api/v1/favourites/import"
+        },
+        {
             "method": "DELETE",
             "path": "/api/v1/favourites/{destination_hash}"
         },

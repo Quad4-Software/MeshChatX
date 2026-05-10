@@ -357,7 +357,13 @@
         "telemetry_trust_revoke": "Revoce Telemetrie Trust",
         "telemetry_trust_grant": "Vertrouwen voor telemetrie",
         "location_manage_desc": "Beheer hoe uw locatie wordt gedeeld.",
-        "restart_rns": "RNS herstarten"
+        "restart_rns": "RNS herstarten",
+        "flood_protection": "Flood Protection",
+        "flood_protection_description": "Automatically raise the inbound stamp cost when receiving too many messages per minute from many sources. This makes coordinated spam attacks computationally expensive while keeping normal conversations affordable.",
+        "flood_protection_enabled": "Enable auto-adjusting stamp cost",
+        "flood_threshold": "Messages per minute threshold",
+        "flood_max_stamp_cost": "Maximum stamp cost during flood",
+        "flood_cooldown": "Cooldown before lowering cost (seconds)"
     },
     "common": {
         "open": "Open",
@@ -1476,6 +1482,7 @@
         "type": "Type",
         "user": "Gebruiker",
         "node": "Knooppunt",
+        "blocked_destinations": "Geblokkeerde bestemmingen",
         "banishment_lifted": "Verbanning succesvol opgeheven",
         "failed_lift_banishment": "Kon verbanning niet opheffen"
     },

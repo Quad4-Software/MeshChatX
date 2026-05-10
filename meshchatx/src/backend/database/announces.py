@@ -105,6 +105,12 @@ class AnnounceDAO:
             (destination_hash,),
         )
 
+    def get_announces_by_identity_hash(self, identity_hash):
+        return self.provider.fetchall(
+            "SELECT * FROM announces WHERE identity_hash = ?",
+            (identity_hash,),
+        )
+
     def get_announce_count_by_aspect(self, aspect):
         row = self.provider.fetchone(
             "SELECT COUNT(*) as count FROM announces WHERE aspect = ?",
@@ -127,7 +133,7 @@ class AnnounceDAO:
         search_term=None,
         identity_hash=None,
         destination_hash=None,
-        limit=500,
+        limit=2500,
         offset=0,
     ):
         query = "SELECT * FROM announces WHERE 1=1"

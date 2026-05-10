@@ -2,6 +2,7 @@ const { test, expect } = require("@playwright/test");
 const {
     prepareE2eSession,
     seedE2eLongConversationThread,
+    seedE2eAltShortConversationThread,
     getE2eLocalLxmfHash,
     E2E_SCROLL_PEER_HASH,
 } = require("./helpers");
@@ -84,6 +85,7 @@ test.describe("Messages conversation scroll", () => {
     test.beforeAll(async ({ request }) => {
         await prepareE2eSession(request);
         await seedE2eLongConversationThread(request, { messageCount: 120 });
+        await seedE2eAltShortConversationThread(request, { messageCount: 12 });
     });
 
     test.beforeEach(async ({ request }) => {
@@ -209,6 +211,31 @@ test.describe("Messages conversation scroll", () => {
 
         await page.waitForTimeout(600);
         expect(await messagesNearBottom(page)).toBe(true);
+    });
+
+    test("stays near bottom when switching between long and short threads repeatedly", async ({ page }) => {
+        await page.goto("/#/messages");
+        await expect(page.getByText("Conversations", { exact: true }).first()).toBeVisible({ timeout: 25000 });
+        const longRow = page
+            .locator(".conversation-item")
+            .filter({ hasText: /E2E scroll seed/ })
+            .first();
+        const shortRow = page
+            .locator(".conversation-item")
+            .filter({ hasText: /E2E alt short/ })
+            .first();
+        for (let i = 0; i < 5; i++) {
+            await longRow.click();
+            await waitForMessagesViewportReady(page);
+            await expect(page.locator("#messages")).toBeVisible({ timeout: 25000 });
+            await waitForMessagesOverflow(page);
+            expect(await messagesNearBottom(page)).toBe(true);
+
+            await shortRow.click();
+            await waitForMessagesViewportReady(page);
+            await expect(page.locator("#messages")).toBeVisible({ timeout: 25000 });
+            expect(await messagesNearBottom(page)).toBe(true);
+        }
     });
 
     test("preserves scroll anchor when loading older messages from the top", async ({ page }) => {

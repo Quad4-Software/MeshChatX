@@ -31,8 +31,8 @@ verify_upstream_deb() {
     ensure_cosign
     export COSIGN_YES="${COSIGN_YES:-true}"
 
-    curl -fsSL -o /tmp/trivy_checksums.txt "${TRIVY_RELEASE_BASE}/trivy_${TRIVY_VERSION}_checksums.txt"
-    curl -fsSL -o /tmp/trivy_checksums.sigstore.json "${TRIVY_RELEASE_BASE}/trivy_${TRIVY_VERSION}_checksums.txt.sigstore.json"
+    curl -fsSL --retry 5 --retry-delay 2 -o /tmp/trivy_checksums.txt "${TRIVY_RELEASE_BASE}/trivy_${TRIVY_VERSION}_checksums.txt"
+    curl -fsSL --retry 5 --retry-delay 2 -o /tmp/trivy_checksums.sigstore.json "${TRIVY_RELEASE_BASE}/trivy_${TRIVY_VERSION}_checksums.txt.sigstore.json"
     cosign verify-blob /tmp/trivy_checksums.txt --bundle /tmp/trivy_checksums.sigstore.json \
         --certificate-identity-regexp="${TRIVY_CERT_IDENTITY_RE}" \
         --certificate-oidc-issuer-regexp="${TRIVY_CERT_ISSUER_RE}"
@@ -43,10 +43,10 @@ verify_upstream_deb() {
         exit 1
     fi
 
-    curl -fsSL -o /tmp/trivy.deb "${TRIVY_RELEASE_BASE}/${DEB_BASE}"
+    curl -fsSL --retry 5 --retry-delay 2 -o /tmp/trivy.deb "${TRIVY_RELEASE_BASE}/${DEB_BASE}"
     echo "${EXPECTED_SHA}  /tmp/trivy.deb" | sha256sum -c
 
-    curl -fsSL -o /tmp/trivy.deb.sigstore.json "${TRIVY_RELEASE_BASE}/${DEB_BASE}.sigstore.json"
+    curl -fsSL --retry 5 --retry-delay 2 -o /tmp/trivy.deb.sigstore.json "${TRIVY_RELEASE_BASE}/${DEB_BASE}.sigstore.json"
     cosign verify-blob /tmp/trivy.deb --bundle /tmp/trivy.deb.sigstore.json \
         --certificate-identity-regexp="${TRIVY_CERT_IDENTITY_RE}" \
         --certificate-oidc-issuer-regexp="${TRIVY_CERT_ISSUER_RE}"
@@ -59,7 +59,7 @@ if [ -n "${TRIVY_DEB_URL:-}" ]; then
         echo "setup-trivy.sh: TRIVY_DEB_URL requires TRIVY_DEB_SHA256" >&2
         exit 1
     fi
-    curl -fsSL -o /tmp/trivy.deb "${TRIVY_DEB_URL}"
+    curl -fsSL --retry 5 --retry-delay 2 -o /tmp/trivy.deb "${TRIVY_DEB_URL}"
     echo "${TRIVY_DEB_SHA256}  /tmp/trivy.deb" | sha256sum -c
 else
     arch="$(uname -m)"
