@@ -11533,6 +11533,7 @@ class ReticulumMeshChat:
                         if other_hash != destination_hash:
                             self.database.misc.add_blocked_destination(other_hash)
                             self._lxmf_reticulum_enforce_block(other_hash)
+                            self._delete_contact_and_stamp_ticket(other_hash)
             except Exception:
                 return web.json_response(
                     {"error": "Destination already blocked"},
@@ -11540,6 +11541,7 @@ class ReticulumMeshChat:
                 )
 
             self._lxmf_reticulum_enforce_block(destination_hash)
+            self._delete_contact_and_stamp_ticket(destination_hash)
 
             local_hash = self.local_lxmf_destination.hash.hex()
             self.message_handler.delete_conversation(local_hash, destination_hash)
@@ -15504,6 +15506,47 @@ class ReticulumMeshChat:
         except Exception as e:
             print(f"_lxmf_reticulum_enforce_block: failed: {e}")
 
+    def _delete_contact_and_stamp_ticket(self, destination_hash: str, context=None) -> None:
+        """Remove contact and stamp/ticket state for a blocked destination."""
+        ctx = context or self.current_context
+        if not ctx or not ctx.database:
+            return
+        try:
+            # Delete contact if present
+            contact = ctx.database.contacts.get_contact_by_identity_hash(
+                destination_hash
+            )
+            if contact and contact.get("id"):
+                ctx.database.contacts.delete_contact(contact["id"])
+        except Exception as e:
+            print(f"_delete_contact_and_stamp_ticket: contact delete failed: {e}")
+
+        try:
+            # Remove stamp costs and tickets from LXMRouter
+            if ctx.message_router:
+                dest_bytes = bytes.fromhex(destination_hash)
+                # Remove outbound stamp cost
+                if hasattr(ctx.message_router, "outbound_stamp_costs"):
+                    ctx.message_router.outbound_stamp_costs.pop(dest_bytes, None)
+                # Remove tickets
+                if hasattr(ctx.message_router, "available_tickets"):
+                    ctx.message_router.available_tickets["outbound"].pop(
+                        dest_bytes, None
+                    )
+                    ctx.message_router.available_tickets["inbound"].pop(
+                        dest_bytes, None
+                    )
+                    ctx.message_router.available_tickets["last_deliveries"].pop(
+                        dest_bytes, None
+                    )
+                # Persist changes
+                if hasattr(ctx.message_router, "save_outbound_stamp_costs"):
+                    ctx.message_router.save_outbound_stamp_costs()
+                if hasattr(ctx.message_router, "save_available_tickets"):
+                    ctx.message_router.save_available_tickets()
+        except Exception as e:
+            print(f"_delete_contact_and_stamp_ticket: stamp/ticket cleanup failed: {e}")
+
     def banish_lxmf_peer(self, destination_hash: str, context=None) -> None:
         """Banish (block) an LXMF peer: persist block and apply Reticulum blackhole/drop when configured."""
         ctx = context or self.current_context
@@ -15525,10 +15568,12 @@ class ReticulumMeshChat:
                     if other_hash != destination_hash:
                         ctx.database.misc.add_blocked_destination(other_hash)
                         self._lxmf_reticulum_enforce_block(other_hash)
+                        self._delete_contact_and_stamp_ticket(other_hash, context=ctx)
         except Exception as e:
             print(f"banish_lxmf_peer: failed: {e}")
             return
         self._lxmf_reticulum_enforce_block(destination_hash)
+        self._delete_contact_and_stamp_ticket(destination_hash, context=ctx)
         AsyncUtils.run_async(self._broadcast_blocked_destinations())
 
     def check_spam_keywords(self, title: str, content: str, context=None) -> bool:
