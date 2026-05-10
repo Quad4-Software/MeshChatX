@@ -856,4 +856,41 @@ iframe {
 .dark :deep(.max-w-none) h4 {
     color: #f4f4f5; /* zinc-100 */
 }
+
+/* Markdown table styling */
+:deep(.max-w-none) table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.875rem;
+}
+
+:deep(.max-w-none) th,
+:deep(.max-w-none) td {
+    border: 1px solid #d1d5db;
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+}
+
+:deep(.max-w-none) th {
+    background-color: #f3f4f6;
+    font-weight: 700;
+}
+
+:deep(.max-w-none) tr:nth-child(even) {
+    background-color: #f9fafb;
+}
+
+.dark :deep(.max-w-none) th,
+.dark :deep(.max-w-none) td {
+    border-color: #3f3f46;
+}
+
+.dark :deep(.max-w-none) th {
+    background-color: #27272a;
+}
+
+.dark :deep(.max-w-none) tr:nth-child(even) {
+    background-color: #18181b;
+}
 </style>
