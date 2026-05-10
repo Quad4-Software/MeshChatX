@@ -355,8 +355,8 @@ export default {
                 // show result
                 DialogUtils.alert(info.join("\n"));
             } catch (e) {
-                console.log(e);
                 const message = e.response?.data?.message ?? this.$t("messages.ping_failed");
+                console.warn("Ping failed:", message);
                 DialogUtils.alert(message);
             } finally {
                 ToastUtils.dismiss(pingToastKey);

@@ -284,10 +284,9 @@ export default {
                     return;
                 }
 
-                console.log(e);
-
                 // add ping error to results
-                const message = e.response?.data?.message ?? e;
+                const message = e.response?.data?.message ?? e.message ?? String(e);
+                console.warn("Ping failed:", message);
                 this.addPingResult(`seq=${this.seq} error=${message}`);
                 this.lastPingSummary = {
                     error: typeof message === "string" ? message : JSON.stringify(message),
