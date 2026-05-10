@@ -156,6 +156,23 @@ def mock_app():
         app.config.auto_announce_enabled.get.return_value = False
         app.config.voicemail_enabled.get.return_value = True
 
+        def _make_bool_mock(default=False):
+            mock = MagicMock()
+            mock.get.return_value = default
+
+            def _set(value):
+                mock.get.return_value = bool(value)
+
+            mock.set.side_effect = _set
+            return mock
+
+        app.config.block_all_from_strangers = _make_bool_mock(False)
+        app.config.block_attachments_from_strangers = _make_bool_mock(False)
+        app.config.lxmf_flood_protection_enabled.get.return_value = False
+        app.config.lxmf_flood_threshold_per_minute.get.return_value = 100
+        app.config.lxmf_flood_max_stamp_cost.get.return_value = 10
+        app.config.lxmf_inbound_stamp_cost.get.return_value = 2
+
         # Surface mocks for tracking
         app.is_destination_blocked = MagicMock(return_value=False)
         app.check_spam_keywords = MagicMock(return_value=False)
@@ -2367,8 +2384,8 @@ class TestStrangerAttachmentBlocking:
         source_hash = os.urandom(16)
         mock_msg = self._make_mock_message(source_hash=source_hash)
 
-        mock_app.config.block_attachments_from_strangers.get.return_value = True
-        mock_app.config.block_all_from_strangers.get.return_value = False
+        mock_app.config.block_attachments_from_strangers.set(True)
+        mock_app.config.block_all_from_strangers.set(False)
         mock_app._is_contact = MagicMock(return_value=False)
         mock_app.is_destination_blocked = MagicMock(return_value=False)
         mock_app.check_spam_keywords = MagicMock(return_value=False)
@@ -2386,8 +2403,8 @@ class TestStrangerAttachmentBlocking:
         source_hash = os.urandom(16)
         mock_msg = self._make_mock_message(source_hash=source_hash)
 
-        mock_app.config.block_attachments_from_strangers.get.return_value = True
-        mock_app.config.block_all_from_strangers.get.return_value = False
+        mock_app.config.block_attachments_from_strangers.set(True)
+        mock_app.config.block_all_from_strangers.set(False)
         mock_app._is_contact = MagicMock(return_value=True)
         mock_app.is_destination_blocked = MagicMock(return_value=False)
         mock_app.check_spam_keywords = MagicMock(return_value=False)
@@ -2402,8 +2419,8 @@ class TestStrangerAttachmentBlocking:
         source_hash = os.urandom(16)
         mock_msg = self._make_mock_message(source_hash=source_hash)
 
-        mock_app.config.block_attachments_from_strangers.get.return_value = False
-        mock_app.config.block_all_from_strangers.get.return_value = False
+        mock_app.config.block_attachments_from_strangers.set(False)
+        mock_app.config.block_all_from_strangers.set(False)
         mock_app._is_contact = MagicMock(return_value=False)
         mock_app.is_destination_blocked = MagicMock(return_value=False)
         mock_app.check_spam_keywords = MagicMock(return_value=False)
@@ -2421,8 +2438,8 @@ class TestStrangerAttachmentBlocking:
             with_attachments=False,
         )
 
-        mock_app.config.block_attachments_from_strangers.get.return_value = True
-        mock_app.config.block_all_from_strangers.get.return_value = False
+        mock_app.config.block_attachments_from_strangers.set(True)
+        mock_app.config.block_all_from_strangers.set(False)
         mock_app._is_contact = MagicMock(return_value=False)
         mock_app.is_destination_blocked = MagicMock(return_value=False)
         mock_app.check_spam_keywords = MagicMock(return_value=False)
@@ -2456,8 +2473,8 @@ class TestStrangerAttachmentBlocking:
         mock_msg.get_fields.return_value = fields
         mock_msg.fields = fields
 
-        mock_app.config.block_attachments_from_strangers.get.return_value = True
-        mock_app.config.block_all_from_strangers.get.return_value = False
+        mock_app.config.block_attachments_from_strangers.set(True)
+        mock_app.config.block_all_from_strangers.set(False)
         mock_app._is_contact = MagicMock(return_value=False)
         mock_app.is_destination_blocked = MagicMock(return_value=False)
         mock_app.check_spam_keywords = MagicMock(return_value=False)
@@ -2494,8 +2511,8 @@ class TestStrangerAttachmentBlocking:
         mock_msg.get_fields.return_value = fields
         mock_msg.fields = fields
 
-        mock_app.config.block_attachments_from_strangers.get.return_value = True
-        mock_app.config.block_all_from_strangers.get.return_value = False
+        mock_app.config.block_attachments_from_strangers.set(True)
+        mock_app.config.block_all_from_strangers.set(False)
         mock_app._is_contact = MagicMock(return_value=True)
         mock_app.is_destination_blocked = MagicMock(return_value=False)
         mock_app.check_spam_keywords = MagicMock(return_value=False)
@@ -2535,8 +2552,8 @@ class TestBlockAllFromStrangers:
     def test_stranger_message_dropped_when_enabled(self, mock_app):
         """Text message from a stranger is silently dropped when block_all is on."""
         mock_msg = self._make_mock_message()
-        mock_app.config.block_all_from_strangers.get.return_value = True
-        mock_app.config.block_attachments_from_strangers.get.return_value = False
+        mock_app.config.block_all_from_strangers.set(True)
+        mock_app.config.block_attachments_from_strangers.set(False)
         mock_app._is_contact = MagicMock(return_value=False)
         mock_app.is_destination_blocked = MagicMock(return_value=False)
         mock_app.check_spam_keywords = MagicMock(return_value=False)
@@ -2547,8 +2564,8 @@ class TestBlockAllFromStrangers:
     def test_contact_message_delivered_when_block_all_enabled(self, mock_app):
         """Messages from contacts pass through even when block_all is on."""
         mock_msg = self._make_mock_message()
-        mock_app.config.block_all_from_strangers.get.return_value = True
-        mock_app.config.block_attachments_from_strangers.get.return_value = False
+        mock_app.config.block_all_from_strangers.set(True)
+        mock_app.config.block_attachments_from_strangers.set(False)
         mock_app._is_contact = MagicMock(return_value=True)
         mock_app.is_destination_blocked = MagicMock(return_value=False)
         mock_app.check_spam_keywords = MagicMock(return_value=False)
@@ -2559,8 +2576,8 @@ class TestBlockAllFromStrangers:
     def test_stranger_with_attachments_dropped(self, mock_app):
         """Message with attachments from stranger is dropped entirely, not just stripped."""
         mock_msg = self._make_mock_message(with_attachments=True)
-        mock_app.config.block_all_from_strangers.get.return_value = True
-        mock_app.config.block_attachments_from_strangers.get.return_value = True
+        mock_app.config.block_all_from_strangers.set(True)
+        mock_app.config.block_attachments_from_strangers.set(True)
         mock_app._is_contact = MagicMock(return_value=False)
         mock_app.is_destination_blocked = MagicMock(return_value=False)
         mock_app.check_spam_keywords = MagicMock(return_value=False)
@@ -2571,8 +2588,8 @@ class TestBlockAllFromStrangers:
     def test_disabled_allows_stranger_messages(self, mock_app):
         """When block_all is off, stranger messages are delivered."""
         mock_msg = self._make_mock_message()
-        mock_app.config.block_all_from_strangers.get.return_value = False
-        mock_app.config.block_attachments_from_strangers.get.return_value = False
+        mock_app.config.block_all_from_strangers.set(False)
+        mock_app.config.block_attachments_from_strangers.set(False)
         mock_app._is_contact = MagicMock(return_value=False)
         mock_app.is_destination_blocked = MagicMock(return_value=False)
         mock_app.check_spam_keywords = MagicMock(return_value=False)

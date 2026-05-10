@@ -221,6 +221,7 @@ def mock_app(db, tmp_path, temp_db):
         # a live provider for the same path as the db fixture.
         app.database = Database(temp_db)
         app.current_context.config = ConfigManager(app.database)
+        app.config = app.current_context.config
         app.websocket_broadcast = MagicMock(side_effect=lambda data: None)
 
         yield app

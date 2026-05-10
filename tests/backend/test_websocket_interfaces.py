@@ -21,8 +21,12 @@ class TestWebsocketInterfaces(unittest.TestCase):
         self.port = s.getsockname()[1]
         s.close()
 
+    @patch("RNS.Reticulum")
     @patch("RNS.Interfaces.Interface.Interface.get_config_obj")
-    def test_server_initialization(self, mock_get_config):
+    def test_server_initialization(self, mock_get_config, mock_rns):
+        mock_rns.get_instance.return_value = MagicMock(
+            _default_ic_max_held_announces=MagicMock(return_value=256),
+        )
         config = {
             "name": "test_ws_server",
             "listen_ip": "127.0.0.1",
@@ -39,8 +43,12 @@ class TestWebsocketInterfaces(unittest.TestCase):
         if server.server:
             server.server.shutdown()
 
+    @patch("RNS.Reticulum")
     @patch("RNS.Interfaces.Interface.Interface.get_config_obj")
-    def test_client_initialization(self, mock_get_config):
+    def test_client_initialization(self, mock_get_config, mock_rns):
+        mock_rns.get_instance.return_value = MagicMock(
+            _default_ic_max_held_announces=MagicMock(return_value=256),
+        )
         config = {"name": "test_ws_client", "target_url": f"ws://127.0.0.1:{self.port}"}
         mock_get_config.return_value = config
 

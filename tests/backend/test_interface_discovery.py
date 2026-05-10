@@ -82,6 +82,7 @@ async def test_reticulum_discovery_get_and_patch(temp_dir):
             storage_dir=temp_dir,
             reticulum_config_dir=temp_dir,
         )
+        app_instance.current_context.config.default_bootstrap_only.set(True)
 
         get_handler = await find_route_handler(
             app_instance,
@@ -145,7 +146,8 @@ async def test_reticulum_discovery_get_and_patch(temp_dir):
         assert "interface_discovery_blacklist" not in config["reticulum"]
         assert config["reticulum"]["required_discovery_value"] == 18
         assert config["reticulum"]["autoconnect_discovered_interfaces"] == 5
-        assert config["reticulum"]["default_bootstrap_only"] is False
+        assert "default_bootstrap_only" not in config["reticulum"]
+        assert app_instance.current_context.config.default_bootstrap_only.get() is False
         assert config["reticulum"]["network_identity"] == "/tmp/other_id"
         assert config.write_called
 
