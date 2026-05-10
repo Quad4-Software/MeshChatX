@@ -27,6 +27,8 @@ All notable changes to this project will be documented in this file.
 - **NomadNet file downloads (cancel)**: Fixed `AttributeError` when cancelling a download — `RequestReceipt` has no `.cancel()`; we now cancel the underlying `Resource` if present, or mark the receipt `FAILED` and remove it from the link queue.
 - **NomadNet browser (links)**: Relative `/page/` and `/file/` URLs from the Micron parser (which include backtick parameters) are now parsed correctly so they no longer show "Unsupported URL".
 - **NomadNet browser (hover)**: Links with `data-destination` now show the full URL including backtick parameters in the browser hover title.
+- **Docker build**: `build-frontend` stage now installs `python3` so docs generation succeeds in `node:24-alpine`.
+- **Docs manager**: Markdown tables in generated documentation render with proper borders and padding.
 
 ### Added
 
@@ -47,6 +49,9 @@ All notable changes to this project will be documented in this file.
 - **NomadNet query tests**: Frontend and backend tests for `parseNomadnetworkUrl` with query strings and `downloadNomadNetFile` data payload handling.
 - **Android RNode protection**: On Android, `RNodeInterface`, `RNodeIPInterface`, and `RNodeMultiInterface` entries in the Reticulum config are automatically disabled before startup to prevent crashes from missing serial/BLE support in Chaquopy.
 - **Android external storage**: On Android, MeshChatX now defaults to `getExternalFilesDir()` (user-accessible via file managers) instead of private internal storage.
+- **CI (Linux packages)**: AppImage, deb, and rpm release assets are now built and tested on every push to `dev` for both x64 and arm64.
+- **Docker**: Added a hardened image variant (`-hardened` suffix) with non-root user, read-only rootfs, and restricted capabilities.
+- **Map**: Drag-and-drop import of GeoJSON, KML, and KMZ files directly onto the map window, with localized drop hint overlays.
 
 ### Changed
 
@@ -61,6 +66,7 @@ All notable changes to this project will be documented in this file.
 - **Sidebar order**: Reordered sidebar so **Telephone** appears directly below **Messages** for faster access.
 - **Telephone announce**: Disabled by default in `config_manager`.
 - **CONTRIBUTING.md**: Updated generative AI policy to emphasize local/offline models and reference the Reticulum Zen and License.
+- **Dependencies**: Migrated Python dependency management from **Poetry** to **UV** (0.11.12) across all CI scripts, Dockerfiles, and dev tooling. `poetry.lock` replaced with `uv.lock`.
 
 ## [4.6.1] - 2026-05-04
 
