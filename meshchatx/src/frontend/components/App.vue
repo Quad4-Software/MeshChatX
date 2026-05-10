@@ -251,6 +251,19 @@
                                         </SidebarLink>
                                     </li>
 
+                                    <!-- banished -->
+                                    <li>
+                                        <SidebarLink :to="{ name: 'blocked' }" :is-collapsed="isSidebarCollapsed">
+                                            <template #icon>
+                                                <MaterialDesignIcon
+                                                    icon-name="gavel"
+                                                    class="w-6 h-6 text-gray-700 dark:text-gray-200"
+                                                />
+                                            </template>
+                                            <template #text>{{ $t("banishment.title") }}</template>
+                                        </SidebarLink>
+                                    </li>
+
                                     <!-- map -->
                                     <li>
                                         <SidebarLink :to="{ name: 'map' }" :is-collapsed="isSidebarCollapsed">

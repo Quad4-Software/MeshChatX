@@ -2257,6 +2257,71 @@
                                     {{ $t("app.inbound_stamp_description") }}
                                 </div>
                             </div>
+                            <hr class="border-gray-200 dark:border-gray-700" />
+                            <div>
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
+                                    {{ $t("app.flood_protection") }}
+                                </div>
+                                <div class="text-xs text-gray-600 dark:text-gray-400 mb-3">
+                                    {{ $t("app.flood_protection_description") }}
+                                </div>
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="lxmf-flood-protection"
+                                        v-model="config.lxmf_flood_protection_enabled"
+                                        @update:model-value="onLxmfFloodProtectionEnabledChange"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{
+                                            $t("app.flood_protection_enabled")
+                                        }}</span>
+                                    </span>
+                                </label>
+                                <div v-show="config.lxmf_flood_protection_enabled" class="space-y-3 mt-2">
+                                    <div class="space-y-2">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            {{ $t("app.flood_threshold") }}
+                                        </div>
+                                        <input
+                                            v-model.number="config.lxmf_flood_threshold_per_minute"
+                                            type="number"
+                                            min="1"
+                                            max="1000"
+                                            placeholder="30"
+                                            class="input-field"
+                                            @input="onLxmfFloodThresholdChange"
+                                        />
+                                    </div>
+                                    <div class="space-y-2">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            {{ $t("app.flood_max_stamp_cost") }}
+                                        </div>
+                                        <input
+                                            v-model.number="config.lxmf_flood_max_stamp_cost"
+                                            type="number"
+                                            min="1"
+                                            max="254"
+                                            placeholder="24"
+                                            class="input-field"
+                                            @input="onLxmfFloodMaxStampCostChange"
+                                        />
+                                    </div>
+                                    <div class="space-y-2">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            {{ $t("app.flood_cooldown") }}
+                                        </div>
+                                        <input
+                                            v-model.number="config.lxmf_flood_cooldown_seconds"
+                                            type="number"
+                                            min="30"
+                                            max="3600"
+                                            placeholder="300"
+                                            class="input-field"
+                                            @input="onLxmfFloodCooldownChange"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </section>
 
@@ -2936,6 +3001,12 @@ export default {
                     "app.inbound_stamp_description",
                     "app.inbound_stamps_required_title",
                     "app.inbound_stamps_required_description",
+                    "app.flood_protection",
+                    "app.flood_protection_description",
+                    "app.flood_protection_enabled",
+                    "app.flood_threshold",
+                    "app.flood_max_stamp_cost",
+                    "app.flood_cooldown",
                 ],
                 propagation: [
                     "LXMF",
@@ -3607,6 +3678,47 @@ export default {
                     },
                     "propagation_stamp_cost_label"
                 );
+            }, 1000);
+        },
+        async onLxmfFloodProtectionEnabledChange(value) {
+            await this.updateConfig({
+                lxmf_flood_protection_enabled: value,
+            });
+        },
+        async onLxmfFloodThresholdChange() {
+            if (this.saveTimeouts.flood_threshold) clearTimeout(this.saveTimeouts.flood_threshold);
+            this.saveTimeouts.flood_threshold = setTimeout(async () => {
+                let v = Number(this.config.lxmf_flood_threshold_per_minute);
+                if (!v || v < 1) v = 30;
+                else if (v > 1000) v = 1000;
+                this.config.lxmf_flood_threshold_per_minute = v;
+                await this.updateConfig({
+                    lxmf_flood_threshold_per_minute: v,
+                });
+            }, 1000);
+        },
+        async onLxmfFloodMaxStampCostChange() {
+            if (this.saveTimeouts.flood_max_cost) clearTimeout(this.saveTimeouts.flood_max_cost);
+            this.saveTimeouts.flood_max_cost = setTimeout(async () => {
+                let v = Number(this.config.lxmf_flood_max_stamp_cost);
+                if (!v || v < 1) v = 24;
+                else if (v > 254) v = 254;
+                this.config.lxmf_flood_max_stamp_cost = v;
+                await this.updateConfig({
+                    lxmf_flood_max_stamp_cost: v,
+                });
+            }, 1000);
+        },
+        async onLxmfFloodCooldownChange() {
+            if (this.saveTimeouts.flood_cooldown) clearTimeout(this.saveTimeouts.flood_cooldown);
+            this.saveTimeouts.flood_cooldown = setTimeout(async () => {
+                let v = Number(this.config.lxmf_flood_cooldown_seconds);
+                if (!v || v < 30) v = 30;
+                else if (v > 3600) v = 3600;
+                this.config.lxmf_flood_cooldown_seconds = v;
+                await this.updateConfig({
+                    lxmf_flood_cooldown_seconds: v,
+                });
             }, 1000);
         },
         async onPageArchiverEnabledChangeWrapper(value) {
