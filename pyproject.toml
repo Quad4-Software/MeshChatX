@@ -35,7 +35,6 @@ dependencies = [
   "lxst>=0.4.6",
   "jaraco.context>=6.1.1",
   "miniaudio (>=1.70,<2.0)",
-  "cbor2>=6.0.1",
 ]
 
 [project.scripts]

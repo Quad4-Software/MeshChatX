@@ -29,7 +29,7 @@ if [[ "$(uname -s)" == "Linux" ]] && command -v apt-get >/dev/null 2>&1; then
 fi
 
 python -m poetry check --lock
-python -m poetry install --no-interaction --no-ansi
+python -m poetry install --no-interaction --no-ansi --with dev
 python -m poetry run python scripts/patch_lxst_pyogg_ogg_ctypes.py
 
 if [[ "$(uname -s)" == "Darwin" ]]; then
