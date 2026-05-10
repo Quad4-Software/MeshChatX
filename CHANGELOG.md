@@ -19,6 +19,14 @@ All notable changes to this project will be documented in this file.
 - **Health monitor**: Added garbage collection calls during context teardown and health checks to clean up resources.
 - **Ping error logging**: Failed destination pings now log a clean `console.warn` message instead of dumping the full `HttpError` stack trace in browser dev tools.
 - **Trivy CI setup**: Added curl retries (`--retry 5 --retry-delay 2`) to handle transient 502 errors during Trivy downloads.
+- **Tests**: Fixed multiple failing backend tests (`test_http_api_contract`, `test_interface_discovery`, `test_websocket_interfaces`, `test_security_fuzzing`, `test_telemetry_integration`) for pytest compatibility, BoolConfig mocking, and RNS `get_instance` changes. Added missing dev dependencies (`pytest-asyncio`, `pytest-xdist`, `pytest-cov`, `jsonschema`).
+- **Banishment**: Blocking now targets the **identity**, not just a single destination hash. All known destinations for the same identity are blocked, contacts are deleted, and LXMF stamp/ticket state is cleaned up from `LXMRouter`.
+- **Banishment (UI)**: Blocked destinations page groups entries by identity and shows all blocked destination hashes per identity. Unblocking one unblocks the entire identity.
+- **Banishment (Reticulum)**: `blackhole_identity()` is always applied when available to drop packets before LXMF delivery callbacks reach the sender, preventing "phantom deliveries" to blocked peers.
+- **NomadNet file downloads**: Backtick-separated request data (e.g. `/file/artifact`g=reticulum|r=lxmf|t=0.9.7`) is now parsed and forwarded as `var_*` request data dicts, matching upstream NomadNet behavior. Previously the raw string was passed and remote nodes could not resolve the artifact.
+- **NomadNet file downloads (cancel)**: Fixed `AttributeError` when cancelling a download — `RequestReceipt` has no `.cancel()`; we now cancel the underlying `Resource` if present, or mark the receipt `FAILED` and remove it from the link queue.
+- **NomadNet browser (links)**: Relative `/page/` and `/file/` URLs from the Micron parser (which include backtick parameters) are now parsed correctly so they no longer show "Unsupported URL".
+- **NomadNet browser (hover)**: Links with `data-destination` now show the full URL including backtick parameters in the browser hover title.
 
 ### Added
 
