@@ -225,16 +225,16 @@
                                         </SidebarLink>
                                     </li>
 
-                                    <!-- nomad network -->
+                                    <!-- telephone -->
                                     <li>
-                                        <SidebarLink :to="{ name: 'nomadnetwork' }" :is-collapsed="isSidebarCollapsed">
+                                        <SidebarLink :to="{ name: 'call' }" :is-collapsed="isSidebarCollapsed">
                                             <template #icon>
                                                 <MaterialDesignIcon
-                                                    icon-name="earth"
+                                                    icon-name="phone"
                                                     class="w-6 h-6 text-gray-700 dark:text-gray-200"
                                                 />
                                             </template>
-                                            <template #text>{{ $t("app.nomad_network") }}</template>
+                                            <template #text>{{ $t("app.audio_calls") }}</template>
                                         </SidebarLink>
                                     </li>
 
@@ -251,16 +251,16 @@
                                         </SidebarLink>
                                     </li>
 
-                                    <!-- banished -->
+                                    <!-- nomad network -->
                                     <li>
-                                        <SidebarLink :to="{ name: 'blocked' }" :is-collapsed="isSidebarCollapsed">
+                                        <SidebarLink :to="{ name: 'nomadnetwork' }" :is-collapsed="isSidebarCollapsed">
                                             <template #icon>
                                                 <MaterialDesignIcon
-                                                    icon-name="gavel"
+                                                    icon-name="earth"
                                                     class="w-6 h-6 text-gray-700 dark:text-gray-200"
                                                 />
                                             </template>
-                                            <template #text>{{ $t("banishment.title") }}</template>
+                                            <template #text>{{ $t("app.nomad_network") }}</template>
                                         </SidebarLink>
                                     </li>
 
@@ -290,16 +290,16 @@
                                         </SidebarLink>
                                     </li>
 
-                                    <!-- telephone -->
+                                    <!-- tools -->
                                     <li>
-                                        <SidebarLink :to="{ name: 'call' }" :is-collapsed="isSidebarCollapsed">
+                                        <SidebarLink :to="{ name: 'tools' }" :is-collapsed="isSidebarCollapsed">
                                             <template #icon>
                                                 <MaterialDesignIcon
-                                                    icon-name="phone"
-                                                    class="w-6 h-6 text-gray-700 dark:text-gray-200"
+                                                    icon-name="wrench"
+                                                    class="size-6 text-gray-700 dark:text-gray-200"
                                                 />
                                             </template>
-                                            <template #text>{{ $t("app.audio_calls") }}</template>
+                                            <template #text>{{ $t("app.tools") }}</template>
                                         </SidebarLink>
                                     </li>
 
@@ -332,16 +332,16 @@
                                         </SidebarLink>
                                     </li>
 
-                                    <!-- tools -->
+                                    <!-- banished -->
                                     <li>
-                                        <SidebarLink :to="{ name: 'tools' }" :is-collapsed="isSidebarCollapsed">
+                                        <SidebarLink :to="{ name: 'blocked' }" :is-collapsed="isSidebarCollapsed">
                                             <template #icon>
                                                 <MaterialDesignIcon
-                                                    icon-name="wrench"
-                                                    class="size-6 text-gray-700 dark:text-gray-200"
+                                                    icon-name="gavel"
+                                                    class="w-6 h-6 text-gray-700 dark:text-gray-200"
                                                 />
                                             </template>
-                                            <template #text>{{ $t("app.tools") }}</template>
+                                            <template #text>{{ $t("banishment.title") }}</template>
                                         </SidebarLink>
                                     </li>
 

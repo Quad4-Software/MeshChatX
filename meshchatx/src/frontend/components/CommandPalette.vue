@@ -135,6 +135,14 @@ export default {
                     route: { name: "messages" },
                 },
                 {
+                    id: "nav-call",
+                    title: "nav_call",
+                    description: "nav_call_desc",
+                    icon: "phone",
+                    type: "navigation",
+                    route: { name: "call" },
+                },
+                {
                     id: "nav-nomad",
                     title: "nav_nomad",
                     description: "nav_nomad_desc",
@@ -157,14 +165,6 @@ export default {
                     icon: "qrcode",
                     type: "navigation",
                     route: { name: "paper-message" },
-                },
-                {
-                    id: "nav-call",
-                    title: "nav_call",
-                    description: "nav_call_desc",
-                    icon: "phone",
-                    type: "navigation",
-                    route: { name: "call" },
                 },
                 {
                     id: "nav-settings",
