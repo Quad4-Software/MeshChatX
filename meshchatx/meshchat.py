@@ -11517,6 +11517,22 @@ class ReticulumMeshChat:
 
             try:
                 self.database.misc.add_blocked_destination(destination_hash)
+                # Block all known destinations for the same identity
+                announce = self.database.announces.get_announce_by_hash(
+                    destination_hash
+                )
+                if announce and announce.get("identity_hash"):
+                    identity_hash = announce["identity_hash"]
+                    other_announces = (
+                        self.database.announces.get_announces_by_identity_hash(
+                            identity_hash
+                        )
+                    )
+                    for other in other_announces:
+                        other_hash = other["destination_hash"]
+                        if other_hash != destination_hash:
+                            self.database.misc.add_blocked_destination(other_hash)
+                            self._lxmf_reticulum_enforce_block(other_hash)
             except Exception:
                 return web.json_response(
                     {"error": "Destination already blocked"},
@@ -11527,6 +11543,8 @@ class ReticulumMeshChat:
 
             local_hash = self.local_lxmf_destination.hash.hex()
             self.message_handler.delete_conversation(local_hash, destination_hash)
+
+            AsyncUtils.run_async(self._broadcast_blocked_destinations())
 
             return web.json_response({"message": "ok"})
 
@@ -11543,26 +11561,41 @@ class ReticulumMeshChat:
             try:
                 self.database.misc.delete_blocked_destination(destination_hash)
 
-                # remove from Reticulum blackhole if available and enabled
-                if self.config.blackhole_integration_enabled.get():
-                    try:
-                        if hasattr(self, "reticulum") and self.reticulum:
-                            # Try to resolve identity hash from destination hash
-                            identity_hash = None
-                            announce = self.database.announces.get_announce_by_hash(
-                                destination_hash,
-                            )
-                            if announce and announce.get("identity_hash"):
-                                identity_hash = announce["identity_hash"]
+                # Unblock all known destinations for the same identity
+                announce = self.database.announces.get_announce_by_hash(
+                    destination_hash
+                )
+                if announce and announce.get("identity_hash"):
+                    identity_hash = announce["identity_hash"]
+                    other_announces = (
+                        self.database.announces.get_announces_by_identity_hash(
+                            identity_hash
+                        )
+                    )
+                    for other in other_announces:
+                        other_hash = other["destination_hash"]
+                        if other_hash != destination_hash:
+                            self.database.misc.delete_blocked_destination(other_hash)
 
-                            # Use resolved identity hash or fallback to destination hash
-                            target_hash = identity_hash or destination_hash
-                            dest_bytes = bytes.fromhex(target_hash)
+                # Always remove from Reticulum blackhole if available
+                try:
+                    if hasattr(self, "reticulum") and self.reticulum:
+                        identity_hash = None
+                        announce = self.database.announces.get_announce_by_hash(
+                            destination_hash,
+                        )
+                        if announce and announce.get("identity_hash"):
+                            identity_hash = announce["identity_hash"]
 
-                            if hasattr(self.reticulum, "unblackhole_identity"):
-                                self.reticulum.unblackhole_identity(dest_bytes)
-                    except Exception as e:
-                        print(f"Failed to unblackhole identity in Reticulum: {e}")
+                        target_hash = identity_hash or destination_hash
+                        dest_bytes = bytes.fromhex(target_hash)
+
+                        if hasattr(self.reticulum, "unblackhole_identity"):
+                            self.reticulum.unblackhole_identity(dest_bytes)
+                except Exception as e:
+                    print(f"Failed to unblackhole identity in Reticulum: {e}")
+
+                AsyncUtils.run_async(self._broadcast_blocked_destinations())
 
                 return web.json_response({"message": "ok"})
             except Exception as e:
@@ -14863,6 +14896,27 @@ class ReticulumMeshChat:
             ),
         )
 
+    async def _broadcast_blocked_destinations(self):
+        try:
+            blocked = self.database.misc.get_blocked_destinations()
+            blocked_list = [
+                {
+                    "destination_hash": b["destination_hash"],
+                    "created_at": b["created_at"],
+                }
+                for b in blocked
+            ]
+            await self.websocket_broadcast(
+                json.dumps(
+                    {
+                        "type": "blocked_destinations",
+                        "blocked_destinations": blocked_list,
+                    },
+                ),
+            )
+        except Exception as e:
+            print(f"_broadcast_blocked_destinations: failed: {e}")
+
     # returns a dictionary of config
     def get_config_dict(self, context=None):
         ctx = context or self.current_context
@@ -15408,40 +15462,47 @@ class ReticulumMeshChat:
         if not ctx or not ctx.database:
             return False
         try:
-            return ctx.database.misc.is_destination_blocked(destination_hash)
+            if ctx.database.misc.is_destination_blocked(destination_hash):
+                return True
+            # Check if any destination for this identity is blocked
+            announce = ctx.database.announces.get_announce_by_hash(destination_hash)
+            if announce and announce.get("identity_hash"):
+                identity_hash = announce["identity_hash"]
+                other_announces = ctx.database.announces.get_announces_by_identity_hash(
+                    identity_hash
+                )
+                for other in other_announces:
+                    if ctx.database.misc.is_destination_blocked(
+                        other["destination_hash"]
+                    ):
+                        return True
+            return False
         except Exception:
             return False
 
     def _lxmf_reticulum_enforce_block(self, destination_hash: str) -> None:
         """Apply Reticulum blackhole or drop_path after a peer was added to the block list."""
-        if self.config.blackhole_integration_enabled.get():
-            try:
-                if hasattr(self, "reticulum") and self.reticulum:
-                    identity_hash = None
-                    announce = self.database.announces.get_announce_by_hash(
-                        destination_hash,
+        try:
+            if hasattr(self, "reticulum") and self.reticulum:
+                identity_hash = None
+                announce = self.database.announces.get_announce_by_hash(
+                    destination_hash,
+                )
+                if announce and announce.get("identity_hash"):
+                    identity_hash = announce["identity_hash"]
+                target_hash = identity_hash or destination_hash
+                dest_bytes = bytes.fromhex(target_hash)
+                if hasattr(self.reticulum, "blackhole_identity"):
+                    reason = (
+                        f"Blocked in MeshChatX (from {destination_hash})"
+                        if identity_hash
+                        else "Blocked in MeshChatX"
                     )
-                    if announce and announce.get("identity_hash"):
-                        identity_hash = announce["identity_hash"]
-                    target_hash = identity_hash or destination_hash
-                    dest_bytes = bytes.fromhex(target_hash)
-                    if hasattr(self.reticulum, "blackhole_identity"):
-                        reason = (
-                            f"Blocked in MeshChatX (from {destination_hash})"
-                            if identity_hash
-                            else "Blocked in MeshChatX"
-                        )
-                        self.reticulum.blackhole_identity(dest_bytes, reason=reason)
-                    else:
-                        self.reticulum.drop_path(dest_bytes)
-            except Exception as e:
-                print(f"_lxmf_reticulum_enforce_block: blackhole failed: {e}")
-        else:
-            try:
-                if hasattr(self, "reticulum") and self.reticulum:
-                    self.reticulum.drop_path(bytes.fromhex(destination_hash))
-            except Exception as e:
-                print(f"_lxmf_reticulum_enforce_block: drop_path failed: {e}")
+                    self.reticulum.blackhole_identity(dest_bytes, reason=reason)
+                else:
+                    self.reticulum.drop_path(dest_bytes)
+        except Exception as e:
+            print(f"_lxmf_reticulum_enforce_block: failed: {e}")
 
     def banish_lxmf_peer(self, destination_hash: str, context=None) -> None:
         """Banish (block) an LXMF peer: persist block and apply Reticulum blackhole/drop when configured."""
@@ -15452,10 +15513,23 @@ class ReticulumMeshChat:
             return
         try:
             ctx.database.misc.add_blocked_destination(destination_hash)
+            # Block all known destinations for the same identity
+            announce = ctx.database.announces.get_announce_by_hash(destination_hash)
+            if announce and announce.get("identity_hash"):
+                identity_hash = announce["identity_hash"]
+                other_announces = ctx.database.announces.get_announces_by_identity_hash(
+                    identity_hash
+                )
+                for other in other_announces:
+                    other_hash = other["destination_hash"]
+                    if other_hash != destination_hash:
+                        ctx.database.misc.add_blocked_destination(other_hash)
+                        self._lxmf_reticulum_enforce_block(other_hash)
         except Exception as e:
-            print(f"banish_lxmf_peer: add_blocked_destination failed: {e}")
+            print(f"banish_lxmf_peer: failed: {e}")
             return
         self._lxmf_reticulum_enforce_block(destination_hash)
+        AsyncUtils.run_async(self._broadcast_blocked_destinations())
 
     def check_spam_keywords(self, title: str, content: str, context=None) -> bool:
         """Return whether title/content match configured spam keywords."""

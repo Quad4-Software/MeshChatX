@@ -1247,6 +1247,10 @@ export default {
                     this.updateTelephoneStatus();
                     break;
                 }
+                case "blocked_destinations": {
+                    GlobalState.blockedDestinations = json.blocked_destinations || [];
+                    break;
+                }
                 case "lxmf.delivery": {
                     if (this.config?.do_not_disturb_enabled) {
                         break;
