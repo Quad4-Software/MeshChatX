@@ -413,37 +413,37 @@ class ConfigManager:
             True,
         )
 
-        # announce caps: max rows stored per aspect (oldest dropped). Default 1000.
+        # announce caps: max rows stored per aspect (oldest dropped). Default 2500.
         self.announce_max_stored_lxmf_delivery = self.IntConfig(
             self,
             "announce_max_stored_lxmf_delivery",
-            1000,
+            2500,
         )
         self.announce_max_stored_nomadnetwork_node = self.IntConfig(
             self,
             "announce_max_stored_nomadnetwork_node",
-            1000,
+            2500,
         )
         self.announce_max_stored_lxmf_propagation = self.IntConfig(
             self,
             "announce_max_stored_lxmf_propagation",
-            1000,
+            2500,
         )
-        # default API page size per aspect when limit query param omitted. Default 500.
+        # default API page size per aspect when limit query param omitted. Default 2500.
         self.announce_fetch_limit_lxmf_delivery = self.IntConfig(
             self,
             "announce_fetch_limit_lxmf_delivery",
-            500,
+            2500,
         )
         self.announce_fetch_limit_nomadnetwork_node = self.IntConfig(
             self,
             "announce_fetch_limit_nomadnetwork_node",
-            500,
+            2500,
         )
         self.announce_fetch_limit_lxmf_propagation = self.IntConfig(
             self,
             "announce_fetch_limit_lxmf_propagation",
-            500,
+            2500,
         )
         # lxst.telephony shares LXMF caps in announce_manager aspect mapping
         self.announce_search_max_fetch = self.IntConfig(

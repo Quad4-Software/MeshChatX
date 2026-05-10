@@ -2197,7 +2197,7 @@ class ReticulumMeshChat:
     def _default_announce_fetch_limit(self, aspect):
         ctx = self.current_context
         if not ctx or not ctx.config:
-            return 500
+            return 2500
         keys = {
             "lxmf.delivery": ctx.config.announce_fetch_limit_lxmf_delivery,
             "nomadnetwork.node": ctx.config.announce_fetch_limit_nomadnetwork_node,
@@ -2206,10 +2206,10 @@ class ReticulumMeshChat:
         }
         cfg = keys.get(aspect)
         if cfg is None:
-            return 500
+            return 2500
         v = cfg.get()
         if v is None or v < 1:
-            return 500
+            return 2500
         return min(int(v), 100_000)
 
     def get_lxst_version(self) -> str:

@@ -221,13 +221,13 @@ def test_fetch_limit_invalid_falls_back_to_default(mock_db, mock_config):
 
     manager = _make_manager(mock_db, mock_config)
 
-    assert manager._get_fetch_limit_for_aspect("lxmf.delivery") == 500
+    assert manager._get_fetch_limit_for_aspect("lxmf.delivery") == 2500
 
 
 def test_fetch_limit_unknown_aspect_returns_default(mock_db, mock_config):
     manager = _make_manager(mock_db, mock_config)
 
-    assert manager._get_fetch_limit_for_aspect("unknown.aspect") == 500
+    assert manager._get_fetch_limit_for_aspect("unknown.aspect") == 2500
 
 
 def test_fetch_limit_none_falls_back_to_default(mock_db, mock_config):
@@ -236,7 +236,7 @@ def test_fetch_limit_none_falls_back_to_default(mock_db, mock_config):
 
     manager = _make_manager(mock_db, mock_config)
 
-    assert manager._get_fetch_limit_for_aspect("lxmf.delivery") == 500
+    assert manager._get_fetch_limit_for_aspect("lxmf.delivery") == 2500
 
 
 def test_get_filtered_announces_uses_clamped_fetch_limit(mock_db, mock_config):
