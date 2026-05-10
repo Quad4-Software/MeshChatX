@@ -42,7 +42,7 @@ wine_wrap wine "./$GIT_EXE" /VERYSILENT /NORESTART
 
 echo "Installing build dependencies in Wine Python..."
 wine_wrap wine C:/Python314/python.exe -m pip install --upgrade pip
-wine_wrap wine C:/Python314/python.exe -m pip install cx_Freeze poetry
+wine_wrap wine C:/Python314/python.exe -m pip install cx_Freeze
 if [ -f "requirements.txt" ]; then
     wine_wrap wine C:/Python314/python.exe -m pip install -r requirements.txt
 fi

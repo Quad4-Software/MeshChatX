@@ -46,31 +46,6 @@ lxmfy = "lxmfy.cli:main"
 [project.urls]
 Homepage = "https://git.quad4.io/RNS-Things/MeshChatX"
 
-[tool.poetry]
-packages = [
-  {include = "meshchatx"},
-  {include = "lxmfy", from = "vendor/lxmfy"},
-]
-
-[tool.poetry.dependencies]
-python = ">=3.11"
-lxst = ">=0.4.6"
-
-[tool.poetry.group.dev.dependencies]
-cx-freeze = ">=7.0.0"
-pygments = ">=2.20.0"
-pytest = ">=9.0.2,<10.0.0"
-pytest-asyncio = ">=0.25.0"
-pytest-cov = ">=7.0.0,<8.0.0"
-hypothesis = ">=6.151.9"
-ruff = ">=0.14.0"
-jsonschema = "^4.26.0"
-mutmut = {version = "^3.5.0", python = "<4.0"}
-pytest-xdist = "^3.8.0"
-
-[[tool.poetry.include]]
-path = "logo"
-
 [tool.setuptools.packages.find]
 where = [".", "vendor/lxmfy"]
 include = ["meshchatx*", "lxmfy*"]
@@ -89,12 +64,16 @@ build-backend = "setuptools.build_meta"
 
 [dependency-groups]
 dev = [
+    "cx-freeze>=7.0.0",
     "hypothesis>=6.152.4",
     "jsonschema>=4.26.0",
+    "pygments>=2.20.0",
     "pytest>=9.0.3",
     "pytest-asyncio>=0.25.0",
     "pytest-cov>=7.1.0",
     "pytest-xdist>=3.8.0",
+    "ruff>=0.14.0",
+    "mutmut>=3.5.0; python_version < '4.0'",
 ]
 
 [tool.ruff]

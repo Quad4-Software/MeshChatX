@@ -25,7 +25,7 @@ trap cleanup EXIT INT TERM
 
 echo "E2E: starting MeshChat backend on 127.0.0.1:${BACKEND_PORT} (isolated storage under ${TMPDIR})"
 
-poetry run python -m meshchatx.meshchat \
+uv run python -m meshchatx.meshchat \
     --headless \
     --no-https \
     --host 127.0.0.1 \

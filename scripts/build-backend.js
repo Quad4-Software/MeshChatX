@@ -182,7 +182,7 @@ function shouldRefreshLicenseArtifacts(repoRoot) {
 
     const inputFiles = [
         path.join(repoRoot, "pyproject.toml"),
-        path.join(repoRoot, "poetry.lock"),
+        path.join(repoRoot, "uv.lock"),
         path.join(repoRoot, "package.json"),
         path.join(repoRoot, "pnpm-lock.yaml"),
         path.join(repoRoot, "meshchatx", "src", "backend", "licenses_collector.py"),
@@ -266,7 +266,7 @@ try {
     }
 
     // Allow overriding the python command
-    const pythonCmd = process.env.PYTHON_CMD || "poetry run python";
+    const pythonCmd = process.env.PYTHON_CMD || "uv run python";
 
     console.log(
         `Building backend for ${platform} (target: ${targetName}, output: ${buildDirRelative}) using: ${pythonCmd}`

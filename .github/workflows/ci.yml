@@ -35,7 +35,7 @@ env:
     NODE_OPTIONS: --max-old-space-size=8192
     PYTHON_VERSION: "3.14"
     NODE_VERSION: "24"
-    POETRY_VERSION: "2.3.4"
+    UV_VERSION: "0.11.12"
     PNPM_VERSION: "10.32.1"
 
 jobs:
@@ -80,18 +80,18 @@ jobs:
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
 
-            - name: Install Poetry (PyPI pin)
+            - name: Install UV (PyPI pin)
               env:
-                  POETRY_VERSION: ${{ env.POETRY_VERSION }}
-              run: bash scripts/ci/github-install-poetry.sh
+                  UV_VERSION: ${{ env.UV_VERSION }}
+              run: bash scripts/ci/github-install-uv.sh
 
-            - name: Cache Poetry downloads
+            - name: Cache UV downloads
               uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
               with:
-                  path: ~/.cache/pypoetry
-                  key: ${{ runner.os }}-pypoetry-${{ hashFiles('poetry.lock') }}
+                  path: ~/.cache/uv
+                  key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock') }}
                   restore-keys: |
-                      ${{ runner.os }}-pypoetry-
+                      ${{ runner.os }}-uv-
 
             - name: Enable pnpm (corepack)
               run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
@@ -112,20 +112,20 @@ jobs:
                   case "${{ matrix.task.id }}" in
                     lint)
                       pnpm run lint
-                      poetry run ruff check .
-                      poetry run ruff format --check .
+                      uv run ruff check .
+                      uv run ruff format --check .
                       ;;
                     frontend-tests)
                       pnpm exec vitest run --exclude tests/frontend/LoadTimePerformance.test.js --exclude tests/frontend/i18n.test.js
                       pnpm exec vitest run --config vitest.electron.config.js
                       ;;
                     backend-tests)
-                      poetry run python -m pytest tests/backend -n auto \
+                      uv run python -m pytest tests/backend -n auto \
                         --cov=meshchatx/src/backend
                       ;;
                     lang-tests)
                       pnpm exec vitest run tests/frontend/i18n.test.js
-                      poetry run python -m pytest tests/backend/test_translator_handler.py
+                      uv run python -m pytest tests/backend/test_translator_handler.py
                       ;;
                     *)
                       echo "Unknown matrix task: ${{ matrix.task.id }}" >&2
@@ -152,18 +152,18 @@ jobs:
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
 
-            - name: Install Poetry (PyPI pin)
+            - name: Install UV (PyPI pin)
               env:
-                  POETRY_VERSION: ${{ env.POETRY_VERSION }}
-              run: bash scripts/ci/github-install-poetry.sh
+                  UV_VERSION: ${{ env.UV_VERSION }}
+              run: bash scripts/ci/github-install-uv.sh
 
-            - name: Cache Poetry downloads
+            - name: Cache UV downloads
               uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
               with:
-                  path: ~/.cache/pypoetry
-                  key: ${{ runner.os }}-pypoetry-${{ hashFiles('poetry.lock') }}
+                  path: ~/.cache/uv
+                  key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock') }}
                   restore-keys: |
-                      ${{ runner.os }}-pypoetry-
+                      ${{ runner.os }}-uv-
 
             - name: Enable pnpm (corepack)
               run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
@@ -192,7 +192,7 @@ jobs:
                   test -d meshchatx/public/reticulum-docs-bundled/current
 
             - name: Compile backend sources
-              run: poetry run python -m compileall meshchatx/
+              run: uv run python -m compileall meshchatx/
 
             - name: Build backend (cx_Freeze)
               run: pnpm run build-backend

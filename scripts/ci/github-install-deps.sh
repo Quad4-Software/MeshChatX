@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install Python (Poetry) and Node (pnpm) dependencies for native Electron builds.
+# Install Python (UV) and Node (pnpm) dependencies for native Electron builds.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -28,13 +28,13 @@ if [[ "$(uname -s)" == "Linux" ]] && command -v apt-get >/dev/null 2>&1; then
     run_priv apt-get install -y libopus0 libogg0
 fi
 
-python -m poetry check --lock
-python -m poetry install --no-interaction --no-ansi --with dev
-python -m poetry run python scripts/patch_lxst_pyogg_ogg_ctypes.py
+uv lock --check
+uv sync --group dev
+uv run python scripts/patch_lxst_pyogg_ogg_ctypes.py
 
 if [[ "$(uname -s)" == "Darwin" ]]; then
-    if poetry run python -c "import platform, sys; sys.exit(0 if platform.machine() == 'arm64' else 1)"; then
-        _miniaudio_state="$(poetry run python -c "
+    if uv run python -c "import platform, sys; sys.exit(0 if platform.machine() == 'arm64' else 1)"; then
+        _miniaudio_state="$(uv run python -c "
 import importlib.util
 import pathlib
 import subprocess
@@ -78,10 +78,10 @@ else:
                 export ARCHFLAGS="-arch arm64"
                 export CFLAGS="-arch arm64"
                 export CXXFLAGS="-arch arm64"
-                poetry run python -m pip install --force-reinstall --no-cache-dir --no-binary miniaudio "miniaudio>=1.70,<2"
+                uv run python -m pip install --force-reinstall --no-cache-dir --no-binary miniaudio "miniaudio>=1.70,<2"
             )
         fi
-        if ! poetry run python -c "
+        if ! uv run python -c "
 import importlib.util
 import pathlib
 import subprocess

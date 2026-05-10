@@ -5,7 +5,7 @@ set -euo pipefail
 
 cd /src
 
-export POETRY_VERSION="${POETRY_VERSION:-2.3.4}"
+export UV_VERSION="${UV_VERSION:-0.11.12}"
 export PNPM_VERSION="${PNPM_VERSION:-10.33.0}"
 
 apt-get update -y
@@ -37,7 +37,7 @@ curl -fsSL "https://github.com/go-task/task/releases/download/v${TASK_VER}/task_
 corepack enable
 corepack prepare "pnpm@${PNPM_VERSION}" --activate
 
-bash scripts/ci/github-install-poetry.sh
+bash scripts/ci/github-install-uv.sh
 
 export TRIVY_SBOM=0
 

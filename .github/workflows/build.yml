@@ -33,7 +33,7 @@ env:
     NODE_OPTIONS: --max-old-space-size=8192
     PYTHON_VERSION: "3.14"
     NODE_VERSION: "24"
-    POETRY_VERSION: "2.3.4"
+    UV_VERSION: "0.11.12"
     PNPM_VERSION: "10.32.1"
 
 jobs:
@@ -80,10 +80,10 @@ jobs:
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
 
-            - name: Install Poetry (PyPI pin)
+            - name: Install UV (PyPI pin)
               env:
-                  POETRY_VERSION: ${{ env.POETRY_VERSION }}
-              run: bash scripts/ci/github-install-poetry.sh
+                  UV_VERSION: ${{ env.UV_VERSION }}
+              run: bash scripts/ci/github-install-uv.sh
 
             - name: Enable pnpm (corepack)
               run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
