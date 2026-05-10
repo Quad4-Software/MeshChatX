@@ -481,7 +481,7 @@ describe("NomadNetworkPage.vue", () => {
                 "version=2&format=raw",
                 vi.fn(),
                 vi.fn(),
-                vi.fn(),
+                vi.fn()
             );
             expect(WebSocketConnection.send).toHaveBeenCalledOnce();
             const payload = JSON.parse(WebSocketConnection.send.mock.calls[0][0]);
@@ -491,28 +491,14 @@ describe("NomadNetworkPage.vue", () => {
 
         it("omits data field when data is null", () => {
             const wrapper = mountNomadNetworkPage();
-            wrapper.vm.downloadNomadNetFile(
-                "b".repeat(32),
-                "/file/data.bin",
-                null,
-                vi.fn(),
-                vi.fn(),
-                vi.fn(),
-            );
+            wrapper.vm.downloadNomadNetFile("b".repeat(32), "/file/data.bin", null, vi.fn(), vi.fn(), vi.fn());
             const payload = JSON.parse(WebSocketConnection.send.mock.calls[0][0]);
             expect(payload.nomadnet_file_download).not.toHaveProperty("data");
         });
 
         it("omits data field when data is undefined", () => {
             const wrapper = mountNomadNetworkPage();
-            wrapper.vm.downloadNomadNetFile(
-                "c".repeat(32),
-                "/file/data.bin",
-                undefined,
-                vi.fn(),
-                vi.fn(),
-                vi.fn(),
-            );
+            wrapper.vm.downloadNomadNetFile("c".repeat(32), "/file/data.bin", undefined, vi.fn(), vi.fn(), vi.fn());
             const payload = JSON.parse(WebSocketConnection.send.mock.calls[0][0]);
             expect(payload.nomadnet_file_download).not.toHaveProperty("data");
         });

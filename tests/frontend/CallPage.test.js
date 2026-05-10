@@ -22,7 +22,8 @@ describe("CallPage.vue", () => {
                     voicemail: { unread_count: 0 },
                 };
 
-                if (url.includes("/api/v1/config")) return Promise.resolve({ data: { config: { telephone_enabled: true } } });
+                if (url.includes("/api/v1/config"))
+                    return Promise.resolve({ data: { config: { telephone_enabled: true } } });
                 if (url.includes("/api/v1/telephone/history")) return Promise.resolve({ data: { call_history: [] } });
                 if (url.includes("/api/v1/announces")) return Promise.resolve({ data: { announces: [] } });
                 if (url.includes("/api/v1/telephone/status")) return Promise.resolve({ data: { active_call: null } });

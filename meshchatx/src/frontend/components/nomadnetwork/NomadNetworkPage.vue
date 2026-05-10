@@ -2358,7 +2358,14 @@ export default {
             const match = hash.match(/popout=([^&]+)/);
             return match ? decodeURIComponent(match[1]) : null;
         },
-        downloadNomadNetFile(destinationHash, filePath, data, onSuccessCallback, onFailureCallback, onProgressCallback) {
+        downloadNomadNetFile(
+            destinationHash,
+            filePath,
+            data,
+            onSuccessCallback,
+            onFailureCallback,
+            onProgressCallback
+        ) {
             try {
                 // set callbacks for nomadnet filePath download
                 this.nomadnetFileDownloadCallbacks[this.getNomadnetFileDownloadCallbackKey(destinationHash, filePath)] =

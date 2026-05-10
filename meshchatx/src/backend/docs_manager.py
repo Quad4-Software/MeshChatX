@@ -282,7 +282,7 @@ class DocsManager:
 <body class="p-4 md:p-8 max-w-4xl mx-auto">
     <h1 class="text-2xl font-bold mb-4">MeshChatX Documentation</h1>
     <ul class="list-disc pl-5">
-        {''.join(index_links)}
+        {"".join(index_links)}
     </ul>
 </body>
 </html>"""
