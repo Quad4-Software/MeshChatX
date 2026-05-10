@@ -11,12 +11,16 @@ Liam Cottle 氏による Reticulum MeshChat を大幅に改修・機能拡張し
 - 公式 GitHub ミラー: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - リリース: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - 変更履歴: [`CHANGELOG.md`](../CHANGELOG.md)
-- 寄付: [`donate.md`](../donate.md)
+- 寄付: [`donate.md`](../donate.md) ([寄付](#寄付))
+- Umbrel App Store: [apps.umbrel.com/app/meshchatx](https://apps.umbrel.com/app/meshchatx)
 
 <a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/Quad4-Software/MeshChatX"><img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" height="60" alt="Get it on Obtainium"></a>
 
+rngit NomadNet Node: `5399f5a0212477618821e91e88ce053b:/page/index.mu`
+
 rngit: `git clone rns://926baefe13daf5178c174f158dae1b45/quad4/MeshChatX`
-NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
+
+MeshChatX NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
 
 ## Reticulum MeshChat からの主な変更
 
