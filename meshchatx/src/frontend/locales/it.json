@@ -1534,6 +1534,7 @@
         "type": "Tipo",
         "user": "Utente",
         "node": "Nodo",
+        "blocked_destinations": "Destinazioni bloccate",
         "banishment_lifted": "Esilio revocato con successo",
         "failed_lift_banishment": "Impossibile revocare l'esilio"
     },

@@ -1482,6 +1482,7 @@
         "type": "Tipo",
         "user": "Usuario",
         "node": "Node",
+        "blocked_destinations": "Destinos bloqueados",
         "banishment_lifted": "El destierro se levantó con éxito",
         "failed_lift_banishment": "Failed to lift banishment"
     },

@@ -1482,6 +1482,7 @@
         "type": "Type",
         "user": "Utilisateur",
         "node": "Noeud",
+        "blocked_destinations": "Destinations bloquées",
         "banishment_lifted": "Interdiction levée avec succès",
         "failed_lift_banishment": "Échec à la levée du bannissement"
     },

@@ -1482,6 +1482,7 @@
         "type": "Type",
         "user": "Gebruiker",
         "node": "Knooppunt",
+        "blocked_destinations": "Geblokkeerde bestemmingen",
         "banishment_lifted": "Verbanning succesvol opgeheven",
         "failed_lift_banishment": "Kon verbanning niet opheffen"
     },

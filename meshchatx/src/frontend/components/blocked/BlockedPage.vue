@@ -43,13 +43,13 @@
         </div>
 
         <div class="flex-1 overflow-y-auto p-4 md:p-6">
-            <div v-if="isLoading && blockedItems.length === 0" class="flex flex-col items-center justify-center h-64">
+            <div v-if="isLoading && filteredBlockedIdentities.length === 0" class="flex flex-col items-center justify-center h-64">
                 <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
                 <p class="text-gray-500 dark:text-gray-400">{{ $t("banishment.loading_items") }}</p>
             </div>
 
             <div
-                v-else-if="filteredBlockedItems.length === 0"
+                v-else-if="filteredBlockedIdentities.length === 0"
                 class="flex flex-col items-center justify-center h-64 text-center"
             >
                 <div class="p-4 bg-gray-100 dark:bg-zinc-800 rounded-full mb-4 text-gray-400 dark:text-zinc-600">
@@ -63,8 +63,8 @@
 
             <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div
-                    v-for="item in filteredBlockedItems"
-                    :key="item.destination_hash"
+                    v-for="identity in filteredBlockedIdentities"
+                    :key="identity.identity_hash"
                     class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-xl shadow-lg overflow-hidden"
                 >
                     <div class="p-5">
@@ -78,15 +78,15 @@
                                         />
                                     </div>
                                     <div class="min-w-0 flex-1">
-                                        <div class="flex items-center gap-2 mb-1">
+                                        <div class="flex items-center gap-2 mb-1 flex-wrap">
                                             <h4
                                                 class="text-base font-semibold text-gray-900 dark:text-white wrap-break-word"
-                                                :title="item.display_name"
+                                                :title="identity.display_name"
                                             >
-                                                {{ item.display_name || $t("call.unknown") }}
+                                                {{ identity.display_name || $t("call.unknown") }}
                                             </h4>
                                             <span
-                                                v-if="item.is_node"
+                                                v-if="identity.is_node"
                                                 class="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-sm"
                                             >
                                                 {{ $t("banishment.node") }}
@@ -98,7 +98,7 @@
                                                 {{ $t("banishment.user") }}
                                             </span>
                                             <span
-                                                v-if="item.is_rns_blackholed"
+                                                v-if="identity.is_rns_blackholed"
                                                 class="px-2 py-0.5 text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-sm border border-zinc-200 dark:border-zinc-700"
                                                 title="Blackholed at Reticulum transport layer"
                                             >
@@ -107,32 +107,46 @@
                                         </div>
                                         <p
                                             class="text-xs text-gray-500 dark:text-gray-400 font-mono break-all mt-1"
-                                            :title="item.destination_hash"
+                                            :title="identity.identity_hash"
                                         >
-                                            {{ item.destination_hash }}
+                                            {{ identity.identity_hash }}
                                         </p>
                                     </div>
                                 </div>
-                                <div v-if="item.created_at" class="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                                    {{ $t("banishment.banished_at") }} {{ formatTimeAgo(item.created_at) }}
+
+                                <!-- Blocked destination hashes -->
+                                <div v-if="identity.blocked_destinations.length > 0" class="mb-2">
+                                    <p class="text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
+                                        {{ $t("banishment.blocked_destinations") }}
+                                    </p>
+                                    <div class="space-y-1">
+                                        <div
+                                            v-for="dest in identity.blocked_destinations"
+                                            :key="dest.destination_hash"
+                                            class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 font-mono bg-gray-50 dark:bg-zinc-800 px-2 py-1 rounded"
+                                        >
+                                            <span class="break-all">{{ dest.destination_hash }}</span>
+                                            <span v-if="dest.created_at" class="shrink-0 ml-2 text-gray-400 dark:text-zinc-500">
+                                                {{ formatTimeAgo(dest.created_at) }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div v-if="identity.rns_reason" class="text-xs italic text-zinc-500 dark:text-zinc-400 mb-2">
+                                    "{{ identity.rns_reason }}"
                                 </div>
                                 <div
-                                    v-if="item.rns_source"
+                                    v-if="identity.rns_source"
                                     class="text-[10px] text-zinc-500 dark:text-zinc-500 font-mono truncate mb-1"
                                 >
-                                    Source: {{ item.rns_source }}
-                                </div>
-                                <div
-                                    v-if="item.rns_reason"
-                                    class="text-xs italic text-zinc-500 dark:text-zinc-400 mb-2"
-                                >
-                                    "{{ item.rns_reason }}"
+                                    Source: {{ identity.rns_source }}
                                 </div>
                             </div>
                         </div>
                         <button
                             class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors font-medium"
-                            @click="onUnblock(item)"
+                            @click="onUnblock(identity)"
                         >
                             <MaterialDesignIcon icon-name="check-circle" class="size-5" />
                             <span>{{ $t("banishment.lift_banishment") }}</span>
@@ -157,35 +171,30 @@ export default {
     },
     data() {
         return {
-            blockedItems: [],
-            reticulumBlackholedItems: [],
+            blockedIdentities: {},
             isLoading: false,
             searchQuery: "",
         };
     },
     computed: {
-        allBlockedItems() {
-            // Combine local blocked items and reticulum blackholed items
-            // Prioritize local items if they overlap
-            const localHashes = new Set(this.blockedItems.map((i) => i.destination_hash));
-            const combined = [...this.blockedItems];
-
-            for (const item of this.reticulumBlackholedItems) {
-                if (!localHashes.has(item.destination_hash)) {
-                    combined.push(item);
-                }
-            }
-            return combined;
+        allBlockedIdentities() {
+            return Object.values(this.blockedIdentities).sort((a, b) => {
+                const nameA = (a.display_name || "").toLowerCase();
+                const nameB = (b.display_name || "").toLowerCase();
+                return nameA.localeCompare(nameB);
+            });
         },
-        filteredBlockedItems() {
+        filteredBlockedIdentities() {
             if (!this.searchQuery.trim()) {
-                return this.allBlockedItems;
+                return this.allBlockedIdentities;
             }
             const query = this.searchQuery.toLowerCase();
-            return this.allBlockedItems.filter((item) => {
-                const matchesHash = item.destination_hash.toLowerCase().includes(query);
-                const matchesDisplayName = (item.display_name || "").toLowerCase().includes(query);
-                return matchesHash || matchesDisplayName;
+            return this.allBlockedIdentities.filter((identity) => {
+                if (identity.identity_hash.toLowerCase().includes(query)) return true;
+                if ((identity.display_name || "").toLowerCase().includes(query)) return true;
+                return identity.blocked_destinations.some((d) =>
+                    d.destination_hash.toLowerCase().includes(query)
+                );
             });
         },
     },
@@ -209,14 +218,35 @@ export default {
                     console.error("Failed to load Reticulum blackhole", e);
                 }
 
-                const processItem = async (hash, data = {}) => {
-                    let displayName = this.$t("call.unknown");
+                const identityMap = {};
+
+                const ensureIdentity = (identityHash) => {
+                    if (!identityMap[identityHash]) {
+                        identityMap[identityHash] = {
+                            identity_hash: identityHash,
+                            display_name: null,
+                            is_node: false,
+                            blocked_destinations: [],
+                            is_rns_blackholed: false,
+                            rns_source: null,
+                            rns_reason: null,
+                            rns_until: null,
+                        };
+                    }
+                    return identityMap[identityHash];
+                };
+
+                // Process local blocked destinations
+                const processBlockedHash = async (blocked) => {
+                    const hash = blocked.destination_hash;
+                    let identityHash = hash;
+                    let displayName = null;
                     let isNode = false;
 
                     try {
                         const announceResponse = await window.api.get("/api/v1/announces", {
                             params: {
-                                identity_hash: hash,
+                                destination_hash: hash,
                                 include_blocked: true,
                                 limit: 1,
                             },
@@ -224,39 +254,55 @@ export default {
 
                         if (announceResponse.data.announces && announceResponse.data.announces.length > 0) {
                             const announce = announceResponse.data.announces[0];
-                            displayName = announce.display_name || this.$t("call.unknown");
+                            identityHash = announce.identity_hash || hash;
+                            displayName = announce.display_name || null;
                             isNode = announce.aspect === "nomadnetwork.node";
                         }
                     } catch {
                         // ignore error
                     }
 
-                    return {
+                    const identity = ensureIdentity(identityHash);
+                    identity.display_name = identity.display_name || displayName;
+                    identity.is_node = identity.is_node || isNode;
+                    identity.blocked_destinations.push({
                         destination_hash: hash,
-                        display_name: displayName,
-                        created_at: data.created_at || null,
-                        is_node: isNode,
-                        is_rns_blackholed: !!data.is_rns,
-                        rns_source: data.source || null,
-                        rns_reason: data.reason || null,
-                        rns_until: data.until || null,
-                    };
+                        created_at: blocked.created_at || null,
+                    });
                 };
 
-                const items = await Promise.all(
-                    blockedHashes.map((blocked) =>
-                        processItem(blocked.destination_hash, { created_at: blocked.created_at })
-                    )
-                );
+                await Promise.all(blockedHashes.map((blocked) => processBlockedHash(blocked)));
 
-                const rnsItems = await Promise.all(
-                    Object.entries(reticulumBlackholed).map(([hash, info]) =>
-                        processItem(hash, { ...info, is_rns: true })
-                    )
-                );
+                // Process Reticulum blackholed identities
+                for (const [hash, info] of Object.entries(reticulumBlackholed)) {
+                    const identity = ensureIdentity(hash);
+                    identity.is_rns_blackholed = true;
+                    identity.rns_source = info.source || null;
+                    identity.rns_reason = info.reason || null;
+                    identity.rns_until = info.until || null;
 
-                this.blockedItems = items;
-                this.reticulumBlackholedItems = rnsItems;
+                    // Try to look up display name from announces
+                    if (!identity.display_name) {
+                        try {
+                            const announceResponse = await window.api.get("/api/v1/announces", {
+                                params: {
+                                    identity_hash: hash,
+                                    include_blocked: true,
+                                    limit: 1,
+                                },
+                            });
+                            if (announceResponse.data.announces && announceResponse.data.announces.length > 0) {
+                                const announce = announceResponse.data.announces[0];
+                                identity.display_name = announce.display_name || null;
+                                identity.is_node = announce.aspect === "nomadnetwork.node";
+                            }
+                        } catch {
+                            // ignore
+                        }
+                    }
+                }
+
+                this.blockedIdentities = identityMap;
             } catch (e) {
                 console.log(e);
                 ToastUtils.error(this.$t("banishment.failed_load_banished"));
@@ -264,17 +310,22 @@ export default {
                 this.isLoading = false;
             }
         },
-        async onUnblock(item) {
+        async onUnblock(identity) {
             if (
                 !(await DialogUtils.confirm(
-                    this.$t("banishment.lift_banishment_confirm", { name: item.display_name || item.destination_hash })
+                    this.$t("banishment.lift_banishment_confirm", { name: identity.display_name || identity.identity_hash })
                 ))
             ) {
                 return;
             }
 
             try {
-                await window.api.delete(`/api/v1/blocked-destinations/${item.destination_hash}`);
+                // Use the first blocked destination hash, or fall back to identity hash
+                const targetHash = identity.blocked_destinations.length > 0
+                    ? identity.blocked_destinations[0].destination_hash
+                    : identity.identity_hash;
+
+                await window.api.delete(`/api/v1/blocked-destinations/${targetHash}`);
                 await this.loadBlockedDestinations();
                 ToastUtils.success(this.$t("banishment.banishment_lifted"));
             } catch (e) {
@@ -283,10 +334,7 @@ export default {
             }
         },
         onSearchInput() {},
-        formatDestinationHash: function (destinationHash) {
-            return Utils.formatDestinationHash(destinationHash);
-        },
-        formatTimeAgo: function (datetimeString) {
+        formatTimeAgo(datetimeString) {
             return Utils.formatTimeAgo(datetimeString);
         },
     },

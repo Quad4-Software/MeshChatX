@@ -1482,6 +1482,7 @@
         "type": "类型",
         "user": "用户",
         "node": "节点",
+        "blocked_destinations": "被阻止的目的地",
         "banishment_lifted": "放逐已解除",
         "failed_lift_banishment": "解除放逐失败"
     },

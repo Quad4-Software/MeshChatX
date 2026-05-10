@@ -1482,6 +1482,7 @@
         "type": "Type",
         "user": "User",
         "node": "Node",
+        "blocked_destinations": "Blocked destinations",
         "banishment_lifted": "Banishment lifted successfully",
         "failed_lift_banishment": "Failed to lift banishment"
     },
