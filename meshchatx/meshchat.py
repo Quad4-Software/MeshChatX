@@ -13967,6 +13967,7 @@ class ReticulumMeshChat:
 
             destination_hash_hex = download_data.get("destination_hash")
             file_path = download_data.get("file_path")
+            request_data = download_data.get("data")
 
             if not destination_hash_hex or not file_path:
                 return
@@ -14109,9 +14110,10 @@ class ReticulumMeshChat:
             downloader = NomadnetFileDownloader(
                 destination_hash,
                 file_path,
-                on_file_download_success,
-                on_file_download_failure,
-                on_file_download_progress,
+                data=request_data,
+                on_file_download_success=on_file_download_success,
+                on_file_download_failure=on_file_download_failure,
+                on_file_download_progress=on_file_download_progress,
                 on_phase=on_file_download_phase,
                 reticulum=getattr(self, "reticulum", None),
             )

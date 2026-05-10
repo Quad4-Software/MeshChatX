@@ -1937,9 +1937,11 @@ export default {
                     path = this.defaultNodePagePath;
                 }
 
+                const queryIndex = path.indexOf("?");
                 return {
                     destination_hash: null, // node hash was not in provided url
-                    path: path,
+                    path: queryIndex >= 0 ? path.substring(0, queryIndex) : path,
+                    query: queryIndex >= 0 ? path.substring(queryIndex + 1) : null,
                 };
             }
 
@@ -1950,9 +1952,12 @@ export default {
 
                 // ensure destination is expected length
                 if (destinationHash.length === 32) {
+                    const joined = relativeUrl.join(":");
+                    const queryIndex = joined.indexOf("?");
                     return {
                         destination_hash: destinationHash,
-                        path: relativeUrl.join(":"),
+                        path: queryIndex >= 0 ? joined.substring(0, queryIndex) : joined,
+                        query: queryIndex >= 0 ? joined.substring(queryIndex + 1) : null,
                     };
                 }
             }
@@ -1962,6 +1967,7 @@ export default {
                 return {
                     destination_hash: url,
                     path: this.defaultNodePagePath,
+                    query: null,
                 };
             }
 
@@ -2074,6 +2080,7 @@ export default {
                     this.downloadNomadNetFile(
                         destinationHash,
                         parsedUrl.path,
+                        parsedUrl.query,
                         (fileName, fileBytesBase64) => {
                             // Calculate final download speed based on actual file size
                             if (this.nodeFileDownloadStartTime) {
@@ -2351,7 +2358,7 @@ export default {
             const match = hash.match(/popout=([^&]+)/);
             return match ? decodeURIComponent(match[1]) : null;
         },
-        downloadNomadNetFile(destinationHash, filePath, onSuccessCallback, onFailureCallback, onProgressCallback) {
+        downloadNomadNetFile(destinationHash, filePath, data, onSuccessCallback, onFailureCallback, onProgressCallback) {
             try {
                 // set callbacks for nomadnet filePath download
                 this.nomadnetFileDownloadCallbacks[this.getNomadnetFileDownloadCallbackKey(destinationHash, filePath)] =
@@ -2362,15 +2369,17 @@ export default {
                     };
 
                 // ask reticulum to download file from nomadnet
-                WebSocketConnection.send(
-                    JSON.stringify({
-                        type: "nomadnet.file.download",
-                        nomadnet_file_download: {
-                            destination_hash: destinationHash,
-                            file_path: filePath,
-                        },
-                    })
-                );
+                const payload = {
+                    type: "nomadnet.file.download",
+                    nomadnet_file_download: {
+                        destination_hash: destinationHash,
+                        file_path: filePath,
+                    },
+                };
+                if (data != null) {
+                    payload.nomadnet_file_download.data = data;
+                }
+                WebSocketConnection.send(JSON.stringify(payload));
             } catch (e) {
                 console.error(e);
             }

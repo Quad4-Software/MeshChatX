@@ -282,6 +282,7 @@ class NomadnetFileDownloader(NomadnetDownloader):
         on_file_download_success: Callable[[str, bytes], None],
         on_file_download_failure: Callable[[str], None],
         on_progress_update: Callable[[float], None],
+        data: str | None = None,
         timeout: int | None = None,
         *,
         on_phase: Callable[[str], None] | None = None,
@@ -292,7 +293,7 @@ class NomadnetFileDownloader(NomadnetDownloader):
         super().__init__(
             destination_hash,
             page_path,
-            None,
+            data,
             self.on_download_success,
             self.on_download_failure,
             on_progress_update,

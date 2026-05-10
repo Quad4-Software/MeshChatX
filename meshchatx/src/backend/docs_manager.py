@@ -341,7 +341,7 @@ class DocsManager:
             return None
         if not full_path.startswith(base + os.sep) and full_path != base:
             return None
-        if not os.path.exists(full_path):
+        if not os.path.isfile(full_path):
             return None
 
         with open(full_path, encoding="utf-8", errors="ignore") as f:
