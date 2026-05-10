@@ -75,7 +75,7 @@ describe("BlockedPage UI", () => {
         const wrapper = mountBlockedPage();
         await flushPromises();
         await wrapper.vm.$nextTick();
-        expect(wrapper.vm.blockedItems.length >= 0).toBe(true);
+        expect(wrapper.vm.allBlockedIdentities.length >= 0).toBe(true);
     });
 
     it("search input binds to searchQuery", async () => {

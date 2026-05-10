@@ -24,9 +24,10 @@ class TestNomadnetDownloader(unittest.TestCase):
 
     def test_cancel(self):
         self.downloader.request_receipt = MagicMock()
+        self.downloader.request_receipt.resource = MagicMock()
         self.downloader.cancel()
         self.assertTrue(self.downloader.is_cancelled)
-        self.downloader.request_receipt.cancel.assert_called_once()
+        self.downloader.request_receipt.resource.cancel.assert_called_once()
 
 
 if __name__ == "__main__":

@@ -96,11 +96,11 @@ describe("BlockedPage.vue (Banished UI)", () => {
         const wrapper = mountBlockedPage();
         await vi.waitFor(() => expect(wrapper.vm.isLoading).toBe(false));
 
-        expect(wrapper.vm.allBlockedItems.length).toBe(2);
+        expect(wrapper.vm.allBlockedIdentities.length).toBe(2);
 
-        const rnsItem = wrapper.vm.allBlockedItems.find((i) => i.is_rns_blackholed);
+        const rnsItem = wrapper.vm.allBlockedIdentities.find((i) => i.is_rns_blackholed);
         expect(rnsItem).toBeDefined();
-        expect(rnsItem.destination_hash).toBe("b".repeat(32));
+        expect(rnsItem.identity_hash).toBe("b".repeat(32));
         expect(rnsItem.rns_reason).toBe("Spam");
     });
 

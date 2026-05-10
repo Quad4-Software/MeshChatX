@@ -132,7 +132,7 @@ async def test_nomadnet_file_download_with_data_passed_to_downloader(
         },
     )
 
-    assert captured["kwargs"].get("data") == "version=2&format=raw"
+    assert captured["kwargs"].get("data") == {"var_version": "2&format=raw"}
     assert captured["args"][0] == bytes.fromhex(dh)
     assert captured["args"][1] == "/files/report.pdf"
 
