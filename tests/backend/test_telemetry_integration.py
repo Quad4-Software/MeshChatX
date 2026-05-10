@@ -151,8 +151,7 @@ async def test_telemetry_request_no_location_does_not_call_handler(mock_app):
         "is_telemetry_trusted": True,
     }
     mock_app.database.messages.get_lxmf_message_by_hash.return_value = {}
-    mock_app.database.config.set("map_default_lat", None)
-    mock_app.database.config.set("map_default_lon", None)
+    mock_app.database.config.get.side_effect = lambda key, default=None: None
 
     mock_app.on_lxmf_delivery(mock_lxmf_message)
 
