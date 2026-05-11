@@ -315,8 +315,11 @@ class ReticulumMeshChat:
         ssl_key_path: str | None = None,
         rns_loglevel: str | None = None,
         migration_context: dict | None = None,
+        memory_diag_enabled: bool = False,
     ):
         self.running = True
+        self._memory_diag_enabled = memory_diag_enabled
+        self._mem_diag = None
         self.migration_context = (
             migration_context if migration_context is not None else {}
         )
@@ -2305,9 +2308,36 @@ class ReticulumMeshChat:
             if gc_counter >= 300:
                 gc_counter = 0
                 sweep_stale_links()
-                gc.collect()
+                # Python 3.14+ incremental GC: with threshold[2]==0 full gen2
+                # collections are never scheduled automatically, so force one.
+                if sys.version_info >= (3, 14) and gc.get_threshold()[2] == 0:
+                    gc.collect(2)
+                else:
+                    gc.collect()
 
             await asyncio.sleep(1)
+
+    async def _memory_diag_snapshot_loop(self):
+        if not self._mem_diag:
+            return
+        while self.running and self._mem_diag.enabled:
+            try:
+                await asyncio.to_thread(self._mem_diag.snapshot)
+                n = len(self._mem_diag._snapshots)
+                if n % 12 == 0:
+                    report = await asyncio.to_thread(
+                        self._mem_diag.diff_snapshots,
+                        top_n=10,
+                    )
+                    if report:
+                        growth = sum(r["size_mib"] for r in report)
+                        print(
+                            f"[mem_diag] Snapshot #{n}: +{growth:.2f} MiB "
+                            f"growth in top {len(report)} sites",
+                        )
+            except Exception as exc:
+                print(f"[mem_diag] Snapshot error: {exc}")
+            await asyncio.sleep(300)  # every 5 minutes
 
     # automatically syncs propagation nodes based on user config
     async def announce_sync_propagation_nodes(self, session_id, context=None):
@@ -2315,6 +2345,8 @@ class ReticulumMeshChat:
         if not ctx:
             return
 
+        router = ctx.message_router
+        sync_start_time = None
         while self.running and ctx.running and ctx.session_id == session_id:
             auto_sync_interval_seconds = ctx.config.lxmf_preferred_propagation_node_auto_sync_interval_seconds.get()
             last_synced_at = (
@@ -2329,8 +2361,29 @@ class ReticulumMeshChat:
             )
 
             # sync
-            if should_sync:
+            if should_sync and sync_start_time is None:
+                sync_start_time = time.monotonic()
                 await self.sync_propagation_nodes(context=ctx)
+
+            # stuck-sync watchdog and completion detection
+            if sync_start_time is not None and router:
+                state = router.propagation_transfer_state
+                pr_complete = getattr(router, "PR_COMPLETE", None)
+                if state in {router.PR_IDLE, pr_complete}:
+                    ctx.config.lxmf_preferred_propagation_node_last_synced_at.set(
+                        int(time.time())
+                    )
+                    await self.send_config_to_websocket_clients(context=ctx)
+                    sync_start_time = None
+                elif time.monotonic() - sync_start_time > 120:
+                    self.stop_propagation_node_sync(context=ctx)
+                    with contextlib.suppress(Exception):
+                        router.propagation_transfer_state = router.PR_IDLE
+                    ctx.config.lxmf_preferred_propagation_node_last_synced_at.set(
+                        int(time.time())
+                    )
+                    await self.send_config_to_websocket_clients(context=ctx)
+                    sync_start_time = None
 
             # wait 1 second before next loop
             await asyncio.sleep(1)
@@ -3290,6 +3343,10 @@ class ReticulumMeshChat:
             with contextlib.suppress(Exception):
                 self._health_monitor.stop()
 
+        if self._mem_diag is not None:
+            with contextlib.suppress(Exception):
+                self._mem_diag.stop()
+
         # force close websocket clients (copy: close() may touch the client list)
         for websocket_client in list(self.websocket_clients):
             try:
@@ -3538,6 +3595,120 @@ class ReticulumMeshChat:
                     "offset": offset,
                 },
             )
+
+        # ── Memory diagnostics (only when --memory-diag is active) ──────────
+
+        @routes.get("/api/v1/diagnostics/memory")
+        async def get_memory_diagnostics(request):
+            if self._mem_diag is None:
+                return web.json_response(
+                    {"enabled": False, "message": "Pass --memory-diag to enable"},
+                )
+            # tracemalloc.snapshot() + gc.get_objects() are CPU-bound and
+            # block the event loop for tens of seconds; run off-loop.
+            report = await asyncio.to_thread(self._mem_diag.report)
+            return web.json_response(report)
+
+        @routes.post("/api/v1/diagnostics/memory/snapshot")
+        async def take_memory_snapshot(request):
+            if self._mem_diag is None or not self._mem_diag.enabled:
+                return web.json_response(
+                    {"error": "Memory diagnostics not enabled"},
+                    status=400,
+                )
+            await asyncio.to_thread(self._mem_diag.snapshot)
+            gc_result = await asyncio.to_thread(self._mem_diag.find_cyclic_garbage)
+            stats = await asyncio.to_thread(self._mem_diag.gc_stats)
+            return web.json_response(
+                {
+                    "status": "ok",
+                    "snapshot_count": len(self._mem_diag._snapshots),
+                    "gc_collected": gc_result,
+                    "gc_stats": stats,
+                },
+            )
+
+        @routes.get("/api/v1/diagnostics/memory/heap")
+        async def get_heap_analysis(request):
+            if self._mem_diag is None or not self._mem_diag.enabled:
+                return web.json_response(
+                    {"error": "Memory diagnostics not enabled"},
+                    status=400,
+                )
+            top_n = int(request.query.get("top_n", 40))
+            by_type = await asyncio.to_thread(self._mem_diag.heap_by_type, top_n=top_n)
+            by_cat = await asyncio.to_thread(self._mem_diag.heap_by_category)
+            acc = await asyncio.to_thread(self._mem_diag.accumulating_types)
+            growth = await asyncio.to_thread(self._mem_diag.type_growth_since_start)
+            return web.json_response(
+                {
+                    "by_type": by_type,
+                    "by_category": by_cat,
+                    "accumulating": acc,
+                    "growth_since_start": growth,
+                },
+            )
+
+        @routes.get("/api/v1/diagnostics/memory/gc")
+        async def get_gc_stats(request):
+            if self._mem_diag is None or not self._mem_diag.enabled:
+                return web.json_response(
+                    {"enabled": False, "message": "Pass --memory-diag to enable"},
+                )
+            stats = await asyncio.to_thread(self._mem_diag.gc_stats)
+            return web.json_response(stats)
+
+        @routes.post("/api/v1/diagnostics/memory/gc/collect")
+        async def force_gc_collect(request):
+            if self._mem_diag is None or not self._mem_diag.enabled:
+                return web.json_response(
+                    {"error": "Memory diagnostics not enabled"},
+                    status=400,
+                )
+            result = await asyncio.to_thread(self._mem_diag.find_cyclic_garbage)
+            if self._mem_diag.enabled:
+                await asyncio.to_thread(self._mem_diag.snapshot)
+            stats = await asyncio.to_thread(self._mem_diag.gc_stats)
+            return web.json_response(
+                {
+                    "status": "ok",
+                    "gc_collected": result,
+                    "gc_stats": stats,
+                    "snapshot_count": len(self._mem_diag._snapshots),
+                },
+            )
+
+        @routes.get("/api/v1/diagnostics/memory/referrers")
+        async def get_referrers(request):
+            if self._mem_diag is None or not self._mem_diag.enabled:
+                return web.json_response(
+                    {"error": "Memory diagnostics not enabled"},
+                    status=400,
+                )
+            type_name = request.query.get("type", "")
+            if not type_name:
+                return web.json_response(
+                    {"error": "Specify ?type=<TypeName>"},
+                    status=400,
+                )
+            result = await asyncio.to_thread(
+                self._mem_diag.find_referrers,
+                type_name,
+            )
+            return web.json_response(result)
+
+        @routes.post("/api/v1/diagnostics/memory/reset")
+        async def reset_memory_diagnostics(request):
+            if self._mem_diag is None:
+                return web.json_response(
+                    {"error": "Memory diagnostics not enabled"},
+                    status=400,
+                )
+            await asyncio.to_thread(self._mem_diag.reset)
+            await asyncio.to_thread(self._mem_diag.start)
+            return web.json_response({"status": "ok", "message": "Diagnostics reset"})
+
+        # ── Database ─────────────────────────────────────────────────────
 
         @routes.post("/api/v1/database/snapshot")
         async def create_db_snapshot(request):
@@ -8068,6 +8239,9 @@ class ReticulumMeshChat:
                         if ident:
                             remote_identity_hash = ident.hash.hex()
 
+            if not remote_identity_hash:
+                # Fallback: use the provided lookup hash directly as identity hash
+                remote_identity_hash = lxmf_address or lxst_address
             if not remote_identity_hash:
                 return web.json_response(
                     {"message": "Identity hash is required or could not be derived"},
@@ -12856,6 +13030,10 @@ class ReticulumMeshChat:
                 except Exception:
                     print("failed to launch web browser")
 
+            # start memory diagnostics periodic snapshot task
+            if self._mem_diag and self._mem_diag.enabled:
+                asyncio.create_task(self._memory_diag_snapshot_loop())
+
         # create and run web app
         app = web.Application(
             client_max_size=1024 * 1024 * 50,
@@ -12934,6 +13112,17 @@ class ReticulumMeshChat:
 
         protocol = "https" if use_https else "http"
         print(f"Starting web server on {protocol}://{host}:{port}")
+
+        # Start memory diagnostics if enabled
+        if self._memory_diag_enabled:
+            from meshchatx.src.backend.diagnostics import MemoryDiagnostics
+
+            self._mem_diag = MemoryDiagnostics()
+            self._mem_diag.start()
+            print(
+                "[mem_diag] Memory diagnostics enabled — "
+                "see /api/v1/diagnostics/memory for reports",
+            )
 
         if use_https and ssl_context:
             web.run_app(app, host=host, port=port, ssl_context=ssl_context)
@@ -13776,7 +13965,9 @@ class ReticulumMeshChat:
                 and self.telephone_manager
                 and self.telephone_manager.telephone
             ):
-                self.telephone_manager.telephone.hangup()
+                self.telephone_manager.teardown()
+            elif value and self.telephone_manager:
+                self.telephone_manager.init_telephone()
 
         if "telephone_allow_calls_from_contacts_only" in data:
             self.config.telephone_allow_calls_from_contacts_only.set(
@@ -14872,6 +15063,10 @@ class ReticulumMeshChat:
                 try:
                     self.websocket_clients.remove(client)
                 except ValueError:
+                    pass
+                try:
+                    await client.close(code=WSCloseCode.GOING_AWAY)
+                except Exception:
                     pass
 
     # broadcasts config to all websocket clients
@@ -17781,6 +17976,13 @@ def main():
         help="Clear the stored password hash on startup so a new password can be set via the web UI. Can also be set via MESHCHAT_RESET_PASSWORD environment variable.",
     )
 
+    parser.add_argument(
+        "--memory-diag",
+        action="store_true",
+        default=env_bool("MESHCHAT_MEMORY_DIAG", False),
+        help="Enable tracemalloc-based memory diagnostics. Can also be set via MESHCHAT_MEMORY_DIAG environment variable.",
+    )
+
     args = parser.parse_args()
 
     ssl_cert = (args.ssl_cert or "").strip() or None
@@ -17914,6 +18116,7 @@ def main():
         ssl_key_path=ssl_key,
         rns_loglevel=rns_log_cli,
         migration_context=migration_context,
+        memory_diag_enabled=args.memory_diag,
     )
 
     # store recovery on app for wiring with identity context

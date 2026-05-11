@@ -15,6 +15,7 @@ import collections
 import gc
 import json
 import logging
+import sys
 import threading
 
 import psutil
@@ -60,7 +61,10 @@ class HealthMonitor:
                 self._check()
             except Exception as exc:
                 _log.debug("HealthMonitor check error: %s", exc)
-            gc.collect()
+            if sys.version_info >= (3, 14) and gc.get_threshold()[2] == 0:
+                gc.collect(2)
+            else:
+                gc.collect()
             await asyncio.sleep(self.CHECK_INTERVAL)
 
     def _check(self):

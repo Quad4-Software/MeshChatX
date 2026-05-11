@@ -1,8 +1,13 @@
 # SPDX-License-Identifier: 0BSD
 
 import sqlite3
+import sys
 import threading
 import weakref
+
+_SQLITE_CONNECT_KW = {}
+if sys.version_info >= (3, 14):
+    _SQLITE_CONNECT_KW["cached_statements"] = 100
 
 
 class DatabaseProvider:
@@ -43,6 +48,7 @@ class DatabaseProvider:
                             self.db_path,
                             check_same_thread=False,
                             isolation_level=None,
+                            **_SQLITE_CONNECT_KW,
                         )
                         self._memory_connection.row_factory = sqlite3.Row
             return self._memory_connection
@@ -54,6 +60,7 @@ class DatabaseProvider:
                 timeout=30.0,
                 check_same_thread=False,
                 isolation_level=None,
+                **_SQLITE_CONNECT_KW,
             )
             self._local.connection.row_factory = sqlite3.Row
             # Enable WAL mode for better concurrency
