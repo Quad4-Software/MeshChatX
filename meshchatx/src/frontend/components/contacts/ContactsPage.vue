@@ -84,7 +84,7 @@
                     </div>
                     <div v-else class="divide-y divide-gray-100 dark:divide-zinc-800">
                         <div
-                            v-for="contact in contacts"
+                            v-for="contact in mergedContacts"
                             :key="contact.id"
                             class="group flex cursor-default items-center gap-3 px-1 py-3 transition-colors hover:bg-gray-50/80 dark:hover:bg-zinc-900/70"
                             @contextmenu.prevent="openContextMenu($event, contact)"
@@ -106,8 +106,30 @@
                                 <div class="font-semibold text-gray-900 dark:text-zinc-100 truncate">
                                     {{ contact.name }}
                                 </div>
-                                <div class="text-xs font-mono text-gray-500 dark:text-zinc-400 break-all">
-                                    {{ contact.lxmf_address || contact.remote_identity_hash }}
+                                <div class="flex flex-col gap-0.5">
+                                    <div v-if="contact.remote_destination_hash" class="flex items-center gap-1.5">
+                                        <MaterialDesignIcon
+                                            icon-name="message-text-outline"
+                                            class="size-4 text-blue-500 dark:text-blue-400 shrink-0"
+                                        />
+                                        <span class="text-xs font-mono text-gray-500 dark:text-zinc-400 break-all">{{
+                                            contact.remote_destination_hash
+                                        }}</span>
+                                    </div>
+                                    <div v-if="contact.remote_telephony_hash" class="flex items-center gap-1.5">
+                                        <MaterialDesignIcon
+                                            icon-name="phone-outline"
+                                            class="size-4 text-green-600 dark:text-green-400 shrink-0"
+                                        />
+                                        <span class="text-xs font-mono text-gray-500 dark:text-zinc-400 break-all">{{
+                                            contact.remote_telephony_hash
+                                        }}</span>
+                                    </div>
+                                    <span
+                                        v-if="!contact.remote_destination_hash && !contact.remote_telephony_hash"
+                                        class="text-xs font-mono text-gray-500 dark:text-zinc-400 break-all"
+                                        >{{ contact.lxmf_address || contact.remote_identity_hash }}</span
+                                    >
                                 </div>
                             </div>
                             <div
@@ -475,6 +497,24 @@ export default {
         hasMoreContacts() {
             return this.contacts.length < this.totalContactsCount;
         },
+        mergedContacts() {
+            const map = new Map();
+            for (const c of this.contacts) {
+                const key = c.name?.toLowerCase() || "";
+                if (!map.has(key)) {
+                    map.set(key, { ...c });
+                } else {
+                    const existing = map.get(key);
+                    // Merge fields so both LXMF and LXST addresses are visible
+                    existing.lxmf_address = existing.lxmf_address || c.lxmf_address;
+                    existing.lxst_address = existing.lxst_address || c.lxst_address;
+                    existing.remote_destination_hash = existing.remote_destination_hash || c.remote_destination_hash;
+                    existing.remote_telephony_hash = existing.remote_telephony_hash || c.remote_telephony_hash;
+                    existing.remote_identity_hash = existing.remote_identity_hash || c.remote_identity_hash;
+                }
+            }
+            return Array.from(map.values());
+        },
     },
     beforeUnmount() {
         WebSocketConnection.off("message", this.onWebsocketMessage);
@@ -669,7 +709,6 @@ export default {
 
                 await window.api.post("/api/v1/telephone/contacts", {
                     name: this.newContactName?.trim() || `Contact ${destinationHash.slice(0, 8)}`,
-                    remote_identity_hash: destinationHash,
                     lxmf_address: destinationHash,
                 });
                 ToastUtils.success(this.$t("contacts.contact_added"));
@@ -704,9 +743,17 @@ export default {
         async removeContact(contact) {
             this.closeContextMenu();
             if (!contact?.id) return;
-            if (!window.confirm(this.$t("contacts.remove_contact_confirm"))) return;
+            const duplicates = this.contacts.filter((c) => c.name === contact.name && c.id !== contact.id);
+            const confirmMsg =
+                duplicates.length > 0
+                    ? `${this.$t("contacts.remove_contact_confirm")}\n\n(${duplicates.length} additional duplicate${duplicates.length > 1 ? "s" : ""} named "${contact.name}" will also be removed)`
+                    : this.$t("contacts.remove_contact_confirm");
+            if (!window.confirm(confirmMsg)) return;
             try {
-                await window.api.delete(`/api/v1/telephone/contacts/${contact.id}`);
+                const ids = [contact.id, ...duplicates.map((c) => c.id)];
+                for (const id of ids) {
+                    await window.api.delete(`/api/v1/telephone/contacts/${id}`);
+                }
                 ToastUtils.success(this.$t("contacts.contact_removed"));
                 await this.getContacts();
             } catch {
@@ -719,13 +766,19 @@ export default {
             const name = await DialogUtils.prompt(this.$t("contacts.enter_contact_name"), contact.name);
             if (name == null || name === contact.name) return;
             try {
-                await window.api.patch(`/api/v1/telephone/contacts/${contact.id}`, { name });
-                const destHash =
-                    contact.remote_destination_hash || contact.lxmf_address || contact.remote_identity_hash;
-                if (destHash && name.length > 0) {
-                    await window.api.post(`/api/v1/destination/${destHash}/custom-display-name/update`, {
-                        display_name: name,
-                    });
+                const duplicates = this.contacts.filter((c) => c.name === contact.name && c.id !== contact.id);
+                const ids = [contact.id, ...duplicates.map((c) => c.id)];
+                for (const id of ids) {
+                    await window.api.patch(`/api/v1/telephone/contacts/${id}`, { name });
+                }
+                const allContacts = [contact, ...duplicates];
+                for (const c of allContacts) {
+                    const destHash = c.remote_destination_hash || c.lxmf_address || c.remote_identity_hash;
+                    if (destHash && name.length > 0) {
+                        await window.api.post(`/api/v1/destination/${destHash}/custom-display-name/update`, {
+                            display_name: name,
+                        });
+                    }
                 }
                 ToastUtils.success(this.$t("contacts.contact_updated"));
                 await this.getContacts();

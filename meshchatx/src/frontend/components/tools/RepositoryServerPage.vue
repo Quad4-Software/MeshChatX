@@ -1,11 +1,13 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
-        <div class="flex-1 overflow-y-auto w-full pb-[max(1rem,env(safe-area-inset-bottom))]">
-            <div class="p-3 sm:p-4 md:p-6 max-w-6xl mx-auto w-full space-y-4 min-w-0">
+    <div
+        class="flex flex-col flex-1 overflow-hidden min-w-0 bg-linear-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
+    >
+        <div class="flex-1 overflow-y-auto overflow-x-hidden w-full px-3 sm:px-5 md:px-5 lg:px-8 py-3 sm:py-4 min-w-0">
+            <div class="space-y-0 w-full max-w-6xl xl:max-w-7xl mx-auto min-w-0">
                 <div
-                    class="flex flex-wrap items-start justify-between gap-3 border-b border-gray-200 dark:border-zinc-800 pb-4"
+                    class="w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-4 sm:py-6 flex flex-wrap items-start justify-between gap-3"
                 >
                     <div class="flex items-start gap-3 min-w-0">
                         <div
@@ -13,14 +15,14 @@
                         >
                             <MaterialDesignIcon icon-name="package-variant" class="size-6" />
                         </div>
-                        <div class="min-w-0">
+                        <div class="min-w-0 space-y-1">
                             <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
                                 {{ $t("tools.utilities") }}
                             </div>
                             <h1 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white tracking-tight">
                                 {{ $t("tools.repository_server.title") }}
                             </h1>
-                            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 max-w-2xl">
+                            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 max-w-2xl">
                                 {{ $t("tools.repository_server.subtitle") }}
                             </p>
                         </div>
@@ -28,7 +30,7 @@
                     <div class="flex items-center gap-2 shrink-0">
                         <button
                             type="button"
-                            class="inline-flex items-center justify-center p-2 rounded-lg border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-gray-600 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
+                            class="secondary-chip p-2!"
                             :title="$t('tools.repository_server.refresh_bundled_tooltip')"
                             :disabled="refreshing"
                             @click="refreshBundled"
@@ -37,7 +39,7 @@
                         </button>
                         <RouterLink
                             to="/tools"
-                            class="inline-flex items-center gap-2 text-sm text-sky-600 dark:text-sky-300 hover:underline"
+                            class="inline-flex items-center gap-1 text-sm text-sky-600 dark:text-sky-300 hover:underline"
                         >
                             <MaterialDesignIcon icon-name="arrow-left" class="size-4" />
                             {{ $t("tools.back_to_tools") }}
@@ -47,7 +49,7 @@
 
                 <div
                     v-if="refreshing"
-                    class="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 py-2.5 space-y-1.5"
+                    class="w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-4 sm:py-6 space-y-2"
                 >
                     <div class="h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-full overflow-hidden">
                         <div
@@ -60,9 +62,7 @@
                     </p>
                 </div>
 
-                <div
-                    class="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 space-y-3"
-                >
+                <div class="w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-4 sm:py-6 space-y-3">
                     <h2 class="text-sm font-semibold text-gray-900 dark:text-white">
                         {{ $t("tools.repository_server.http_heading") }}
                     </h2>
@@ -140,62 +140,70 @@
                     </div>
                 </div>
 
-                <div
-                    class="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 space-y-3"
-                >
+                <div class="w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-4 sm:py-6 space-y-3">
                     <h2 class="text-sm font-semibold text-gray-900 dark:text-white">
                         {{ $t("tools.repository_server.upload_heading") }}
                     </h2>
-                    <label
-                        class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-sky-600 text-white text-sm font-medium cursor-pointer hover:bg-sky-700 transition-colors"
-                    >
-                        <MaterialDesignIcon icon-name="upload" class="size-4" />
-                        {{ $t("tools.repository_server.choose_file") }}
-                        <input type="file" class="hidden" @change="onUpload" />
-                    </label>
-                    <p v-if="lastUploadError" class="text-xs text-red-600 dark:text-red-400">{{ lastUploadError }}</p>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <label
+                            class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-sky-600 text-white text-sm font-medium cursor-pointer hover:bg-sky-700 transition-colors"
+                        >
+                            <MaterialDesignIcon icon-name="upload" class="size-4" />
+                            {{ $t("tools.repository_server.choose_file") }}
+                            <input type="file" class="hidden" @change="onUpload" />
+                        </label>
+                        <p v-if="lastUploadError" class="text-xs text-red-600 dark:text-red-400">
+                            {{ lastUploadError }}
+                        </p>
+                    </div>
                 </div>
 
                 <div
                     v-if="status?.last_refresh_failed && Object.keys(status.last_refresh_failed).length"
-                    class="rounded-xl border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-950/30 p-3 text-xs text-amber-900 dark:text-amber-200"
-                >
-                    <div class="font-semibold mb-1">{{ $t("tools.repository_server.refresh_partial") }}</div>
-                    <ul class="list-disc pl-4 space-y-1">
-                        <li v-for="(msg, pkg) in status.last_refresh_failed" :key="pkg">
-                            <span class="font-mono">{{ pkg }}</span
-                            >: {{ msg }}
-                        </li>
-                    </ul>
-                </div>
-
-                <div
-                    class="rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-hidden"
+                    class="w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-4 sm:py-6"
                 >
                     <div
-                        class="px-4 py-3 border-b border-gray-100 dark:border-zinc-800 flex justify-between items-center"
+                        class="rounded-xl border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-950/30 p-3 text-xs text-amber-900 dark:text-amber-200"
                     >
+                        <div class="font-semibold mb-1">{{ $t("tools.repository_server.refresh_partial") }}</div>
+                        <ul class="list-disc pl-4 space-y-1">
+                            <li v-for="(msg, pkg) in status.last_refresh_failed" :key="pkg">
+                                <span class="font-mono">{{ pkg }}</span
+                                >: {{ msg }}
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="w-full py-4 sm:py-6 space-y-3">
+                    <div class="flex items-center justify-between">
                         <h2 class="text-sm font-semibold text-gray-900 dark:text-white">
                             {{ $t("tools.repository_server.files_heading") }}
                         </h2>
                         <span class="text-xs text-gray-500">{{ entries.length }}</span>
                     </div>
-                    <div v-if="loading" class="p-6 text-center text-sm text-gray-500">
+                    <div v-if="loading" class="text-center text-sm text-gray-500 py-6">
                         {{ $t("common.loading") }}
                     </div>
-                    <div v-else-if="entries.length === 0" class="p-6 text-center text-sm text-gray-500">
+                    <div v-else-if="entries.length === 0" class="text-center text-sm text-gray-500 py-6">
                         {{ $t("tools.repository_server.empty") }}
                     </div>
                     <table v-else class="w-full text-left text-xs">
-                        <thead class="bg-gray-50 dark:bg-zinc-900/50 text-gray-500 uppercase tracking-wide">
+                        <thead
+                            class="text-gray-500 uppercase tracking-wide border-b border-gray-200/60 dark:border-zinc-800/60"
+                        >
                             <tr>
-                                <th class="px-4 py-2">{{ $t("tools.repository_server.col_name") }}</th>
-                                <th class="px-4 py-2">{{ $t("tools.repository_server.col_source") }}</th>
-                                <th class="px-4 py-2 text-right">{{ $t("tools.repository_server.col_size") }}</th>
-                                <th class="px-4 py-2 w-24"></th>
+                                <th class="px-4 py-2 font-semibold">{{ $t("tools.repository_server.col_name") }}</th>
+                                <th class="px-4 py-2 font-semibold">{{ $t("tools.repository_server.col_source") }}</th>
+                                <th class="px-4 py-2 font-semibold text-right">
+                                    {{ $t("tools.repository_server.col_size") }}
+                                </th>
+                                <th class="px-4 py-2 font-semibold w-24"></th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-100 dark:divide-zinc-800 text-gray-800 dark:text-zinc-200">
+                        <tbody
+                            class="divide-y divide-gray-100 dark:divide-zinc-800/50 text-gray-800 dark:text-zinc-200"
+                        >
                             <tr v-for="row in entries" :key="row.name + row.source">
                                 <td class="px-4 py-2 font-mono break-all">{{ row.name }}</td>
                                 <td class="px-4 py-2">{{ row.source }}</td>

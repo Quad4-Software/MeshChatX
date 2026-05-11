@@ -80,7 +80,7 @@
                                 @click="refreshCommunityInterfaces"
                             >
                                 <MaterialDesignIcon
-                                    icon-name="refresh"
+                                    icon-name="download"
                                     class="w-4 h-4"
                                     :class="{ 'animate-spin-reverse': refreshingCommunityInterfaces }"
                                 />

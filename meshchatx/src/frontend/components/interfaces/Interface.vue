@@ -84,7 +84,8 @@
                             class="text-blue-500 hover:underline"
                             @click="onIFACSignatureClick(iface._stats.ifac_signature)"
                         >
-                            {{ iface._stats.ifac_signature.slice(0, 8) }}…{{ iface._stats.ifac_signature.slice(-8) }}
+                            <span class="font-mono">{{ iface._stats.ifac_signature.slice(0, 8) }}</span
+                            >…<span class="font-mono">{{ iface._stats.ifac_signature.slice(-8) }}</span>
                         </button>
                     </div>
                 </div>
@@ -257,6 +258,9 @@ export default {
             }
             if (this.iface.type === "AutoInterface") {
                 return "Auto-detect Ethernet and Wi-Fi peers";
+            }
+            if (this.iface.type === "BackboneInterface") {
+                return "Backbone (IFAC tunnel)";
             }
             return this.iface.description || "Custom interface";
         },
