@@ -334,14 +334,14 @@ task build:all
 
 `Makefile` のショートカット:
 
-| コマンド       | 説明                                    |
-| -------------- | --------------------------------------- |
-| `make install` | pnpm と UV の依存関係をインストール     |
-| `make run`     | UV 経由で MeshChatX を実行              |
-| `make build`   | フロントエンドをビルド                  |
-| `make lint`    | eslint と ruff を実行                   |
-| `make test`    | フロントエンドとバックエンドのテスト    |
-| `make clean`   | ビルド成果物と node_modules を削除      |
+| コマンド       | 説明                                 |
+| -------------- | ------------------------------------ |
+| `make install` | pnpm と UV の依存関係をインストール  |
+| `make run`     | UV 経由で MeshChatX を実行           |
+| `make build`   | フロントエンドをビルド               |
+| `make lint`    | eslint と ruff を実行                |
+| `make test`    | フロントエンドとバックエンドのテスト |
+| `make clean`   | ビルド成果物と node_modules を削除   |
 
 ## バージョン管理
 
