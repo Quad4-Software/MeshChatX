@@ -13,6 +13,7 @@ import "@mdi/font/css/materialdesignicons.css";
 import "./fonts/RobotoMonoNerdFont/font.css";
 import { startCodec2ScriptsBackgroundLoad } from "./js/Codec2Loader";
 import { createApiClient } from "./js/apiClient.js";
+import "./js/HeapMonitor.js";
 
 import App from "./components/App.vue";
 import ChangelogModal from "./components/ChangelogModal.vue";
