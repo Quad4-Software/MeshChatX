@@ -43,7 +43,7 @@
     },
     {
         "name": "@babel/parser",
-        "version": "7.29.2",
+        "version": "7.29.3",
         "author": "The Babel Team (https://babel.dev/team)",
         "license": "MIT"
     },
@@ -295,7 +295,7 @@
     },
     {
         "name": "@electron/rebuild",
-        "version": "4.0.3",
+        "version": "4.0.4",
         "author": "—",
         "license": "MIT"
     },
@@ -511,25 +511,25 @@
     },
     {
         "name": "@intlify/core-base",
-        "version": "11.3.2",
+        "version": "11.4.0",
         "author": "kazuya kawaguchi <kawakazu80@gmail.com>",
         "license": "MIT"
     },
     {
         "name": "@intlify/devtools-types",
-        "version": "11.3.2",
+        "version": "11.4.0",
         "author": "kazuya kawaguchi <kawakazu80@gmail.com>",
         "license": "MIT"
     },
     {
         "name": "@intlify/message-compiler",
-        "version": "11.3.2",
+        "version": "11.4.0",
         "author": "kazuya kawaguchi <kawakazu80@gmail.com>",
         "license": "MIT"
     },
     {
         "name": "@intlify/shared",
-        "version": "11.3.2",
+        "version": "11.4.0",
         "author": "kazuya kawaguchi <kawakazu80@gmail.com>",
         "license": "MIT"
     },
@@ -625,7 +625,7 @@
     },
     {
         "name": "@maplibre/maplibre-gl-style-spec",
-        "version": "24.8.1",
+        "version": "24.8.5",
         "author": "MapLibre",
         "license": "ISC"
     },
@@ -672,20 +672,8 @@
         "license": "MIT"
     },
     {
-        "name": "@npmcli/agent",
-        "version": "3.0.0",
-        "author": "GitHub Inc.",
-        "license": "ISC"
-    },
-    {
         "name": "@npmcli/fs",
         "version": "2.1.2",
-        "author": "GitHub Inc.",
-        "license": "ISC"
-    },
-    {
-        "name": "@npmcli/fs",
-        "version": "4.0.0",
         "author": "GitHub Inc.",
         "license": "ISC"
     },
@@ -703,7 +691,7 @@
     },
     {
         "name": "@oxc-project/types",
-        "version": "0.124.0",
+        "version": "0.127.0",
         "author": "Boshen and oxc contributors",
         "license": "MIT"
     },
@@ -739,13 +727,13 @@
     },
     {
         "name": "@rolldown/binding-linux-x64-gnu",
-        "version": "1.0.0-rc.15",
+        "version": "1.0.0-rc.17",
         "author": "—",
         "license": "MIT"
     },
     {
         "name": "@rolldown/pluginutils",
-        "version": "1.0.0-rc.15",
+        "version": "1.0.0-rc.17",
         "author": "—",
         "license": "MIT"
     },
@@ -961,55 +949,55 @@
     },
     {
         "name": "@vitest/coverage-v8",
-        "version": "4.1.4",
+        "version": "4.1.5",
         "author": "Anthony Fu <anthonyfu117@hotmail.com>",
         "license": "MIT"
     },
     {
         "name": "@vitest/expect",
-        "version": "4.1.4",
+        "version": "4.1.5",
         "author": "—",
         "license": "MIT"
     },
     {
         "name": "@vitest/mocker",
-        "version": "4.1.4",
+        "version": "4.1.5",
         "author": "—",
         "license": "MIT"
     },
     {
         "name": "@vitest/pretty-format",
-        "version": "4.1.4",
+        "version": "4.1.5",
         "author": "—",
         "license": "MIT"
     },
     {
         "name": "@vitest/runner",
-        "version": "4.1.4",
+        "version": "4.1.5",
         "author": "—",
         "license": "MIT"
     },
     {
         "name": "@vitest/snapshot",
-        "version": "4.1.4",
+        "version": "4.1.5",
         "author": "—",
         "license": "MIT"
     },
     {
         "name": "@vitest/spy",
-        "version": "4.1.4",
+        "version": "4.1.5",
         "author": "—",
         "license": "MIT"
     },
     {
         "name": "@vitest/ui",
-        "version": "4.1.4",
+        "version": "4.1.5",
         "author": "—",
         "license": "MIT"
     },
     {
         "name": "@vitest/utils",
-        "version": "4.1.4",
+        "version": "4.1.5",
         "author": "—",
         "license": "MIT"
     },
@@ -1021,25 +1009,25 @@
     },
     {
         "name": "@vue/compiler-core",
-        "version": "3.5.32",
+        "version": "3.5.33",
         "author": "Evan You",
         "license": "MIT"
     },
     {
         "name": "@vue/compiler-dom",
-        "version": "3.5.32",
+        "version": "3.5.33",
         "author": "Evan You",
         "license": "MIT"
     },
     {
         "name": "@vue/compiler-sfc",
-        "version": "3.5.32",
+        "version": "3.5.33",
         "author": "Evan You",
         "license": "MIT"
     },
     {
         "name": "@vue/compiler-ssr",
-        "version": "3.5.32",
+        "version": "3.5.33",
         "author": "Evan You",
         "license": "MIT"
     },
@@ -1051,37 +1039,37 @@
     },
     {
         "name": "@vue/reactivity",
-        "version": "3.5.32",
+        "version": "3.5.33",
         "author": "Evan You",
         "license": "MIT"
     },
     {
         "name": "@vue/runtime-core",
-        "version": "3.5.32",
+        "version": "3.5.33",
         "author": "Evan You",
         "license": "MIT"
     },
     {
         "name": "@vue/runtime-dom",
-        "version": "3.5.32",
+        "version": "3.5.33",
         "author": "Evan You",
         "license": "MIT"
     },
     {
         "name": "@vue/server-renderer",
-        "version": "3.5.32",
+        "version": "3.5.33",
         "author": "Evan You",
         "license": "MIT"
     },
     {
         "name": "@vue/shared",
-        "version": "3.5.32",
+        "version": "3.5.33",
         "author": "Evan You",
         "license": "MIT"
     },
     {
         "name": "@vue/test-utils",
-        "version": "2.4.6",
+        "version": "2.4.10",
         "author": "Lachlan Miller <lachlan.miller.1990@outlook.com>",
         "license": "MIT"
     },
@@ -1183,6 +1171,12 @@
     },
     {
         "name": "@xmldom/xmldom",
+        "version": "0.9.10",
+        "author": "—",
+        "license": "MIT"
+    },
+    {
+        "name": "@xmldom/xmldom",
         "version": "0.8.13",
         "author": "—",
         "license": "MIT"
@@ -1219,7 +1213,7 @@
     },
     {
         "name": "abbrev",
-        "version": "3.0.1",
+        "version": "4.0.0",
         "author": "GitHub Inc.",
         "license": "ISC"
     },
@@ -1243,13 +1237,13 @@
     },
     {
         "name": "agent-base",
-        "version": "7.1.4",
+        "version": "6.0.2",
         "author": "Nathan Rajlich <nathan@tootallnate.net> (http://n8.io/)",
         "license": "MIT"
     },
     {
         "name": "agent-base",
-        "version": "6.0.2",
+        "version": "7.1.4",
         "author": "Nathan Rajlich <nathan@tootallnate.net> (http://n8.io/)",
         "license": "MIT"
     },
@@ -1267,13 +1261,13 @@
     },
     {
         "name": "ajv",
-        "version": "8.18.0",
+        "version": "8.20.0",
         "author": "Evgeny Poberezkin",
         "license": "MIT"
     },
     {
         "name": "ajv",
-        "version": "6.14.0",
+        "version": "6.15.0",
         "author": "Evgeny Poberezkin",
         "license": "MIT"
     },
@@ -1417,7 +1411,7 @@
     },
     {
         "name": "baseline-browser-mapping",
-        "version": "2.10.20",
+        "version": "2.10.27",
         "author": "—",
         "license": "Apache-2.0"
     },
@@ -1542,12 +1536,6 @@
         "license": "ISC"
     },
     {
-        "name": "cacache",
-        "version": "19.0.1",
-        "author": "GitHub Inc.",
-        "license": "ISC"
-    },
-    {
         "name": "cacheable-lookup",
         "version": "5.0.4",
         "author": "Szymon Marczak",
@@ -1579,7 +1567,7 @@
     },
     {
         "name": "caniuse-lite",
-        "version": "1.0.30001788",
+        "version": "1.0.30001791",
         "author": "Ben Briggs <beneb.info@gmail.com>",
         "license": "CC-BY-4.0"
     },
@@ -1801,7 +1789,7 @@
     },
     {
         "name": "core-util-is",
-        "version": "1.0.2",
+        "version": "1.0.3",
         "author": "Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)",
         "license": "MIT"
     },
@@ -1975,7 +1963,7 @@
     },
     {
         "name": "dompurify",
-        "version": "3.4.0",
+        "version": "3.4.2",
         "author": "Dr.-Ing. Mario Heiderich, Cure53 <mario@cure53.de> (https://cure53.de/)",
         "license": "(MPL-2.0 OR Apache-2.0)"
     },
@@ -2077,7 +2065,7 @@
     },
     {
         "name": "electron-to-chromium",
-        "version": "1.5.340",
+        "version": "1.5.351",
         "author": "Kilian Valkhof",
         "license": "ISC"
     },
@@ -2125,7 +2113,7 @@
     },
     {
         "name": "enhanced-resolve",
-        "version": "5.20.1",
+        "version": "5.21.0",
         "author": "Tobias Koppers @sokra",
         "license": "MIT"
     },
@@ -2137,7 +2125,7 @@
     },
     {
         "name": "entities",
-        "version": "6.0.1",
+        "version": "8.0.0",
         "author": "Felix Boehm <me@feedic.com>",
         "license": "BSD-2-Clause"
     },
@@ -2173,7 +2161,7 @@
     },
     {
         "name": "es-module-lexer",
-        "version": "2.0.0",
+        "version": "2.1.0",
         "author": "Guy Bedford",
         "license": "MIT"
     },
@@ -2239,7 +2227,7 @@
     },
     {
         "name": "eslint-plugin-vue",
-        "version": "10.8.0",
+        "version": "10.9.1",
         "author": "Toru Nagashima (https://github.com/mysticatea)",
         "license": "MIT"
     },
@@ -2407,7 +2395,7 @@
     },
     {
         "name": "fast-uri",
-        "version": "3.1.0",
+        "version": "3.1.2",
         "author": "Vincent Le Goff <vince.legoff@gmail.com> (https://github.com/zekth)",
         "license": "BSD-3-Clause"
     },
@@ -2550,12 +2538,6 @@
         "license": "ISC"
     },
     {
-        "name": "fs-minipass",
-        "version": "3.0.3",
-        "author": "GitHub Inc.",
-        "license": "ISC"
-    },
-    {
         "name": "fs.realpath",
         "version": "1.0.0",
         "author": "Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)",
@@ -2683,7 +2665,7 @@
     },
     {
         "name": "globals",
-        "version": "17.5.0",
+        "version": "17.6.0",
         "author": "Sindre Sorhus <sindresorhus@gmail.com>",
         "license": "MIT"
     },
@@ -2905,12 +2887,6 @@
     },
     {
         "name": "ip-address",
-        "version": "10.1.0",
-        "author": "Beau Gunderson <beau@beaugunderson.com> (https://beaugunderson.com/)",
-        "license": "MIT"
-    },
-    {
-        "name": "ip-address",
         "version": "10.2.0",
         "author": "Beau Gunderson <beau@beaugunderson.com> (https://beaugunderson.com/)",
         "license": "MIT"
@@ -2929,7 +2905,7 @@
     },
     {
         "name": "is-core-module",
-        "version": "2.16.1",
+        "version": "2.16.2",
         "author": "Jordan Harband <ljharb@gmail.com>",
         "license": "MIT"
     },
@@ -3024,6 +3000,12 @@
         "license": "ISC"
     },
     {
+        "name": "isexe",
+        "version": "4.0.0",
+        "author": "Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)",
+        "license": "BlueOak-1.0.0"
+    },
+    {
         "name": "istanbul-lib-coverage",
         "version": "3.2.2",
         "author": "Krishnan Anantheswaran <kananthmail-github@yahoo.com>",
@@ -3061,7 +3043,7 @@
     },
     {
         "name": "jiti",
-        "version": "2.6.1",
+        "version": "2.7.0",
         "author": "—",
         "license": "MIT"
     },
@@ -3097,7 +3079,7 @@
     },
     {
         "name": "jsdom",
-        "version": "29.0.2",
+        "version": "29.1.1",
         "author": "—",
         "license": "MIT"
     },
@@ -3151,7 +3133,7 @@
     },
     {
         "name": "jsonfile",
-        "version": "6.2.0",
+        "version": "6.2.1",
         "author": "JP Richardson <jprichardson@gmail.com>",
         "license": "MIT"
     },
@@ -3235,7 +3217,7 @@
     },
     {
         "name": "loader-runner",
-        "version": "4.3.1",
+        "version": "4.3.2",
         "author": "Tobias Koppers @sokra",
         "license": "MIT"
     },
@@ -3301,15 +3283,15 @@
     },
     {
         "name": "lru-cache",
-        "version": "7.18.3",
+        "version": "11.3.6",
         "author": "Isaac Z. Schlueter <i@izs.me>",
-        "license": "ISC"
+        "license": "BlueOak-1.0.0"
     },
     {
         "name": "lru-cache",
-        "version": "11.3.5",
+        "version": "7.18.3",
         "author": "Isaac Z. Schlueter <i@izs.me>",
-        "license": "BlueOak-1.0.0"
+        "license": "ISC"
     },
     {
         "name": "lru-cache",
@@ -3342,12 +3324,6 @@
         "license": "ISC"
     },
     {
-        "name": "make-fetch-happen",
-        "version": "14.0.3",
-        "author": "GitHub Inc.",
-        "license": "ISC"
-    },
-    {
         "name": "map-age-cleaner",
         "version": "0.1.3",
         "author": "Sam Verschueren <sam.verschueren@gmail.com>",
@@ -3361,7 +3337,7 @@
     },
     {
         "name": "marked",
-        "version": "18.0.2",
+        "version": "18.0.3",
         "author": "Christopher Jeffrey",
         "license": "MIT"
     },
@@ -3481,15 +3457,15 @@
     },
     {
         "name": "minipass",
-        "version": "3.3.6",
-        "author": "Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)",
-        "license": "ISC"
-    },
-    {
-        "name": "minipass",
         "version": "7.1.3",
         "author": "Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)",
         "license": "BlueOak-1.0.0"
+    },
+    {
+        "name": "minipass",
+        "version": "3.3.6",
+        "author": "Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)",
+        "license": "ISC"
     },
     {
         "name": "minipass-collect",
@@ -3498,20 +3474,8 @@
         "license": "ISC"
     },
     {
-        "name": "minipass-collect",
-        "version": "2.0.1",
-        "author": "Isaac Z. Schlueter <i@izs.me> (https://izs.me)",
-        "license": "ISC"
-    },
-    {
         "name": "minipass-fetch",
         "version": "2.1.2",
-        "author": "GitHub Inc.",
-        "license": "MIT"
-    },
-    {
-        "name": "minipass-fetch",
-        "version": "4.0.1",
         "author": "GitHub Inc.",
         "license": "MIT"
     },
@@ -3595,7 +3559,7 @@
     },
     {
         "name": "nanoid",
-        "version": "3.3.11",
+        "version": "3.3.12",
         "author": "Andrey Sitnik <andrey@sitnik.ru>",
         "license": "MIT"
     },
@@ -3608,12 +3572,6 @@
     {
         "name": "negotiator",
         "version": "0.6.4",
-        "author": "Douglas Christopher Wilson <doug@somethingdoug.com>",
-        "license": "MIT"
-    },
-    {
-        "name": "negotiator",
-        "version": "1.0.0",
         "author": "Douglas Christopher Wilson <doug@somethingdoug.com>",
         "license": "MIT"
     },
@@ -3631,13 +3589,13 @@
     },
     {
         "name": "node-abi",
-        "version": "4.28.0",
+        "version": "4.30.0",
         "author": "Lukas Geiger",
         "license": "MIT"
     },
     {
         "name": "node-abi",
-        "version": "3.89.0",
+        "version": "3.91.0",
         "author": "Lukas Geiger",
         "license": "MIT"
     },
@@ -3655,13 +3613,13 @@
     },
     {
         "name": "node-gyp",
-        "version": "11.5.0",
+        "version": "12.3.0",
         "author": "Nathan Rajlich <nathan@tootallnate.net> (http://tootallnate.net)",
         "license": "MIT"
     },
     {
         "name": "node-releases",
-        "version": "2.0.37",
+        "version": "2.0.38",
         "author": "Sergey Rubanov <chi187@gmail.com>",
         "license": "MIT"
     },
@@ -3673,7 +3631,7 @@
     },
     {
         "name": "nopt",
-        "version": "8.1.0",
+        "version": "9.0.0",
         "author": "GitHub Inc.",
         "license": "ISC"
     },
@@ -3823,12 +3781,6 @@
     },
     {
         "name": "p-map",
-        "version": "7.0.4",
-        "author": "Sindre Sorhus <sindresorhus@gmail.com>",
-        "license": "MIT"
-    },
-    {
-        "name": "p-map",
         "version": "4.0.0",
         "author": "Sindre Sorhus <sindresorhus@gmail.com>",
         "license": "MIT"
@@ -3889,7 +3841,7 @@
     },
     {
         "name": "parse5",
-        "version": "8.0.0",
+        "version": "8.0.1",
         "author": "Ivan Nikulin <ifaaan@gmail.com> (https://github.com/inikulin)",
         "license": "MIT"
     },
@@ -4009,6 +3961,12 @@
     },
     {
         "name": "plist",
+        "version": "3.1.1",
+        "author": "Nathan Rajlich <nathan@tootallnate.net>",
+        "license": "MIT"
+    },
+    {
+        "name": "plist",
         "version": "3.1.0",
         "author": "Nathan Rajlich <nathan@tootallnate.net>",
         "license": "MIT"
@@ -4021,7 +3979,7 @@
     },
     {
         "name": "postcss",
-        "version": "8.5.10",
+        "version": "8.5.14",
         "author": "Andrey Sitnik <andrey@sitnik.es>",
         "license": "MIT"
     },
@@ -4057,13 +4015,13 @@
     },
     {
         "name": "proc-log",
-        "version": "2.0.1",
+        "version": "6.1.0",
         "author": "GitHub Inc.",
         "license": "ISC"
     },
     {
         "name": "proc-log",
-        "version": "5.0.0",
+        "version": "2.0.1",
         "author": "GitHub Inc.",
         "license": "ISC"
     },
@@ -4315,7 +4273,7 @@
     },
     {
         "name": "rolldown",
-        "version": "1.0.0-rc.15",
+        "version": "1.0.0-rc.17",
         "author": "—",
         "license": "MIT"
     },
@@ -4324,12 +4282,6 @@
         "version": "1.2.0",
         "author": "Feross Aboukhadijeh <feross@feross.org>",
         "license": "MIT"
-    },
-    {
-        "name": "rw",
-        "version": "1.3.3",
-        "author": "Mike Bostock",
-        "license": "BSD-3-Clause"
     },
     {
         "name": "safe-buffer",
@@ -4489,20 +4441,8 @@
     },
     {
         "name": "socks",
-        "version": "2.8.7",
-        "author": "Josh Glazebrook",
-        "license": "MIT"
-    },
-    {
-        "name": "socks",
         "version": "2.8.8",
         "author": "Josh Glazebrook",
-        "license": "MIT"
-    },
-    {
-        "name": "socks-proxy-agent",
-        "version": "8.0.5",
-        "author": "Nathan Rajlich <nathan@tootallnate.net>",
         "license": "MIT"
     },
     {
@@ -4564,12 +4504,6 @@
         "version": "1.1.3",
         "author": "Alexandru Mărășteanu <hello@alexei.ro>",
         "license": "BSD-3-Clause"
-    },
-    {
-        "name": "ssri",
-        "version": "12.0.0",
-        "author": "GitHub Inc.",
-        "license": "ISC"
     },
     {
         "name": "ssri",
@@ -4699,13 +4633,13 @@
     },
     {
         "name": "tapable",
-        "version": "2.3.2",
+        "version": "2.3.3",
         "author": "Tobias Koppers @sokra",
         "license": "MIT"
     },
     {
         "name": "tar",
-        "version": "7.5.13",
+        "version": "7.5.14",
         "author": "Isaac Z. Schlueter",
         "license": "BlueOak-1.0.0"
     },
@@ -4723,13 +4657,13 @@
     },
     {
         "name": "terser",
-        "version": "5.46.1",
+        "version": "5.46.2",
         "author": "Mihai Bazon <mihai.bazon@gmail.com> (http://lisperator.net/)",
         "license": "BSD-2-Clause"
     },
     {
         "name": "terser-webpack-plugin",
-        "version": "5.4.0",
+        "version": "5.5.0",
         "author": "webpack Contrib Team",
         "license": "MIT"
     },
@@ -4753,7 +4687,7 @@
     },
     {
         "name": "tinyexec",
-        "version": "1.1.1",
+        "version": "1.1.2",
         "author": "James Garbutt (https://github.com/43081j)",
         "license": "MIT"
     },
@@ -4777,13 +4711,13 @@
     },
     {
         "name": "tldts",
-        "version": "7.0.28",
+        "version": "7.0.30",
         "author": "Rémi Berson",
         "license": "MIT"
     },
     {
         "name": "tldts-core",
-        "version": "7.0.28",
+        "version": "7.0.30",
         "author": "Rémi Berson",
         "license": "MIT"
     },
@@ -4879,6 +4813,12 @@
     },
     {
         "name": "undici",
+        "version": "6.25.0",
+        "author": "Daniele Belardi",
+        "license": "MIT"
+    },
+    {
+        "name": "undici",
         "version": "7.25.0",
         "author": "Daniele Belardi",
         "license": "MIT"
@@ -4903,19 +4843,7 @@
     },
     {
         "name": "unique-filename",
-        "version": "4.0.0",
-        "author": "GitHub Inc.",
-        "license": "ISC"
-    },
-    {
-        "name": "unique-filename",
         "version": "2.0.1",
-        "author": "GitHub Inc.",
-        "license": "ISC"
-    },
-    {
-        "name": "unique-slug",
-        "version": "5.0.0",
         "author": "GitHub Inc.",
         "license": "ISC"
     },
@@ -5011,7 +4939,7 @@
     },
     {
         "name": "vite",
-        "version": "8.0.8",
+        "version": "8.0.10",
         "author": "Evan You",
         "license": "MIT"
     },
@@ -5023,31 +4951,31 @@
     },
     {
         "name": "vitest",
-        "version": "4.1.4",
+        "version": "4.1.5",
         "author": "Anthony Fu <anthonyfu117@hotmail.com>",
         "license": "MIT"
     },
     {
         "name": "vue",
-        "version": "3.5.32",
+        "version": "3.5.33",
         "author": "Evan You",
         "license": "MIT"
     },
     {
         "name": "vue-component-type-helpers",
-        "version": "2.2.12",
+        "version": "3.2.8",
         "author": "—",
         "license": "MIT"
     },
     {
         "name": "vue-eslint-parser",
-        "version": "10.2.0",
+        "version": "10.4.0",
         "author": "Toru Nagashima",
         "license": "MIT"
     },
     {
         "name": "vue-i18n",
-        "version": "11.3.2",
+        "version": "11.4.0",
         "author": "kazuya kawaguchi <kawakazu80@gmail.com>",
         "license": "MIT"
     },
@@ -5113,7 +5041,7 @@
     },
     {
         "name": "webpack-sources",
-        "version": "3.3.4",
+        "version": "3.4.1",
         "author": "Tobias Koppers @sokra",
         "license": "MIT"
     },
@@ -5145,6 +5073,12 @@
         "name": "which",
         "version": "1.3.1",
         "author": "Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me)",
+        "license": "ISC"
+    },
+    {
+        "name": "which",
+        "version": "6.0.1",
+        "author": "GitHub Inc.",
         "license": "ISC"
     },
     {
@@ -5311,7 +5245,7 @@
     },
     {
         "name": "zarrita",
-        "version": "0.7.1",
+        "version": "0.7.3",
         "author": "—",
         "license": "MIT"
     },
