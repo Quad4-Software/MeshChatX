@@ -24,7 +24,7 @@ COPY scripts/micron-wasm-resolve-bundled.mjs scripts/micron-wasm-resolve-bundled
 COPY scripts/micron-parser-go-version.mjs scripts/micron-parser-go-version.mjs
 COPY scripts/build/fetch_reticulum_manual.py scripts/build/fetch_reticulum_manual.py
 COPY meshchatx/src/frontend ./meshchatx/src/frontend
-RUN npm install -g pnpm@10.33.0 && \
+RUN npm install -g pnpm@11.1.2 && \
     pnpm config set verify-store-integrity true && \
     pnpm install --frozen-lockfile && \
     pnpm run build-frontend && \

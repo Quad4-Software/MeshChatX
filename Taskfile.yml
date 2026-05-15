@@ -5,6 +5,10 @@ vars:
         sh: echo "${PYTHON:-python}"
     NPM:
         sh: echo "${NPM:-pnpm}"
+    NPM_INSTALL_FLAGS:
+        sh: 'if [ "${MESHCHATX_OFFLINE_BUILD}" = "1" ]; then echo "--offline"; else echo ""; fi'
+    UV_SYNC_FLAGS:
+        sh: 'if [ "${MESHCHATX_OFFLINE_BUILD}" = "1" ]; then echo "--offline"; else echo ""; fi'
     LEGACY_ELECTRON_VERSION:
         sh: echo "${LEGACY_ELECTRON_VERSION:-30.0.8}"
     WINE_PYTHON:
@@ -62,6 +66,16 @@ tasks:
         desc: Install all dependencies (frontend and backend)
         deps: [deps:fe, deps:be]
 
+    install:offline:
+        desc: Install from offline bundle (air-gapped machine)
+        cmds:
+            - bash scripts/install-offline.sh
+
+    bundle:offline:
+        desc: Create offline bundle for air-gapped builds (online machine only)
+        cmds:
+            - bash scripts/create-offline-bundle.sh
+
     setup:wine:
         desc: Setup Wine environment for Windows cross-builds
         cmds:
@@ -70,18 +84,18 @@ tasks:
     deps:fe:
         desc: Install Node.js dependencies
         cmds:
-            - "{{.NPM}} install"
+            - '{{.NPM}} install{{if ne .NPM_INSTALL_FLAGS ""}} {{.NPM_INSTALL_FLAGS}}{{end}}'
 
     deps:be:
         desc: Install Python dependencies using UV
         cmds:
-            - uv sync --group dev
+            - 'uv sync --group dev{{if ne .UV_SYNC_FLAGS ""}} {{.UV_SYNC_FLAGS}}{{end}}'
             - uv run python scripts/patch_lxst_pyogg_ogg_ctypes.py
 
     setup:be:
         desc: Full backend environment setup
         cmds:
-            - uv sync --group dev
+            - 'uv sync --group dev{{if ne .UV_SYNC_FLAGS ""}} {{.UV_SYNC_FLAGS}}{{end}}'
             - uv run python scripts/patch_lxst_pyogg_ogg_ctypes.py
             - uv run pip install ruff
 

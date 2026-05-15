@@ -35,7 +35,7 @@ on:
                 description: pnpm version activated through corepack.
                 required: false
                 type: string
-                default: "10.32.1"
+                default: "11.1.2"
             python_version:
                 description: Python version used by the docs bundler.
                 required: false

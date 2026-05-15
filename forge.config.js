@@ -37,7 +37,7 @@ module.exports = {
         extraResource: [extraResourceDir],
         executableName: "reticulum-meshchatx",
         name: "Reticulum MeshChatX",
-        appBundleId: "com.sudoivan.reticulummeshchatx",
+        appBundleId: "com.meshchatx",
         icon: "electron/build/icon",
         // osxSign: {}, macOS signing
         // osxNotarize: { ... }, macOS notarization
@@ -125,7 +125,7 @@ module.exports = {
                         "--talk-name=org.freedesktop.Notifications",
                         "--talk-name=org.freedesktop.DBus",
                         "--talk-name=org.freedesktop.portal.Desktop",
-                        "--own-name=com.sudoivan.reticulummeshchatx",
+                        "--own-name=com.meshchatx",
                         "--env=TMPDIR=/var/tmp",
                         "--socket=pulseaudio",
                         "--filesystem=xdg-run/pipewire-0",

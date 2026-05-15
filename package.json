@@ -18,6 +18,8 @@
         "build-repository-wheels": "python3 scripts/build/fetch_repository_wheels.py",
         "version:sync": "node scripts/sync_version.js",
         "build": "pnpm run version:sync && pnpm run build-frontend && pnpm run build-docs && pnpm run build-repository-wheels && pnpm run build-backend",
+        "build:offline": "cross-env MESHCHATX_OFFLINE_BUILD=1 pnpm run build",
+        "bundle:offline": "bash scripts/create-offline-bundle.sh",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
         "format": "prettier --write .",
@@ -35,8 +37,11 @@
         "electron": "pnpm run electron-postinstall && pnpm run build && electron .",
         "dist": "pnpm run electron-postinstall && pnpm run build && electron-builder --publish=never",
         "dist:linux": "pnpm run electron-postinstall && cross-env PLATFORM=linux pnpm run build && electron-builder --linux AppImage deb --publish=never",
+        "dist:linux:offline": "cross-env MESHCHATX_OFFLINE_BUILD=1 pnpm run dist:linux",
         "dist:linux-x64": "pnpm run electron-postinstall && cross-env PLATFORM=linux ARCH=x64 pnpm run build && electron-builder --linux AppImage deb --x64 --publish=never",
+        "dist:linux-x64:offline": "cross-env MESHCHATX_OFFLINE_BUILD=1 pnpm run dist:linux-x64",
         "dist:linux-arm64": "pnpm run electron-postinstall && cross-env PLATFORM=linux ARCH=arm64 pnpm run build && electron-builder --linux AppImage deb --arm64 --publish=never",
+        "dist:linux-arm64:offline": "cross-env MESHCHATX_OFFLINE_BUILD=1 pnpm run dist:linux-arm64",
         "dist:rpm": "pnpm run electron-postinstall && cross-env PLATFORM=linux pnpm run build && electron-builder --linux rpm --publish=never",
         "dist:flatpak": "pnpm run electron-postinstall && cross-env PLATFORM=linux pnpm run build && electron-builder --linux flatpak --publish=never",
         "dist:windows": "pnpm run electron-postinstall && cross-env PLATFORM=win32 pnpm run build && electron-builder --win portable nsis --publish=never",
@@ -58,7 +63,7 @@
     "engines": {
         "node": ">=24"
     },
-    "packageManager": "pnpm@10.33.0",
+    "packageManager": "pnpm@11.1.2",
     "devDependencies": {
         "@electron-forge/cli": "^7.11.1",
         "@electron-forge/maker-deb": "^7.11.1",
@@ -99,37 +104,9 @@
         "vite-plugin-vuetify": "^2.1.3",
         "vitest": "^4.1.5"
     },
-    "pnpm": {
-        "onlyBuiltDependencies": [
-            "electron",
-            "electron-winstaller",
-            "esbuild"
-        ],
-        "overrides": {
-            "dompurify": ">=3.4.0",
-            "lodash": ">=4.17.23",
-            "@isaacs/brace-expansion": ">=5.0.1",
-            "@tootallnate/once": ">=3.0.1",
-            "tmp": ">=0.2.4",
-            "tar": ">=7.5.7",
-            "minimatch": ">=10.2.1",
-            "@electron/asar>minimatch": "3.1.3",
-            "serialize-javascript": ">=7.0.3",
-            "flatted": ">=3.4.2"
-        },
-        "patchedDependencies": {
-            "ol@10.9.0": "patches/ol@10.9.0.patch",
-            "ol-mapbox-style@13.4.1": "patches/ol-mapbox-style@13.4.1.patch"
-        },
-        "peerDependencyRules": {
-            "allowedVersions": {
-                "vis-data>uuid": ">=14.0.0",
-                "vis-network>uuid": ">=14.0.0"
-            }
-        }
-    },
+
     "build": {
-        "appId": "com.sudoivan.reticulummeshchat",
+        "appId": "com.meshchatx",
         "productName": "Reticulum MeshChatX",
         "electronLanguages": [
             "en-US"

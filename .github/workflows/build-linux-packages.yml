@@ -42,7 +42,7 @@ env:
     PYTHON_VERSION: "3.14"
     NODE_VERSION: "24"
     UV_VERSION: "0.11.12"
-    PNPM_VERSION: "10.32.1"
+    PNPM_VERSION: "11.1.2"
 
 jobs:
     frontend:
