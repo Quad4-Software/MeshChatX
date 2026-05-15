@@ -42,7 +42,7 @@ MeshChatX NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
 
 - Python `>=3.11` (da `pyproject.toml`)
 - Node.js `>=24` (da `package.json`, campo `engines`)
-- pnpm `10.33.0` (da `package.json`, campo `packageManager`)
+- pnpm `11.1.2` (da `package.json`, campo `packageManager`)
 - Poetry (utilizzato in `Taskfile.yml` e nei workflow CI)
 
 **Browser Versions Required:**
@@ -176,8 +176,8 @@ uv run python -m meshchatx.meshchat --headless --host 127.0.0.1
 Note sui comandi di installazione:
 
 - `pnpm install --frozen-lockfile` rifiuta di aggiornare `pnpm-lock.yaml` e fallisce se il lockfile non corrisponde a `package.json`. Cosi' si evita che una versione upstream inattesa venga installata silenziosamente.
-- `verify-store-integrity=true` e' impostato anche nel `.npmrc` del progetto; la riga esplicita `pnpm config set` rafforza inoltre la configurazione utente.
-- Gli script di lifecycle (`preinstall`/`postinstall`) sono bloccati di default in pnpm v10+. Solo i pacchetti elencati in `pnpm.onlyBuiltDependencies` di `package.json` possono eseguire script di installazione (attualmente `electron`, `electron-winstaller`, `esbuild`).
+- `verify-store-integrity=true` e' impostato anche nel `pnpm-workspace.yaml` del progetto; la riga esplicita `pnpm config set` rafforza inoltre la configurazione utente.
+- Gli script di lifecycle (`preinstall`/`postinstall`) sono bloccati di default in pnpm v11+. Solo i pacchetti elencati in `allowBuilds` di `pnpm-workspace.yaml` possono eseguire script di installazione (attualmente `electron`, `electron-winstaller`, `esbuild`).
 - `uv lock --check` fallisce subito se `uv.lock` non e' allineato con `pyproject.toml`; `uv sync --group dev` risolve poi solo dal lockfile.
 - Per un'installazione Poetry strettamente basata sul lockfile (senza refresh implicito), fissa Poetry con `pip install "uv==0.11.12"`, in linea con la CI.
 
