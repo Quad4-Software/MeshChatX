@@ -5,13 +5,13 @@ pkgver=4.6.3.r0.gebacc00
 pkgrel=1
 pkgdesc="A simple mesh network communications app powered by the Reticulum Network Stack"
 arch=('x86_64' 'aarch64')
-url="https://git.quad4.io/RNS-Things/MeshChatX"
+url="https://github.com/Quad4-Software/MeshChatX"
 license=('0BSD' 'MIT')
 depends=('opus' 'opusfile' 'portaudio' 'espeak-ng')
 makedepends=('git' 'nodejs' 'pnpm' 'python' 'python-poetry')
 provides=("$_pkgname")
 conflicts=("$_pkgname")
-source=("$_pkgname::git+https://git.quad4.io/RNS-Things/MeshChatX.git"
+source=("$_pkgname::git+https://github.com/Quad4-Software/MeshChatX.git"
         "reticulum-meshchatx.desktop")
 sha256sums=('SKIP'
             '366182e198df672bb51893f7cf7f339079bf80319c24c107216c1b96d33fd267')

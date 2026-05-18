@@ -62,7 +62,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - **Dependencies**: **RNS** updated to **1.2.5**, **LXMF** to **0.9.7**, **aiohttp** to **3.13.5** in Python, **requirements.txt**, **Chaquopy** metadata, and Android **build.gradle**, **micron-parser** lockfile refresh, and general **pnpm** / **package** bumps for 4.6.2.
-- **Vendored LXMFy**: Refreshed `vendor/lxmfy` from upstream [LXMFy/LXMFy](https://git.quad4.io/LXMFy/LXMFy) at `0a6ba8c9fd0f306be614d0edce44e4e805c025b0` (LXMF field helpers for structured bot commands, expanded docs, and new tests). Bundled package version remains **1.6.2**. `vendor/README.txt` lists the revision pointer.
+- **Vendored LXMFy**: Refreshed `vendor/lxmfy` from upstream LXMFy at `0a6ba8c9fd0f306be614d0edce44e4e805c025b0` (LXMF field helpers for structured bot commands, expanded docs, and new tests). Bundled package version remains **1.6.2**. `vendor/README.txt` lists the revision pointer.
 - **CI**: Docker images publish the **:latest** tag on version tag pushes, **main** and **master** branch builds are enabled, and the Bunny Storage release folder is pruned before uploads. Release descriptions now include a SHA256 checksum table for all assets.
 - **async_utils**: Tighter coroutine scheduling limits with **logging when work is dropped**. Removed the **Python 3.13 asyncio** compatibility patch in favor of cleaner scheduling assumptions. Adds regression tests for **HTTPS file responses** (including sendfile-style paths).
 - **reticulum_config**: Default Reticulum configuration is applied via **file-backed writes** instead of embedding large default text only through the previous helper path (tests updated).

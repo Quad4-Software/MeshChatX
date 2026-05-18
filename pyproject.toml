@@ -44,7 +44,7 @@ meshchatx-repository-http = "meshchatx.repository_http_standalone:main"
 lxmfy = "lxmfy.cli:main"
 
 [project.urls]
-Homepage = "https://git.quad4.io/RNS-Things/MeshChatX"
+Homepage = "https://github.com/Quad4-Software/MeshChatX"
 
 [tool.setuptools.packages.find]
 where = [".", "vendor/lxmfy"]

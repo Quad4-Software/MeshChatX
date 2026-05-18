@@ -7,8 +7,8 @@ Un fork ampiamente modificato e ricco di funzionalita di Reticulum MeshChat di L
 Questo progetto e indipendente dal progetto originale Reticulum MeshChat e non e affiliato ad esso.
 
 - Sito web: [meshchatx.com](https://meshchatx.com)
-- Codice sorgente: [git.quad4.io/RNS-Things/MeshChatX](https://git.quad4.io/RNS-Things/MeshChatX)
-- Mirror ufficiale su GitHub: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
+- Codice sorgente: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
+- Mirror: [lavaforge.org/Reticulum-Things/MeshChatX](https://lavaforge.org/Reticulum-Things/MeshChatX)
 - Release: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - Changelog: [`CHANGELOG.md`](../CHANGELOG.md)
 - Donazioni: [`donate.md`](../donate.md) ([Donazioni](#donazioni))
@@ -161,7 +161,7 @@ pipx install ./reticulum_meshchatx-*-py3-none-any.whl
 Per sviluppo o build locali personalizzate.
 
 ```bash
-git clone https://git.quad4.io/RNS-Things/MeshChatX.git
+git clone https://github.com/Quad4-Software/MeshChatX.git
 cd MeshChatX
 corepack enable
 pnpm config set verify-store-integrity true

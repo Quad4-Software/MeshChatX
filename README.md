@@ -7,8 +7,8 @@ A extensively modified and feature-rich fork of [Reticulum MeshChat](https://git
 This project is independent from the original Reticulum MeshChat project and is not affiliated with it.
 
 - Website: [meshchatx.com](https://meshchatx.com)
-- Source: [git.quad4.io/RNS-Things/MeshChatX](https://git.quad4.io/RNS-Things/MeshChatX)
-- Official GitHub Mirror: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
+- Source: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
+- Mirror: [lavaforge.org/Reticulum-Things/MeshChatX](https://lavaforge.org/Reticulum-Things/MeshChatX)
 - Releases: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - Changelog: [`CHANGELOG.md`](CHANGELOG.md)
 - Donate: [`donate.md`](donate.md) ([Donation](#donation))
@@ -156,7 +156,7 @@ pipx install ./reticulum_meshchatx-*-py3-none-any.whl
 Use this when developing or when you need a local custom build.
 
 ```bash
-git clone https://git.quad4.io/RNS-Things/MeshChatX.git
+git clone https://github.com/Quad4-Software/MeshChatX.git
 cd MeshChatX
 corepack enable
 pnpm config set verify-store-integrity true

@@ -74,7 +74,7 @@ RUN apk add --no-cache opus libffi shadow && \
 COPY --from=builder --chown=meshchat:meshchat /opt/venv /opt/venv
 COPY scripts/docker_entrypoint_chainguard.py /docker-entrypoint.py
 
-LABEL org.opencontainers.image.source="https://git.quad4.io/RNS-Things/MeshChatX"
+LABEL org.opencontainers.image.source="https://github.com/Quad4-Software/MeshChatX"
 LABEL org.opencontainers.image.description="MeshChatX is a all in one Reticulum client."
 LABEL org.opencontainers.image.licenses="MIT AND 0BSD"
 LABEL org.opencontainers.image.authors="Quad4"

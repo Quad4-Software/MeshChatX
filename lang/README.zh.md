@@ -7,8 +7,8 @@ Liam Cottle 开发的 Reticulum MeshChat 的一个功能丰富的深度修改分
 本项目独立于原始 Reticulum MeshChat 项目，与其无关联。
 
 - 网站: [meshchatx.com](https://meshchatx.com)
-- 源码: [git.quad4.io/RNS-Things/MeshChatX](https://git.quad4.io/RNS-Things/MeshChatX)
-- 官方 GitHub 镜像: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
+- 源码: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
+- 镜像: [lavaforge.org/Reticulum-Things/MeshChatX](https://lavaforge.org/Reticulum-Things/MeshChatX)
 - 发行版: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - 变更日志: [`CHANGELOG.md`](../CHANGELOG.md)
 - 捐赠: [`donate.md`](../donate.md) ([捐赠](#捐赠))
@@ -161,7 +161,7 @@ pipx install ./reticulum_meshchatx-*-py3-none-any.whl
 在开发或需要本地定制构建时使用。
 
 ```bash
-git clone https://git.quad4.io/RNS-Things/MeshChatX.git
+git clone https://github.com/Quad4-Software/MeshChatX.git
 cd MeshChatX
 corepack enable
 pnpm config set verify-store-integrity true

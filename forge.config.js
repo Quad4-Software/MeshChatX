@@ -58,7 +58,7 @@ module.exports = {
             config: {
                 options: {
                     maintainer: "Quad4",
-                    homepage: "https://git.quad4.io/RNS-Things/MeshChatX",
+                    homepage: "https://github.com/Quad4-Software/MeshChatX",
                     categories: ["Network"],
                 },
             },
