@@ -2278,6 +2278,8 @@
         "local_tx": "Локальный (TX)",
         "download_rx": "Скачать RX",
         "download_tx": "Скачать TX",
+        "minimize": "Minimize",
+        "active": "Active",
         "default_quality": "Качество по умолчанию",
         "active_call": "Активный звонок",
         "status": "Статус",

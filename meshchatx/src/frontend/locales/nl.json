@@ -2367,6 +2367,8 @@
         "local_tx": "Lokaal (TX)",
         "download_rx": "Download RX",
         "download_tx": "Download TX",
+        "minimize": "Minimize",
+        "active": "Active",
         "default_quality": "Standaardkwaliteit",
         "active_call": "Actieve oproep",
         "status": "Status",

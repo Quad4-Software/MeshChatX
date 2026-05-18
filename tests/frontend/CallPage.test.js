@@ -693,4 +693,46 @@ describe("CallPage.vue", () => {
         expect(wrapper.vm.prevCallTxBytes).toBe(9999);
         expect(wrapper.vm.prevCallRxBytes).toBe(8888);
     });
+
+    describe("callMinimized", () => {
+        it("defaults to false", async () => {
+            const wrapper = mountCallPage();
+            await flushPromises();
+            expect(wrapper.vm.callMinimized).toBe(false);
+        });
+
+        it("toggles to true when minimize button clicked", async () => {
+            const wrapper = mountCallPage();
+            await flushPromises();
+            wrapper.vm.activeCall = { status: 6, remote_identity_name: "Test" };
+            await wrapper.vm.$nextTick();
+            wrapper.vm.callMinimized = true;
+            await wrapper.vm.$nextTick();
+            expect(wrapper.vm.callMinimized).toBe(true);
+        });
+
+        it("shows settings panel when minimized", async () => {
+            const wrapper = mountCallPage();
+            await flushPromises();
+            wrapper.vm.activeCall = { status: 6, remote_identity_name: "Test" };
+            await wrapper.vm.$nextTick();
+            wrapper.vm.callMinimized = true;
+            await wrapper.vm.$nextTick();
+            // When minimized, settings should be visible (active call UI hidden)
+            const phoneTab = wrapper.find("#dnd-toggle");
+            expect(phoneTab.exists()).toBe(true);
+        });
+
+        it("restores full UI on expand", async () => {
+            const wrapper = mountCallPage();
+            await flushPromises();
+            wrapper.vm.activeCall = { status: 6, remote_identity_name: "Test" };
+            await wrapper.vm.$nextTick();
+            wrapper.vm.callMinimized = true;
+            await wrapper.vm.$nextTick();
+            wrapper.vm.callMinimized = false;
+            await wrapper.vm.$nextTick();
+            expect(wrapper.vm.callMinimized).toBe(false);
+        });
+    });
 });

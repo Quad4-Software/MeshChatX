@@ -2419,6 +2419,8 @@
         "local_tx": "Locale (TX)",
         "download_rx": "Scarica RX",
         "download_tx": "Scarica TX",
+        "minimize": "Minimize",
+        "active": "Active",
         "default_quality": "Qualità Predefinita",
         "active_call": "Chiamata Attiva",
         "status": "Stato",

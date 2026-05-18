@@ -95,6 +95,74 @@ def test_telephony_config(db):
     assert config.telephone_enabled.get() is False
 
 
+def test_all_telephony_settings_persist(db):
+    """Verify every telephone/call setting survives a manager reload (simulated restart)."""
+    config = ConfigManager(db)
+
+    # Set all telephone-related settings
+    config.telephone_enabled.set(False)
+    config.do_not_disturb_enabled.set(True)
+    config.telephone_allow_calls_from_contacts_only.set(False)
+    config.telephone_announce_enabled.set(True)
+    config.telephone_audio_profile_id.set(5)
+    config.telephone_web_audio_enabled.set(True)
+    config.telephone_web_audio_allow_fallback.set(False)
+    config.call_recording_enabled.set(True)
+    config.telephone_tone_generator_enabled.set(False)
+    config.telephone_tone_generator_volume.set(80)
+
+    # Voicemail settings
+    config.voicemail_enabled.set(True)
+    config.voicemail_auto_answer_delay_seconds.set(15)
+    config.voicemail_max_recording_seconds.set(120)
+    config.voicemail_tts_speed.set(150)
+    config.voicemail_tts_pitch.set(50)
+    config.voicemail_tts_word_gap.set(10)
+    config.voicemail_tts_voice.set("de-de+f1")
+
+    # Ringtone settings
+    config.custom_ringtone_enabled.set(True)
+    config.ringtone_volume.set(75)
+    config.ringtone_preferred_id.set(3)
+
+    # Desktop / misc
+    config.desktop_open_calls_in_separate_window.set(True)
+
+    # Simulate restart: new ConfigManager on same DB
+    config2 = ConfigManager(db)
+
+    # Assert all values persisted
+
+    # Telephone base
+    assert config2.telephone_enabled.get() is False
+    assert config2.do_not_disturb_enabled.get() is True
+    assert config2.telephone_allow_calls_from_contacts_only.get() is False
+    assert config2.telephone_announce_enabled.get() is True
+    assert config2.telephone_audio_profile_id.get() == 5
+    assert config2.telephone_web_audio_enabled.get() is True
+    assert config2.telephone_web_audio_allow_fallback.get() is False
+    assert config2.call_recording_enabled.get() is True
+    assert config2.telephone_tone_generator_enabled.get() is False
+    assert config2.telephone_tone_generator_volume.get() == 80
+
+    # Voicemail
+    assert config2.voicemail_enabled.get() is True
+    assert config2.voicemail_auto_answer_delay_seconds.get() == 15
+    assert config2.voicemail_max_recording_seconds.get() == 120
+    assert config2.voicemail_tts_speed.get() == 150
+    assert config2.voicemail_tts_pitch.get() == 50
+    assert config2.voicemail_tts_word_gap.get() == 10
+    assert config2.voicemail_tts_voice.get() == "de-de+f1"
+
+    # Ringtone
+    assert config2.custom_ringtone_enabled.get() is True
+    assert config2.ringtone_volume.get() == 75
+    assert config2.ringtone_preferred_id.get() == 3
+
+    # Desktop
+    assert config2.desktop_open_calls_in_separate_window.get() is True
+
+
 def test_auto_propagation_config(db):
     config = ConfigManager(db)
     assert config.lxmf_preferred_propagation_node_auto_select.get() is False

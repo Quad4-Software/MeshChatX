@@ -2367,6 +2367,8 @@
         "local_tx": "本地（TX）",
         "download_rx": "下载 RX",
         "download_tx": "下载 TX",
+        "minimize": "Minimize",
+        "active": "Active",
         "default_quality": "默认质量",
         "active_call": "活动通话",
         "status": "状态",

@@ -113,8 +113,63 @@
                     </div>
 
                     <template v-if="config?.telephone_enabled">
+                        <!-- Minimized call bar -->
                         <div
-                            v-if="activeCall || isCallEnded || initiationStatus"
+                            v-if="callMinimized && activeCall"
+                            class="w-full flex-shrink-0 border-b border-gray-200 dark:border-zinc-800"
+                        >
+                            <div
+                                class="flex items-center gap-3 px-4 py-2 bg-blue-50/80 dark:bg-blue-900/20 backdrop-blur-sm"
+                            >
+                                <div class="relative">
+                                    <div
+                                        class="size-8 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center overflow-hidden"
+                                    >
+                                        <LxmfUserIcon
+                                            :custom-image="activeCall?.custom_image"
+                                            :icon-name="activeCall?.remote_icon?.icon_name || 'account'"
+                                            :icon-foreground-colour="activeCall?.remote_icon?.foreground_colour"
+                                            :icon-background-colour="activeCall?.remote_icon?.background_colour"
+                                            icon-class="size-7"
+                                        />
+                                    </div>
+                                    <div
+                                        class="absolute -bottom-0.5 -right-0.5 size-2.5 bg-green-500 rounded-full border-2 border-white dark:border-zinc-900"
+                                    ></div>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="text-sm font-bold text-gray-900 dark:text-white truncate">
+                                        {{ activeCall?.remote_identity_name || $t("call.unknown") }}
+                                    </div>
+                                    <div class="text-[10px] text-gray-500 dark:text-zinc-400 flex items-center gap-2">
+                                        <span class="size-1.5 bg-green-500 rounded-full animate-pulse"></span>
+                                        <span>{{ $t("call.active") }}</span>
+                                        <span v-if="elapsedTime" class="font-mono">· {{ elapsedTime }}</span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-1 shrink-0">
+                                    <button
+                                        type="button"
+                                        class="size-8 flex items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-gray-600 dark:text-zinc-400"
+                                        title="Expand call"
+                                        @click="callMinimized = false"
+                                    >
+                                        <MaterialDesignIcon icon-name="chevron-up" class="size-5" />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="size-8 flex items-center justify-center rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-red-600 dark:text-red-400"
+                                        title="Hangup"
+                                        @click="hangupCall"
+                                    >
+                                        <MaterialDesignIcon icon-name="phone-hangup" class="size-4 rotate-135" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Full call UI or settings -->
+                        <div v-if="(activeCall || isCallEnded || initiationStatus) && !callMinimized"
                             class="flex-1 flex flex-col items-center justify-center py-12 px-4"
                         >
                             <div
@@ -451,6 +506,16 @@
                                         </button>
                                     </div>
 
+                                    <!-- minimize call -->
+                                    <button
+                                        type="button"
+                                        class="flex items-center justify-center gap-2 rounded-2xl bg-gray-100 dark:bg-zinc-800 py-3 px-4 text-sm font-bold text-gray-700 dark:text-zinc-300 hover:bg-gray-200 dark:hover:bg-zinc-700 transition-all duration-200"
+                                        @click="callMinimized = true"
+                                    >
+                                        <MaterialDesignIcon icon-name="chevron-down" class="size-5" />
+                                        <span>{{ $t("call.minimize") }}</span>
+                                    </button>
+
                                     <!-- hangup/decline call -->
                                     <button
                                         type="button"
@@ -468,7 +533,7 @@
                             </div>
                         </div>
 
-                        <div v-else class="space-y-6 my-6 max-w-3xl mx-auto w-full">
+                        <div v-if="!((activeCall || isCallEnded || initiationStatus) && !callMinimized)" class="space-y-6 my-6 max-w-3xl mx-auto w-full">
                             <div class="w-full border-b border-gray-200 dark:border-zinc-800 py-2">
                                 <div class="flex items-center gap-3 mb-6">
                                     <div class="bg-blue-100 dark:bg-blue-900/30 p-2.5 rounded-2xl">
@@ -2324,6 +2389,7 @@ export default {
             visualizerEnabled: true,
             prevCallTxBytes: 0,
             prevCallRxBytes: 0,
+            callMinimized: false,
         };
     },
     computed: {

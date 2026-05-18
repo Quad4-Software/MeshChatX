@@ -2367,6 +2367,8 @@
         "local_tx": "Local (TX)",
         "download_rx": "Download RX",
         "download_tx": "Download TX",
+        "minimize": "Minimize",
+        "active": "Active",
         "default_quality": "Default Quality",
         "active_call": "Active Call",
         "status": "Status",
