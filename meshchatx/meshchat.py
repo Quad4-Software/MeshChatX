@@ -17928,7 +17928,7 @@ def main():
         "--gitea-base-url",
         type=str,
         default=os.environ.get("MESHCHAT_GITEA_BASE_URL"),
-        help="Base URL for Gitea instance (default: https://git.quad4.io). Can also be set via MESHCHAT_GITEA_BASE_URL environment variable.",
+        help="Base URL for Gitea instance. Can also be set via MESHCHAT_GITEA_BASE_URL environment variable.",
     )
     parser.add_argument(
         "--test-exception-message",
