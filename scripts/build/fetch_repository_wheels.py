@@ -67,6 +67,18 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     dest: Path = args.dest.resolve()
 
+    if _is_truthy(os.environ.get("MESHCHATX_OFFLINE_BUILD")):
+        if dest.is_dir() and any(dest.glob("*.whl")):
+            logging.info(
+                "MESHCHATX_OFFLINE_BUILD=1 and repository bundled wheels already present; skipping fetch."
+            )
+            return 0
+        logging.error(
+            "MESHCHATX_OFFLINE_BUILD=1 but repository bundled wheels are missing at %s",
+            dest,
+        )
+        return 1
+
     from meshchatx.src.backend.repository_server_manager import (
         download_bundled_wheels_to_directory,
     )
