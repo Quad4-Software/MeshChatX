@@ -51,6 +51,8 @@ class MessageDAO:
             if f != "hash"
             and f
             not in (
+                "timestamp",
+                "created_at",
                 "path_hops_at_send",
                 "path_interface_at_send",
                 "path_finding_measure",
@@ -308,13 +310,12 @@ class MessageDAO:
         query = f"""
             SELECT {self.CONVERSATION_LIST_COLUMNS} FROM lxmf_messages m1
             INNER JOIN (
-                SELECT peer_hash, MAX(timestamp) as max_ts
+                SELECT peer_hash, MAX(id) as max_id
                 FROM lxmf_messages
                 WHERE peer_hash IS NOT NULL
                 GROUP BY peer_hash
-            ) m2 ON m1.peer_hash = m2.peer_hash AND m1.timestamp = m2.max_ts
-            GROUP BY m1.peer_hash
-            ORDER BY m1.timestamp DESC
+            ) m2 ON m1.peer_hash = m2.peer_hash AND m1.id = m2.max_id
+            ORDER BY m1.id DESC
         """
         return self.provider.fetchall(query)
 
@@ -393,6 +394,7 @@ class MessageDAO:
             WHERE state = 'outbound' 
             OR (state = 'sent' AND method = 'opportunistic') 
             OR state = 'sending'
+            OR state = 'generating'
         """,
             (datetime.now(UTC).isoformat(),),
         )

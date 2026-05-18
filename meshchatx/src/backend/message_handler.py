@@ -102,11 +102,11 @@ class MessageHandler:
                 CASE WHEN con.id IS NOT NULL THEN 1 ELSE 0 END as is_contact
             FROM lxmf_messages m1
             INNER JOIN (
-                SELECT peer_hash, MAX(timestamp) as max_ts
+                SELECT peer_hash, MAX(id) as max_id
                 FROM lxmf_messages
                 WHERE peer_hash IS NOT NULL
                 GROUP BY peer_hash
-            ) m2 ON m1.peer_hash = m2.peer_hash AND m1.timestamp = m2.max_ts
+            ) m2 ON m1.peer_hash = m2.peer_hash AND m1.id = m2.max_id
             LEFT JOIN announces a ON a.destination_hash = m1.peer_hash
             LEFT JOIN custom_destination_display_names c ON c.destination_hash = m1.peer_hash
             LEFT JOIN contacts con ON (
@@ -159,7 +159,7 @@ class MessageHandler:
         if where_clauses:
             query += " WHERE " + " AND ".join(where_clauses)
 
-        query += " GROUP BY m1.peer_hash ORDER BY m1.timestamp DESC"
+        query += " GROUP BY m1.peer_hash ORDER BY m1.id DESC"
 
         if limit is not None:
             query += " LIMIT ? OFFSET ?"

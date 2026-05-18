@@ -11150,13 +11150,10 @@ class ReticulumMeshChat:
                                 or "Anonymous Peer"
                             ),
                         ),
-                        "latest_message_created_at": row["timestamp"],
+                        "latest_message_created_at": row["created_at"],
                         "lxmf_user_icon": user_icon,
                         "is_contact": bool(row.get("is_contact", 0)),
-                        "updated_at": datetime.fromtimestamp(
-                            row["timestamp"],
-                            UTC,
-                        ).isoformat(),
+                        "updated_at": row["created_at"],
                     },
                 )
 
