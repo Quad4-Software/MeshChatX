@@ -4567,6 +4567,15 @@ export default {
             }
             return "border-white/20 bg-white/10";
         },
+        outboundMessageMenuButtonClass(chatItem) {
+            if (!chatItem?.is_outbound) {
+                return "text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 dark:text-zinc-500";
+            }
+            if (this.isThemeOutboundBubble(chatItem)) {
+                return "text-sky-700/90 dark:text-sky-200/85";
+            }
+            return "text-white/90 hover:text-white";
+        },
         outboundMessageMenuButtonHoverClass(chatItem) {
             if (!chatItem?.is_outbound) {
                 return "hover:bg-gray-200 dark:hover:bg-zinc-700";

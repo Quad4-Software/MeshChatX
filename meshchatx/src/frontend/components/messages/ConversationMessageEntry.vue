@@ -468,8 +468,8 @@
         >
             <button
                 type="button"
-                class="absolute top-1 right-1 p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 dark:text-zinc-500"
-                :class="cv.outboundMessageMenuButtonHoverClass(chatItem)"
+                class="absolute top-1 right-1 p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity"
+                :class="[cv.outboundMessageMenuButtonClass(chatItem), cv.outboundMessageMenuButtonHoverClass(chatItem)]"
                 :title="$t('messages.message_actions')"
                 @click.stop="cv.onMessageContextMenu($event, chatItem, false)"
             >
