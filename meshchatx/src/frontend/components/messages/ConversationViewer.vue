@@ -4487,7 +4487,7 @@ export default {
             if (this.isThemeOutboundBubble(chatItem)) {
                 return "text-sky-700/90 dark:text-sky-200/85";
             }
-            return "text-white/90";
+            return "text-white";
         },
         outboundSendingStatusIconClass(chatItem) {
             if (this.isOutboundWaitingBubble(chatItem)) {
@@ -4496,7 +4496,7 @@ export default {
             if (this.isThemeOutboundBubble(chatItem)) {
                 return "text-sky-700 dark:text-sky-300";
             }
-            return "text-white/90";
+            return "text-white";
         },
         outboundReplySnippetTitleClass(chatItem) {
             if (!chatItem.is_outbound) {
@@ -4532,13 +4532,13 @@ export default {
             if (this.isThemeOutboundBubble(chatItem)) {
                 return "text-sky-700 dark:text-sky-300";
             }
-            return "text-white/90";
+            return "text-white";
         },
         outboundBubblePendingCheckIconClass(chatItem) {
             if (this.isThemeOutboundBubble(chatItem)) {
                 return "text-sky-700 dark:text-sky-300 opacity-50";
             }
-            return "text-white/90 opacity-50";
+            return "text-white opacity-50";
         },
         outboundEmbeddedCardClass(chatItem) {
             if (!chatItem?.is_outbound) {
