@@ -39,6 +39,11 @@ EOF
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+if [ "${MESHCHATX_OFFLINE_BUILD:-}" = "1" ]; then
+    echo "MESHCHATX_OFFLINE_BUILD=1: Android wheel build requires network access. Pre-build wheels offline or unset MESHCHATX_OFFLINE_BUILD." >&2
+    exit 1
+fi
+
 PYTHON_MINOR="3.11"
 TARGET_VERSION=""
 CHAQUOPY_REF="${CHAQUOPY_REF:-master}"

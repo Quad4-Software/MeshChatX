@@ -97,6 +97,12 @@ tasks.register("fetchRepositoryBundledWheels", Exec) {
     commandLine(pyExe, "scripts/build/fetch_repository_wheels.py")
     ignoreExitValue = false
     onlyIf {
+        if (System.getenv("MESHCHATX_OFFLINE_BUILD") == "1") {
+            if (!repositoryBundledWheelsDir.isDirectory() || !repositoryBundledWheelsDir.list()?.any { it.endsWith(".whl") }) {
+                throw new org.gradle.api.GradleException("MESHCHATX_OFFLINE_BUILD=1 but repository bundled wheels are missing at ${repositoryBundledWheelsDir}")
+            }
+            return false
+        }
         if (System.getenv("MESHCHATX_SKIP_REPOSITORY_WHEELS_FETCH") == "1") {
             return false
         }
