@@ -694,7 +694,6 @@
                                             <MaterialDesignIcon
                                                 :icon-name="savingDiscovery ? 'progress-clock' : 'content-save'"
                                                 class="w-4 h-4"
-                                                :class="{ 'animate-spin': savingDiscovery }"
                                             />
                                             <span class="ml-1">Save Discovery Settings</span>
                                         </button>
@@ -1302,6 +1301,7 @@ export default {
             if (this.savingDiscovery) return;
             this.savingDiscovery = true;
             try {
+                ToastUtils.loading(this.$t("app.reloading_rns"), 0, "interfaces-discovery-save");
                 const payload = {
                     discover_interfaces: this.discoveryConfig.discover_interfaces,
                     interface_discovery_sources: this.discoveryConfig.interface_discovery_sources || null,
@@ -1322,9 +1322,11 @@ export default {
                 };
 
                 await window.api.patch(`/api/v1/reticulum/discovery`, payload);
+                ToastUtils.dismiss("interfaces-discovery-save");
                 ToastUtils.success(this.$t("interfaces.discovery_settings_saved"));
                 await this.loadDiscoveryConfig();
             } catch (e) {
+                ToastUtils.dismiss("interfaces-discovery-save");
                 ToastUtils.error(this.$t("interfaces.failed_save_discovery"));
                 console.log(e);
             } finally {
