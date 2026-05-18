@@ -10,7 +10,7 @@ export default defineConfig({
             reporter: ["text", "json-summary"],
             reportsDirectory: "./coverage-electron",
             include: ["electron/**/*.js"],
-            exclude: ["electron/assets/**", "electron/main-legacy.js"],
+            exclude: ["electron/assets/**"],
         },
     },
 });
