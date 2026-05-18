@@ -1948,7 +1948,9 @@
             "confirm_delete_tab": "Вы уверены, что хотите удалить эту вкладку?",
             "main_tab": "Основная",
             "guide_tab": "Руководство NomadNet",
-            "parser_by": "Micron Parser от"
+            "parser_by": "Micron Parser от",
+            "wasm_active": "Движок WASM активен (быстрый парсер)",
+            "wasm_inactive": "Движок JS активен (медленный парсер, нажмите для WASM)"
         },
         "reticulum_config_editor": {
             "title": "Редактор конфигурации Reticulum",

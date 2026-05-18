@@ -2037,7 +2037,9 @@
             "confirm_delete_tab": "您确定要删除此标签吗 ?",
             "main_tab": "主要",
             "guide_tab": "游牧网指南",
-            "parser_by": "使用微量解析器"
+            "parser_by": "使用微量解析器",
+            "wasm_active": "WASM引擎已激活（快速解析）",
+            "wasm_inactive": "JS引擎已激活（慢速解析，单击切换WASM）"
         },
         "reticulum_config_editor": {
             "title": "Reticulum 配置编辑器",

@@ -2089,7 +2089,9 @@
             "confirm_delete_tab": "Sei sicuro di voler eliminare questa scheda?",
             "main_tab": "Principale",
             "guide_tab": "Guida NomadNet",
-            "parser_by": "Utilizzando il Parser Micron di"
+            "parser_by": "Utilizzando il Parser Micron di",
+            "wasm_active": "Motore WASM attivo (parser veloce)",
+            "wasm_inactive": "Motore JS attivo (parser lento, clicca per WASM)"
         },
         "reticulum_config_editor": {
             "title": "Editor Configurazione Reticulum",

@@ -2037,7 +2037,9 @@
             "confirm_delete_tab": "¿Estás seguro de que quieres borrar esta pestaña?",
             "main_tab": "Main",
             "guide_tab": "NomadNet Guide",
-            "parser_by": "Usando Micron Parser por"
+            "parser_by": "Usando Micron Parser por",
+            "wasm_active": "Motor WASM activo (analizador rápido)",
+            "wasm_inactive": "Motor JS activo (analizador lento, haga clic para WASM)"
         },
         "reticulum_config_editor": {
             "title": "Reticulum Config Editor",

@@ -2037,7 +2037,9 @@
             "confirm_delete_tab": "Voulez-vous vraiment supprimer cet onglet ?",
             "main_tab": "Principale",
             "guide_tab": "Guide NomadNet",
-            "parser_by": "Utilisation de Micron Parser par"
+            "parser_by": "Utilisation de Micron Parser par",
+            "wasm_active": "Moteur WASM actif (analyseur rapide)",
+            "wasm_inactive": "Moteur JS actif (analyseur lent, cliquez pour WASM)"
         },
         "reticulum_config_editor": {
             "title": "Réticulum Config Editor",

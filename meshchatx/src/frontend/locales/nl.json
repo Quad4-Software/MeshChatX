@@ -2037,7 +2037,9 @@
             "confirm_delete_tab": "Weet u zeker dat u dit tabblad wilt verwijderen?",
             "main_tab": "Hoofd",
             "guide_tab": "NomadNet-gids",
-            "parser_by": "Micron Parser gebruiken door"
+            "parser_by": "Micron Parser gebruiken door",
+            "wasm_active": "WASM-engine actief (snelle parser)",
+            "wasm_inactive": "JS-engine actief (trage parser, klik voor WASM)"
         },
         "reticulum_config_editor": {
             "title": "Reticulum Config Editor",

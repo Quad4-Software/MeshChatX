@@ -1948,7 +1948,9 @@
             "confirm_delete_tab": "Sind Sie sicher, dass Sie diesen Tab löschen möchten?",
             "main_tab": "Haupt",
             "guide_tab": "NomadNet Leitfaden",
-            "parser_by": "Micron Parser von"
+            "parser_by": "Micron Parser von",
+            "wasm_active": "WASM Engine aktiv (schneller Parser)",
+            "wasm_inactive": "JS Engine aktiv (langsamer Parser, für WASM klicken)"
         },
         "reticulum_config_editor": {
             "title": "Reticulum Konfigurations-Editor",
