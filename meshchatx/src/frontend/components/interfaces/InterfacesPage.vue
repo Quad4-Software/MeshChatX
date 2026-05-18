@@ -73,17 +73,14 @@
                             </button>
                             <button
                                 type="button"
-                                class="secondary-chip text-sm min-h-[44px] sm:min-h-0 inline-flex items-center justify-center gap-1.5"
+                                class="secondary-chip text-sm min-h-[44px] sm:min-h-0 inline-flex items-center justify-center gap-1.5 relative overflow-hidden"
+                                :class="{ 'fill-up': refreshingCommunityInterfaces }"
                                 :disabled="refreshingCommunityInterfaces"
                                 :title="$t('interfaces.community_presets_refresh')"
                                 :aria-label="$t('interfaces.community_presets_refresh')"
                                 @click="refreshCommunityInterfaces"
                             >
-                                <MaterialDesignIcon
-                                    icon-name="download"
-                                    class="w-4 h-4"
-                                    :class="{ 'animate-spin-reverse': refreshingCommunityInterfaces }"
-                                />
+                                <MaterialDesignIcon icon-name="download" class="w-4 h-4 relative z-10" />
                             </button>
                         </div>
                     </div>
@@ -685,7 +682,7 @@
                                             <MaterialDesignIcon
                                                 :icon-name="savingDiscovery ? 'progress-clock' : 'content-save'"
                                                 class="w-4 h-4"
-                                                :class="{ 'animate-spin-reverse': savingDiscovery }"
+                                                :class="{ 'animate-spin': savingDiscovery }"
                                             />
                                             <span class="ml-1">Save Discovery Settings</span>
                                         </button>
@@ -1604,5 +1601,26 @@ export default {
 }
 .interfaces-subpanel {
     @apply mt-4 pt-4 border-t border-gray-200/50 dark:border-zinc-800/50 first:mt-0 first:pt-0 first:border-0;
+}
+.fill-up::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: currentColor;
+    opacity: 0.15;
+    border-radius: inherit;
+    animation: fillUp 1.5s ease-in-out infinite;
+    pointer-events: none;
+}
+@keyframes fillUp {
+    0% {
+        clip-path: inset(100% 0 0 0);
+    }
+    50% {
+        clip-path: inset(0% 0 0 0);
+    }
+    100% {
+        clip-path: inset(0% 0 0 0);
+    }
 }
 </style>

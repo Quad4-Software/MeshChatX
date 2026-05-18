@@ -1660,7 +1660,7 @@
                                         <MaterialDesignIcon
                                             icon-name="refresh"
                                             class="size-5"
-                                            :class="{ 'animate-spin-reverse': refreshingCommunityPresets }"
+                                            :class="{ 'animate-spin': refreshingCommunityPresets }"
                                         />
                                     </button>
                                     <button
