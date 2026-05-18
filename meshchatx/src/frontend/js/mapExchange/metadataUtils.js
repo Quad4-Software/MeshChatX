@@ -24,6 +24,8 @@ const SKIP_EXTENDED = new Set([
     "segmentKind",
     "bearingMetrics",
     "_measureOverlay",
+    "styleUrl",
+    "style",
     MCX_ICON_DATA_URL,
     MCX_ICON_HREF,
     MCX_ICON_SCALE,
@@ -152,8 +154,12 @@ export function getDrawFeatureMetadataPayload(feature) {
         } else {
             vs = String(v);
         }
+        vs = vs.trim();
         if (vs.length > 400) {
             vs = `${vs.slice(0, 400)}…`;
+        }
+        if (!vs || vs === "null" || vs === "undefined") {
+            continue;
         }
         extended.push({ key: k, value: vs });
     }
