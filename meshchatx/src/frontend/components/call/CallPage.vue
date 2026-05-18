@@ -169,7 +169,8 @@
                         </div>
 
                         <!-- Full call UI or settings -->
-                        <div v-if="(activeCall || isCallEnded || initiationStatus) && !callMinimized"
+                        <div
+                            v-if="(activeCall || isCallEnded || initiationStatus) && !callMinimized"
                             class="flex-1 flex flex-col items-center justify-center py-12 px-4"
                         >
                             <div
@@ -533,7 +534,10 @@
                             </div>
                         </div>
 
-                        <div v-if="!((activeCall || isCallEnded || initiationStatus) && !callMinimized)" class="space-y-6 my-6 max-w-3xl mx-auto w-full">
+                        <div
+                            v-if="!((activeCall || isCallEnded || initiationStatus) && !callMinimized)"
+                            class="space-y-6 my-6 max-w-3xl mx-auto w-full"
+                        >
                             <div class="w-full border-b border-gray-200 dark:border-zinc-800 py-2">
                                 <div class="flex items-center gap-3 mb-6">
                                     <div class="bg-blue-100 dark:bg-blue-900/30 p-2.5 rounded-2xl">
