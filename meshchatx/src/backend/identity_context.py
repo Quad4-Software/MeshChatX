@@ -253,6 +253,11 @@ class IdentityContext:
             if preferred_node:
                 self.app.set_active_propagation_node(preferred_node, context=self)
 
+        # Enable local propagation node on startup if configured
+        with contextlib.suppress(Exception):
+            if self.config.lxmf_local_propagation_node_enabled.get():
+                self.app.enable_local_propagation_node(True, context=self)
+
         # 5. Initialize Handlers and Managers
         self.rncp_handler = RNCPHandler(
             reticulum_instance=getattr(self.app, "reticulum", None),
