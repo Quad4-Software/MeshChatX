@@ -4247,8 +4247,11 @@ class ReticulumMeshChat:
             if self.current_context and self.current_context.config:
                 gitea_url = self.current_context.config.gitea_base_url.get()
 
-            allowed = ["https://github.com/", "https://objects.githubusercontent.com/",
-                        "https://release-assets.githubusercontent.com/"]
+            allowed = [
+                "https://github.com/",
+                "https://objects.githubusercontent.com/",
+                "https://release-assets.githubusercontent.com/",
+            ]
             if gitea_url:
                 allowed.insert(0, gitea_url + "/")
 
