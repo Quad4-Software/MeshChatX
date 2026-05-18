@@ -48,32 +48,37 @@ class Utils {
 
     static formatSecondsWithoutAgo(seconds) {
         const parsedSeconds = this.parseSeconds(seconds);
+        const parts = [];
 
         if (parsedSeconds.days > 0) {
-            if (parsedSeconds.days === 1) {
-                return "1 day";
-            }
-            return parsedSeconds.days + " days";
+            parts.push(parsedSeconds.days === 1 ? "1 day" : parsedSeconds.days + " days");
         }
 
         if (parsedSeconds.hours > 0) {
-            if (parsedSeconds.hours === 1) {
-                return "1 hour";
-            }
-            return parsedSeconds.hours + " hours";
+            parts.push(parsedSeconds.hours === 1 ? "1 hour" : parsedSeconds.hours + " hours");
         }
 
         if (parsedSeconds.minutes > 0) {
-            if (parsedSeconds.minutes === 1) {
-                return "1 min";
-            }
-            return parsedSeconds.minutes + " mins";
+            parts.push(parsedSeconds.minutes === 1 ? "1 minute" : parsedSeconds.minutes + " minutes");
         }
 
-        if (parsedSeconds.seconds <= 1) {
-            return "a second";
+        if (parts.length === 0) {
+            if (parsedSeconds.seconds <= 1) {
+                return "a second";
+            }
+            return parsedSeconds.seconds + " seconds";
         }
-        return parsedSeconds.seconds + " seconds";
+
+        if (parts.length === 1) {
+            return parts[0];
+        }
+
+        // Join with commas and "and" for the last part
+        const last = parts.pop();
+        if (parts.length === 1) {
+            return parts[0] + " and " + last;
+        }
+        return parts.join(", ") + ", and " + last;
     }
 
     static formatSeconds(seconds) {

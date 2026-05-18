@@ -73,8 +73,8 @@ describe("Utils.js", () => {
         });
 
         it("formats minutes ago", () => {
-            expect(Utils.formatSeconds(60)).toBe("1 min ago");
-            expect(Utils.formatSeconds(120)).toBe("2 mins ago");
+            expect(Utils.formatSeconds(60)).toBe("1 minute ago");
+            expect(Utils.formatSeconds(120)).toBe("2 minutes ago");
         });
 
         it("formats hours ago", () => {
@@ -85,6 +85,12 @@ describe("Utils.js", () => {
         it("formats days ago", () => {
             expect(Utils.formatSeconds(86400)).toBe("1 day ago");
             expect(Utils.formatSeconds(172800)).toBe("2 days ago");
+        });
+
+        it("formats combined units granularly", () => {
+            expect(Utils.formatSeconds(90061)).toBe("1 day, 1 hour, and 1 minute ago");
+            expect(Utils.formatSeconds(172860)).toBe("2 days and 1 minute ago");
+            expect(Utils.formatSeconds(3661)).toBe("1 hour and 1 minute ago");
         });
     });
 
@@ -116,8 +122,8 @@ describe("Utils.js", () => {
             const now = new Date("2025-01-01T12:00:00Z");
             vi.setSystemTime(now);
             const pastDate = "2025-01-01 11:59:00";
-            expect(Utils.formatTimeAgoForI18n(pastDate)).toBe("1 min");
-            expect(Utils.formatTimeAgo(pastDate)).toBe("1 min ago");
+            expect(Utils.formatTimeAgoForI18n(pastDate)).toBe("1 minute");
+            expect(Utils.formatTimeAgo(pastDate)).toBe("1 minute ago");
         });
     });
 
@@ -134,7 +140,7 @@ describe("Utils.js", () => {
             const nowSec = Math.floor(new Date("2025-06-01T15:00:00Z").getTime() / 1000);
             vi.setSystemTime(new Date("2025-06-01T15:00:00Z"));
             expect(Utils.formatSecondsAgoForI18n(nowSec - 10)).toBe("less than a minute");
-            expect(Utils.formatSecondsAgoForI18n(nowSec - 120)).toBe("2 mins");
+            expect(Utils.formatSecondsAgoForI18n(nowSec - 120)).toBe("2 minutes");
         });
     });
 
@@ -151,8 +157,8 @@ describe("Utils.js", () => {
             const now = new Date("2025-01-01T12:00:00Z");
             vi.setSystemTime(now);
 
-            const pastDate = "2025-01-01 11:59:00"; // 1 min ago
-            expect(Utils.formatTimeAgo(pastDate)).toBe("1 min ago");
+            const pastDate = "2025-01-01 11:59:00"; // 1 minute ago
+            expect(Utils.formatTimeAgo(pastDate)).toBe("1 minute ago");
         });
 
         it('returns "unknown" for empty input', () => {
