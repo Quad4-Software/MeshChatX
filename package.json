@@ -137,9 +137,10 @@
             },
             "identity": "-",
             "artifactName": "ReticulumMeshChatX-v${version}-mac-${arch}.${ext}",
+            "entitlements": "electron/build/entitlements.mac.plist",
+            "entitlementsInherit": "electron/build/entitlements.mac.plist",
             "extendInfo": {
-                "NSMicrophoneUsageDescription": "Microphone access is only needed for Audio Calls",
-                "com.apple.security.device.audio-input": true
+                "NSMicrophoneUsageDescription": "Microphone access is only needed for audio calls and voice messages"
             },
             "x64ArchFiles": "Contents/Resources/backend{/**,/**/.*/**}",
             "extraResources": [
