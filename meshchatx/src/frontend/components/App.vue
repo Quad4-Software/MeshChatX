@@ -363,7 +363,7 @@
                                         <SidebarLink :to="{ name: 'identities' }" :is-collapsed="isSidebarCollapsed">
                                             <template #icon>
                                                 <MaterialDesignIcon
-                                                    icon-name="account-multiple"
+                                                    icon-name="badge-account"
                                                     class="size-6 text-gray-700 dark:text-gray-200"
                                                 />
                                             </template>
