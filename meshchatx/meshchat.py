@@ -6893,6 +6893,13 @@ class ReticulumMeshChat:
             ):
                 update_config_value(key)
 
+            # When discover_interfaces is off, also disable autoconnect so RNS
+            # does not connect to any discovered interfaces.
+            if "discover_interfaces" in data:
+                disc_val = data["discover_interfaces"]
+                if disc_val is False or str(disc_val).lower() in ("false", "no", "0"):
+                    reticulum_config.pop("autoconnect_discovered_interfaces", None)
+
             # default_bootstrap_only is a MeshChatX-only setting; do NOT write it
             # to Reticulum config so discovered/auto-connected interfaces are
             # never affected. Clean up any stale value in Reticulum config.
