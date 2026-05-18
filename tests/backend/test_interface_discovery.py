@@ -305,8 +305,19 @@ async def test_discovered_interfaces_respect_whitelist_and_blacklist(temp_dir):
         data = json.loads(response.body)
         interfaces = data["interfaces"]
 
-        assert len(interfaces) == 1
-        assert interfaces[0]["name"] == "peer-good-1"
+        assert len(interfaces) == 4
+        allowed = [i for i in interfaces if i.get("is_allowed") and not i.get("is_blacklisted")]
+        assert len(allowed) == 1
+        assert allowed[0]["name"] == "peer-good-1"
+        blocked = [i for i in interfaces if i.get("is_blacklisted")]
+        assert len(blocked) == 2
+        # Check annotation matches correctly
+        peer_good = next(i for i in interfaces if i["name"] == "peer-good-1")
+        assert peer_good["is_allowed"] is True
+        assert peer_good["is_blacklisted"] is False
+        other = next(i for i in interfaces if i["name"] == "other-network")
+        assert other["is_allowed"] is False
+        assert other["is_blacklisted"] is False
 
 
 @pytest.mark.asyncio

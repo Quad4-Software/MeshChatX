@@ -6912,6 +6912,11 @@ class ReticulumMeshChat:
                     status=500,
                 )
 
+            try:
+                await self.reload_reticulum()
+            except Exception as e:
+                logger.debug(f"Failed to reload RNS after discovery config update: {e}")
+
             discovery_config = {
                 "discover_interfaces": reticulum_config.get("discover_interfaces"),
                 "interface_discovery_sources": reticulum_config.get(
@@ -6952,11 +6957,16 @@ class ReticulumMeshChat:
                 blacklist_patterns = reticulum_config.get(
                     "interface_discovery_blacklist",
                 )
-                interfaces = ReticulumMeshChat.filter_discovered_interfaces(
-                    interfaces,
-                    whitelist_patterns,
-                    blacklist_patterns,
-                )
+                # Annotate each interface with its allowlist status
+                for iface in interfaces:
+                    iface["is_allowed"] = ReticulumMeshChat.matches_discovery_pattern(
+                        ReticulumMeshChat.sanitize_discovery_patterns(whitelist_patterns),
+                        iface,
+                    ) if whitelist_patterns else True
+                    iface["is_blacklisted"] = ReticulumMeshChat.matches_discovery_pattern(
+                        ReticulumMeshChat.sanitize_discovery_patterns(blacklist_patterns),
+                        iface,
+                    ) if blacklist_patterns else False
                 max_disc = 500
                 if self.current_context and self.current_context.config:
                     mv = self.current_context.config.discovered_interfaces_max_return.get()

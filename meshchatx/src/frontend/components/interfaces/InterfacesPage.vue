@@ -329,6 +329,18 @@
                                                 >
                                                     Connected
                                                 </span>
+                                                <span
+                                                    v-if="iface.is_blacklisted"
+                                                    class="inline-flex items-center rounded-full bg-red-100 text-red-700 px-2 py-0.5 text-[10px] font-semibold dark:bg-red-900/40 dark:text-red-200 shrink-0"
+                                                >
+                                                    Blocked
+                                                </span>
+                                                <span
+                                                    v-else-if="iface.is_allowed === false"
+                                                    class="inline-flex items-center rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-[10px] font-semibold dark:bg-amber-900/40 dark:text-amber-200 shrink-0"
+                                                >
+                                                    Not allowed
+                                                </span>
                                             </div>
 
                                             <div class="flex flex-wrap gap-1.5 text-[10px] sm:text-xs">
