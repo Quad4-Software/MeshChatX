@@ -513,7 +513,7 @@ app.whenReady().then(async () => {
             "style-src 'self' 'unsafe-inline'",
             "img-src 'self' data: blob: https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://*.cartocdn.com https://tiles.openfreemap.org https://*.openfreemap.org",
             "font-src 'self' data: https://tiles.openfreemap.org https://*.openfreemap.org",
-            "connect-src 'self' http://127.0.0.1:9337 https://127.0.0.1:9337 http://localhost:9337 https://localhost:9337 ws://127.0.0.1:* wss://127.0.0.1:* ws://localhost:* wss://localhost:* blob: https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://nominatim.openstreetmap.org https://git.quad4.io https://*.cartocdn.com https://tiles.openfreemap.org https://*.openfreemap.org",
+            "connect-src 'self' http://127.0.0.1:9337 https://127.0.0.1:9337 http://localhost:9337 https://localhost:9337 ws://127.0.0.1:* wss://127.0.0.1:* ws://localhost:* wss://localhost:* blob: https://*.tile.openstreetmap.org https://tile.openstreetmap.org https://nominatim.openstreetmap.org https://github.com https://*.cartocdn.com https://tiles.openfreemap.org https://*.openfreemap.org",
             "media-src 'self' blob:",
             "worker-src 'self' blob:",
             "frame-src 'self'",

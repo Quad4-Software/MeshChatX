@@ -17,7 +17,7 @@
                         {{ $t("tools.micron_editor.title") }}
                     </h1>
                     <a
-                        href="https://git.quad4.io/RFnexus"
+                        href="https://github.com/RFnexus"
                         target="_blank"
                         rel="noopener noreferrer"
                         class="text-[10px] text-gray-500 hover:text-teal-500 transition-colors hidden sm:block leading-tight"
@@ -89,6 +89,26 @@
                         </div>
                     </div>
                 </div>
+                <button
+                    v-if="wasmBundled"
+                    type="button"
+                    class="secondary-chip py-1! px-2! gap-1 text-[11px]!"
+                    :class="{ 'text-teal-600! dark:text-teal-300! border-teal-300! dark:border-teal-700!': useWasm }"
+                    :disabled="wasmLoading"
+                    :title="$t(useWasm ? 'tools.micron_editor.wasm_active' : 'tools.micron_editor.wasm_inactive')"
+                    @click="toggleWasmEngine"
+                >
+                    <span
+                        v-if="wasmLoading"
+                        class="w-3 h-3 rounded-full border-2 border-current border-t-transparent animate-spin"
+                    ></span>
+                    <MaterialDesignIcon
+                        v-else
+                        :icon-name="useWasm ? 'lightning-bolt' : 'lightning-bolt-outline'"
+                        class="w-3.5 h-3.5"
+                    />
+                    <span class="hidden sm:inline">{{ useWasm ? "WASM" : "JS" }}</span>
+                </button>
                 <button v-if="isMobileView" type="button" class="primary-chip py-1! px-3!" @click="toggleView">
                     <MaterialDesignIcon :icon-name="showEditor ? 'eye' : 'pencil'" class="w-3.5 h-3.5" />
                     {{ showEditor ? $t("tools.micron_editor.view_preview") : $t("tools.micron_editor.edit") }}
@@ -179,6 +199,7 @@
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import MicronParser from "../../js/MicronParser.js";
 import { micronStorage } from "../../js/MicronStorage";
+import { preloadNomadMicronWasm, isMicronWasmBundled } from "../../js/MicronWasmLoader";
 import DialogUtils from "../../js/DialogUtils";
 
 export default {
@@ -198,6 +219,10 @@ export default {
             editingTabName: "",
             showPublishMenu: false,
             pageNodes: [],
+            useWasm: false,
+            wasmReady: false,
+            wasmBundled: isMicronWasmBundled(),
+            wasmLoading: false,
         };
     },
     watch: {
@@ -232,7 +257,11 @@ export default {
             }
             try {
                 const parser = new MicronParser(true);
-                this.renderedContent = parser.convertMicronToHtml(this.tabs[this.activeTabIndex].content);
+                this.renderedContent = parser.convertMicronToHtml(
+                    this.tabs[this.activeTabIndex].content,
+                    {},
+                    { useWasm: this.useWasm && this.wasmReady }
+                );
             } catch (error) {
                 console.error("Error rendering micron:", error);
                 this.renderedContent = `<p style="color: red;">Error rendering: ${error.message}</p>`;
@@ -240,6 +269,25 @@ export default {
         },
         toggleView() {
             this.showEditor = !this.showEditor;
+        },
+        async toggleWasmEngine() {
+            if (!this.wasmBundled) return;
+            if (this.useWasm) {
+                this.useWasm = false;
+                this.renderActiveTab();
+                return;
+            }
+            this.wasmLoading = true;
+            try {
+                const ready = await preloadNomadMicronWasm();
+                this.wasmReady = ready === true && typeof globalThis.micronConvert === "function";
+                if (this.wasmReady) {
+                    this.useWasm = true;
+                    this.renderActiveTab();
+                }
+            } finally {
+                this.wasmLoading = false;
+            }
         },
         async saveContent() {
             try {

@@ -38,7 +38,6 @@ from pathlib import Path
 
 DEFAULT_SOURCES = (
     "https://github.com/markqvist/reticulum_website/archive/refs/heads/main.zip",
-    "https://git.quad4.io/Reticulum/reticulum_website/archive/main.zip",
 )
 
 DEFAULT_DEST = (
@@ -256,6 +255,18 @@ def main(argv: list[str] | None = None) -> int:
 
     env_dest = os.environ.get("MESHCHATX_RETICULUM_DOCS_DEST")
     dest = args.dest or (Path(env_dest) if env_dest else DEFAULT_DEST)
+
+    if _is_truthy(os.environ.get("MESHCHATX_OFFLINE_BUILD")):
+        if dest.exists() and any(dest.iterdir()):
+            logging.info(
+                "MESHCHATX_OFFLINE_BUILD=1 and Reticulum manual already present at %s; skipping fetch.",
+                dest,
+            )
+            return 0
+        logging.error(
+            "MESHCHATX_OFFLINE_BUILD=1 but Reticulum manual is missing at %s", dest
+        )
+        return 1
 
     fetch_manual(
         sources=sources,

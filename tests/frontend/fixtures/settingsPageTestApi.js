@@ -126,7 +126,7 @@ export function buildFullServerConfig(overrides = {}) {
         nomad_micron_wasm_enabled: true,
         nomad_micron_default_engine: "js",
         nomad_default_page_path: "/page/index.mu",
-        gitea_base_url: "https://git.quad4.io",
+        gitea_base_url: "",
         ...overrides,
     };
 }

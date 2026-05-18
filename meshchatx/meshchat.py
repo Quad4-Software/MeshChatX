@@ -3507,7 +3507,7 @@ class ReticulumMeshChat:
                             <p>The MeshChatX web interface files were not found.</p>
                             <p>If you are running from source, you must build the frontend first:</p>
                             <pre style="background: #1e293b; padding: 1rem; border-radius: 4px; color: #e2e8f0; border: 1px solid #334155;">pnpm install && pnpm run build-frontend</pre>
-                            <p>For more information, see the <a href="https://git.quad4.io/RNS-Things/MeshChatX" style="color: #38bdf8;">README</a>.</p>
+                            <p>For more information, see the <a href="https://github.com/Quad4-Software/MeshChatX" style="color: #38bdf8;">README</a>.</p>
                         </body>
                     </html>
                     """,
@@ -4243,17 +4243,16 @@ class ReticulumMeshChat:
                 return web.json_response({"error": "URL is required"}, status=400)
 
             # Restrict to allowed sources for safety
-            gitea_url = "https://git.quad4.io"
+            gitea_url = ""
             if self.current_context and self.current_context.config:
                 gitea_url = self.current_context.config.gitea_base_url.get()
 
-            if (
-                not url.startswith(gitea_url + "/")
-                and not url.startswith("https://git.quad4.io/")
-                and not url.startswith("https://github.com/")
-                and not url.startswith("https://objects.githubusercontent.com/")
-                and not url.startswith("https://release-assets.githubusercontent.com/")
-            ):
+            allowed = ["https://github.com/", "https://objects.githubusercontent.com/",
+                        "https://release-assets.githubusercontent.com/"]
+            if gitea_url:
+                allowed.insert(0, gitea_url + "/")
+
+            if not any(url.startswith(a) for a in allowed):
                 return web.json_response({"error": "Invalid download URL"}, status=403)
 
             try:

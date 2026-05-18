@@ -161,7 +161,7 @@ class ConfigManager:
         self.gitea_base_url = self.StringConfig(
             self,
             "gitea_base_url",
-            "https://git.quad4.io",
+            None,
         )
 
         # desktop config

@@ -923,7 +923,7 @@
                                         {{ $t("settings.nomad_micron_wasm_desc_before_link") }}
                                         <a
                                             class="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2"
-                                            href="https://git.quad4.io/Go-Libs/micron-parser-go"
+                                            href="https://github.com/Quad4-Software/micron-parser-go"
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             >{{ $t("settings.nomad_micron_wasm_link_label") }}</a
@@ -2070,7 +2070,7 @@
                                 <input
                                     v-model="config.gitea_base_url"
                                     type="text"
-                                    placeholder="https://git.quad4.io"
+                                    placeholder="https://github.com/example-org"
                                     class="input-field"
                                     @input="onGiteaConfigChange"
                                 />
@@ -2728,7 +2728,7 @@ export default {
                 location_manual_lon: "0.0",
                 location_manual_alt: "0.0",
                 telemetry_enabled: false,
-                gitea_base_url: "https://git.quad4.io",
+                gitea_base_url: "",
                 csp_extra_connect_src: "",
                 csp_extra_img_src: "",
                 csp_extra_frame_src: "",

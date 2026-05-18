@@ -689,7 +689,7 @@ export default {
             return isMicronWasmBundled() && (GlobalState.config || {}).nomad_micron_wasm_enabled === true;
         },
         micronParserGoRepoUrl() {
-            return "https://git.quad4.io/Go-Libs/micron-parser-go";
+            return "https://github.com/Quad4-Software/micron-parser-go";
         },
         nomadMicronWasmActive() {
             const engineWasm = (GlobalState.config?.nomad_micron_default_engine || "js") === "wasm";
