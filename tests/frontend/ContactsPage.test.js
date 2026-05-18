@@ -85,7 +85,6 @@ describe("ContactsPage.vue", () => {
 
         expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/telephone/contacts", {
             name: "Test Contact",
-            remote_identity_hash: "e".repeat(32),
             lxmf_address: "e".repeat(32),
         });
     });
