@@ -116,7 +116,7 @@ jobs:
                       pnpm exec vitest run --config vitest.electron.config.js
                       ;;
                     backend-tests)
-                      uv run python -m pytest tests/backend -n auto \
+                      MESHCHAT_SKIP_STORAGE_LOCK=1 uv run python -m pytest tests/backend -n auto \
                         --cov=meshchatx/src/backend
                       ;;
                     lang-tests)
