@@ -289,7 +289,7 @@ def test_sidebar_preview_reaction_incoming_uses_peer_name():
     row = {
         "content": "",
         "fields": json.dumps(
-            {"app_extensions": {"reaction_to": "abc123", "emoji": "\U0001f44d"}},
+            {"reaction": {"reaction_to": "abc123", "reaction_content": "\U0001f44d"}},
         ),
         "is_incoming": 1,
         "source_hash": "b" * 32,
@@ -307,7 +307,7 @@ def test_sidebar_preview_reaction_outbound_from_self_is_you():
     row = {
         "content": "",
         "fields": json.dumps(
-            {"app_extensions": {"reaction_to": "abc123", "emoji": "\u2764\ufe0f"}},
+            {"reaction": {"reaction_to": "abc123", "reaction_content": "\u2764\ufe0f"}},
         ),
         "is_incoming": 0,
         "source_hash": me,
@@ -324,7 +324,7 @@ def test_sidebar_preview_prefers_non_empty_content():
     row = {
         "content": " hi ",
         "fields": json.dumps(
-            {"app_extensions": {"reaction_to": "abc123", "emoji": "\U0001f44d"}},
+            {"reaction": {"reaction_to": "abc123", "reaction_content": "\U0001f44d"}},
         ),
         "is_incoming": 1,
     }

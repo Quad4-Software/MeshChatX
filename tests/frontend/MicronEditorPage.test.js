@@ -4,6 +4,21 @@ import MicronEditorPage from "@/components/micron-editor/MicronEditorPage.vue";
 import { micronStorage } from "@/js/MicronStorage";
 import DialogUtils from "@/js/DialogUtils";
 
+const micronEditorT = (key, params = {}) => {
+    const strings = {
+        "tools.micron_editor.new_tab": "New Tab",
+        "tools.micron_editor.publish_prompt_name":
+            'index.mu already exists on "{server}". Enter a page name (without .mu):',
+        "tools.micron_editor.publish_published": 'Published "{page}" to {server}',
+        "tools.micron_editor.publish_failed": "Failed to publish page",
+    };
+    let out = strings[key] ?? key;
+    for (const [k, v] of Object.entries(params)) {
+        out = out.replace(`{${k}}`, String(v));
+    }
+    return out;
+};
+
 vi.mock("@/js/MicronStorage", () => ({
     micronStorage: {
         loadTabs: vi.fn().mockResolvedValue([]),
@@ -15,6 +30,8 @@ vi.mock("@/js/MicronStorage", () => ({
 vi.mock("@/js/DialogUtils", () => ({
     default: {
         confirm: vi.fn(),
+        alert: vi.fn(),
+        prompt: vi.fn(),
     },
 }));
 
@@ -32,11 +49,11 @@ describe("MicronEditorPage.vue", () => {
         });
     });
 
-    const mountMicronEditorPage = () => {
+    const mountMicronEditorPage = (t = micronEditorT) => {
         return mount(MicronEditorPage, {
             global: {
                 mocks: {
-                    $t: (key) => key,
+                    $t: t,
                 },
                 stubs: {
                     MaterialDesignIcon: {
@@ -78,6 +95,55 @@ describe("MicronEditorPage.vue", () => {
         wrapper.vm.renderActiveTab();
         await wrapper.vm.$nextTick();
         expect(wrapper.find(".nodeContainer").text()).toContain("TestContent");
+    });
+
+    it("isUnsetMicronTabName matches default new tab labels", async () => {
+        const wrapper = mountMicronEditorPage();
+        await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
+        expect(wrapper.vm.isUnsetMicronTabName("New Tab 2")).toBe(true);
+        expect(wrapper.vm.isUnsetMicronTabName("Homepage")).toBe(false);
+        expect(wrapper.vm.isUnsetMicronTabName("Main")).toBe(false);
+    });
+
+    it("resolvePublishPageBase uses index when server has no index.mu", async () => {
+        const wrapper = mountMicronEditorPage();
+        await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
+        const tab = { name: "New Tab 1", content: "x" };
+        await expect(wrapper.vm.resolvePublishPageBase(tab, [], "srv")).resolves.toBe("index");
+    });
+
+    it("resolvePublishPageBase uses tab name when index.mu exists and tab is renamed", async () => {
+        const wrapper = mountMicronEditorPage();
+        await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
+        const tab = { name: "About Page", content: "x" };
+        await expect(wrapper.vm.resolvePublishPageBase(tab, ["index.mu"], "srv")).resolves.toBe("About_Page");
+    });
+
+    it("resolvePublishPageBase prompts when index.mu exists and tab name is unset", async () => {
+        DialogUtils.prompt.mockResolvedValue("custom_page");
+        const wrapper = mountMicronEditorPage();
+        await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
+        const tab = { name: "New Tab 1", content: "x" };
+        await expect(wrapper.vm.resolvePublishPageBase(tab, ["index.mu"], "srv")).resolves.toBe("custom_page");
+        expect(DialogUtils.prompt).toHaveBeenCalled();
+    });
+
+    it("publishToNode posts index.mu when server has no index page", async () => {
+        window.api = {
+            get: vi.fn().mockResolvedValue({ data: { pages: [] } }),
+            post: vi.fn().mockResolvedValue({ data: { name: "index.mu" } }),
+        };
+        const wrapper = mountMicronEditorPage();
+        await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
+        await wrapper.setData({
+            tabs: [{ id: 1, name: "New Tab 1", content: "hello" }],
+            activeTabIndex: 0,
+        });
+        await wrapper.vm.publishToNode({ node_id: "n1", name: "My Server" });
+        expect(window.api.post).toHaveBeenCalledWith("/api/v1/page-nodes/n1/pages", {
+            name: "index",
+            content: "hello",
+        });
     });
 
     it("resets all content", async () => {

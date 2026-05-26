@@ -123,7 +123,7 @@ def test_validate_gif_payload_accepts_minimal_gif():
     assert len(h) == 64
 
 
-def _minimal_lxmf_mock(app_ext: dict):
+def _minimal_lxmf_mock_reaction(reaction_to: str, emoji: str):
     m = MagicMock()
     m.hash = os.urandom(16)
     m.source_hash = os.urandom(16)
@@ -139,26 +139,30 @@ def _minimal_lxmf_mock(app_ext: dict):
     m.rssi = None
     m.snr = None
     m.q = None
-    m.get_fields.return_value = {lxmf_utils.LXMF_APP_EXTENSIONS_FIELD: app_ext}
+    target_bytes = None
+    try:
+        target_bytes = bytes.fromhex(reaction_to)
+    except ValueError:
+        target_bytes = reaction_to.encode("utf-8", errors="replace")
+    m.get_fields.return_value = {
+        lxmf_utils.FIELD_REACTION: {
+            lxmf_utils.REACTION_TO: target_bytes,
+            lxmf_utils.REACTION_CONTENT: emoji.encode("utf-8", errors="replace"),
+        },
+    }
     return m
 
 
 @settings(max_examples=80, deadline=None)
 @given(
     emoji=st.text(max_size=800, alphabet=st.characters(blacklist_categories=("Cs",))),
-    reaction_to=st.text(
-        max_size=800, alphabet=st.characters(blacklist_categories=("Cs",))
-    ),
-    sender=st.text(max_size=800, alphabet=st.characters(blacklist_categories=("Cs",))),
+    reaction_to=st.text(max_size=64, alphabet="0123456789abcdef"),
 )
-def test_convert_lxmf_reaction_app_extensions_fuzzing(emoji, reaction_to, sender):
-    app_ext = {
-        "reaction_to": reaction_to,
-        "emoji": emoji,
-        "sender": sender,
-    }
+def test_convert_lxmf_reaction_field_fuzzing(emoji, reaction_to):
+    if len(reaction_to) % 2 != 0:
+        reaction_to = "0" + reaction_to
     out = lxmf_utils.convert_lxmf_message_to_dict(
-        _minimal_lxmf_mock(app_ext),
+        _minimal_lxmf_mock_reaction(reaction_to, emoji),
         include_attachments=False,
     )
     assert out["is_reaction"] is True

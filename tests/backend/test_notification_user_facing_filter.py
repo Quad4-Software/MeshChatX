@@ -28,7 +28,9 @@ from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 
 from meshchatx.src.backend.lxmf_utils import (
-    LXMF_APP_EXTENSIONS_FIELD,
+    FIELD_REACTION,
+    REACTION_CONTENT,
+    REACTION_TO,
     compute_lxmf_conversation_unread_from_latest_row,
     is_user_facing_lxmf_payload,
 )
@@ -58,19 +60,22 @@ class TestIsUserFacingLxmfPayload:
         assert not is_user_facing_lxmf_payload({}, None, None)
         assert not is_user_facing_lxmf_payload({}, "   ", "  \t\n")
 
-    def test_reaction_via_app_extensions_string_keys(self):
-        fields = {"app_extensions": {"reaction_to": "abc", "emoji": "fire"}}
+    def test_reaction_via_parsed_reaction_field(self):
+        fields = {"reaction": {"reaction_to": "abc", "reaction_content": "fire"}}
         assert not is_user_facing_lxmf_payload(fields, "", "")
         assert not is_user_facing_lxmf_payload(fields, None, None)
 
-    def test_reaction_via_raw_int_field(self):
-        fields = {LXMF_APP_EXTENSIONS_FIELD: {"reaction_to": "abc"}}
+    def test_reaction_via_raw_lxmf_field(self):
+        fields = {
+            FIELD_REACTION: {
+                REACTION_TO: bytes.fromhex("ab" * 16),
+                REACTION_CONTENT: b"fire",
+            },
+        }
         assert not is_user_facing_lxmf_payload(fields, "", "")
 
     def test_reaction_with_text_is_still_not_user_facing(self):
-        # A reaction payload that also carries content is still a reaction
-        # event; we never raise the bell on reactions.
-        fields = {"app_extensions": {"reaction_to": "abc"}}
+        fields = {"reaction": {"reaction_to": "abc", "reaction_content": "\U0001f44d"}}
         assert not is_user_facing_lxmf_payload(fields, "noise", "noise")
 
     def test_telemetry_only_is_not_user_facing(self):
@@ -112,7 +117,9 @@ class TestIsUserFacingLxmfPayload:
         assert not is_user_facing_lxmf_payload(fields, "", "")
 
     def test_accepts_json_string_fields(self):
-        fields = json.dumps({"app_extensions": {"reaction_to": "abc"}})
+        fields = json.dumps(
+            {"reaction": {"reaction_to": "abc", "reaction_content": "\U0001f44d"}}
+        )
         assert not is_user_facing_lxmf_payload(fields, "", "")
         fields = json.dumps({"image": {"image_size": 1}})
         assert is_user_facing_lxmf_payload(fields, "", "")
@@ -149,7 +156,9 @@ class TestRequireUserFacingFlag:
     def test_legacy_behavior_unchanged_without_flag(self):
         row = _row(
             incoming=1,
-            fields={"app_extensions": {"reaction_to": "abc"}},
+            fields={
+                "reaction": {"reaction_to": "abc", "reaction_content": "\U0001f44d"}
+            },
         )
         # Without ``require_user_facing`` the helper preserves its old behavior
         # so the conversation list (which renders reactions) is unaffected.
@@ -158,7 +167,9 @@ class TestRequireUserFacingFlag:
     def test_reaction_filtered_when_require_user_facing(self):
         row = _row(
             incoming=1,
-            fields={"app_extensions": {"reaction_to": "abc"}},
+            fields={
+                "reaction": {"reaction_to": "abc", "reaction_content": "\U0001f44d"}
+            },
         )
         assert (
             compute_lxmf_conversation_unread_from_latest_row(
@@ -311,7 +322,9 @@ class TestGetLatestUserFacingIncomingMessage:
                 msg_hash="h2",
                 peer_hash=PEER_HASH,
                 content="",
-                fields={"app_extensions": {"reaction_to": "abc"}},
+                fields={
+                    "reaction": {"reaction_to": "abc", "reaction_content": "\U0001f44d"}
+                },
                 timestamp=200,
             ),
         )
@@ -393,7 +406,12 @@ class TestGetLatestUserFacingIncomingMessage:
                     msg_hash=f"react{i}",
                     peer_hash=PEER_HASH,
                     content="",
-                    fields={"app_extensions": {"reaction_to": "x"}},
+                    fields={
+                        "reaction": {
+                            "reaction_to": "x",
+                            "reaction_content": "\U0001f44d",
+                        }
+                    },
                     timestamp=100 + i,
                 ),
             )
@@ -493,7 +511,7 @@ class TestNotificationsGetUserFacingFilter:
                 msg_hash="r1",
                 peer_hash=PEER_HASH,
                 content="",
-                fields={"app_extensions": {"reaction_to": "abc", "emoji": "fire"}},
+                fields={"reaction": {"reaction_to": "abc", "reaction_content": "fire"}},
                 timestamp=1_700_000_000,
             ),
         )
@@ -522,7 +540,9 @@ class TestNotificationsGetUserFacingFilter:
                 msg_hash="r1",
                 peer_hash=PEER_HASH,
                 content="",
-                fields={"app_extensions": {"reaction_to": "m1"}},
+                fields={
+                    "reaction": {"reaction_to": "m1", "reaction_content": "\U0001f44d"}
+                },
                 timestamp=1_700_001_000,
             ),
         )
@@ -549,7 +569,9 @@ class TestNotificationsGetUserFacingFilter:
                 msg_hash="r1",
                 peer_hash=PEER_HASH,
                 content="",
-                fields={"app_extensions": {"reaction_to": "m1"}},
+                fields={
+                    "reaction": {"reaction_to": "m1", "reaction_content": "\U0001f44d"}
+                },
                 timestamp=1_700_001_000,
             ),
         )
@@ -674,7 +696,9 @@ class TestNotificationsGetUserFacingFilter:
                 msg_hash="m2",
                 peer_hash=PEER_HASH_2,
                 content="",
-                fields={"app_extensions": {"reaction_to": "x"}},
+                fields={
+                    "reaction": {"reaction_to": "x", "reaction_content": "\U0001f44d"}
+                },
                 timestamp=1_700_000_200,
             ),
         )
@@ -699,7 +723,9 @@ class TestNotificationsGetUserFacingFilter:
                 msg_hash="r1",
                 peer_hash=PEER_HASH,
                 content="",
-                fields={"app_extensions": {"reaction_to": "abc"}},
+                fields={
+                    "reaction": {"reaction_to": "abc", "reaction_content": "\U0001f44d"}
+                },
                 timestamp=1_700_000_000,
             ),
         )

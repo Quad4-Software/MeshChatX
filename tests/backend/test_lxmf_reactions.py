@@ -6,20 +6,49 @@ from unittest.mock import MagicMock
 import LXMF
 
 from meshchatx.src.backend.lxmf_utils import (
+    FIELD_REACTION,
     LXMF_APP_EXTENSIONS_FIELD,
+    REACTION_CONTENT,
+    REACTION_TO,
     convert_db_lxmf_message_to_dict,
     convert_lxmf_message_to_dict,
-    lxmf_fields_are_columba_reaction,
+    lxmf_fields_are_reaction,
+    parse_lxmf_reaction_field_dict,
 )
 
 
-def test_lxmf_fields_are_columba_reaction():
-    assert lxmf_fields_are_columba_reaction({}) is False
-    assert lxmf_fields_are_columba_reaction({16: {"reaction_to": "abc"}}) is True
-    assert lxmf_fields_are_columba_reaction({16: {"reply_to": "x"}}) is False
+def test_lxmf_fields_are_reaction():
+    assert lxmf_fields_are_reaction({}) is False
+    assert lxmf_fields_are_reaction({16: {"reaction_to": "abc"}}) is False
+    target = bytes.fromhex("aa" * 16)
+    assert (
+        lxmf_fields_are_reaction(
+            {
+                FIELD_REACTION: {
+                    REACTION_TO: target,
+                    REACTION_CONTENT: "\U0001f44d".encode("utf-8"),
+                },
+            },
+        )
+        is True
+    )
 
 
-def test_convert_lxmf_message_to_dict_reaction_field_16():
+def test_parse_lxmf_reaction_field_dict():
+    target_hex = "aa" * 32
+    parsed = parse_lxmf_reaction_field_dict(
+        {
+            REACTION_TO: bytes.fromhex(target_hex),
+            REACTION_CONTENT: "\U0001f44d".encode("utf-8"),
+        },
+        "bb" * 32,
+    )
+    assert parsed["reaction_to"] == target_hex
+    assert parsed["reaction_emoji"] == "\U0001f44d"
+    assert parsed["reaction_sender"] == "bb" * 32
+
+
+def test_convert_lxmf_message_to_dict_reaction_field_40():
     mock_msg = MagicMock(spec=LXMF.LXMessage)
     mock_msg.hash = b"h" * 8
     mock_msg.source_hash = b"s" * 8
@@ -37,10 +66,9 @@ def test_convert_lxmf_message_to_dict_reaction_field_16():
     mock_msg.q = None
     target = "a" * 32
     mock_msg.get_fields.return_value = {
-        LXMF_APP_EXTENSIONS_FIELD: {
-            "reaction_to": target,
-            "emoji": "\U0001f44d",
-            "sender": "f" * 32,
+        FIELD_REACTION: {
+            REACTION_TO: bytes.fromhex(target),
+            REACTION_CONTENT: "\u2764\ufe0f".encode("utf-8"),
         },
     }
 
@@ -48,19 +76,17 @@ def test_convert_lxmf_message_to_dict_reaction_field_16():
 
     assert out["is_reaction"] is True
     assert out["reaction_to"] == target
-    assert out["reaction_emoji"] == "\U0001f44d"
-    assert out["reaction_sender"] == "f" * 32
-    assert "app_extensions" in out["fields"]
-    assert out["fields"]["app_extensions"]["reaction_to"] == target
+    assert out["reaction_emoji"] == "\u2764\ufe0f"
+    assert out["reaction_sender"] == mock_msg.source_hash.hex()
+    assert out["fields"]["reaction"]["reaction_to"] == target
 
 
 def test_convert_db_lxmf_message_to_dict_reaction():
     target = "aa" * 16
     fields_obj = {
-        "app_extensions": {
+        "reaction": {
             "reaction_to": target,
-            "emoji": "\u2764\ufe0f",
-            "sender": "11" * 16,
+            "reaction_content": "\u2764\ufe0f",
         },
     }
     row = {
@@ -92,7 +118,7 @@ def test_convert_db_lxmf_message_to_dict_reaction():
     assert out["is_reaction"] is True
     assert out["reaction_to"] == target
     assert out["reaction_emoji"] == "\u2764\ufe0f"
-    assert out["reaction_sender"] == "11" * 16
+    assert out["reaction_sender"] == "cd" * 16
 
 
 def test_convert_lxmf_message_to_dict_non_reaction_field_16_reply_to():

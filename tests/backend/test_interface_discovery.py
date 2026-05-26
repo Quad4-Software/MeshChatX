@@ -306,7 +306,9 @@ async def test_discovered_interfaces_respect_whitelist_and_blacklist(temp_dir):
         interfaces = data["interfaces"]
 
         assert len(interfaces) == 4
-        allowed = [i for i in interfaces if i.get("is_allowed") and not i.get("is_blacklisted")]
+        allowed = [
+            i for i in interfaces if i.get("is_allowed") and not i.get("is_blacklisted")
+        ]
         assert len(allowed) == 1
         assert allowed[0]["name"] == "peer-good-1"
         blocked = [i for i in interfaces if i.get("is_blacklisted")]

@@ -315,14 +315,14 @@ describe("NotificationBell false-trigger suppression", () => {
                 is_incoming: true,
                 is_reaction: true,
                 content: "",
-                fields: { app_extensions: { reaction_to: "abc", emoji: "fire" } },
+                fields: { reaction: { reaction_to: "abc", reaction_content: "fire" } },
             },
         });
         await new Promise((r) => setTimeout(r, 30));
         expectNoNotificationsReload(before);
     });
 
-    it("does NOT reload on inbound reaction signaled only via app_extensions", async () => {
+    it("does NOT reload on inbound reaction signaled only via fields.reaction", async () => {
         const wrapper = mountBell();
         await wrapper.vm.$nextTick();
         const before = global.api.get.mock.calls.filter((c) => c[0] === "/api/v1/notifications").length;
@@ -331,7 +331,7 @@ describe("NotificationBell false-trigger suppression", () => {
             lxmf_message: {
                 is_incoming: true,
                 content: "",
-                fields: { app_extensions: { reaction_to: "abc" } },
+                fields: { reaction: { reaction_to: "abc", reaction_content: "\u{1F44D}" } },
             },
         });
         await new Promise((r) => setTimeout(r, 30));
@@ -492,7 +492,7 @@ describe("NotificationBell false-trigger suppression", () => {
             fn({
                 is_incoming: true,
                 content: "",
-                fields: { app_extensions: { reaction_to: "x" } },
+                fields: { reaction: { reaction_to: "x", reaction_content: "\u{1F44D}" } },
             })
         ).toBe(false);
         expect(fn({ is_incoming: true, content: "", fields: { telemetry: { x: 1 } } })).toBe(false);
@@ -516,7 +516,7 @@ describe("NotificationBell false-trigger suppression", () => {
                 lxmf_message: {
                     is_incoming: true,
                     content: "",
-                    fields: { app_extensions: { reaction_to: `m${i}` } },
+                    fields: { reaction: { reaction_to: `m${i}`, reaction_content: "\u{1F44D}" } },
                 },
             });
         }
