@@ -1,6 +1,7 @@
 import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import TranslatorPage from "@/components/translator/TranslatorPage.vue";
+import { mountToolsPageGlobals } from "./testI18n.js";
 
 describe("TranslatorPage.vue", () => {
     let axiosMock;
@@ -50,28 +51,10 @@ describe("TranslatorPage.vue", () => {
     });
 
     const mountTranslatorPage = () => {
-        const tMap = {
-            "translator.api_server": "LibreTranslate API Server",
-            "translator.api_server_description":
-                "Enter the base URL of your LibreTranslate server (e.g., http://localhost:5000)",
-            "translator.api_key_optional": "LibreTranslate API key (optional)",
-            "translator.api_key_placeholder": "Leave empty unless your provider requires one",
-            "translator.api_key_description": "If required, LibreTranslate expects api_key in the JSON translate body.",
-            "translator.failed_load_languages": "Failed",
-        };
+        const globals = mountToolsPageGlobals();
+        globals.stubs.RouterLink = true;
         return mount(TranslatorPage, {
-            global: {
-                mocks: {
-                    $t: (key) => (key in tMap ? tMap[key] : key),
-                },
-                stubs: {
-                    MaterialDesignIcon: {
-                        template: '<div class="mdi-stub" :data-icon-name="iconName"></div>',
-                        props: ["iconName"],
-                    },
-                    RouterLink: true,
-                },
-            },
+            global: globals,
         });
     };
 

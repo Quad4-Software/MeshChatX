@@ -331,14 +331,23 @@ class ReticulumMeshChat:
             reticulum_config_dir,
         )
         self.storage_dir = storage_dir or os.path.join("storage")
-        from meshchatx.src.backend.storage_lock import StorageLock, StorageLockError
+        skip_storage_lock = os.environ.get(
+            "MESHCHAT_SKIP_STORAGE_LOCK", ""
+        ).lower() in (
+            "1",
+            "true",
+            "yes",
+        )
+        self._storage_lock = None
+        if not skip_storage_lock:
+            from meshchatx.src.backend.storage_lock import StorageLock, StorageLockError
 
-        self._storage_lock = StorageLock(self.storage_dir)
-        try:
-            self._storage_lock.acquire()
-        except StorageLockError as exc:
-            print(str(exc))
-            raise SystemExit(1) from exc
+            self._storage_lock = StorageLock(self.storage_dir)
+            try:
+                self._storage_lock.acquire()
+            except StorageLockError as exc:
+                print(str(exc))
+                raise SystemExit(1) from exc
         self.ssl_cert_path = ssl_cert_path
         self.ssl_key_path = ssl_key_path
         self.identity_file_path = identity_file_path
@@ -7123,10 +7132,15 @@ class ReticulumMeshChat:
                         to_jsonable(interfaces),
                     )
                 )
+                filtered_interfaces = ReticulumMeshChat.filter_discovered_interfaces(
+                    normalized_interfaces,
+                    whitelist_patterns,
+                    blacklist_patterns,
+                )
 
                 return web.json_response(
                     {
-                        "interfaces": normalized_interfaces,
+                        "interfaces": filtered_interfaces,
                         "active": to_jsonable(active),
                     },
                 )

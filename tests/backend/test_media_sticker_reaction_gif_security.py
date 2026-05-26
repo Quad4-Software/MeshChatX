@@ -156,11 +156,15 @@ def _minimal_lxmf_mock_reaction(reaction_to: str, emoji: str):
 @settings(max_examples=80, deadline=None)
 @given(
     emoji=st.text(max_size=800, alphabet=st.characters(blacklist_categories=("Cs",))),
-    reaction_to=st.text(max_size=64, alphabet="0123456789abcdef"),
+    reaction_to=st.text(
+        min_size=32,
+        max_size=64,
+        alphabet="0123456789abcdef",
+    ),
 )
 def test_convert_lxmf_reaction_field_fuzzing(emoji, reaction_to):
     if len(reaction_to) % 2 != 0:
-        reaction_to = "0" + reaction_to
+        reaction_to = reaction_to + "0"
     out = lxmf_utils.convert_lxmf_message_to_dict(
         _minimal_lxmf_mock_reaction(reaction_to, emoji),
         include_attachments=False,

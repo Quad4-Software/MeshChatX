@@ -1,6 +1,7 @@
 import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import RNStatusPage from "@/components/rnstatus/RNStatusPage.vue";
+import { mountToolsPageGlobals } from "./testI18n.js";
 
 describe("RNStatusPage.vue", () => {
     let axiosMock;
@@ -43,17 +44,7 @@ describe("RNStatusPage.vue", () => {
 
     const mountRNStatusPage = () => {
         return mount(RNStatusPage, {
-            global: {
-                mocks: {
-                    $t: (key) => key,
-                },
-                stubs: {
-                    MaterialDesignIcon: {
-                        template: '<div class="mdi-stub" :data-icon-name="iconName"></div>',
-                        props: ["iconName"],
-                    },
-                },
-            },
+            global: mountToolsPageGlobals(),
         });
     };
 
@@ -61,7 +52,8 @@ describe("RNStatusPage.vue", () => {
         const wrapper = mountRNStatusPage();
         await vi.waitFor(() => expect(wrapper.vm.isLoading).toBe(false));
 
-        expect(wrapper.text()).toContain("RNStatus - Network Status");
+        expect(wrapper.text()).toContain("RNStatus");
+        expect(wrapper.text()).toContain("Network Diagnostics");
         expect(wrapper.text()).toContain("Interface 1");
         expect(wrapper.text()).toContain("Discovered");
         expect(wrapper.text()).toContain("Active Links: 5");
