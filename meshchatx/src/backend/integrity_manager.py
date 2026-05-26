@@ -148,25 +148,18 @@ class IntegrityManager:
                 actual_db_hash = self._hash_file(self.database_path)
 
                 if actual_db_hash != manifest_files.get(db_rel):
-                    # Check internal SQL integrity to see if it's just a dirty shutdown or actual tampering
                     is_db_ok, db_msg = self._check_db_integrity(self.database_path)
                     if not is_db_ok:
                         issues.append(f"Database structural issue: {db_msg}")
                     else:
-                        # Check entropy stability to see if content type shifted significantly
                         actual_entropy = self._calculate_entropy(self.database_path)
                         saved_entropy = manifest_metadata.get(db_rel, {}).get("entropy")
-
                         if (
                             saved_entropy is not None
                             and abs(actual_entropy - saved_entropy) > 1.0
                         ):
                             issues.append(
                                 f"Database structural anomaly (Entropy Δ: {abs(actual_entropy - saved_entropy):.2f})",
-                            )
-                        else:
-                            issues.append(
-                                f"Database binary signature mismatch: {db_rel}",
                             )
 
             # Check other critical files in storage_dir

@@ -331,6 +331,14 @@ class ReticulumMeshChat:
             reticulum_config_dir,
         )
         self.storage_dir = storage_dir or os.path.join("storage")
+        from meshchatx.src.backend.storage_lock import StorageLock, StorageLockError
+
+        self._storage_lock = StorageLock(self.storage_dir)
+        try:
+            self._storage_lock.acquire()
+        except StorageLockError as exc:
+            print(str(exc))
+            raise SystemExit(1) from exc
         self.ssl_cert_path = ssl_cert_path
         self.ssl_key_path = ssl_key_path
         self.identity_file_path = identity_file_path
@@ -693,10 +701,42 @@ class ReticulumMeshChat:
             raise RuntimeError("Database not initialized")
         return self.database.backup_database(self.storage_dir, backup_path)
 
-    def restore_database(self, backup_path):
-        if not self.database:
-            raise RuntimeError("Database not initialized")
-        return self.database.restore_database(backup_path)
+    def prepare_for_database_restore(self) -> str | None:
+        db_path = self.database_path
+        self._teardown_all_contexts_for_reload()
+        from meshchatx.src.backend.database.provider import DatabaseProvider
+
+        if DatabaseProvider._instance is not None:
+            DatabaseProvider._instance.close_all()
+            DatabaseProvider._instance = None
+        return db_path
+
+    @staticmethod
+    def _schedule_process_restart(delay: float = 1.0) -> None:
+        def restart():
+            time.sleep(delay)
+            try:
+                os.execv(sys.executable, [sys.executable] + sys.argv)  # noqa: S606
+            except Exception as e:
+                print(f"Failed to restart: {e}")
+                os._exit(0)
+
+        threading.Thread(target=restart, daemon=True).start()
+
+    def restore_database(self, backup_path, *, relaunch: bool = False):
+        db_path = self.prepare_for_database_restore()
+        if not db_path:
+            raise RuntimeError("Database path is unknown")
+        from meshchatx.src.backend.database import Database
+
+        db = Database(db_path)
+        try:
+            result = db.restore_database(backup_path)
+        finally:
+            db.close_all()
+        if relaunch:
+            self._schedule_process_restart()
+        return result
 
     def reset_password(self):
         """Clear the stored password hash so a new password can be set via the web UI."""
@@ -1910,7 +1950,7 @@ class ReticulumMeshChat:
             print(f"Auto recovery completed: {actions}")
         finally:
             try:
-                self.database.close()
+                self.database.close_all()
             except Exception as e:
                 print(f"Failed to close database during recovery: {e}")
 
@@ -3792,9 +3832,14 @@ class ReticulumMeshChat:
                             status=404,
                         )
 
-                result = self.database.restore_database(path)
+                result = self.restore_database(path, relaunch=True)
                 return web.json_response(
-                    {"status": "success", "result": result, "requires_relaunch": True},
+                    {
+                        "status": "success",
+                        "result": result,
+                        "requires_relaunch": True,
+                        "message": "Database restored. Application will restart.",
+                    },
                 )
             except Exception as e:
                 return web.json_response(
@@ -6443,13 +6488,14 @@ class ReticulumMeshChat:
                         tmp.write(chunk)
                     temp_path = tmp.name
 
-                result = self.database.restore_database(temp_path)
+                result = self.restore_database(temp_path, relaunch=True)
                 os.remove(temp_path)
 
                 return web.json_response(
                     {
-                        "message": "Database restored successfully",
+                        "message": "Database restored successfully. Application will restart.",
                         "database": result,
+                        "requires_relaunch": True,
                     },
                 )
             except Exception as e:
@@ -18249,6 +18295,7 @@ def main():
             print(
                 f"Snapshot restoration complete. Integrity check: {result['integrity_check']}",
             )
+            reticulum_meshchat.setup_identity(identity)
         else:
             print(f"Error: Snapshot not found at {snapshot_path}")
 

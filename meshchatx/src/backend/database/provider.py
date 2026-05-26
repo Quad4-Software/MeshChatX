@@ -12,7 +12,7 @@ if sys.version_info >= (3, 14):
 
 class DatabaseProvider:
     _instance = None
-    _lock = threading.Lock()
+    _lock = threading.RLock()
     _all_locals = weakref.WeakSet()
 
     def __init__(self, db_path=None):
@@ -30,8 +30,7 @@ class DatabaseProvider:
                     raise ValueError(msg)
                 cls._instance = cls(db_path)
             elif db_path is not None and cls._instance.db_path != db_path:
-                # If a different path is provided, close the old one and create new
-                cls._instance.close()
+                cls._instance.close_all()
                 cls._instance = cls(db_path)
             return cls._instance
 

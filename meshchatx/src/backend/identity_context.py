@@ -185,8 +185,6 @@ class IdentityContext:
             self.database,
         )
 
-        # Vacuum and mark stuck messages
-        self.database.provider.vacuum()
         self.database.messages.mark_stuck_messages_as_failed()
 
         if not getattr(self.app, "emergency", False):
@@ -654,7 +652,6 @@ class IdentityContext:
                         print(
                             f"Database health at close for {self.identity_hash}: {', '.join(close_issues)}",
                         )
-                # 1. Checkpoint WAL and close database cleanly to ensure file is stable for hashing
                 self.database._checkpoint_and_close()
             except Exception as e:
                 print(

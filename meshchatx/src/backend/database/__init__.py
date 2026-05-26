@@ -32,6 +32,11 @@ MIN_SIZE_RATIO = 0.2
 
 _log = logging.getLogger("meshchatx.database")
 
+
+class DatabaseRestoreError(RuntimeError):
+    pass
+
+
 _PRAGMA_READ_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*\Z")
 
 _ALLOWED_WAL_CHECKPOINT_MODES = frozenset({"PASSIVE", "FULL", "RESTART", "TRUNCATE"})
@@ -373,13 +378,12 @@ class Database:
         except Exception as e:
             print(f"Failed to checkpoint WAL: {e}")
         try:
-            self.close()
+            self.close_all()
         except Exception as e:
             print(f"Failed to close database: {e}")
 
     def close(self):
-        if hasattr(self, "provider"):
-            self.provider.close()
+        self.close_all()
 
     def close_all(self):
         if hasattr(self, "provider"):
@@ -538,6 +542,14 @@ class Database:
             return True
         return False
 
+    @staticmethod
+    def _looks_like_sqlite(path: str) -> bool:
+        try:
+            with open(path, "rb") as handle:
+                return handle.read(16) == b"SQLite format 3\x00"
+        except OSError:
+            return False
+
     def restore_database(self, backup_path: str):
         if not os.path.exists(backup_path):
             msg = f"Backup not found at {backup_path}"
@@ -546,7 +558,6 @@ class Database:
         paths = self._database_paths()
         self._checkpoint_and_close()
 
-        # clean existing files
         for p in paths.values():
             if os.path.exists(p):
                 os.remove(p)
@@ -557,12 +568,30 @@ class Database:
         else:
             shutil.copy2(backup_path, paths["main"])
 
-        # reopen and retune
-        self.initialize()
+        if not self._looks_like_sqlite(paths["main"]):
+            raise DatabaseRestoreError("Restored file is not a valid SQLite database")
+
+        try:
+            self.initialize()
+        except Exception as exc:
+            raise DatabaseRestoreError(
+                f"Restored files from backup but database failed to open: {exc!s}",
+            ) from exc
         self._tune_sqlite_pragmas()
-        integrity = self.provider.integrity_check()
+        integrity_rows = self.provider.integrity_check()
+        integrity = []
+        for row in integrity_rows or []:
+            if isinstance(row, dict):
+                integrity.append(next(iter(row.values())))
+            else:
+                integrity.append(row[0])
+        if integrity and integrity[0] != "ok":
+            raise DatabaseRestoreError(
+                f"Restored backup failed integrity check: {integrity[0]!s}",
+            )
 
         return {
             "restored_from": backup_path,
-            "integrity_check": integrity,
+            "integrity_check": integrity_rows,
+            "health": self.get_database_health_snapshot(),
         }
