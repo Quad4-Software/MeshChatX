@@ -92,14 +92,18 @@ from meshchatx.src.backend.lxmf_sieve import (
     parse_lxmf_sieve_filters_json,
 )
 from meshchatx.src.backend.lxmf_utils import (
+    FIELD_REACTION,
+    FIELD_REPLY_QUOTE,
+    FIELD_REPLY_TO,
     LXMF_APP_EXTENSIONS_FIELD,
+    build_lxmf_reaction_field,
     compute_lxmf_conversation_unread_from_latest_row,
     convert_db_lxmf_message_to_dict,
     convert_lxmf_message_to_dict,
     convert_lxmf_method_to_string,
     convert_lxmf_state_to_string,
     is_user_facing_lxmf_payload,
-    lxmf_fields_are_columba_reaction,
+    lxmf_fields_are_reaction,
     lxmf_sidebar_preview_for_conversation_latest_row,
 )
 from meshchatx.src.backend.map_manager import MAX_EXPORT_TILES, TRANSPARENT_TILE
@@ -6966,14 +6970,26 @@ class ReticulumMeshChat:
                 )
                 # Annotate each interface with its allowlist status
                 for iface in interfaces:
-                    iface["is_allowed"] = ReticulumMeshChat.matches_discovery_pattern(
-                        ReticulumMeshChat.sanitize_discovery_patterns(whitelist_patterns),
-                        iface,
-                    ) if whitelist_patterns else True
-                    iface["is_blacklisted"] = ReticulumMeshChat.matches_discovery_pattern(
-                        ReticulumMeshChat.sanitize_discovery_patterns(blacklist_patterns),
-                        iface,
-                    ) if blacklist_patterns else False
+                    iface["is_allowed"] = (
+                        ReticulumMeshChat.matches_discovery_pattern(
+                            ReticulumMeshChat.sanitize_discovery_patterns(
+                                whitelist_patterns
+                            ),
+                            iface,
+                        )
+                        if whitelist_patterns
+                        else True
+                    )
+                    iface["is_blacklisted"] = (
+                        ReticulumMeshChat.matches_discovery_pattern(
+                            ReticulumMeshChat.sanitize_discovery_patterns(
+                                blacklist_patterns
+                            ),
+                            iface,
+                        )
+                        if blacklist_patterns
+                        else False
+                    )
                 max_disc = 500
                 if self.current_context and self.current_context.config:
                     mv = self.current_context.config.discovered_interfaces_max_return.get()
@@ -9288,6 +9304,21 @@ class ReticulumMeshChat:
                 reticulum,
                 destination_hash_bytes,
             )
+
+            # if path is already available, resend failed messages for this destination
+            if RNS.Transport.has_path(destination_hash_bytes):
+                for _ctx in list(self.contexts.values()):
+                    if (
+                        _ctx.running
+                        and _ctx.config.auto_resend_failed_messages_when_announce_received.get()
+                    ):
+                        AsyncUtils.run_async(
+                            self.resend_failed_messages_for_destination(
+                                destination_hash,
+                                context=_ctx,
+                            ),
+                        )
+
             return web.json_response(
                 {
                     "message": "ok",
@@ -9462,6 +9493,19 @@ class ReticulumMeshChat:
             rtt = receipt.get_rtt()
             rtt_milliseconds = round(rtt * 1000, 3)
             rtt_duration_string = f"{rtt_milliseconds} ms"
+
+            # resend any previously failed messages to this destination now that path is available
+            for _ctx in list(self.contexts.values()):
+                if (
+                    _ctx.running
+                    and _ctx.config.auto_resend_failed_messages_when_announce_received.get()
+                ):
+                    AsyncUtils.run_async(
+                        self.resend_failed_messages_for_destination(
+                            destination_hash_str,
+                            context=_ctx,
+                        ),
+                    )
 
             return web.json_response(
                 {
@@ -14813,7 +14857,7 @@ class ReticulumMeshChat:
                         )
                         return
 
-                # Columba-style contact sharing URI:
+                # LXMA contact sharing URI:
                 # lxma://<destination_hash_hex>:<public_key_hex>
                 if uri.lower().startswith("lxma://"):
                     lxma_payload = uri[7:]
@@ -15674,14 +15718,21 @@ class ReticulumMeshChat:
         return encoded
 
     def is_destination_blocked(self, destination_hash: str, context=None) -> bool:
-        """Return whether ``destination_hash`` is in the block list."""
+        """Return whether ``destination_hash`` is in the block list.
+
+        Accepts either a destination hash or an identity hash. When an identity
+        hash is passed, any blocked destination belonging to that identity will
+        match.
+        """
         ctx = context or self.current_context
         if not ctx or not ctx.database:
             return False
         try:
             if ctx.database.misc.is_destination_blocked(destination_hash):
                 return True
-            # Check if any destination for this identity is blocked
+
+            # The provided hash might be a destination hash or an identity hash.
+            # Try looking it up as a destination hash first.
             announce = ctx.database.announces.get_announce_by_hash(destination_hash)
             if announce and announce.get("identity_hash"):
                 identity_hash = announce["identity_hash"]
@@ -15693,6 +15744,17 @@ class ReticulumMeshChat:
                         other["destination_hash"]
                     ):
                         return True
+
+            # If no announce was found by destination_hash, the provided hash
+            # may itself be an identity hash. Look up all announces for that
+            # identity and check whether any of their destinations are blocked.
+            identity_announces = ctx.database.announces.get_announces_by_identity_hash(
+                destination_hash
+            )
+            for ann in identity_announces:
+                if ctx.database.misc.is_destination_blocked(ann["destination_hash"]):
+                    return True
+
             return False
         except Exception:
             return False
@@ -16187,7 +16249,7 @@ class ReticulumMeshChat:
             elif message_title is None:
                 message_title = ""
 
-            is_reaction_delivery = lxmf_fields_are_columba_reaction(lxmf_fields)
+            is_reaction_delivery = lxmf_fields_are_reaction(lxmf_fields)
 
             # check spam keywords
             if not is_reaction_delivery and self.check_spam_keywords(
@@ -16759,6 +16821,8 @@ class ReticulumMeshChat:
         sender_identity_hash: str | None = None,
         reply_to_hash: str | None = None,
         reply_quoted_content: str | None = None,
+        reaction_to_hash: str | None = None,
+        reaction_emoji: str | None = None,
         app_extensions: dict | None = None,
         no_display: bool = False,
         context=None,
@@ -16772,10 +16836,11 @@ class ReticulumMeshChat:
         else:
             content_str = content or ""
         quoted_str = reply_quoted_content or ""
+        has_standard_reaction = (
+            reaction_to_hash is not None and reaction_emoji is not None
+        )
         is_reaction_only = bool(
-            app_extensions
-            and isinstance(app_extensions, dict)
-            and ("reaction_to" in app_extensions)
+            has_standard_reaction
             and not (content_str and content_str.strip())
             and image_field is None
             and audio_field is None
@@ -16903,13 +16968,19 @@ class ReticulumMeshChat:
         if commands is not None:
             lxmf_message.fields[LXMF.FIELD_COMMANDS] = commands
 
-        # add reply_to field
         if reply_to_hash is not None:
-            lxmf_message.fields[0x30] = bytes.fromhex(reply_to_hash)
+            lxmf_message.fields[FIELD_REPLY_TO] = bytes.fromhex(reply_to_hash)
         if reply_quoted_content is not None and reply_quoted_content:
-            lxmf_message.fields[0x31] = reply_quoted_content.encode("utf-8")
+            lxmf_message.fields[FIELD_REPLY_QUOTE] = reply_quoted_content.encode(
+                "utf-8"
+            )
 
-        if app_extensions is not None:
+        if has_standard_reaction:
+            lxmf_message.fields[FIELD_REACTION] = build_lxmf_reaction_field(
+                reaction_to_hash,
+                reaction_emoji or "",
+            )
+        elif app_extensions is not None:
             lxmf_message.fields[LXMF_APP_EXTENSIONS_FIELD] = app_extensions
 
         # add icon appearance if configured and not already sent to this destination
@@ -17012,17 +17083,12 @@ class ReticulumMeshChat:
         ctx = context or self.current_context
         if not ctx:
             raise RuntimeError("No identity context available for sending reaction")
-        sender_hex = ctx.identity.hash.hex()
-        app_extensions = {
-            "reaction_to": target_message_hash,
-            "emoji": emoji,
-            "sender": sender_hex,
-        }
         return await self.send_message(
             destination_hash=destination_hash,
             content="",
             delivery_method="opportunistic",
-            app_extensions=app_extensions,
+            reaction_to_hash=target_message_hash,
+            reaction_emoji=emoji,
             context=context,
         )
 
