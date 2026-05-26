@@ -7,8 +7,15 @@ import LXMF
 
 from meshchatx.src.backend.telemetry_utils import Telemeter
 
-# Columba-compatible app extensions (emoji reactions, reply metadata, etc.)
+# MeshChatX app extensions (field 16); not used for LXMF-standard reactions.
 LXMF_APP_EXTENSIONS_FIELD = 16
+
+# LXMF reply / reaction field standards (see LXMF.py FIELD_REPLY_* / FIELD_REACTION)
+FIELD_REPLY_TO = getattr(LXMF, "FIELD_REPLY_TO", 0x30)
+FIELD_REPLY_QUOTE = getattr(LXMF, "FIELD_REPLY_QUOTE", 0x31)
+FIELD_REACTION = getattr(LXMF, "FIELD_REACTION", 0x40)
+REACTION_TO = getattr(LXMF, "REACTION_TO", 0x00)
+REACTION_CONTENT = getattr(LXMF, "REACTION_CONTENT", 0x01)
 
 # Raw LXMF integer field identifiers used when classifying "user-facing" payloads
 LXMF_FILE_ATTACHMENTS_FIELD = LXMF.FIELD_FILE_ATTACHMENTS
@@ -16,18 +23,118 @@ LXMF_IMAGE_FIELD = LXMF.FIELD_IMAGE
 LXMF_AUDIO_FIELD = LXMF.FIELD_AUDIO
 
 
-def lxmf_fields_are_columba_reaction(lxmf_fields: dict) -> bool:
+def _lxmf_dict_key(d: dict, *keys):
+    for key in keys:
+        if key in d:
+            return d[key]
+    return None
+
+
+def _bytes_to_message_hash_hex(value) -> str | None:
+    if isinstance(value, bytes):
+        return value.hex()
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    return None
+
+
+def _reaction_content_to_emoji(value) -> str:
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="replace").strip()
+    if value is None:
+        return ""
+    return str(value).strip()
+
+
+def parse_lxmf_reaction_field_dict(
+    reaction_dict: dict, source_hash_hex: str = ""
+) -> dict | None:
+    """Parse FIELD_REACTION (0x40) dict into normalized reaction metadata."""
+    if not isinstance(reaction_dict, dict):
+        return None
+    target_raw = _lxmf_dict_key(
+        reaction_dict,
+        REACTION_TO,
+        0,
+        "0x00",
+        "reaction_to",
+    )
+    content_raw = _lxmf_dict_key(
+        reaction_dict,
+        REACTION_CONTENT,
+        1,
+        "0x01",
+        "reaction_content",
+        "emoji",
+    )
+    reaction_to = _bytes_to_message_hash_hex(target_raw)
+    if not reaction_to:
+        return None
+    return {
+        "reaction_to": reaction_to,
+        "reaction_emoji": _reaction_content_to_emoji(content_raw),
+        "reaction_sender": source_hash_hex or "",
+    }
+
+
+def extract_reaction_from_lxmf_fields(
+    message_fields: dict,
+    *,
+    source_hash_hex: str = "",
+    parsed_fields: dict | None = None,
+) -> dict | None:
+    """Read LXMF FIELD_REACTION (0x40) from raw or parsed message fields."""
+    if isinstance(message_fields, dict):
+        raw_reaction = _lxmf_dict_key(
+            message_fields,
+            FIELD_REACTION,
+            "reaction",
+            0x40,
+        )
+        if isinstance(raw_reaction, dict):
+            parsed = parse_lxmf_reaction_field_dict(raw_reaction, source_hash_hex)
+            if parsed:
+                return parsed
+
+    if isinstance(parsed_fields, dict):
+        reaction = parsed_fields.get("reaction")
+        if isinstance(reaction, dict):
+            if reaction.get("reaction_to"):
+                return {
+                    "reaction_to": reaction.get("reaction_to") or "",
+                    "reaction_emoji": _reaction_content_to_emoji(
+                        reaction.get("reaction_content"),
+                    ),
+                    "reaction_sender": reaction.get("sender") or source_hash_hex,
+                }
+            parsed = parse_lxmf_reaction_field_dict(reaction, source_hash_hex)
+            if parsed:
+                return parsed
+
+    return None
+
+
+def build_lxmf_reaction_field(target_message_hash: str, emoji: str) -> dict:
+    return {
+        REACTION_TO: bytes.fromhex(target_message_hash),
+        REACTION_CONTENT: (emoji or "").encode("utf-8"),
+    }
+
+
+def lxmf_fields_are_reaction(lxmf_fields: dict) -> bool:
     if not isinstance(lxmf_fields, dict):
         return False
-    val = lxmf_fields.get(LXMF_APP_EXTENSIONS_FIELD)
-    return isinstance(val, dict) and "reaction_to" in val
+    raw_reaction = _lxmf_dict_key(lxmf_fields, FIELD_REACTION, "reaction", 0x40)
+    return isinstance(raw_reaction, dict) and bool(
+        parse_lxmf_reaction_field_dict(raw_reaction),
+    )
 
 
 def is_user_facing_lxmf_payload(fields, content, title) -> bool:
     """Determine whether an LXMF message represents a user-visible item.
 
     Messages that should NOT raise the notification bell:
-      - reactions (Columba app_extensions.reaction_to with no other payload)
+      - reactions (FIELD_REACTION with no other payload)
       - bare telemetry updates with no coordinates, no stream, and no
         Sideband location-request command (FIELD_TELEMETRY body-only noise)
       - icon-only / appearance-only updates (no body, no attachment)
@@ -51,12 +158,14 @@ def is_user_facing_lxmf_payload(fields, content, title) -> bool:
     if not isinstance(fields, dict):
         fields = {}
 
-    app_ext = fields.get("app_extensions")
-    if not isinstance(app_ext, dict):
-        raw_app_ext = fields.get(LXMF_APP_EXTENSIONS_FIELD)
-        if isinstance(raw_app_ext, dict):
-            app_ext = raw_app_ext
-    if isinstance(app_ext, dict) and "reaction_to" in app_ext:
+    if isinstance(fields.get("reaction"), dict) and fields["reaction"].get(
+        "reaction_to"
+    ):
+        return False
+    raw_reaction = (
+        fields.get(FIELD_REACTION) or fields.get("reaction") or fields.get(0x40)
+    )
+    if isinstance(raw_reaction, dict) and parse_lxmf_reaction_field_dict(raw_reaction):
         return False
 
     def _has_text(value):
@@ -119,14 +228,15 @@ def is_user_facing_lxmf_payload(fields, content, title) -> bool:
 def _reaction_emoji_from_parsed_lxmf_fields(fields: dict) -> str | None:
     if not isinstance(fields, dict):
         return None
-    app = fields.get("app_extensions")
-    if isinstance(app, dict) and "reaction_to" in app:
-        emoji = (app.get("emoji") or "").strip()
+    reaction = fields.get("reaction")
+    if isinstance(reaction, dict) and reaction.get("reaction_to"):
+        emoji = _reaction_content_to_emoji(reaction.get("reaction_content"))
         return emoji or None
-    raw = fields.get(LXMF_APP_EXTENSIONS_FIELD)
-    if isinstance(raw, dict) and "reaction_to" in raw:
-        emoji = (raw.get("emoji") or "").strip()
-        return emoji or None
+    raw_reaction = fields.get(FIELD_REACTION) or fields.get(0x40)
+    if isinstance(raw_reaction, dict):
+        parsed = parse_lxmf_reaction_field_dict(raw_reaction)
+        if parsed:
+            return parsed.get("reaction_emoji") or None
     return None
 
 
@@ -339,23 +449,32 @@ def convert_lxmf_message_to_dict(
                 processed_commands.append(new_cmd)
             fields["commands"] = processed_commands
 
-        # handle reply_to field
-        if field_type == 0x30:
+        if field_type == FIELD_REPLY_TO:
             fields["reply_to"] = value.hex() if isinstance(value, bytes) else value
-        if field_type == 0x31:
+        if field_type == FIELD_REPLY_QUOTE:
             fields["reply_quoted_content"] = (
                 value.decode("utf-8", errors="replace")
                 if isinstance(value, bytes)
                 else value
             )
 
+        if field_type == FIELD_REACTION and isinstance(value, dict):
+            parsed_reaction = parse_lxmf_reaction_field_dict(
+                value,
+                lxmf_message.source_hash.hex(),
+            )
+            if parsed_reaction:
+                fields["reaction"] = {
+                    "reaction_to": parsed_reaction["reaction_to"],
+                    "reaction_content": parsed_reaction["reaction_emoji"],
+                }
+                is_reaction = True
+                reaction_to = parsed_reaction["reaction_to"]
+                reaction_emoji = parsed_reaction["reaction_emoji"]
+                reaction_sender = parsed_reaction["reaction_sender"]
+
         if field_type == LXMF_APP_EXTENSIONS_FIELD and isinstance(value, dict):
             fields["app_extensions"] = dict(value)
-            if "reaction_to" in value:
-                is_reaction = True
-                reaction_to = value.get("reaction_to") or ""
-                reaction_emoji = value.get("emoji") or ""
-                reaction_sender = value.get("sender") or ""
 
     # convert 0.0-1.0 progress to 0.00-100 percentage
     progress_percentage = round(lxmf_message.progress * 100, 2)
@@ -375,11 +494,24 @@ def convert_lxmf_message_to_dict(
     if quality is None and reticulum:
         quality = reticulum.get_packet_q(lxmf_message.hash)
 
-    # get reply_to_hash from fields if present
+    if not is_reaction:
+        parsed_reaction = extract_reaction_from_lxmf_fields(
+            message_fields,
+            source_hash_hex=lxmf_message.source_hash.hex(),
+            parsed_fields=fields,
+        )
+        if parsed_reaction:
+            is_reaction = True
+            reaction_to = parsed_reaction["reaction_to"]
+            reaction_emoji = parsed_reaction["reaction_emoji"]
+            reaction_sender = parsed_reaction["reaction_sender"]
+
     reply_to_hash = None
-    if 0x30 in message_fields:
-        val = message_fields[0x30]
+    if FIELD_REPLY_TO in message_fields:
+        val = message_fields[FIELD_REPLY_TO]
         reply_to_hash = val.hex() if isinstance(val, bytes) else val
+    elif fields.get("reply_to"):
+        reply_to_hash = fields.get("reply_to")
 
     content = (
         lxmf_message.content.decode("utf-8", errors="replace")
@@ -483,12 +615,17 @@ def convert_db_lxmf_message_to_dict(
     reaction_to = None
     reaction_emoji = None
     reaction_sender = None
-    app = fields.get("app_extensions")
-    if isinstance(app, dict) and "reaction_to" in app:
+    source_hash = db_lxmf_message.get("source_hash") or ""
+    parsed_reaction = extract_reaction_from_lxmf_fields(
+        fields,
+        source_hash_hex=source_hash,
+        parsed_fields=fields,
+    )
+    if parsed_reaction:
         is_reaction = True
-        reaction_to = app.get("reaction_to") or ""
-        reaction_emoji = app.get("emoji") or ""
-        reaction_sender = app.get("sender") or ""
+        reaction_to = parsed_reaction["reaction_to"]
+        reaction_emoji = parsed_reaction["reaction_emoji"]
+        reaction_sender = parsed_reaction["reaction_sender"] or source_hash
 
     # normalize commands if present
     if "commands" in fields:
