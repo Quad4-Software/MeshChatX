@@ -25,6 +25,8 @@ overrides:
     "@electron/asar>minimatch": "3.1.3"
     serialize-javascript: ">=7.0.3"
     flatted: ">=3.4.2"
+    ansi-regex: ">=5.0.1"
+    y18n: ">=4.0.1"
 
 patchedDependencies:
     ol@10.9.0: patches/ol@10.9.0.patch
