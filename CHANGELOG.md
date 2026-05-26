@@ -2,11 +2,42 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.6.3] - 2026-05-16
+## [4.6.3] - 2026-05-30
+
+### Fixed
+
+- **Messages**: Conversation history preserves original message timestamps and sorts correctly when the API returns rows out of order.
+- **Propagation**: The local propagation node is started on boot when **`lxmf_local_propagation_node_enabled`** is set in config (previously the setting could be on while the node never came up until toggled in the UI).
+- **Interfaces / discovery**: Turning discovery off also disables **autoconnect** for that interface. Saving discovery settings shows a **restarting RNS** toast with a proper spinner. The interfaces list shows **all** discovered peers with **allowlist** status, and the allowlist is applied when configuration is saved.
+- **Chat UI**: Outbound bubbles always show timestamps; the **three-dot** menu stays visible on orange and red outbound themes; timestamp and status icons remain readable on solid-colored outbound bubbles. Reply-quote previews wrap instead of truncating with `line-clamp`.
+- **Relative time**: Sidebar and list **time ago** strings use finer combined units (e.g. hours and minutes) instead of coarse single-unit rounding.
+- **macOS**: DMG builds include the **microphone** audio-input entitlement so calls can use the mic without extra manual signing steps.
+- **Voicemail**: Auto-answer no longer runs for callers whose identity or destination is **blocked**.
+- **Banishment**: **`is_destination_blocked`** treats an **identity hash** like a destination hash so voicemail, delivery, and other checks stay consistent with identity-level blocks.
+- **CI**: **setup-node** runs before **corepack** on Ubuntu 24.04 so **pnpm** installs reliably; Micron WASM fetch and Electron coverage work with **offline** build flags.
+- **Docker**: **`pnpm-workspace.yaml`** is included in image build contexts.
+
+### Added
+
+- **LXMF reactions and replies (standard fields)**: Outbound reactions use **`FIELD_REACTION` (0x40)** with **`REACTION_TO`** and **`REACTION_CONTENT`**. Replies use **`FIELD_REPLY_TO` (0x30)** and **`FIELD_REPLY_QUOTE` (0x31)**. Parsing, delivery filtering, notification bell logic, and UI merge paths use the LXMF 0.9.8 field layout (legacy field-16 reaction payloads are no longer emitted or interpreted as reactions).
+- **Micron editor / Mesh Server**: **Publish to Mesh Server** defaults new pages to **`index.mu`**; if **`index.mu`** already exists and the tab still has a default name (**New Tab**), the editor prompts for another filename. **Publish all tabs** uses the same rules per tab.
+- **LXMF delivery**: When **`auto_resend_failed_messages_when_announce_received`** is enabled, failed outbound messages for a peer are resent after a successful **ping** or when an **announce** arrives and a path is already available.
+- **Memory diagnostics**: Optional **`--memory-diag`** mode with **`/api/v1/diagnostics/memory`** endpoints (snapshots, heap breakdown by type/category, GC, referrers). SQLite **prepared-statement cache** is capped to reduce long-lived backend memory growth.
+- **Frontend heap monitor**: **`HeapMonitor`** logs JS heap usage in development builds (`window.heapSnapshot` when enabled).
+- **Offline / air-gapped builds**: **`scripts/create-offline-bundle.sh`** and **`scripts/install-offline.sh`**, plus **`pnpm run bundle:offline`**, **`build:offline`**, and **`:offline`** Linux dist targets that set **`MESHCHATX_OFFLINE_BUILD=1`**.
+- **Map**: Export panel and metadata handling improvements for exchange exports.
+- **Interfaces**: Reworked interfaces page layout and discovery UX; API lists each interface’s **allowlist** membership.
+- **Telephony**: **Minimize** control on active calls; call-related settings persist reliably across sessions (tests added).
+- **i18n**: New strings for map, interfaces, Micron editor publish prompts, call minimize, and failed-message status text across supported locales.
 
 ### Changed
 
-- **Dependencies**: **LXMF** updated to **0.9.8**.
+- **Dependencies**: **LXMF** updated to **0.9.8**; **pnpm** workspace tooling updated to **v11**.
+- **Project URLs**: Default homepage and documentation links moved from **git.quad4.io** to **github.com/Quad4-Software/MeshChatX** and official mirrors.
+- **Frontend**: General styling refresh; **Identities** sidebar icon updated.
+- **Android**: Build metadata and wheel-fetch scripts updated (retries, local wheel paths).
+- **Build**: Legacy Taskfile/build paths removed; **README** and packaging version stamps aligned with **4.6.3**.
+- **Tests**: HTTP API route contract, interface discovery, call page, Micron editor publish, LXMF reaction field **0x40**, and notification user-facing filters updated for the above behavior.
 
 ## [4.6.2] - 2026-05-10
 
