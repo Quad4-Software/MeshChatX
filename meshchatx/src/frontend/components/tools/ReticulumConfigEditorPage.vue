@@ -2,36 +2,13 @@
 
 <template>
     <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
-        <div
-            class="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2 border-b border-gray-200 dark:border-zinc-800 bg-slate-50/95 dark:bg-zinc-950/95 backdrop-blur-xs shrink-0 min-w-0"
+        <ToolsPageHeader
+            icon="file-cog"
+            :title="$t('tools.reticulum_config_editor.title')"
+            :description="$t('tools.reticulum_config_editor.description')"
+            accent="blue"
         >
-            <div class="flex items-center gap-2 sm:gap-3 min-w-0">
-                <div class="bg-blue-100 dark:bg-blue-900/30 p-1.5 rounded-xl shrink-0">
-                    <MaterialDesignIcon icon-name="file-cog" class="size-5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div class="flex flex-col min-w-0">
-                    <h1
-                        class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider truncate leading-tight"
-                    >
-                        {{ $t("tools.reticulum_config_editor.title") }}
-                    </h1>
-                    <span
-                        v-if="configPath"
-                        class="text-[10px] text-gray-500 dark:text-gray-400 truncate leading-tight"
-                        :title="configPath"
-                    >
-                        {{ configPath }}
-                    </span>
-                </div>
-            </div>
-            <div class="flex items-center gap-2 flex-wrap">
-                <RouterLink
-                    to="/tools"
-                    class="inline-flex items-center gap-2 text-sm text-blue-600 dark:text-blue-300 hover:underline"
-                >
-                    <MaterialDesignIcon icon-name="arrow-left" class="size-4" />
-                    {{ $t("tools.back_to_tools") }}
-                </RouterLink>
+            <template #actions>
                 <button type="button" class="secondary-chip py-1! px-3!" :disabled="loading" @click="loadConfig">
                     <MaterialDesignIcon icon-name="refresh" class="w-3.5 h-3.5" />
                     <span class="hidden sm:inline">{{ $t("tools.reticulum_config_editor.reload") }}</span>
@@ -65,13 +42,20 @@
                         saving ? $t("tools.reticulum_config_editor.saving") : $t("tools.reticulum_config_editor.save")
                     }}</span>
                 </button>
-            </div>
-        </div>
+            </template>
+        </ToolsPageHeader>
 
         <div
             class="flex-1 overflow-y-auto overflow-x-hidden w-full px-3 sm:px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
         >
             <div class="space-y-4 w-full min-w-0 max-w-6xl mx-auto">
+                <p
+                    v-if="configPath"
+                    class="text-xs text-gray-500 dark:text-gray-400 font-mono truncate"
+                    :title="configPath"
+                >
+                    {{ configPath }}
+                </p>
                 <div
                     v-if="showRestartReminder"
                     class="bg-amber-600 text-white border border-amber-500/30 p-4 sm:rounded-xl flex flex-wrap gap-3 items-center"
@@ -135,11 +119,13 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
 import DialogUtils from "../../js/DialogUtils";
 import GlobalState from "../../js/GlobalState";
+import ToolsPageHeader from "./ToolsPageHeader.vue";
 
 export default {
     name: "ReticulumConfigEditorPage",
     components: {
         MaterialDesignIcon,
+        ToolsPageHeader,
     },
     beforeRouteLeave(to, from, next) {
         if (!this.isDirty) {

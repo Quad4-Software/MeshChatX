@@ -2039,7 +2039,13 @@
             "guide_tab": "游牧网指南",
             "parser_by": "使用微量解析器",
             "wasm_active": "WASM引擎已激活（快速解析）",
-            "wasm_inactive": "JS引擎已激活（慢速解析，单击切换WASM）"
+            "wasm_inactive": "JS引擎已激活（慢速解析，单击切换WASM）",
+            "publish_prompt_name": "“{server}”上已存在 index.mu。请输入页面名称（不含 .mu）：",
+            "publish_published": "已将“{page}”发布到 {server}",
+            "publish_failed": "发布页面失败",
+            "publish_all_prompt_server": "输入要发布所有标签页的服务器名称：\n\n可用：{servers}",
+            "publish_server_not_found": "未找到服务器：{server}",
+            "publish_all_done": "已将 {published}/{total} 个标签页发布到 {server}"
         },
         "reticulum_config_editor": {
             "title": "Reticulum 配置编辑器",

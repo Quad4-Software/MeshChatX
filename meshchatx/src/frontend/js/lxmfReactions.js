@@ -1,24 +1,18 @@
 /**
- * Columba-compatible LXMF field-16 reactions: merge reaction rows onto parent messages.
+ * LXMF FIELD_REACTION (0x40): merge reaction rows onto parent messages.
  */
 
-export const COLUMBA_REACTION_EMOJIS = [
-    "\u{1F44D}",
-    "\u2764\uFE0F",
-    "\u{1F602}",
-    "\u{1F62E}",
-    "\u{1F622}",
-    "\u{1F621}",
-];
+export const LXMF_REACTION_EMOJIS = ["\u{1F44D}", "\u2764\uFE0F", "\u{1F602}", "\u{1F62E}", "\u{1F622}", "\u{1F621}"];
 
-/** Emoji from LXMF fields (Columba app_extensions), for conversation preview and UI. */
+/** Emoji from LXMF reaction field, for conversation preview and UI. */
 export function reactionEmojiFromLxmfMessageFields(fields) {
     if (!fields || typeof fields !== "object") {
         return "";
     }
-    const app = fields.app_extensions;
-    if (app && typeof app === "object" && app.reaction_to) {
-        return typeof app.emoji === "string" ? app.emoji : "";
+    const reaction = fields.reaction;
+    if (reaction && typeof reaction === "object" && reaction.reaction_to) {
+        const content = reaction.reaction_content;
+        return typeof content === "string" ? content : "";
     }
     return "";
 }

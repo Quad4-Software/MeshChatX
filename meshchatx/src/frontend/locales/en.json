@@ -981,6 +981,8 @@
         "tile_connectivity_retry": "Retry tiles",
         "tile_connectivity_use_offline": "Use offline mode",
         "tile_connectivity_dismiss": "Dismiss",
+        "tile_failover_trying": "Map tiles failed; trying {provider}…",
+        "tile_failover_offline": "Online tiles unavailable; switching to offline mode",
         "search_no_results": "No results found",
         "custom_tile_server_unavailable": "Custom tile server is not accessible in offline mode",
         "custom_nominatim_unavailable": "Custom Nominatim server is not accessible in offline mode",
@@ -1296,6 +1298,8 @@
         "failed_toggle_pin": "Could not update pin",
         "opportunistic_deferred_label": "Waiting",
         "opportunistic_deferred_tooltip": "Message will send as soon as the user comes online or announces.",
+        "failed_waiting_announce": "Failed, waiting for announce",
+        "failed_waiting_announce_tooltip": "Delivery failed. Will resend automatically when the contact is reachable.",
         "invalid_destination_hash": "Invalid destination hash",
         "invalid_destination_hash_format": "Invalid destination hash format",
         "ping_failed": "Ping failed. Try again later",
@@ -2039,7 +2043,13 @@
             "guide_tab": "NomadNet Guide",
             "parser_by": "Using Micron Parser by",
             "wasm_active": "WASM engine active (fast parser)",
-            "wasm_inactive": "JS engine active (slow parser, click for WASM)"
+            "wasm_inactive": "JS engine active (slow parser, click for WASM)",
+            "publish_prompt_name": "index.mu already exists on \"{server}\". Enter a page name (without .mu):",
+            "publish_published": "Published \"{page}\" to {server}",
+            "publish_failed": "Failed to publish page",
+            "publish_all_prompt_server": "Enter server name to publish all tabs to:\n\nAvailable: {servers}",
+            "publish_server_not_found": "Server not found: {server}",
+            "publish_all_done": "Published {published}/{total} tabs to {server}"
         },
         "reticulum_config_editor": {
             "title": "Reticulum Config Editor",

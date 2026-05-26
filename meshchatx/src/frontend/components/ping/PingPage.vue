@@ -3,26 +3,27 @@
 <template>
     <!-- eslint-disable vue/no-v-html -->
     <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+        <ToolsPageHeader
+            icon="radar"
+            :title="$t('ping.title')"
+            :description="$t('tools.ping.description')"
+            :eyebrow="$t('app.tools')"
+            accent="blue"
+        />
         <div
             class="flex-1 overflow-y-auto w-full px-4 md:px-5 lg:px-8 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
         >
             <div class="space-y-4 w-full max-w-4xl mx-auto">
                 <div class="glass-card space-y-5">
-                    <div class="space-y-2">
-                        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                            {{ $t("app.tools") }}
-                        </div>
-                        <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $t("ping.title") }}</div>
-                        <div class="text-sm text-gray-600 dark:text-gray-300">
-                            <!-- eslint-disable-next-line vue/no-v-html -->
-                            <span
-                                v-html="
-                                    $t('ping.description', {
-                                        code: '<code class=\'font-mono text-xs\'>lxmf.delivery</code>',
-                                    })
-                                "
-                            ></span>
-                        </div>
+                    <div class="text-sm text-gray-600 dark:text-gray-300">
+                        <!-- eslint-disable-next-line vue/no-v-html -->
+                        <span
+                            v-html="
+                                $t('ping.description', {
+                                    code: '<code class=\'font-mono text-xs\'>lxmf.delivery</code>',
+                                })
+                            "
+                        ></span>
                     </div>
 
                     <div class="grid md:grid-cols-2 gap-4">
@@ -152,11 +153,13 @@
 <script>
 import DialogUtils from "../../js/DialogUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 
 export default {
     name: "PingPage",
     components: {
         MaterialDesignIcon,
+        ToolsPageHeader,
     },
     data() {
         return {

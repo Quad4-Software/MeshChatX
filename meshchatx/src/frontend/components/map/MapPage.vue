@@ -1144,6 +1144,7 @@ import ContextMenuPanel from "../contextmenu/ContextMenuPanel.vue";
 import DOMPurify from "dompurify";
 import ToastUtils from "../../js/ToastUtils";
 import TileCache from "../../js/TileCache";
+import { detectRasterTileProviderId, nextRasterTileProviderId, TILE_PROVIDER_URLS } from "../../js/mapTileProviders.js";
 import {
     fetchTileBlobWithRetry,
     fetchJsonWithRetry,
@@ -1274,6 +1275,8 @@ export default {
             mbtilesDir: "",
             isMapLoaded: false,
             tileErrorCount: 0,
+            tileProvidersAttempted: [],
+            tileFailoverInProgress: false,
             showTileConnectivityBanner: false,
             tileConnectivityBannerTimer: null,
 
@@ -2569,20 +2572,61 @@ export default {
         },
         onOnlineRasterTileLoadedOk() {
             this.tileErrorCount = Math.max(0, this.tileErrorCount - 4);
+            if (this.tileErrorCount === 0) {
+                this.tileProvidersAttempted = [];
+            }
         },
         onOnlineRasterTileLoadFailure() {
+            if (this.offlineEnabled || this.tileFailoverInProgress) {
+                return;
+            }
             this.tileErrorCount++;
             if (this.tileErrorCount > 10) {
-                this.showTileConnectivityBanner = true;
                 this.tileErrorCount = 0;
-                if (this.tileConnectivityBannerTimer) {
-                    clearTimeout(this.tileConnectivityBannerTimer);
-                }
-                this.tileConnectivityBannerTimer = setTimeout(() => {
-                    this.showTileConnectivityBanner = false;
-                    this.tileConnectivityBannerTimer = null;
-                }, 45000);
+                this.tryTileProviderFailoverOrOffline();
             }
+        },
+        async tryTileProviderFailoverOrOffline() {
+            if (this.offlineEnabled || this.tileFailoverInProgress) {
+                return;
+            }
+            const currentId = detectRasterTileProviderId(this.tileServerUrl);
+            const nextId = nextRasterTileProviderId(currentId, this.tileProvidersAttempted);
+            if (nextId) {
+                this.tileFailoverInProgress = true;
+                if (currentId) {
+                    this.tileProvidersAttempted.push(currentId);
+                }
+                this.dismissTileConnectivityBanner();
+                const label = this.tileProviderLabel(nextId);
+                ToastUtils.info(this.$t("map.tile_failover_trying", { provider: label }));
+                this.setTileServer(nextId);
+                this.tileFailoverInProgress = false;
+                return;
+            }
+            if (this.hasOfflineMap) {
+                ToastUtils.info(this.$t("map.tile_failover_offline"));
+                await this.switchToOfflineFromTileBanner();
+                return;
+            }
+            this.showTileConnectivityBanner = true;
+            if (this.tileConnectivityBannerTimer) {
+                clearTimeout(this.tileConnectivityBannerTimer);
+            }
+            this.tileConnectivityBannerTimer = setTimeout(() => {
+                this.showTileConnectivityBanner = false;
+                this.tileConnectivityBannerTimer = null;
+            }, 45000);
+        },
+        tileProviderLabel(providerId) {
+            const labels = {
+                openfreemap: "OpenFreeMap",
+                osm: "OSM",
+                "carto-dark": "Carto Dark",
+                "carto-voyager": "Carto Voyager",
+                "carto-light": "Carto Light",
+            };
+            return labels[providerId] || providerId;
         },
         dismissTileConnectivityBanner() {
             this.showTileConnectivityBanner = false;
@@ -2896,17 +2940,11 @@ export default {
         },
         setTileServer(type) {
             this.tileErrorCount = 0;
+            this.tileProvidersAttempted = [];
             this.dismissTileConnectivityBanner();
-            if (type === "openfreemap") {
-                this.tileServerUrl = OPENFREEMAP_DEFAULT_STYLE;
-            } else if (type === "osm") {
-                this.tileServerUrl = LEGACY_DEFAULT_OSM_RASTER;
-            } else if (type === "carto-dark") {
-                this.tileServerUrl = "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
-            } else if (type === "carto-voyager") {
-                this.tileServerUrl = "https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
-            } else if (type === "carto-light") {
-                this.tileServerUrl = "https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
+            const url = TILE_PROVIDER_URLS[type];
+            if (url) {
+                this.tileServerUrl = url;
             }
             this.saveTileServerUrl();
         },

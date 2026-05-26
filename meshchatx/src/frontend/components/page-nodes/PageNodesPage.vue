@@ -1,34 +1,22 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div
-        class="flex flex-col flex-1 overflow-hidden min-w-0 bg-linear-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
-    >
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+        <ToolsPageHeader
+            icon="server-network"
+            :title="$t('tools.mesh_server.title')"
+            :description="$t('tools.mesh_server.description')"
+            accent="amber"
+        >
+            <template #actions>
+                <button type="button" class="primary-chip px-4 py-2 text-sm shrink-0" @click="showCreateDialog = true">
+                    <MaterialDesignIcon icon-name="plus" class="w-4 h-4" />
+                    Create Node
+                </button>
+            </template>
+        </ToolsPageHeader>
         <div class="flex-1 overflow-y-auto overflow-x-hidden w-full px-3 sm:px-5 md:px-5 lg:px-8 py-3 sm:py-4 min-w-0">
             <div class="space-y-0 w-full max-w-6xl xl:max-w-7xl mx-auto min-w-0">
-                <div
-                    class="w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-4 sm:py-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4"
-                >
-                    <div class="space-y-1">
-                        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                            Reticulum Content Serving
-                        </div>
-                        <h1 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Mesh Server</h1>
-                        <p class="text-sm text-gray-600 dark:text-gray-300 max-w-2xl">
-                            Serve Micron pages and files directly over the Reticulum mesh. Each server gets its own
-                            identity and destination address.
-                        </p>
-                    </div>
-                    <button
-                        type="button"
-                        class="primary-chip px-4 py-2 text-sm shrink-0"
-                        @click="showCreateDialog = true"
-                    >
-                        <MaterialDesignIcon icon-name="plus" class="w-4 h-4" />
-                        Create Node
-                    </button>
-                </div>
-
                 <div
                     v-if="loading"
                     class="w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-8 sm:py-12 text-center"
@@ -368,11 +356,13 @@
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import DialogUtils from "../../js/DialogUtils";
+import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 
 export default {
     name: "PageNodesPage",
     components: {
         MaterialDesignIcon,
+        ToolsPageHeader,
     },
     data() {
         return {

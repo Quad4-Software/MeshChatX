@@ -2,31 +2,16 @@
 
 <template>
     <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+        <ToolsPageHeader
+            icon="robot"
+            :title="$t('tools.bots.title')"
+            :description="$t('tools.bots.description')"
+            accent="blue"
+        />
         <div
             class="flex-1 overflow-y-auto w-full px-3 sm:px-4 md:px-5 lg:px-8 py-4 sm:py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
         >
             <div class="space-y-8 w-full max-w-4xl mx-auto">
-                <div
-                    class="flex flex-wrap items-start justify-between gap-3 border-b border-gray-200 dark:border-zinc-800 pb-6"
-                >
-                    <div class="space-y-2 min-w-0">
-                        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                            {{ $t("bots.bot_framework") }}
-                        </div>
-                        <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $t("bots.title") }}</div>
-                        <div class="text-sm text-gray-600 dark:text-gray-300">
-                            {{ $t("bots.description") }}
-                        </div>
-                    </div>
-                    <RouterLink
-                        to="/tools"
-                        class="inline-flex items-center gap-2 text-sm text-blue-600 dark:text-blue-300 hover:underline shrink-0"
-                    >
-                        <MaterialDesignIcon icon-name="arrow-left" class="size-4" />
-                        {{ $t("tools.back_to_tools") }}
-                    </RouterLink>
-                </div>
-
                 <div class="space-y-6">
                     <div class="space-y-4">
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
@@ -418,11 +403,13 @@
 <script>
 import ToastUtils from "../../js/ToastUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import ToolsPageHeader from "./ToolsPageHeader.vue";
 
 export default {
     name: "BotsPage",
     components: {
         MaterialDesignIcon,
+        ToolsPageHeader,
     },
     data() {
         return {

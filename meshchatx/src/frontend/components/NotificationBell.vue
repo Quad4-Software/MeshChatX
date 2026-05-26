@@ -416,8 +416,12 @@ export default {
                 return false;
             }
             const fields = lxmfMessage.fields || {};
-            const appExt = fields.app_extensions;
-            if (appExt && typeof appExt === "object" && Object.prototype.hasOwnProperty.call(appExt, "reaction_to")) {
+            const reaction = fields.reaction;
+            if (
+                reaction &&
+                typeof reaction === "object" &&
+                Object.prototype.hasOwnProperty.call(reaction, "reaction_to")
+            ) {
                 return false;
             }
             const content = (lxmfMessage.content || "").toString().trim();

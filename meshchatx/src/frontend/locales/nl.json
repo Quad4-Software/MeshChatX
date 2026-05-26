@@ -2039,7 +2039,13 @@
             "guide_tab": "NomadNet-gids",
             "parser_by": "Micron Parser gebruiken door",
             "wasm_active": "WASM-engine actief (snelle parser)",
-            "wasm_inactive": "JS-engine actief (trage parser, klik voor WASM)"
+            "wasm_inactive": "JS-engine actief (trage parser, klik voor WASM)",
+            "publish_prompt_name": "index.mu bestaat al op \"{server}\". Voer een paginanaam in (zonder .mu):",
+            "publish_published": "\"{page}\" gepubliceerd op {server}",
+            "publish_failed": "Pagina publiceren mislukt",
+            "publish_all_prompt_server": "Servernaam om alle tabbladen te publiceren:\n\nBeschikbaar: {servers}",
+            "publish_server_not_found": "Server niet gevonden: {server}",
+            "publish_all_done": "{published}/{total} tabbladen gepubliceerd op {server}"
         },
         "reticulum_config_editor": {
             "title": "Reticulum Config Editor",

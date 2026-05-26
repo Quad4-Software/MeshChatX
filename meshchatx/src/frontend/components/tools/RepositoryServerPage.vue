@@ -1,52 +1,27 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div
-        class="flex flex-col flex-1 overflow-hidden min-w-0 bg-linear-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
-    >
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+        <ToolsPageHeader
+            icon="package-variant"
+            :title="$t('tools.repository_server.title')"
+            :description="$t('tools.repository_server.description')"
+            accent="sky"
+        >
+            <template #actions>
+                <button
+                    type="button"
+                    class="secondary-chip p-2!"
+                    :title="$t('tools.repository_server.refresh_bundled_tooltip')"
+                    :disabled="refreshing"
+                    @click="refreshBundled"
+                >
+                    <MaterialDesignIcon icon-name="download" class="size-5" />
+                </button>
+            </template>
+        </ToolsPageHeader>
         <div class="flex-1 overflow-y-auto overflow-x-hidden w-full px-3 sm:px-5 md:px-5 lg:px-8 py-3 sm:py-4 min-w-0">
             <div class="space-y-0 w-full max-w-6xl xl:max-w-7xl mx-auto min-w-0">
-                <div
-                    class="w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-4 sm:py-6 flex flex-wrap items-start justify-between gap-3"
-                >
-                    <div class="flex items-start gap-3 min-w-0">
-                        <div
-                            class="p-2 bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-300 rounded-lg shrink-0"
-                        >
-                            <MaterialDesignIcon icon-name="package-variant" class="size-6" />
-                        </div>
-                        <div class="min-w-0 space-y-1">
-                            <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                {{ $t("tools.utilities") }}
-                            </div>
-                            <h1 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white tracking-tight">
-                                {{ $t("tools.repository_server.title") }}
-                            </h1>
-                            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 max-w-2xl">
-                                {{ $t("tools.repository_server.subtitle") }}
-                            </p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2 shrink-0">
-                        <button
-                            type="button"
-                            class="secondary-chip p-2!"
-                            :title="$t('tools.repository_server.refresh_bundled_tooltip')"
-                            :disabled="refreshing"
-                            @click="refreshBundled"
-                        >
-                            <MaterialDesignIcon icon-name="download" class="size-5" />
-                        </button>
-                        <RouterLink
-                            to="/tools"
-                            class="inline-flex items-center gap-1 text-sm text-sky-600 dark:text-sky-300 hover:underline"
-                        >
-                            <MaterialDesignIcon icon-name="arrow-left" class="size-4" />
-                            {{ $t("tools.back_to_tools") }}
-                        </RouterLink>
-                    </div>
-                </div>
-
                 <div
                     v-if="refreshing"
                     class="w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-4 sm:py-6 space-y-2"
@@ -230,10 +205,11 @@
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
+import ToolsPageHeader from "./ToolsPageHeader.vue";
 
 export default {
     name: "RepositoryServerPage",
-    components: { MaterialDesignIcon },
+    components: { MaterialDesignIcon, ToolsPageHeader },
     data() {
         return {
             loading: true,

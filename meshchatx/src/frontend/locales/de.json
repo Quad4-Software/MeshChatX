@@ -1950,7 +1950,13 @@
             "guide_tab": "NomadNet Leitfaden",
             "parser_by": "Micron Parser von",
             "wasm_active": "WASM Engine aktiv (schneller Parser)",
-            "wasm_inactive": "JS Engine aktiv (langsamer Parser, für WASM klicken)"
+            "wasm_inactive": "JS Engine aktiv (langsamer Parser, für WASM klicken)",
+            "publish_prompt_name": "index.mu existiert bereits auf \"{server}\". Seitenname eingeben (ohne .mu):",
+            "publish_published": "\"{page}\" auf {server} veröffentlicht",
+            "publish_failed": "Seite konnte nicht veröffentlicht werden",
+            "publish_all_prompt_server": "Servername zum Veröffentlichen aller Tabs:\n\nVerfügbar: {servers}",
+            "publish_server_not_found": "Server nicht gefunden: {server}",
+            "publish_all_done": "{published}/{total} Tabs auf {server} veröffentlicht"
         },
         "reticulum_config_editor": {
             "title": "Reticulum Konfigurations-Editor",

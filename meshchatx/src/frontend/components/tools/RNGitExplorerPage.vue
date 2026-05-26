@@ -1,34 +1,13 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="flex flex-col flex-1 h-full min-w-0 overflow-hidden bg-slate-50 dark:bg-zinc-950">
-        <div class="bg-slate-50 dark:bg-zinc-950 border-b border-gray-200 dark:border-zinc-800 shadow-xs z-10">
-            <div class="px-4 py-3 md:px-6 md:py-4 flex flex-wrap items-center justify-between gap-3 min-w-0">
-                <div class="flex items-center gap-3 min-w-0">
-                    <div class="p-2 bg-teal-100 dark:bg-teal-900/30 rounded-xl shrink-0">
-                        <MaterialDesignIcon
-                            icon-name="source-branch"
-                            class="size-5 md:size-6 text-teal-600 dark:text-teal-300"
-                        />
-                    </div>
-                    <div class="min-w-0">
-                        <h1 class="text-lg md:text-xl font-bold text-gray-900 dark:text-white truncate">
-                            {{ $t("tools.rngit_explorer.title") }}
-                        </h1>
-                        <p class="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 truncate">
-                            {{ $t("tools.rngit_explorer.description") }}
-                        </p>
-                    </div>
-                </div>
-                <RouterLink
-                    to="/tools"
-                    class="inline-flex items-center gap-2 text-sm text-teal-600 dark:text-teal-300 hover:underline shrink-0"
-                >
-                    <MaterialDesignIcon icon-name="arrow-left" class="size-4" />
-                    {{ $t("tools.back_to_tools") }}
-                </RouterLink>
-            </div>
-        </div>
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+        <ToolsPageHeader
+            icon="source-branch"
+            :title="$t('tools.rngit_explorer.title')"
+            :description="$t('tools.rngit_explorer.description')"
+            accent="teal"
+        />
 
         <div class="flex-1 overflow-y-auto min-w-0">
             <div class="p-3 sm:p-4 md:p-6 max-w-5xl mx-auto space-y-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
@@ -245,12 +224,13 @@
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
 import WebSocketConnection from "../../js/WebSocketConnection";
+import ToolsPageHeader from "./ToolsPageHeader.vue";
 
 const RNGIT_ASPECT = "git.repositories";
 
 export default {
     name: "RNGitExplorerPage",
-    components: { MaterialDesignIcon },
+    components: { MaterialDesignIcon, ToolsPageHeader },
     data() {
         return {
             heardAnnounces: [],

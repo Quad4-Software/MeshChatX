@@ -2091,7 +2091,13 @@
             "guide_tab": "Guida NomadNet",
             "parser_by": "Utilizzando il Parser Micron di",
             "wasm_active": "Motore WASM attivo (parser veloce)",
-            "wasm_inactive": "Motore JS attivo (parser lento, clicca per WASM)"
+            "wasm_inactive": "Motore JS attivo (parser lento, clicca per WASM)",
+            "publish_prompt_name": "index.mu esiste già su \"{server}\". Inserisci un nome pagina (senza .mu):",
+            "publish_published": "Pubblicato \"{page}\" su {server}",
+            "publish_failed": "Impossibile pubblicare la pagina",
+            "publish_all_prompt_server": "Nome server per pubblicare tutte le schede:\n\nDisponibili: {servers}",
+            "publish_server_not_found": "Server non trovato: {server}",
+            "publish_all_done": "Pubblicate {published}/{total} schede su {server}"
         },
         "reticulum_config_editor": {
             "title": "Editor Configurazione Reticulum",

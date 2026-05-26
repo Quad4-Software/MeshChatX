@@ -1,16 +1,14 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="flex flex-col h-full w-full bg-slate-50 dark:bg-zinc-950 overflow-hidden min-w-0">
-        <!-- header -->
-        <div
-            class="flex flex-wrap items-center gap-2 px-3 sm:px-4 md:px-6 py-2 sm:py-3 border-b border-gray-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 z-10 relative"
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+        <ToolsPageHeader
+            icon="lightning-bolt"
+            :title="$t('tools.rnode_flasher.title')"
+            :description="$t('tools.rnode_flasher.description')"
+            accent="purple"
         >
-            <div class="flex items-center gap-2 min-w-0 flex-1">
-                <v-icon icon="mdi-chip" color="purple" size="24" class="shrink-0"></v-icon>
-                <h1 class="text-lg sm:text-xl font-black text-gray-900 dark:text-white truncate">
-                    {{ $t("tools.rnode_flasher.title") }}
-                </h1>
+            <template #actions>
                 <span
                     v-if="connectedTransportLabel"
                     class="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
@@ -18,16 +16,6 @@
                     <MaterialDesignIcon icon-name="link-variant" class="size-3" />
                     {{ connectedTransportLabel }}
                 </span>
-            </div>
-
-            <div class="ml-auto flex flex-wrap items-center justify-end gap-1 sm:gap-2 shrink-0">
-                <RouterLink
-                    to="/tools"
-                    class="inline-flex items-center gap-2 text-sm text-violet-600 dark:text-violet-300 hover:underline"
-                >
-                    <MaterialDesignIcon icon-name="arrow-left" class="size-4" />
-                    {{ $t("tools.back_to_tools") }}
-                </RouterLink>
                 <button
                     class="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
                     @click="showAdvanced = !showAdvanced"
@@ -46,8 +34,8 @@
                     <MaterialDesignIcon icon-name="open-in-new" class="size-5" />
                     <span class="hidden sm:inline">{{ $t("tools.rnode_flasher.original") }}</span>
                 </a>
-            </div>
-        </div>
+            </template>
+        </ToolsPageHeader>
 
         <!-- content -->
         <div
@@ -199,11 +187,13 @@ import WifiTransport from "../../js/rnode/transports/WifiTransport.js";
 import { diagnose } from "../../js/rnode/Diagnostics.js";
 
 import ToastUtils from "../../js/ToastUtils.js";
+import ToolsPageHeader from "./ToolsPageHeader.vue";
 
 export default {
     name: "RNodeFlasherPage",
     components: {
         MaterialDesignIcon,
+        ToolsPageHeader,
         RNodeCapabilitiesBanner,
         RNodeDeviceSelector,
         RNodeFirmwareSelector,

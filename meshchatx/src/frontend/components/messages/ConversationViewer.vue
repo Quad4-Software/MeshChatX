@@ -986,7 +986,7 @@
                     </div>
                     <div class="flex flex-wrap gap-1">
                         <button
-                            v-for="(emo, emi) in columbaReactionEmojis"
+                            v-for="(emo, emi) in lxmfReactionEmojis"
                             :key="emi"
                             type="button"
                             class="text-lg leading-none px-1.5 py-0.5 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
@@ -1762,7 +1762,7 @@ import GlobalState from "../../js/GlobalState";
 import MarkdownRenderer from "../../js/MarkdownRenderer";
 import LinkUtils from "../../js/LinkUtils";
 import { findMapUriInContent, mapLinkKindFromMessage, parseMeshchatMapUri } from "../../js/mapLinkUtils.js";
-import { COLUMBA_REACTION_EMOJIS, mergeLxmfReactionRowsIntoMessages } from "../../js/lxmfReactions";
+import { LXMF_REACTION_EMOJIS, mergeLxmfReactionRowsIntoMessages } from "../../js/lxmfReactions";
 import { createOutboundQueue } from "../../js/outboundSendQueue";
 import emojiPickerEnDataUrl from "emoji-picker-element-data/en/emojibase/data.json?url";
 import "emoji-picker-element";
@@ -1902,7 +1902,7 @@ export default {
                 justOpened: false,
                 openedFromBubble: false,
             },
-            columbaReactionEmojis: COLUMBA_REACTION_EMOJIS,
+            lxmfReactionEmojis: LXMF_REACTION_EMOJIS,
             reactionPickerChatItem: null,
             reactionPickerPos: null,
             reactionDragState: null,
@@ -4623,7 +4623,10 @@ export default {
             if (lxmfMessage.state === "cancelled") {
                 return "Cancelled";
             }
-            return "Failed";
+            if (lxmfMessage.method === "opportunistic") {
+                return this.$t("messages.opportunistic_deferred_tooltip");
+            }
+            return this.$t("messages.failed_waiting_announce_tooltip");
         },
         isOpportunisticDeferredDelivery(lxmfMessage) {
             if (!lxmfMessage) {

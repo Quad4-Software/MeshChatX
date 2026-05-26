@@ -489,7 +489,7 @@
                         <MaterialDesignIcon icon-name="reply" class="size-3" />
                         {{ $t("messages.replying_to") }}
                     </div>
-                    <div class="text-xs opacity-70 truncate line-clamp-1 italic">
+                    <div class="text-xs opacity-70 break-words italic">
                         {{
                             chatItem.lxmf_message.fields?.reply_quoted_content ||
                             cv.getRepliedMessage(chatItem.lxmf_message.reply_to_hash)?.content ||
@@ -1048,7 +1048,11 @@
                             v-else-if="['failed', 'cancelled', 'rejected'].includes(chatItem.lxmf_message.state)"
                             class="text-[9px] font-bold uppercase tracking-wider text-white"
                         >
-                            {{ chatItem.lxmf_message.state === "rejected" ? "Rejected" : "Failed" }}
+                            {{
+                                chatItem.lxmf_message.state === "rejected"
+                                    ? "Rejected"
+                                    : $t("messages.failed_waiting_announce")
+                            }}
                         </span>
                         <button
                             v-if="['failed', 'cancelled'].includes(chatItem.lxmf_message.state)"

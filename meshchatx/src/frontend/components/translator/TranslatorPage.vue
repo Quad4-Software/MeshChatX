@@ -2,21 +2,17 @@
 
 <template>
     <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+        <ToolsPageHeader
+            icon="translate"
+            :title="$t('tools.translator.title')"
+            :description="$t('tools.translator.description')"
+            accent="indigo"
+        />
         <div
             class="flex-1 overflow-y-auto w-full px-4 md:px-5 lg:px-8 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
         >
             <div class="space-y-4 w-full max-w-4xl mx-auto">
                 <div class="glass-card space-y-5">
-                    <div class="space-y-2">
-                        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                            Text Translation
-                        </div>
-                        <div class="text-2xl font-semibold text-gray-900 dark:text-white">Translator</div>
-                        <div class="text-sm text-gray-600 dark:text-gray-300">
-                            Translate text using LibreTranslate API or local Argos Translate.
-                        </div>
-                    </div>
-
                     <div v-if="config" class="space-y-3">
                         <div class="text-sm font-semibold text-gray-800 dark:text-gray-200">Translation backends</div>
                         <label
@@ -406,12 +402,14 @@ import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import Toggle from "../forms/Toggle.vue";
+import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 
 export default {
     name: "TranslatorPage",
     components: {
         MaterialDesignIcon,
         Toggle,
+        ToolsPageHeader,
     },
     data() {
         return {

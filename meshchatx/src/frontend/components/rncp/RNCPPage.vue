@@ -2,49 +2,42 @@
 
 <template>
     <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+        <ToolsPageHeader
+            icon="swap-horizontal"
+            :title="$t('rncp.title')"
+            :description="$t('rncp.description')"
+            :eyebrow="$t('rncp.file_transfer')"
+            accent="green"
+        />
         <div
             class="flex-1 overflow-y-auto w-full px-4 md:px-5 lg:px-8 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
         >
             <div class="space-y-4 w-full max-w-4xl mx-auto">
                 <div class="glass-card space-y-5">
-                    <div class="space-y-2">
-                        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                            {{ $t("rncp.file_transfer") }}
+                    <div
+                        class="p-4 rounded-lg bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/20"
+                    >
+                        <div class="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-2">
+                            {{ $t("rncp.usage_steps") }}
                         </div>
-                        <div class="text-2xl font-semibold text-gray-900 dark:text-white">
-                            {{ $t("rncp.title") }}
-                        </div>
-                        <div class="text-sm text-gray-600 dark:text-gray-300">
-                            {{ $t("rncp.description") }}
-                        </div>
-
-                        <div
-                            class="mt-4 p-4 rounded-lg bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/20"
-                        >
-                            <div
-                                class="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-2"
-                            >
-                                {{ $t("rncp.usage_steps") }}
-                            </div>
-                            <div class="space-y-1.5">
-                                <!-- eslint-disable vue/no-v-html -->
-                                <p
-                                    class="text-xs text-blue-800/80 dark:text-blue-300/80 leading-relaxed"
-                                    @click="handleMessageClick"
-                                    v-html="renderMarkdown($t('rncp.step_1'))"
-                                ></p>
-                                <p
-                                    class="text-xs text-blue-800/80 dark:text-blue-300/80 leading-relaxed"
-                                    @click="handleMessageClick"
-                                    v-html="renderMarkdown($t('rncp.step_2'))"
-                                ></p>
-                                <p
-                                    class="text-xs text-blue-800/80 dark:text-blue-300/80 leading-relaxed"
-                                    @click="handleMessageClick"
-                                    v-html="renderMarkdown($t('rncp.step_3'))"
-                                ></p>
-                                <!-- eslint-enable vue/no-v-html -->
-                            </div>
+                        <div class="space-y-1.5">
+                            <!-- eslint-disable vue/no-v-html -->
+                            <p
+                                class="text-xs text-blue-800/80 dark:text-blue-300/80 leading-relaxed"
+                                @click="handleMessageClick"
+                                v-html="renderMarkdown($t('rncp.step_1'))"
+                            ></p>
+                            <p
+                                class="text-xs text-blue-800/80 dark:text-blue-300/80 leading-relaxed"
+                                @click="handleMessageClick"
+                                v-html="renderMarkdown($t('rncp.step_2'))"
+                            ></p>
+                            <p
+                                class="text-xs text-blue-800/80 dark:text-blue-300/80 leading-relaxed"
+                                @click="handleMessageClick"
+                                v-html="renderMarkdown($t('rncp.step_3'))"
+                            ></p>
+                            <!-- eslint-enable vue/no-v-html -->
                         </div>
                     </div>
 
@@ -459,6 +452,7 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import MarkdownRenderer from "../../js/MarkdownRenderer";
 import ToastUtils from "../../js/ToastUtils";
+import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 
 const RNCP_LISTEN_PREFS_KEY = "meshchatx.rncp.listenForm.v1";
 
@@ -466,6 +460,7 @@ export default {
     name: "RNCPPage",
     components: {
         MaterialDesignIcon,
+        ToolsPageHeader,
     },
     data() {
         return {

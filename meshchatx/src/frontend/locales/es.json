@@ -2039,7 +2039,13 @@
             "guide_tab": "NomadNet Guide",
             "parser_by": "Usando Micron Parser por",
             "wasm_active": "Motor WASM activo (analizador rápido)",
-            "wasm_inactive": "Motor JS activo (analizador lento, haga clic para WASM)"
+            "wasm_inactive": "Motor JS activo (analizador lento, haga clic para WASM)",
+            "publish_prompt_name": "index.mu ya existe en \"{server}\". Introduzca un nombre de página (sin .mu):",
+            "publish_published": "Publicado \"{page}\" en {server}",
+            "publish_failed": "No se pudo publicar la página",
+            "publish_all_prompt_server": "Nombre del servidor para publicar todas las pestañas:\n\nDisponibles: {servers}",
+            "publish_server_not_found": "Servidor no encontrado: {server}",
+            "publish_all_done": "Publicadas {published}/{total} pestañas en {server}"
         },
         "reticulum_config_editor": {
             "title": "Reticulum Config Editor",

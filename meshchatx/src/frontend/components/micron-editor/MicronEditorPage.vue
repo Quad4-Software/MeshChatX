@@ -2,38 +2,13 @@
 
 <template>
     <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
-        <!-- Compact Header -->
-        <div
-            class="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2 border-b border-gray-200 dark:border-zinc-800 bg-slate-50/95 dark:bg-zinc-950/95 backdrop-blur-xs shrink-0 min-w-0"
+        <ToolsPageHeader
+            icon="code-tags"
+            :title="$t('tools.micron_editor.title')"
+            :description="$t('tools.micron_editor.description')"
+            accent="teal"
         >
-            <div class="flex items-center gap-2 sm:gap-3 min-w-0">
-                <div class="bg-teal-100 dark:bg-teal-900/30 p-1.5 rounded-xl shrink-0">
-                    <MaterialDesignIcon icon-name="code-tags" class="size-5 text-teal-600 dark:text-teal-400" />
-                </div>
-                <div class="flex flex-col">
-                    <h1
-                        class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider hidden sm:block truncate leading-tight"
-                    >
-                        {{ $t("tools.micron_editor.title") }}
-                    </h1>
-                    <a
-                        href="https://github.com/RFnexus"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="text-[10px] text-gray-500 hover:text-teal-500 transition-colors hidden sm:block leading-tight"
-                    >
-                        {{ $t("tools.micron_editor.parser_by") }} RFnexus
-                    </a>
-                </div>
-            </div>
-            <div class="flex items-center gap-2">
-                <RouterLink
-                    to="/tools"
-                    class="inline-flex items-center gap-2 text-sm text-teal-600 dark:text-teal-300 hover:underline shrink-0"
-                >
-                    <MaterialDesignIcon icon-name="arrow-left" class="size-4" />
-                    {{ $t("tools.back_to_tools") }}
-                </RouterLink>
+            <template #actions>
                 <button
                     type="button"
                     class="secondary-chip py-1! px-3! text-red-500! hover:bg-red-50! dark:hover:bg-red-900/20!"
@@ -113,8 +88,8 @@
                     <MaterialDesignIcon :icon-name="showEditor ? 'eye' : 'pencil'" class="w-3.5 h-3.5" />
                     {{ showEditor ? $t("tools.micron_editor.view_preview") : $t("tools.micron_editor.edit") }}
                 </button>
-            </div>
-        </div>
+            </template>
+        </ToolsPageHeader>
 
         <!-- Tab Bar -->
         <div
@@ -201,11 +176,13 @@ import MicronParser from "../../js/MicronParser.js";
 import { micronStorage } from "../../js/MicronStorage";
 import { preloadNomadMicronWasm, isMicronWasmBundled } from "../../js/MicronWasmLoader";
 import DialogUtils from "../../js/DialogUtils";
+import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 
 export default {
     name: "MicronEditorPage",
     components: {
         MaterialDesignIcon,
+        ToolsPageHeader,
     },
     data() {
         return {
@@ -853,48 +830,118 @@ ${b}=
                 }
             }
         },
+        async fetchNodePages(node) {
+            const response = await window.api.get(`/api/v1/page-nodes/${node.node_id}/pages`);
+            return response.data?.pages ?? [];
+        },
+        tabNameToPageBase(tab) {
+            let name = (tab.name || "").trim().replace(/\s+/g, "_");
+            if (name.toLowerCase().endsWith(".mu")) {
+                name = name.slice(0, -3);
+            }
+            return name;
+        },
+        isUnsetMicronTabName(name) {
+            const trimmed = (name || "").trim();
+            if (!trimmed) {
+                return true;
+            }
+            const newTabLabel = this.$t("tools.micron_editor.new_tab");
+            if (trimmed === newTabLabel) {
+                return true;
+            }
+            const numberedPrefix = `${newTabLabel} `;
+            if (!trimmed.startsWith(numberedPrefix)) {
+                return false;
+            }
+            return /^\d+$/.test(trimmed.slice(numberedPrefix.length));
+        },
+        async resolvePublishPageBase(tab, existingPages, serverName) {
+            const hasIndex = existingPages.includes("index.mu");
+            if (!hasIndex) {
+                return "index";
+            }
+            if (!this.isUnsetMicronTabName(tab.name)) {
+                const base = this.tabNameToPageBase(tab);
+                return base || null;
+            }
+            const entered = await DialogUtils.prompt(
+                this.$t("tools.micron_editor.publish_prompt_name", { server: serverName })
+            );
+            if (entered === null || !String(entered).trim()) {
+                return null;
+            }
+            let base = String(entered).trim().replace(/\s+/g, "_");
+            if (base.toLowerCase().endsWith(".mu")) {
+                base = base.slice(0, -3);
+            }
+            return base || null;
+        },
         async publishToNode(node) {
             const tab = this.tabs[this.activeTabIndex];
-            const pageName = tab.name.replace(/\s+/g, "_");
             try {
-                await window.api.post(`/api/v1/page-nodes/${node.node_id}/pages`, {
-                    name: pageName,
+                const existingPages = await this.fetchNodePages(node);
+                const pageBase = await this.resolvePublishPageBase(tab, existingPages, node.name);
+                if (!pageBase) {
+                    return;
+                }
+                const response = await window.api.post(`/api/v1/page-nodes/${node.node_id}/pages`, {
+                    name: pageBase,
                     content: tab.content,
                 });
                 this.showPublishMenu = false;
-                DialogUtils.alert(`Published "${pageName}.mu" to ${node.name}`);
+                const savedName = response.data?.name || `${pageBase}.mu`;
+                DialogUtils.alert(
+                    this.$t("tools.micron_editor.publish_published", { page: savedName, server: node.name })
+                );
             } catch (e) {
-                DialogUtils.alert(e.response?.data?.message || "Failed to publish page");
+                DialogUtils.alert(e.response?.data?.message || this.$t("tools.micron_editor.publish_failed"));
             }
         },
         async publishAllToNode() {
             if (this.pageNodes.length === 0) return;
 
             const nodeNames = this.pageNodes.map((n) => n.name);
-            const nodeName = prompt("Enter server name to publish all tabs to:\n\nAvailable: " + nodeNames.join(", "));
+            const nodeName = await DialogUtils.prompt(
+                this.$t("tools.micron_editor.publish_all_prompt_server", { servers: nodeNames.join(", ") })
+            );
             if (!nodeName) return;
 
             const node = this.pageNodes.find((n) => n.name === nodeName);
             if (!node) {
-                DialogUtils.alert("Server not found: " + nodeName);
+                DialogUtils.alert(this.$t("tools.micron_editor.publish_server_not_found", { server: nodeName }));
                 return;
             }
 
+            let existingPages = await this.fetchNodePages(node);
             let published = 0;
             for (const tab of this.tabs) {
-                const pageName = tab.name.replace(/\s+/g, "_");
+                const pageBase = await this.resolvePublishPageBase(tab, existingPages, node.name);
+                if (!pageBase) {
+                    continue;
+                }
                 try {
-                    await window.api.post(`/api/v1/page-nodes/${node.node_id}/pages`, {
-                        name: pageName,
+                    const response = await window.api.post(`/api/v1/page-nodes/${node.node_id}/pages`, {
+                        name: pageBase,
                         content: tab.content,
                     });
+                    const savedName = response.data?.name;
+                    if (savedName) {
+                        existingPages = [...new Set([...existingPages, savedName])];
+                    }
                     published++;
                 } catch {
                     console.error(`Failed to publish tab: ${tab.name}`);
                 }
             }
             this.showPublishMenu = false;
-            DialogUtils.alert(`Published ${published}/${this.tabs.length} tabs to ${node.name}`);
+            DialogUtils.alert(
+                this.$t("tools.micron_editor.publish_all_done", {
+                    published,
+                    total: this.tabs.length,
+                    server: node.name,
+                })
+            );
         },
     },
 };

@@ -2,23 +2,18 @@
 
 <template>
     <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+        <ToolsPageHeader
+            icon="radar"
+            :title="$t('rnprobe.title')"
+            :description="$t('tools.rnprobe.description')"
+            :eyebrow="$t('rnprobe.network_diagnostics')"
+            accent="purple"
+        />
         <div
             class="flex-1 overflow-y-auto w-full px-4 md:px-5 lg:px-8 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
         >
             <div class="space-y-4 w-full max-w-4xl mx-auto">
                 <div class="glass-card space-y-5">
-                    <div class="space-y-2">
-                        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                            {{ $t("rnprobe.network_diagnostics") }}
-                        </div>
-                        <div class="text-2xl font-semibold text-gray-900 dark:text-white">
-                            {{ $t("rnprobe.title") }}
-                        </div>
-                        <div class="text-sm text-gray-600 dark:text-gray-300">
-                            {{ $t("rnprobe.description") }}
-                        </div>
-                    </div>
-
                     <div class="grid lg:grid-cols-2 gap-4">
                         <div>
                             <label class="glass-label">{{ $t("rnprobe.destination_hash") }}</label>
@@ -157,11 +152,13 @@
 <script>
 import DialogUtils from "../../js/DialogUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 
 export default {
     name: "RNProbePage",
     components: {
         MaterialDesignIcon,
+        ToolsPageHeader,
     },
     data() {
         return {

@@ -1,6 +1,6 @@
 /**
  * One-line preview text for the conversation list / sidebar (LXMF latest row).
- * Handles plain content, Columba reactions, location/telemetry fields,
+ * Handles plain content, LXMF reactions, location/telemetry fields,
  * Sideband location-request commands, and media-only payloads (image, audio,
  * file attachments). Pairs with the Python helper
  * lxmf_sidebar_preview_for_conversation_latest_row.
