@@ -113,15 +113,11 @@ jobs:
                   restore-keys: |
                       ${{ runner.os }}-uv-
 
-            - name: Set up Node
-              uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
+            - name: Set up Node and pnpm
+              uses: ./.github/actions/setup-node-pnpm
               with:
                   node-version: ${{ env.NODE_VERSION }}
-                  cache: pnpm
-                  cache-dependency-path: pnpm-lock.yaml
-
-            - name: Enable pnpm (corepack)
-              run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+                  pnpm-version: ${{ env.PNPM_VERSION }}
 
             - name: Linux packaging APT dependencies
               run: bash scripts/ci/github-apt-linux-packaging.sh
@@ -195,15 +191,11 @@ jobs:
                   restore-keys: |
                       ${{ runner.os }}-uv-
 
-            - name: Set up Node
-              uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
+            - name: Set up Node and pnpm
+              uses: ./.github/actions/setup-node-pnpm
               with:
                   node-version: ${{ env.NODE_VERSION }}
-                  cache: pnpm
-                  cache-dependency-path: pnpm-lock.yaml
-
-            - name: Enable pnpm (corepack)
-              run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+                  pnpm-version: ${{ env.PNPM_VERSION }}
 
             - name: Linux packaging APT dependencies
               run: bash scripts/ci/github-apt-linux-packaging.sh
@@ -347,15 +339,11 @@ jobs:
                   restore-keys: |
                       ${{ runner.os }}-uv-
 
-            - name: Set up Node
-              uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
+            - name: Set up Node and pnpm
+              uses: ./.github/actions/setup-node-pnpm
               with:
                   node-version: ${{ env.NODE_VERSION }}
-                  cache: pnpm
-                  cache-dependency-path: pnpm-lock.yaml
-
-            - name: Enable pnpm (corepack)
-              run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+                  pnpm-version: ${{ env.PNPM_VERSION }}
 
             - name: Install dependencies
               run: bash scripts/ci/github-install-deps.sh
@@ -434,15 +422,11 @@ jobs:
                   UV_VERSION: ${{ env.UV_VERSION }}
               run: bash scripts/ci/github-install-uv.sh
 
-            - name: Set up Node
-              uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
+            - name: Set up Node and pnpm
+              uses: ./.github/actions/setup-node-pnpm
               with:
                   node-version: ${{ env.NODE_VERSION }}
-                  cache: pnpm
-                  cache-dependency-path: pnpm-lock.yaml
-
-            - name: Enable pnpm (corepack)
-              run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
+                  pnpm-version: ${{ env.PNPM_VERSION }}
 
             - name: Install dependencies
               run: bash scripts/ci/github-install-deps.sh
