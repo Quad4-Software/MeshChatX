@@ -24,16 +24,48 @@ const preamble = `const __ebFsConstants = (() => {
 
 `;
 
+const cacheModeFallback = {
+    ReadWrite: 0,
+    ReadOnly: 1,
+    WriteOnly: 2,
+    Bypass: 3,
+};
+
 function patchBinDownload(source) {
-    if (source.includes("__ebFsConstants")) {
-        return source;
+    let next = source;
+    let changed = false;
+
+    if (!next.includes("__ebFsConstants")) {
+        next = preamble + next;
+        next = next.replace(/fs_1\.constants\.R_OK/g, "__ebFsConstants.R_OK");
+        next = next.replace(/fs_1\.constants\.W_OK/g, "__ebFsConstants.W_OK");
+        next = next.replace(/fs\.constants\.R_OK/g, "__ebFsConstants.R_OK");
+        next = next.replace(/fs\.constants\.W_OK/g, "__ebFsConstants.W_OK");
+        changed = true;
     }
-    let next = preamble + source;
-    next = next.replace(/fs_1\.constants\.R_OK/g, "__ebFsConstants.R_OK");
-    next = next.replace(/fs_1\.constants\.W_OK/g, "__ebFsConstants.W_OK");
-    next = next.replace(/fs\.constants\.R_OK/g, "__ebFsConstants.R_OK");
-    next = next.replace(/fs\.constants\.W_OK/g, "__ebFsConstants.W_OK");
-    return next;
+
+    if (!next.includes("__ebElectronDownloadCacheMode")) {
+        const injectAfterGetRequire =
+            /(const get_1 = require\("@electron\/get"\);)/;
+        if (injectAfterGetRequire.test(next)) {
+            next = next.replace(
+                injectAfterGetRequire,
+                `$1
+const __ebElectronDownloadCacheMode = get_1.ElectronDownloadCacheMode ?? ${JSON.stringify(cacheModeFallback)};`,
+            );
+            next = next.replace(
+                /get_1\.ElectronDownloadCacheMode\.ReadWrite/g,
+                "__ebElectronDownloadCacheMode.ReadWrite",
+            );
+            next = next.replace(
+                /in get_1\.ElectronDownloadCacheMode/g,
+                "in __ebElectronDownloadCacheMode",
+            );
+            changed = true;
+        }
+    }
+
+    return changed ? next : source;
 }
 
 for (const target of targets) {
