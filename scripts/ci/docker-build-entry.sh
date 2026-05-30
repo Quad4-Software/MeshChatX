@@ -5,7 +5,7 @@ set -euo pipefail
 
 cd /src
 
-export UV_VERSION="${UV_VERSION:-0.11.12}"
+export UV_VERSION="${UV_VERSION:-0.11.15}"
 export PNPM_VERSION="${PNPM_VERSION:-11.1.2}"
 
 apt-get update -y
