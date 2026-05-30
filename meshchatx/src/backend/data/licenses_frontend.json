@@ -1225,7 +1225,7 @@
     },
     {
         "name": "ansi-regex",
-        "version": "2.0.0",
+        "version": "5.0.1",
         "author": "Sindre Sorhus",
         "license": "MIT"
     },
@@ -2697,12 +2697,6 @@
         "name": "ip",
         "version": "2.0.1",
         "author": "Fedor Indutny",
-        "license": "MIT"
-    },
-    {
-        "name": "ip-address",
-        "version": "10.1.1",
-        "author": "Beau Gunderson",
         "license": "MIT"
     },
     {
@@ -4975,7 +4969,7 @@
     },
     {
         "name": "y18n",
-        "version": "3.2.1",
+        "version": "5.0.1",
         "author": "Ben Coe",
         "license": "ISC"
     },

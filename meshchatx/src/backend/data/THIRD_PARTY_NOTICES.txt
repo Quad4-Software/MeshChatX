@@ -1,5 +1,5 @@
 Reticulum MeshChatX - Third-party notices
-Generated at: 2026-05-26T19:15:02.702198Z
+Generated at: 2026-05-30T16:44:06.420973Z
 Frontend source: pnpm
 
 Python dependencies
@@ -46,7 +46,7 @@ idna 3.13
 jaraco.context 6.1.2
   License: MIT
   Author: "Jason R. Coombs" <jaraco@jaraco.com>
-lxmf 0.9.9
+lxmf 1.0.0
   License: Reticulum License
   Author: Mark Qvist
 lxmfy 1.6.2
@@ -85,7 +85,7 @@ pyserial 3.5
 reticulum-meshchatx 4.6.3
   License: 0BSD AND MIT
   Author: Quad4
-rns 1.3.1
+rns 1.3.4
   License: Reticulum License
   Author: Mark Qvist
 websockets 16.0
@@ -709,7 +709,7 @@ ajv-keywords 3.5.2
 ansi-escapes 4.3.2
   License: MIT
   Author: Sindre Sorhus
-ansi-regex 2.0.0
+ansi-regex 5.0.1
   License: MIT
   Author: Sindre Sorhus
 ansi-styles 4.0.0
@@ -1447,9 +1447,6 @@ invert-kv 2.0.0
 ip 2.0.1
   License: MIT
   Author: Fedor Indutny
-ip-address 10.1.1
-  License: MIT
-  Author: Beau Gunderson
 is-array-buffer 3.0.5
   License: MIT
   Author: Jordan Harband
@@ -2584,7 +2581,7 @@ xmlchars 2.2.0
 xtend 4.0.2
   License: MIT
   Author: Raynos
-y18n 3.2.1
+y18n 5.0.1
   License: ISC
   Author: Ben Coe
 yallist 4.0.0
