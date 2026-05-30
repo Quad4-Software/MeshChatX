@@ -28,6 +28,14 @@ runs:
           shell: bash
           run: corepack enable && corepack prepare "pnpm@${{ inputs.pnpm-version }}" --activate
 
+        - name: Verify Node.js version
+          shell: bash
+          run: |
+              set -euo pipefail
+              node -v
+              pnpm -v
+              node -e "const major=Number(process.versions.node.split('.')[0]); if(major<24) process.exit(1)"
+
         - name: Cache pnpm dependencies
           uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
           with:
