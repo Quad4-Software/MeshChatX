@@ -45,22 +45,18 @@ function patchBinDownload(source) {
     }
 
     if (!next.includes("__ebElectronDownloadCacheMode")) {
-        const injectAfterGetRequire =
-            /(const get_1 = require\("@electron\/get"\);)/;
+        const injectAfterGetRequire = /(const get_1 = require\("@electron\/get"\);)/;
         if (injectAfterGetRequire.test(next)) {
             next = next.replace(
                 injectAfterGetRequire,
                 `$1
-const __ebElectronDownloadCacheMode = get_1.ElectronDownloadCacheMode ?? ${JSON.stringify(cacheModeFallback)};`,
+const __ebElectronDownloadCacheMode = get_1.ElectronDownloadCacheMode ?? ${JSON.stringify(cacheModeFallback)};`
             );
             next = next.replace(
                 /get_1\.ElectronDownloadCacheMode\.ReadWrite/g,
-                "__ebElectronDownloadCacheMode.ReadWrite",
+                "__ebElectronDownloadCacheMode.ReadWrite"
             );
-            next = next.replace(
-                /in get_1\.ElectronDownloadCacheMode/g,
-                "in __ebElectronDownloadCacheMode",
-            );
+            next = next.replace(/in get_1\.ElectronDownloadCacheMode/g, "in __ebElectronDownloadCacheMode");
             changed = true;
         }
     }

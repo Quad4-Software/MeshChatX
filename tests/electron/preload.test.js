@@ -69,6 +69,26 @@ describe("electron/preload", () => {
         expect(cb).toHaveBeenCalledWith("rns://x");
     });
 
+    it("exposes backend recovery IPC helpers", async () => {
+        const exposeInMainWorld = vi.fn();
+        const invoke = vi.fn();
+        const on = vi.fn();
+        loadPreloadWithElectronMock({
+            contextBridge: { exposeInMainWorld },
+            ipcRenderer: { invoke, on },
+        });
+        const api = exposeInMainWorld.mock.calls[0][1];
+        invoke.mockResolvedValueOnce({ ok: true });
+        await expect(api.restartBackend()).resolves.toEqual({ ok: true });
+        expect(invoke).toHaveBeenCalledWith("restart-backend");
+
+        const cb = vi.fn();
+        api.onBackendProcessExited(cb);
+        const handler = on.mock.calls.find((c) => c[0] === "backend-process-exited")?.[1];
+        handler({}, { code: 255 });
+        expect(cb).toHaveBeenCalledWith({ code: 255 });
+    });
+
     it("subscribes to log channel on load", () => {
         const exposeInMainWorld = vi.fn();
         const on = vi.fn();

@@ -13,11 +13,10 @@ const {
     clipboard,
 } = require("electron");
 const electronPrompt = require("electron-prompt");
-const { spawn } = require("child_process");
 const fs = require("fs");
 const path = require("node:path");
 
-const { verifyBackendIntegrity } = require("./backendIntegrity");
+const { createBackendProcessManager } = require("./backendProcess");
 const { getUserProvidedArguments, formatRenderProcessGoneDetails, isLocalBackendUrl } = require("./mainHelpers");
 const { isAllowedShellPath } = require("./shellPathGuard");
 const { normalizeExternalUrlForOpen } = require("./safeExternalUrl");
@@ -45,16 +44,8 @@ var activePowerSaveBlockerId = null;
 // track if we are actually quiting
 var isQuiting = false;
 
-// remember child process for exe so we can kill it when app exits
-var exeChildProcess = null;
-var backendRuntimeState = {
-    started: false,
-    running: false,
-    pid: null,
-    lastExitCode: null,
-    lastError: "",
-    lastEventAt: null,
-};
+// backend child process (managed by backendProcess.js)
+var backendManager = null;
 
 // store integrity status
 var integrityStatus = {
@@ -187,15 +178,20 @@ ipcMain.handle("backend-http-only", () => {
 });
 
 ipcMain.handle("backend-runtime-state", () => {
-    const isRunning =
-        !!exeChildProcess &&
-        exeChildProcess.exitCode === null &&
-        exeChildProcess.signalCode === null &&
-        backendRuntimeState.started;
-    return {
-        ...backendRuntimeState,
-        running: isRunning,
-    };
+    return getBackendManager().getRuntimeState();
+});
+
+ipcMain.handle("restart-backend", async () => {
+    return await getBackendManager().restartBackend(integrityStatus);
+});
+
+ipcMain.handle("open-backend-crash-report", async () => {
+    const lastCrash = getBackendManager().getLastCrash();
+    if (!lastCrash) {
+        return { ok: false, error: "No backend crash report is available." };
+    }
+    await loadBackendCrashPage(lastCrash);
+    return { ok: true };
 });
 
 // add support for showing an alert window via ipc
@@ -462,6 +458,68 @@ function getAppIconPath() {
     return fs.existsSync(iconPath) ? iconPath : fallbackIconPath;
 }
 
+function getMainWindowPageKind() {
+    if (!mainWindow || mainWindow.isDestroyed()) {
+        return "none";
+    }
+    const url = mainWindow.webContents.getURL();
+    if (url.includes("loading.html")) {
+        return "loading";
+    }
+    if (url.includes("crash.html")) {
+        return "crash";
+    }
+    if (isLocalBackendUrl(url)) {
+        return "app";
+    }
+    return "other";
+}
+
+async function loadBackendCrashPage(crash) {
+    const stdoutBase64 = Buffer.from((crash && crash.stdout) || "").toString("base64");
+    const stderrBase64 = Buffer.from((crash && crash.stderr) || "").toString("base64");
+    const code = crash && crash.code != null ? String(crash.code) : "";
+
+    if (!mainWindow || mainWindow.isDestroyed()) {
+        await dialog.showMessageBox({
+            type: "error",
+            title: "MeshChatX Crashed",
+            message: `Backend exited with code: ${code}`,
+        });
+        app.quit();
+        return;
+    }
+
+    mainWindow.show();
+    mainWindow.focus();
+    await mainWindow.loadFile(path.join(__dirname, "crash.html"), {
+        query: {
+            code: code,
+            stdout: stdoutBase64,
+            stderr: stderrBase64,
+        },
+    });
+}
+
+function getBackendManager() {
+    if (!backendManager) {
+        backendManager = createBackendProcessManager({
+            log,
+            getDefaultStorageDir,
+            getDefaultReticulumConfigDir,
+            getMainWindowPageKind,
+            isQuiting: () => quitInitiated,
+            notifyRenderer: (channel, payload) => {
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.webContents.send(channel, payload);
+                }
+            },
+            showCrashPage: loadBackendCrashPage,
+        });
+    }
+    return backendManager;
+}
+
 function createTray() {
     tray = new Tray(getAppIconPath());
     const contextMenu = Menu.buildFromTemplate([
@@ -724,131 +782,10 @@ app.whenReady().then(async () => {
 
     log(`Found executable at: ${exe}`);
 
-    // Verify backend integrity before spawning
-    const exeDir = path.dirname(exe);
-    integrityStatus.backend = verifyBackendIntegrity(exeDir);
-    if (
-        integrityStatus.backend.ok &&
-        integrityStatus.backend.issues.length === 1 &&
-        integrityStatus.backend.issues[0] === "Manifest missing"
-    ) {
-        log("Backend integrity manifest missing, skipping check.");
-    }
-    if (!integrityStatus.backend.ok) {
-        log(`INTEGRITY WARNING: Backend tampering detected! Issues: ${integrityStatus.backend.issues.join(", ")}`);
-    }
-
+    const manager = getBackendManager();
+    manager.setUserProvidedArguments(userProvidedArguments);
     try {
-        // arguments we always want to pass in
-        const requiredArguments = [
-            "--headless", // reticulum meshchatx usually launches default web browser, we don't want this when using electron
-            "--port",
-            "9337",
-            // '--test-exception-message', 'Test Exception Message', // uncomment to test the crash dialog
-        ];
-
-        // if user didn't provide reticulum config dir, we should provide it
-        if (!userProvidedArguments.includes("--reticulum-config-dir")) {
-            requiredArguments.push("--reticulum-config-dir", getDefaultReticulumConfigDir());
-        }
-
-        // if user didn't provide storage dir, we should provide it
-        if (!userProvidedArguments.includes("--storage-dir")) {
-            requiredArguments.push("--storage-dir", getDefaultStorageDir());
-        }
-
-        // spawn executable
-        exeChildProcess = spawn(exe, [
-            ...requiredArguments, // always provide required arguments
-            ...userProvidedArguments, // also include any user provided arguments
-        ]);
-
-        if (!exeChildProcess || !exeChildProcess.pid) {
-            throw new Error("Failed to start backend process (no PID).");
-        }
-        backendRuntimeState = {
-            started: true,
-            running: true,
-            pid: exeChildProcess.pid,
-            lastExitCode: null,
-            lastError: "",
-            lastEventAt: Date.now(),
-        };
-
-        // log stdout
-        var stdoutLines = [];
-        exeChildProcess.stdout.setEncoding("utf8");
-        exeChildProcess.stdout.on("data", function (data) {
-            // log
-            log(data.toString());
-
-            // keep track of last 100 stdout lines
-            stdoutLines.push(data.toString());
-            if (stdoutLines.length > 100) {
-                stdoutLines.shift();
-            }
-        });
-
-        // log stderr
-        var stderrLines = [];
-        exeChildProcess.stderr.setEncoding("utf8");
-        exeChildProcess.stderr.on("data", function (data) {
-            // log
-            log(data.toString());
-
-            // keep track of last 100 stderr lines
-            stderrLines.push(data.toString());
-            if (stderrLines.length > 100) {
-                stderrLines.shift();
-            }
-        });
-
-        // log errors
-        exeChildProcess.on("error", function (error) {
-            log(error);
-            backendRuntimeState.lastError = error && error.message ? error.message : String(error);
-            backendRuntimeState.lastEventAt = Date.now();
-        });
-
-        // quit electron app if exe dies
-        exeChildProcess.on("exit", async function (code) {
-            backendRuntimeState.running = false;
-            backendRuntimeState.lastExitCode = code;
-            backendRuntimeState.lastEventAt = Date.now();
-            // if no exit code provided, we wanted exit to happen, so do nothing
-            if (code == null) {
-                return;
-            }
-
-            // show crash log
-            const stdout = stdoutLines.join("");
-            const stderr = stderrLines.join("");
-
-            // Base64 encode for safe URL passing
-            const stdoutBase64 = Buffer.from(stdout).toString("base64");
-            const stderrBase64 = Buffer.from(stderr).toString("base64");
-
-            // Load crash page if main window exists
-            if (mainWindow && !mainWindow.isDestroyed()) {
-                mainWindow.show(); // Ensure visible
-                mainWindow.focus();
-                await mainWindow.loadFile(path.join(__dirname, "crash.html"), {
-                    query: {
-                        code: code.toString(),
-                        stdout: stdoutBase64,
-                        stderr: stderrBase64,
-                    },
-                });
-            } else {
-                // Fallback for cases where window is gone
-                await dialog.showMessageBox({
-                    type: "error",
-                    title: "MeshChatX Crashed",
-                    message: `Backend exited with code: ${code}\n\nSTDOUT: ${stdout.slice(-500)}\n\nSTDERR: ${stderr.slice(-500)}`,
-                });
-                app.quit();
-            }
-        });
+        await manager.spawnBackend(exe, integrityStatus);
     } catch (e) {
         log(e);
     }
@@ -869,6 +806,7 @@ function quit() {
     }
     quitInitiated = true;
 
+    const exeChildProcess = getBackendManager().getChildProcess();
     if (!exeChildProcess) {
         app.quit();
         return;
@@ -878,11 +816,11 @@ function quit() {
         return;
     }
     try {
-        exeChildProcess.kill("SIGTERM");
+        getBackendManager().killChild("SIGTERM");
     } catch (e) {
         log(e);
         try {
-            exeChildProcess.kill("SIGKILL");
+            getBackendManager().killChild("SIGKILL");
         } catch (e2) {
             log(e2);
         }
@@ -892,8 +830,9 @@ function quit() {
     const timeoutMs = 5000;
     quitTimeoutId = setTimeout(() => {
         try {
-            if (exeChildProcess && exeChildProcess.exitCode === null && exeChildProcess.signalCode === null) {
-                exeChildProcess.kill("SIGKILL");
+            const proc = getBackendManager().getChildProcess();
+            if (proc && proc.exitCode === null && proc.signalCode === null) {
+                getBackendManager().killChild("SIGKILL");
             }
         } catch (e) {
             log(e);

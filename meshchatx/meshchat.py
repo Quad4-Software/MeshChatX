@@ -4826,7 +4826,15 @@ class ReticulumMeshChat:
                     data,
                     "max_reconnect_tries",
                 )
-                InterfaceEditor.update_value(interface_details, data, "fixed_mtu")
+                fixed_mtu_error = InterfaceEditor.apply_fixed_mtu(
+                    interface_details,
+                    data,
+                )
+                if fixed_mtu_error is not None:
+                    return web.json_response(
+                        {"message": fixed_mtu_error},
+                        status=422,
+                    )
 
             if interface_type == "BackboneInterface":
                 # BackboneInterface supports two distinct configurations:

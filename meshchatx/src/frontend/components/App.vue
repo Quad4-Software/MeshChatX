@@ -10,9 +10,15 @@
             :show-emergency="Boolean(appInfo?.emergency)"
             :emergency-label="$t('app.emergency_mode_active')"
             :show-ws-disconnected="showWsDisconnectedBanner"
-            :ws-disconnected-label="`${$t('app.backend_disconnected')} · ${wsDisconnectedDurationText}`"
+            :ws-disconnected-label="backendOfflineBannerLabel"
+            :show-backend-recovery-actions="showBackendRecoveryActions"
+            :backend-restarting="backendRestarting"
+            :restart-backend-label="$t('app.restart_backend')"
+            :view-backend-logs-label="$t('app.view_backend_logs')"
             :show-ws-reconnected="wsReconnectedBanner"
             :ws-reconnected-label="$t('app.backend_reconnected')"
+            @restart-backend="onRestartBackend"
+            @view-backend-logs="onViewBackendCrashReport"
         />
 
         <RouterView v-if="$route.name === 'auth'" />
@@ -753,6 +759,9 @@ export default {
             wsReconnectedBanner: false,
             wsDisconnectTickTimer: null,
             wsReconnectedHideTimer: null,
+            backendProcessExited: false,
+            backendExitCode: null,
+            backendRestarting: false,
 
             identitySwitchDedupeHash: null,
             identitySwitchDedupeAt: 0,
@@ -786,6 +795,24 @@ export default {
         },
         showWsDisconnectedBanner() {
             return this.shellRunning && this.wsDisconnected && this.$route?.name !== "auth";
+        },
+        backendOfflineBannerLabel() {
+            const duration = this.wsDisconnectedDurationText;
+            const durationSuffix = duration ? ` · ${duration}` : "";
+            if (this.backendProcessExited) {
+                const code =
+                    this.backendExitCode != null && this.backendExitCode !== "" ? ` (${this.backendExitCode})` : "";
+                return `${this.$t("app.backend_process_stopped")}${code}${durationSuffix}`;
+            }
+            return `${this.$t("app.backend_disconnected")}${durationSuffix}`;
+        },
+        showBackendRecoveryActions() {
+            return (
+                this.showWsDisconnectedBanner &&
+                this.backendProcessExited &&
+                ElectronUtils.isElectron() &&
+                typeof window.electron?.restartBackend === "function"
+            );
         },
         identitySidebarLabel() {
             const raw = this.displayName;
@@ -864,6 +891,11 @@ export default {
         this.startShellAuthWatch();
         this.applyShellAppearance();
         if (ElectronUtils.isElectron()) {
+            if (typeof window.electron.onBackendProcessExited === "function") {
+                window.electron.onBackendProcessExited((payload) => {
+                    this.onBackendProcessExited(payload);
+                });
+            }
             window.electron.onProtocolLink((url) => {
                 this.handleProtocolLink(url);
             });
@@ -973,6 +1005,9 @@ export default {
             this.wsDisconnectedAt = null;
             this.wsDisconnectedDurationText = "";
             this.wsReconnectedBanner = false;
+            this.backendProcessExited = false;
+            this.backendExitCode = null;
+            this.backendRestarting = false;
             WebSocketConnection.destroy();
         },
         clearWsShellUiTimers() {
@@ -983,6 +1018,45 @@ export default {
             if (this.wsReconnectedHideTimer != null) {
                 clearTimeout(this.wsReconnectedHideTimer);
                 this.wsReconnectedHideTimer = null;
+            }
+        },
+        onBackendProcessExited(payload = {}) {
+            if (!this.shellRunning) {
+                return;
+            }
+            this.backendProcessExited = true;
+            this.backendExitCode = payload?.code ?? null;
+            this.onWsShellDisconnected();
+        },
+        async onRestartBackend() {
+            if (!window.electron?.restartBackend) {
+                return;
+            }
+            this.backendRestarting = true;
+            try {
+                const result = await window.electron.restartBackend();
+                if (!result?.ok) {
+                    ToastUtils.error(result?.error || this.$t("app.restart_backend_failed"));
+                    return;
+                }
+                ToastUtils.info(this.$t("app.restart_backend_started"));
+            } catch {
+                ToastUtils.error(this.$t("app.restart_backend_failed"));
+            } finally {
+                this.backendRestarting = false;
+            }
+        },
+        async onViewBackendCrashReport() {
+            if (!window.electron?.openBackendCrashReport) {
+                return;
+            }
+            try {
+                const result = await window.electron.openBackendCrashReport();
+                if (!result?.ok) {
+                    ToastUtils.error(result?.error || this.$t("app.view_backend_logs_failed"));
+                }
+            } catch {
+                ToastUtils.error(this.$t("app.view_backend_logs_failed"));
             }
         },
         onWsShellDisconnected() {
@@ -1011,6 +1085,8 @@ export default {
             this.wsDisconnected = false;
             this.wsDisconnectedAt = null;
             this.wsDisconnectedDurationText = "";
+            this.backendProcessExited = false;
+            this.backendExitCode = null;
             if (this.wsDisconnectTickTimer != null) {
                 clearInterval(this.wsDisconnectTickTimer);
                 this.wsDisconnectTickTimer = null;
