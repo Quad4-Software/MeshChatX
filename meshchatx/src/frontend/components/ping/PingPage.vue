@@ -7,7 +7,6 @@
             icon="radar"
             :title="$t('ping.title')"
             :description="$t('tools.ping.description')"
-            :eyebrow="$t('app.tools')"
             accent="blue"
         />
         <div
