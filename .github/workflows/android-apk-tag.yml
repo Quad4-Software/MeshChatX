@@ -177,6 +177,9 @@ jobs:
                       "pycodec2-*-cp311-cp311-android_24_arm64_v8a.whl"
                       "pycodec2-*-cp311-cp311-android_24_x86_64.whl"
                       "pycodec2-*-cp311-cp311-android_24_armeabi_v7a.whl"
+                      "chaquopy_libcodec2-*-android_24_arm64_v8a.whl"
+                      "chaquopy_libcodec2-*-android_24_x86_64.whl"
+                      "chaquopy_libcodec2-*-android_24_armeabi_v7a.whl"
                       "lxst-*-py3-none-any.whl"
                       "bleak-*-py3-none-any.whl"
                   )
@@ -194,6 +197,13 @@ jobs:
                   fi
                   echo "All required Android wheels present:"
                   ls -1 android/vendor/
+                  for wheel in android/vendor/pycodec2-*-android_24_*.whl; do
+                      if ! unzip -l "${wheel}" | grep -q 'pycodec2/libcodec2\.so'; then
+                          echo "::error::${wheel} is missing bundled pycodec2/libcodec2.so"
+                          exit 1
+                      fi
+                  done
+                  echo "pycodec2 wheels bundle libcodec2.so"
 
             - name: Run unit tests
               if: ${{ inputs.run_unit_tests }}

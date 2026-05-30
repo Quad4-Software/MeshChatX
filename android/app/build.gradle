@@ -91,6 +91,40 @@ android {
     }
 }
 
+tasks.register("syncCodec2JniLibs", Exec) {
+    workingDir = repoRoot
+    def abiArg = selectedAndroidAbis.join(",")
+    commandLine(
+        "bash",
+        "scripts/android/sync-codec2-jni-libs.sh",
+        vendorWheelDir.absolutePath,
+        "${projectDir}/src/main/jniLibs",
+        abiArg
+    )
+    onlyIf {
+        vendorWheelDir.isDirectory() && vendorWheelDir.list()?.any { it.startsWith("chaquopy_libcodec2-") }
+    }
+}
+
+tasks.configureEach { task ->
+    if (task.name == "preBuild") {
+        task.dependsOn(tasks.named("syncCodec2JniLibs"))
+    }
+}
+
+tasks.register("repackAndroidPycodec2Wheels", Exec) {
+    workingDir = repoRoot
+    def pyExe = (System.getenv("MESHCHATX_REPACK_PYTHON") ?: "python3")
+    commandLine(pyExe, "scripts/repack-android-pycodec2-wheels.py", "--vendor-dir", vendorWheelDir.absolutePath)
+    onlyIf {
+        vendorWheelDir.isDirectory() && vendorWheelDir.list()?.any { it.startsWith("pycodec2-") && it.endsWith(".whl") }
+    }
+}
+
+tasks.named("syncCodec2JniLibs").configure {
+    dependsOn(tasks.named("repackAndroidPycodec2Wheels"))
+}
+
 tasks.register("fetchRepositoryBundledWheels", Exec) {
     workingDir = repoRoot
     def pyExe = (System.getenv("MESHCHATX_FETCH_PYTHON") ?: "python3")

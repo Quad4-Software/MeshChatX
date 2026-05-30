@@ -50,7 +50,8 @@ See repo root `scripts/sign-android-apks.sh` (default glob targets `outputs/apk/
 ## Troubleshooting
 
 1. Confirm `android/vendor/` contains required `.whl` files from the wheel build script.
-2. Run `./gradlew :app:assembleDebug` with `--stacktrace` if Python sync or Chaquopy pip steps fail.
-3. Re-run `./gradlew :app:assembleDebug` after changing `meshchatx/` assets; sync runs on merge Python sources tasks.
+2. Codec2 (voice messages, LXST Codec2 profiles): wheels must include `pycodec2/libcodec2.so` beside `pycodec2.so`. The wheel build script repacks automatically; for an existing `android/vendor/` tree run `python3 scripts/repack-android-pycodec2-wheels.py`. Gradle also runs this before sync and copies `libcodec2.so` into `jniLibs` per ABI.
+3. Run `./gradlew :app:assembleDebug` with `--stacktrace` if Python sync or Chaquopy pip steps fail.
+4. Re-run `./gradlew :app:assembleDebug` after changing `meshchatx/` assets; sync runs on merge Python sources tasks.
 
 See [`../LICENSE`](../LICENSE) for full text and notices.

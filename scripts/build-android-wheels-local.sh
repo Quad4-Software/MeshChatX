@@ -578,6 +578,9 @@ mkdir -p "${OUT_DIR}"
 cp -f "${PYPIDIR}/dist/chaquopy-libcodec2"/chaquopy_libcodec2-"${LIBCODEC2_VERSION}"-*.whl "${OUT_DIR}/"
 cp -f "${PYPIDIR}/dist/pycodec2"/pycodec2-"${PYCODEC2_VERSION}"-*.whl "${OUT_DIR}/"
 
+echo "Bundling libcodec2.so into pycodec2 wheels (Android dlopen)"
+"${VENV_DIR}/bin/python" "${ROOT_DIR}/scripts/repack-android-pycodec2-wheels.py" --vendor-dir "${OUT_DIR}"
+
 else
     echo "Skipping pycodec2/chaquopy-libcodec2 builds (--only-recipes set)"
 fi

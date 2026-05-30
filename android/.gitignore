@@ -16,3 +16,6 @@ local.properties
 
 # Gradle-synced Chaquopy Python tree (see app/build.gradle)
 /app/src/main/python/meshchatx/
+
+# libcodec2.so copied from vendor wheels (scripts/android/sync-codec2-jni-libs.sh)
+/app/src/main/jniLibs/*/libcodec2.so
