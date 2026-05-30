@@ -6,6 +6,8 @@
 from __future__ import annotations
 
 import argparse
+import base64
+import hashlib
 import re
 import shutil
 import sys
@@ -35,6 +37,46 @@ def _find_libcodec2(vendor_dir: Path, abi_tag: str, dest_dir: Path) -> Path | No
     return _extract_libcodec2(matches[-1], dest_dir)
 
 
+def _urlsafe_sha256_digest(data: bytes) -> str:
+    return base64.urlsafe_b64encode(hashlib.sha256(data).digest()).decode("ascii").rstrip("=")
+
+
+def _rewrite_wheel_record(root: Path) -> None:
+    """Regenerate dist-info/RECORD after wheel contents change.
+
+    Chaquopy's pip post-processor parses RECORD sizes with ``int()`` and rejects
+    directory placeholder lines (``path,,``). Rebuilding RECORD from file bytes
+    keeps repacked pycodec2 wheels installable.
+    """
+    dist_infos = sorted(root.glob("*.dist-info"))
+    if not dist_infos:
+        return
+
+    record_path = dist_infos[0] / "RECORD"
+    if not record_path.is_file():
+        return
+
+    record_rel = record_path.relative_to(root).as_posix()
+    file_entries: list[tuple[str, bytes]] = []
+    for path in sorted(root.rglob("*")):
+        if not path.is_file():
+            continue
+        rel = path.relative_to(root).as_posix()
+        if rel == record_rel:
+            continue
+        file_entries.append((rel, path.read_bytes()))
+
+    rows = []
+    for rel, data in file_entries:
+        digest = _urlsafe_sha256_digest(data)
+        rows.append(f"{rel},sha256={digest},{len(data)}")
+
+    record_body = "\n".join(rows) + "\n"
+    record_digest = _urlsafe_sha256_digest(record_body.encode())
+    record_body += f"{record_rel},sha256={record_digest},{len(record_body.encode())}\n"
+    record_path.write_bytes(record_body.encode())
+
+
 def repack_pycodec2_wheel(pycodec2_wheel: Path, libcodec2_so: Path) -> bool:
     if not libcodec2_so.is_file():
         print(f"Missing libcodec2.so for {pycodec2_wheel.name}", file=sys.stderr)
@@ -48,6 +90,7 @@ def repack_pycodec2_wheel(pycodec2_wheel: Path, libcodec2_so: Path) -> bool:
         target = root / "pycodec2" / "libcodec2.so"
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(libcodec2_so, target)
+        _rewrite_wheel_record(root)
 
         tmp_wheel = pycodec2_wheel.with_suffix(".repack.whl")
         with zipfile.ZipFile(

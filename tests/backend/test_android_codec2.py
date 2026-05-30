@@ -51,8 +51,15 @@ def test_repack_script_bundles_libcodec2(tmp_path):
     with zipfile.ZipFile(lib_wheel, "w") as zout:
         zout.writestr("chaquopy/lib/libcodec2.so", b"\x7fELF-lib")
 
+    record = (
+        "pycodec2/pycodec2.so,sha256=deadbeef,8\n"
+        "pycodec2.dist-info/METADATA,sha256=deadbeef,4\n"
+        "pycodec2.dist-info/RECORD,,\n"
+    )
     with zipfile.ZipFile(py_wheel, "w") as zout:
         zout.writestr("pycodec2/pycodec2.so", b"\x7fELF-mod")
+        zout.writestr("pycodec2.dist-info/METADATA", b"meta")
+        zout.writestr("pycodec2.dist-info/RECORD", record)
 
     lib_src = tmp_path / "libcodec2.so"
     lib_src.write_bytes(b"\x7fELF-lib")
@@ -60,4 +67,12 @@ def test_repack_script_bundles_libcodec2(tmp_path):
 
     with zipfile.ZipFile(py_wheel) as zin:
         names = zin.namelist()
+        record_text = zin.read("pycodec2.dist-info/RECORD").decode()
     assert "pycodec2/libcodec2.so" in names
+    assert ",,\n" not in record_text
+    for line in record_text.splitlines():
+        if not line.strip():
+            continue
+        size_field = line.rsplit(",", 1)[-1]
+        assert size_field
+        int(size_field)
