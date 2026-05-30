@@ -1019,14 +1019,14 @@ wheels = [
 
 [[package]]
 name = "lxmf"
-version = "0.9.9"
+version = "1.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "rns" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/47/26/d7769c90dfe82703f75f321bb92043615d6e284fee3c34b7d54741002e3f/lxmf-0.9.9.tar.gz", hash = "sha256:317beff2b852a18bdc4a5ce89d791edb29225741f5927f50db04b545b33aee67", size = 70654, upload-time = "2026-05-21T15:58:50.969Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/71/a8/f8b8f6042555ce538c85f6b96889359a8a67dead9347e77dd1f1d39e3ebc/lxmf-1.0.0.tar.gz", hash = "sha256:2bf9c2e287656ec8fc8e578c9dec418ad04ce2170ffc0cc92b546a3387b6d20d", size = 71313, upload-time = "2026-05-28T16:52:46.274Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2f/f4/ccab49b896c534f203e31dea67023e666a964be082975c51d332e8309b07/lxmf-0.9.9-py3-none-any.whl", hash = "sha256:51569ba60980eca379f0080b897b569cb44450bc2b38056b3444b5f2c98f54bd", size = 63729, upload-time = "2026-05-21T15:58:48.776Z" },
+    { url = "https://files.pythonhosted.org/packages/ac/0b/55e06a2e429c7745c06ac94322440a511e1132c8c1fc57a0e0702dbd0a21/lxmf-1.0.0-py3-none-any.whl", hash = "sha256:23cd549cfe2710f7b6de5f7d83daad244fe9bd8575d92a902c27485110645ad9", size = 64470, upload-time = "2026-05-28T16:52:44.134Z" },
 ]
 
 [[package]]
@@ -1862,13 +1862,13 @@ requires-dist = [
     { name = "bleak", specifier = "==3.0.2" },
     { name = "cryptography", specifier = ">=46.0.7,<47.0.0" },
     { name = "jaraco-context", specifier = ">=6.1.1" },
-    { name = "lxmf", specifier = ">=0.9.9" },
+    { name = "lxmf", specifier = ">=1.0.0" },
     { name = "lxst", specifier = ">=0.4.6" },
     { name = "miniaudio", specifier = ">=1.70,<2.0" },
     { name = "ply", specifier = ">=3.11,<4.0" },
     { name = "psutil", specifier = ">=7.2.2" },
     { name = "pycparser", specifier = ">=3.0" },
-    { name = "rns", specifier = ">=1.3.1" },
+    { name = "rns", specifier = ">=1.3.4" },
     { name = "websockets", specifier = ">=16.0" },
 ]
 
@@ -1901,15 +1901,15 @@ wheels = [
 
 [[package]]
 name = "rns"
-version = "1.3.1"
+version = "1.3.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cryptography" },
     { name = "pyserial" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/80/ac/be736c217302a92d59b17297b44ea706711b21a0d5a51058cf353512af51/rns-1.3.1.tar.gz", hash = "sha256:cb6eb8e8c3c9a629f15f22f334e0b1e4333a788bdb583660bdaa4d790cc9bfb4", size = 511728, upload-time = "2026-05-22T21:30:43.741Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/10/bf/70cda6742522092d20797e328d268fbb610bf883452f3748e69b3f5e79c0/rns-1.3.4.tar.gz", hash = "sha256:11cd80e00506333e39240fc817c80b2a30d7f7a41f6a35c30356bf518f698582", size = 515339, upload-time = "2026-05-29T07:37:18.978Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d9/8d/390970a46658c765798af1b274edbec5537fcc98125e7414eff45d4b1201/rns-1.3.1-py3-none-any.whl", hash = "sha256:830500caba116f44563ff4e94ca69b2c16278b3977b4b4c634fa2191610ea252", size = 596373, upload-time = "2026-05-22T21:30:38.075Z" },
+    { url = "https://files.pythonhosted.org/packages/c4/b5/f2b67763fa64b4912b91db9e807f1b04f1f0bef9bfc24808edda86816b84/rns-1.3.4-py3-none-any.whl", hash = "sha256:8c7cba113ad8d8dcd6610cf907d063ad83cebaea265eb03e6ec418bd3539a95d", size = 602022, upload-time = "2026-05-29T07:37:15.309Z" },
 ]
 
 [[package]]
