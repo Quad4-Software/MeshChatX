@@ -161,7 +161,7 @@ cd MeshChatX
 corepack enable
 pnpm config set verify-store-integrity true
 pnpm install --frozen-lockfile
-pip install "uv==0.11.12"
+pip install "uv==0.11.15"
 uv lock --check
 uv sync --group dev
 pnpm run build-frontend
@@ -174,7 +174,7 @@ Notes on the install commands above:
 - `verify-store-integrity=true` is also set in the project `pnpm-workspace.yaml`; the explicit `pnpm config set` line above just hardens the user-level config too.
 - Lifecycle scripts (`preinstall`/`postinstall`) are blocked by default in pnpm v11+. Only the packages listed under `allowBuilds` in `pnpm-workspace.yaml` are allowed to run install scripts (currently `electron`, `electron-winstaller`, `esbuild`).
 - `uv lock --check` fails fast if `uv.lock` is out of sync with `pyproject.toml`; `uv sync` then resolves only from the lockfile.
-- For a strict lockfile-only UV install (no implicit lockfile refresh), pin UV with `pip install "uv==0.11.12"` to match what CI uses.
+- For a strict lockfile-only UV install (no implicit lockfile refresh), pin UV with `pip install "uv==0.11.15"` to match what CI uses.
 
 If you intentionally want to update dependencies, run `pnpm update` / `uv lock` in a dedicated commit and review the resulting lockfile diff before pushing.
 

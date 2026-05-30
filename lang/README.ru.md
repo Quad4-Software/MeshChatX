@@ -166,7 +166,7 @@ cd MeshChatX
 corepack enable
 pnpm config set verify-store-integrity true
 pnpm install --frozen-lockfile
-pip install "uv==0.11.12"
+pip install "uv==0.11.15"
 uv lock --check
 uv sync --group dev
 pnpm run build-frontend
@@ -179,7 +179,7 @@ uv run python -m meshchatx.meshchat --headless --host 127.0.0.1
 - `verify-store-integrity=true` уже задан в `pnpm-workspace.yaml` проекта; явный `pnpm config set` дополнительно ужесточает пользовательскую конфигурацию.
 - Lifecycle-скрипты (`preinstall`/`postinstall`) по умолчанию заблокированы в pnpm v11+. Скрипты установки могут запускать только пакеты из `allowBuilds` в `pnpm-workspace.yaml` (сейчас `electron`, `electron-winstaller`, `esbuild`).
 - `uv lock --check` сразу падает, если `uv.lock` не синхронизирован с `pyproject.toml`; затем `uv sync --group dev` ставит зависимости только из lock-файла.
-- Для строгой установки Poetry только из lock-файла зафиксируйте версию Poetry через `pip install "uv==0.11.12"`, как это делает CI.
+- Для строгой установки Poetry только из lock-файла зафиксируйте версию Poetry через `pip install "uv==0.11.15"`, как это делает CI.
 
 Если вы намеренно хотите обновить зависимости, выполните `pnpm update` / `uv lock` отдельным коммитом и проверьте diff lock-файлов до пуша.
 
