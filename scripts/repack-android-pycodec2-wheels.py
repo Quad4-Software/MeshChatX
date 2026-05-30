@@ -38,7 +38,11 @@ def _find_libcodec2(vendor_dir: Path, abi_tag: str, dest_dir: Path) -> Path | No
 
 
 def _urlsafe_sha256_digest(data: bytes) -> str:
-    return base64.urlsafe_b64encode(hashlib.sha256(data).digest()).decode("ascii").rstrip("=")
+    return (
+        base64.urlsafe_b64encode(hashlib.sha256(data).digest())
+        .decode("ascii")
+        .rstrip("=")
+    )
 
 
 def _rewrite_wheel_record(root: Path) -> None:

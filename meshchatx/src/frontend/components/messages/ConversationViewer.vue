@@ -3042,7 +3042,6 @@ export default {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        remote_identity_hash: this.selectedPeer.destination_hash,
                         lxmf_address: this.selectedPeer.destination_hash,
                         name: displayName,
                     }),

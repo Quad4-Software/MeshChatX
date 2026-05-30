@@ -45,12 +45,12 @@ def mock_app():
 @pytest.mark.asyncio
 async def test_send_message_no_path_identity_recall_fails(mock_app):
     destination_hash = "aa" * 16
-    with patch("meshchatx.meshchat.RNS.Identity.recall", return_value=None):
-        with pytest.raises(Exception, match="Could not find path to destination"):
-            await mock_app.send_message(
-                destination_hash=destination_hash,
-                content="hi",
-            )
+    mock_app.recall_identity = MagicMock(return_value=None)
+    with pytest.raises(Exception, match="Could not find path to destination"):
+        await mock_app.send_message(
+            destination_hash=destination_hash,
+            content="hi",
+        )
 
 
 @pytest.mark.asyncio
@@ -60,8 +60,8 @@ async def test_send_message_immediate_exception_in_router(mock_app):
 
     mock_app.message_router.handle_outbound.side_effect = Exception("Router failure")
 
+    mock_app.recall_identity = MagicMock(return_value=fake_identity)
     with (
-        patch("meshchatx.meshchat.RNS.Identity.recall", return_value=fake_identity),
         patch("meshchatx.meshchat.RNS.Destination", return_value=MagicMock()),
         patch("meshchatx.meshchat.LXMF.LXMessage", return_value=MagicMock()),
     ):

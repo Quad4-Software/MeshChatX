@@ -23,7 +23,9 @@ def test_ensure_codec2_loads_bundled_library(tmp_path):
 
     with (
         patch.object(android_codec2, "_is_chaquopy_android", return_value=True),
-        patch.object(android_codec2.ctypes, "CDLL", side_effect=[OSError(), None]) as cdll,
+        patch.object(
+            android_codec2.ctypes, "CDLL", side_effect=[OSError(), None]
+        ) as cdll,
         patch.object(
             android_codec2,
             "_libcodec2_candidates",
@@ -45,7 +47,9 @@ def test_repack_script_bundles_libcodec2(tmp_path):
     spec.loader.exec_module(repack_mod)
     repack_pycodec2_wheel = repack_mod.repack_pycodec2_wheel
 
-    lib_wheel = tmp_path / "chaquopy_libcodec2-1.2.0-0-py3-none-android_24_arm64_v8a.whl"
+    lib_wheel = (
+        tmp_path / "chaquopy_libcodec2-1.2.0-0-py3-none-android_24_arm64_v8a.whl"
+    )
     py_wheel = tmp_path / "pycodec2-4.1.1-0-cp311-cp311-android_24_arm64_v8a.whl"
 
     with zipfile.ZipFile(lib_wheel, "w") as zout:

@@ -826,7 +826,7 @@ export default {
                 const publicKeyHex = Array.from(binary)
                     .map((c) => c.charCodeAt(0).toString(16).padStart(2, "0"))
                     .join("");
-                if (publicKeyHex.length !== 128) return null;
+                if (publicKeyHex.length !== 64 && publicKeyHex.length !== 128) return null;
                 return `lxma://${destinationHash}:${publicKeyHex}`;
             } catch {
                 return null;

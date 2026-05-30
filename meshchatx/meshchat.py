@@ -14947,17 +14947,20 @@ class ReticulumMeshChat:
 
                     bytes.fromhex(destination_hash_hex)
                     raw_bytes = bytes.fromhex(public_key_hex)
-                    public_key_bytes = (
-                        raw_bytes[:32] if len(raw_bytes) >= 32 else raw_bytes
-                    )
 
                     identity = RNS.Identity(create_keys=False)
-                    if not identity.load_public_key(public_key_bytes):
-                        if len(raw_bytes) == 64:
-                            raise ValueError("Invalid LXMA public key")
-                        public_key_bytes = raw_bytes
-                        if not identity.load_public_key(public_key_bytes):
-                            raise ValueError("Invalid LXMA public key")
+                    loaded = False
+                    for candidate in (
+                        raw_bytes,
+                        raw_bytes[:32] if len(raw_bytes) > 32 else None,
+                    ):
+                        if not candidate:
+                            continue
+                        if identity.load_public_key(candidate):
+                            loaded = True
+                            break
+                    if not loaded:
+                        raise ValueError("Invalid LXMA public key")
 
                     remote_identity_hash = identity.hash.hex()
                     existing_contact = (
@@ -16924,7 +16927,7 @@ class ReticulumMeshChat:
         # We cannot replay "old" paths from the app layer — Transport.request_path refreshes discovery.
         path_outcome = await self._await_transport_path(destination_hash_bytes)
 
-        destination_identity = RNS.Identity.recall(destination_hash_bytes)
+        destination_identity = self.recall_identity(destination_hash)
         if destination_identity is None:
             # we have to bail out of sending, since we don't have the identity/path yet
             msg = "Could not find path to destination. Try again later."

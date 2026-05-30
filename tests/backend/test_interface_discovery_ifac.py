@@ -316,7 +316,9 @@ async def test_discovered_interfaces_filter_works_with_ifac_network_name(temp_di
         assert len(data["interfaces"]) == 2
 
         matching = next(i for i in data["interfaces"] if i["name"] == "matching")
-        non_matching = next(i for i in data["interfaces"] if i["name"] == "non-matching")
+        non_matching = next(
+            i for i in data["interfaces"] if i["name"] == "non-matching"
+        )
         assert matching["is_allowed"] is True
         assert non_matching["is_allowed"] is False
         assert matching["network_name"] == "kin.earth"
