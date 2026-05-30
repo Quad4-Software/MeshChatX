@@ -275,10 +275,17 @@
                                                     <input
                                                         v-model="newInterfaceFixedMTU"
                                                         type="number"
-                                                        min="0"
+                                                        :min="reticulumMinFixedMtu"
                                                         placeholder="auto"
                                                         class="input-field"
                                                     />
+                                                    <p class="mt-1 text-xs text-gray-500 dark:text-zinc-400">
+                                                        {{
+                                                            $t("interfaces.fixed_mtu_hint", {
+                                                                min: reticulumMinFixedMtu,
+                                                            })
+                                                        }}
+                                                    </p>
                                                 </div>
                                             </div>
                                         </div>
@@ -2056,6 +2063,9 @@ export default {
             }
             return !this.parseBool(v);
         },
+        reticulumMinFixedMtu() {
+            return 500;
+        },
         formattedFrequency() {
             const totalHz = Math.round(this.calculateFrequencyInHz());
             if (totalHz >= 1e9) {
@@ -2796,12 +2806,34 @@ export default {
                 this.isSaving = false;
             }
         },
+        validateFixedMtuOrWarn() {
+            if (this.newInterfaceType !== "TCPClientInterface") {
+                return true;
+            }
+            const mtu = this.numOrNull(this.newInterfaceFixedMTU);
+            if (mtu == null) {
+                return true;
+            }
+            if (mtu < this.reticulumMinFixedMtu) {
+                ToastUtils.error(
+                    this.$t("interfaces.fixed_mtu_min", {
+                        min: this.reticulumMinFixedMtu,
+                    })
+                );
+                return false;
+            }
+            return true;
+        },
         async saveInterface() {
             if (this.isSaving) return;
             this.isSaving = true;
             try {
                 const discoveryEnabled = this.discovery.discoverable === true;
                 const freqHz = Math.round(this.calculateFrequencyInHz());
+
+                if (!this.validateFixedMtuOrWarn()) {
+                    return;
+                }
 
                 if (this.newInterfaceType === "RNodeInterface" && this.newInterfaceRNodeUseBle) {
                     const raw = (this.newInterfaceRNodeBlePeer || "").trim();

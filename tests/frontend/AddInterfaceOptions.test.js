@@ -83,7 +83,7 @@ describe("AddInterfacePage.vue interface options", () => {
         wrapper.vm.newInterfaceI2PTunnelingEnabled = true;
         wrapper.vm.newInterfaceConnectTimeout = 12;
         wrapper.vm.newInterfaceMaxReconnectTries = 7;
-        wrapper.vm.newInterfaceFixedMTU = 480;
+        wrapper.vm.newInterfaceFixedMTU = 512;
 
         await wrapper.vm.saveInterface();
 
@@ -94,9 +94,23 @@ describe("AddInterfacePage.vue interface options", () => {
                 i2p_tunneled: true,
                 connect_timeout: 12,
                 max_reconnect_tries: 7,
-                fixed_mtu: 480,
+                fixed_mtu: 512,
             })
         );
+    });
+
+    it("blocks TCP client save when fixed_mtu is below Reticulum minimum", async () => {
+        const wrapper = mountPage();
+
+        wrapper.vm.newInterfaceName = "TCPC";
+        wrapper.vm.newInterfaceType = "TCPClientInterface";
+        wrapper.vm.newInterfaceTargetHost = "example.com";
+        wrapper.vm.newInterfaceTargetPort = 4242;
+        wrapper.vm.newInterfaceFixedMTU = 485;
+
+        await wrapper.vm.saveInterface();
+
+        expect(mockAxios.post).not.toHaveBeenCalled();
     });
 
     it("sends TCP server device/prefer_ipv6/i2p_tunneled options", async () => {

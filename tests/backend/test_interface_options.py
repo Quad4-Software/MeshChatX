@@ -198,7 +198,7 @@ async def test_tcp_client_persists_advanced_options(temp_dir):
             "i2p_tunneled": True,
             "connect_timeout": 12,
             "max_reconnect_tries": 7,
-            "fixed_mtu": 480,
+            "fixed_mtu": 512,
         }
         response = await handler(make_request(payload))
         body = json.loads(response.body)
@@ -208,7 +208,27 @@ async def test_tcp_client_persists_advanced_options(temp_dir):
         assert saved["i2p_tunneled"] is True
         assert saved["connect_timeout"] == 12
         assert saved["max_reconnect_tries"] == 7
-        assert saved["fixed_mtu"] == 480
+        assert saved["fixed_mtu"] == 512
+
+
+@pytest.mark.asyncio
+async def test_tcp_client_rejects_fixed_mtu_below_reticulum_minimum(temp_dir):
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    async with make_app(temp_dir, config) as handler:
+        payload = {
+            "name": "TCPClient",
+            "type": "TCPClientInterface",
+            "target_host": "example.com",
+            "target_port": "4242",
+            "fixed_mtu": 485,
+        }
+        response = await handler(make_request(payload))
+        body = json.loads(response.body)
+        assert response.status == 422, body
+        assert "fixed_mtu" in body["message"].lower()
+        assert "500" in body["message"]
+        assert "TCPClient" not in config["interfaces"]
 
 
 @pytest.mark.asyncio
