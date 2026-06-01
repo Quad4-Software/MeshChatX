@@ -12,6 +12,7 @@ from meshchatx.src.backend.lxmf_utils import (
     convert_db_lxmf_message_to_dict,
     convert_lxmf_message_to_dict,
     convert_lxmf_state_to_string,
+    lxmf_message_solving_stamps,
     lxmf_sidebar_preview_for_conversation_latest_row,
 )
 
@@ -42,6 +43,83 @@ def test_convert_lxmf_message_to_dict_basic():
     assert result["progress"] == 50.0
     assert result["state"] == "sent"
     assert result["method"] == "direct"
+    assert result["solving_stamps"] is False
+
+
+def test_lxmf_message_solving_stamps_deferred_outbound():
+    mock_msg = MagicMock(spec=LXMF.LXMessage)
+    mock_msg.incoming = False
+    mock_msg.outbound_ticket = None
+    mock_msg.stamp_cost = 16
+    mock_msg.stamp = None
+    mock_msg.defer_stamp = True
+    mock_msg.desired_method = LXMF.LXMessage.DIRECT
+    mock_msg.defer_propagation_stamp = True
+    mock_msg.propagation_stamp = None
+    mock_msg.state = LXMF.LXMessage.OUTBOUND
+    mock_msg.message_id = b"msg_id"
+
+    router = MagicMock()
+    router.pending_deferred_stamps = {b"msg_id": mock_msg}
+
+    assert lxmf_message_solving_stamps(mock_msg, router) is True
+
+
+def test_lxmf_message_solving_stamps_false_with_ticket():
+    mock_msg = MagicMock(spec=LXMF.LXMessage)
+    mock_msg.incoming = False
+    mock_msg.outbound_ticket = b"ticket"
+    mock_msg.stamp_cost = 16
+    mock_msg.stamp = None
+    mock_msg.defer_stamp = True
+    mock_msg.state = LXMF.LXMessage.OUTBOUND
+
+    assert lxmf_message_solving_stamps(mock_msg) is False
+
+
+def test_lxmf_message_solving_stamps_false_after_stamp_generated():
+    mock_msg = MagicMock(spec=LXMF.LXMessage)
+    mock_msg.incoming = False
+    mock_msg.outbound_ticket = None
+    mock_msg.stamp_cost = 16
+    mock_msg.stamp = b"stamp_bytes"
+    mock_msg.defer_stamp = True
+    mock_msg.state = LXMF.LXMessage.OUTBOUND
+
+    assert lxmf_message_solving_stamps(mock_msg) is False
+
+
+def test_convert_lxmf_message_to_dict_includes_solving_stamps():
+    mock_msg = MagicMock(spec=LXMF.LXMessage)
+    mock_msg.hash = b"hash"
+    mock_msg.source_hash = b"src"
+    mock_msg.destination_hash = b"dst"
+    mock_msg.incoming = False
+    mock_msg.outbound_ticket = None
+    mock_msg.stamp_cost = 8
+    mock_msg.stamp = None
+    mock_msg.defer_stamp = True
+    mock_msg.desired_method = LXMF.LXMessage.DIRECT
+    mock_msg.defer_propagation_stamp = True
+    mock_msg.propagation_stamp = None
+    mock_msg.state = LXMF.LXMessage.OUTBOUND
+    mock_msg.message_id = b"mid"
+    mock_msg.progress = 0.0
+    mock_msg.method = LXMF.LXMessage.DIRECT
+    mock_msg.delivery_attempts = 0
+    mock_msg.title = b""
+    mock_msg.content = b"hi"
+    mock_msg.timestamp = 1
+    mock_msg.rssi = None
+    mock_msg.snr = None
+    mock_msg.q = None
+    mock_msg.get_fields.return_value = {}
+
+    router = MagicMock()
+    router.pending_deferred_stamps = {b"mid": mock_msg}
+
+    result = convert_lxmf_message_to_dict(mock_msg, message_router=router)
+    assert result["solving_stamps"] is True
 
 
 def test_convert_lxmf_message_to_dict_with_attachments():

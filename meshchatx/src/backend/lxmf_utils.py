@@ -338,10 +338,63 @@ def lxmf_sidebar_preview_for_conversation_latest_row(
     return str(content or "")
 
 
+def lxmf_message_solving_stamps(
+    lxmf_message: LXMF.LXMessage, message_router=None
+) -> bool:
+    if getattr(lxmf_message, "incoming", False):
+        return False
+    if getattr(lxmf_message, "outbound_ticket", None) is not None:
+        return False
+
+    stamp_cost = getattr(lxmf_message, "stamp_cost", None)
+    needs_direct_stamp = (
+        stamp_cost is not None and getattr(lxmf_message, "stamp", None) is None
+    )
+
+    desired_method = getattr(lxmf_message, "desired_method", None)
+    needs_propagation_stamp = (
+        desired_method == LXMF.LXMessage.PROPAGATED
+        and getattr(lxmf_message, "defer_propagation_stamp", False)
+        and getattr(lxmf_message, "propagation_stamp", None) is None
+    )
+
+    if not needs_direct_stamp and not needs_propagation_stamp:
+        return False
+
+    pending_deferred = (
+        getattr(message_router, "pending_deferred_stamps", None)
+        if message_router
+        else None
+    )
+    message_id = getattr(lxmf_message, "message_id", None)
+    if (
+        pending_deferred is not None
+        and message_id is not None
+        and message_id in pending_deferred
+    ):
+        return True
+
+    state = getattr(lxmf_message, "state", None)
+    pending_states = {LXMF.LXMessage.GENERATING, LXMF.LXMessage.OUTBOUND}
+
+    if needs_direct_stamp:
+        if getattr(lxmf_message, "defer_stamp", True):
+            if state in pending_states:
+                return True
+        elif state == LXMF.LXMessage.GENERATING:
+            return True
+
+    if needs_propagation_stamp and state in pending_states:
+        return True
+
+    return False
+
+
 def convert_lxmf_message_to_dict(
     lxmf_message: LXMF.LXMessage,
     include_attachments: bool = True,
     reticulum=None,
+    message_router=None,
 ):
     # handle fields
     fields = {}
@@ -557,6 +610,7 @@ def convert_lxmf_message_to_dict(
         out["reaction_to"] = reaction_to
         out["reaction_emoji"] = reaction_emoji
         out["reaction_sender"] = reaction_sender
+    out["solving_stamps"] = lxmf_message_solving_stamps(lxmf_message, message_router)
     return out
 
 

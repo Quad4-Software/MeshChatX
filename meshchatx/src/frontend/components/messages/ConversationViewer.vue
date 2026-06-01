@@ -2060,7 +2060,7 @@ export default {
         },
         sendMessagePathfindingTooltip() {
             if (GlobalState.detailedOutboundSendStatus) {
-                return "Finding path to peer (Reticulum is resolving a route). Your message sends as soon as the route is ready. Hover status icons in the bubble for details.";
+                return this.$t("messages.send_pathfinding_tooltip");
             }
             return this.$t("messages.sending_ellipsis");
         },
@@ -4319,7 +4319,10 @@ export default {
                 return this.$t("messages.sending_ellipsis");
             }
             if (lxmfMessage._pendingPathfinding) {
-                return "Finding path: Reticulum is resolving a route to this peer. Your message sends when the route is ready.";
+                return this.$t("messages.outbound_pathfinding_tooltip");
+            }
+            if (lxmfMessage.solving_stamps) {
+                return this.$t("messages.outbound_solving_stamps");
             }
             if (lxmfMessage.method === "propagated") {
                 if (lxmfMessage.state === "sending" && (lxmfMessage.progress ?? 0) > 0) {
@@ -4332,15 +4335,17 @@ export default {
                 }
             }
             if (lxmfMessage.state === "generating") {
-                return "Preparing message…";
+                return this.$t("messages.outbound_preparing_message");
             }
             if (lxmfMessage.state === "sending" && (lxmfMessage.progress ?? 0) > 0) {
-                return `Sending… ${Number(lxmfMessage.progress).toFixed(0)}%`;
+                return this.$t("messages.outbound_sending_with_progress", {
+                    progress: Number(lxmfMessage.progress).toFixed(0),
+                });
             }
             if (lxmfMessage.state === "sending") {
-                return "Sending…";
+                return this.$t("messages.sending_ellipsis");
             }
-            return "Pending";
+            return this.$t("messages.outbound_pending");
         },
         outboundSentStatusTitle(lxmfMessage) {
             if (!lxmfMessage) {
@@ -4593,22 +4598,27 @@ export default {
                 return this.$t("messages.sending_ellipsis");
             }
             if (lxmfMessage._pendingPathfinding) {
-                return "Finding path";
+                return this.$t("messages.outbound_pathfinding_short");
+            }
+            if (lxmfMessage.solving_stamps) {
+                return this.$t("messages.outbound_solving_stamps_short");
             }
             if (lxmfMessage.state === "generating") {
-                return "Preparing message";
+                return this.$t("messages.outbound_preparing_message_short");
             }
             if (lxmfMessage.state === "sending" && (lxmfMessage.progress ?? 0) > 0) {
-                return `Sending ${Number(lxmfMessage.progress).toFixed(0)}%`;
+                return this.$t("messages.outbound_sending_with_progress", {
+                    progress: Number(lxmfMessage.progress).toFixed(0),
+                });
             }
             if (lxmfMessage.state === "sending") {
-                return "Sending";
+                return this.$t("messages.outbound_sending_short");
             }
             if (lxmfMessage.state === "outbound") {
                 if (lxmfMessage.method === "propagated") {
                     return this.$t("messages.outbound_pending_propagation");
                 }
-                return "Outbound";
+                return this.$t("messages.outbound_outbound_short");
             }
             return this.outboundSendingStatusTooltip(lxmfMessage);
         },

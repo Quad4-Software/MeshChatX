@@ -10830,6 +10830,9 @@ class ReticulumMeshChat:
                             lxmf_message,
                             include_attachments=False,
                             reticulum=self.reticulum,
+                            message_router=self.current_context.message_router
+                            if self.current_context
+                            else None,
                         ),
                     },
                 )
@@ -10867,6 +10870,9 @@ class ReticulumMeshChat:
                             lxmf_message,
                             include_attachments=False,
                             reticulum=self.reticulum,
+                            message_router=self.current_context.message_router
+                            if self.current_context
+                            else None,
                         ),
                     },
                 )
@@ -16771,6 +16777,7 @@ class ReticulumMeshChat:
             lxmf_message,
             include_attachments=False,
             reticulum=self.reticulum,
+            message_router=ctx.message_router,
         )
         self._merge_stored_path_fields_from_db(ctx, lxmf_message.hash.hex(), msg_dict)
 
@@ -16847,6 +16854,7 @@ class ReticulumMeshChat:
         lxmf_message_dict = convert_lxmf_message_to_dict(
             lxmf_message,
             reticulum=self.reticulum,
+            message_router=ctx.message_router,
         )
         lxmf_message_dict["is_spam"] = 1 if is_spam else 0
         lxmf_message_dict["attachments_stripped"] = 1 if attachments_stripped else 0
@@ -17127,6 +17135,7 @@ class ReticulumMeshChat:
                             lxmf_message,
                             include_attachments=False,
                             reticulum=self.reticulum,
+                            message_router=ctx.message_router,
                         ),
                     },
                 ),
@@ -17302,6 +17311,7 @@ class ReticulumMeshChat:
                 lxmf_message,
                 include_attachments=False,
                 reticulum=self.reticulum,
+                message_router=ctx.message_router,
             )
             self._merge_stored_path_fields_from_db(
                 ctx, lxmf_message.hash.hex(), msg_dict

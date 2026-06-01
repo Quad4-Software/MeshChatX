@@ -112,6 +112,79 @@ describe("ConversationViewer outbound propagation status", () => {
         ).toBe("messages.outbound_pending_propagation");
     });
 
+    it("outboundSendingStatusTooltip uses solving stamps copy when solving_stamps is set", () => {
+        const wrapper = mountViewer();
+        expect(
+            wrapper.vm.outboundSendingStatusTooltip({
+                state: "outbound",
+                solving_stamps: true,
+            })
+        ).toBe("messages.outbound_solving_stamps");
+    });
+
+    it("outboundBubbleStatusHoverTitle uses solving stamps short copy when solving_stamps is set", () => {
+        const wrapper = mountViewer();
+        expect(
+            wrapper.vm.outboundBubbleStatusHoverTitle({
+                state: "outbound",
+                solving_stamps: true,
+            })
+        ).toBe("messages.outbound_solving_stamps_short");
+    });
+
+    it("onLxmfMessageUpdated preserves solving_stamps when websocket omits the field", () => {
+        const wrapper = mountViewer();
+        const hash = "abc123def456789012345678901234ab";
+        wrapper.vm.chatItems = [
+            {
+                type: "lxmf_message",
+                is_outbound: true,
+                lxmf_message: {
+                    hash,
+                    destination_hash: "peerhash111111111111111111111111",
+                    state: "outbound",
+                    solving_stamps: true,
+                    content: "hi",
+                    fields: {},
+                },
+            },
+        ];
+
+        wrapper.vm.onLxmfMessageUpdated({
+            hash,
+            state: "sending",
+        });
+
+        expect(wrapper.vm.chatItems[0].lxmf_message.solving_stamps).toBe(true);
+    });
+
+    it("onLxmfMessageUpdated clears solving_stamps when websocket sets it false", () => {
+        const wrapper = mountViewer();
+        const hash = "abc123def456789012345678901234ab";
+        wrapper.vm.chatItems = [
+            {
+                type: "lxmf_message",
+                is_outbound: true,
+                lxmf_message: {
+                    hash,
+                    destination_hash: "peerhash111111111111111111111111",
+                    state: "outbound",
+                    solving_stamps: true,
+                    content: "hi",
+                    fields: {},
+                },
+            },
+        ];
+
+        wrapper.vm.onLxmfMessageUpdated({
+            hash,
+            state: "sending",
+            solving_stamps: false,
+        });
+
+        expect(wrapper.vm.chatItems[0].lxmf_message.solving_stamps).toBe(false);
+    });
+
     it("onLxmfMessageUpdated preserves merged method when websocket sends propagated handoff", () => {
         const wrapper = mountViewer();
         const hash = "abc123def456789012345678901234ab";
