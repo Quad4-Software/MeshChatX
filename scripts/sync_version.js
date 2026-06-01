@@ -5,6 +5,7 @@
  * Writes: meshchatx/__init__.py (__version__), meshchatx/src/version.py, pyproject.toml [project].version,
  * meshchatx/src/backend/data/THIRD_PARTY_NOTICES.txt (reticulum-meshchatx line only),
  * README + lang README "current version" lines, docs/meshchatx_on_raspberry_pi.md
+ * (and meshchatx/src/frontend/public/meshchatx-docs copy), android/app/build.gradle,
  * pipx example, packaging/arch/PKGBUILD pkgver / printf fallback.
  *
  * __version__ lives in meshchatx/__init__.py so Chaquopy/Android (which may not ship loose .py
@@ -86,16 +87,29 @@ patchFile("lang/README.ja.md", (c) =>
 patchFile("lang/README.ru.md", (c) => c.replace(/(Текущая версия в репозитории: `)[^`]+(`)/, `$1${version}$2`));
 patchFile("lang/README.zh.md", (c) => c.replace(/(本仓库当前版本: `)[^`]+(`)/, `$1${version}$2`));
 
-patchFile("docs/meshchatx_on_raspberry_pi.md", (c) => {
+function patchRaspberryPiDoc(c) {
     let x = c;
     x = x.replace(/\(\d+\.\d+\.\d+ or newer\)/, `(${version} or newer)`);
     x = x.replace(/Direct example \(v\d+\.\d+\.\d+\):/, `Direct example (v${version}):`);
     x = x.replace(
-        /releases\/download\/v\d+\.\d+\.\d+\/reticulum_meshchatx-\d+\.\d+\.\d+-py3-none-any\.whl/,
+        /releases\/download\/v\d+\.\d+\.\d+\/reticulum_meshchatx-\d+\.\d+\.\d+-py3-none-any\.whl/g,
         `releases/download/v${version}/reticulum_meshchatx-${version}-py3-none-any.whl`
     );
     return x;
-});
+}
+
+patchFile("docs/meshchatx_on_raspberry_pi.md", patchRaspberryPiDoc);
+patchFile("meshchatx/src/frontend/public/meshchatx-docs/meshchatx_on_raspberry_pi.md", patchRaspberryPiDoc);
+
+const versionParts = version.split(".").map((n) => Number.parseInt(n, 10));
+if (versionParts.length === 3 && versionParts.every((n) => Number.isFinite(n))) {
+    const versionCode = versionParts[0] * 10000 + versionParts[1] * 1000 + versionParts[2];
+    patchFile("android/app/build.gradle", (c) => {
+        let x = c.replace(/versionCode \d+/, `versionCode ${versionCode}`);
+        x = x.replace(/versionName "[^"]+"/, `versionName "${version}"`);
+        return x;
+    });
+}
 
 patchFile("packaging/arch/PKGBUILD", (c) => {
     let x = c.replace(/^pkgver=\d+\.\d+\.\d+(.*)$/m, `pkgver=${version}$1`);

@@ -1,5 +1,5 @@
 Reticulum MeshChatX - Third-party notices
-Generated at: 2026-05-30T16:44:06.420973Z
+Generated at: 2026-06-01T13:12:07.233603Z
 Frontend source: pnpm
 
 Python dependencies
@@ -46,7 +46,7 @@ idna 3.13
 jaraco.context 6.1.2
   License: MIT
   Author: "Jason R. Coombs" <jaraco@jaraco.com>
-lxmf 1.0.0
+lxmf 1.0.1
   License: Reticulum License
   Author: Mark Qvist
 lxmfy 1.6.2
@@ -82,10 +82,10 @@ pycparser 3.0
 pyserial 3.5
   License: BSD
   Author: Chris Liechti
-reticulum-meshchatx 4.6.3
+reticulum-meshchatx 4.7.0
   License: 0BSD AND MIT
   Author: Quad4
-rns 1.3.4
+rns 1.3.5
   License: Reticulum License
   Author: Mark Qvist
 websockets 16.0

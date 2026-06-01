@@ -1,6 +1,6 @@
 {
     "name": "reticulum-meshchatx",
-    "version": "4.6.3",
+    "version": "4.7.0",
     "description": "A simple mesh network communications app powered by the Reticulum Network Stack",
     "homepage": "https://github.com/Quad4-Software/MeshChatX",
     "desktopName": "reticulum-meshchatx.desktop",

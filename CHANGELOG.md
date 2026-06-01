@@ -36,7 +36,6 @@ All notable changes to this project will be documented in this file.
 - **Project URLs**: Default homepage and documentation links moved from **git.quad4.io** to **github.com/Quad4-Software/MeshChatX** and official mirrors.
 - **Frontend**: General styling refresh; **Identities** sidebar icon updated.
 - **Android**: Build metadata and wheel-fetch scripts updated (retries, local wheel paths).
-- **Build**: Legacy Taskfile/build paths removed; **README** and packaging version stamps aligned with **4.6.3**.
 - **Tests**: HTTP API route contract, interface discovery, call page, Micron editor publish, LXMF reaction field **0x40**, and notification user-facing filters updated for the above behavior.
 
 ## [4.6.2] - 2026-05-10
