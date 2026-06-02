@@ -37,6 +37,7 @@ describe("MessagesPage with MessagesSidebar integration", () => {
     let axiosMock;
 
     beforeEach(() => {
+        localStorage.clear();
         axiosMock = {
             get: vi.fn(),
             post: vi.fn(),

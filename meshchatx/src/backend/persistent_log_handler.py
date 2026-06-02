@@ -10,6 +10,10 @@ from datetime import UTC, datetime
 
 _LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
 
+_ACCESS_LOG_RE = re.compile(
+    r"^([\d\.\:]+) .* \"[^\"]+\" \d+ \d+ \"[^\"]*\" \"([^\"]+)\"",
+)
+
 
 class PersistentLogHandler(logging.Handler):
     def __init__(self, database=None, capacity=5000, flush_interval=5):
@@ -45,7 +49,10 @@ class PersistentLogHandler(logging.Handler):
             msg = self.format(record)
             timestamp = datetime.now(UTC).timestamp()
 
-            is_anomaly, anomaly_type = self._detect_anomaly(record, msg, timestamp)
+            try:
+                is_anomaly, anomaly_type = self._detect_anomaly(record, msg, timestamp)
+            except Exception:
+                is_anomaly, anomaly_type = False, None
 
             log_entry = {
                 "timestamp": timestamp,
@@ -74,12 +81,8 @@ class PersistentLogHandler(logging.Handler):
 
     def _detect_access_anomaly(self, message):
         """Detect anomalies in aiohttp access logs."""
-        # Regex to extract IP and User-Agent from aiohttp access log
         # Format: IP [date] "GET ..." status size "referer" "User-Agent"
-        match = re.search(
-            r"^([\d\.\:]+) .* \"[^\"]+\" \d+ \d+ \"[^\"]*\" \"([^\"]+)\"",
-            message,
-        )
+        match = _ACCESS_LOG_RE.search(message)
         if match:
             ip = match.group(1)
             ua = match.group(2)
@@ -217,24 +220,34 @@ class PersistentLogHandler(logging.Handler):
                     is_anomaly=is_anomaly,
                 )
             # Fallback to in-memory buffer if DB not yet available
-            logs = list(self.logs_buffer)
-            if search:
-                logs = [
-                    log
-                    for log in logs
-                    if search.lower() in log["message"].lower()
-                    or search.lower() in log["module"].lower()
-                ]
-            if level:
-                logs = [log for log in logs if log["level"] == level]
-            if is_anomaly is not None:
-                logs = [
-                    log for log in logs if log["is_anomaly"] == (1 if is_anomaly else 0)
-                ]
-
-            # Sort descending
+            logs = self._filter_buffer(
+                search=search,
+                level=level,
+                module=module,
+                is_anomaly=is_anomaly,
+            )
             logs.sort(key=lambda x: x["timestamp"], reverse=True)
             return logs[offset : offset + limit]
+
+    def _filter_buffer(self, search=None, level=None, module=None, is_anomaly=None):
+        logs = list(self.logs_buffer)
+        if search:
+            needle = search.lower()
+            logs = [
+                log
+                for log in logs
+                if needle in str(log.get("message", "")).lower()
+                or needle in str(log.get("module", "")).lower()
+            ]
+        if level:
+            logs = [log for log in logs if log["level"] == level]
+        if module:
+            logs = [log for log in logs if log["module"] == module]
+        if is_anomaly is not None:
+            logs = [
+                log for log in logs if log["is_anomaly"] == (1 if is_anomaly else 0)
+            ]
+        return logs
 
     def get_total_count(self, search=None, level=None, module=None, is_anomaly=None):
         with self.lock:
@@ -245,7 +258,14 @@ class PersistentLogHandler(logging.Handler):
                     module=module,
                     is_anomaly=is_anomaly,
                 )
-            return len(self.logs_buffer)
+            return len(
+                self._filter_buffer(
+                    search=search,
+                    level=level,
+                    module=module,
+                    is_anomaly=is_anomaly,
+                ),
+            )
 
     @property
     def current_log_entropy(self):

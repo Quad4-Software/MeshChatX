@@ -287,6 +287,17 @@ class MiscDAO:
         else:
             self.provider.execute("UPDATE notifications SET is_viewed = 1")
 
+    def dismiss_unviewed_notifications(self, notification_type=None, remote_hash=None):
+        query = "UPDATE notifications SET is_viewed = 1 WHERE is_viewed = 0"
+        params = []
+        if notification_type:
+            query += " AND type = ?"
+            params.append(notification_type)
+        if remote_hash:
+            query += " AND remote_hash = ?"
+            params.append(remote_hash)
+        self.provider.execute(query, params)
+
     def get_unread_notification_count(self):
         row = self.provider.fetchone(
             "SELECT COUNT(*) as count FROM notifications WHERE is_viewed = 0",

@@ -67,6 +67,7 @@ from meshchatx.src.backend.database.access_attempts import (
     user_agent_hash,
 )
 from meshchatx.src.backend.identity_context import IdentityContext
+from meshchatx.src.backend.rrc import protocol as rrc_protocol
 from meshchatx.src.backend.identity_manager import IdentityManager
 from meshchatx.src.backend.legacy_migrator import (
     assert_migration_context_paths,
@@ -136,7 +137,6 @@ from meshchatx.src.backend.page_node_manager import PageNodeManager
 from meshchatx.src.backend.persistent_log_handler import PersistentLogHandler
 from meshchatx.src.backend.recovery import CrashRecovery, HealthMonitor
 from meshchatx.src.backend import reticulum_pathfinding
-import meshchatx.src.backend.rngit_tool as rngit_tool
 from meshchatx.src.backend.rnprobe_handler import RNProbeHandler
 from meshchatx.src.backend.sideband_commands import SidebandCommands
 from meshchatx.src.backend.sticker_utils import (
@@ -535,6 +535,15 @@ class ReticulumMeshChat:
             self.current_context.rncp_handler = value
 
     @property
+    def rnsh_manager(self):
+        return self.current_context.rnsh_manager if self.current_context else None
+
+    @rnsh_manager.setter
+    def rnsh_manager(self, value):
+        if self.current_context:
+            self.current_context.rnsh_manager = value
+
+    @property
     def rnstatus_handler(self):
         return self.current_context.rnstatus_handler if self.current_context else None
 
@@ -598,6 +607,24 @@ class ReticulumMeshChat:
     def forwarding_manager(self, value):
         if self.current_context:
             self.current_context.forwarding_manager = value
+
+    @property
+    def rrc_manager(self):
+        return self.current_context.rrc_manager if self.current_context else None
+
+    @rrc_manager.setter
+    def rrc_manager(self, value):
+        if self.current_context:
+            self.current_context.rrc_manager = value
+
+    @property
+    def rrc_server_manager(self):
+        return self.current_context.rrc_server_manager if self.current_context else None
+
+    @rrc_server_manager.setter
+    def rrc_server_manager(self, value):
+        if self.current_context:
+            self.current_context.rrc_server_manager = value
 
     @property
     def community_interfaces_manager(self):
@@ -2376,7 +2403,7 @@ class ReticulumMeshChat:
         while self.running and self._mem_diag.enabled:
             try:
                 await asyncio.to_thread(self._mem_diag.snapshot)
-                n = len(self._mem_diag._snapshots)
+                n = self._mem_diag.total_snapshots
                 if n % 12 == 0:
                     report = await asyncio.to_thread(
                         self._mem_diag.diff_snapshots,
@@ -3362,6 +3389,136 @@ class ReticulumMeshChat:
                         "status": status,
                         "target_hash": target_hash,
                         "target_name": target_name,
+                    },
+                ),
+            ),
+        )
+
+    def on_rrc_change(self, hub, context=None):
+        """Broadcast an RRC hub state change to connected clients."""
+        AsyncUtils.run_async(
+            self.websocket_broadcast(
+                json.dumps(
+                    {
+                        "type": "rrc.change",
+                        "hub_hash": hub.hub_hash.hex() if hub is not None else None,
+                    },
+                ),
+            ),
+        )
+
+    def _rrc_mention_remote_hash(self, hub_hash_hex, room):
+        from meshchatx.src.backend.rrc import protocol as rrc_protocol
+
+        return f"{hub_hash_hex}:{rrc_protocol.normalize_room(room)}"
+
+    def _maybe_add_rrc_mention_notification(self, hub, msg, context=None):
+        if hub is None or not getattr(msg, "mention", False):
+            return
+        if msg.kind not in ("msg", "action"):
+            return
+        if not msg.room:
+            return
+        ctx = context or self.current_context
+        if ctx is None:
+            return
+        from meshchatx.src.backend.rrc import protocol as rrc_protocol
+
+        room = rrc_protocol.normalize_room(msg.room)
+        hub_hash = hub.hub_hash.hex()
+        remote_hash = self._rrc_mention_remote_hash(hub_hash, room)
+        hub_label = (
+            hub.get_display_name()
+            if hasattr(hub, "get_display_name")
+            else (hub.name or hub_hash[:12])
+        )
+        nick = msg.nick if isinstance(msg.nick, str) and msg.nick else None
+        if not nick and isinstance(msg.src, (bytes, bytearray)):
+            nick = msg.src.hex()[:12]
+        nick = nick or "Someone"
+        preview = (msg.text or "").strip()
+        if len(preview) > 180:
+            preview = preview[:177] + "..."
+        title = f"#{room} · {hub_label}"
+        content = f"{nick}: {preview}" if preview else f"{nick} mentioned you"
+        ctx.database.misc.dismiss_unviewed_notifications(
+            notification_type="rrc_mention",
+            remote_hash=remote_hash,
+        )
+        ctx.database.misc.add_notification(
+            "rrc_mention",
+            remote_hash,
+            title,
+            content,
+        )
+
+    def _mark_rrc_mention_notifications_viewed(self, hub_hash_hex, room, context=None):
+        ctx = context or self.current_context
+        if ctx is None or not room:
+            return
+        with contextlib.suppress(ValueError):
+            ctx.database.misc.dismiss_unviewed_notifications(
+                notification_type="rrc_mention",
+                remote_hash=self._rrc_mention_remote_hash(hub_hash_hex, room),
+            )
+
+    def on_rrc_message(self, hub, msg, context=None):
+        """Broadcast a new RRC message to connected clients."""
+        with contextlib.suppress(Exception):
+            self._maybe_add_rrc_mention_notification(hub, msg, context=context)
+        AsyncUtils.run_async(
+            self.websocket_broadcast(
+                json.dumps(
+                    {
+                        "type": "rrc.message",
+                        "hub_hash": hub.hub_hash.hex() if hub is not None else None,
+                        "room": msg.room,
+                        "message": msg.to_dict(),
+                        "mention": bool(getattr(msg, "mention", False)),
+                    },
+                ),
+            ),
+        )
+
+    def on_rrc_server_change(self, hub, context=None):
+        """Broadcast a hosted RRC hub state change to connected clients."""
+        AsyncUtils.run_async(
+            self.websocket_broadcast(
+                json.dumps(
+                    {
+                        "type": "rrc.server.change",
+                        "hub_id": hub.hub_id if hub is not None else None,
+                    },
+                ),
+            ),
+        )
+
+    def on_rnsh_change(self, session, context=None):
+        """Broadcast an RNSh session state change to connected clients."""
+        AsyncUtils.run_async(
+            self.websocket_broadcast(
+                json.dumps(
+                    {
+                        "type": "rnsh.session.change",
+                        "session_id": session.session_id
+                        if session is not None
+                        else None,
+                    },
+                ),
+            ),
+        )
+
+    def on_rnsh_output(self, session, chunk, context=None):
+        """Broadcast RNSh output chunks to connected clients."""
+        AsyncUtils.run_async(
+            self.websocket_broadcast(
+                json.dumps(
+                    {
+                        "type": "rnsh.output",
+                        "session_id": session.session_id
+                        if session is not None
+                        else None,
+                        "chunk": chunk,
                     },
                 ),
             ),
@@ -7320,6 +7477,526 @@ class ReticulumMeshChat:
             except Exception as e:
                 return web.json_response({"error": str(e)}, status=500)
 
+        # Reticulum Relay Chat
+        def _rrc_require_manager():
+            manager = self.rrc_manager
+            if manager is None:
+                return None, web.json_response(
+                    {"message": "Relay chat is not available"},
+                    status=503,
+                )
+            return manager, None
+
+        def _rrc_require_hub(hub_hash_hex):
+            manager, error = _rrc_require_manager()
+            if error is not None:
+                return None, None, error
+            hub = manager.find_hub_by_hex(hub_hash_hex)
+            if hub is None:
+                return (
+                    manager,
+                    None,
+                    web.json_response(
+                        {"message": "Hub not found"},
+                        status=404,
+                    ),
+                )
+            return manager, hub, None
+
+        @routes.get("/api/v1/rrc/hubs")
+        async def rrc_hubs_get(request):
+            manager, error = _rrc_require_manager()
+            if error is not None:
+                return error
+            return web.json_response(manager.to_dict())
+
+        @routes.post("/api/v1/rrc/hubs")
+        async def rrc_hubs_post(request):
+            manager, error = _rrc_require_manager()
+            if error is not None:
+                return error
+            data = await request.json()
+            hub_hash_hex = (data.get("hub_hash") or "").strip()
+            try:
+                hub_hash = bytes.fromhex(hub_hash_hex)
+            except (ValueError, TypeError):
+                return web.json_response(
+                    {"message": "A valid hub hash is required"},
+                    status=400,
+                )
+            if len(hub_hash) != rrc_protocol.HUB_HASH_BYTES:
+                return web.json_response(
+                    {"message": "Hub hash has an invalid length"},
+                    status=400,
+                )
+            dest_name = data.get("dest_name") or None
+            name = data.get("name") or None
+            hub = manager.add_hub(hub_hash, dest_name=dest_name, name=name)
+            if data.get("connect"):
+                hub.connect()
+            return web.json_response({"hub": hub.to_dict()})
+
+        @routes.delete("/api/v1/rrc/hubs/{hub_hash}")
+        async def rrc_hub_delete(request):
+            manager, hub, error = _rrc_require_hub(
+                request.match_info.get("hub_hash", ""),
+            )
+            if error is not None:
+                return error
+            manager.remove_hub(hub)
+            return web.json_response({"message": "Hub removed"})
+
+        @routes.patch("/api/v1/rrc/hubs/{hub_hash}")
+        async def rrc_hub_patch(request):
+            _, hub, error = _rrc_require_hub(request.match_info.get("hub_hash", ""))
+            if error is not None:
+                return error
+            data = await request.json()
+            if "auto_reconnect" in data:
+                hub.set_auto_reconnect(bool(data["auto_reconnect"]))
+            if "auto_list" in data:
+                hub.set_auto_list(bool(data["auto_list"]))
+            if "auto_who" in data:
+                hub.set_auto_who(bool(data["auto_who"]))
+            if "nick" in data:
+                hub.set_nick_override(data["nick"])
+            if "custom_name" in data:
+                hub.set_custom_name(data.get("custom_name"))
+            if data.get("revert_custom_name"):
+                hub.set_custom_name(None)
+            if "hub_icon" in data:
+                try:
+                    hub.set_hub_icon(data.get("hub_icon"))
+                except ValueError as e:
+                    return web.json_response({"message": str(e)}, status=400)
+            if data.get("revert_hub_icon"):
+                hub.set_hub_icon(None)
+            return web.json_response({"hub": hub.to_dict()})
+
+        @routes.put("/api/v1/rrc/hubs/order")
+        async def rrc_hubs_reorder(request):
+            manager, error = _rrc_require_manager()
+            if error is not None:
+                return error
+            data = await request.json()
+            hub_hashes = data.get("hub_hashes")
+            if not isinstance(hub_hashes, list):
+                return web.json_response(
+                    {"message": "hub_hashes must be a list"},
+                    status=400,
+                )
+            if not manager.reorder_hubs(hub_hashes):
+                return web.json_response(
+                    {"message": "Invalid hub order"},
+                    status=400,
+                )
+            return web.json_response(manager.to_dict())
+
+        @routes.put("/api/v1/rrc/hubs/{hub_hash}/rooms/order")
+        async def rrc_hub_rooms_reorder(request):
+            _, hub, error = _rrc_require_hub(request.match_info.get("hub_hash", ""))
+            if error is not None:
+                return error
+            data = await request.json()
+            room_names = data.get("room_names")
+            if not isinstance(room_names, list):
+                return web.json_response(
+                    {"message": "room_names must be a list"},
+                    status=400,
+                )
+            if not hub.reorder_rooms(room_names):
+                return web.json_response(
+                    {"message": "Invalid room order"},
+                    status=400,
+                )
+            return web.json_response({"hub": hub.to_dict()})
+
+        @routes.post("/api/v1/rrc/hubs/{hub_hash}/connect")
+        async def rrc_hub_connect(request):
+            _, hub, error = _rrc_require_hub(request.match_info.get("hub_hash", ""))
+            if error is not None:
+                return error
+            hub.connect()
+            return web.json_response({"hub": hub.to_dict()})
+
+        @routes.post("/api/v1/rrc/hubs/{hub_hash}/disconnect")
+        async def rrc_hub_disconnect(request):
+            _, hub, error = _rrc_require_hub(request.match_info.get("hub_hash", ""))
+            if error is not None:
+                return error
+            hub.disconnect()
+            return web.json_response({"hub": hub.to_dict()})
+
+        @routes.post("/api/v1/rrc/hubs/{hub_hash}/rooms")
+        async def rrc_hub_join_room(request):
+            _, hub, error = _rrc_require_hub(request.match_info.get("hub_hash", ""))
+            if error is not None:
+                return error
+            data = await request.json()
+            room = (data.get("room") or "").strip()
+            if not room:
+                return web.json_response(
+                    {"message": "A room name is required"},
+                    status=400,
+                )
+            key = data.get("key") or None
+            try:
+                if hub.status == hub.STATUS_CONNECTED:
+                    hub.join_room(room, key=key)
+                else:
+                    hub.add_room(room)
+            except (ValueError, RuntimeError) as e:
+                return web.json_response({"message": str(e)}, status=400)
+            return web.json_response({"hub": hub.to_dict()})
+
+        @routes.delete("/api/v1/rrc/hubs/{hub_hash}/rooms/{room}")
+        async def rrc_hub_part_room(request):
+            _, hub, error = _rrc_require_hub(request.match_info.get("hub_hash", ""))
+            if error is not None:
+                return error
+            room = request.match_info.get("room", "")
+            try:
+                if hub.status == hub.STATUS_CONNECTED:
+                    hub.part_room(room)
+                else:
+                    hub.remove_room(room)
+            except ValueError as e:
+                return web.json_response({"message": str(e)}, status=400)
+            return web.json_response({"hub": hub.to_dict()})
+
+        @routes.delete("/api/v1/rrc/hubs/{hub_hash}/rooms/{room}/messages")
+        async def rrc_hub_clear_room(request):
+            _, hub, error = _rrc_require_hub(request.match_info.get("hub_hash", ""))
+            if error is not None:
+                return error
+            try:
+                hub.clear_messages(request.match_info.get("room", ""))
+            except ValueError as e:
+                return web.json_response({"message": str(e)}, status=400)
+            return web.json_response({"message": "Messages cleared"})
+
+        @routes.get("/api/v1/rrc/hubs/{hub_hash}/rooms/{room}/messages")
+        async def rrc_hub_room_messages(request):
+            manager, hub, error = _rrc_require_hub(
+                request.match_info.get("hub_hash", ""),
+            )
+            if error is not None:
+                return error
+            room = request.match_info.get("room", "")
+            try:
+                messages = hub.room_messages(room)
+                members = hub.members_dict(room)
+            except ValueError as e:
+                return web.json_response({"message": str(e)}, status=400)
+            manager.set_active(hub, room)
+            return web.json_response({"messages": messages, "members": members})
+
+        @routes.post("/api/v1/rrc/hubs/{hub_hash}/rooms/{room}/messages")
+        async def rrc_hub_send_message(request):
+            _, hub, error = _rrc_require_hub(request.match_info.get("hub_hash", ""))
+            if error is not None:
+                return error
+            room = request.match_info.get("room", "")
+            data = await request.json()
+            text = data.get("text")
+            is_action = bool(data.get("action"))
+            try:
+                if is_action:
+                    hub.send_action(room, text)
+                elif isinstance(text, str) and text.strip().startswith("/"):
+                    hub.send_command(text.strip(), room=room)
+                else:
+                    hub.send_message(room, text)
+            except (ValueError, RuntimeError) as e:
+                return web.json_response({"message": str(e)}, status=400)
+            return web.json_response({"message": "Sent"})
+
+        @routes.post("/api/v1/rrc/hubs/{hub_hash}/rooms/{room}/read")
+        async def rrc_hub_mark_read(request):
+            manager, hub, error = _rrc_require_hub(
+                request.match_info.get("hub_hash", ""),
+            )
+            if error is not None:
+                return error
+            room = request.match_info.get("room", "")
+            try:
+                manager.set_active(hub, room)
+            except ValueError as e:
+                return web.json_response({"message": str(e)}, status=400)
+            self._mark_rrc_mention_notifications_viewed(
+                request.match_info.get("hub_hash", ""),
+                room,
+            )
+            return web.json_response({"message": "Marked read"})
+
+        @routes.post("/api/v1/rrc/hubs/{hub_hash}/command")
+        async def rrc_hub_command(request):
+            _, hub, error = _rrc_require_hub(request.match_info.get("hub_hash", ""))
+            if error is not None:
+                return error
+            data = await request.json()
+            text = data.get("text")
+            room = data.get("room") or None
+            try:
+                hub.send_command(text, room=room)
+            except (ValueError, RuntimeError) as e:
+                return web.json_response({"message": str(e)}, status=400)
+            return web.json_response({"message": "Sent"})
+
+        # Reticulum Relay Chat hosting (local hubs)
+        def _rrc_server_require_manager():
+            manager = self.rrc_server_manager
+            if manager is None:
+                return None, web.json_response(
+                    {"message": "Relay chat hosting is not available"},
+                    status=503,
+                )
+            return manager, None
+
+        def _rrc_server_require_hub(hub_id):
+            manager, error = _rrc_server_require_manager()
+            if error is not None:
+                return None, None, error
+            hub = manager.find_hub(hub_id)
+            if hub is None:
+                return (
+                    manager,
+                    None,
+                    web.json_response(
+                        {"message": "Hub not found"},
+                        status=404,
+                    ),
+                )
+            return manager, hub, None
+
+        @routes.get("/api/v1/rrc/servers")
+        async def rrc_servers_get(request):
+            manager, error = _rrc_server_require_manager()
+            if error is not None:
+                return error
+            return web.json_response(manager.to_dict())
+
+        @routes.post("/api/v1/rrc/servers")
+        async def rrc_servers_post(request):
+            manager, error = _rrc_server_require_manager()
+            if error is not None:
+                return error
+            data = await request.json()
+            name = (data.get("name") or "").strip() or None
+            greeting = (data.get("greeting") or "").strip() or None
+            announce = bool(data.get("announce", True))
+            enabled = bool(data.get("enabled", True))
+            hub = manager.create_hub(
+                name=name,
+                greeting=greeting,
+                announce=announce,
+                enabled=enabled,
+            )
+            return web.json_response({"hub": hub.to_dict()})
+
+        @routes.delete("/api/v1/rrc/servers/{hub_id}")
+        async def rrc_server_delete(request):
+            manager, _, error = _rrc_server_require_hub(
+                request.match_info.get("hub_id", ""),
+            )
+            if error is not None:
+                return error
+            manager.delete_hub(request.match_info.get("hub_id", ""))
+            return web.json_response({"message": "Hub removed"})
+
+        @routes.patch("/api/v1/rrc/servers/{hub_id}")
+        async def rrc_server_patch(request):
+            manager, hub, error = _rrc_server_require_hub(
+                request.match_info.get("hub_id", ""),
+            )
+            if error is not None:
+                return error
+            data = await request.json()
+            manager.update_hub(
+                hub.hub_id,
+                name=(data.get("name") if "name" in data else None),
+                greeting=(data.get("greeting") if "greeting" in data else None),
+                announce=(data.get("announce") if "announce" in data else None),
+                trusted_identities=(
+                    data.get("trusted_identities")
+                    if "trusted_identities" in data
+                    else None
+                ),
+                banned_identities=(
+                    data.get("banned_identities")
+                    if "banned_identities" in data
+                    else None
+                ),
+            )
+            return web.json_response({"hub": hub.to_dict()})
+
+        @routes.post("/api/v1/rrc/servers/{hub_id}/start")
+        async def rrc_server_start(request):
+            manager, hub, error = _rrc_server_require_hub(
+                request.match_info.get("hub_id", ""),
+            )
+            if error is not None:
+                return error
+            manager.start_hub(hub.hub_id)
+            return web.json_response({"hub": hub.to_dict()})
+
+        @routes.post("/api/v1/rrc/servers/{hub_id}/stop")
+        async def rrc_server_stop(request):
+            manager, hub, error = _rrc_server_require_hub(
+                request.match_info.get("hub_id", ""),
+            )
+            if error is not None:
+                return error
+            manager.stop_hub(hub.hub_id)
+            return web.json_response({"hub": hub.to_dict()})
+
+        @routes.post("/api/v1/rrc/servers/{hub_id}/announce")
+        async def rrc_server_announce(request):
+            _, hub, error = _rrc_server_require_hub(
+                request.match_info.get("hub_id", ""),
+            )
+            if error is not None:
+                return error
+            hub.announce_now()
+            return web.json_response({"message": "Announced"})
+
+        @routes.post("/api/v1/rrc/servers/{hub_id}/rooms")
+        async def rrc_server_room_create(request):
+            manager, hub, error = _rrc_server_require_hub(
+                request.match_info.get("hub_id", ""),
+            )
+            if error is not None:
+                return error
+            data = await request.json()
+            name = (data.get("name") or "").strip()
+            if not name:
+                return web.json_response(
+                    {"message": "A room name is required"},
+                    status=400,
+                )
+            topic = (data.get("topic") or "").strip() or None
+            private = bool(data.get("private", False))
+            moderated = bool(data.get("moderated", False))
+            invite_only = bool(data.get("invite_only", False))
+            topic_ops_only = bool(data.get("topic_ops_only", False))
+            no_outside_msgs = bool(data.get("no_outside_msgs", False))
+            key = (data.get("key") or "").strip() or None
+            try:
+                manager.create_room(
+                    hub.hub_id,
+                    name,
+                    topic=topic,
+                    private=private,
+                    moderated=moderated,
+                    invite_only=invite_only,
+                    topic_ops_only=topic_ops_only,
+                    no_outside_msgs=no_outside_msgs,
+                    key=key,
+                )
+            except ValueError as e:
+                return web.json_response({"message": str(e)}, status=400)
+            return web.json_response({"hub": hub.to_dict()})
+
+        @routes.delete("/api/v1/rrc/servers/{hub_id}/rooms/{room}")
+        async def rrc_server_room_delete(request):
+            manager, hub, error = _rrc_server_require_hub(
+                request.match_info.get("hub_id", ""),
+            )
+            if error is not None:
+                return error
+            manager.delete_room(hub.hub_id, request.match_info.get("room", ""))
+            return web.json_response({"hub": hub.to_dict()})
+
+        @routes.get("/api/v1/rrc/servers/{hub_id}/members")
+        async def rrc_server_members(request):
+            _, hub, error = _rrc_server_require_hub(
+                request.match_info.get("hub_id", ""),
+            )
+            if error is not None:
+                return error
+            room = request.rel_url.query.get("room")
+            room_arg = room.strip() if isinstance(room, str) and room.strip() else None
+            try:
+                members = hub.members_dict(room_arg)
+            except ValueError as e:
+                return web.json_response({"message": str(e)}, status=400)
+            return web.json_response({"members": members})
+
+        @routes.get("/api/v1/rrc/servers/{hub_id}/activity")
+        async def rrc_server_activity(request):
+            _, hub, error = _rrc_server_require_hub(
+                request.match_info.get("hub_id", ""),
+            )
+            if error is not None:
+                return error
+            return web.json_response(hub.rooms_activity())
+
+        @routes.get("/api/v1/rrc/servers/{hub_id}/messages")
+        async def rrc_server_messages(request):
+            _, hub, error = _rrc_server_require_hub(
+                request.match_info.get("hub_id", ""),
+            )
+            if error is not None:
+                return error
+            peer = request.rel_url.query.get("peer")
+            if not isinstance(peer, str) or not peer.strip():
+                return web.json_response(
+                    {"message": "peer query parameter is required"},
+                    status=400,
+                )
+            room = request.rel_url.query.get("room")
+            room_arg = room.strip() if isinstance(room, str) and room.strip() else None
+            limit = request.rel_url.query.get("limit")
+            try:
+                messages = hub.messages_for_peer(
+                    peer.strip(), room=room_arg, limit=limit
+                )
+            except ValueError as e:
+                return web.json_response({"message": str(e)}, status=400)
+            return web.json_response({"messages": messages})
+
+        @routes.post("/api/v1/rrc/servers/{hub_id}/moderate")
+        async def rrc_server_moderate(request):
+            _, hub, error = _rrc_server_require_hub(
+                request.match_info.get("hub_id", ""),
+            )
+            if error is not None:
+                return error
+            data = await request.json()
+            action = (data.get("action") or "").strip().lower()
+            peer = (data.get("peer") or "").strip()
+            room = (data.get("room") or "").strip() or None
+            if action not in ("kick", "ban", "room_ban"):
+                return web.json_response(
+                    {"message": "action must be kick, ban, or room_ban"},
+                    status=400,
+                )
+            if not peer:
+                return web.json_response(
+                    {"message": "peer is required"},
+                    status=400,
+                )
+            try:
+                if action == "kick":
+                    if not room:
+                        return web.json_response(
+                            {"message": "room is required for kick"},
+                            status=400,
+                        )
+                    hub.admin_kick_from_room(peer, room)
+                elif action == "ban":
+                    hub.admin_hub_ban(peer)
+                else:
+                    if not room:
+                        return web.json_response(
+                            {"message": "room is required for room_ban"},
+                            status=400,
+                        )
+                    hub.admin_room_ban(peer, room)
+            except ValueError as e:
+                return web.json_response({"message": str(e)}, status=400)
+            return web.json_response({"message": "ok", "hub": hub.to_dict()})
+
         # serve telephone status
         @routes.get("/api/v1/telephone/status")
         async def telephone_status(request):
@@ -8595,8 +9272,8 @@ class ReticulumMeshChat:
                 for row in db_custom_names:
                     custom_names[row["destination_hash"]] = row["display_name"]
 
-                # Pre-fetch LXMF display names by identity (telephony + rngit heard list).
-                if aspect in ("lxst.telephony", rngit_tool.RNGIT_ANNOUNCE_ASPECT):
+                # Pre-fetch LXMF display names by identity (telephony heard list).
+                if aspect == "lxst.telephony":
                     identity_hashes = list(
                         {r["identity_hash"] for r in results if r.get("identity_hash")},
                     )
@@ -8641,14 +9318,10 @@ class ReticulumMeshChat:
                         display_name = lxmf_names_for_telephony.get(
                             announce["identity_hash"],
                         )
-                elif announce["aspect"] == rngit_tool.RNGIT_ANNOUNCE_ASPECT:
-                    display_name = rngit_tool.display_name_from_rngit_app_data(
+                elif announce["aspect"] == "rrc.hub":
+                    display_name = rrc_protocol.display_name_from_hub_app_data(
                         announce.get("app_data"),
                     )
-                    if not display_name or display_name == "Anonymous Peer":
-                        cand = lxmf_names_for_telephony.get(announce["identity_hash"])
-                        if cand and cand != "Anonymous Peer":
-                            display_name = cand
 
                 if not display_name or display_name == "Anonymous Peer":
                     if is_local and self.current_context:
@@ -9590,6 +10263,133 @@ class ReticulumMeshChat:
                 },
             )
 
+        def _rnsh_require_manager():
+            manager = self.rnsh_manager
+            if manager is None:
+                return None, web.json_response(
+                    {"message": "RNSH manager is not available"},
+                    status=503,
+                )
+            return manager, None
+
+        @routes.get("/api/v1/rnsh/sessions")
+        async def rnsh_sessions_get(request):
+            manager, error = _rnsh_require_manager()
+            if error is not None:
+                return error
+            return web.json_response(manager.list_sessions())
+
+        @routes.post("/api/v1/rnsh/sessions")
+        async def rnsh_sessions_post(request):
+            manager, error = _rnsh_require_manager()
+            if error is not None:
+                return error
+            data = await request.json()
+            session = manager.create_session(data or {})
+            autostart = bool((data or {}).get("autostart", True))
+            if autostart:
+                try:
+                    session.start()
+                except Exception as e:
+                    return web.json_response({"message": str(e)}, status=400)
+            return web.json_response(
+                {"session": session.to_dict(include_output_tail=True)}
+            )
+
+        @routes.delete("/api/v1/rnsh/sessions/{session_id}")
+        async def rnsh_sessions_delete(request):
+            manager, error = _rnsh_require_manager()
+            if error is not None:
+                return error
+            session_id = request.match_info.get("session_id", "")
+            try:
+                manager.remove_session(session_id)
+            except KeyError:
+                return web.json_response({"message": "Session not found"}, status=404)
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+            return web.json_response({"message": "Session removed"})
+
+        @routes.post("/api/v1/rnsh/sessions/{session_id}/start")
+        async def rnsh_session_start(request):
+            manager, error = _rnsh_require_manager()
+            if error is not None:
+                return error
+            session_id = request.match_info.get("session_id", "")
+            try:
+                session = manager.start_session(session_id)
+            except KeyError:
+                return web.json_response({"message": "Session not found"}, status=404)
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=400)
+            return web.json_response({"session": session})
+
+        @routes.post("/api/v1/rnsh/sessions/{session_id}/stop")
+        async def rnsh_session_stop(request):
+            manager, error = _rnsh_require_manager()
+            if error is not None:
+                return error
+            session_id = request.match_info.get("session_id", "")
+            try:
+                session = manager.stop_session(session_id)
+            except KeyError:
+                return web.json_response({"message": "Session not found"}, status=404)
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=400)
+            return web.json_response({"session": session})
+
+        @routes.post("/api/v1/rnsh/sessions/{session_id}/input")
+        async def rnsh_session_input(request):
+            manager, error = _rnsh_require_manager()
+            if error is not None:
+                return error
+            session_id = request.match_info.get("session_id", "")
+            data = await request.json()
+            text = data.get("text")
+            if not isinstance(text, str):
+                return web.json_response(
+                    {"message": "Input text is required"}, status=400
+                )
+            add_newline = bool(data.get("newline", False))
+            if add_newline and not text.endswith("\n"):
+                text += "\n"
+            try:
+                session = manager.send_input(session_id, text)
+            except KeyError:
+                return web.json_response({"message": "Session not found"}, status=404)
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=400)
+            return web.json_response({"session": session})
+
+        @routes.get("/api/v1/rnsh/sessions/{session_id}/output")
+        async def rnsh_session_output(request):
+            manager, error = _rnsh_require_manager()
+            if error is not None:
+                return error
+            session_id = request.match_info.get("session_id", "")
+            cursor = request.query.get("cursor", 0)
+            try:
+                payload = manager.output_since(session_id, cursor)
+            except KeyError:
+                return web.json_response({"message": "Session not found"}, status=404)
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=400)
+            return web.json_response(payload)
+
+        @routes.post("/api/v1/rnsh/sessions/{session_id}/clear")
+        async def rnsh_session_clear(request):
+            manager, error = _rnsh_require_manager()
+            if error is not None:
+                return error
+            session_id = request.match_info.get("session_id", "")
+            try:
+                session = manager.clear_output(session_id)
+            except KeyError:
+                return web.json_response({"message": "Session not found"}, status=404)
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=400)
+            return web.json_response({"session": session})
+
         @routes.post("/api/v1/rncp/send")
         async def rncp_send(request):
             data = await request.json()
@@ -9760,70 +10560,6 @@ class ReticulumMeshChat:
                 return web.json_response({"message": "RNCP listener stopped"})
             except Exception as e:
                 return web.json_response({"message": str(e)}, status=500)
-
-        @routes.post("/api/v1/rngit-tool/probe")
-        async def rngit_tool_probe(request):
-            if not getattr(self, "reticulum", None) or not self.current_context:
-                return web.json_response(
-                    {"message": "Reticulum not ready"},
-                    status=503,
-                )
-            try:
-                data = await request.json()
-            except Exception:
-                return web.json_response({"message": "Invalid JSON"}, status=400)
-
-            destination_hash_str = (data.get("destination_hash") or "").strip()
-            group_name = (data.get("group_name") or "").strip()
-            raw_names = data.get("repository_names")
-            if isinstance(raw_names, list):
-                name_list = [str(x).strip() for x in raw_names if str(x).strip()]
-            else:
-                text = (data.get("repository_names_text") or raw_names or "").strip()
-                name_list = rngit_tool.parse_repository_name_lines(text)
-
-            path_timeout = data.get("path_timeout")
-            link_timeout = data.get("link_timeout")
-            list_timeout = data.get("list_timeout")
-            for_push = bool(data.get("for_push", False))
-
-            try:
-                pto = float(path_timeout) if path_timeout is not None else None
-            except (TypeError, ValueError):
-                pto = None
-            try:
-                lto = float(link_timeout) if link_timeout is not None else None
-            except (TypeError, ValueError):
-                lto = None
-            try:
-                rto = float(list_timeout) if list_timeout is not None else None
-            except (TypeError, ValueError):
-                rto = None
-
-            result = await rngit_tool.probe_repositories(
-                self.current_context.identity,
-                destination_hash_str,
-                group_name,
-                name_list,
-                path_timeout=pto,
-                link_timeout=lto,
-                list_timeout=rto,
-                for_push=for_push,
-            )
-            if not result.get("ok"):
-                err = result.get("error", "unknown")
-                status = (
-                    400
-                    if err
-                    in (
-                        "invalid_destination_hash",
-                        "invalid_group_name",
-                        "no_repository_names",
-                    )
-                    else 502
-                )
-                return web.json_response(result, status=status)
-            return web.json_response(result)
 
         # --- Page Node API ---
 
@@ -10539,9 +11275,6 @@ class ReticulumMeshChat:
                     destination_hash,
                     display_name,
                 )
-                self.websocket_rebroadcast_rngit_after_custom_destination_display_name_change(
-                    destination_hash,
-                )
                 return web.json_response(
                     {
                         "message": "Custom display name has been updated",
@@ -10550,9 +11283,6 @@ class ReticulumMeshChat:
 
             # otherwise remove display name
             self.database.announces.delete_custom_display_name(destination_hash)
-            self.websocket_rebroadcast_rngit_after_custom_destination_display_name_change(
-                destination_hash,
-            )
             return web.json_response(
                 {
                     "message": "Custom display name has been removed",
@@ -11655,7 +12385,9 @@ class ReticulumMeshChat:
                     # Get remote user info if possible
                     display_name = "Unknown"
                     icon = None
-                    if n["remote_hash"]:
+                    if n["type"] == "rrc_mention":
+                        display_name = n.get("title") or "Relay Chat"
+                    elif n["remote_hash"]:
                         # Try to find associated LXMF hash for telephony identity hash
                         lxmf_hash = self.get_lxmf_destination_hash_for_identity_hash(
                             n["remote_hash"],
@@ -13976,6 +14708,18 @@ class ReticulumMeshChat:
                 self._parse_bool(data["ui_glass_enabled"]),
             )
 
+        if "messages_multi_pane_enabled" in data:
+            self.config.messages_multi_pane_enabled.set(
+                self._parse_bool(data["messages_multi_pane_enabled"]),
+            )
+
+        if "nomad_tabs_enabled" in data:
+            self.config.nomad_tabs_enabled.set(
+                self._parse_bool(data["nomad_tabs_enabled"]),
+            )
+        if "rrc_enabled" in data:
+            self.config.rrc_enabled.set(self._parse_bool(data["rrc_enabled"]))
+
         if "message_outbound_bubble_color" in data:
             self.config.message_outbound_bubble_color.set(
                 data["message_outbound_bubble_color"],
@@ -14026,7 +14770,6 @@ class ReticulumMeshChat:
             "announce_store_lxst_telephony",
             "announce_store_nomadnetwork_node",
             "announce_store_lxmf_propagation",
-            "announce_store_git_repositories",
         ):
             if _k in data:
                 getattr(self.config, _k).set(self._parse_bool(data[_k]))
@@ -15344,6 +16087,9 @@ class ReticulumMeshChat:
             "banished_color": ctx.config.banished_color.get(),
             "message_font_size": ctx.config.message_font_size.get(),
             "messages_sidebar_position": ctx.config.messages_sidebar_position.get(),
+            "messages_multi_pane_enabled": ctx.config.messages_multi_pane_enabled.get(),
+            "nomad_tabs_enabled": ctx.config.nomad_tabs_enabled.get(),
+            "rrc_enabled": ctx.config.rrc_enabled.get(),
             "message_icon_size": ctx.config.message_icon_size.get(),
             "ui_transparency": ctx.config.ui_transparency.get(),
             "ui_glass_enabled": ctx.config.ui_glass_enabled.get(),
@@ -15362,7 +16108,6 @@ class ReticulumMeshChat:
             "announce_store_lxst_telephony": ctx.config.announce_store_lxst_telephony.get(),
             "announce_store_nomadnetwork_node": ctx.config.announce_store_nomadnetwork_node.get(),
             "announce_store_lxmf_propagation": ctx.config.announce_store_lxmf_propagation.get(),
-            "announce_store_git_repositories": ctx.config.announce_store_git_repositories.get(),
             "announce_max_stored_lxmf_delivery": ctx.config.announce_max_stored_lxmf_delivery.get(),
             "announce_max_stored_nomadnetwork_node": ctx.config.announce_max_stored_nomadnetwork_node.get(),
             "announce_max_stored_lxmf_propagation": ctx.config.announce_max_stored_lxmf_propagation.get(),
@@ -15567,9 +16312,9 @@ class ReticulumMeshChat:
             )
         elif announce["aspect"] == "lxst.telephony":
             display_name = parse_lxmf_display_name(announce["app_data"])
-        elif announce["aspect"] == rngit_tool.RNGIT_ANNOUNCE_ASPECT:
-            display_name = rngit_tool.display_name_from_rngit_app_data(
-                announce.get("app_data")
+        elif announce["aspect"] == "rrc.hub":
+            display_name = rrc_protocol.display_name_from_hub_app_data(
+                announce.get("app_data"),
             )
 
         # Try to find associated LXMF destination hash if this is a telephony announce
@@ -15614,23 +16359,6 @@ class ReticulumMeshChat:
                             pass
                 except Exception:
                     pass
-
-        if (
-            announce.get("aspect") == rngit_tool.RNGIT_ANNOUNCE_ASPECT
-            and announce.get("identity_hash")
-            and (not display_name or display_name == "Anonymous Peer")
-        ):
-            lxmf_announces = self.database.announces.get_filtered_announces(
-                aspect="lxmf.delivery",
-                search_term=announce["identity_hash"],
-            )
-            if lxmf_announces:
-                for lxmf_a in lxmf_announces:
-                    if lxmf_a["identity_hash"] == announce["identity_hash"]:
-                        cand = parse_lxmf_display_name(lxmf_a["app_data"])
-                        if cand and cand != "Anonymous Peer":
-                            display_name = cand
-                        break
 
         if not display_name or display_name == "Anonymous Peer":
             is_local = (
@@ -17471,11 +18199,6 @@ class ReticulumMeshChat:
             ),
         )
 
-        self.websocket_rebroadcast_rngit_for_identity_hashes(
-            {identity_hash},
-            context=ctx,
-        )
-
         # resend all failed messages that were intended for this destination
         if ctx.config.auto_resend_failed_messages_when_announce_received.get():
             AsyncUtils.run_async(
@@ -17628,85 +18351,7 @@ class ReticulumMeshChat:
             except Exception as e:
                 print("Error resending failed message: " + str(e))
 
-    def websocket_rebroadcast_rngit_for_identity_hashes(
-        self,
-        identity_hashes: set[str] | list[str] | None,
-        context=None,
-    ):
-        """Push stored ``git.repositories`` rows again so UIs pick up new derived display names."""
-        ctx = context or self.current_context
-        if not ctx or not ctx.database or not identity_hashes:
-            return
-        seen_dest: set[str] = set()
-        for raw_ih in identity_hashes:
-            if not raw_ih:
-                continue
-            ih = normalize_hex_identifier(raw_ih)
-            if not _truncated_hash32_hex_ok(ih):
-                continue
-            rows = ctx.database.announces.get_filtered_announces(
-                aspect=rngit_tool.RNGIT_ANNOUNCE_ASPECT,
-                identity_hash=ih,
-                limit=500,
-                offset=0,
-            )
-            for row in rows:
-                dh = row.get("destination_hash")
-                if not dh or dh in seen_dest:
-                    continue
-                seen_dest.add(dh)
-                announce = ctx.database.announces.get_announce_by_hash(dh)
-                if not announce:
-                    continue
-                ad = dict(announce) if not isinstance(announce, dict) else announce
-                AsyncUtils.run_async(
-                    self.websocket_broadcast(
-                        json.dumps(
-                            {
-                                "type": "announce",
-                                "announce": self.convert_db_announce_to_dict(ad),
-                            },
-                        ),
-                    ),
-                )
-
-    def websocket_rebroadcast_rngit_after_custom_destination_display_name_change(
-        self,
-        destination_hash_raw: str,
-        context=None,
-    ):
-        """Re-send rngit rows when a custom name is set on the rngit hash or the peer's LXMF hash."""
-        ctx = context or self.current_context
-        if not ctx or not ctx.database:
-            return
-        dh = normalize_hex_identifier(destination_hash_raw)
-        if not _truncated_hash32_hex_ok(dh):
-            return
-        row = ctx.database.announces.get_announce_by_hash(dh)
-        if not row:
-            return
-        rd = dict(row) if not isinstance(row, dict) else row
-        aspect = rd.get("aspect")
-        if aspect == rngit_tool.RNGIT_ANNOUNCE_ASPECT:
-            AsyncUtils.run_async(
-                self.websocket_broadcast(
-                    json.dumps(
-                        {
-                            "type": "announce",
-                            "announce": self.convert_db_announce_to_dict(rd),
-                        },
-                    ),
-                ),
-            )
-        elif aspect == "lxmf.delivery":
-            ih = rd.get("identity_hash")
-            if ih:
-                self.websocket_rebroadcast_rngit_for_identity_hashes(
-                    {ih},
-                    context=ctx,
-                )
-
-    def on_rngit_repositories_announce_received(
+    def on_rrc_hub_announce_received(
         self,
         aspect,
         destination_hash,
@@ -17715,14 +18360,16 @@ class ReticulumMeshChat:
         announce_packet_hash,
         context=None,
     ):
-        """Handle rngit ``git.repositories`` announces (same storage path as other aspects)."""
+        """Handle Relay Chat ``rrc.hub`` announces for hub discovery."""
         ctx = context or self.current_context
         if not ctx or not ctx.running or not ctx.announce_manager or not ctx.database:
+            return
+        if ctx.config and not ctx.config.rrc_enabled.get():
             return
 
         identity_hash = announced_identity.hash.hex()
         if self.is_destination_blocked(identity_hash, context=ctx):
-            print(f"Dropping rngit announce from blocked source: {identity_hash}")
+            print(f"Dropping rrc.hub announce from blocked source: {identity_hash}")
             if hasattr(self, "reticulum") and self.reticulum:
                 self.reticulum.drop_path(destination_hash)
             return
@@ -17733,7 +18380,7 @@ class ReticulumMeshChat:
         print(
             "Received an announce from "
             + RNS.prettyhexrep(destination_hash)
-            + " for [git.repositories]",
+            + " for [rrc.hub]",
         )
 
         self.announce_timestamps.append(time.time())

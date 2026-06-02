@@ -116,7 +116,19 @@ const router = createRouter({
             name: "nomadnetwork",
             path: "/nomadnetwork/:destinationHash?",
             props: true,
-            component: defineAsyncComponent(() => import("./components/nomadnetwork/NomadNetworkPage.vue")),
+            component: defineAsyncComponent(() => import("./components/nomadnetwork/NomadNetworkBrowser.vue")),
+        },
+        {
+            name: "relay-chat",
+            path: "/relay-chat",
+            component: defineAsyncComponent(() => import("./components/relay/RelayChatPage.vue")),
+        },
+        {
+            name: "relay-chat-popout",
+            path: "/popout/relay-chat/:hubHash/:room?",
+            props: true,
+            meta: { popoutType: "relay", isPopout: true },
+            component: defineAsyncComponent(() => import("./components/relay/RelayChatPage.vue")),
         },
         {
             name: "archives",
@@ -146,9 +158,9 @@ const router = createRouter({
             component: defineAsyncComponent(() => import("./components/rncp/RNCPPage.vue")),
         },
         {
-            name: "rngit-explorer",
-            path: "/tools/rngit-explorer",
-            component: defineAsyncComponent(() => import("./components/tools/RNGitExplorerPage.vue")),
+            name: "rnsh",
+            path: "/rnsh",
+            component: defineAsyncComponent(() => import("./components/tools/RNSHManagerPage.vue")),
         },
         {
             name: "rnstatus",

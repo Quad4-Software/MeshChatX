@@ -23,7 +23,6 @@ _ASPECT_STORE_ENABLE_KEYS = {
     "lxst.telephony": "announce_store_lxst_telephony",
     "nomadnetwork.node": "announce_store_nomadnetwork_node",
     "lxmf.propagation": "announce_store_lxmf_propagation",
-    "git.repositories": "announce_store_git_repositories",
 }
 
 

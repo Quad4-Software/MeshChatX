@@ -283,6 +283,43 @@ export function renderNomadHtmlPage(html, options = {}) {
     return out;
 }
 
+/**
+ * Returns a CSS background value to paint the Nomad page shell when the rendered
+ * document root uses a full-page background (e.g. HTML body styles on `.nomad-html-root`).
+ */
+export function resolveNomadPageShellBackground(rootEl) {
+    if (!rootEl || typeof window === "undefined" || typeof window.getComputedStyle !== "function") {
+        return null;
+    }
+    const isTransparent = (color) => !color || color === "transparent" || color === "rgba(0, 0, 0, 0)";
+    const readBackground = (el) => {
+        const cs = window.getComputedStyle(el);
+        const bgImage = cs.backgroundImage;
+        if (bgImage && bgImage !== "none") {
+            return cs.background;
+        }
+        const bgColor = cs.backgroundColor;
+        if (!isTransparent(bgColor)) {
+            return bgColor;
+        }
+        return null;
+    };
+    const direct = readBackground(rootEl);
+    if (direct) {
+        return direct;
+    }
+    for (const child of rootEl.children) {
+        if (child.nodeName === "STYLE") {
+            continue;
+        }
+        const nested = readBackground(child);
+        if (nested) {
+            return nested;
+        }
+    }
+    return null;
+}
+
 export function renderNomadPageByPath(
     pagePathWithoutData,
     content,

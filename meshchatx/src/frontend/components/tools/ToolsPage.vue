@@ -151,12 +151,12 @@ export default {
                     descriptionKey: "tools.rncp.description",
                 },
                 {
-                    name: "rngit-explorer",
-                    route: { name: "rngit-explorer" },
-                    icon: "source-branch",
-                    iconBg: "tool-card__icon bg-teal-50 text-teal-600 dark:bg-teal-900/30 dark:text-teal-200",
-                    titleKey: "tools.rngit_explorer.title",
-                    descriptionKey: "tools.rngit_explorer.description",
+                    name: "rnsh",
+                    route: { name: "rnsh" },
+                    icon: "console-network-outline",
+                    iconBg: "tool-card__icon bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-200",
+                    titleKey: "tools.rnsh.title",
+                    descriptionKey: "tools.rnsh.description",
                 },
                 {
                     name: "rnstatus",

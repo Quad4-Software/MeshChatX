@@ -8,6 +8,7 @@ const globalState = reactive({
     detailedOutboundSendStatus: false,
     messageTimestampGroupingEnabled: true,
     unreadConversationsCount: 0,
+    relayChatUnreadCount: 0,
     activeCallTab: "phone",
     blockedDestinations: [],
     modifiedInterfaceNames: new Set(),
@@ -32,6 +33,9 @@ const globalState = reactive({
         message_list_virtualization: true,
         warn_on_stranger_links: true,
         messages_sidebar_position: "left",
+        messages_multi_pane_enabled: true,
+        nomad_tabs_enabled: true,
+        rrc_enabled: true,
     },
 });
 

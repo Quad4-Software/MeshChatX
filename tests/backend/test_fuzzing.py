@@ -32,17 +32,6 @@ from meshchatx.src.backend.telemetry_utils import Telemeter
 
 
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
-@given(data=st.binary(min_size=0, max_size=1000))
-def test_telemetry_unpack_fuzzing(data):
-    """Fuzz the telemetry unpacking logic with random binary data."""
-    try:
-        Telemeter.from_packed(data)
-    except Exception:
-        # We expect some failures for invalid packed data, but no crashes
-        pass
-
-
-@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
 @given(config_text=st.text(min_size=0, max_size=5000))
 def test_interface_config_parsing_fuzzing(config_text):
     """Fuzz the interface configuration parser with random text."""

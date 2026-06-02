@@ -1187,6 +1187,50 @@
                                 </span>
                             </label>
 
+                            <label class="setting-toggle">
+                                <Toggle
+                                    id="messages-multi-pane-enabled"
+                                    v-model="config.messages_multi_pane_enabled"
+                                    @update:model-value="onMessagesMultiPaneEnabledChange"
+                                />
+                                <span class="setting-toggle__label">
+                                    <span class="setting-toggle__title">{{
+                                        $t("app.messages_multi_pane_enabled")
+                                    }}</span>
+                                    <span class="setting-toggle__description">{{
+                                        $t("app.messages_multi_pane_enabled_description")
+                                    }}</span>
+                                </span>
+                            </label>
+
+                            <label class="setting-toggle">
+                                <Toggle
+                                    id="nomad-tabs-enabled"
+                                    v-model="config.nomad_tabs_enabled"
+                                    @update:model-value="onNomadTabsEnabledChange"
+                                />
+                                <span class="setting-toggle__label">
+                                    <span class="setting-toggle__title">{{ $t("app.nomad_tabs_enabled") }}</span>
+                                    <span class="setting-toggle__description">{{
+                                        $t("app.nomad_tabs_enabled_description")
+                                    }}</span>
+                                </span>
+                            </label>
+
+                            <label class="setting-toggle">
+                                <Toggle
+                                    id="rrc-enabled"
+                                    v-model="config.rrc_enabled"
+                                    @update:model-value="onRrcEnabledChange"
+                                />
+                                <span class="setting-toggle__label">
+                                    <span class="setting-toggle__title">{{ $t("app.rrc_enabled") }}</span>
+                                    <span class="setting-toggle__description">{{
+                                        $t("app.rrc_enabled_description")
+                                    }}</span>
+                                </span>
+                            </label>
+
                             <div class="pt-1">
                                 <button
                                     type="button"
@@ -1577,8 +1621,7 @@
                                 'app.announce_store_lxmf',
                                 'app.announce_store_lxst',
                                 'app.announce_store_nomad',
-                                'app.announce_store_prop',
-                                'app.announce_store_git'
+                                'app.announce_store_prop'
                             )
                         "
                         class="settings-section break-inside-avoid"
@@ -1675,19 +1718,6 @@
                                         <span class="setting-toggle__label">
                                             <span class="setting-toggle__title">{{
                                                 $t("app.announce_store_prop")
-                                            }}</span>
-                                        </span>
-                                    </label>
-                                    <label class="setting-toggle sm:col-span-2">
-                                        <Toggle
-                                            :model-value="config.announce_store_git_repositories"
-                                            @update:model-value="
-                                                (v) => onAnnounceStoreToggle('announce_store_git_repositories', v)
-                                            "
-                                        />
-                                        <span class="setting-toggle__label">
-                                            <span class="setting-toggle__title">{{
-                                                $t("app.announce_store_git")
                                             }}</span>
                                         </span>
                                     </label>
@@ -2703,7 +2733,6 @@ export default {
                 announce_store_lxst_telephony: true,
                 announce_store_nomadnetwork_node: true,
                 announce_store_lxmf_propagation: true,
-                announce_store_git_repositories: true,
                 announce_max_stored_lxmf_delivery: 1000,
                 announce_max_stored_nomadnetwork_node: 1000,
                 announce_max_stored_lxmf_propagation: 1000,
@@ -2714,6 +2743,9 @@ export default {
                 discovered_interfaces_max_return: 500,
                 message_font_size: 14,
                 messages_sidebar_position: "left",
+                messages_multi_pane_enabled: true,
+                nomad_tabs_enabled: true,
+                rrc_enabled: true,
                 message_icon_size: 28,
                 ui_transparency: 0,
                 ui_glass_enabled: true,
@@ -2928,6 +2960,10 @@ export default {
                     "app.messages_sidebar_position",
                     "app.messages_sidebar_position_left",
                     "app.messages_sidebar_position_right",
+                    "app.messages_multi_pane_enabled",
+                    "app.messages_multi_pane_enabled_description",
+                    "app.nomad_tabs_enabled",
+                    "app.nomad_tabs_enabled_description",
                     "app.ui_transparency",
                     "app.ui_glass_enabled",
                     "app.reset_appearance_defaults",
@@ -2962,7 +2998,6 @@ export default {
                     "app.announce_store_lxst",
                     "app.announce_store_nomad",
                     "app.announce_store_prop",
-                    "app.announce_store_git",
                     "app.announce_limit_lxmf",
                     "app.announce_limit_nomadnet",
                     "app.announce_limit_prop",
@@ -3410,6 +3445,30 @@ export default {
                     ui_glass_enabled: this.config.ui_glass_enabled,
                 },
                 "ui_glass_enabled"
+            );
+        },
+        async onMessagesMultiPaneEnabledChange() {
+            await this.updateConfig(
+                {
+                    messages_multi_pane_enabled: this.config.messages_multi_pane_enabled,
+                },
+                "messages_multi_pane_enabled"
+            );
+        },
+        async onNomadTabsEnabledChange() {
+            await this.updateConfig(
+                {
+                    nomad_tabs_enabled: this.config.nomad_tabs_enabled,
+                },
+                "nomad_tabs_enabled"
+            );
+        },
+        async onRrcEnabledChange() {
+            await this.updateConfig(
+                {
+                    rrc_enabled: this.config.rrc_enabled,
+                },
+                "rrc_enabled"
             );
         },
         async resetAppearanceDefaults() {

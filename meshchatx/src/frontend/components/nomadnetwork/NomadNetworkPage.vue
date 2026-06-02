@@ -405,9 +405,10 @@
                     :class="[
                         'flex-1 overflow-y-auto nodeContainer relative contain-[layout_paint]',
                         nomadRenderedShellFullBleed
-                            ? 'p-0 bg-transparent text-gray-900 dark:text-gray-100'
+                            ? 'p-0 bg-transparent min-h-full text-gray-900 dark:text-gray-100'
                             : 'p-3 bg-black text-white',
                     ]"
+                    :style="nodeContainerShellStyle"
                     @click.capture="onElementClick"
                 >
                     <!-- archived version notice -->
@@ -571,7 +572,7 @@
 <script>
 import MicronParser from "../../js/MicronParser";
 import LinkUtils from "../../js/LinkUtils";
-import { renderNomadPageByPath } from "../../js/NomadPageRenderer";
+import { renderNomadPageByPath, resolveNomadPageShellBackground } from "../../js/NomadPageRenderer";
 import DialogUtils from "../../js/DialogUtils";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import NomadNetworkSidebar from "./NomadNetworkSidebar.vue";
@@ -605,9 +606,20 @@ export default {
     props: {
         destinationHash: {
             type: String,
-            required: true,
+            required: false,
+            default: "",
+        },
+        embedded: {
+            type: Boolean,
+            default: false,
+        },
+        initialPath: {
+            type: String,
+            required: false,
+            default: null,
         },
     },
+    emits: ["navigate", "close-tab"],
     data() {
         return {
             GlobalState,
@@ -678,6 +690,7 @@ export default {
 
             nomadMicronWasmReady: false,
             wasmBundled: isMicronWasmBundled(),
+            pageShellBackground: null,
         };
     },
     computed: {
@@ -834,6 +847,12 @@ export default {
             }
             return this.isFailedPageContent(this.nodePageContent);
         },
+        nodeContainerShellStyle() {
+            if (!this.nomadRenderedShellFullBleed || !this.pageShellBackground) {
+                return null;
+            }
+            return { background: this.pageShellBackground };
+        },
         nomadRenderedShellFullBleed() {
             if (!this.nodePagePath || this.isShowingNodePageSource) {
                 return false;
@@ -887,7 +906,13 @@ export default {
                 this.loadedPartialIds = {};
             }
             this.scheduleProcessPartials();
-            this.$nextTick(() => this.refreshMultilineExpansion());
+            this.$nextTick(() => {
+                this.refreshMultilineExpansion();
+                this.syncPageShellBackground();
+            });
+        },
+        nomadRenderedShellFullBleed() {
+            this.syncPageShellBackground();
         },
         selectedNode: {
             handler() {
@@ -977,8 +1002,8 @@ export default {
                 this.getNodePath(this.destinationHash);
 
                 // check if we have a path or archive_id in query params
-                const path = this.$route.query.path;
-                const archiveId = this.$route.query.archive_id;
+                const path = this.embedded ? this.initialPath : this.$route.query.path;
+                const archiveId = this.embedded ? null : this.$route.query.archive_id;
 
                 if (archiveId) {
                     await this.loadArchivedPage(archiveId);
@@ -1582,18 +1607,26 @@ export default {
             await this.onNodePageUrlClick(url);
         },
         async loadNodePage(destinationHash, pagePath, fieldData = null, addToHistory = true, loadFromCache = true) {
-            // update current route
-            const routeName = this.isPopoutMode ? "nomadnetwork-popout" : "nomadnetwork";
-            const routeOptions = {
-                name: routeName,
-                params: {
+            // update current route (skipped while embedded; the browser shell owns routing)
+            if (this.embedded) {
+                this.$emit("navigate", {
                     destinationHash: destinationHash,
-                },
-            };
-            if (!this.isPopoutMode && this.$route?.query) {
-                routeOptions.query = { ...this.$route.query };
+                    pagePath: pagePath,
+                    title: this.selectedNode?.custom_display_name || this.selectedNode?.display_name || null,
+                });
+            } else {
+                const routeName = this.isPopoutMode ? "nomadnetwork-popout" : "nomadnetwork";
+                const routeOptions = {
+                    name: routeName,
+                    params: {
+                        destinationHash: destinationHash,
+                    },
+                };
+                if (!this.isPopoutMode && this.$route?.query) {
+                    routeOptions.query = { ...this.$route.query };
+                }
+                this.$router.replace(routeOptions);
             }
-            this.$router.replace(routeOptions);
 
             // get new sequence for this page load
             const seq = ++this.nodePageRequestSequence;
@@ -1825,6 +1858,19 @@ export default {
                     () => {}
                 );
             });
+        },
+        syncPageShellBackground() {
+            if (!this.nomadRenderedShellFullBleed) {
+                this.pageShellBackground = null;
+                return;
+            }
+            const container = this.$el?.querySelector?.(".nodeContainer");
+            if (!container) {
+                this.pageShellBackground = null;
+                return;
+            }
+            const root = container.querySelector(".nomad-html-root");
+            this.pageShellBackground = root ? resolveNomadPageShellBackground(root) : null;
         },
         renderPageContent(path, content) {
             // render page content if we aren't viewing source
@@ -2245,6 +2291,11 @@ export default {
             // clear selected node
             this.selectedNode = null;
 
+            if (this.embedded) {
+                this.$emit("close-tab");
+                return;
+            }
+
             if (this.isPopoutMode) {
                 window.close();
                 return;
@@ -2502,9 +2553,14 @@ export default {
 
 .nodeContainer {
     font-family: "Roboto Mono Nerd Font", ui-monospace, monospace;
+    line-height: 1.25;
     letter-spacing: normal;
     font-variant-ligatures: none;
     font-feature-settings: normal;
+}
+
+.nodeContainer .nomad-page-rich {
+    line-height: 1.25;
 }
 
 .nodeContainer pre {
@@ -2651,6 +2707,7 @@ pre.text-wrap > div > :last-child {
 .nomad-page-html-host .nomad-html-root {
     color: rgb(229 231 235);
     min-height: 100%;
+    box-sizing: border-box;
 }
 
 .nomad-page-html-host .nomad-html-root a.nomadnet-link,

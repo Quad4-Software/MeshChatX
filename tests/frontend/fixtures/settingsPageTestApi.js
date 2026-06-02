@@ -99,7 +99,6 @@ export function buildFullServerConfig(overrides = {}) {
         announce_store_lxst_telephony: true,
         announce_store_nomadnetwork_node: true,
         announce_store_lxmf_propagation: true,
-        announce_store_git_repositories: true,
         announce_max_stored_lxmf_delivery: 1000,
         announce_max_stored_nomadnetwork_node: 1000,
         announce_max_stored_lxmf_propagation: 1000,

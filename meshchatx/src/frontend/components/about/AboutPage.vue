@@ -284,7 +284,7 @@
                             <div
                                 class="text-xs font-black text-blue-500 uppercase tracking-[0.2em] flex items-center gap-2"
                             >
-                                <v-icon icon="mdi-shield-lock" size="14"></v-icon>
+                                <v-icon icon="mdi-shield-search" size="14"></v-icon>
                                 {{ $t("about.security_integrity") }}
                             </div>
                             <div v-if="appInfo.integrity_issues" class="flex flex-wrap gap-2">
@@ -324,17 +324,21 @@
                             </div>
                         </div>
 
+                        <p class="text-[11px] leading-relaxed text-gray-500 dark:text-gray-400 mb-4">
+                            {{ $t("about.security_integrity_description") }}
+                        </p>
+
                         <div
                             v-if="appInfo.integrity_issues && appInfo.integrity_issues.length > 0"
-                            class="p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-xl"
+                            class="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-xl"
                         >
                             <div
-                                class="text-xs font-black text-red-700 dark:text-red-400 mb-3 uppercase tracking-wider flex items-center gap-2"
+                                class="text-xs font-black text-amber-700 dark:text-amber-400 mb-3 uppercase tracking-wider flex items-center gap-2"
                             >
-                                <v-icon icon="mdi-alert-octagon" size="16"></v-icon>
+                                <v-icon icon="mdi-alert" size="16"></v-icon>
                                 {{ $t("about.technical_issues_detected") }}
                             </div>
-                            <ul class="text-[11px] text-red-600 dark:text-red-300 space-y-2 list-none font-mono">
+                            <ul class="text-[11px] text-amber-700 dark:text-amber-300 space-y-2 list-none font-mono">
                                 <li v-for="(issue, index) in appInfo.integrity_issues" :key="index" class="flex gap-2">
                                     <span class="opacity-50">•</span>
                                     <span>{{ issue }}</span>
@@ -594,48 +598,48 @@
                                     class="py-4 sm:p-5 border-t border-gray-200/60 dark:border-zinc-800/80 sm:border sm:rounded-2xl sm:bg-black/2 dark:sm:bg-white/2 min-w-0"
                                 >
                                     <div
-                                        class="text-[10px] font-black text-gray-400 dark:text-zinc-600 uppercase tracking-[0.2em] mb-4"
+                                        class="text-[10px] font-black text-black dark:text-white uppercase tracking-[0.2em] mb-4"
                                     >
                                         {{ $t("about.core_runtime") }}
                                     </div>
                                     <div class="grid grid-cols-2 gap-x-6 gap-y-4">
                                         <div v-if="appInfo.lxst_version" class="flex flex-col">
                                             <span
-                                                class="text-[9px] font-black text-blue-500/60 uppercase leading-none"
+                                                class="text-[9px] font-black text-black dark:text-white uppercase leading-none"
                                                 >{{ $t("about.lxst_engine") }}</span
                                             >
                                             <span
-                                                class="text-[11px] font-mono font-bold mt-1.5 opacity-90 tracking-tight"
+                                                class="text-[11px] font-mono font-bold mt-1.5 text-black dark:text-white tracking-tight"
                                                 >v{{ appInfo.lxst_version }}</span
                                             >
                                         </div>
                                         <div v-if="electronVersion" class="flex flex-col">
                                             <span
-                                                class="text-[9px] font-black text-blue-500/60 uppercase leading-none"
+                                                class="text-[9px] font-black text-black dark:text-white uppercase leading-none"
                                                 >{{ $t("about.electron_runtime") }}</span
                                             >
                                             <span
-                                                class="text-[11px] font-mono font-bold mt-1.5 opacity-90 tracking-tight"
+                                                class="text-[11px] font-mono font-bold mt-1.5 text-black dark:text-white tracking-tight"
                                                 >v{{ electronVersion }}</span
                                             >
                                         </div>
                                         <div v-if="chromeVersion" class="flex flex-col">
                                             <span
-                                                class="text-[9px] font-black text-blue-500/60 uppercase leading-none"
+                                                class="text-[9px] font-black text-black dark:text-white uppercase leading-none"
                                                 >{{ $t("about.chrome_runtime") }}</span
                                             >
                                             <span
-                                                class="text-[11px] font-mono font-bold mt-1.5 opacity-90 tracking-tight"
+                                                class="text-[11px] font-mono font-bold mt-1.5 text-black dark:text-white tracking-tight"
                                                 >v{{ chromeVersion }}</span
                                             >
                                         </div>
                                         <div v-if="nodeVersion" class="flex flex-col">
                                             <span
-                                                class="text-[9px] font-black text-blue-500/60 uppercase leading-none"
+                                                class="text-[9px] font-black text-black dark:text-white uppercase leading-none"
                                                 >{{ $t("about.nodejs_runtime") }}</span
                                             >
                                             <span
-                                                class="text-[11px] font-mono font-bold mt-1.5 opacity-90 tracking-tight"
+                                                class="text-[11px] font-mono font-bold mt-1.5 text-black dark:text-white tracking-tight"
                                                 >v{{ nodeVersion }}</span
                                             >
                                         </div>
@@ -644,7 +648,7 @@
 
                                 <div v-if="appInfo.dependencies" class="pt-2">
                                     <div
-                                        class="text-[10px] font-black text-gray-400 dark:text-zinc-600 uppercase tracking-[0.2em] mb-4"
+                                        class="text-[10px] font-black text-black dark:text-white uppercase tracking-[0.2em] mb-4"
                                     >
                                         {{ $t("about.backend_stack") }}
                                     </div>
@@ -655,11 +659,11 @@
                                             class="flex flex-col"
                                         >
                                             <span
-                                                class="text-[9px] font-black text-gray-400 dark:text-zinc-600 uppercase truncate leading-none"
+                                                class="text-[9px] font-black text-black dark:text-white uppercase truncate leading-none"
                                                 >{{ name.replace("_", " ") }}</span
                                             >
                                             <span
-                                                class="text-[10px] font-mono font-bold mt-1.5 opacity-50 tracking-tight"
+                                                class="text-[10px] font-mono font-bold mt-1.5 text-black dark:text-white tracking-tight"
                                                 >v{{ version }}</span
                                             >
                                         </div>

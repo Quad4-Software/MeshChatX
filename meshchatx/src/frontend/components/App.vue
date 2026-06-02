@@ -257,6 +257,27 @@
                                         </SidebarLink>
                                     </li>
 
+                                    <!-- relay chat -->
+                                    <li v-if="rrcEnabled">
+                                        <SidebarLink :to="{ name: 'relay-chat' }" :is-collapsed="isSidebarCollapsed">
+                                            <template #icon>
+                                                <MaterialDesignIcon
+                                                    icon-name="forum"
+                                                    class="w-6 h-6 text-gray-700 dark:text-gray-200"
+                                                />
+                                            </template>
+                                            <template #text>
+                                                <span>{{ $t("app.relay_chat") }}</span>
+                                                <span
+                                                    v-if="relayChatUnreadCount > 0"
+                                                    class="ml-auto mr-2 min-w-[1.25rem] rounded-full bg-red-500 px-1.5 py-0.5 text-center text-xs font-bold text-white"
+                                                >
+                                                    {{ relayChatUnreadCount >= 1000 ? "999+" : relayChatUnreadCount }}
+                                                </span>
+                                            </template>
+                                        </SidebarLink>
+                                    </li>
+
                                     <!-- nomad network -->
                                     <li>
                                         <SidebarLink :to="{ name: 'nomadnetwork' }" :is-collapsed="isSidebarCollapsed">
@@ -536,6 +557,26 @@
                                         </div>
                                     </div>
                                 </div>
+
+                                <div
+                                    v-if="appInfo?.version"
+                                    class="shrink-0 border-t border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
+                                >
+                                    <RouterLink
+                                        :to="{ name: 'about' }"
+                                        class="flex items-center py-2 text-[10px] font-mono text-gray-500 transition-colors hover:text-gray-700 dark:text-zinc-500 dark:hover:text-zinc-300"
+                                        :class="isSidebarCollapsed ? 'justify-center px-0' : 'justify-start px-3'"
+                                        data-testid="sidebar-app-version"
+                                        :title="$t('about.version', { version: appInfo.version })"
+                                    >
+                                        <MaterialDesignIcon
+                                            v-if="isSidebarCollapsed"
+                                            icon-name="information-outline"
+                                            class="size-4"
+                                        />
+                                        <span v-else>{{ $t("about.version", { version: appInfo.version }) }}</span>
+                                    </RouterLink>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -664,6 +705,7 @@ import DialogUtils from "../js/DialogUtils";
 import WebSocketConnection from "../js/WebSocketConnection";
 import { formatDisconnectedDuration } from "../js/wsConnectionSupport";
 import GlobalState, { mergeGlobalConfig } from "../js/GlobalState";
+import { countRelayMentions } from "../js/relayMentionCount.js";
 import Utils from "../js/Utils";
 import GlobalEmitter from "../js/GlobalEmitter";
 import NotificationUtils from "../js/NotificationUtils";
@@ -779,6 +821,12 @@ export default {
         },
         unreadConversationsCount() {
             return GlobalState.unreadConversationsCount;
+        },
+        relayChatUnreadCount() {
+            return GlobalState.relayChatUnreadCount;
+        },
+        rrcEnabled() {
+            return GlobalState.config?.rrc_enabled !== false;
         },
         isSyncingPropagationNode() {
             return [
@@ -975,8 +1023,10 @@ export default {
             }, 15000);
             this.unreadCountInterval = setInterval(() => {
                 this.updateUnreadConversationsCount();
+                this.updateRelayChatUnreadCount();
             }, 5000);
             this.updateUnreadConversationsCount();
+            this.updateRelayChatUnreadCount();
         },
         stopShell() {
             if (!this.shellRunning) {
@@ -1207,6 +1257,24 @@ export default {
                 }
             }, 300);
         },
+        updateRelayChatUnreadCount() {
+            if (!this.rrcEnabled) {
+                GlobalState.relayChatUnreadCount = 0;
+                return;
+            }
+            if (this._relayUnreadCountTimeout) {
+                clearTimeout(this._relayUnreadCountTimeout);
+            }
+            this._relayUnreadCountTimeout = setTimeout(async () => {
+                try {
+                    const response = await window.api.get("/api/v1/rrc/hubs");
+                    const hubs = response.data?.hubs || [];
+                    GlobalState.relayChatUnreadCount = countRelayMentions(hubs);
+                } catch (e) {
+                    console.error("Failed to update relay chat mention count", e);
+                }
+            }, 300);
+        },
         onConfigUpdatedExternally(newConfig) {
             if (!newConfig || typeof newConfig !== "object") {
                 return;
@@ -1325,6 +1393,16 @@ export default {
                 }
                 case "blocked_destinations": {
                     GlobalState.blockedDestinations = json.blocked_destinations || [];
+                    break;
+                }
+                case "rrc.message": {
+                    if (json.mention || json.message?.mention) {
+                        this.updateRelayChatUnreadCount();
+                    }
+                    break;
+                }
+                case "rrc.change": {
+                    this.updateRelayChatUnreadCount();
                     break;
                 }
                 case "lxmf.delivery": {

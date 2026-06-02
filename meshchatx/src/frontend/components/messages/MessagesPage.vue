@@ -55,21 +55,73 @@
         />
 
         <div
-            class="flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950"
+            ref="panesContainer"
+            class="flex flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950"
             :class="destinationHash ? 'flex' : 'hidden sm:flex'"
         >
-            <!-- messages tab -->
-            <ConversationViewer
-                ref="conversation-viewer"
-                :config="config"
-                :my-lxmf-address-hash="config?.lxmf_address_hash || ''"
-                :selected-peer="selectedPeer"
-                :conversations="conversations"
-                @update:selected-peer="onPeerClick"
-                @update-peer-tracking="onUpdatePeerTracking"
-                @close="onCloseConversationViewer"
-                @reload-conversations="getConversations"
-            />
+            <template v-for="(pane, paneIndex) in visiblePanes" :key="pane.id">
+                <div
+                    v-if="paneIndex > 0"
+                    class="group/resizer relative w-1 shrink-0 cursor-col-resize bg-sem-border transition-colors hover:bg-sem-accent"
+                    :class="{ 'bg-sem-accent': resizingPaneIds }"
+                    role="separator"
+                    aria-orientation="vertical"
+                    @pointerdown="startPaneResize($event, visiblePanes[paneIndex - 1].id, pane.id)"
+                    @dblclick="resetPaneSizes"
+                >
+                    <div class="absolute inset-y-0 -left-1.5 -right-1.5"></div>
+                </div>
+                <div
+                    class="relative flex flex-col min-w-0 overflow-hidden transition-[box-shadow]"
+                    :style="{ flexGrow: paneFlexValue(pane.id), flexShrink: 1, flexBasis: '0%' }"
+                    :class="[
+                        multiPaneActive && pane.id === focusedPaneId ? 'ring-2 ring-inset ring-sem-accent/60' : '',
+                        dragOverPaneId === pane.id ? 'ring-2 ring-inset ring-sem-accent bg-sem-accent/5' : '',
+                    ]"
+                    @mousedown="focusPane(pane.id)"
+                    @dragover.prevent="onPaneDragOver(pane.id)"
+                    @dragleave="onPaneDragLeave(pane.id)"
+                    @drop.prevent="onPaneDrop(pane.id, $event)"
+                >
+                    <ConversationViewer
+                        :ref="(el) => registerPaneViewer(pane.id, el)"
+                        :config="config"
+                        :my-lxmf-address-hash="config?.lxmf_address_hash || ''"
+                        :selected-peer="pane.peer"
+                        :conversations="conversations"
+                        @update:selected-peer="onPanePeerUpdate(pane.id, $event)"
+                        @update-peer-tracking="onUpdatePeerTracking"
+                        @close="onPaneClose(pane.id)"
+                        @reload-conversations="getConversations"
+                    />
+                    <div
+                        v-if="!pane.peer"
+                        class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 text-center text-sem-fg-secondary"
+                        :class="{ hidden: !multiPaneActive && dragOverPaneId !== pane.id }"
+                    >
+                        <MaterialDesignIcon icon-name="message-text-outline" class="size-8 opacity-70" />
+                        <span class="text-sm">{{ $t("messages.select_conversation_for_pane") }}</span>
+                    </div>
+                </div>
+            </template>
+
+            <div
+                v-if="canAddPane"
+                class="hidden shrink-0 items-center border-l border-sem-border bg-sem-surface-muted sm:flex transition-colors"
+                :class="{ 'bg-sem-accent/10 ring-2 ring-inset ring-sem-accent': isDragOverAddZone }"
+                @dragover.prevent="onAddZoneDragOver"
+                @dragleave="onAddZoneDragLeave"
+                @drop.prevent="onAddZoneDrop($event)"
+            >
+                <button
+                    type="button"
+                    class="px-1.5 py-2 text-sem-fg-secondary transition-colors hover:bg-sem-surface-raised hover:text-sem-fg"
+                    :title="$t('messages.open_in_split')"
+                    @click="addPane"
+                >
+                    <MaterialDesignIcon icon-name="dock-right" class="size-5" />
+                </button>
+            </div>
         </div>
 
         <button
@@ -271,6 +323,7 @@ import DownloadUtils from "../../js/DownloadUtils";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import ToastUtils from "../../js/ToastUtils";
 import { lxmfConversationListPreview } from "../../js/lxmfConversationPreview";
+import { loadMessagePanes, saveMessagePanes } from "../../js/browserLayoutStore";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 
 export default {
@@ -299,7 +352,20 @@ export default {
             hasLoadedConversations: false,
             messagesListSidebarCollapsed: false,
             peers: {},
-            selectedPeer: null,
+
+            panes: [{ id: 1, peer: null }],
+            focusedPaneId: 1,
+            nextPaneId: 2,
+            paneFlex: {},
+            resizingPaneIds: null,
+            dragOverPaneId: null,
+            isDragOverAddZone: false,
+            isWideViewport: false,
+            isWideEnoughForThreePanes: false,
+            paneViewportQuery: null,
+            paneViewportListener: null,
+            threePaneViewportQuery: null,
+            threePaneViewportListener: null,
 
             conversations: [],
             folders: [],
@@ -333,6 +399,61 @@ export default {
         };
     },
     computed: {
+        focusedPane() {
+            return this.panes.find((pane) => pane.id === this.focusedPaneId) || this.panes[0] || null;
+        },
+        selectedPeer: {
+            get() {
+                return this.focusedPane?.peer ?? null;
+            },
+            set(peer) {
+                const pane = this.focusedPane;
+                if (pane) {
+                    pane.peer = peer;
+                }
+            },
+        },
+        multiPaneEnabled() {
+            return this.config?.messages_multi_pane_enabled !== false;
+        },
+        maxPanes() {
+            if (this.isPopoutMode || !this.isWideViewport || !this.multiPaneEnabled) {
+                return 1;
+            }
+            return this.isWideEnoughForThreePanes ? 3 : 2;
+        },
+        visiblePanes() {
+            let panes;
+            if (this.maxPanes <= 1) {
+                panes = this.focusedPane ? [this.focusedPane] : this.panes.slice(0, 1);
+            } else {
+                panes = this.panes.slice(0, this.maxPanes);
+            }
+            if (panes.length <= 1) {
+                return panes;
+            }
+            const hasEmptyPane = panes.some((pane) => !pane.peer);
+            if (!hasEmptyPane) {
+                return panes;
+            }
+            return panes.filter((pane) => pane.peer || pane.id === this.focusedPaneId);
+        },
+        multiPaneActive() {
+            return this.visiblePanes.length > 1;
+        },
+        canAddPane() {
+            return (
+                !this.isPopoutMode &&
+                this.isWideViewport &&
+                this.panes.length < this.maxPanes &&
+                this.selectedPeer != null
+            );
+        },
+        paneLayoutSignature() {
+            const panes = this.panes.map((pane) => pane.peer?.destination_hash || "").join("\u241f");
+            const focusedIndex = this.panes.findIndex((pane) => pane.id === this.focusedPaneId);
+            return `${focusedIndex}\u241e${panes}`;
+        },
         popoutRouteType() {
             if (this.$route?.meta?.popoutType) {
                 return this.$route.meta.popoutType;
@@ -364,12 +485,22 @@ export default {
                 return conversation.is_unread;
             }).length;
         },
+        paneLayoutSignature() {
+            this.persistPanes();
+        },
         destinationHash(newHash) {
             if (newHash) {
                 this.isMobileComposeModalOpen = false;
                 this.onComposeNewMessage(newHash);
             }
         },
+    },
+    created() {
+        this.paneViewers = {};
+        this.resizeContext = null;
+        this.boundPaneResizeMove = null;
+        this.boundPaneResizeEnd = null;
+        this.restorePanes(this.destinationHash);
     },
     beforeUnmount() {
         clearInterval(this.reloadInterval);
@@ -378,6 +509,8 @@ export default {
         this.conversationsAbortController?.abort();
         this.announcesAbortController?.abort();
         this.stopIngestScanner();
+        this.teardownPaneViewportWatchers();
+        this.teardownPaneResize();
 
         // stop listening for websocket messages
         WebSocketConnection.off("message", this.onWebsocketMessage);
@@ -386,6 +519,8 @@ export default {
         GlobalEmitter.off("websocket-reconnected", this.requestConversationsRefresh);
     },
     mounted() {
+        this.setupPaneViewportWatchers();
+
         // listen for websocket messages
         WebSocketConnection.on("message", this.onWebsocketMessage);
         GlobalEmitter.on("compose-new-message", this.onComposeNewMessage);
@@ -494,9 +629,7 @@ export default {
                     if (this.peers[destHash]) {
                         this.peers[destHash].is_tracking = json.is_tracking;
                     }
-                    if (this.selectedPeer && this.selectedPeer.destination_hash === destHash) {
-                        this.selectedPeer.is_tracking = json.is_tracking;
-                    }
+                    this.applyToPanePeers(destHash, { is_tracking: json.is_tracking });
                     break;
                 }
                 case "lxm.ingest_uri.result": {
@@ -762,17 +895,18 @@ export default {
                     if (fresh.is_contact) conv.is_contact = fresh.is_contact;
                 }
 
-                if (this.selectedPeer && this.selectedPeer.destination_hash === peerHash) {
+                for (const pane of this.panes) {
+                    if (!pane.peer || pane.peer.destination_hash !== peerHash) {
+                        continue;
+                    }
                     const incomingName = fresh.display_name;
                     const shouldUpdate =
-                        incomingName &&
-                        incomingName !== "Anonymous Peer" &&
-                        incomingName !== this.selectedPeer.display_name;
+                        incomingName && incomingName !== "Anonymous Peer" && incomingName !== pane.peer.display_name;
                     if (shouldUpdate) {
-                        this.selectedPeer = {
-                            ...this.selectedPeer,
+                        pane.peer = {
+                            ...pane.peer,
                             display_name: incomingName,
-                            custom_display_name: fresh.custom_display_name ?? this.selectedPeer.custom_display_name,
+                            custom_display_name: fresh.custom_display_name ?? pane.peer.custom_display_name,
                         };
                     }
                 }
@@ -944,9 +1078,7 @@ export default {
             if (this.peers[destination_hash]) {
                 this.peers[destination_hash].is_tracking = is_tracking;
             }
-            if (this.selectedPeer && this.selectedPeer.destination_hash === destination_hash) {
-                this.selectedPeer.is_tracking = is_tracking;
-            }
+            this.applyToPanePeers(destination_hash, { is_tracking });
         },
         onPeerClick: function (peer) {
             // update selected peer
@@ -969,8 +1101,9 @@ export default {
             // object must stay compatible with format of peers
             this.onPeerClick(conversation);
 
-            // mark conversation as read
-            this.$refs["conversation-viewer"].markConversationAsRead(conversation);
+            // mark conversation as read in the pane that now displays it
+            const viewer = this.paneViewers?.[this.focusedPaneId];
+            viewer?.markConversationAsRead?.(conversation);
         },
         onCloseConversationViewer: function () {
             // clear selected peer
@@ -988,6 +1121,340 @@ export default {
                 routeOptions.query = { ...this.$route.query };
             }
             this.$router.replace(routeOptions);
+        },
+        slimPeer(peer) {
+            if (!peer || !peer.destination_hash) {
+                return null;
+            }
+            return {
+                destination_hash: peer.destination_hash,
+                display_name: peer.display_name ?? null,
+                custom_display_name: peer.custom_display_name ?? null,
+            };
+        },
+        restorePanes(routeHash) {
+            const saved = loadMessagePanes();
+            if (!saved || saved.panes.length === 0) {
+                return;
+            }
+
+            this.panes = saved.panes.map((peer) => ({
+                id: this.nextPaneId++,
+                peer: peer && peer.destination_hash ? { ...peer } : null,
+            }));
+
+            this.panes.forEach((pane, index) => {
+                const size = Array.isArray(saved.sizes) ? saved.sizes[index] : null;
+                this.paneFlex[pane.id] = typeof size === "number" && size > 0 ? size : 1;
+            });
+
+            const focusedIndex =
+                Number.isInteger(saved.focusedIndex) &&
+                saved.focusedIndex >= 0 &&
+                saved.focusedIndex < this.panes.length
+                    ? saved.focusedIndex
+                    : 0;
+            this.focusedPaneId = this.panes[focusedIndex].id;
+
+            if (routeHash) {
+                const match = this.panes.find((pane) => pane.peer?.destination_hash === routeHash);
+                if (match) {
+                    this.focusedPaneId = match.id;
+                }
+            }
+        },
+        persistPanes() {
+            const focusedIndex = this.panes.findIndex((pane) => pane.id === this.focusedPaneId);
+            saveMessagePanes({
+                panes: this.panes.map((pane) => this.slimPeer(pane.peer)),
+                sizes: this.panes.map((pane) => this.paneFlexValue(pane.id)),
+                focusedIndex: focusedIndex < 0 ? 0 : focusedIndex,
+            });
+        },
+        applyToPanePeers(destinationHash, patch) {
+            for (const pane of this.panes) {
+                if (pane.peer && pane.peer.destination_hash === destinationHash) {
+                    pane.peer = { ...pane.peer, ...patch };
+                }
+            }
+        },
+        registerPaneViewer(paneId, instance) {
+            if (!this.paneViewers) {
+                this.paneViewers = {};
+            }
+            if (instance) {
+                this.paneViewers[paneId] = instance;
+            } else {
+                delete this.paneViewers[paneId];
+            }
+        },
+        focusPane(paneId) {
+            if (this.panes.some((pane) => pane.id === paneId)) {
+                this.focusedPaneId = paneId;
+            }
+        },
+        addPane() {
+            const existingEmpty = this.panes.find((pane) => !pane.peer);
+            if (existingEmpty) {
+                this.focusedPaneId = existingEmpty.id;
+                return;
+            }
+            if (!this.canAddPane) {
+                return;
+            }
+            const id = this.nextPaneId++;
+            this.panes.push({ id, peer: null });
+            this.focusedPaneId = id;
+        },
+        paneFlexValue(paneId) {
+            if (this.visiblePanes.length <= 1) {
+                return 1;
+            }
+            const pane = this.visiblePanes.find((entry) => entry.id === paneId);
+            if (!pane?.peer) {
+                return 1;
+            }
+            const value = this.paneFlex[paneId];
+            return typeof value === "number" && value > 0 ? value : 1;
+        },
+        startPaneResize(event, leftPaneId, rightPaneId) {
+            if (!this.isWideViewport || (event.button != null && event.button !== 0)) {
+                return;
+            }
+            const resizer = event.currentTarget;
+            const leftEl = resizer?.previousElementSibling;
+            const rightEl = resizer?.nextElementSibling;
+            if (!leftEl || !rightEl) {
+                return;
+            }
+            event.preventDefault();
+
+            const leftWidth = leftEl.getBoundingClientRect().width;
+            const rightWidth = rightEl.getBoundingClientRect().width;
+            const combinedWidth = leftWidth + rightWidth;
+            if (combinedWidth <= 0) {
+                return;
+            }
+
+            const combinedFlex = this.paneFlexValue(leftPaneId) + this.paneFlexValue(rightPaneId);
+
+            this.resizeContext = {
+                leftPaneId,
+                rightPaneId,
+                startX: event.clientX,
+                leftWidth,
+                combinedWidth,
+                combinedFlex,
+                minWidth: Math.min(220, combinedWidth / 2),
+            };
+            this.resizingPaneIds = `${leftPaneId}:${rightPaneId}`;
+
+            this.boundPaneResizeMove = this.onPaneResizeMove.bind(this);
+            this.boundPaneResizeEnd = this.endPaneResize.bind(this);
+            window.addEventListener("pointermove", this.boundPaneResizeMove);
+            window.addEventListener("pointerup", this.boundPaneResizeEnd);
+            document.body.style.userSelect = "none";
+            document.body.style.cursor = "col-resize";
+        },
+        onPaneResizeMove(event) {
+            const ctx = this.resizeContext;
+            if (!ctx) {
+                return;
+            }
+            const delta = event.clientX - ctx.startX;
+            let newLeftWidth = ctx.leftWidth + delta;
+            const maxLeftWidth = ctx.combinedWidth - ctx.minWidth;
+            if (newLeftWidth < ctx.minWidth) {
+                newLeftWidth = ctx.minWidth;
+            } else if (newLeftWidth > maxLeftWidth) {
+                newLeftWidth = maxLeftWidth;
+            }
+
+            const leftFlex = ctx.combinedFlex * (newLeftWidth / ctx.combinedWidth);
+            this.paneFlex[ctx.leftPaneId] = leftFlex;
+            this.paneFlex[ctx.rightPaneId] = ctx.combinedFlex - leftFlex;
+        },
+        endPaneResize() {
+            window.removeEventListener("pointermove", this.boundPaneResizeMove);
+            window.removeEventListener("pointerup", this.boundPaneResizeEnd);
+            this.boundPaneResizeMove = null;
+            this.boundPaneResizeEnd = null;
+            this.resizeContext = null;
+            this.resizingPaneIds = null;
+            document.body.style.userSelect = "";
+            document.body.style.cursor = "";
+            this.persistPanes();
+        },
+        resetPaneSizes() {
+            for (const pane of this.panes) {
+                this.paneFlex[pane.id] = 1;
+            }
+            this.persistPanes();
+        },
+        teardownPaneResize() {
+            if (this.boundPaneResizeMove) {
+                window.removeEventListener("pointermove", this.boundPaneResizeMove);
+            }
+            if (this.boundPaneResizeEnd) {
+                window.removeEventListener("pointerup", this.boundPaneResizeEnd);
+            }
+            this.boundPaneResizeMove = null;
+            this.boundPaneResizeEnd = null;
+            this.resizeContext = null;
+        },
+        peerFromDestinationHash(destinationHash) {
+            const conversation = this.conversations.find((c) => c.destination_hash === destinationHash);
+            if (conversation) {
+                return conversation;
+            }
+            const peer = this.peers[destinationHash];
+            if (peer) {
+                return peer;
+            }
+            return {
+                destination_hash: destinationHash,
+                display_name: "Anonymous Peer",
+                custom_display_name: null,
+            };
+        },
+        openConversationInPane(paneId, destinationHash) {
+            const normalized = Utils.normalizeMeshchatHashHex(destinationHash || "");
+            if (normalized.length !== 32) {
+                return;
+            }
+            const pane = this.panes.find((entry) => entry.id === paneId);
+            if (!pane) {
+                return;
+            }
+            this.focusedPaneId = paneId;
+            const peer = this.peerFromDestinationHash(normalized);
+            this.onPeerClick(peer);
+            const viewer = this.paneViewers?.[paneId];
+            viewer?.markConversationAsRead?.(peer);
+        },
+        onPaneDragOver(paneId) {
+            if (!this.isWideViewport) {
+                return;
+            }
+            this.dragOverPaneId = paneId;
+        },
+        onPaneDragLeave(paneId) {
+            if (this.dragOverPaneId === paneId) {
+                this.dragOverPaneId = null;
+            }
+        },
+        onPaneDrop(paneId, event) {
+            this.dragOverPaneId = null;
+            const hash = event?.dataTransfer?.getData("text/plain");
+            if (hash) {
+                this.openConversationInPane(paneId, hash);
+            }
+        },
+        onAddZoneDragOver() {
+            if (this.canAddPane) {
+                this.isDragOverAddZone = true;
+            }
+        },
+        onAddZoneDragLeave() {
+            this.isDragOverAddZone = false;
+        },
+        onAddZoneDrop(event) {
+            this.isDragOverAddZone = false;
+            const hash = event?.dataTransfer?.getData("text/plain");
+            if (!hash || this.panes.length >= this.maxPanes) {
+                return;
+            }
+            const id = this.nextPaneId++;
+            this.panes.push({ id, peer: null });
+            this.openConversationInPane(id, hash);
+        },
+        onPanePeerUpdate(paneId, peer) {
+            this.focusPane(paneId);
+            this.onPeerClick(peer);
+        },
+        onPaneClose(paneId) {
+            const index = this.panes.findIndex((pane) => pane.id === paneId);
+            if (index === -1) {
+                return;
+            }
+
+            if (this.panes.length > 1) {
+                this.panes.splice(index, 1);
+                delete this.paneFlex[paneId];
+                delete this.paneViewers?.[paneId];
+                if (this.panes.length === 1) {
+                    this.paneFlex[this.panes[0].id] = 1;
+                }
+                if (this.focusedPaneId === paneId) {
+                    const neighbour = this.panes[index] || this.panes[index - 1] || this.panes[0];
+                    this.focusedPaneId = neighbour.id;
+                }
+                this.syncRouteToFocusedPane();
+                return;
+            }
+
+            this.onCloseConversationViewer();
+        },
+        syncRouteToFocusedPane() {
+            const peer = this.selectedPeer;
+            const routeName = this.isPopoutMode ? "messages-popout" : "messages";
+            const routeOptions = { name: routeName };
+            if (peer?.destination_hash) {
+                routeOptions.params = { destinationHash: peer.destination_hash };
+            }
+            if (!this.isPopoutMode && this.$route?.query) {
+                routeOptions.query = { ...this.$route.query };
+            }
+            this.$router.replace(routeOptions);
+        },
+        setupPaneViewportWatchers() {
+            if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+                this.isWideViewport = false;
+                this.isWideEnoughForThreePanes = false;
+                return;
+            }
+
+            this.paneViewportQuery = window.matchMedia("(min-width: 768px)");
+            this.isWideViewport = this.paneViewportQuery.matches;
+            this.paneViewportListener = (event) => {
+                this.isWideViewport = event.matches;
+            };
+            this.addMediaListener(this.paneViewportQuery, this.paneViewportListener);
+
+            this.threePaneViewportQuery = window.matchMedia("(min-width: 1280px)");
+            this.isWideEnoughForThreePanes = this.threePaneViewportQuery.matches;
+            this.threePaneViewportListener = (event) => {
+                this.isWideEnoughForThreePanes = event.matches;
+            };
+            this.addMediaListener(this.threePaneViewportQuery, this.threePaneViewportListener);
+        },
+        teardownPaneViewportWatchers() {
+            this.removeMediaListener(this.paneViewportQuery, this.paneViewportListener);
+            this.removeMediaListener(this.threePaneViewportQuery, this.threePaneViewportListener);
+            this.paneViewportQuery = null;
+            this.paneViewportListener = null;
+            this.threePaneViewportQuery = null;
+            this.threePaneViewportListener = null;
+        },
+        addMediaListener(query, listener) {
+            if (!query || !listener) {
+                return;
+            }
+            if (typeof query.addEventListener === "function") {
+                query.addEventListener("change", listener);
+            } else if (typeof query.addListener === "function") {
+                query.addListener(listener);
+            }
+        },
+        removeMediaListener(query, listener) {
+            if (!query || !listener) {
+                return;
+            }
+            if (typeof query.removeEventListener === "function") {
+                query.removeEventListener("change", listener);
+            } else if (typeof query.removeListener === "function") {
+                query.removeListener(listener);
+            }
         },
         requestConversationsRefresh() {
             if (this.conversationRefreshTimeout) {

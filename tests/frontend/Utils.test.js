@@ -87,10 +87,11 @@ describe("Utils.js", () => {
             expect(Utils.formatSeconds(172800)).toBe("2 days ago");
         });
 
-        it("formats combined units granularly", () => {
-            expect(Utils.formatSeconds(90061)).toBe("1 day, 1 hour, and 1 minute ago");
-            expect(Utils.formatSeconds(172860)).toBe("2 days and 1 minute ago");
-            expect(Utils.formatSeconds(3661)).toBe("1 hour and 1 minute ago");
+        it("uses only the largest unit for combined durations", () => {
+            expect(Utils.formatSeconds(90061)).toBe("1 day ago");
+            expect(Utils.formatSeconds(172860)).toBe("2 days ago");
+            expect(Utils.formatSeconds(3661)).toBe("1 hour ago");
+            expect(Utils.formatSeconds(84445)).toBe("23 hours ago");
         });
     });
 

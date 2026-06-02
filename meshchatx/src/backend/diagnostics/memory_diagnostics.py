@@ -1,3 +1,4 @@
+import collections
 import gc
 import sys
 import tracemalloc
@@ -57,10 +58,20 @@ def _classify(obj: Any) -> str:
 
 
 class _ObjectTypeTracker:
-    """Tracks per-type object counts across snapshots to detect accumulation."""
+    """Tracks per-type object counts across snapshots to detect accumulation.
 
-    def __init__(self) -> None:
-        self._history: list[dict[str, int]] = []
+    History is bounded so that long-running processes do not accumulate an
+    ever-growing list of per-type count dictionaries.  The very first
+    snapshot is retained separately so growth-since-start remains accurate
+    even after older readings are evicted.
+    """
+
+    def __init__(self, max_history: int = 64) -> None:
+        self._max_history = max(3, max_history)
+        self._history: collections.deque[dict[str, int]] = collections.deque(
+            maxlen=self._max_history,
+        )
+        self._first: dict[str, int] = {}
         self._last_full: dict[str, int] = {}
 
     def record(self) -> None:
@@ -73,15 +84,17 @@ class _ObjectTypeTracker:
                 except Exception:
                     continue
         except Exception:
-            pass
+            return
+        if not self._first:
+            self._first = counts
         self._history.append(counts)
         self._last_full = counts
 
     @property
     def growth_since_first(self) -> list[tuple[str, int]]:
-        if len(self._history) < 2:
+        if not self._first or not self._history:
             return []
-        first = self._history[0]
+        first = self._first
         last = self._history[-1]
         result: list[tuple[str, int]] = []
         for tname, count in last.items():
@@ -134,13 +147,15 @@ class MemoryDiagnostics:
     empty/default values).
     """
 
-    def __init__(self, nframes: int = 25) -> None:
+    def __init__(self, nframes: int = 25, max_snapshots: int = 48) -> None:
         self._nframes = nframes
+        self._max_snapshots = max(2, max_snapshots)
         self._enabled = False
         self._baseline: Optional[tracemalloc.Snapshot] = None
         self._snapshots: list[tracemalloc.Snapshot] = []
         self._gc_stats: list[dict[str, Any]] = []
-        self._type_tracker = _ObjectTypeTracker()
+        self._total_snapshots = 0
+        self._type_tracker = _ObjectTypeTracker(max_history=max_snapshots)
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -154,6 +169,7 @@ class MemoryDiagnostics:
         self._enabled = True
         self._baseline = tracemalloc.take_snapshot()
         self._snapshots = [self._baseline]
+        self._total_snapshots = 1
         self._record_gc_stats()
         self._type_tracker.record()
         print(
@@ -174,10 +190,31 @@ class MemoryDiagnostics:
         self._baseline = None
         self._snapshots.clear()
         self._gc_stats.clear()
+        self._total_snapshots = 0
+        self._type_tracker = _ObjectTypeTracker(max_history=self._max_snapshots)
 
     @property
     def enabled(self) -> bool:
         return self._enabled and tracemalloc.is_tracing()
+
+    @property
+    def total_snapshots(self) -> int:
+        """Monotonic count of snapshots taken, independent of retention trimming."""
+        return self._total_snapshots
+
+    def _trim_history(self) -> None:
+        """Bound retained snapshots and GC records while preserving the baseline.
+
+        The baseline (index 0) is always kept so ``diff_snapshots`` and
+        ``gc_stats`` deltas remain anchored to application start; only the
+        intermediate readings are evicted once the cap is exceeded.
+        """
+        if len(self._snapshots) > self._max_snapshots:
+            keep = max(1, self._max_snapshots - 1)
+            self._snapshots = [self._snapshots[0], *self._snapshots[-keep:]]
+        if len(self._gc_stats) > self._max_snapshots:
+            keep = max(1, self._max_snapshots - 1)
+            self._gc_stats = [self._gc_stats[0], *self._gc_stats[-keep:]]
 
     # ------------------------------------------------------------------
     # Snapshots
@@ -188,8 +225,10 @@ class MemoryDiagnostics:
             return None
         snap = tracemalloc.take_snapshot()
         self._snapshots.append(snap)
+        self._total_snapshots += 1
         self._record_gc_stats()
         self._type_tracker.record()
+        self._trim_history()
         return snap
 
     def diff_snapshots(
@@ -475,6 +514,7 @@ class MemoryDiagnostics:
             ],
             "gc_freeze_count": getattr(gc, "freeze_count", 0),
             "snapshot_count": len(self._snapshots),
+            "total_snapshots": self._total_snapshots,
         }
 
     @staticmethod

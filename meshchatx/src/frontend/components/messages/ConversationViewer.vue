@@ -144,20 +144,10 @@
                 v-if="isStrangerPeer && !strangerBannerDismissed && showUnknownContactBanner"
                 class="mx-3 mt-2 mb-0 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-lg flex items-center gap-3 text-sm"
             >
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="1.5"
-                    stroke="currentColor"
+                <MaterialDesignIcon
+                    icon-name="alert-circle-outline"
                     class="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0"
-                >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="M12 9v3.75m0 3.75h.008v-.008H12v.008Zm9.303-5.626a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-                    />
-                </svg>
+                />
                 <span class="flex-1 text-amber-900 dark:text-amber-200">
                     {{ $t("messages.stranger_banner_text") }}
                 </span>

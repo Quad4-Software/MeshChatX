@@ -62,7 +62,6 @@ def _store_enabled_config(**max_stored):
         "announce_store_lxst_telephony",
         "announce_store_nomadnetwork_node",
         "announce_store_lxmf_propagation",
-        "announce_store_git_repositories",
     ):
         m = MagicMock()
         m.get.return_value = True

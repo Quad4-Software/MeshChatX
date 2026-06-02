@@ -170,6 +170,16 @@ describe("App.vue sidebar identity label and announce control", () => {
         expect(html).not.toMatch(/>My Identity</);
     });
 
+    it("shows app version in sidebar footer linked to about", async () => {
+        wrapper = makeMountedApp();
+        const r = wrapper.vm.$router;
+        await readyShell(r);
+        const versionLink = wrapper.find('[data-testid="sidebar-app-version"]');
+        expect(versionLink.exists()).toBe(true);
+        expect(versionLink.text()).toContain(`v${appPackageVersion}`);
+        expect(versionLink.attributes("title")).toBe(`v${appPackageVersion}`);
+    });
+
     it("falls back to My Identity when display name is empty", async () => {
         axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/config") {

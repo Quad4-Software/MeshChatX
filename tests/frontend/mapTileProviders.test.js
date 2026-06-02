@@ -12,8 +12,8 @@ describe("mapTileProviders", () => {
     });
 
     it("returns next provider not yet attempted", () => {
-        expect(nextRasterTileProviderId("openfreemap", [])).toBe("carto-voyager");
-        expect(nextRasterTileProviderId("openfreemap", ["carto-voyager"])).toBe("osm");
-        expect(nextRasterTileProviderId("carto-light", RASTER_TILE_PROVIDER_ORDER)).toBe(null);
+        expect(nextRasterTileProviderId("openfreemap", [])).toBe("osm");
+        expect(nextRasterTileProviderId("osm", [])).toBe("openfreemap");
+        expect(nextRasterTileProviderId("openfreemap", RASTER_TILE_PROVIDER_ORDER)).toBe(null);
     });
 });

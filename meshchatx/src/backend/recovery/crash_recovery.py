@@ -15,6 +15,7 @@ import re
 import shutil
 import sqlite3
 import sys
+import threading
 import time
 import traceback
 
@@ -59,6 +60,8 @@ class CrashRecovery:
         self.log_handler = log_handler
         self.enabled = True
         self._learned_priors = None
+        self._handling = False
+        self._prev_threading_hook = None
 
         # Check environment variable to allow disabling the recovery system
         env_val = os.environ.get("MESHCHAT_NO_CRASH_RECOVERY", "").lower()
@@ -66,15 +69,46 @@ class CrashRecovery:
             self.enabled = False
 
     def install(self):
-        """Installs the crash recovery exception hook into the system."""
+        """Installs the crash recovery exception hook into the system.
+
+        Covers both the main thread (``sys.excepthook``) and background
+        threads (``threading.excepthook``).  A daemon worker dying silently is
+        a common source of hard-to-diagnose failures, so its exception is
+        diagnosed and logged without tearing down the whole process.
+        """
         if not self.enabled:
             return
 
         sys.excepthook = self.handle_exception
 
+        if self._prev_threading_hook is None:
+            self._prev_threading_hook = threading.excepthook
+        threading.excepthook = self._handle_thread_exception
+
     def disable(self):
         """Disables the crash recovery system manually."""
         self.enabled = False
+        if self._prev_threading_hook is not None:
+            threading.excepthook = self._prev_threading_hook
+            self._prev_threading_hook = None
+
+    def _handle_thread_exception(self, args):
+        """threading.excepthook adapter; diagnoses without killing the process."""
+        if args.exc_type is None or issubclass(args.exc_type, SystemExit):
+            return
+        thread_name = getattr(args.thread, "name", "unknown")
+        try:
+            sys.stderr.write(
+                f"\n[crash_recovery] Unhandled exception in thread '{thread_name}':\n",
+            )
+        except Exception:
+            pass
+        self.handle_exception(
+            args.exc_type,
+            args.exc_value,
+            args.exc_traceback,
+            exit_process=False,
+        )
 
     def update_paths(
         self,
@@ -189,13 +223,42 @@ class CrashRecovery:
         }
         return mapping.get(key, key)
 
-    def handle_exception(self, exc_type, exc_value, exc_traceback):
+    def handle_exception(
+        self,
+        exc_type,
+        exc_value,
+        exc_traceback,
+        *,
+        exit_process=True,
+    ):
         """Intercepts unhandled exceptions to provide a detailed diagnosis report."""
         # Let keyboard interrupts pass through normally
         if issubclass(exc_type, KeyboardInterrupt):
             sys.__excepthook__(exc_type, exc_value, exc_traceback)
             return
 
+        # Guard against re-entrancy: if the diagnostic path itself raises, fall
+        # back to the default hook instead of recursing into ourselves.
+        if self._handling:
+            sys.__excepthook__(exc_type, exc_value, exc_traceback)
+            return
+        self._handling = True
+
+        try:
+            self._diagnose_and_report(exc_type, exc_value, exc_traceback)
+        except Exception:
+            try:
+                sys.__excepthook__(exc_type, exc_value, exc_traceback)
+            except Exception:
+                pass
+        finally:
+            self._handling = False
+
+        if exit_process:
+            sys.exit(1)
+
+    def _diagnose_and_report(self, exc_type, exc_value, exc_traceback):
+        """Render the full crash diagnosis report to stderr and persist it."""
         # Use stderr for everything to ensure correct ordering in logs and console
         out = sys.stderr
 
@@ -274,9 +337,6 @@ class CrashRecovery:
         with contextlib.suppress(Exception):
             self._persist_crash(error_type, error_msg, causes, {}, entropy, divergence)
             self._update_learned_weights()
-
-        # Exit with error code
-        sys.exit(1)
 
     def _analyze_cause(self, exc_type, exc_value, diagnosis):
         """Rank likely root causes using heuristics and Bayesian priors."""
