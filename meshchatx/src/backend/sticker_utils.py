@@ -33,6 +33,7 @@ import gzip
 import hashlib
 import json
 import struct
+import zlib
 
 # Telegram-aligned size limits.
 MAX_STATIC_BYTES = 512 * 1024
@@ -222,6 +223,46 @@ def _read_jpeg_dimensions(data: bytes) -> tuple[int, int] | None:
     return None
 
 
+MAX_TGS_DECOMPRESSED_BYTES = 4 * 1024 * 1024
+
+# gzip-wrapped DEFLATE stream for zlib.decompressobj (16 + MAX_WBITS).
+_GZIP_WBITS = 31
+
+
+def _decompress_gzip_bounded(data: bytes, max_bytes: int) -> bytes:
+    """Decompress a gzip stream, never buffering more than ``max_bytes``.
+
+    Unlike ``gzip.decompress`` (which expands the whole stream into memory
+    before any size check), this caps each decompression step so a small
+    "gzip bomb" cannot force an unbounded allocation. Raises ``ValueError``
+    with ``invalid_tgs_too_large_decompressed`` once the output would exceed
+    ``max_bytes``.
+    """
+    decompressor = zlib.decompressobj(_GZIP_WBITS)
+    chunks: list[bytes] = []
+    total = 0
+    remaining = data
+    while True:
+        chunk = decompressor.decompress(remaining, max_bytes - total + 1)
+        if chunk:
+            chunks.append(chunk)
+            total += len(chunk)
+        if total > max_bytes:
+            msg = "invalid_tgs_too_large_decompressed"
+            raise ValueError(msg)
+        remaining = decompressor.unconsumed_tail
+        if not remaining:
+            break
+    tail = decompressor.flush()
+    if tail:
+        total += len(tail)
+        if total > max_bytes:
+            msg = "invalid_tgs_too_large_decompressed"
+            raise ValueError(msg)
+        chunks.append(tail)
+    return b"".join(chunks)
+
+
 def parse_tgs(data: bytes) -> dict:
     """Decompress a TGS payload and parse the Lottie JSON inside.
 
@@ -233,13 +274,15 @@ def parse_tgs(data: bytes) -> dict:
         msg = "invalid_tgs"
         raise ValueError(msg)
     try:
-        decompressed = gzip.decompress(bytes(data))
-    except (OSError, EOFError, gzip.BadGzipFile) as exc:
+        decompressed = _decompress_gzip_bounded(
+            bytes(data),
+            MAX_TGS_DECOMPRESSED_BYTES,
+        )
+    except ValueError:
+        raise
+    except (OSError, EOFError, zlib.error, gzip.BadGzipFile) as exc:
         msg = "invalid_tgs_gzip"
         raise ValueError(msg) from exc
-    if len(decompressed) > 4 * 1024 * 1024:
-        msg = "invalid_tgs_too_large_decompressed"
-        raise ValueError(msg)
     try:
         lottie = json.loads(decompressed)
     except (ValueError, json.JSONDecodeError) as exc:
