@@ -1,0 +1,6 @@
+package:
+    name: cbor2
+    version: "5.6.5"
+
+build:
+    number: 1

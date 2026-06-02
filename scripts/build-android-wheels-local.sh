@@ -659,6 +659,7 @@ with zipfile.ZipFile(src, "r") as zin, zipfile.ZipFile(dst, "w", compression=zip
         elif item.filename.endswith(".dist-info/METADATA"):
             text = data.decode("utf-8")
             text = text.replace("Requires-Dist: numpy>=2.3.4", "Requires-Dist: numpy==${NUMPY_VERSION}")
+            text = text.replace("Requires-Dist: cffi==1.15.1", "Requires-Dist: cffi>=1.15.1")
             data = text.encode("utf-8")
         zout.writestr(item, data)
 PY

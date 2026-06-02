@@ -108,16 +108,21 @@ tasks.register("syncCodec2JniLibs", Exec) {
 
 tasks.register("verifyVendorWheels") {
     doLast {
-        def aiohttpVersion = "3.13.5"
+        def vendorPackages = [
+            "aiohttp": "3.13.5",
+            "cbor2": "5.6.5",
+        ]
         def wheels = vendorWheelDir.list()?.toList() ?: []
         selectedAndroidAbis.each { abi ->
             def abiTag = abi.replace("-", "_")
-            def prefix = "aiohttp-${aiohttpVersion}-"
-            if (!wheels.any { it.startsWith(prefix) && it.contains("android_24_${abiTag}") }) {
-                throw new org.gradle.api.GradleException(
-                    "Missing aiohttp ${aiohttpVersion} wheel for ${abi} in ${vendorWheelDir}. " +
-                        "Run: bash scripts/build-android-wheels-local.sh --only-recipes aiohttp-3.13"
-                )
+            vendorPackages.each { pkg, ver ->
+                def prefix = "${pkg}-${ver}-"
+                if (!wheels.any { it.startsWith(prefix) && it.contains("android_24_${abiTag}") }) {
+                    throw new org.gradle.api.GradleException(
+                        "Missing ${pkg} ${ver} wheel for ${abi} in ${vendorWheelDir}. " +
+                            "Run: bash scripts/build-android-wheels-local.sh --only-recipes ${pkg}-*"
+                    )
+                }
             }
         }
     }
@@ -241,7 +246,7 @@ chaquopy {
             install "usbserial4a==0.4.0"
             install "jaraco.context>=6.1.1"
             install "ply>=3.11,<4.0"
-            install "cbor2==6.1.1"
+            install "cbor2==5.6.5"
         }
     }
 }
