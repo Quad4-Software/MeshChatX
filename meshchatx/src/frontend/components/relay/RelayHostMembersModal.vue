@@ -3,11 +3,11 @@
 <template>
     <div
         v-if="open"
-        class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 sm:p-4 md:p-6"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
         @click.self="$emit('close')"
     >
         <div
-            class="flex h-[100dvh] w-full flex-col border-sem-border-card bg-sem-surface shadow-xl sm:h-auto sm:max-h-[min(92vh,900px)] sm:rounded-2xl sm:border lg:max-w-6xl"
+            class="flex h-[min(100dvh-2rem,900px)] w-full max-w-6xl flex-col rounded-2xl border border-sem-border-card bg-sem-surface shadow-xl"
             role="dialog"
             :aria-label="title"
         >
@@ -195,6 +195,7 @@ export default {
             messagesLoading: false,
             isNarrow: false,
             mq: null,
+            localIdentityHash: "",
         };
     },
     computed: {
@@ -224,6 +225,7 @@ export default {
                 this.search = "";
                 this.selectedMember = null;
                 this.memberMessages = [];
+                this.ensureLocalIdentity();
                 this.fetchMembers();
             }
         },
@@ -280,16 +282,72 @@ export default {
                 this.messagesLoading = false;
             }
         },
+        async ensureLocalIdentity() {
+            if (this.localIdentityHash) {
+                return;
+            }
+            try {
+                const response = await window.api.get("/api/v1/config");
+                const hash = response.data?.identity_hash;
+                if (typeof hash === "string" && hash.trim()) {
+                    this.localIdentityHash = hash.trim().toLowerCase();
+                }
+            } catch {
+                // config may be unavailable in tests
+            }
+        },
+        async resolveModerationRoom(member, action) {
+            if (this.room) {
+                return this.room;
+            }
+            const needsRoom = action === "kick" || action === "room_ban";
+            if (!needsRoom) {
+                return null;
+            }
+            const rooms = (member.rooms || []).filter((r) => typeof r === "string" && r.trim());
+            if (rooms.length === 0) {
+                ToastUtils.warning(this.$t("relay_chat.host_kick_no_room"));
+                return null;
+            }
+            if (rooms.length === 1) {
+                return rooms[0];
+            }
+            const entered = await DialogUtils.prompt(
+                this.$t("relay_chat.host_kick_pick_room", {
+                    name: member.name,
+                    rooms: rooms.map((r) => "#" + r).join(", "),
+                })
+            );
+            if (!entered) {
+                return null;
+            }
+            const norm = entered.trim().replace(/^#/, "");
+            const match = rooms.find((r) => r.toLowerCase() === norm.toLowerCase());
+            if (!match) {
+                ToastUtils.warning(this.$t("relay_chat.host_kick_room_invalid"));
+                return null;
+            }
+            return match;
+        },
         async moderate(member, action) {
             if (!this.hub?.id || !member?.hash) {
                 return;
             }
+            await this.ensureLocalIdentity();
+            if (this.localIdentityHash && member.hash.toLowerCase() === this.localIdentityHash) {
+                ToastUtils.warning(this.$t("relay_chat.host_cannot_moderate_self"));
+                return;
+            }
+            const room = await this.resolveModerationRoom(member, action);
+            if ((action === "kick" || action === "room_ban") && !room) {
+                return;
+            }
             const labels = {
-                kick: this.$t("relay_chat.host_kick_confirm", { name: member.name }),
+                kick: this.$t("relay_chat.host_kick_confirm", { name: member.name, room }),
                 ban: this.$t("relay_chat.host_ban_confirm", { name: member.name }),
                 room_ban: this.$t("relay_chat.host_room_ban_confirm", {
                     name: member.name,
-                    room: this.room,
+                    room,
                 }),
             };
             const confirmed = await DialogUtils.confirm(labels[action] || "");
@@ -300,7 +358,7 @@ export default {
                 await window.api.post(`/api/v1/rrc/servers/${this.hub.id}/moderate`, {
                     action,
                     peer: member.hash,
-                    room: this.room || undefined,
+                    room: room || undefined,
                 });
                 ToastUtils.success(this.$t("common.success"));
                 this.$emit("refresh");

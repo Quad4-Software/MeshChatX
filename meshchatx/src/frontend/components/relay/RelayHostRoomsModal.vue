@@ -3,11 +3,11 @@
 <template>
     <div
         v-if="open"
-        class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 sm:p-4 md:p-6"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
         @click.self="$emit('close')"
     >
         <div
-            class="flex h-[100dvh] w-full flex-col border-sem-border-card bg-sem-surface shadow-xl sm:h-auto sm:max-h-[min(92vh,900px)] sm:rounded-2xl sm:border lg:max-w-6xl"
+            class="flex h-[min(100dvh-2rem,900px)] w-full max-w-6xl flex-col rounded-2xl border border-sem-border-card bg-sem-surface shadow-xl"
             role="dialog"
             :aria-label="title"
         >

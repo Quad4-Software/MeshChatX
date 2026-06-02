@@ -582,7 +582,24 @@
                     </div>
 
                     <div class="flex flex-1 min-w-0 overflow-hidden">
-                        <RouterView class="flex-1 min-w-0 h-full" />
+                        <RouterView v-slot="{ Component, route }" class="flex-1 min-w-0 h-full">
+                            <template v-if="Component">
+                                <KeepAlive>
+                                    <component
+                                        :is="Component"
+                                        v-if="route.meta.keepAlive"
+                                        :key="route.name"
+                                        class="flex-1 min-w-0 h-full"
+                                    />
+                                </KeepAlive>
+                                <component
+                                    :is="Component"
+                                    v-if="!route.meta.keepAlive"
+                                    :key="route.fullPath"
+                                    class="flex-1 min-w-0 h-full"
+                                />
+                            </template>
+                        </RouterView>
                     </div>
                 </div>
             </template>
