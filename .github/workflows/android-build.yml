@@ -199,6 +199,9 @@ jobs:
               run: |
                   set -euo pipefail
                   required=(
+                      "aiohttp-3.13.5-*-cp311-cp311-android_24_arm64_v8a.whl"
+                      "aiohttp-3.13.5-*-cp311-cp311-android_24_x86_64.whl"
+                      "aiohttp-3.13.5-*-cp311-cp311-android_24_armeabi_v7a.whl"
                       "miniaudio-1.70-*-cp311-cp311-android_24_arm64_v8a.whl"
                       "miniaudio-1.70-*-cp311-cp311-android_24_x86_64.whl"
                       "miniaudio-1.70-*-cp311-cp311-android_24_armeabi_v7a.whl"

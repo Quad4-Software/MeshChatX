@@ -106,9 +106,26 @@ tasks.register("syncCodec2JniLibs", Exec) {
     }
 }
 
+tasks.register("verifyVendorWheels") {
+    doLast {
+        def aiohttpVersion = "3.13.5"
+        def wheels = vendorWheelDir.list()?.toList() ?: []
+        selectedAndroidAbis.each { abi ->
+            def abiTag = abi.replace("-", "_")
+            def prefix = "aiohttp-${aiohttpVersion}-"
+            if (!wheels.any { it.startsWith(prefix) && it.contains("android_24_${abiTag}") }) {
+                throw new org.gradle.api.GradleException(
+                    "Missing aiohttp ${aiohttpVersion} wheel for ${abi} in ${vendorWheelDir}. " +
+                        "Run: bash scripts/build-android-wheels-local.sh --only-recipes aiohttp-3.13"
+                )
+            }
+        }
+    }
+}
+
 tasks.configureEach { task ->
     if (task.name == "preBuild") {
-        task.dependsOn(tasks.named("syncCodec2JniLibs"))
+        task.dependsOn(tasks.named("syncCodec2JniLibs"), tasks.named("verifyVendorWheels"))
     }
 }
 
