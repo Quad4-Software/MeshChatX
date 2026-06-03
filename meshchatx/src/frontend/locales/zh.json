@@ -118,6 +118,8 @@
         "messages_multi_pane_enabled_description": "在较大屏幕上并排显示多个会话。将会话拖到窗格上即可在此处打开。",
         "nomad_tabs_enabled": "NomadNet 浏览器标签页",
         "nomad_tabs_enabled_description": "在较大屏幕上以标签页打开多个 NomadNet 页面。",
+        "rrc_enabled": "中继聊天",
+        "rrc_enabled_description": "启用中继聊天、中心发现与托管。关闭后，中继聊天将隐藏，并忽略中心公告。",
         "reset_appearance_defaults": "重置外观为默认",
         "light_theme": "浅色主题",
         "dark_theme": "深色主题",

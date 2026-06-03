@@ -112,6 +112,8 @@
         "messages_multi_pane_enabled_description": "Zeigt mehrere Unterhaltungen nebeneinander auf größeren Bildschirmen. Ziehe eine Unterhaltung auf einen Bereich, um sie dort zu öffnen.",
         "nomad_tabs_enabled": "NomadNet-Browser-Tabs",
         "nomad_tabs_enabled_description": "Öffnet mehrere NomadNet-Seiten in Tabs auf größeren Bildschirmen.",
+        "rrc_enabled": "Relais-Chat",
+        "rrc_enabled_description": "Aktiviert Relais-Chat, Hub-Erkennung und Hosting. Wenn aus, ist Relais-Chat ausgeblendet und Hub-Ankündigungen werden ignoriert.",
         "reset_appearance_defaults": "Erscheinungsbild auf Standard zurücksetzen",
         "light_theme": "Helles Thema",
         "dark_theme": "Dunkles Thema",

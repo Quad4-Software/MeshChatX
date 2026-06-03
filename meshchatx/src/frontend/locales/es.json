@@ -118,6 +118,8 @@
         "messages_multi_pane_enabled_description": "Muestra varias conversaciones una al lado de la otra en pantallas grandes. Arrastra una conversación a un panel para abrirla allí.",
         "nomad_tabs_enabled": "Pestañas del navegador NomadNet",
         "nomad_tabs_enabled_description": "Abre varias páginas de NomadNet en pestañas en pantallas grandes.",
+        "rrc_enabled": "Chat de retransmision",
+        "rrc_enabled_description": "Activa el chat de retransmision, el descubrimiento de hubs y el alojamiento. Si esta desactivado, el chat de retransmision se oculta y se ignoran los anuncios de hubs.",
         "reset_appearance_defaults": "Reiniciar la apariencia a predeterminados",
         "light_theme": "Tema de luz",
         "dark_theme": "Tema oscuro",

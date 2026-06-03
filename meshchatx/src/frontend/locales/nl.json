@@ -118,6 +118,8 @@
         "messages_multi_pane_enabled_description": "Toont meerdere gesprekken naast elkaar op grotere schermen. Sleep een gesprek naar een venster om het daar te openen.",
         "nomad_tabs_enabled": "NomadNet-browsertabbladen",
         "nomad_tabs_enabled_description": "Opent meerdere NomadNet-pagina's in tabbladen op grotere schermen.",
+        "rrc_enabled": "Relaychat",
+        "rrc_enabled_description": "Schakelt relaychat, hub-ontdekking en hosting in. Uitgeschakeld: relaychat is verborgen en hub-aankondigingen worden genegeerd.",
         "reset_appearance_defaults": "Het uiterlijk terugzetten naar standaardinstellingen",
         "light_theme": "Lichtthema",
         "dark_theme": "Donker thema",

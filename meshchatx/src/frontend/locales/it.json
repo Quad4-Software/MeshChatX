@@ -118,6 +118,8 @@
         "messages_multi_pane_enabled_description": "Mostra più conversazioni affiancate sugli schermi grandi. Trascina una conversazione su un riquadro per aprirla lì.",
         "nomad_tabs_enabled": "Schede del browser NomadNet",
         "nomad_tabs_enabled_description": "Apre più pagine NomadNet in schede sugli schermi grandi.",
+        "rrc_enabled": "Chat relay",
+        "rrc_enabled_description": "Abilita chat relay, scoperta hub e hosting. Se disattivato, la chat relay è nascosta e gli annunci hub vengono ignorati.",
         "reset_appearance_defaults": "Ripristina aspetto predefinito",
         "light_theme": "Tema Chiaro",
         "dark_theme": "Tema Scuro",

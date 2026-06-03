@@ -118,6 +118,8 @@
         "messages_multi_pane_enabled_description": "Affiche plusieurs conversations côte à côte sur les grands écrans. Faites glisser une conversation sur un volet pour l'y ouvrir.",
         "nomad_tabs_enabled": "Onglets du navigateur NomadNet",
         "nomad_tabs_enabled_description": "Ouvre plusieurs pages NomadNet dans des onglets sur les grands écrans.",
+        "rrc_enabled": "Chat relais",
+        "rrc_enabled_description": "Active le chat relais, la découverte de hubs et l'hébergement. Désactivé, le chat relais est masqué et les annonces de hubs sont ignorées.",
         "reset_appearance_defaults": "Réinitialiser l'apparence aux valeurs par défaut",
         "light_theme": "Thème lumineux",
         "dark_theme": "Thème sombre",
