@@ -100,6 +100,21 @@
                                 </span>
                             </button>
                             <button
+                                v-if="rrcEnabled"
+                                type="button"
+                                class="relative sm:hidden rounded-full p-1.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                                :title="$t('app.relay_chat')"
+                                @click="$router.push({ name: 'relay-chat' })"
+                            >
+                                <MaterialDesignIcon icon-name="forum" class="w-5 h-5" />
+                                <span
+                                    v-if="relayChatUnreadCount > 0"
+                                    class="absolute -top-0.5 -right-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white"
+                                >
+                                    {{ relayChatUnreadCount > 99 ? "99+" : relayChatUnreadCount }}
+                                </span>
+                            </button>
+                            <button
                                 type="button"
                                 class="rounded-full p-1.5 sm:p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
                                 :title="$t('app.audio_calls')"
