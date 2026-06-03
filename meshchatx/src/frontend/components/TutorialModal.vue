@@ -96,6 +96,66 @@
                                 {{ $t("tutorial.migration_working") }}
                             </p>
                         </div>
+                        <div
+                            v-if="androidStorageSetup && androidStorageSetup.needs_setup_choice"
+                            class="w-full max-w-xl mx-auto p-4 rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-blue-50/90 dark:bg-blue-950/40 text-left space-y-3"
+                        >
+                            <div class="font-semibold text-blue-950 dark:text-blue-100">
+                                {{ $t("android_storage.setup_title") }}
+                            </div>
+                            <p class="text-sm text-blue-950/90 dark:text-blue-100/90">
+                                {{ $t("android_storage.setup_desc") }}
+                            </p>
+                            <label
+                                class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer"
+                                :class="
+                                    androidStorageSetupChoice === 'external'
+                                        ? 'border-blue-500 bg-white/60 dark:bg-zinc-900/60'
+                                        : 'border-blue-200/60 dark:border-blue-900/40'
+                                "
+                            >
+                                <input v-model="androidStorageSetupChoice" type="radio" class="mt-1" value="external" />
+                                <span>
+                                    <span class="font-medium text-gray-900 dark:text-zinc-100 block">
+                                        {{ $t("android_storage.setup_external_title") }}
+                                    </span>
+                                    <span class="text-xs text-gray-600 dark:text-zinc-400">
+                                        {{ $t("android_storage.setup_external_desc") }}
+                                    </span>
+                                </span>
+                            </label>
+                            <label
+                                class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer"
+                                :class="
+                                    androidStorageSetupChoice === 'internal'
+                                        ? 'border-blue-500 bg-white/60 dark:bg-zinc-900/60'
+                                        : 'border-blue-200/60 dark:border-blue-900/40'
+                                "
+                            >
+                                <input v-model="androidStorageSetupChoice" type="radio" class="mt-1" value="internal" />
+                                <span>
+                                    <span class="font-medium text-gray-900 dark:text-zinc-100 block">
+                                        {{ $t("android_storage.setup_internal_title") }}
+                                    </span>
+                                    <span class="text-xs text-gray-600 dark:text-zinc-400">
+                                        {{ $t("android_storage.setup_internal_desc") }}
+                                    </span>
+                                </span>
+                            </label>
+                            <div class="flex justify-stretch sm:justify-end">
+                                <button
+                                    type="button"
+                                    class="tutorial-action-btn tutorial-action-btn-primary"
+                                    :disabled="androidStorageBusy || !androidStorageSetupChoice"
+                                    @click="applyAndroidStorageSetup"
+                                >
+                                    {{ $t("android_storage.setup_continue") }}
+                                </button>
+                            </div>
+                            <p v-if="androidStorageBusy" class="text-xs text-center text-gray-600 dark:text-zinc-400">
+                                {{ $t("android_storage.working") }}
+                            </p>
+                        </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full mt-8">
                             <div
                                 class="flex items-start gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 transition-all hover:scale-[1.03] hover:shadow-xl hover:z-10"
@@ -1129,6 +1189,66 @@
                                 {{ $t("tutorial.migration_working") }}
                             </p>
                         </div>
+                        <div
+                            v-if="androidStorageSetup && androidStorageSetup.needs_setup_choice"
+                            class="w-full max-w-2xl mx-auto p-5 rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-blue-50/90 dark:bg-blue-950/40 text-left space-y-3"
+                        >
+                            <div class="font-semibold text-blue-950 dark:text-blue-100">
+                                {{ $t("android_storage.setup_title") }}
+                            </div>
+                            <p class="text-sm text-blue-950/90 dark:text-blue-100/90">
+                                {{ $t("android_storage.setup_desc") }}
+                            </p>
+                            <label
+                                class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer"
+                                :class="
+                                    androidStorageSetupChoice === 'external'
+                                        ? 'border-blue-500 bg-white/60 dark:bg-zinc-900/60'
+                                        : 'border-blue-200/60 dark:border-blue-900/40'
+                                "
+                            >
+                                <input v-model="androidStorageSetupChoice" type="radio" class="mt-1" value="external" />
+                                <span>
+                                    <span class="font-medium text-gray-900 dark:text-zinc-100 block">
+                                        {{ $t("android_storage.setup_external_title") }}
+                                    </span>
+                                    <span class="text-xs text-gray-600 dark:text-zinc-400">
+                                        {{ $t("android_storage.setup_external_desc") }}
+                                    </span>
+                                </span>
+                            </label>
+                            <label
+                                class="flex items-start gap-3 p-3 rounded-xl border cursor-pointer"
+                                :class="
+                                    androidStorageSetupChoice === 'internal'
+                                        ? 'border-blue-500 bg-white/60 dark:bg-zinc-900/60'
+                                        : 'border-blue-200/60 dark:border-blue-900/40'
+                                "
+                            >
+                                <input v-model="androidStorageSetupChoice" type="radio" class="mt-1" value="internal" />
+                                <span>
+                                    <span class="font-medium text-gray-900 dark:text-zinc-100 block">
+                                        {{ $t("android_storage.setup_internal_title") }}
+                                    </span>
+                                    <span class="text-xs text-gray-600 dark:text-zinc-400">
+                                        {{ $t("android_storage.setup_internal_desc") }}
+                                    </span>
+                                </span>
+                            </label>
+                            <div class="flex justify-stretch sm:justify-end">
+                                <button
+                                    type="button"
+                                    class="tutorial-action-btn tutorial-action-btn-primary"
+                                    :disabled="androidStorageBusy || !androidStorageSetupChoice"
+                                    @click="applyAndroidStorageSetup"
+                                >
+                                    {{ $t("android_storage.setup_continue") }}
+                                </button>
+                            </div>
+                            <p v-if="androidStorageBusy" class="text-xs text-center text-gray-600 dark:text-zinc-400">
+                                {{ $t("android_storage.working") }}
+                            </p>
+                        </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full mt-12">
                             <div
                                 class="flex items-start gap-6 p-6 rounded-3xl bg-gray-50 dark:bg-zinc-900 text-left border border-gray-100 dark:border-zinc-800 transition-all hover:scale-[1.03] hover:shadow-2xl hover:z-10"
@@ -2131,6 +2251,7 @@
 
 <script>
 import logoUrl from "../assets/images/logo.png";
+import AndroidStorageBridge from "../js/AndroidStorageBridge.js";
 import ToastUtils from "../js/ToastUtils";
 import DialogUtils from "../js/DialogUtils";
 import GlobalState from "../js/GlobalState";
@@ -2186,6 +2307,10 @@ export default {
             pickingRandomBootstraps: false,
             migrationOffer: null,
             migrationBusy: false,
+            androidStorageSetup: null,
+            androidStorageSetupChoice: "external",
+            androidStorageBusy: false,
+            androidStorageBridge: null,
         };
     },
     computed: {
@@ -2292,6 +2417,7 @@ export default {
             this.loadCommunityInterfaces();
             this.loadDiscoveredInterfaces();
             this.refreshMigrationOffer();
+            this.refreshAndroidStorageSetup();
             this.discoveryInterval = setInterval(() => {
                 this.loadDiscoveredInterfaces();
             }, 5000);
@@ -2430,6 +2556,7 @@ export default {
             this.bootstrapCommunitySectionOpen = true;
             this.bootstrapAutoPickDone = false;
             await this.refreshMigrationOffer();
+            await this.refreshAndroidStorageSetup();
             await this.loadIdentitySetupDefaults();
             await this.loadDiscoveryBootstrapDefaults();
             await this.loadCommunityInterfaces();
@@ -2490,6 +2617,45 @@ export default {
                 }
             } catch (e) {
                 console.error("Failed to load migration status:", e);
+            }
+        },
+        ensureAndroidStorageBridge() {
+            if (!this.androidStorageBridge) {
+                this.androidStorageBridge = new AndroidStorageBridge();
+            }
+            return this.androidStorageBridge;
+        },
+        refreshAndroidStorageSetup() {
+            this.androidStorageSetup = null;
+            const bridge = this.ensureAndroidStorageBridge();
+            if (!bridge.isAndroidHost()) {
+                return;
+            }
+            const status = bridge.getStatus();
+            if (status?.needs_setup_choice) {
+                this.androidStorageSetup = status;
+                this.androidStorageSetupChoice = status.active_mode === "internal" ? "internal" : "external";
+            }
+        },
+        async applyAndroidStorageSetup() {
+            if (this.androidStorageBusy || !this.androidStorageSetup) {
+                return;
+            }
+            const bridge = this.ensureAndroidStorageBridge();
+            const mode = this.androidStorageSetupChoice || "external";
+            this.androidStorageBusy = true;
+            try {
+                const result = bridge.applySetupChoice(mode, this.androidStorageSetup);
+                if (result.restarted) {
+                    ToastUtils.success(this.$t("android_storage.restart_to_apply"));
+                } else {
+                    this.androidStorageSetup = null;
+                }
+            } catch (e) {
+                ToastUtils.error(this.$t("android_storage.failed"));
+                console.error(e);
+            } finally {
+                this.androidStorageBusy = false;
             }
         },
         async migrationMigrate() {
