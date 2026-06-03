@@ -261,7 +261,7 @@
 
                 <!-- conversation pane -->
                 <div
-                    class="flex-1 min-w-0 flex-col bg-sem-canvas md:flex"
+                    class="flex min-h-0 flex-1 min-w-0 flex-col overflow-hidden bg-sem-canvas md:flex"
                     :class="selectedRoom ? 'flex' : 'hidden md:flex'"
                 >
                     <div
@@ -344,7 +344,7 @@
                         <span>{{ selectedHub.motd }}</span>
                     </div>
 
-                    <div class="flex flex-1 min-h-0">
+                    <div class="relative flex flex-1 min-h-0 overflow-hidden">
                         <!-- messages -->
                         <div class="flex flex-1 min-w-0 flex-col min-h-0">
                             <div
@@ -453,9 +453,11 @@
                         <!-- members panel -->
                         <div
                             v-show="showMembers && selectedRoom"
-                            class="fixed inset-y-0 right-0 z-40 flex w-72 flex-col border-l border-sem-border bg-sem-canvas shadow-xl md:static md:z-auto md:w-72 md:shadow-none"
+                            class="absolute inset-y-0 right-0 z-40 flex w-72 max-w-[min(18rem,100%)] min-h-0 flex-col border-l border-sem-border bg-sem-canvas shadow-xl md:static md:z-auto md:max-w-none md:w-72 md:shadow-none"
                         >
-                            <div class="flex items-center justify-between gap-2 px-3 py-2.5 border-b border-sem-border">
+                            <div
+                                class="flex shrink-0 items-center justify-between gap-2 border-b border-sem-border px-3 py-2.5"
+                            >
                                 <div class="flex items-center gap-1.5 font-semibold">
                                     <MaterialDesignIcon icon-name="account-group" class="size-4 text-sem-accent" />
                                     {{ $t("relay_chat.members_title") }}
@@ -469,7 +471,7 @@
                                     <MaterialDesignIcon icon-name="close" class="size-4" />
                                 </button>
                             </div>
-                            <div class="border-b border-sem-border p-2">
+                            <div class="shrink-0 border-b border-sem-border p-2">
                                 <input
                                     v-model="membersSearch"
                                     type="search"
@@ -477,7 +479,7 @@
                                     class="input-field !py-1.5 !text-xs"
                                 />
                             </div>
-                            <div class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-3">
+                            <div class="min-h-0 flex-1 overflow-y-auto custom-scrollbar p-2 space-y-3">
                                 <div>
                                     <div
                                         class="px-1 pb-1 text-xs font-semibold uppercase tracking-wide text-sem-fg-muted"
@@ -537,16 +539,18 @@
                         </div>
                         <div
                             v-if="showMembers && selectedRoom"
-                            class="fixed inset-0 z-30 bg-black/40 md:hidden"
+                            class="absolute inset-0 z-30 bg-black/40 md:hidden"
                             @click="showMembers = false"
                         ></div>
 
                         <!-- search panel -->
                         <div
                             v-show="showSearch && selectedRoom"
-                            class="fixed inset-y-0 right-0 z-40 flex w-80 flex-col border-l border-sem-border bg-sem-canvas shadow-xl md:static md:z-auto md:w-80 md:shadow-none"
+                            class="absolute inset-y-0 right-0 z-40 flex w-80 max-w-[min(20rem,100%)] min-h-0 flex-col border-l border-sem-border bg-sem-canvas shadow-xl md:static md:z-auto md:max-w-none md:w-80 md:shadow-none"
                         >
-                            <div class="flex items-center justify-between gap-2 border-b border-sem-border px-3 py-2.5">
+                            <div
+                                class="flex shrink-0 items-center justify-between gap-2 border-b border-sem-border px-3 py-2.5"
+                            >
                                 <div class="flex items-center gap-1.5 font-semibold">
                                     <MaterialDesignIcon icon-name="magnify" class="size-4 text-sem-accent" />
                                     {{ $t("relay_chat.search_messages") }}
@@ -559,7 +563,7 @@
                                     <MaterialDesignIcon icon-name="close" class="size-4" />
                                 </button>
                             </div>
-                            <div class="border-b border-sem-border p-2">
+                            <div class="shrink-0 border-b border-sem-border p-2">
                                 <input
                                     v-model="messageSearch"
                                     type="text"
@@ -567,7 +571,7 @@
                                     class="input-field !py-1.5 !text-xs"
                                 />
                             </div>
-                            <div class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
+                            <div class="min-h-0 flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
                                 <div
                                     v-if="!messageSearch.trim()"
                                     class="flex flex-col items-center gap-2 px-3 py-8 text-center text-xs text-sem-fg-muted"
@@ -599,7 +603,7 @@
                         </div>
                         <div
                             v-if="showSearch && selectedRoom"
-                            class="fixed inset-0 z-30 bg-black/40 md:hidden"
+                            class="absolute inset-0 z-30 bg-black/40 md:hidden"
                             @click="showSearch = false"
                         ></div>
                     </div>
