@@ -475,6 +475,10 @@ jobs:
                       exit 1
                   fi
 
+            - name: Install Rust x86_64-apple-darwin target (cbor2 x64 slice)
+              if: matrix.label == 'macos'
+              run: bash scripts/ci/github-macos-rust-x64-target.sh
+
             - name: Install project deps into x64 Python (mac universal cx_Freeze)
               if: matrix.label == 'macos'
               env:
