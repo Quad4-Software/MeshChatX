@@ -1884,6 +1884,7 @@ dependencies = [
     { name = "ply" },
     { name = "psutil" },
     { name = "pycparser" },
+    { name = "pyserial" },
     { name = "rns" },
     { name = "websockets" },
 ]
@@ -1918,6 +1919,7 @@ requires-dist = [
     { name = "ply", specifier = ">=3.11,<4.0" },
     { name = "psutil", specifier = ">=7.2.2" },
     { name = "pycparser", specifier = ">=3.0" },
+    { name = "pyserial", specifier = ">=3.5" },
     { name = "rns", specifier = ">=1.3.5" },
     { name = "websockets", specifier = ">=16.0" },
 ]
