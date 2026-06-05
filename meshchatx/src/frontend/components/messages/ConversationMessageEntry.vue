@@ -224,9 +224,7 @@
                         :title="cv.outboundSentStatusTitle(entry.items[0].lxmf_message)"
                     />
                     <svg
-                        v-else-if="
-                            cv.showRichOutboundPendingUi(entry.items[0]) && cv.isOutboundPendingForUi(entry.items[0])
-                        "
+                        v-if="cv.showRichOutboundPendingUi(entry.items[0]) && cv.isOutboundPendingForUi(entry.items[0])"
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
                         viewBox="0 0 24 24"
@@ -302,6 +300,24 @@
                     Raw LXM
                 </button>
             </div>
+        </div>
+        <div
+            v-if="
+                entry.items[0].is_outbound && cv.outboundTransferProgressPercent(entry.items[0].lxmf_message) !== null
+            "
+            class="flex items-center gap-2 justify-end mt-1 w-full min-w-[8rem] max-w-[min(280px,85vw)]"
+        >
+            <div class="flex-1 h-1.5 rounded-full bg-gray-200/90 dark:bg-zinc-700/90 overflow-hidden">
+                <div
+                    class="h-full rounded-full bg-blue-500 dark:bg-blue-400 transition-all duration-300"
+                    :style="{
+                        width: cv.outboundTransferProgressPercent(entry.items[0].lxmf_message) + '%',
+                    }"
+                ></div>
+            </div>
+            <span class="text-[11px] font-semibold tabular-nums text-gray-500 dark:text-zinc-400 shrink-0">
+                {{ cv.outboundSendingProgressLabel(entry.items[0].lxmf_message) }}
+            </span>
         </div>
         <div
             v-if="cv.expandedMessageInfo === entry.items[0].lxmf_message.hash"
@@ -1081,7 +1097,7 @@
                             :title="cv.outboundSentStatusTitle(chatItem.lxmf_message)"
                         />
                         <svg
-                            v-else-if="cv.showRichOutboundPendingUi(chatItem) && cv.isOutboundPendingForUi(chatItem)"
+                            v-if="cv.showRichOutboundPendingUi(chatItem) && cv.isOutboundPendingForUi(chatItem)"
                             xmlns="http://www.w3.org/2000/svg"
                             fill="none"
                             viewBox="0 0 24 24"
@@ -1161,6 +1177,21 @@
                     </button>
                 </div>
             </div>
+        </div>
+
+        <div
+            v-if="chatItem.is_outbound && cv.outboundTransferProgressPercent(chatItem.lxmf_message) !== null"
+            class="flex items-center gap-2 justify-end mt-1 w-full min-w-[8rem] max-w-[min(280px,85vw)]"
+        >
+            <div class="flex-1 h-1.5 rounded-full bg-gray-200/90 dark:bg-zinc-700/90 overflow-hidden">
+                <div
+                    class="h-full rounded-full bg-blue-500 dark:bg-blue-400 transition-all duration-300"
+                    :style="{ width: cv.outboundTransferProgressPercent(chatItem.lxmf_message) + '%' }"
+                ></div>
+            </div>
+            <span class="text-[11px] font-semibold tabular-nums text-gray-500 dark:text-zinc-400 shrink-0">
+                {{ cv.outboundSendingProgressLabel(chatItem.lxmf_message) }}
+            </span>
         </div>
 
         <div

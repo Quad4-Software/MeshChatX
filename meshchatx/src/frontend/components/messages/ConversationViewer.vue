@@ -3519,12 +3519,16 @@ export default {
                 return;
             }
 
-            const prev = this.chatItems[chatItemIndex].lxmf_message;
+            const chatItem = this.chatItems[chatItemIndex];
+            const prev = chatItem.lxmf_message;
             const merged = { ...prev, ...lxmfMessage };
             if (!Object.prototype.hasOwnProperty.call(lxmfMessage, "_pendingPathfinding")) {
                 delete merged._pendingPathfinding;
             }
-            this.chatItems[chatItemIndex].lxmf_message = merged;
+            this.chatItems[chatItemIndex] = {
+                ...chatItem,
+                lxmf_message: merged,
+            };
         },
         onLxmfMessageDeleted(hash) {
             if (hash) {
@@ -4299,6 +4303,24 @@ export default {
                 }
                 return true;
             });
+        },
+        outboundTransferProgressPercent(lxmfMessage) {
+            if (!lxmfMessage || lxmfMessage._pendingPathfinding) {
+                return null;
+            }
+            const progress = Number(lxmfMessage.progress ?? 0);
+            const state = lxmfMessage.state;
+            if (state === "sending") {
+                return Math.min(100, Math.max(0, Math.round(progress)));
+            }
+            if (progress > 0 && ["outbound", "generating"].includes(state)) {
+                return Math.min(100, Math.max(0, Math.round(progress)));
+            }
+            return null;
+        },
+        outboundSendingProgressLabel(lxmfMessage) {
+            const pct = this.outboundTransferProgressPercent(lxmfMessage);
+            return pct === null ? null : `${pct}%`;
         },
         outboundSendingStatusTooltip(lxmfMessage) {
             if (!lxmfMessage) {

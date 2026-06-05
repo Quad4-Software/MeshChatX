@@ -703,146 +703,127 @@
             </div>
 
             <!-- host view -->
-            <div v-show="view === 'host'" class="flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-4">
-                <div class="mx-auto w-full max-w-3xl space-y-4">
-                    <div class="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                            <h2 class="text-lg font-semibold">{{ $t("relay_chat.host_title") }}</h2>
-                            <p class="text-sm text-sem-fg-muted">{{ $t("relay_chat.host_subtitle") }}</p>
-                        </div>
-                        <button type="button" :class="btnPrimary" @click="openCreateHub">
-                            <MaterialDesignIcon icon-name="plus" class="size-4" />
-                            {{ $t("relay_chat.create_hub") }}
-                        </button>
-                    </div>
-
-                    <div
-                        v-if="serverHubs.length === 0"
-                        class="flex flex-col items-center gap-2 rounded-xl border border-sem-border bg-sem-canvas p-8 text-center text-sm text-sem-fg-muted"
-                    >
-                        <MaterialDesignIcon icon-name="server-network-off" class="size-10 opacity-40" />
-                        {{ $t("relay_chat.no_hosted_hubs") }}
-                    </div>
-
-                    <div
-                        v-for="hub in serverHubs"
-                        :key="hub.id"
-                        class="rounded-xl border border-sem-border bg-sem-canvas p-4 space-y-3"
-                    >
+            <div v-show="view === 'host'" class="flex min-h-0 flex-1 flex-col overflow-hidden">
+                <RelayHostModerationPage
+                    v-if="hostModeration.hub"
+                    :hub="hostModeration.hub"
+                    :initial-tab="hostModeration.tab"
+                    :room-filter="hostModeration.room"
+                    @back="closeHostModeration"
+                    @refresh="fetchServers"
+                />
+                <div v-else class="flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-4">
+                    <div class="mx-auto w-full max-w-3xl space-y-4">
                         <div class="flex flex-wrap items-start justify-between gap-3">
-                            <div class="min-w-0 flex-1">
-                                <div class="flex items-center gap-2">
-                                    <span
-                                        class="size-2 shrink-0 rounded-full"
-                                        :class="hub.running ? 'bg-sem-success' : 'bg-sem-fg-muted'"
-                                    ></span>
-                                    <span class="font-semibold truncate">{{ hub.name }}</span>
-                                </div>
-                                <button
-                                    type="button"
-                                    class="mt-1 flex items-center gap-1.5 text-xs font-mono text-sem-fg-muted hover:text-sem-accent"
-                                    :title="$t('relay_chat.copy_hash')"
-                                    @click="copyHash(hub.dest_hash)"
-                                >
-                                    <MaterialDesignIcon icon-name="content-copy" class="size-3.5" />
-                                    <span class="truncate">{{ formatHash(hub.dest_hash) }}</span>
-                                </button>
+                            <div>
+                                <h2 class="text-lg font-semibold">{{ $t("relay_chat.host_title") }}</h2>
+                                <p class="text-sm text-sem-fg-muted">{{ $t("relay_chat.host_subtitle") }}</p>
                             </div>
-                            <div class="flex shrink-0 items-center gap-1.5">
-                                <button
-                                    v-if="!hub.running"
-                                    type="button"
-                                    :class="[btnSecondary, '!px-2.5 !py-1.5 !text-xs']"
-                                    @click="startServerHub(hub)"
-                                >
-                                    <MaterialDesignIcon icon-name="play" class="size-4" />
-                                    {{ $t("relay_chat.host_start") }}
-                                </button>
-                                <button
-                                    v-else
-                                    type="button"
-                                    :class="[btnSecondary, '!px-2.5 !py-1.5 !text-xs']"
-                                    @click="stopServerHub(hub)"
-                                >
-                                    <MaterialDesignIcon icon-name="stop" class="size-4" />
-                                    {{ $t("relay_chat.host_stop") }}
-                                </button>
-                                <button
-                                    type="button"
-                                    :class="btnIcon"
-                                    :title="$t('relay_chat.host_announce')"
-                                    :disabled="!hub.running"
-                                    @click="announceServerHub(hub)"
-                                >
-                                    <MaterialDesignIcon icon-name="bullhorn-outline" class="size-4" />
-                                </button>
-                                <button
-                                    type="button"
-                                    :class="btnDanger"
-                                    :title="$t('relay_chat.host_delete')"
-                                    @click="deleteServerHub(hub)"
-                                >
-                                    <MaterialDesignIcon icon-name="trash-can-outline" class="size-4" />
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-sem-fg-muted">
-                            <button
-                                type="button"
-                                class="inline-flex items-center gap-1 rounded-md px-1 py-0.5 transition-colors hover:bg-sem-surface/60 hover:text-sem-fg"
-                                :title="$t('relay_chat.show_members')"
-                                :disabled="!hub.running || hub.clients === 0"
-                                @click="openHostMembers(hub)"
-                            >
-                                <MaterialDesignIcon icon-name="account-group" class="size-3.5" />
-                                {{ hub.clients }} {{ $t("relay_chat.host_clients") }}
-                            </button>
-                            <button
-                                type="button"
-                                class="inline-flex items-center gap-1 rounded-md px-1 py-0.5 transition-colors hover:bg-sem-surface/60 hover:text-sem-fg"
-                                :title="$t('relay_chat.host_manage_rooms')"
-                                @click="openHostRooms(hub)"
-                            >
-                                <MaterialDesignIcon icon-name="pound" class="size-3.5" />
-                                {{ hub.rooms.length }} {{ $t("relay_chat.host_rooms") }}
+                            <button type="button" :class="btnPrimary" @click="openCreateHub">
+                                <MaterialDesignIcon icon-name="plus" class="size-4" />
+                                {{ $t("relay_chat.create_hub") }}
                             </button>
                         </div>
 
-                        <button
-                            type="button"
-                            :class="[btnSecondary, 'w-full !py-2 !text-xs']"
-                            @click="openHostRooms(hub)"
+                        <div
+                            v-if="serverHubs.length === 0"
+                            class="flex flex-col items-center gap-2 rounded-xl border border-sem-border bg-sem-canvas p-8 text-center text-sm text-sem-fg-muted"
                         >
-                            <MaterialDesignIcon icon-name="door-open" class="size-4" />
-                            {{ $t("relay_chat.host_manage_rooms") }}
-                        </button>
+                            <MaterialDesignIcon icon-name="server-network-off" class="size-10 opacity-40" />
+                            {{ $t("relay_chat.no_hosted_hubs") }}
+                        </div>
+
+                        <div
+                            v-for="hub in serverHubs"
+                            :key="hub.id"
+                            class="rounded-xl border border-sem-border bg-sem-canvas p-4 space-y-3"
+                        >
+                            <div class="flex flex-wrap items-start justify-between gap-3">
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center gap-2">
+                                        <span
+                                            class="size-2 shrink-0 rounded-full"
+                                            :class="hub.running ? 'bg-sem-success' : 'bg-sem-fg-muted'"
+                                        ></span>
+                                        <span class="font-semibold truncate">{{ hub.name }}</span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        class="mt-1 flex items-center gap-1.5 text-xs font-mono text-sem-fg-muted hover:text-sem-accent"
+                                        :title="$t('relay_chat.copy_hash')"
+                                        @click="copyHash(hub.dest_hash)"
+                                    >
+                                        <MaterialDesignIcon icon-name="content-copy" class="size-3.5" />
+                                        <span class="truncate">{{ formatHash(hub.dest_hash) }}</span>
+                                    </button>
+                                </div>
+                                <div class="flex shrink-0 items-center gap-1.5">
+                                    <button
+                                        v-if="!hub.running"
+                                        type="button"
+                                        :class="[btnSecondary, '!px-2.5 !py-1.5 !text-xs']"
+                                        @click="startServerHub(hub)"
+                                    >
+                                        <MaterialDesignIcon icon-name="play" class="size-4" />
+                                        {{ $t("relay_chat.host_start") }}
+                                    </button>
+                                    <button
+                                        v-else
+                                        type="button"
+                                        :class="[btnSecondary, '!px-2.5 !py-1.5 !text-xs']"
+                                        @click="stopServerHub(hub)"
+                                    >
+                                        <MaterialDesignIcon icon-name="stop" class="size-4" />
+                                        {{ $t("relay_chat.host_stop") }}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        :class="btnIcon"
+                                        :title="$t('relay_chat.host_announce')"
+                                        :disabled="!hub.running"
+                                        @click="announceServerHub(hub)"
+                                    >
+                                        <MaterialDesignIcon icon-name="bullhorn-outline" class="size-4" />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        :class="btnDanger"
+                                        :title="$t('relay_chat.host_delete')"
+                                        @click="deleteServerHub(hub)"
+                                    >
+                                        <MaterialDesignIcon icon-name="trash-can-outline" class="size-4" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-sem-fg-muted">
+                                <span class="inline-flex items-center gap-1">
+                                    <MaterialDesignIcon icon-name="account-group" class="size-3.5" />
+                                    {{ hub.clients }} {{ $t("relay_chat.host_clients") }}
+                                </span>
+                                <span class="inline-flex items-center gap-1">
+                                    <MaterialDesignIcon icon-name="pound" class="size-3.5" />
+                                    {{ hub.rooms.length }} {{ $t("relay_chat.host_rooms") }}
+                                </span>
+                            </div>
+
+                            <button
+                                type="button"
+                                :class="[btnSecondary, 'w-full !py-2 !text-xs']"
+                                @click="openHostModeration(hub)"
+                            >
+                                <MaterialDesignIcon icon-name="shield-account" class="size-4" />
+                                {{ $t("relay_chat.host_moderate") }}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <RelayHostMembersModal
-                :open="hostMembersModal.open"
-                :hub="hostMembersModal.hub"
-                :room="hostMembersModal.room"
-                @close="closeHostMembers"
-                @refresh="fetchServers"
-            />
-            <RelayHostRoomsModal
-                :open="hostRoomsModal.open"
-                :hub="hostRoomsModal.hub"
-                @close="closeHostRooms"
-                @refresh="fetchServers"
-            />
-
             <!-- create hub dialog -->
-            <div
-                v-if="showCreateHub"
-                class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-                @click.self="showCreateHub = false"
-            >
-                <div class="w-full max-w-md rounded-2xl border border-sem-border-card bg-sem-surface p-5 shadow-xl">
-                    <h2 class="mb-4 text-lg font-semibold">{{ $t("relay_chat.create_hub_title") }}</h2>
+            <div v-if="showCreateHub" :class="RELAY_HOST_MODAL_OVERLAY" @click.self="showCreateHub = false">
+                <div :class="RELAY_HOST_MODAL_PANEL_COMPACT" @click.stop>
+                    <h2 class="mb-4 text-lg font-semibold text-sem-fg">{{ $t("relay_chat.create_hub_title") }}</h2>
                     <form class="space-y-4" @submit.prevent="createServerHub">
                         <div class="space-y-1.5">
                             <label class="block text-sm font-semibold text-sem-fg-secondary">{{
@@ -1113,10 +1094,10 @@ import { countRelayMentions } from "../../js/relayMentionCount.js";
 import { filterRelayMembers, filterRelayMessages } from "../../js/relayMessageSearch.js";
 import { buildRelayMessageTimeline, relayMessageKey } from "../../js/relayMessageTimeline.js";
 import { loadRelayLayout, saveRelayLayout } from "../../js/relayLayoutStore.js";
+import { RELAY_HOST_MODAL_OVERLAY, RELAY_HOST_MODAL_PANEL_COMPACT } from "../../js/relayHostModalClasses.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import MdiIconPickerModal from "../MdiIconPickerModal.vue";
-import RelayHostMembersModal from "./RelayHostMembersModal.vue";
-import RelayHostRoomsModal from "./RelayHostRoomsModal.vue";
+import RelayHostModerationPage from "./RelayHostModerationPage.vue";
 import ContextMenuPanel from "../contextmenu/ContextMenuPanel.vue";
 import ContextMenuItem from "../contextmenu/ContextMenuItem.vue";
 import ContextMenuDivider from "../contextmenu/ContextMenuDivider.vue";
@@ -1142,8 +1123,7 @@ export default {
     components: {
         MaterialDesignIcon,
         MdiIconPickerModal,
-        RelayHostMembersModal,
-        RelayHostRoomsModal,
+        RelayHostModerationPage,
         ContextMenuPanel,
         ContextMenuItem,
         ContextMenuDivider,
@@ -1159,6 +1139,8 @@ export default {
     },
     data() {
         return {
+            RELAY_HOST_MODAL_OVERLAY,
+            RELAY_HOST_MODAL_PANEL_COMPACT,
             btnPrimary: BTN_PRIMARY,
             btnSecondary: BTN_SECONDARY,
             btnIcon: BTN_ICON,
@@ -1234,14 +1216,10 @@ export default {
                 has_custom_name: false,
                 hub_icon: null,
             },
-            hostMembersModal: {
-                open: false,
+            hostModeration: {
                 hub: null,
+                tab: "rooms",
                 room: null,
-            },
-            hostRoomsModal: {
-                open: false,
-                hub: null,
             },
         };
     },
@@ -1349,6 +1327,9 @@ export default {
     },
     methods: {
         selectView(view) {
+            if (view !== "host") {
+                this.closeHostModeration();
+            }
             this.view = view;
             this.persistRelayLayout();
             if (view === "discovery") {
@@ -2316,24 +2297,26 @@ export default {
                 ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.action_failed"));
             }
         },
-        openHostMembers(hub, room = null) {
-            this.hostMembersModal = {
-                open: true,
+        openHostModeration(hub, { tab = "rooms", room = null } = {}) {
+            if (!hub) {
+                return;
+            }
+            if (tab === "members" && !hub.running) {
+                ToastUtils.warning(this.$t("relay_chat.host_hub_not_running"));
+                return;
+            }
+            this.hostModeration = {
                 hub,
+                tab: tab === "members" ? "members" : "rooms",
                 room: room || null,
             };
         },
-        closeHostMembers() {
-            this.hostMembersModal.open = false;
-        },
-        openHostRooms(hub) {
-            this.hostRoomsModal = {
-                open: true,
-                hub,
+        closeHostModeration() {
+            this.hostModeration = {
+                hub: null,
+                tab: "rooms",
+                room: null,
             };
-        },
-        closeHostRooms() {
-            this.hostRoomsModal.open = false;
         },
         copyHash(hash) {
             if (!hash) {

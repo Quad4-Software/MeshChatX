@@ -77,6 +77,17 @@ describe("ConversationViewer outbound propagation status", () => {
         expect(wrapper.vm.outboundSentStatusTitle(null)).toBe("");
     });
 
+    it("outboundTransferProgressPercent and label track resource transfer", () => {
+        const wrapper = mountViewer();
+        expect(wrapper.vm.outboundTransferProgressPercent({ state: "sending", progress: 42.5 })).toBe(43);
+        expect(wrapper.vm.outboundSendingProgressLabel({ state: "sending", progress: 42.5 })).toBe("43%");
+        expect(wrapper.vm.outboundTransferProgressPercent({ state: "sending", progress: 0 })).toBe(0);
+        expect(wrapper.vm.outboundTransferProgressPercent({ state: "outbound", progress: 50 })).toBe(50);
+        expect(wrapper.vm.outboundTransferProgressPercent({ state: "outbound", progress: 0 })).toBeNull();
+        expect(wrapper.vm.outboundTransferProgressPercent({ state: "sending", _pendingPathfinding: true })).toBeNull();
+        expect(wrapper.vm.outboundSendingProgressLabel(null)).toBeNull();
+    });
+
     it("outboundSendingStatusTooltip uses propagation pending strings for propagated method", () => {
         const wrapper = mountViewer();
         const withProgress = wrapper.vm.outboundSendingStatusTooltip({

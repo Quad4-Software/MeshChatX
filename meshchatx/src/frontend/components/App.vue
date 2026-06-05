@@ -643,6 +643,11 @@
         <IntegrityWarningModal />
         <ChangelogModal ref="changelogModal" :app-version="appInfo?.version" />
         <TutorialModal ref="tutorialModal" />
+        <AndroidStorageChoicePrompt
+            ref="androidStorageUpgradePrompt"
+            variant="upgrade"
+            @completed="onAndroidStorageUpgradeCompleted"
+        />
 
         <!-- LXMF QR modal -->
         <div
@@ -754,6 +759,7 @@ import CommandPalette from "./CommandPalette.vue";
 import IntegrityWarningModal from "./IntegrityWarningModal.vue";
 import ChangelogModal from "./ChangelogModal.vue";
 import TutorialModal from "./TutorialModal.vue";
+import AndroidStorageChoicePrompt from "./AndroidStorageChoicePrompt.vue";
 import AppShellBanners from "./layout/AppShellBanners.vue";
 import KeyboardShortcuts from "../js/KeyboardShortcuts";
 import ElectronUtils from "../js/ElectronUtils";
@@ -776,6 +782,7 @@ export default {
         IntegrityWarningModal,
         ChangelogModal,
         TutorialModal,
+        AndroidStorageChoicePrompt,
         AppShellBanners,
     },
     setup() {
@@ -1274,6 +1281,16 @@ export default {
         onShowTutorialShell() {
             this.$refs.tutorialModal?.show();
         },
+        maybeShowAndroidStorageUpgrade() {
+            const prompt = this.$refs.androidStorageUpgradePrompt;
+            if (!prompt || typeof prompt.showUpgrade !== "function") {
+                return false;
+            }
+            return prompt.showUpgrade();
+        },
+        onAndroidStorageUpgradeCompleted() {
+            // prompt handles restart when user copies to external storage
+        },
         updateUnreadConversationsCount() {
             if (this._unreadCountTimeout) {
                 clearTimeout(this._unreadCountTimeout);
@@ -1574,6 +1591,8 @@ export default {
                     this.hasCheckedForModals = true;
                     if (this.appInfo && !this.appInfo.tutorial_seen) {
                         this.$refs.tutorialModal.show();
+                    } else if (this.maybeShowAndroidStorageUpgrade()) {
+                        // upgrade prompt for existing internal-storage installs
                     } else if (
                         this.appInfo &&
                         this.appInfo.changelog_seen_version !== "999.999.999" &&
@@ -1749,6 +1768,8 @@ export default {
 
             // Guard to prevent overlapping poll calls
             this._isPropagationSyncPolling = false;
+            const pollStartedAt = Date.now();
+            const propagationSyncPollTimeoutMs = 120000;
 
             const poll = async () => {
                 if (this._isPropagationSyncPolling) return;
@@ -1756,6 +1777,19 @@ export default {
                 try {
                     await this.updatePropagationNodeStatus();
                     if (this.isSyncingPropagationNode) {
+                        if (Date.now() - pollStartedAt > propagationSyncPollTimeoutMs) {
+                            if (this._propagationSyncPollTimer != null) {
+                                clearInterval(this._propagationSyncPollTimer);
+                                this._propagationSyncPollTimer = null;
+                            }
+                            await this.stopSyncingPropagationNode();
+                            ToastUtils.error(
+                                this.$t("app.sync_error", {
+                                    status: this.propagationSyncStatusLabel("path_timeout"),
+                                })
+                            );
+                            return;
+                        }
                         ToastUtils.loading(this.propagationSyncLiveToastMessage(), 0, propagationSyncToastKey);
                         return;
                     }

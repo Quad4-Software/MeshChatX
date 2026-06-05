@@ -1,7 +1,7 @@
 import { mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import RelayHostMembersModal from "@/components/relay/RelayHostMembersModal.vue";
+import RelayHostModerationPage from "@/components/relay/RelayHostModerationPage.vue";
 import DialogUtils from "@/js/DialogUtils";
 import ToastUtils from "@/js/ToastUtils";
 import { mountToolsPageGlobals } from "./testI18n.js";
@@ -26,7 +26,7 @@ const PEER_HASH = "00112233445566778899aabbccddeeff";
 const LOCAL_HASH = "ffeeddccbbaa99887766554433221100";
 
 function makeHub() {
-    return { id: HUB_ID, name: "Hosted" };
+    return { id: HUB_ID, name: "Hosted", running: true };
 }
 
 function makeMember(overrides = {}) {
@@ -38,7 +38,7 @@ function makeMember(overrides = {}) {
     };
 }
 
-describe("RelayHostMembersModal.vue", () => {
+describe("RelayHostModerationPage.vue", () => {
     beforeEach(() => {
         vi.clearAllMocks();
         DialogUtils.confirm.mockResolvedValue(true);
@@ -50,25 +50,28 @@ describe("RelayHostMembersModal.vue", () => {
                 if (url.includes("/members")) {
                     return { data: { members: [makeMember()] } };
                 }
+                if (url.includes("/activity")) {
+                    return { data: { rooms: [], recent: [] } };
+                }
                 return { data: {} };
             }),
             post: vi.fn(async () => ({ data: { message: "ok" } })),
         };
     });
 
-    const mountModal = (props = {}) =>
-        mount(RelayHostMembersModal, {
+    const mountPage = (props = {}) =>
+        mount(RelayHostModerationPage, {
             props: {
-                open: true,
                 hub: makeHub(),
-                room: null,
+                initialTab: "members",
+                roomFilter: null,
                 ...props,
             },
             global: mountToolsPageGlobals(),
         });
 
-    it("kicks using the member room when the modal has no room filter", async () => {
-        const wrapper = mountModal();
+    it("kicks using the member room when there is no room filter", async () => {
+        const wrapper = mountPage();
         await wrapper.vm.fetchMembers();
 
         await wrapper.vm.moderate(makeMember(), "kick");
@@ -80,8 +83,8 @@ describe("RelayHostMembersModal.vue", () => {
         });
     });
 
-    it("uses the modal room filter when set", async () => {
-        const wrapper = mountModal({ room: "ops" });
+    it("uses the room filter when set", async () => {
+        const wrapper = mountPage({ roomFilter: "ops" });
         await wrapper.vm.fetchMembers();
 
         await wrapper.vm.moderate(makeMember({ rooms: ["lobby", "ops"] }), "kick");
@@ -94,7 +97,7 @@ describe("RelayHostMembersModal.vue", () => {
     });
 
     it("blocks moderating the local identity", async () => {
-        const wrapper = mountModal();
+        const wrapper = mountPage();
         await wrapper.vm.ensureLocalIdentity();
 
         await wrapper.vm.moderate(makeMember({ hash: LOCAL_HASH }), "kick");

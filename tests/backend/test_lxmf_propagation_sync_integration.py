@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
+import asyncio
 import json
 import shutil
 import tempfile
@@ -145,6 +146,7 @@ async def test_remote_propagation_sync_transitions_path_requested_to_complete(
     ):
         first_sync = await sync_handler(None)
         assert first_sync.status == 200
+        await asyncio.sleep(0.05)
 
         first_status = json.loads((await status_handler(None)).body)[
             "propagation_node_status"
@@ -153,6 +155,7 @@ async def test_remote_propagation_sync_transitions_path_requested_to_complete(
 
         second_sync = await sync_handler(None)
         assert second_sync.status == 200
+        await asyncio.sleep(0.05)
 
         second_status = json.loads((await status_handler(None)).body)[
             "propagation_node_status"

@@ -108,4 +108,28 @@ describe("RNSHManagerPage.vue", () => {
 
         expect(wrapper.vm.outputsBySession[SESSION_ID]).toContain("line2");
     });
+
+    it("toggles session fullscreen and closes mobile sessions drawer on narrow screens", async () => {
+        const wrapper = mount(RNSHManagerPage, { global: mountToolsPageGlobals() });
+        await vi.waitFor(() => expect(wrapper.vm.sessions.length).toBe(1));
+
+        wrapper.vm.isNarrowScreen = true;
+        wrapper.vm.mobileSessionsOpen = true;
+        wrapper.vm.toggleSessionFullscreen();
+        expect(wrapper.vm.sessionFullscreen).toBe(true);
+        expect(wrapper.vm.mobileSessionsOpen).toBe(false);
+
+        wrapper.vm.toggleSessionFullscreen();
+        expect(wrapper.vm.sessionFullscreen).toBe(false);
+    });
+
+    it("selectSession closes mobile sessions list on narrow screens", async () => {
+        const wrapper = mount(RNSHManagerPage, { global: mountToolsPageGlobals() });
+        await vi.waitFor(() => expect(wrapper.vm.sessions.length).toBe(1));
+
+        wrapper.vm.isNarrowScreen = true;
+        wrapper.vm.mobileSessionsOpen = true;
+        wrapper.vm.selectSession(SESSION_ID);
+        expect(wrapper.vm.mobileSessionsOpen).toBe(false);
+    });
 });

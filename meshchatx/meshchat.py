@@ -783,44 +783,14 @@ class ReticulumMeshChat:
 
     @staticmethod
     def _disable_rnode_interfaces_on_android(config_path: str) -> bool:
-        """If running on Android, disable RNode* interfaces in Reticulum config.
-
-        Returns True if any interfaces were disabled.
-        """
+        """Disable enabled RNode* interfaces in Reticulum config (Android recovery helper)."""
         if not _is_chaquopy_android():
             return False
-        if not os.path.isfile(config_path):
-            return False
-        try:
-            from RNS.vendor.configobj import ConfigObj
+        from meshchatx.src.backend.rnode_support import (
+            disable_rnode_interfaces_in_config,
+        )
 
-            cfg = ConfigObj(config_path)
-        except Exception:
-            return False
-
-        modified = False
-        interfaces = cfg.get("interfaces")
-        if not isinstance(interfaces, dict):
-            return False
-        for _iface_name, iface in interfaces.items():
-            if not isinstance(iface, dict):
-                continue
-            iface_type = iface.get("type", "")
-            if isinstance(iface_type, str) and iface_type.startswith("RNode"):
-                if str(iface.get("interface_enabled", "")).lower() in (
-                    "true",
-                    "yes",
-                    "1",
-                    "on",
-                ):
-                    iface["interface_enabled"] = "false"
-                    modified = True
-        if modified:
-            try:
-                cfg.write()
-            except Exception:
-                pass
-        return modified
+        return disable_rnode_interfaces_in_config(config_path)
 
     def _ensure_reticulum_config(self, materialize: bool = True):
         """Normalize ``reticulum_config_dir`` and optionally ensure a ``config`` file exists.
@@ -863,13 +833,11 @@ class ReticulumMeshChat:
                 cfg.write()
         except Exception:
             pass
-        # Android: RNodeInterface crashes because serial port access isn't available
-        if _is_chaquopy_android():
-            disabled = self._disable_rnode_interfaces_on_android(config_path)
-            if disabled:
-                logging.getLogger(__name__).warning(
-                    "RNodeInterface is not supported on Android; disabled in config.",
-                )
+        from meshchatx.src.backend.rnode_support import (
+            guard_rnode_interfaces_on_android,
+        )
+
+        guard_rnode_interfaces_on_android(config_path)
 
     def setup_identity(self, identity: RNS.Identity):
         identity_hash = identity.hash.hex()
@@ -2655,7 +2623,45 @@ class ReticulumMeshChat:
         ctx = context or self.current_context
         if not ctx or not ctx.message_router:
             return
-        ctx.message_router.cancel_propagation_node_requests()
+        router = ctx.message_router
+        with contextlib.suppress(Exception):
+            router.cancel_propagation_node_requests()
+        # cancel_propagation_node_requests resets via acknowledge_sync_completion,
+        # but a blocked RNS.Identity.recall can leave the router in an active state.
+        with contextlib.suppress(Exception):
+            active_states = {
+                router.PR_PATH_REQUESTED,
+                router.PR_LINK_ESTABLISHING,
+                router.PR_LINK_ESTABLISHED,
+                router.PR_REQUEST_SENT,
+                router.PR_RECEIVING,
+                router.PR_RESPONSE_RECEIVED,
+            }
+            if router.propagation_transfer_state in active_states:
+                router.propagation_transfer_state = router.PR_IDLE
+                router.propagation_transfer_progress = 0.0
+
+    async def _request_propagation_node_messages(self, context=None):
+        ctx = context or self.current_context
+        if not ctx or not ctx.message_router:
+            return
+
+        router = ctx.message_router
+
+        def _request():
+            try:
+                router.request_messages_from_propagation_node(ctx.identity)
+            except (EOFError, BrokenPipeError, ConnectionResetError, OSError):
+                with contextlib.suppress(Exception):
+                    router.propagation_transfer_state = router.PR_IDLE
+                    router.propagation_transfer_progress = 0.0
+            except Exception:
+                logging.getLogger("meshchatx").exception(
+                    "Propagation node message request failed",
+                )
+
+        await asyncio.to_thread(_request)
+        await self.send_config_to_websocket_clients(context=ctx)
 
     def _get_propagation_sync_metrics(self, context=None):
         ctx = context or self.current_context
@@ -4847,6 +4853,24 @@ class ReticulumMeshChat:
 
             # update interface details
             interface_details["type"] = interface_type
+
+            if interface_type in (
+                "RNodeInterface",
+                "RNodeIPInterface",
+                "RNodeMultiInterface",
+            ):
+                from meshchatx.src.backend.rnode_support import rnode_serial_supported
+
+                if not rnode_serial_supported():
+                    return web.json_response(
+                        {
+                            "message": (
+                                "RNode serial and Bluetooth are not available on this device. "
+                                "On Android, the app must include usbserial4a (see MeshChatX issue #6)."
+                            ),
+                        },
+                        status=422,
+                    )
 
             # if interface doesn't have enabled or interface_enabled setting already, enable it by default
             if (
@@ -14180,8 +14204,10 @@ class ReticulumMeshChat:
             await self.send_config_to_websocket_clients(context=ctx)
             return
 
-        # request messages from propagation node
-        router.request_messages_from_propagation_node(ctx.identity)
+        # Kick off the LXMF request on a worker thread. Identity.recall and link
+        # setup can block on multiprocessing pipes; running inline would stall the
+        # HTTP handler and race with cancel_propagation_node_requests (EOFError).
+        asyncio.create_task(self._request_propagation_node_messages(context=ctx))
 
         # send config to websocket clients (used to tell ui last synced at)
         await self.send_config_to_websocket_clients(context=ctx)
@@ -18018,8 +18044,6 @@ class ReticulumMeshChat:
 
         should_update_message = True
         while should_update_message:
-            await asyncio.sleep(1)
-
             progress_pct = round(lxmf_message.progress * 100, 2)
             ctx.database.messages.update_lxmf_message_state(
                 message_hash=lxmf_message.hash.hex(),
@@ -18069,6 +18093,8 @@ class ReticulumMeshChat:
             # check if we should stop updating
             if has_delivered or has_propagated or has_failed or is_cancelled:
                 should_update_message = False
+            else:
+                await asyncio.sleep(1)
 
     def on_telephone_announce_received(
         self,

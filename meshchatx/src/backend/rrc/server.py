@@ -108,6 +108,7 @@ class RRCHubServer:
 
         self.destination = None
         self.running = False
+        self._started_at = None
 
         self._lock = threading.RLock()
         self._sessions = {}
@@ -145,6 +146,7 @@ class RRCHubServer:
             )
             self.destination.set_link_established_callback(self._on_link)
             self.running = True
+            self._started_at = time.time()
         if self.announce:
             self.announce_now()
         self._log("hub started at " + self.dest_hash.hex())
@@ -165,6 +167,7 @@ class RRCHubServer:
             dest = self.destination
             self.destination = None
             self.running = False
+            self._started_at = None
         for link in links:
             with contextlib.suppress(Exception):
                 link.teardown()
@@ -905,12 +908,16 @@ class RRCHubServer:
                 cfg["members"] = len(self._room_members.get(name, set()))
                 rooms.append(cfg)
             policy = self.policy.to_dict()
+            uptime_seconds = 0
+            if self.running and self._started_at is not None:
+                uptime_seconds = max(0, int(time.time() - self._started_at))
             return {
                 "id": self.hub_id,
                 "name": self.name,
                 "dest_hash": self.dest_hash.hex() if self.dest_hash else None,
                 "enabled": self.enabled,
                 "running": self.running,
+                "uptime_seconds": uptime_seconds,
                 "announce": self.announce,
                 "greeting": self.greeting,
                 "clients": sum(1 for s in self._sessions.values() if s.welcomed),

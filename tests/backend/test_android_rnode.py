@@ -7,6 +7,7 @@ from meshchatx.meshchat import ReticulumMeshChat
 
 
 def test_disable_rnode_interfaces_on_android(tmp_path):
+    """Unconditional disable helper still clears RNode interfaces on Android."""
     config_path = tmp_path / "config"
     config_path.write_text(
         """[reticulum]

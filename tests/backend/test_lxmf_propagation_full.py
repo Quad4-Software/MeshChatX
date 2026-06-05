@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
+import asyncio
 import json
 import shutil
 import tempfile
@@ -121,6 +122,7 @@ async def test_lxmf_sync_flow(mock_app):
             await route.handler(None)
             break
 
+    await asyncio.sleep(0.05)
     mock_router.request_messages_from_propagation_node.assert_called_once()
 
     # Check status (Receiving)
@@ -152,6 +154,7 @@ async def test_lxmf_sync_requests_path_before_sync(mock_app):
     with patch("meshchatx.meshchat.RNS.Transport.has_path", return_value=False):
         with patch("meshchatx.meshchat.RNS.Transport.request_path") as mock_request:
             await sync_handler(None)
+            await asyncio.sleep(0.05)
             mock_request.assert_called_with(outbound)
             mock_router.request_messages_from_propagation_node.assert_called_with(
                 mock_app.current_context.identity
@@ -327,6 +330,7 @@ async def test_user_provided_node_hash(mock_app):
         if r.path == "/api/v1/lxmf/propagation-node/sync"
     )
     await sync_handler(None)
+    await asyncio.sleep(0.05)
 
     # Verify the router was told to sync for our identity
     mock_app.current_context.message_router.request_messages_from_propagation_node.assert_called_with(

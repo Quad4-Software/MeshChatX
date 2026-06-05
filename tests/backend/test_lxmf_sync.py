@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
+import asyncio
 import json
 import shutil
 import tempfile
@@ -104,6 +105,7 @@ async def test_lxmf_sync_endpoints(mock_app):
 
     response = await sync_handler(None)
     assert response.status == 200
+    await asyncio.sleep(0.05)
     mock_app.current_context.message_router.request_messages_from_propagation_node.assert_called_once()
 
     # 3. Test status change to complete
@@ -143,6 +145,7 @@ async def test_specific_node_hash_validation(mock_app):
     mock_app.current_context.message_router.get_outbound_propagation_node.return_value = expected_bytes
 
     await sync_handler(None)
+    await asyncio.sleep(0.05)
     mock_app.current_context.message_router.request_messages_from_propagation_node.assert_called_once()
 
 
@@ -175,6 +178,7 @@ async def test_status_includes_sync_storage_and_confirmation_metrics(mock_app):
         ),
     ):
         await sync_handler(None)
+        await asyncio.sleep(0.05)
         response = await status_handler(None)
 
     data = json.loads(response.body)["propagation_node_status"]
@@ -229,6 +233,7 @@ async def test_status_hidden_metric_is_clamped_to_zero(mock_app):
         ),
     ):
         await sync_handler(None)
+        await asyncio.sleep(0.05)
         response = await status_handler(None)
 
     data = json.loads(response.body)["propagation_node_status"]

@@ -368,23 +368,23 @@ describe("RelayChatPage.vue", () => {
         );
     });
 
-    it("loads hosted hub members when opening the members dialog", async () => {
+    it("loads hosted hub members when opening the moderation page", async () => {
         const wrapper = mountPage();
         await vi.waitFor(() => expect(wrapper.vm.serverHubs.length).toBe(1));
 
         const hub = wrapper.vm.serverHubs[0];
-        wrapper.vm.openHostMembers(hub, "lobby");
+        wrapper.vm.view = "host";
+        wrapper.vm.openHostModeration(hub, { tab: "members", room: "lobby" });
         await wrapper.vm.$nextTick();
 
-        const modal = wrapper.findComponent({ name: "RelayHostMembersModal" });
-        await vi.waitFor(() => expect(modal.vm.members).toHaveLength(1));
+        const page = wrapper.findComponent({ name: "RelayHostModerationPage" });
+        await vi.waitFor(() => expect(page.vm.members).toHaveLength(1));
 
         expect(axiosMock.get).toHaveBeenCalledWith(`/api/v1/rrc/servers/${HOSTED_HUB_ID}/members`, {
             params: { room: "lobby" },
         });
-        expect(wrapper.vm.hostMembersModal.open).toBe(true);
-        expect(wrapper.vm.hostMembersModal.hub.id).toBe(HOSTED_HUB_ID);
-        expect(modal.vm.members[0].name).toBe("alice");
+        expect(wrapper.vm.hostModeration.hub.id).toBe(HOSTED_HUB_ID);
+        expect(page.vm.members[0].name).toBe("alice");
     });
 
     it("refreshes hosted hubs on a server change websocket event", async () => {

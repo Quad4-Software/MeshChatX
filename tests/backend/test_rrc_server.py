@@ -2,6 +2,8 @@
 
 """Unit tests for the RRC hub server (hosting) layer."""
 
+import time
+
 from meshchatx.src.backend.rrc import protocol as proto
 from meshchatx.src.backend.rrc.manager import RRCManager, RRCHub
 from meshchatx.src.backend.rrc.server import (
@@ -275,6 +277,13 @@ def test_ping_returns_pong():
 
     assert out[0][1][proto.K_T] == proto.T_PONG
     assert out[0][1][proto.K_BODY] == 123
+
+
+def test_uptime_seconds_in_summary():
+    server = make_running_server()
+    assert server.to_dict()["uptime_seconds"] == 0
+    server._started_at = time.time() - 90
+    assert server.to_dict()["uptime_seconds"] >= 90
 
 
 def test_register_and_unregister_room():

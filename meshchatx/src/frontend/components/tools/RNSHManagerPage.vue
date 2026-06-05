@@ -3,13 +3,15 @@
 <template>
     <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
         <ToolsPageHeader
+            v-show="!sessionFullscreen"
             icon="console-network-outline"
             :title="$t('rnsh.title')"
-            :description="$t('rnsh.description')"
+            :description="headerDescription"
             :eyebrow="$t('rnsh.remote_shell')"
             accent="indigo"
         />
         <div
+            v-show="!sessionFullscreen"
             class="flex items-stretch h-9 shrink-0 border-b border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900 overflow-x-auto"
             role="tablist"
         >
@@ -19,7 +21,7 @@
                 type="button"
                 role="tab"
                 :aria-selected="activeTab === tab.id"
-                class="inline-flex items-center gap-1.5 px-3 sm:px-4 border-r border-gray-200 dark:border-zinc-800 text-sm transition-colors shrink-0"
+                class="inline-flex items-center gap-1 px-2.5 sm:px-4 border-r border-gray-200 dark:border-zinc-800 text-xs sm:text-sm transition-colors shrink-0"
                 :class="
                     activeTab === tab.id
                         ? 'bg-white dark:bg-zinc-950 text-gray-900 dark:text-gray-100 font-medium'
@@ -28,31 +30,33 @@
                 @click="activeTab = tab.id"
             >
                 <MaterialDesignIcon :icon-name="tab.icon" class="size-4 shrink-0 opacity-70" />
-                <span>{{ $t(tab.label) }}</span>
+                <span class="lg:hidden">{{ $t(tab.shortLabel || tab.label) }}</span>
+                <span class="hidden lg:inline">{{ $t(tab.label) }}</span>
             </button>
         </div>
 
-        <div class="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <div v-show="!sessionFullscreen" class="flex-1 flex flex-col min-h-0 overflow-hidden">
             <div v-show="activeTab === 'sessions'" class="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
                 <aside
-                    class="flex flex-col min-h-0 max-h-[40vh] lg:max-h-none lg:w-80 xl:w-96 shrink-0 border-b lg:border-b-0 lg:border-r border-gray-200 dark:border-zinc-800 px-3 md:px-4 py-3 gap-3"
+                    class="flex flex-col min-h-0 shrink-0 border-gray-200 dark:border-zinc-800 px-2 sm:px-3 md:px-4 py-2 sm:py-3 gap-2 sm:gap-3"
+                    :class="sessionsAsideClass"
                 >
                     <div class="flex items-center justify-between gap-2">
-                        <div class="text-sm font-semibold text-gray-900 dark:text-white">
+                        <div class="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white">
                             {{ $t("rnsh.sessions") }}
                         </div>
                         <button type="button" class="secondary-chip text-xs px-2 py-1.5" @click="loadSessions">
                             <MaterialDesignIcon icon-name="refresh" class="size-4" />
-                            {{ $t("rnsh.refresh") }}
+                            <span class="hidden sm:inline">{{ $t("rnsh.refresh") }}</span>
                         </button>
                     </div>
 
-                    <div class="flex-1 min-h-0 space-y-1.5 overflow-y-auto custom-scrollbar pr-1">
+                    <div class="flex-1 min-h-0 space-y-1 overflow-y-auto custom-scrollbar pr-0.5">
                         <button
                             v-for="session in sessions"
                             :key="session.id"
                             type="button"
-                            class="w-full text-left rounded-lg px-3 py-2 transition-colors"
+                            class="w-full text-left rounded-lg px-2.5 sm:px-3 py-1.5 sm:py-2 transition-colors"
                             :class="
                                 session.id === selectedSessionId
                                     ? 'bg-indigo-100 dark:bg-indigo-900/35 text-indigo-950 dark:text-indigo-100'
@@ -61,116 +65,57 @@
                             @click="selectSession(session.id)"
                         >
                             <div class="flex items-center justify-between gap-2">
-                                <div class="font-medium text-sm text-gray-900 dark:text-zinc-100 truncate">
+                                <div class="font-medium text-xs sm:text-sm text-gray-900 dark:text-zinc-100 truncate">
                                     {{ session.name || $t("rnsh.unnamed_session") }}
                                 </div>
                                 <span
-                                    class="text-[11px] font-semibold uppercase tracking-wide shrink-0"
+                                    class="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wide shrink-0"
                                     :class="statusClass(session)"
                                 >
                                     {{ statusLabel(session) }}
                                 </span>
                             </div>
-                            <div class="font-mono text-xs text-gray-500 dark:text-zinc-400 truncate mt-1">
+                            <div
+                                class="font-mono text-[10px] sm:text-xs text-gray-500 dark:text-zinc-400 truncate mt-0.5"
+                            >
                                 {{ session.mode === "listen" ? $t("rnsh.listen_mode") : session.destination || "-" }}
                             </div>
                         </button>
-                        <div v-if="sessions.length === 0" class="text-xs text-gray-500 dark:text-zinc-400">
+                        <div v-if="sessions.length === 0" class="text-xs text-gray-500 dark:text-zinc-400 px-1">
                             {{ $t("rnsh.no_sessions") }}
                         </div>
                     </div>
                 </aside>
 
-                <section class="flex-1 min-w-0 min-h-0 flex flex-col">
-                    <div
-                        class="shrink-0 flex flex-wrap items-center justify-between gap-2 px-3 md:px-4 py-2.5 border-b border-gray-200 dark:border-zinc-800"
-                    >
-                        <div class="min-w-0">
-                            <div class="text-sm font-semibold text-gray-900 dark:text-zinc-100 truncate">
-                                {{ selectedSession?.name || $t("rnsh.session_output") }}
-                            </div>
-                            <div class="text-xs text-gray-500 dark:text-zinc-400 font-mono truncate">
-                                {{ selectedSession?.last_command || $t("rnsh.no_command_yet") }}
-                            </div>
-                        </div>
-                        <div class="flex flex-wrap items-center gap-2">
-                            <button
-                                type="button"
-                                class="secondary-chip text-xs px-2 py-1.5"
-                                :disabled="!selectedSession"
-                                @click="startSelected"
-                            >
-                                <MaterialDesignIcon icon-name="play" class="size-4" />
-                                {{ $t("rnsh.start") }}
-                            </button>
-                            <button
-                                type="button"
-                                class="secondary-chip text-xs px-2 py-1.5 text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/40"
-                                :disabled="!selectedSession"
-                                @click="stopSelected"
-                            >
-                                <MaterialDesignIcon icon-name="stop" class="size-4" />
-                                {{ $t("rnsh.stop") }}
-                            </button>
-                            <button
-                                type="button"
-                                class="secondary-chip text-xs px-2 py-1.5"
-                                :disabled="!selectedSession"
-                                @click="clearSelectedOutput"
-                            >
-                                <MaterialDesignIcon icon-name="broom" class="size-4" />
-                                {{ $t("rnsh.clear") }}
-                            </button>
-                            <button
-                                type="button"
-                                class="secondary-chip text-xs px-2 py-1.5 text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/40"
-                                :disabled="!selectedSession"
-                                @click="removeSelected"
-                            >
-                                <MaterialDesignIcon icon-name="trash-can-outline" class="size-4" />
-                                {{ $t("rnsh.remove") }}
-                            </button>
-                        </div>
-                    </div>
-
-                    <div
-                        ref="outputBox"
-                        class="flex-1 min-h-0 bg-zinc-950 dark:bg-black text-zinc-100 font-mono text-xs px-3 md:px-4 py-3 whitespace-pre-wrap break-words overflow-auto custom-scrollbar"
-                    >
-                        {{ selectedOutput }}
-                    </div>
-
-                    <form
-                        class="shrink-0 flex flex-wrap gap-2 px-3 md:px-4 py-2.5 border-t border-gray-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950"
-                        @submit.prevent="sendCommand"
-                    >
-                        <input
-                            v-model="commandInput"
-                            type="text"
-                            class="input-field flex-1 min-w-52 font-mono text-xs"
-                            :placeholder="$t('rnsh.command_input_placeholder')"
-                            :disabled="!selectedSession"
-                        />
-                        <button
-                            type="submit"
-                            class="primary-chip px-3 py-2 text-xs"
-                            :disabled="!selectedSession || !commandInput.trim()"
-                        >
-                            <MaterialDesignIcon icon-name="send" class="size-4" />
-                            {{ $t("rnsh.send_line") }}
-                        </button>
-                    </form>
+                <section class="flex-1 min-w-0 min-h-0 flex flex-col" :class="terminalSectionClass">
+                    <RNSHSessionTerminal
+                        ref="sessionTerminal"
+                        :session="selectedSession"
+                        :output="selectedOutput"
+                        :command-input="commandInput"
+                        :show-sessions-toggle="isNarrowScreen"
+                        :sessions-open="mobileSessionsOpen"
+                        :compact-header="isNarrowScreen"
+                        @update:command-input="commandInput = $event"
+                        @send="sendCommand"
+                        @start="startSelected"
+                        @stop="stopSelected"
+                        @clear="clearSelectedOutput"
+                        @remove="removeSelected"
+                        @toggle-fullscreen="toggleSessionFullscreen"
+                        @toggle-sessions="toggleMobileSessions"
+                    />
                 </section>
             </div>
 
             <div
                 v-show="activeTab === 'connect'"
-                class="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4 md:px-5 lg:px-8 py-4 space-y-4"
+                class="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3 sm:px-4 md:px-5 lg:px-8 py-3 sm:py-4 space-y-3 sm:space-y-4"
             >
                 <p class="text-xs text-gray-500 dark:text-zinc-500 leading-relaxed">
                     {{ $t("rnsh.usage_hint") }}
                 </p>
-                <div class="grid lg:grid-cols-2 gap-4">
+                <div class="grid gap-3 sm:gap-4 lg:grid-cols-2">
                     <div>
                         <label class="glass-label">{{ $t("rnsh.name") }}</label>
                         <input
@@ -185,7 +130,7 @@
                         <input
                             v-model="connectForm.destination"
                             type="text"
-                            class="input-field font-mono"
+                            class="input-field font-mono text-xs"
                             :placeholder="$t('rnsh.destination_placeholder')"
                         />
                     </div>
@@ -199,17 +144,21 @@
                         :placeholder="$t('rnsh.command_placeholder')"
                     />
                 </div>
-                <div class="flex flex-wrap items-center gap-4">
-                    <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                <div class="flex flex-wrap items-center gap-3 sm:gap-4">
+                    <label class="flex items-center gap-2 text-xs sm:text-sm text-gray-700 dark:text-gray-300">
                         <input v-model="connectForm.mirror" type="checkbox" class="rounded-sm" />
                         {{ $t("rnsh.mirror_exit_code") }}
                     </label>
-                    <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                    <label class="flex items-center gap-2 text-xs sm:text-sm text-gray-700 dark:text-gray-300">
                         <input v-model="connectForm.no_id" type="checkbox" class="rounded-sm" />
                         {{ $t("rnsh.no_id") }}
                     </label>
                 </div>
-                <button type="button" class="primary-chip px-4 py-2 text-sm" @click="createConnectSession">
+                <button
+                    type="button"
+                    class="primary-chip px-4 py-2 text-sm w-full sm:w-auto"
+                    @click="createConnectSession"
+                >
                     <MaterialDesignIcon icon-name="plus" class="size-4" />
                     {{ $t("rnsh.create_and_start") }}
                 </button>
@@ -217,7 +166,7 @@
 
             <div
                 v-show="activeTab === 'listen'"
-                class="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4 md:px-5 lg:px-8 py-4 space-y-4"
+                class="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3 sm:px-4 md:px-5 lg:px-8 py-3 sm:py-4 space-y-3 sm:space-y-4"
             >
                 <p class="text-xs text-gray-500 dark:text-zinc-500 leading-relaxed">
                     {{ $t("rnsh.usage_hint") }}
@@ -249,18 +198,52 @@
                         :placeholder="$t('rnsh.command_placeholder')"
                     />
                 </div>
-                <button type="button" class="primary-chip px-4 py-2 text-sm" @click="createListenSession">
+                <button
+                    type="button"
+                    class="primary-chip px-4 py-2 text-sm w-full sm:w-auto"
+                    @click="createListenSession"
+                >
                     <MaterialDesignIcon icon-name="plus" class="size-4" />
                     {{ $t("rnsh.create_and_start") }}
                 </button>
             </div>
         </div>
+
+        <Teleport to="body">
+            <div
+                v-if="sessionFullscreen"
+                class="fixed inset-0 z-[220] flex flex-col bg-zinc-950"
+                role="dialog"
+                aria-modal="true"
+                :aria-label="$t('rnsh.session_output')"
+            >
+                <RNSHSessionTerminal
+                    ref="fullscreenTerminal"
+                    :session="selectedSession"
+                    :output="selectedOutput"
+                    :command-input="commandInput"
+                    fullscreen
+                    :show-sessions-toggle="isNarrowScreen"
+                    :sessions-open="mobileSessionsOpen"
+                    compact-header
+                    @update:command-input="commandInput = $event"
+                    @send="sendCommand"
+                    @start="startSelected"
+                    @stop="stopSelected"
+                    @clear="clearSelectedOutput"
+                    @remove="removeSelected"
+                    @toggle-fullscreen="toggleSessionFullscreen"
+                    @toggle-sessions="toggleMobileSessions"
+                />
+            </div>
+        </Teleport>
     </div>
 </template>
 
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToolsPageHeader from "./ToolsPageHeader.vue";
+import RNSHSessionTerminal from "./RNSHSessionTerminal.vue";
 import ToastUtils from "../../js/ToastUtils";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import { loadRnshLayout, saveRnshLayout } from "../../js/browserLayoutStore";
@@ -269,18 +252,31 @@ const EMPTY_LAYOUT = {
     selectedSessionId: null,
 };
 
+const NARROW_BREAKPOINT_PX = 1024;
+
 export default {
     name: "RNSHManagerPage",
     components: {
         MaterialDesignIcon,
         ToolsPageHeader,
+        RNSHSessionTerminal,
     },
     data() {
         return {
             viewTabs: [
-                { id: "sessions", label: "rnsh.tab_sessions", icon: "console-line" },
-                { id: "connect", label: "rnsh.tab_connect", icon: "lan-connect" },
-                { id: "listen", label: "rnsh.tab_listen", icon: "access-point-network" },
+                {
+                    id: "sessions",
+                    label: "rnsh.tab_sessions",
+                    shortLabel: "rnsh.tab_sessions_short",
+                    icon: "console-line",
+                },
+                { id: "connect", label: "rnsh.tab_connect", shortLabel: "rnsh.tab_connect_short", icon: "lan-connect" },
+                {
+                    id: "listen",
+                    label: "rnsh.tab_listen",
+                    shortLabel: "rnsh.tab_listen_short",
+                    icon: "access-point-network",
+                },
             ],
             activeTab: "sessions",
             sessions: [],
@@ -299,6 +295,11 @@ export default {
                 allowed_hashes_text: "",
                 command: "",
             },
+            isNarrowScreen: false,
+            mobileSessionsOpen: false,
+            sessionFullscreen: false,
+            onWindowResize: null,
+            onFullscreenKeydown: null,
         };
     },
     computed: {
@@ -315,16 +316,77 @@ export default {
             }
             return this.$t("rnsh.no_output_yet");
         },
+        headerDescription() {
+            return this.isNarrowScreen ? "" : this.$t("rnsh.description");
+        },
+        sessionsAsideClass() {
+            if (!this.isNarrowScreen) {
+                return "lg:w-80 xl:w-96 border-b lg:border-b-0 lg:border-r max-h-[36vh] lg:max-h-none";
+            }
+            if (this.mobileSessionsOpen) {
+                return "flex-1 min-h-0 border-b";
+            }
+            return "hidden";
+        },
+        terminalSectionClass() {
+            if (this.isNarrowScreen && this.mobileSessionsOpen) {
+                return "hidden";
+            }
+            return "";
+        },
+    },
+    watch: {
+        sessionFullscreen(active) {
+            if (typeof document === "undefined") {
+                return;
+            }
+            document.body.style.overflow = active ? "hidden" : "";
+            if (active) {
+                this.$nextTick(() => this.scrollOutputToBottom());
+            }
+        },
     },
     async mounted() {
+        this.updateViewport();
+        this.onWindowResize = () => this.updateViewport();
+        window.addEventListener("resize", this.onWindowResize, { passive: true });
+        this.onFullscreenKeydown = (event) => {
+            if (event.key === "Escape" && this.sessionFullscreen) {
+                this.sessionFullscreen = false;
+            }
+        };
+        window.addEventListener("keydown", this.onFullscreenKeydown);
         this.restoreLayout();
         await this.loadSessions();
         WebSocketConnection.on("message", this.onWebsocketMessage);
     },
     beforeUnmount() {
+        if (this.onWindowResize) {
+            window.removeEventListener("resize", this.onWindowResize);
+        }
+        if (this.onFullscreenKeydown) {
+            window.removeEventListener("keydown", this.onFullscreenKeydown);
+        }
+        document.body.style.overflow = "";
         WebSocketConnection.off("message", this.onWebsocketMessage);
     },
     methods: {
+        updateViewport() {
+            const narrow = typeof window !== "undefined" && window.innerWidth < NARROW_BREAKPOINT_PX;
+            this.isNarrowScreen = narrow;
+            if (!narrow) {
+                this.mobileSessionsOpen = false;
+            }
+        },
+        toggleMobileSessions() {
+            this.mobileSessionsOpen = !this.mobileSessionsOpen;
+        },
+        toggleSessionFullscreen() {
+            this.sessionFullscreen = !this.sessionFullscreen;
+            if (this.sessionFullscreen && this.isNarrowScreen) {
+                this.mobileSessionsOpen = false;
+            }
+        },
         statusClass(session) {
             if (!session) return "text-gray-500";
             if (session.status === "running") return "text-emerald-600 dark:text-emerald-400";
@@ -348,6 +410,9 @@ export default {
         selectSession(sessionId) {
             this.selectedSessionId = sessionId;
             this.persistLayout();
+            if (this.isNarrowScreen) {
+                this.mobileSessionsOpen = false;
+            }
             this.$nextTick(() => {
                 this.scrollOutputToBottom();
             });
@@ -526,11 +591,13 @@ export default {
             }
         },
         scrollOutputToBottom() {
-            const target = this.$refs.outputBox;
-            if (!target) {
-                return;
+            const inline = this.$refs.sessionTerminal;
+            const full = this.$refs.fullscreenTerminal;
+            if (this.sessionFullscreen && full?.scrollToBottom) {
+                full.scrollToBottom();
+            } else if (inline?.scrollToBottom) {
+                inline.scrollToBottom();
             }
-            target.scrollTop = target.scrollHeight;
         },
     },
 };
