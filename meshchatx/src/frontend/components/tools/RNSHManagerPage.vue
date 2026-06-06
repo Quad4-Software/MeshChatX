@@ -78,7 +78,7 @@
                             <div
                                 class="font-mono text-[10px] sm:text-xs text-gray-500 dark:text-zinc-400 truncate mt-0.5"
                             >
-                                {{ session.mode === "listen" ? $t("rnsh.listen_mode") : session.destination || "-" }}
+                                {{ sessionSubtitle(session) }}
                             </div>
                         </button>
                         <div v-if="sessions.length === 0" class="text-xs text-gray-500 dark:text-zinc-400 px-1">
@@ -93,6 +93,7 @@
                         :session="selectedSession"
                         :output="selectedOutput"
                         :command-input="commandInput"
+                        :listen-address="selectedListenAddress"
                         :show-sessions-toggle="isNarrowScreen"
                         :sessions-open="mobileSessionsOpen"
                         :compact-header="isNarrowScreen"
@@ -102,6 +103,7 @@
                         @stop="stopSelected"
                         @clear="clearSelectedOutput"
                         @remove="removeSelected"
+                        @copy-address="copyListenAddress"
                         @toggle-fullscreen="toggleSessionFullscreen"
                         @toggle-sessions="toggleMobileSessions"
                     />
@@ -143,6 +145,18 @@
                         class="input-field font-mono text-xs"
                         :placeholder="$t('rnsh.command_placeholder')"
                     />
+                </div>
+                <div>
+                    <label class="glass-label">{{ $t("rnsh.config_dir") }}</label>
+                    <input
+                        v-model="connectForm.config_path"
+                        type="text"
+                        class="input-field font-mono text-xs"
+                        :placeholder="$t('rnsh.config_dir_placeholder')"
+                    />
+                    <p class="mt-1 text-[10px] sm:text-xs text-gray-500 dark:text-zinc-500">
+                        {{ $t("rnsh.config_dir_hint") }}
+                    </p>
                 </div>
                 <div class="flex flex-wrap items-center gap-3 sm:gap-4">
                     <label class="flex items-center gap-2 text-xs sm:text-sm text-gray-700 dark:text-gray-300">
@@ -198,6 +212,18 @@
                         :placeholder="$t('rnsh.command_placeholder')"
                     />
                 </div>
+                <div>
+                    <label class="glass-label">{{ $t("rnsh.config_dir") }}</label>
+                    <input
+                        v-model="listenForm.config_path"
+                        type="text"
+                        class="input-field font-mono text-xs"
+                        :placeholder="$t('rnsh.config_dir_placeholder')"
+                    />
+                    <p class="mt-1 text-[10px] sm:text-xs text-gray-500 dark:text-zinc-500">
+                        {{ $t("rnsh.config_dir_hint") }}
+                    </p>
+                </div>
                 <button
                     type="button"
                     class="primary-chip px-4 py-2 text-sm w-full sm:w-auto"
@@ -222,6 +248,7 @@
                     :session="selectedSession"
                     :output="selectedOutput"
                     :command-input="commandInput"
+                    :listen-address="selectedListenAddress"
                     fullscreen
                     :show-sessions-toggle="isNarrowScreen"
                     :sessions-open="mobileSessionsOpen"
@@ -232,6 +259,7 @@
                     @stop="stopSelected"
                     @clear="clearSelectedOutput"
                     @remove="removeSelected"
+                    @copy-address="copyListenAddress"
                     @toggle-fullscreen="toggleSessionFullscreen"
                     @toggle-sessions="toggleMobileSessions"
                 />
@@ -247,6 +275,7 @@ import RNSHSessionTerminal from "./RNSHSessionTerminal.vue";
 import ToastUtils from "../../js/ToastUtils";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import { loadRnshLayout, saveRnshLayout } from "../../js/browserLayoutStore";
+import { renderTerminalOutput } from "../../js/terminalRender";
 
 const EMPTY_LAYOUT = {
     selectedSessionId: null,
@@ -287,6 +316,7 @@ export default {
                 name: "",
                 destination: "",
                 command: "",
+                config_path: "",
                 mirror: false,
                 no_id: false,
             },
@@ -294,6 +324,7 @@ export default {
                 name: "",
                 allowed_hashes_text: "",
                 command: "",
+                config_path: "",
             },
             isNarrowScreen: false,
             mobileSessionsOpen: false,
@@ -311,10 +342,17 @@ export default {
                 return this.$t("rnsh.select_or_create_session");
             }
             const output = this.outputsBySession[this.selectedSessionId];
-            if (typeof output === "string") {
-                return output;
+            if (typeof output === "string" && output.length > 0) {
+                return renderTerminalOutput(output);
             }
             return this.$t("rnsh.no_output_yet");
+        },
+        selectedListenAddress() {
+            const session = this.selectedSession;
+            if (!session || session.mode !== "listen") {
+                return "";
+            }
+            return session.listen_address || "";
         },
         headerDescription() {
             return this.isNarrowScreen ? "" : this.$t("rnsh.description");
@@ -397,6 +435,13 @@ export default {
             if (!session) return "-";
             return this.$t(`rnsh.status_${session.status}`);
         },
+        sessionSubtitle(session) {
+            if (!session) return "-";
+            if (session.mode === "listen") {
+                return session.listen_address || this.$t("rnsh.listen_mode");
+            }
+            return session.destination || "-";
+        },
         restoreLayout() {
             const state = loadRnshLayout();
             const safe = state && typeof state === "object" ? state : EMPTY_LAYOUT;
@@ -455,6 +500,7 @@ export default {
                 mode: "connect",
                 destination: (this.connectForm.destination || "").trim(),
                 remote_command: (this.connectForm.command || "").trim() || undefined,
+                config_path: (this.connectForm.config_path || "").trim() || undefined,
                 mirror: !!this.connectForm.mirror,
                 no_id: !!this.connectForm.no_id,
                 autostart: true,
@@ -469,6 +515,7 @@ export default {
                     .map((value) => value.trim())
                     .filter((value) => value.length > 0),
                 default_command: (this.listenForm.command || "").trim() || undefined,
+                config_path: (this.listenForm.config_path || "").trim() || undefined,
                 autostart: true,
             };
         },
@@ -542,6 +589,20 @@ export default {
                 ToastUtils.success(this.$t("rnsh.output_cleared"));
             } catch (error) {
                 ToastUtils.error(error?.response?.data?.message || this.$t("rnsh.failed_to_clear_output"));
+            }
+        },
+        async copyListenAddress() {
+            const address = this.selectedListenAddress;
+            if (!address) {
+                return;
+            }
+            try {
+                if (navigator.clipboard?.writeText) {
+                    await navigator.clipboard.writeText(address);
+                }
+                ToastUtils.success(this.$t("rnsh.address_copied"));
+            } catch {
+                ToastUtils.error(this.$t("rnsh.failed_to_copy_address"));
             }
         },
         async sendCommand() {

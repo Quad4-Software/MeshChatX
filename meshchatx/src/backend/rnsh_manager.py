@@ -11,14 +11,35 @@ from __future__ import annotations
 import contextlib
 import json
 import os
+import re
 import shlex
 import shutil
+import struct
 import subprocess
 import sys
 import threading
 import time
 import uuid
 from collections import deque
+
+try:
+    import fcntl
+    import pty
+    import termios
+except ImportError:  # pragma: no cover - non-POSIX platforms
+    fcntl = None
+    pty = None
+    termios = None
+
+_PTY_SUPPORTED = os.name == "posix" and pty is not None and termios is not None
+
+# Default pseudo-terminal geometry used until the client reports a real size.
+DEFAULT_TERMINAL_ROWS = 40
+DEFAULT_TERMINAL_COLS = 120
+
+# Matches the listener address that rnsh logs on startup, e.g.
+# "rnsh listening for commands on <a1b2c3...>" or "Listening on : <...>".
+_LISTEN_ADDRESS_RE = re.compile(r"<([0-9a-fA-F]{16,})>")
 
 
 class RNSHSession:
@@ -42,11 +63,27 @@ class RNSHSession:
         self.last_command = self.config.get("last_command")
 
         self._process = None
+        self._master_fd = None
         self._stop_requested = False
         self._output_seq = int(self.config.get("output_seq") or 0)
         self._output_chunks = deque(maxlen=4000)
         self._output_text = ""
         self._lock = threading.RLock()
+        self._last_persist = 0.0
+
+        try:
+            self._rows = max(1, int(self.config.get("rows") or DEFAULT_TERMINAL_ROWS))
+        except (TypeError, ValueError):
+            self._rows = DEFAULT_TERMINAL_ROWS
+        try:
+            self._cols = max(1, int(self.config.get("cols") or DEFAULT_TERMINAL_COLS))
+        except (TypeError, ValueError):
+            self._cols = DEFAULT_TERMINAL_COLS
+
+        stored_address = self.config.get("listen_address")
+        self.listen_address = (
+            stored_address.strip() if isinstance(stored_address, str) else ""
+        )
 
         saved_output = self.config.get("output_chunks")
         if isinstance(saved_output, list):
@@ -99,6 +136,22 @@ class RNSHSession:
             return value.strip()
         return ""
 
+    @property
+    def resolved_config_dir(self):
+        """The Reticulum config directory rnsh is launched against.
+
+        A per-session ``config_path`` override wins; otherwise the manager's
+        shared directory (the MeshChatX app's Reticulum instance) is used so
+        rnsh attaches to the same shared instance.
+        """
+        configured = (self.config.get("config_path") or "").strip()
+        if configured:
+            return configured
+        manager_config_dir = getattr(self.manager, "reticulum_config_dir", "")
+        if isinstance(manager_config_dir, str):
+            return manager_config_dir.strip()
+        return ""
+
     def to_dict(self, include_output_tail=False, output_tail_size=120):
         with self._lock:
             payload = {
@@ -106,6 +159,10 @@ class RNSHSession:
                 "name": self.name,
                 "mode": self.mode,
                 "destination": self.destination,
+                "config_dir": self.resolved_config_dir,
+                "listen_address": self.listen_address,
+                "rows": self._rows,
+                "cols": self._cols,
                 "config": dict(self.config),
                 "status": self.status,
                 "pid": self.pid,
@@ -155,16 +212,35 @@ class RNSHSession:
             if len(self._output_text) > 200000:
                 self._output_text = self._output_text[-200000:]
             self.updated_at = chunk["ts"]
+            self._maybe_detect_listen_address()
             return chunk
+
+    def _maybe_detect_listen_address(self):
+        """Extract the listener destination hash from rnsh log output.
+
+        Must be called while holding ``self._lock``.
+        """
+        if self.mode != "listen" or self.listen_address:
+            return
+        tail = self._output_text[-4000:]
+        if "listening" not in tail.lower() and "listening on" not in tail.lower():
+            return
+        match = _LISTEN_ADDRESS_RE.search(tail)
+        if match:
+            self.listen_address = match.group(1).lower()
 
     def _build_command(self):
         executable = shutil.which("rnsh")
         if executable:
             command = [executable]
         else:
-            command = [sys.executable, "-m", "RNS.Utilities.rnsh"]
+            command = [sys.executable, "-m", "RNS.Utilities.rnsh.rnsh"]
 
-        config_path = (self.config.get("config_path") or "").strip()
+        # Attach rnsh to the same Reticulum config directory (and therefore the
+        # same shared instance and rpc_key) as the MeshChatX app. Without this
+        # rnsh bootstraps its own default config, becomes a mismatched shared
+        # instance client and fails RPC auth with "digest sent was rejected".
+        config_path = self.resolved_config_dir
         if config_path:
             command.extend(["-c", config_path])
 
@@ -238,6 +314,35 @@ class RNSHSession:
 
         return command
 
+    @staticmethod
+    def _supports_pty():
+        return _PTY_SUPPORTED
+
+    def _build_env(self):
+        env = dict(os.environ)
+        env.setdefault("TERM", "xterm-256color")
+        env["COLUMNS"] = str(self._cols)
+        env["LINES"] = str(self._rows)
+        return env
+
+    @staticmethod
+    def _set_winsize(fd, rows, cols):
+        if fcntl is None or termios is None:
+            return
+        with contextlib.suppress(Exception):
+            winsize = struct.pack("HHHH", int(rows), int(cols), 0, 0)
+            fcntl.ioctl(fd, termios.TIOCSWINSZ, winsize)
+
+    @staticmethod
+    def _acquire_controlling_tty():  # pragma: no cover - runs in child process
+        """Make the slave pty the controlling terminal of the child.
+
+        Runs in the forked child after ``start_new_session`` has called
+        ``setsid`` and after stdio has been redirected to the slave pty.
+        """
+        with contextlib.suppress(Exception):
+            fcntl.ioctl(0, termios.TIOCSCTTY, 0)
+
     def start(self):
         with self._lock:
             if self._process is not None and self._process.poll() is None:
@@ -249,13 +354,10 @@ class RNSHSession:
             self.last_exit_code = None
             self.last_command = " ".join(shlex.quote(part) for part in command)
 
-            self._process = subprocess.Popen(  # noqa: S603
-                command,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                bufsize=0,
-            )
+            if self._supports_pty():
+                self._start_with_pty(command)
+            else:
+                self._start_with_pipe(command)
 
             self.pid = self._process.pid
             self.status = self.STATUS_RUNNING
@@ -272,6 +374,43 @@ class RNSHSession:
 
         return self.to_dict(include_output_tail=True)
 
+    def _start_with_pty(self, command):
+        master_fd, slave_fd = pty.openpty()
+        self._set_winsize(master_fd, self._rows, self._cols)
+        try:
+            self._process = subprocess.Popen(  # noqa: S603
+                command,
+                stdin=slave_fd,
+                stdout=slave_fd,
+                stderr=slave_fd,
+                start_new_session=True,
+                preexec_fn=self._acquire_controlling_tty,
+                close_fds=True,
+                env=self._build_env(),
+            )
+        except Exception:
+            with contextlib.suppress(Exception):
+                os.close(master_fd)
+            with contextlib.suppress(Exception):
+                os.close(slave_fd)
+            self._master_fd = None
+            raise
+        finally:
+            with contextlib.suppress(Exception):
+                os.close(slave_fd)
+        self._master_fd = master_fd
+
+    def _start_with_pipe(self, command):
+        self._master_fd = None
+        self._process = subprocess.Popen(  # noqa: S603
+            command,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            bufsize=0,
+            env=self._build_env(),
+        )
+
     def stop(self):
         with self._lock:
             process = self._process
@@ -287,40 +426,84 @@ class RNSHSession:
                 process.kill()
         return self.to_dict(include_output_tail=True)
 
+    def resize(self, rows, cols):
+        try:
+            rows = max(1, int(rows))
+            cols = max(1, int(cols))
+        except (TypeError, ValueError):
+            raise ValueError("rows and cols must be integers")
+        with self._lock:
+            self._rows = rows
+            self._cols = cols
+            fd = self._master_fd
+        if fd is not None:
+            self._set_winsize(fd, rows, cols)
+        return self.to_dict(include_output_tail=False)
+
     def send_input(self, text):
         if not isinstance(text, str):
             raise ValueError("Input must be a string")
+        data = text.encode("utf-8", errors="replace")
         with self._lock:
             process = self._process
             if process is None or process.poll() is not None:
                 raise RuntimeError("Session is not running")
-            stdin = process.stdin
-            if stdin is None:
-                raise RuntimeError("Session stdin is unavailable")
-            stdin.write(text.encode("utf-8", errors="replace"))
-            stdin.flush()
+            fd = self._master_fd
+            if fd is not None:
+                os.write(fd, data)
+            else:
+                stdin = process.stdin
+                if stdin is None:
+                    raise RuntimeError("Session stdin is unavailable")
+                stdin.write(data)
+                stdin.flush()
             self.updated_at = time.time()
-        self.manager.save()
         return self.to_dict(include_output_tail=False)
 
     def _reader_loop(self):
-        while True:
-            with self._lock:
-                process = self._process
-                stdout = process.stdout if process is not None else None
-            if process is None or stdout is None:
-                return
-            try:
-                chunk = os.read(stdout.fileno(), 4096)
-            except Exception:
-                return
-            if not chunk:
-                return
-            text = chunk.decode("utf-8", errors="replace")
-            output_chunk = self.append_output(text)
-            if output_chunk is not None:
-                self.manager._on_session_output(self, output_chunk)
-                self.manager.save()
+        with self._lock:
+            process = self._process
+            master_fd = self._master_fd
+            fd = master_fd
+            if fd is None and process is not None and process.stdout is not None:
+                fd = process.stdout.fileno()
+        if process is None or fd is None:
+            return
+        try:
+            while True:
+                try:
+                    chunk = os.read(fd, 4096)
+                except OSError:
+                    # A closed pty slave surfaces as EIO once the child exits.
+                    return
+                except Exception:
+                    return
+                if not chunk:
+                    return
+                text = chunk.decode("utf-8", errors="replace")
+                output_chunk = self.append_output(text)
+                if output_chunk is not None:
+                    self.manager._on_session_output(self, output_chunk)
+                    self._persist_throttled()
+        finally:
+            if master_fd is not None:
+                with self._lock:
+                    if self._master_fd == master_fd:
+                        self._master_fd = None
+                with contextlib.suppress(Exception):
+                    os.close(master_fd)
+
+    def _persist_throttled(self):
+        """Persist session state at most a few times per second.
+
+        Interactive sessions produce many small output chunks; saving the
+        whole store on every chunk would thrash the disk.
+        """
+        now = time.time()
+        if now - self._last_persist < 1.5:
+            return
+        self._last_persist = now
+        self.manager.save()
 
     def _waiter_loop(self):
         with self._lock:
@@ -354,14 +537,22 @@ class RNSHSession:
         data["created_at"] = self.created_at
         data["updated_at"] = self.updated_at
         data["status"] = self.status
+        data["listen_address"] = self.listen_address
+        data["rows"] = self._rows
+        data["cols"] = self._cols
         return data
 
 
 class RNSHManager:
     """Manage multiple rnsh sessions and persisted state."""
 
-    def __init__(self, storage_dir):
+    def __init__(self, storage_dir, reticulum_config_dir=None):
         self.storage_dir = storage_dir
+        self.reticulum_config_dir = (
+            reticulum_config_dir.strip()
+            if isinstance(reticulum_config_dir, str)
+            else ""
+        )
         self._sessions = {}
         self._change_callback = None
         self._output_callback = None
@@ -401,6 +592,9 @@ class RNSHManager:
                 session.last_exit_code = item.get("last_exit_code")
                 session.last_error = item.get("last_error")
                 session.last_command = item.get("last_command")
+                stored_address = item.get("listen_address")
+                if isinstance(stored_address, str) and stored_address.strip():
+                    session.listen_address = stored_address.strip().lower()
                 session._output_seq = int(item.get("output_seq") or session._output_seq)
                 stored_chunks = item.get("output_chunks")
                 if isinstance(stored_chunks, list):
@@ -489,6 +683,12 @@ class RNSHManager:
         if session is None:
             raise KeyError("Session not found")
         return session.send_input(text)
+
+    def resize_session(self, session_id, rows, cols):
+        session = self.find_session(session_id)
+        if session is None:
+            raise KeyError("Session not found")
+        return session.resize(rows, cols)
 
     def output_since(self, session_id, cursor=0):
         session = self.find_session(session_id)

@@ -78,6 +78,12 @@ class _DummyManager:
         self.sent_text = text
         return _DummySession(session_id).to_dict(include_output_tail=False)
 
+    def resize_session(self, session_id, rows, cols):
+        if session_id == "missing":
+            raise KeyError("missing")
+        self.resized = (rows, cols)
+        return _DummySession(session_id).to_dict(include_output_tail=False)
+
     def output_since(self, session_id, cursor):
         if session_id == "missing":
             raise KeyError("missing")
@@ -138,6 +144,49 @@ async def test_rnsh_send_input_appends_newline(mock_app):
     )
     assert response.status == 200
     assert manager.sent_text == "ls\n"
+
+
+@pytest.mark.asyncio
+async def test_rnsh_resize_forwards_dimensions(mock_app):
+    manager = _DummyManager()
+    mock_app.rnsh_manager = manager
+    handler = _find_handler(
+        mock_app, "/api/v1/rnsh/sessions/{session_id}/resize", "POST"
+    )
+    assert handler is not None
+    response = await handler(
+        _make_request(
+            json_body={"rows": 24, "cols": 80},
+            match_info={"session_id": "s1"},
+        ),
+    )
+    assert response.status == 200
+    assert manager.resized == (24, 80)
+
+
+def test_rnsh_listen_address_detected_from_output():
+    from meshchatx.src.backend.rnsh_manager import RNSHSession
+
+    manager = MagicMock()
+    session = RNSHSession(manager, "s1", {"mode": "listen"})
+    assert session.listen_address == ""
+    session.append_output(
+        "[Notice] rnsh listening for commands on <8d7f90d560627da94a312bb96ba5c485>\n",
+    )
+    assert session.listen_address == "8d7f90d560627da94a312bb96ba5c485"
+
+    payload = session.to_dict()
+    assert payload["listen_address"] == "8d7f90d560627da94a312bb96ba5c485"
+
+
+def test_rnsh_resize_updates_geometry_without_process():
+    from meshchatx.src.backend.rnsh_manager import RNSHSession
+
+    manager = MagicMock()
+    session = RNSHSession(manager, "s1", {"mode": "connect", "destination": "abc"})
+    result = session.resize(30, 100)
+    assert result["rows"] == 30
+    assert result["cols"] == 100
 
 
 @pytest.mark.asyncio

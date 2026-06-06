@@ -89,6 +89,31 @@
         </div>
 
         <div
+            v-if="session && session.mode === 'listen'"
+            class="shrink-0 flex items-center gap-2 px-2 sm:px-3 md:px-4 py-1.5 border-b border-gray-200 dark:border-zinc-800 bg-indigo-50 dark:bg-indigo-950/40"
+        >
+            <span
+                class="text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-300 shrink-0"
+            >
+                {{ $t("rnsh.listening_on") }}
+            </span>
+            <span class="min-w-0 flex-1 font-mono text-[11px] sm:text-xs text-gray-900 dark:text-zinc-100 truncate">
+                {{ listenAddress || $t("rnsh.waiting_for_address") }}
+            </span>
+            <button
+                v-if="listenAddress"
+                type="button"
+                class="secondary-chip text-xs p-1 sm:px-2 sm:py-1 shrink-0"
+                :title="$t('rnsh.copy_address')"
+                :aria-label="$t('rnsh.copy_address')"
+                @click="$emit('copy-address')"
+            >
+                <MaterialDesignIcon icon-name="content-copy" class="size-4" />
+                <span class="hidden sm:inline ml-1">{{ $t("rnsh.copy_address") }}</span>
+            </button>
+        </div>
+
+        <div
             ref="outputBox"
             class="flex-1 min-h-0 bg-zinc-950 dark:bg-black text-zinc-100 font-mono whitespace-pre-wrap break-words overflow-auto custom-scrollbar"
             :class="fullscreen ? 'text-[11px] leading-relaxed px-2 py-2' : 'text-xs px-2 sm:px-3 md:px-4 py-2 sm:py-3'"
@@ -139,12 +164,23 @@ export default {
         session: { type: Object, default: null },
         output: { type: String, required: true },
         commandInput: { type: String, default: "" },
+        listenAddress: { type: String, default: "" },
         fullscreen: { type: Boolean, default: false },
         showSessionsToggle: { type: Boolean, default: false },
         sessionsOpen: { type: Boolean, default: false },
         compactHeader: { type: Boolean, default: false },
     },
-    emits: ["update:commandInput", "send", "start", "stop", "clear", "remove", "toggle-fullscreen", "toggle-sessions"],
+    emits: [
+        "update:commandInput",
+        "send",
+        "start",
+        "stop",
+        "clear",
+        "remove",
+        "copy-address",
+        "toggle-fullscreen",
+        "toggle-sessions",
+    ],
     methods: {
         scrollToBottom() {
             const target = this.$refs.outputBox;

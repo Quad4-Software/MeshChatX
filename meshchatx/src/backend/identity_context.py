@@ -276,7 +276,10 @@ class IdentityContext:
             storage_dir=self.app.storage_dir,
         )
         self.rncp_handler.on_receive_completed = self._rncp_emit_receive_completed
-        self.rnsh_manager = RNSHManager(storage_dir=self.storage_path)
+        self.rnsh_manager = RNSHManager(
+            storage_dir=self.storage_path,
+            reticulum_config_dir=getattr(self.app, "reticulum_config_dir", None),
+        )
         self.rnsh_manager.set_change_callback(
             lambda session: self.app.on_rnsh_change(session, context=self),
         )

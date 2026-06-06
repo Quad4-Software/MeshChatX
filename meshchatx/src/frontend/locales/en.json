@@ -2434,7 +2434,15 @@
         "failed_to_stop_session": "Failed to stop RNSH session",
         "failed_to_remove_session": "Failed to remove RNSH session",
         "failed_to_clear_output": "Failed to clear RNSH output",
-        "failed_to_send_input": "Failed to send RNSH input"
+        "failed_to_send_input": "Failed to send RNSH input",
+        "listening_on": "Listening on",
+        "waiting_for_address": "Waiting for listener address...",
+        "copy_address": "Copy",
+        "address_copied": "Address copied to clipboard",
+        "failed_to_copy_address": "Failed to copy address",
+        "config_dir": "Reticulum config directory",
+        "config_dir_placeholder": "Defaults to the app's Reticulum config",
+        "config_dir_hint": "Leave blank to share the MeshChatX Reticulum instance. Override only to use a separate Reticulum config directory."
     },
     "rnprobe": {
         "network_diagnostics": "Network Diagnostics",

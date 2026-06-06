@@ -10473,6 +10473,23 @@ class ReticulumMeshChat:
                 return web.json_response({"message": str(e)}, status=400)
             return web.json_response({"session": session})
 
+        @routes.post("/api/v1/rnsh/sessions/{session_id}/resize")
+        async def rnsh_session_resize(request):
+            manager, error = _rnsh_require_manager()
+            if error is not None:
+                return error
+            session_id = request.match_info.get("session_id", "")
+            data = await request.json()
+            rows = (data or {}).get("rows")
+            cols = (data or {}).get("cols")
+            try:
+                session = manager.resize_session(session_id, rows, cols)
+            except KeyError:
+                return web.json_response({"message": "Session not found"}, status=404)
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=400)
+            return web.json_response({"session": session})
+
         @routes.get("/api/v1/rnsh/sessions/{session_id}/output")
         async def rnsh_session_output(request):
             manager, error = _rnsh_require_manager()
