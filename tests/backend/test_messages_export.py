@@ -11,6 +11,51 @@ import RNS
 from meshchatx.meshchat import ReticulumMeshChat
 
 
+def _make_json_request(body):
+    request = MagicMock()
+
+    async def _json():
+        return body
+
+    request.json = _json
+    return request
+
+
+def _make_multipart_file_request(body: bytes):
+    class _MultipartField:
+        name = "file"
+
+        def __init__(self, data):
+            self._data = data
+            self._offset = 0
+
+        async def read_chunk(self, size=1024 * 1024):
+            if self._offset >= len(self._data):
+                return b""
+            chunk = self._data[self._offset : self._offset + size]
+            self._offset += len(chunk)
+            return chunk
+
+    class _MultipartReader:
+        def __init__(self, field):
+            self._field = field
+            self._done = False
+
+        async def next(self):
+            if self._done:
+                return None
+            self._done = True
+            return self._field
+
+    request = MagicMock()
+
+    async def _multipart():
+        return _MultipartReader(_MultipartField(body))
+
+    request.multipart = _multipart
+    return request
+
+
 @pytest.fixture
 def temp_dir():
     dir_path = tempfile.mkdtemp()
@@ -240,11 +285,9 @@ async def test_messages_import_export_roundtrip(mock_rns_minimal, temp_dir):
         assert len(export_data["messages"]) == 1
         assert "lxmf_icon" not in export_data["messages"][0]
 
-        import_request = MagicMock()
-        import_request.json = MagicMock(
-            return_value={"messages": export_data["messages"]},
+        import_response = await import_handler(
+            _make_json_request({"messages": export_data["messages"]}),
         )
-        import_response = await import_handler(import_request)
         assert import_response.status == 200
         import_data = json.loads(import_response.body)
         assert import_data["imported"] == 1
@@ -287,38 +330,7 @@ async def test_messages_import_file_upload(mock_rns_minimal, temp_dir):
             ],
         }
         body = json.dumps(payload).encode("utf-8")
-
-        class _MultipartField:
-            name = "file"
-
-            def __init__(self, data):
-                self._data = data
-                self._offset = 0
-
-            async def read_chunk(self, size=1024 * 1024):
-                if self._offset >= len(self._data):
-                    return b""
-                chunk = self._data[self._offset : self._offset + size]
-                self._offset += len(chunk)
-                return chunk
-
-        class _MultipartReader:
-            def __init__(self, field):
-                self._field = field
-                self._done = False
-
-            async def next(self):
-                if self._done:
-                    return None
-                self._done = True
-                return self._field
-
-        request = MagicMock()
-        request.multipart = MagicMock(
-            return_value=_MultipartReader(_MultipartField(body)),
-        )
-
-        response = await import_file_handler(request)
+        response = await import_file_handler(_make_multipart_file_request(body))
         assert response.status == 200
         data = json.loads(response.body)
         assert data["imported"] == 1
