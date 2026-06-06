@@ -2,18 +2,14 @@
 
 <template>
     <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+        <ToolsPageHeader
+            icon="email-send-outline"
+            :title="$t('tools.forwarder.title')"
+            :description="$t('tools.forwarder.description')"
+            accent="rose"
+        />
         <div class="flex-1 overflow-y-auto w-full pb-[max(1.5rem,env(safe-area-inset-bottom))]">
             <div class="space-y-4 p-4 md:p-6 max-w-5xl mx-auto w-full">
-                <div class="glass-card space-y-3">
-                    <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                        {{ $t("tools.utilities") }}
-                    </div>
-                    <div class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $t("forwarder.title") }}</div>
-                    <div class="text-sm text-gray-600 dark:text-gray-300">
-                        {{ $t("forwarder.description") }}
-                    </div>
-                </div>
-
                 <!-- Add New Rule -->
                 <div class="glass-card space-y-4">
                     <div class="text-lg font-semibold text-gray-900 dark:text-white">
@@ -153,11 +149,13 @@
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import DialogUtils from "../../js/DialogUtils";
+import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 
 export default {
     name: "ForwarderPage",
     components: {
         MaterialDesignIcon,
+        ToolsPageHeader,
     },
     data() {
         return {

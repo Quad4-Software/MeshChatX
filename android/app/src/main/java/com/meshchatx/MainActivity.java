@@ -434,6 +434,15 @@ public class MainActivity extends AppCompatActivity {
             }
         );
 
+        try {
+            AndroidStorageManager.runPendingMigration(this);
+        } catch (IOException migrationError) {
+            showStartupError(
+                "MeshChatX could not copy data to file-manager storage:\n" + migrationError.getMessage()
+            );
+            return;
+        }
+
         startMeshChatServer();
         scheduleConnectionRetry("Connecting to local server...");
     }
@@ -615,7 +624,7 @@ public class MainActivity extends AppCompatActivity {
         new Thread(() -> {
             try {
                 Python py = Python.getInstance();
-                String appFilesDir = getFilesDir().getAbsolutePath();
+                String appFilesDir = AndroidStorageManager.resolveActiveBaseDir(MainActivity.this).getAbsolutePath();
                 py.getModule("meshchat_wrapper").callAttr("start_server", SERVER_PORT, appFilesDir);
             } catch (Exception e) {
                 final String stack = toStackTrace(e);
@@ -1214,6 +1223,53 @@ public class MainActivity extends AppCompatActivity {
         @JavascriptInterface
         public void cancelIncomingCallNotification() {
             AndroidNotificationBridge.cancelIncomingCallNotification();
+        }
+
+        @JavascriptInterface
+        public String getAndroidStorageStatus() {
+            try {
+                int versionCode = activity.getPackageManager().getPackageInfo(activity.getPackageName(), 0).versionCode;
+                return AndroidStorageManager.statusJson(activity, versionCode);
+            } catch (PackageManager.NameNotFoundException e) {
+                return "{}";
+            } catch (Exception e) {
+                return "{}";
+            }
+        }
+
+        @JavascriptInterface
+        public void setAndroidStorageMode(String mode) {
+            AndroidStorageManager.setConfiguredMode(activity, mode);
+        }
+
+        @JavascriptInterface
+        public void markAndroidStorageSetupCompleted() {
+            AndroidStorageManager.markSetupCompleted(activity);
+        }
+
+        @JavascriptInterface
+        public void scheduleCopyToExternalAndRestart() {
+            AndroidStorageManager.scheduleCopyToExternal(activity);
+        }
+
+        @JavascriptInterface
+        public void keepInternalStorageAndDismiss() {
+            try {
+                int versionCode =
+                    activity.getPackageManager().getPackageInfo(activity.getPackageName(), 0).versionCode;
+                AndroidStorageManager.keepInternalAndDismissUpgrade(activity, versionCode);
+            } catch (PackageManager.NameNotFoundException ignored) {
+                AndroidStorageManager.setConfiguredMode(activity, AndroidStorageManager.MODE_INTERNAL);
+                AndroidStorageManager.markSetupCompleted(activity);
+            }
+        }
+
+        @JavascriptInterface
+        public void restartApp() {
+            activity.runOnUiThread(() -> {
+                activity.finishAffinity();
+                android.os.Process.killProcess(android.os.Process.myPid());
+            });
         }
     }
 }

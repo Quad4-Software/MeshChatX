@@ -2,38 +2,13 @@
 
 <template>
     <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
-        <!-- Compact Header -->
-        <div
-            class="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-2 border-b border-gray-200 dark:border-zinc-800 bg-slate-50/95 dark:bg-zinc-950/95 backdrop-blur-xs shrink-0 min-w-0"
+        <ToolsPageHeader
+            icon="code-tags"
+            :title="$t('tools.micron_editor.title')"
+            :description="$t('tools.micron_editor.description')"
+            accent="teal"
         >
-            <div class="flex items-center gap-2 sm:gap-3 min-w-0">
-                <div class="bg-teal-100 dark:bg-teal-900/30 p-1.5 rounded-xl shrink-0">
-                    <MaterialDesignIcon icon-name="code-tags" class="size-5 text-teal-600 dark:text-teal-400" />
-                </div>
-                <div class="flex flex-col">
-                    <h1
-                        class="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider hidden sm:block truncate leading-tight"
-                    >
-                        {{ $t("tools.micron_editor.title") }}
-                    </h1>
-                    <a
-                        href="https://git.quad4.io/RFnexus"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="text-[10px] text-gray-500 hover:text-teal-500 transition-colors hidden sm:block leading-tight"
-                    >
-                        {{ $t("tools.micron_editor.parser_by") }} RFnexus
-                    </a>
-                </div>
-            </div>
-            <div class="flex items-center gap-2">
-                <RouterLink
-                    to="/tools"
-                    class="inline-flex items-center gap-2 text-sm text-teal-600 dark:text-teal-300 hover:underline shrink-0"
-                >
-                    <MaterialDesignIcon icon-name="arrow-left" class="size-4" />
-                    {{ $t("tools.back_to_tools") }}
-                </RouterLink>
+            <template #actions>
                 <button
                     type="button"
                     class="secondary-chip py-1! px-3! text-red-500! hover:bg-red-50! dark:hover:bg-red-900/20!"
@@ -89,12 +64,32 @@
                         </div>
                     </div>
                 </div>
+                <button
+                    v-if="wasmBundled"
+                    type="button"
+                    class="secondary-chip py-1! px-2! gap-1 text-[11px]!"
+                    :class="{ 'text-teal-600! dark:text-teal-300! border-teal-300! dark:border-teal-700!': useWasm }"
+                    :disabled="wasmLoading"
+                    :title="$t(useWasm ? 'tools.micron_editor.wasm_active' : 'tools.micron_editor.wasm_inactive')"
+                    @click="toggleWasmEngine"
+                >
+                    <span
+                        v-if="wasmLoading"
+                        class="w-3 h-3 rounded-full border-2 border-current border-t-transparent animate-spin"
+                    ></span>
+                    <MaterialDesignIcon
+                        v-else
+                        :icon-name="useWasm ? 'lightning-bolt' : 'lightning-bolt-outline'"
+                        class="w-3.5 h-3.5"
+                    />
+                    <span class="hidden sm:inline">{{ useWasm ? "WASM" : "JS" }}</span>
+                </button>
                 <button v-if="isMobileView" type="button" class="primary-chip py-1! px-3!" @click="toggleView">
                     <MaterialDesignIcon :icon-name="showEditor ? 'eye' : 'pencil'" class="w-3.5 h-3.5" />
                     {{ showEditor ? $t("tools.micron_editor.view_preview") : $t("tools.micron_editor.edit") }}
                 </button>
-            </div>
-        </div>
+            </template>
+        </ToolsPageHeader>
 
         <!-- Tab Bar -->
         <div
@@ -179,12 +174,15 @@
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import MicronParser from "../../js/MicronParser.js";
 import { micronStorage } from "../../js/MicronStorage";
+import { preloadNomadMicronWasm, isMicronWasmBundled } from "../../js/MicronWasmLoader";
 import DialogUtils from "../../js/DialogUtils";
+import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 
 export default {
     name: "MicronEditorPage",
     components: {
         MaterialDesignIcon,
+        ToolsPageHeader,
     },
     data() {
         return {
@@ -198,6 +196,10 @@ export default {
             editingTabName: "",
             showPublishMenu: false,
             pageNodes: [],
+            useWasm: false,
+            wasmReady: false,
+            wasmBundled: isMicronWasmBundled(),
+            wasmLoading: false,
         };
     },
     watch: {
@@ -232,7 +234,11 @@ export default {
             }
             try {
                 const parser = new MicronParser(true);
-                this.renderedContent = parser.convertMicronToHtml(this.tabs[this.activeTabIndex].content);
+                this.renderedContent = parser.convertMicronToHtml(
+                    this.tabs[this.activeTabIndex].content,
+                    {},
+                    { useWasm: this.useWasm && this.wasmReady }
+                );
             } catch (error) {
                 console.error("Error rendering micron:", error);
                 this.renderedContent = `<p style="color: red;">Error rendering: ${error.message}</p>`;
@@ -240,6 +246,25 @@ export default {
         },
         toggleView() {
             this.showEditor = !this.showEditor;
+        },
+        async toggleWasmEngine() {
+            if (!this.wasmBundled) return;
+            if (this.useWasm) {
+                this.useWasm = false;
+                this.renderActiveTab();
+                return;
+            }
+            this.wasmLoading = true;
+            try {
+                const ready = await preloadNomadMicronWasm();
+                this.wasmReady = ready === true && typeof globalThis.micronConvert === "function";
+                if (this.wasmReady) {
+                    this.useWasm = true;
+                    this.renderActiveTab();
+                }
+            } finally {
+                this.wasmLoading = false;
+            }
         },
         async saveContent() {
             try {
@@ -356,7 +381,11 @@ ${b}f
 
 ${b}!Welcome to Micron Editor${b}!
 -
-Micron is a lightweight, terminal-friendly monospace markdown format used in Reticulum applications.
+Micron is a lightweight, terminal-friendly monospace markup format used in Reticulum applications such as ${b}!MeshChatX${b}! and ${b}!NomadNet${b}!.
+
+Micron supports sections, dividers, links, partials, anchors, tables, and dynamic input fields for low-bandwidth mesh pages.
+
+Open the ${b}!${this.$t("tools.micron_editor.guide_tab")}${b}! tab for the full reference, or use ${b}+${b} to add another file.
 
 ${b}!With Micron, you can${b}${b}:
 
@@ -412,6 +441,20 @@ ${b}a
 Nomad Network supports a simple and functional markup language called ${b}*micron${b}*. If you are familiar with ${b}*markdown${b}* or ${b}*HTML${b}*, you will feel right at home writing pages with micron.
 
 With micron you can easily create structured documents and pages with formatting, colors, glyphs and icons, ideal for display in terminals.
+
+>Table of Contents
+
+ ${b}F44f${b}_${b}[A Few Demo Outputs${b}#a-few-demo-outputs]${b}_${b}f
+ ${b}F44f${b}_${b}[Micron Tags${b}#micron-tags]${b}_${b}f
+ ${b}F44f${b}_${b}[Colors${b}#colors]${b}_${b}f
+ ${b}F44f${b}_${b}[Page Foreground and Background Colors${b}#page-foreground-and-background-colors]${b}_${b}f
+ ${b}F44f${b}_${b}[Links${b}#links]${b}_${b}f
+ ${b}F44f${b}_${b}[Anchors${b}#anchors]${b}_${b}f
+ ${b}F44f${b}_${b}[Tables${b}#tables]${b}_${b}f
+ ${b}F44f${b}_${b}[Fields & Requests${b}#fields-requests]${b}_${b}f
+ ${b}F44f${b}_${b}[Comments${b}#comments]${b}_${b}f
+ ${b}F44f${b}_${b}[Partials${b}#partials]${b}_${b}f
+ ${b}F44f${b}_${b}[Literals${b}#literals]${b}_${b}f
 
 >>Recommendations and Requirements
 
@@ -591,6 +634,10 @@ You can use ${b}B5d5${b}F222 color ${b}f${b}B333 ${b}Ff00f${b}Ff80o${b}Ffd0r${b}
 ${b}${b}
 
 
+>Page Foreground and Background Colors
+
+To specify a background color for the entire page, place the ${b}#!bg=X${b} header on one of the first lines of your page, where ${b}X${b} is the color you want to use, for example ${b}444${b}. If you're also using the cache control header, the background specifier must come ${b}*after${b}* the cache control header. Likewise, you can specify the default text color by using the ${b}#!fg=X${b} header.
+
 >Links
 
 Links to pages, files or other resources can be created with the \\${b}[ tag, which should always be terminated with a closing ]. You can create links with and without labels, it is up to you to control the formatting of links with other tags. Although not strictly necessary, it is good practice to at least format links with underlining.
@@ -620,6 +667,76 @@ Here is ${b}F00f${b}_${b}[a more visible link${b}72914442a3689add83a09a767963f57
 ${b}${b}
 
 When links like these are displayed in the built-in browser, clicking on them or activating them using the keyboard will cause the browser to load the specified URL.
+
+>Anchors
+
+Anchors let you create jump points within a single page similar to anchors in HTML. You declare a position in the page with a name, then link to it from anywhere on the same page.
+
+>>Auto-anchors from headers
+
+Every section heading you write also becomes an anchor automatically. The anchor name is the heading text after ${b}*slugifying${b}*: lowercased, with any run of non-alphanumeric characters replaced by a single hyphen, and leading or trailing hyphens stripped. So ${b}*>Hello World${b}* becomes the anchor ${b}*hello-world${b}*, and ${b}*>Introduction & Setup${b}* becomes ${b}*introduction-setup${b}*.
+
+>>Explicit anchors
+
+If you want an anchor that isn't tied to a heading, place one anywhere in your text with the \\${b}: tag, followed by a name. Names may contain the characters ${b}*A-Z${b}*, ${b}*a-z${b}*, ${b}*0-9${b}*, ${b}*_${b}* and ${b}*-${b}*, and end at any other character (a space, a newline, or punctuation).
+
+The anchor itself takes up no space and does not render. It's just a position marker. An explicit anchor declared on an otherwise empty line binds to that line's position.
+
+${b}Faaa
+${b}=
+${b}:install-notes
+Some installation notes for the user.
+
+You can also drop one mid-line. Example: see ${b}:tip-3${b} below for caveats.
+${b}=
+${b}${b}
+
+>>Linking to an anchor
+
+Reuse the standard link syntax, with a ${b}*#${b}*-prefixed URL:
+
+${b}Faaa
+${b}=
+${b}[Jump to Install Notes${b}#install-notes]
+${b}=
+${b}${b}
+
+When the user activates the link the browser scrolls the current page to the anchor's row.
+
+>>Jumping to the next section
+
+If the URL is just ${b}*#${b}* with no name after it, the link jumps to the next \\${b}> header that appears after the link's own position in the document. This is convenient for "Continue" buttons after a long paragraph, without having to name every section:
+
+${b}Faaa
+${b}=
+${b}[Continue${b}#]
+${b}=
+${b}${b}
+
+>>Anchors in external links
+
+If you want to link to an anchor on another page, you can include it as a request variable:
+
+${b}Faaa
+${b}=
+${b}[Conclusion${b}a8d24177d946de4f1f0a0fe1af9a1338:/page/document.mu${b}anchor=conclusion]
+${b}=
+${b}${b}
+
+>>Notes on namespaces and collisions
+
+Auto-anchors from headings and explicit \\${b}: anchors share a single namespace per page. If an explicit anchor collides with a heading slug, the first one declared is where it will jump to.
+
+>Tables
+
+You can include rendered tables by enclosing them in \\${b}t tags. Optionally, you can also specify alignment and max rendering width by adding these properties to the opening \\${b}t tag, like \\${b}tc30. Here's an example:
+
+${b}t
+| Name | Price | Qty |
+| ---- | :---: | --: |
+| ${b}F3a3Apple${b}f | Free | ${b}!5${b}! |
+| Orange | Ask, nicely | 3 |
+${b}t
 
 >Fields & Requests
 
@@ -773,9 +890,39 @@ This line will
 ${b}${b}
 
 
+>Partials
+
+You can include partials in pages, which will load asynchronously once the page itself has loaded.
+
+${b}Faaa
+${b}=
+${b}{f64a846313b874ee4a357040807f8c77:/page/partial_1.mu}
+${b}=
+${b}${b}
+
+It's also possible to set an auto-refresh interval for partials. Omit or set to 0 to disable. The following partial will update every 10 seconds.
+
+${b}Faaa
+${b}=
+${b}{f64a846313b874ee4a357040807f8c77:/page/refreshing_partial.mu${b}10}
+${b}=
+${b}${b}
+
+You can include field values and variables in partial updates, and by setting the ${b}pid${b} variable, you can create links that update one or more specific partials.
+
+${b}Faaa
+${b}=
+Name: ${b}B444${b}<user_name${b}>${b}b
+
+${b}F38a${b}[Say hello${b}p:32]${b}f
+
+${b}{f64a846313b874e84a357039807f8c77:/page/hello_partial.mu${b}0${b}pid=32|user_name}
+${b}=
+${b}${b}
+
 >Literals
 
-To display literal content, for example source-code, or blocks of text that should not be interpreted by micron, you can use literal blocks, specified by the \\${b}= tag. Below is the source code of this entire document, presented as a literal block.
+To display literal content, for example source-code, or blocks of text that should not be interpreted by micron, you can use literal blocks, specified by the \\${b}= tag.
 
 -
 
@@ -805,48 +952,118 @@ ${b}=
                 }
             }
         },
+        async fetchNodePages(node) {
+            const response = await window.api.get(`/api/v1/page-nodes/${node.node_id}/pages`);
+            return response.data?.pages ?? [];
+        },
+        tabNameToPageBase(tab) {
+            let name = (tab.name || "").trim().replace(/\s+/g, "_");
+            if (name.toLowerCase().endsWith(".mu")) {
+                name = name.slice(0, -3);
+            }
+            return name;
+        },
+        isUnsetMicronTabName(name) {
+            const trimmed = (name || "").trim();
+            if (!trimmed) {
+                return true;
+            }
+            const newTabLabel = this.$t("tools.micron_editor.new_tab");
+            if (trimmed === newTabLabel) {
+                return true;
+            }
+            const numberedPrefix = `${newTabLabel} `;
+            if (!trimmed.startsWith(numberedPrefix)) {
+                return false;
+            }
+            return /^\d+$/.test(trimmed.slice(numberedPrefix.length));
+        },
+        async resolvePublishPageBase(tab, existingPages, serverName) {
+            const hasIndex = existingPages.includes("index.mu");
+            if (!hasIndex) {
+                return "index";
+            }
+            if (!this.isUnsetMicronTabName(tab.name)) {
+                const base = this.tabNameToPageBase(tab);
+                return base || null;
+            }
+            const entered = await DialogUtils.prompt(
+                this.$t("tools.micron_editor.publish_prompt_name", { server: serverName })
+            );
+            if (entered === null || !String(entered).trim()) {
+                return null;
+            }
+            let base = String(entered).trim().replace(/\s+/g, "_");
+            if (base.toLowerCase().endsWith(".mu")) {
+                base = base.slice(0, -3);
+            }
+            return base || null;
+        },
         async publishToNode(node) {
             const tab = this.tabs[this.activeTabIndex];
-            const pageName = tab.name.replace(/\s+/g, "_");
             try {
-                await window.api.post(`/api/v1/page-nodes/${node.node_id}/pages`, {
-                    name: pageName,
+                const existingPages = await this.fetchNodePages(node);
+                const pageBase = await this.resolvePublishPageBase(tab, existingPages, node.name);
+                if (!pageBase) {
+                    return;
+                }
+                const response = await window.api.post(`/api/v1/page-nodes/${node.node_id}/pages`, {
+                    name: pageBase,
                     content: tab.content,
                 });
                 this.showPublishMenu = false;
-                DialogUtils.alert(`Published "${pageName}.mu" to ${node.name}`);
+                const savedName = response.data?.name || `${pageBase}.mu`;
+                DialogUtils.alert(
+                    this.$t("tools.micron_editor.publish_published", { page: savedName, server: node.name })
+                );
             } catch (e) {
-                DialogUtils.alert(e.response?.data?.message || "Failed to publish page");
+                DialogUtils.alert(e.response?.data?.message || this.$t("tools.micron_editor.publish_failed"));
             }
         },
         async publishAllToNode() {
             if (this.pageNodes.length === 0) return;
 
             const nodeNames = this.pageNodes.map((n) => n.name);
-            const nodeName = prompt("Enter server name to publish all tabs to:\n\nAvailable: " + nodeNames.join(", "));
+            const nodeName = await DialogUtils.prompt(
+                this.$t("tools.micron_editor.publish_all_prompt_server", { servers: nodeNames.join(", ") })
+            );
             if (!nodeName) return;
 
             const node = this.pageNodes.find((n) => n.name === nodeName);
             if (!node) {
-                DialogUtils.alert("Server not found: " + nodeName);
+                DialogUtils.alert(this.$t("tools.micron_editor.publish_server_not_found", { server: nodeName }));
                 return;
             }
 
+            let existingPages = await this.fetchNodePages(node);
             let published = 0;
             for (const tab of this.tabs) {
-                const pageName = tab.name.replace(/\s+/g, "_");
+                const pageBase = await this.resolvePublishPageBase(tab, existingPages, node.name);
+                if (!pageBase) {
+                    continue;
+                }
                 try {
-                    await window.api.post(`/api/v1/page-nodes/${node.node_id}/pages`, {
-                        name: pageName,
+                    const response = await window.api.post(`/api/v1/page-nodes/${node.node_id}/pages`, {
+                        name: pageBase,
                         content: tab.content,
                     });
+                    const savedName = response.data?.name;
+                    if (savedName) {
+                        existingPages = [...new Set([...existingPages, savedName])];
+                    }
                     published++;
                 } catch {
                     console.error(`Failed to publish tab: ${tab.name}`);
                 }
             }
             this.showPublishMenu = false;
-            DialogUtils.alert(`Published ${published}/${this.tabs.length} tabs to ${node.name}`);
+            DialogUtils.alert(
+                this.$t("tools.micron_editor.publish_all_done", {
+                    published,
+                    total: this.tabs.length,
+                    server: node.name,
+                })
+            );
         },
     },
 };

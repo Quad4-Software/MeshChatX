@@ -10,9 +10,15 @@
             :show-emergency="Boolean(appInfo?.emergency)"
             :emergency-label="$t('app.emergency_mode_active')"
             :show-ws-disconnected="showWsDisconnectedBanner"
-            :ws-disconnected-label="`${$t('app.backend_disconnected')} · ${wsDisconnectedDurationText}`"
+            :ws-disconnected-label="backendOfflineBannerLabel"
+            :show-backend-recovery-actions="showBackendRecoveryActions"
+            :backend-restarting="backendRestarting"
+            :restart-backend-label="$t('app.restart_backend')"
+            :view-backend-logs-label="$t('app.view_backend_logs')"
             :show-ws-reconnected="wsReconnectedBanner"
             :ws-reconnected-label="$t('app.backend_reconnected')"
+            @restart-backend="onRestartBackend"
+            @view-backend-logs="onViewBackendCrashReport"
         />
 
         <RouterView v-if="$route.name === 'auth'" />
@@ -91,6 +97,21 @@
                                     class="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none"
                                 >
                                     {{ unreadConversationsCount > 99 ? "99+" : unreadConversationsCount }}
+                                </span>
+                            </button>
+                            <button
+                                v-if="rrcEnabled"
+                                type="button"
+                                class="relative sm:hidden rounded-full p-1.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                                :title="$t('app.relay_chat')"
+                                @click="$router.push({ name: 'relay-chat' })"
+                            >
+                                <MaterialDesignIcon icon-name="forum" class="w-5 h-5" />
+                                <span
+                                    v-if="relayChatUnreadCount > 0"
+                                    class="absolute -top-0.5 -right-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white"
+                                >
+                                    {{ relayChatUnreadCount > 99 ? "99+" : relayChatUnreadCount }}
                                 </span>
                             </button>
                             <button
@@ -251,6 +272,27 @@
                                         </SidebarLink>
                                     </li>
 
+                                    <!-- relay chat -->
+                                    <li v-if="rrcEnabled">
+                                        <SidebarLink :to="{ name: 'relay-chat' }" :is-collapsed="isSidebarCollapsed">
+                                            <template #icon>
+                                                <MaterialDesignIcon
+                                                    icon-name="forum"
+                                                    class="w-6 h-6 text-gray-700 dark:text-gray-200"
+                                                />
+                                            </template>
+                                            <template #text>
+                                                <span>{{ $t("app.relay_chat") }}</span>
+                                                <span
+                                                    v-if="relayChatUnreadCount > 0"
+                                                    class="ml-auto mr-2 min-w-[1.25rem] rounded-full bg-red-500 px-1.5 py-0.5 text-center text-xs font-bold text-white"
+                                                >
+                                                    {{ relayChatUnreadCount >= 1000 ? "999+" : relayChatUnreadCount }}
+                                                </span>
+                                            </template>
+                                        </SidebarLink>
+                                    </li>
+
                                     <!-- nomad network -->
                                     <li>
                                         <SidebarLink :to="{ name: 'nomadnetwork' }" :is-collapsed="isSidebarCollapsed">
@@ -363,7 +405,7 @@
                                         <SidebarLink :to="{ name: 'identities' }" :is-collapsed="isSidebarCollapsed">
                                             <template #icon>
                                                 <MaterialDesignIcon
-                                                    icon-name="account-multiple"
+                                                    icon-name="badge-account"
                                                     class="size-6 text-gray-700 dark:text-gray-200"
                                                 />
                                             </template>
@@ -530,12 +572,49 @@
                                         </div>
                                     </div>
                                 </div>
+
+                                <div
+                                    v-if="appInfo?.version"
+                                    class="shrink-0 border-t border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
+                                >
+                                    <RouterLink
+                                        :to="{ name: 'about' }"
+                                        class="flex items-center py-2 text-[10px] font-mono text-gray-500 transition-colors hover:text-gray-700 dark:text-zinc-500 dark:hover:text-zinc-300"
+                                        :class="isSidebarCollapsed ? 'justify-center px-0' : 'justify-start px-3'"
+                                        data-testid="sidebar-app-version"
+                                        :title="$t('about.version', { version: appInfo.version })"
+                                    >
+                                        <MaterialDesignIcon
+                                            v-if="isSidebarCollapsed"
+                                            icon-name="information-outline"
+                                            class="size-4"
+                                        />
+                                        <span v-else>{{ $t("about.version", { version: appInfo.version }) }}</span>
+                                    </RouterLink>
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     <div class="flex flex-1 min-w-0 overflow-hidden">
-                        <RouterView class="flex-1 min-w-0 h-full" />
+                        <RouterView v-slot="{ Component, route }" class="flex-1 min-w-0 h-full">
+                            <template v-if="Component">
+                                <KeepAlive>
+                                    <component
+                                        :is="Component"
+                                        v-if="route.meta.keepAlive"
+                                        :key="route.name"
+                                        class="flex-1 min-w-0 h-full"
+                                    />
+                                </KeepAlive>
+                                <component
+                                    :is="Component"
+                                    v-if="!route.meta.keepAlive"
+                                    :key="route.meta.stableKey ? route.name : route.fullPath"
+                                    class="flex-1 min-w-0 h-full"
+                                />
+                            </template>
+                        </RouterView>
                     </div>
                 </div>
             </template>
@@ -564,6 +643,11 @@
         <IntegrityWarningModal />
         <ChangelogModal ref="changelogModal" :app-version="appInfo?.version" />
         <TutorialModal ref="tutorialModal" />
+        <AndroidStorageChoicePrompt
+            ref="androidStorageUpgradePrompt"
+            variant="upgrade"
+            @completed="onAndroidStorageUpgradeCompleted"
+        />
 
         <!-- LXMF QR modal -->
         <div
@@ -658,6 +742,7 @@ import DialogUtils from "../js/DialogUtils";
 import WebSocketConnection from "../js/WebSocketConnection";
 import { formatDisconnectedDuration } from "../js/wsConnectionSupport";
 import GlobalState, { mergeGlobalConfig } from "../js/GlobalState";
+import { countRelayMentions } from "../js/relayMentionCount.js";
 import Utils from "../js/Utils";
 import GlobalEmitter from "../js/GlobalEmitter";
 import NotificationUtils from "../js/NotificationUtils";
@@ -674,6 +759,7 @@ import CommandPalette from "./CommandPalette.vue";
 import IntegrityWarningModal from "./IntegrityWarningModal.vue";
 import ChangelogModal from "./ChangelogModal.vue";
 import TutorialModal from "./TutorialModal.vue";
+import AndroidStorageChoicePrompt from "./AndroidStorageChoicePrompt.vue";
 import AppShellBanners from "./layout/AppShellBanners.vue";
 import KeyboardShortcuts from "../js/KeyboardShortcuts";
 import ElectronUtils from "../js/ElectronUtils";
@@ -696,6 +782,7 @@ export default {
         IntegrityWarningModal,
         ChangelogModal,
         TutorialModal,
+        AndroidStorageChoicePrompt,
         AppShellBanners,
     },
     setup() {
@@ -753,6 +840,9 @@ export default {
             wsReconnectedBanner: false,
             wsDisconnectTickTimer: null,
             wsReconnectedHideTimer: null,
+            backendProcessExited: false,
+            backendExitCode: null,
+            backendRestarting: false,
 
             identitySwitchDedupeHash: null,
             identitySwitchDedupeAt: 0,
@@ -771,6 +861,12 @@ export default {
         unreadConversationsCount() {
             return GlobalState.unreadConversationsCount;
         },
+        relayChatUnreadCount() {
+            return GlobalState.relayChatUnreadCount;
+        },
+        rrcEnabled() {
+            return GlobalState.config?.rrc_enabled !== false;
+        },
         isSyncingPropagationNode() {
             return [
                 "path_requested",
@@ -786,6 +882,24 @@ export default {
         },
         showWsDisconnectedBanner() {
             return this.shellRunning && this.wsDisconnected && this.$route?.name !== "auth";
+        },
+        backendOfflineBannerLabel() {
+            const duration = this.wsDisconnectedDurationText;
+            const durationSuffix = duration ? ` · ${duration}` : "";
+            if (this.backendProcessExited) {
+                const code =
+                    this.backendExitCode != null && this.backendExitCode !== "" ? ` (${this.backendExitCode})` : "";
+                return `${this.$t("app.backend_process_stopped")}${code}${durationSuffix}`;
+            }
+            return `${this.$t("app.backend_disconnected")}${durationSuffix}`;
+        },
+        showBackendRecoveryActions() {
+            return (
+                this.showWsDisconnectedBanner &&
+                this.backendProcessExited &&
+                ElectronUtils.isElectron() &&
+                typeof window.electron?.restartBackend === "function"
+            );
         },
         identitySidebarLabel() {
             const raw = this.displayName;
@@ -864,6 +978,11 @@ export default {
         this.startShellAuthWatch();
         this.applyShellAppearance();
         if (ElectronUtils.isElectron()) {
+            if (typeof window.electron.onBackendProcessExited === "function") {
+                window.electron.onBackendProcessExited((payload) => {
+                    this.onBackendProcessExited(payload);
+                });
+            }
             window.electron.onProtocolLink((url) => {
                 this.handleProtocolLink(url);
             });
@@ -943,8 +1062,10 @@ export default {
             }, 15000);
             this.unreadCountInterval = setInterval(() => {
                 this.updateUnreadConversationsCount();
+                this.updateRelayChatUnreadCount();
             }, 5000);
             this.updateUnreadConversationsCount();
+            this.updateRelayChatUnreadCount();
         },
         stopShell() {
             if (!this.shellRunning) {
@@ -973,6 +1094,9 @@ export default {
             this.wsDisconnectedAt = null;
             this.wsDisconnectedDurationText = "";
             this.wsReconnectedBanner = false;
+            this.backendProcessExited = false;
+            this.backendExitCode = null;
+            this.backendRestarting = false;
             WebSocketConnection.destroy();
         },
         clearWsShellUiTimers() {
@@ -983,6 +1107,45 @@ export default {
             if (this.wsReconnectedHideTimer != null) {
                 clearTimeout(this.wsReconnectedHideTimer);
                 this.wsReconnectedHideTimer = null;
+            }
+        },
+        onBackendProcessExited(payload = {}) {
+            if (!this.shellRunning) {
+                return;
+            }
+            this.backendProcessExited = true;
+            this.backendExitCode = payload?.code ?? null;
+            this.onWsShellDisconnected();
+        },
+        async onRestartBackend() {
+            if (!window.electron?.restartBackend) {
+                return;
+            }
+            this.backendRestarting = true;
+            try {
+                const result = await window.electron.restartBackend();
+                if (!result?.ok) {
+                    ToastUtils.error(result?.error || this.$t("app.restart_backend_failed"));
+                    return;
+                }
+                ToastUtils.info(this.$t("app.restart_backend_started"));
+            } catch {
+                ToastUtils.error(this.$t("app.restart_backend_failed"));
+            } finally {
+                this.backendRestarting = false;
+            }
+        },
+        async onViewBackendCrashReport() {
+            if (!window.electron?.openBackendCrashReport) {
+                return;
+            }
+            try {
+                const result = await window.electron.openBackendCrashReport();
+                if (!result?.ok) {
+                    ToastUtils.error(result?.error || this.$t("app.view_backend_logs_failed"));
+                }
+            } catch {
+                ToastUtils.error(this.$t("app.view_backend_logs_failed"));
             }
         },
         onWsShellDisconnected() {
@@ -1011,6 +1174,8 @@ export default {
             this.wsDisconnected = false;
             this.wsDisconnectedAt = null;
             this.wsDisconnectedDurationText = "";
+            this.backendProcessExited = false;
+            this.backendExitCode = null;
             if (this.wsDisconnectTickTimer != null) {
                 clearInterval(this.wsDisconnectTickTimer);
                 this.wsDisconnectTickTimer = null;
@@ -1116,6 +1281,16 @@ export default {
         onShowTutorialShell() {
             this.$refs.tutorialModal?.show();
         },
+        maybeShowAndroidStorageUpgrade() {
+            const prompt = this.$refs.androidStorageUpgradePrompt;
+            if (!prompt || typeof prompt.showUpgrade !== "function") {
+                return false;
+            }
+            return prompt.showUpgrade();
+        },
+        onAndroidStorageUpgradeCompleted() {
+            // prompt handles restart when user copies to external storage
+        },
         updateUnreadConversationsCount() {
             if (this._unreadCountTimeout) {
                 clearTimeout(this._unreadCountTimeout);
@@ -1128,6 +1303,24 @@ export default {
                     GlobalState.unreadConversationsCount = response.data?.lxmf_total_unread_count ?? 0;
                 } catch (e) {
                     console.error("Failed to update unread conversations count", e);
+                }
+            }, 300);
+        },
+        updateRelayChatUnreadCount() {
+            if (!this.rrcEnabled) {
+                GlobalState.relayChatUnreadCount = 0;
+                return;
+            }
+            if (this._relayUnreadCountTimeout) {
+                clearTimeout(this._relayUnreadCountTimeout);
+            }
+            this._relayUnreadCountTimeout = setTimeout(async () => {
+                try {
+                    const response = await window.api.get("/api/v1/rrc/hubs");
+                    const hubs = response.data?.hubs || [];
+                    GlobalState.relayChatUnreadCount = countRelayMentions(hubs);
+                } catch (e) {
+                    console.error("Failed to update relay chat mention count", e);
                 }
             }, 300);
         },
@@ -1249,6 +1442,16 @@ export default {
                 }
                 case "blocked_destinations": {
                     GlobalState.blockedDestinations = json.blocked_destinations || [];
+                    break;
+                }
+                case "rrc.message": {
+                    if (json.mention || json.message?.mention) {
+                        this.updateRelayChatUnreadCount();
+                    }
+                    break;
+                }
+                case "rrc.change": {
+                    this.updateRelayChatUnreadCount();
                     break;
                 }
                 case "lxmf.delivery": {
@@ -1388,6 +1591,8 @@ export default {
                     this.hasCheckedForModals = true;
                     if (this.appInfo && !this.appInfo.tutorial_seen) {
                         this.$refs.tutorialModal.show();
+                    } else if (this.maybeShowAndroidStorageUpgrade()) {
+                        // upgrade prompt for existing internal-storage installs
                     } else if (
                         this.appInfo &&
                         this.appInfo.changelog_seen_version !== "999.999.999" &&
@@ -1563,6 +1768,8 @@ export default {
 
             // Guard to prevent overlapping poll calls
             this._isPropagationSyncPolling = false;
+            const pollStartedAt = Date.now();
+            const propagationSyncPollTimeoutMs = 120000;
 
             const poll = async () => {
                 if (this._isPropagationSyncPolling) return;
@@ -1570,6 +1777,19 @@ export default {
                 try {
                     await this.updatePropagationNodeStatus();
                     if (this.isSyncingPropagationNode) {
+                        if (Date.now() - pollStartedAt > propagationSyncPollTimeoutMs) {
+                            if (this._propagationSyncPollTimer != null) {
+                                clearInterval(this._propagationSyncPollTimer);
+                                this._propagationSyncPollTimer = null;
+                            }
+                            await this.stopSyncingPropagationNode();
+                            ToastUtils.error(
+                                this.$t("app.sync_error", {
+                                    status: this.propagationSyncStatusLabel("path_timeout"),
+                                })
+                            );
+                            return;
+                        }
                         ToastUtils.loading(this.propagationSyncLiveToastMessage(), 0, propagationSyncToastKey);
                         return;
                     }

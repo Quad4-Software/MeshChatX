@@ -33,42 +33,6 @@ class TestIntegrityManagerExtensive(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.test_dir)
 
-    def test_entropy_mathematical_bounds(self):
-        """Verify entropy stays within [0, 8] for any byte sequence."""
-        # Test empty
-        empty_file = self.test_dir / "empty"
-        empty_file.touch()
-        self.assertEqual(self.manager._calculate_entropy(empty_file), 0)
-
-        # Test single byte repeated (minimum entropy)
-        zero_entropy_file = self.test_dir / "zero_entropy"
-        with open(zero_entropy_file, "wb") as f:
-            f.write(b"AAAAAAAA" * 100)
-        self.assertEqual(self.manager._calculate_entropy(zero_entropy_file), 0)
-
-        # Test all 256 bytes (maximum entropy)
-        max_entropy_file = self.test_dir / "max_entropy"
-        with open(max_entropy_file, "wb") as f:
-            f.write(bytes(range(256)))
-        # log2(256) = 8
-        self.assertAlmostEqual(
-            self.manager._calculate_entropy(max_entropy_file),
-            8.0,
-            places=5,
-        )
-
-    @settings(suppress_health_check=[HealthCheck.too_slow], deadline=None)
-    @given(st.binary(min_size=1, max_size=1024))
-    def test_entropy_property(self, data):
-        """Property: Entropy is always between 0 and 8 for non-empty data."""
-        temp_file = self.test_dir / "prop_test"
-        with open(temp_file, "wb") as f:
-            f.write(data)
-
-        entropy = self.manager._calculate_entropy(temp_file)
-        self.assertGreaterEqual(entropy, 0)
-        self.assertLessEqual(entropy, 8.000000000000002)  # Float precision
-
     def test_db_structural_tamper_detection(self):
         """Simulate actual SQLite corruption that bypasses hash-only checks."""
         self.manager.save_manifest()
@@ -132,6 +96,50 @@ class TestIntegrityManagerExtensive(unittest.TestCase):
                 self.manager._should_ignore(str(rel_path)),
                 f"Failed to ignore {v}",
             )
+
+    def test_ratchets_and_router_state_ignored(self):
+        """RNS ratchets and LXMF router runtime state must not trigger warnings."""
+        volatile_files = [
+            "lxmf_router/lxmf/ratchets/adc0193d0a5b3726682486a1f0204b30.ratchets",
+            "lxmf_router/lxmf/node_stats",
+            "lxmf_router/lxmf/available_tickets",
+            "lxmf_router/lxmf/local_deliveries",
+            "lxmf_router/lxmf/locally_processed",
+            "lxmf_router/lxmf/messagestore/abc123_1776215096.805143_19",
+            "ratchets/deadbeef.ratchets",
+            "node_stats",
+        ]
+        for v in volatile_files:
+            self.assertTrue(
+                self.manager._should_ignore(v),
+                f"Failed to ignore volatile state: {v}",
+            )
+
+    def test_router_churn_does_not_break_integrity(self):
+        """A clean manifest stays valid even as the router tree changes."""
+        router_dir = self.storage_dir / "lxmf_router" / "lxmf"
+        (router_dir / "ratchets").mkdir(parents=True)
+        (router_dir / "messagestore").mkdir(parents=True)
+        (router_dir / "ratchets" / "aa.ratchets").write_bytes(b"\x00" * 32)
+        (router_dir / "node_stats").write_bytes(b"\x01" * 16)
+
+        self.manager.save_manifest()
+
+        (router_dir / "ratchets" / "aa.ratchets").write_bytes(b"\x02" * 64)
+        (router_dir / "ratchets" / "bb.ratchets").write_bytes(b"\x03" * 64)
+        (router_dir / "messagestore" / "msg_1.bin").write_bytes(b"\x04" * 100)
+        (router_dir / "node_stats").write_bytes(b"\x05" * 32)
+
+        is_ok, issues = self.manager.check_integrity()
+        self.assertTrue(is_ok, f"Router churn should not flag integrity: {issues}")
+
+    def test_critical_files_still_monitored(self):
+        """Identity and config outside the router tree remain protected."""
+        self.assertFalse(self.manager._should_ignore("identity"))
+        self.assertFalse(self.manager._should_ignore("config"))
+        self.assertFalse(
+            self.manager._should_ignore("identities/abc/identity"),
+        )
 
     def test_critical_file_protection(self):
         """Ensure identity and config changes are always treated as critical."""

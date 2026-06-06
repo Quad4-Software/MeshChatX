@@ -1,10 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, beforeEach, afterEach } from "vitest";
 import MicronParser from "../../meshchatx/src/frontend/js/MicronParser";
 import {
     escapeNomadPlainText,
     renderNomadHtmlPage,
     renderNomadMarkdown,
     renderNomadPageByPath,
+    resolveNomadPageShellBackground,
     sanitizeNomadHtmlFragment,
 } from "../../meshchatx/src/frontend/js/NomadPageRenderer";
 
@@ -110,5 +111,43 @@ describe("NomadPageRenderer", () => {
             expect(() => sanitizeNomadHtmlFragment(s)).not.toThrow();
             expect(() => renderNomadHtmlPage(s)).not.toThrow();
         }
+    });
+});
+
+describe("resolveNomadPageShellBackground", () => {
+    let host;
+
+    beforeEach(() => {
+        host = document.createElement("div");
+        document.body.appendChild(host);
+    });
+
+    afterEach(() => {
+        host?.remove();
+    });
+
+    it("returns null when root has no painted background", () => {
+        const root = document.createElement("div");
+        root.className = "nomad-html-root";
+        host.appendChild(root);
+        expect(resolveNomadPageShellBackground(root)).toBeNull();
+    });
+
+    it("reads background-color from the html root", () => {
+        const root = document.createElement("div");
+        root.className = "nomad-html-root";
+        root.style.backgroundColor = "rgb(18, 24, 38)";
+        host.appendChild(root);
+        expect(resolveNomadPageShellBackground(root)).toBe("rgb(18, 24, 38)");
+    });
+
+    it("reads background from a direct child when root is transparent", () => {
+        const root = document.createElement("div");
+        root.className = "nomad-html-root";
+        const inner = document.createElement("div");
+        inner.style.backgroundColor = "rgb(40, 40, 40)";
+        root.appendChild(inner);
+        host.appendChild(root);
+        expect(resolveNomadPageShellBackground(root)).toBe("rgb(40, 40, 40)");
     });
 });

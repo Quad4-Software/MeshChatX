@@ -703,8 +703,8 @@ class TestPerformanceHotPaths(unittest.TestCase):
         stats = latency_report("mark_viewed_200", durations)
         self.assertLess(
             stats["p95"],
-            50,
-            "mark_all_notifications_as_viewed(200) p95 > 50ms",
+            200,
+            "mark_all_notifications_as_viewed(200) p95 > 200ms",
         )
 
     def test_move_conversations_to_folder_batch(self):

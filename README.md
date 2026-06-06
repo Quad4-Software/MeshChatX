@@ -7,8 +7,8 @@ A extensively modified and feature-rich fork of [Reticulum MeshChat](https://git
 This project is independent from the original Reticulum MeshChat project and is not affiliated with it.
 
 - Website: [meshchatx.com](https://meshchatx.com)
-- Source: [git.quad4.io/RNS-Things/MeshChatX](https://git.quad4.io/RNS-Things/MeshChatX)
-- Official GitHub Mirror: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
+- Source: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
+- Mirror: [lavaforge.org/Reticulum-Things/MeshChatX](https://lavaforge.org/Reticulum-Things/MeshChatX)
 - Releases: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - Changelog: [`CHANGELOG.md`](CHANGELOG.md)
 - Donate: [`donate.md`](donate.md) ([Donation](#donation))
@@ -16,9 +16,9 @@ This project is independent from the original Reticulum MeshChat project and is 
 
 <a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/Quad4-Software/MeshChatX"><img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" height="60" alt="Get it on Obtainium"></a>
 
-rngit NomadNet Node: `5399f5a0212477618821e91e88ce053b:/page/index.mu`
+rngit NomadNet Node: `132f67e79d9b24aad014e93015fb858f:/page/index.mu`
 
-rngit: `git clone rns://926baefe13daf5178c174f158dae1b45/quad4/MeshChatX`
+rngit: `git clone rns://06a54b505bb67b25ef3f8097e8001edc/public/MeshChatX`
 
 MeshChatX NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
 
@@ -36,7 +36,7 @@ MeshChatX NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
 
 - Python `>=3.11` (from `pyproject.toml`)
 - Node.js `>=24` (from `package.json` `engines`)
-- pnpm `10.33.0` (from `package.json` `packageManager`)
+- pnpm `11.1.2` (from `package.json` `packageManager`)
 - UV (used by `Taskfile.yml` and CI workflows)
 
 **Browser Versions Required:**
@@ -156,12 +156,12 @@ pipx install ./reticulum_meshchatx-*-py3-none-any.whl
 Use this when developing or when you need a local custom build.
 
 ```bash
-git clone https://git.quad4.io/RNS-Things/MeshChatX.git
+git clone https://github.com/Quad4-Software/MeshChatX.git
 cd MeshChatX
 corepack enable
 pnpm config set verify-store-integrity true
 pnpm install --frozen-lockfile
-pip install "uv==0.11.12"
+pip install "uv==0.11.15"
 uv lock --check
 uv sync --group dev
 pnpm run build-frontend
@@ -171,10 +171,10 @@ uv run python -m meshchatx.meshchat --headless --host 127.0.0.1
 Notes on the install commands above:
 
 - `pnpm install --frozen-lockfile` refuses to update `pnpm-lock.yaml` and fails if the lockfile does not match `package.json`. This is what blocks an unexpected upstream version from being silently pulled in.
-- `verify-store-integrity=true` is also set in the project `.npmrc`; the explicit `pnpm config set` line above just hardens the user-level config too.
-- Lifecycle scripts (`preinstall`/`postinstall`) are blocked by default in pnpm v10+. Only the packages listed under `pnpm.onlyBuiltDependencies` in `package.json` are allowed to run install scripts (currently `electron`, `electron-winstaller`, `esbuild`).
+- `verify-store-integrity=true` is also set in the project `pnpm-workspace.yaml`; the explicit `pnpm config set` line above just hardens the user-level config too.
+- Lifecycle scripts (`preinstall`/`postinstall`) are blocked by default in pnpm v11+. Only the packages listed under `allowBuilds` in `pnpm-workspace.yaml` are allowed to run install scripts (currently `electron`, `electron-winstaller`, `esbuild`).
 - `uv lock --check` fails fast if `uv.lock` is out of sync with `pyproject.toml`; `uv sync` then resolves only from the lockfile.
-- For a strict lockfile-only UV install (no implicit lockfile refresh), pin UV with `pip install "uv==0.11.12"` to match what CI uses.
+- For a strict lockfile-only UV install (no implicit lockfile refresh), pin UV with `pip install "uv==0.11.15"` to match what CI uses.
 
 If you intentionally want to update dependencies, run `pnpm update` / `uv lock` in a dedicated commit and review the resulting lockfile diff before pushing.
 
@@ -208,6 +208,72 @@ Calls and voice attachments use the microphone through Chromium inside the deskt
 4. Ensure MeshChatX is not denied under **Choose which apps can access your microphone** if that list appears.
 
 Also confirm the app is not muted in **Settings → System → Sound** and that a working input device is selected.
+
+## Offline Builds
+
+MeshChatX supports two levels of offline building:
+
+1. **Cached offline builds** — you already ran `make install` once and have `node_modules/`, `.venv/`, and local caches.
+2. **Air-gapped (zero-network) builds** — the machine has _never_ had internet. You create an offline bundle on a networked machine and transfer it.
+
+### Cached Offline Builds
+
+Set `MESHCHATX_OFFLINE_BUILD=1` before running any build command. This skips all network fetches (micron-parser-go WASM, Reticulum manual, repository wheels) and runs package managers in offline mode. If a required cached asset is missing, the build fails with a clear error instead of hanging.
+
+```bash
+# Install dependencies offline (requires populated pnpm store and uv cache)
+MESHCHATX_OFFLINE_BUILD=1 make install
+
+# Build frontend + backend offline
+MESHCHATX_OFFLINE_BUILD=1 pnpm run build:offline
+
+# Build Linux desktop packages offline
+MESHCHATX_OFFLINE_BUILD=1 pnpm run dist:linux:offline
+
+# Android Gradle also respects the flag
+MESHCHATX_OFFLINE_BUILD=1 ./gradlew :app:assembleRelease
+```
+
+> **Note:** Cached offline mode only skips _build-time_ network access. The first `make install` must be run online (or with pre-populated caches) so that `pnpm` and `uv` have the packages available locally.
+
+### Air-Gapped Builds (No Cache)
+
+For machines with no internet access at all, create an offline bundle on a networked machine and transfer it.
+
+**On the online machine:**
+
+```bash
+# Create the bundle (includes node_modules, Python wheels, and tooling caches)
+pnpm run bundle:offline
+
+# Optional: also pre-download packaging tools (appimagetool, etc.)
+bash scripts/create-offline-bundle.sh --warm-packaging
+
+# Transfer the bundle to your air-gapped machine
+tar czf meshchatx-offline-linux-x64.tar.gz -C vendor/offline meshchatx-offline-bundle-*/
+```
+
+**On the air-gapped machine:**
+
+```bash
+# Extract the bundle into the project
+tar xzf meshchatx-offline-linux-x64.tar.gz
+
+# Install from the bundle (extracts node_modules and sets up caches)
+bash scripts/install-offline.sh
+
+# Build completely offline
+MESHCHATX_OFFLINE_BUILD=1 make build
+
+# Or package offline
+MESHCHATX_OFFLINE_BUILD=1 pnpm run dist:linux
+```
+
+The bundle is platform-specific because it contains native binaries (Electron, esbuild, etc.). Create it on the same OS/architecture as the air-gapped build host.
+
+Prerequisites on the air-gapped machine: `node`, `pnpm`, `uv`, and `python3` must be installed (the bundle provides all dependencies and caches, not the toolchain itself).
+
+> **Android builds:** The offline bundle does **not** include Android Chaquopy wheels. Build those separately on an online machine (`bash scripts/build-android-wheels-local.sh`) and copy `android/vendor/` to the air-gapped host alongside the project. Then run Gradle with `MESHCHATX_OFFLINE_BUILD=1`.
 
 ## Build Desktop Packages from Source
 
@@ -289,6 +355,14 @@ cd android
 ./gradlew --no-daemon :app:assembleDebug :app:assembleRelease
 ```
 
+Offline Android builds are supported by setting `MESHCHATX_OFFLINE_BUILD=1`:
+
+```bash
+MESHCHATX_OFFLINE_BUILD=1 ./gradlew --no-daemon :app:assembleRelease
+```
+
+This skips the repository wheels fetch step. The `android/vendor/` wheels and `meshchatx/public/repository-server-bundled/bundled/` must already be present.
+
 There is a **single** Android variant. Gradle syncs the full `meshchatx/` tree into `app/src/main/python/meshchatx/`, including the offline repository wheel bundle. Published and documented builds use **universal** packaging only: one debug APK and one release APK per run, each containing the native ABIs configured in `android/app/build.gradle`.
 
 - Debug: `android/app/build/outputs/apk/debug/app-debug.apk`
@@ -353,7 +427,7 @@ task build:all
 
 ## Versioning
 
-Current version in this repo is `4.6.2`.
+Current version in this repo is `4.7.0`.
 
 - **`package.json`** `version` is the only value you edit for a release bump.
 - Run **`pnpm run version:sync`** (also run at the start of **`pnpm run build`**) to propagate that version into **`pyproject.toml`**, **`meshchatx/src/version.py`**, **`THIRD_PARTY_NOTICES.txt`** (product line), **README** / **lang/README.\*** “current version” lines, **`docs/meshchatx_on_raspberry_pi.md`** pipx example, and **`packaging/arch/PKGBUILD`** helpers.

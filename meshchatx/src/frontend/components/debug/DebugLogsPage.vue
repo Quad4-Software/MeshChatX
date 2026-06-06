@@ -2,27 +2,22 @@
 
 <template>
     <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+        <ToolsPageHeader icon="console" :title="$t('debug.title')" :description="$t('debug.description')" accent="zinc">
+            <template #actions>
+                <button type="button" class="secondary-chip px-4 py-2 text-sm" @click="refreshActive">
+                    <MaterialDesignIcon icon-name="refresh" class="w-4 h-4" />
+                    Refresh
+                </button>
+                <button type="button" class="primary-chip px-4 py-2 text-sm" @click="copyActive">
+                    <MaterialDesignIcon icon-name="content-copy" class="w-4 h-4" />
+                    Copy All
+                </button>
+            </template>
+        </ToolsPageHeader>
         <div
-            class="flex flex-col h-full overflow-hidden w-full px-3 sm:px-4 md:px-5 lg:px-8 py-3 sm:py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+            class="flex-1 overflow-y-auto flex flex-col w-full px-3 sm:px-4 md:px-5 lg:px-8 py-3 sm:py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
         >
             <div class="flex flex-col mb-4 w-full max-w-6xl mx-auto space-y-4 min-w-0">
-                <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between min-w-0">
-                    <div class="space-y-1 min-w-0">
-                        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Diagnostics</div>
-                        <div class="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-white">Debug Logs</div>
-                    </div>
-                    <div class="flex flex-wrap gap-2 shrink-0">
-                        <button type="button" class="secondary-chip px-4 py-2 text-sm" @click="refreshActive">
-                            <MaterialDesignIcon icon-name="refresh" class="w-4 h-4" />
-                            Refresh
-                        </button>
-                        <button type="button" class="primary-chip px-4 py-2 text-sm" @click="copyActive">
-                            <MaterialDesignIcon icon-name="content-copy" class="w-4 h-4" />
-                            Copy All
-                        </button>
-                    </div>
-                </div>
-
                 <div
                     class="flex flex-nowrap sm:flex-wrap gap-2 border-b border-gray-200 dark:border-zinc-700 pb-2 overflow-x-auto overscroll-x-contain -mx-4 px-4 sm:mx-0 sm:px-0 no-scrollbar"
                 >
@@ -270,11 +265,13 @@
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
+import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 
 export default {
     name: "DebugLogsPage",
     components: {
         MaterialDesignIcon,
+        ToolsPageHeader,
     },
     data() {
         return {

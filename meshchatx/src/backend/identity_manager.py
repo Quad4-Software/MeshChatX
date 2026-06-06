@@ -122,7 +122,7 @@ class IdentityManager:
                 )
                 lxmf_address = temp_config_dao.get("lxmf_address_hash")
                 lxst_address = temp_config_dao.get("lxst_address_hash")
-                temp_provider.close()
+                temp_provider.close_all()
 
                 # Save metadata for next time
                 metadata = {
@@ -179,7 +179,7 @@ class IdentityManager:
             new_config_dao = ConfigDAO(new_provider)
             new_config_dao.set("display_name", display_name)
 
-        new_provider.close()
+        new_provider.close_all()
 
         # Save metadata
         metadata = {

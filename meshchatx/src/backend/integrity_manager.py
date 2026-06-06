@@ -14,8 +14,8 @@ from typing import ClassVar
 class IntegrityManager:
     """Manages the integrity of the database and identity files at rest."""
 
-    # Files and directories that are frequently modified by RNS/LXMF or SQLite
-    # and should be ignored during integrity checks.
+    # Filename globs frequently rewritten by RNS/LXMF or SQLite that should be
+    # ignored during integrity checks.
     IGNORED_PATTERNS: ClassVar[list[str]] = [
         "*-wal",
         "*-shm",
@@ -24,11 +24,47 @@ class IntegrityManager:
         "*.lock",
         "*.log",
         "*~",
+        "*.ratchets",
         ".DS_Store",
         "Thumbs.db",
         "integrity-manifest.json",
         "outbound_stamp_costs",
     ]
+
+    # Any path containing one of these directory names is treated as volatile.
+    # The whole lxmf_router tree (ratchets, message store, peer/announce
+    # tables, delivery state) is rewritten continuously during normal
+    # operation and must not be monitored, or it produces a constant stream of
+    # false integrity warnings.
+    VOLATILE_DIRS: ClassVar[set[str]] = {
+        "lxmf_router",
+        "ratchets",
+        "messagestore",
+        "tmp",
+        "recordings",
+        "greetings",
+        "docs",
+        "bots",
+        "ringtones",
+    }
+
+    # Exact RNS/LXMF state filenames that change on their own during runtime.
+    VOLATILE_FILENAMES: ClassVar[set[str]] = {
+        "outbound_stamp_costs",
+        "node_stats",
+        "available_tickets",
+        "local_deliveries",
+        "locally_processed",
+        "locally_delivered",
+        "peers",
+        "announce_cache",
+        "destination_table",
+        "announce_table",
+        "known_destinations",
+        "held_announces",
+        "transport_identity",
+        "identity_cache",
+    }
 
     def __init__(self, storage_dir, database_path, identity_hash=None):
         self.storage_dir = Path(storage_dir)
@@ -38,35 +74,24 @@ class IntegrityManager:
         self.issues = []
 
     def _should_ignore(self, rel_path):
-        """Determine if a file path should be ignored based on name or directory."""
+        """Determine if a file path is volatile RNS/LXMF state to skip.
+
+        Critical security components living directly under the identity storage
+        directory (``identity``, ``config``, ``database.db``) are never ignored;
+        only the continuously-rewritten LXMF router tree, ratchets, message
+        store and known RNS state files are excluded.
+        """
         path = Path(rel_path)
         path_parts = path.parts
 
-        # Check for volatile LXMF/RNS directories
-        # We only ignore these if they are inside the lxmf_router directory
-        # to avoid accidentally ignoring important files with similar names.
-        if "lxmf_router" in path_parts:
-            # Added more volatile LXMF patterns
-            if any(
-                part in ["announces", "storage", "identities", "tmp"]
-                for part in path_parts
-            ):
-                return True
-
-            # Specifically ignore stamp costs which are frequently updated
-            if path_parts[-1] == "outbound_stamp_costs":
-                return True
-
-        # Check for other generally ignored directories
-        if any(
-            part in ["tmp", "recordings", "greetings", "docs", "bots", "ringtones"]
-            for part in path_parts
-        ):
+        if any(part in self.VOLATILE_DIRS for part in path_parts):
             return True
 
         filename = path_parts[-1]
 
-        # Check against IGNORED_PATTERNS
+        if filename in self.VOLATILE_FILENAMES:
+            return True
+
         if any(fnmatch.fnmatch(filename, pattern) for pattern in self.IGNORED_PATTERNS):
             return True
 
@@ -148,25 +173,18 @@ class IntegrityManager:
                 actual_db_hash = self._hash_file(self.database_path)
 
                 if actual_db_hash != manifest_files.get(db_rel):
-                    # Check internal SQL integrity to see if it's just a dirty shutdown or actual tampering
                     is_db_ok, db_msg = self._check_db_integrity(self.database_path)
                     if not is_db_ok:
                         issues.append(f"Database structural issue: {db_msg}")
                     else:
-                        # Check entropy stability to see if content type shifted significantly
                         actual_entropy = self._calculate_entropy(self.database_path)
                         saved_entropy = manifest_metadata.get(db_rel, {}).get("entropy")
-
                         if (
                             saved_entropy is not None
                             and abs(actual_entropy - saved_entropy) > 1.0
                         ):
                             issues.append(
                                 f"Database structural anomaly (Entropy Δ: {abs(actual_entropy - saved_entropy):.2f})",
-                            )
-                        else:
-                            issues.append(
-                                f"Database binary signature mismatch: {db_rel}",
                             )
 
             # Check other critical files in storage_dir

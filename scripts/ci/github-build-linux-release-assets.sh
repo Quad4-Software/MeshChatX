@@ -10,6 +10,20 @@ cd "$ROOT"
 # shellcheck source=scripts/ci/ci-node-path.sh
 . "$(dirname "$0")/ci-node-path.sh"
 
+require_node_min() {
+    _min_major="${1:-22}"
+    _ver="$(node -v 2>/dev/null || true)"
+    _major="${_ver#v}"
+    _major="${_major%%.*}"
+    if [ -z "$_major" ] || [ "$_major" -lt "$_min_major" ]; then
+        echo "Node.js ${_min_major}+ required (got: ${_ver:-unknown}); check PATH does not prefer /usr/local/bin over setup-node." >&2
+        command -v node >&2 || true
+        exit 1
+    fi
+}
+
+require_node_min 24
+
 mkdir -p release-assets
 
 HOST_ARCH="$(uname -m)"

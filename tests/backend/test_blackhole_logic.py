@@ -237,3 +237,39 @@ async def test_get_blackhole_list(mock_rns_minimal, temp_dir):
         info = data["blackholed_identities"][ident_hash_bytes.hex()]
         assert info["reason"] == "Spam"
         assert info["source"] == (b"\x02" * 32).hex()
+
+
+def test_is_destination_blocked_by_identity_hash(mock_rns_minimal, temp_dir):
+    """Match blocked destinations when looked up by identity hash.
+
+    When an identity hash is passed to is_destination_blocked, any blocked
+    destination belonging to that identity should match.
+    """
+    with patch("meshchatx.meshchat.generate_ssl_certificate"):
+        app_instance = ReticulumMeshChat(
+            identity=mock_rns_minimal,
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+
+    app_instance.database = MagicMock()
+
+    ident_hash = "i" * 32
+    dest_hash = "d" * 32
+
+    # Simulate: no direct block on the identity hash, no announce with
+    # destination_hash == ident_hash, but there IS an announce for the
+    # identity and its destination is blocked.
+    app_instance.database.misc.is_destination_blocked.side_effect = lambda h: (
+        h == dest_hash
+    )
+    app_instance.database.announces.get_announce_by_hash.return_value = None
+    app_instance.database.announces.get_announces_by_identity_hash.return_value = [
+        {"destination_hash": dest_hash, "identity_hash": ident_hash}
+    ]
+
+    assert app_instance.is_destination_blocked(ident_hash) is True
+
+    # Also verify a non-blocked identity returns False
+    app_instance.database.misc.is_destination_blocked.side_effect = lambda h: False
+    assert app_instance.is_destination_blocked(ident_hash) is False

@@ -2,6 +2,8 @@
 
 import re
 
+import RNS
+
 _IPV4_HOST_PORT = re.compile(r"^(\d{1,3}(?:\.\d{1,3}){3}):(\d{1,5})$")
 
 
@@ -72,6 +74,33 @@ def coerce_rnode_frequency_hz(value):
 class InterfaceEditor:
     coerce_rnode_frequency_hz = staticmethod(coerce_rnode_frequency_hz)
     normalize_rnode_tcp_port = staticmethod(normalize_rnode_tcp_port)
+
+    @staticmethod
+    def minimum_fixed_mtu() -> int:
+        mtu = getattr(RNS.Reticulum, "MTU", None)
+        if type(mtu) is int and mtu > 0:
+            return mtu
+        return 500
+
+    @staticmethod
+    def apply_fixed_mtu(interface_details: dict, data: dict) -> str | None:
+        """Persist ``fixed_mtu`` when valid; return an API error message otherwise."""
+        value = data.get("fixed_mtu")
+        if value is None or value == "":
+            interface_details.pop("fixed_mtu", None)
+            return None
+        try:
+            mtu = int(value)
+        except (TypeError, ValueError):
+            return "fixed_mtu must be a positive integer"
+        min_mtu = InterfaceEditor.minimum_fixed_mtu()
+        if mtu < min_mtu:
+            return (
+                f"fixed_mtu must be at least {min_mtu} bytes "
+                f"(Reticulum minimum MTU; values below this prevent startup)"
+            )
+        interface_details["fixed_mtu"] = mtu
+        return None
 
     @staticmethod
     def update_value(interface_details: dict, data: dict, key: str):

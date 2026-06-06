@@ -14,14 +14,14 @@ FROM --platform=linux/amd64 ${NODE_IMAGE} AS build-frontend
 USER root
 WORKDIR /src
 RUN apk add --no-cache git python3
-COPY package.json pnpm-lock.yaml vite.config.js ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml vite.config.js ./
 COPY patches ./patches
 COPY scripts/fetch-micron-wasm.mjs scripts/fetch-micron-wasm.mjs
 COPY scripts/micron-wasm-resolve-bundled.mjs scripts/micron-wasm-resolve-bundled.mjs
 COPY scripts/micron-parser-go-version.mjs scripts/micron-parser-go-version.mjs
 COPY scripts/build/fetch_reticulum_manual.py scripts/build/fetch_reticulum_manual.py
 COPY meshchatx/src/frontend ./meshchatx/src/frontend
-RUN npm install -g pnpm@10.33.0 && \
+RUN npm install -g pnpm@11.1.2 && \
     pnpm config set verify-store-integrity true && \
     pnpm install --frozen-lockfile && \
     pnpm run build-frontend && \
@@ -74,7 +74,7 @@ RUN apk add --no-cache opus libffi shadow && \
 COPY --from=builder --chown=meshchat:meshchat /opt/venv /opt/venv
 COPY scripts/docker_entrypoint_chainguard.py /docker-entrypoint.py
 
-LABEL org.opencontainers.image.source="https://git.quad4.io/RNS-Things/MeshChatX"
+LABEL org.opencontainers.image.source="https://github.com/Quad4-Software/MeshChatX"
 LABEL org.opencontainers.image.description="MeshChatX is a all in one Reticulum client."
 LABEL org.opencontainers.image.licenses="MIT AND 0BSD"
 LABEL org.opencontainers.image.authors="Quad4"

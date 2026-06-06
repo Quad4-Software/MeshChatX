@@ -2,38 +2,32 @@
 
 <template>
     <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
-        <div
-            class="flex-1 overflow-y-auto w-full px-4 md:px-5 lg:px-8 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+        <ToolsPageHeader
+            icon="server-network"
+            :title="$t('tools.mesh_server.title')"
+            :description="$t('tools.mesh_server.description')"
+            accent="amber"
         >
-            <div class="space-y-4 w-full max-w-5xl mx-auto">
-                <div class="glass-card space-y-5">
-                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                        <div class="space-y-2">
-                            <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                Reticulum Content Serving
-                            </div>
-                            <div class="text-2xl font-semibold text-gray-900 dark:text-white">Mesh Server</div>
-                            <div class="text-sm text-gray-600 dark:text-gray-300">
-                                Serve Micron pages and files directly over the Reticulum mesh. Each server gets its own
-                                identity and destination address.
-                            </div>
-                        </div>
-                        <button
-                            type="button"
-                            class="primary-chip px-4 py-2 text-sm shrink-0"
-                            @click="showCreateDialog = true"
-                        >
-                            <MaterialDesignIcon icon-name="plus" class="w-4 h-4" />
-                            Create Node
-                        </button>
-                    </div>
-                </div>
-
-                <div v-if="loading" class="glass-card text-center py-12">
+            <template #actions>
+                <button type="button" class="primary-chip px-4 py-2 text-sm shrink-0" @click="showCreateDialog = true">
+                    <MaterialDesignIcon icon-name="plus" class="w-4 h-4" />
+                    Create Node
+                </button>
+            </template>
+        </ToolsPageHeader>
+        <div class="flex-1 overflow-y-auto overflow-x-hidden w-full px-3 sm:px-5 md:px-5 lg:px-8 py-3 sm:py-4 min-w-0">
+            <div class="space-y-0 w-full max-w-6xl xl:max-w-7xl mx-auto min-w-0">
+                <div
+                    v-if="loading"
+                    class="w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-8 sm:py-12 text-center"
+                >
                     <div class="text-gray-500 dark:text-gray-400">Loading nodes...</div>
                 </div>
 
-                <div v-else-if="nodes.length === 0" class="glass-card text-center py-12">
+                <div
+                    v-else-if="nodes.length === 0"
+                    class="w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-8 sm:py-12 text-center"
+                >
                     <MaterialDesignIcon icon-name="server-network" class="w-12 h-12 mx-auto mb-4 text-gray-400" />
                     <div class="text-gray-600 dark:text-gray-400 mb-2">No mesh servers yet</div>
                     <div class="text-sm text-gray-500 dark:text-gray-500">
@@ -41,64 +35,66 @@
                     </div>
                 </div>
 
-                <div v-else class="space-y-3">
+                <div v-else class="w-full divide-y divide-gray-200/60 dark:divide-zinc-800/60">
                     <div
                         v-for="node in nodes"
                         :key="node.node_id"
-                        class="glass-card space-y-4 cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 transition"
+                        class="py-3 sm:py-4 space-y-2 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors rounded-lg -mx-3 sm:-mx-4 px-3 sm:px-4"
                         @click="selectNode(node)"
                     >
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-3">
+                        <div class="flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-3 min-w-0">
                                 <div
-                                    class="w-3 h-3 rounded-full"
+                                    class="w-3 h-3 rounded-full shrink-0"
                                     :class="node.running ? 'bg-green-500' : 'bg-gray-400'"
                                 ></div>
-                                <div>
-                                    <div class="font-semibold text-gray-900 dark:text-white">{{ node.name }}</div>
+                                <div class="min-w-0">
+                                    <div class="font-semibold text-gray-900 dark:text-white truncate">
+                                        {{ node.name }}
+                                    </div>
                                     <div
                                         v-if="node.destination_hash"
-                                        class="text-xs font-mono text-gray-500 dark:text-gray-400"
+                                        class="text-xs font-mono text-gray-500 dark:text-gray-400 truncate"
                                     >
                                         {{ node.destination_hash }}
                                     </div>
                                 </div>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <span class="text-xs text-gray-500 dark:text-gray-400">
-                                    {{ node.pages.length }} pages, {{ node.files.length }} files
+                            <div class="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                                <span class="text-xs text-gray-500 dark:text-gray-400 mr-1">
+                                    {{ node.pages.length }}p / {{ node.files.length }}f
                                 </span>
                                 <button
                                     v-if="!node.running"
-                                    class="primary-chip py-1! px-3! text-xs!"
+                                    class="primary-chip py-1! px-2.5! text-xs!"
                                     @click.stop="startNode(node.node_id)"
                                 >
                                     Start
                                 </button>
                                 <button
                                     v-else
-                                    class="secondary-chip py-1! px-3! text-xs! text-red-500! hover:bg-red-50! dark:hover:bg-red-900/20!"
+                                    class="secondary-chip py-1! px-2.5! text-xs! text-red-500! hover:bg-red-50! dark:hover:bg-red-900/20!"
                                     @click.stop="stopNode(node.node_id)"
                                 >
                                     Stop
                                 </button>
                                 <button
                                     v-if="node.running"
-                                    class="secondary-chip py-1! px-3! text-xs!"
+                                    class="secondary-chip py-1! px-2.5! text-xs!"
                                     @click.stop="announceNode(node.node_id)"
                                 >
                                     Announce
                                 </button>
                                 <button
                                     v-if="node.running && node.destination_hash"
-                                    class="secondary-chip py-1! px-3! text-xs!"
+                                    class="secondary-chip py-1! px-2.5! text-xs!"
                                     @click.stop="viewNode(node)"
                                 >
                                     <MaterialDesignIcon icon-name="eye" class="w-3.5 h-3.5" />
                                     View
                                 </button>
                                 <button
-                                    class="secondary-chip py-1! px-3! text-xs! text-red-500! hover:bg-red-50! dark:hover:bg-red-900/20!"
+                                    class="secondary-chip py-1! px-2.5! text-xs! text-red-500! hover:bg-red-50! dark:hover:bg-red-900/20!"
                                     @click.stop="deleteNode(node.node_id)"
                                 >
                                     <MaterialDesignIcon icon-name="delete" class="w-3.5 h-3.5" />
@@ -108,19 +104,22 @@
 
                         <div
                             v-if="node.stats || node.running"
-                            class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400"
+                            class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400 pl-6"
                         >
                             <span v-if="node.running">{{ formatMeshUptime(node.uptime_seconds) }} uptime</span>
-                            <span>{{ node.unique_connections ?? 0 }} unique connections</span>
-                            <span v-if="node.stats">{{ node.stats.pages_served }} pages served</span>
-                            <span v-if="node.stats">{{ node.stats.files_served }} files served</span>
+                            <span>{{ node.unique_connections ?? 0 }} connections</span>
+                            <span v-if="node.stats">{{ node.stats.pages_served }} pages</span>
+                            <span v-if="node.stats">{{ node.stats.files_served }} files</span>
                             <span v-if="node.stats">{{ node.stats.links_established }} links</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Selected Node Detail -->
-                <div v-if="selectedNode" class="glass-card space-y-5">
+                <div
+                    v-if="selectedNode"
+                    class="w-full py-4 sm:py-6 space-y-4 border-t border-gray-200/60 dark:border-zinc-800/60"
+                >
                     <div class="flex items-center justify-between">
                         <div class="text-lg font-semibold text-gray-900 dark:text-white">
                             {{ selectedNode.name }}
@@ -154,13 +153,13 @@
                     </div>
 
                     <!-- Tabs: Pages / Files -->
-                    <div class="flex gap-2 border-b border-gray-200 dark:border-zinc-700">
+                    <div class="flex gap-2 border-b border-gray-200/60 dark:border-zinc-800/60">
                         <button
                             :class="[
                                 detailTab === 'pages'
                                     ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
                                     : 'text-gray-600 dark:text-gray-400',
-                                'px-4 py-2 font-semibold transition text-sm',
+                                'px-4 py-2 font-semibold transition text-sm -mb-px',
                             ]"
                             @click="detailTab = 'pages'"
                         >
@@ -171,7 +170,7 @@
                                 detailTab === 'files'
                                     ? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
                                     : 'text-gray-600 dark:text-gray-400',
-                                'px-4 py-2 font-semibold transition text-sm',
+                                'px-4 py-2 font-semibold transition text-sm -mb-px',
                             ]"
                             @click="detailTab = 'files'"
                         >
@@ -357,11 +356,13 @@
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import DialogUtils from "../../js/DialogUtils";
+import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 
 export default {
     name: "PageNodesPage",
     components: {
         MaterialDesignIcon,
+        ToolsPageHeader,
     },
     data() {
         return {

@@ -144,20 +144,10 @@
                 v-if="isStrangerPeer && !strangerBannerDismissed && showUnknownContactBanner"
                 class="mx-3 mt-2 mb-0 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-lg flex items-center gap-3 text-sm"
             >
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="1.5"
-                    stroke="currentColor"
+                <MaterialDesignIcon
+                    icon-name="alert-circle-outline"
                     class="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0"
-                >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d="M12 9v3.75m0 3.75h.008v-.008H12v.008Zm9.303-5.626a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-                    />
-                </svg>
+                />
                 <span class="flex-1 text-amber-900 dark:text-amber-200">
                     {{ $t("messages.stranger_banner_text") }}
                 </span>
@@ -986,7 +976,7 @@
                     </div>
                     <div class="flex flex-wrap gap-1">
                         <button
-                            v-for="(emo, emi) in columbaReactionEmojis"
+                            v-for="(emo, emi) in lxmfReactionEmojis"
                             :key="emi"
                             type="button"
                             class="text-lg leading-none px-1.5 py-0.5 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors"
@@ -1762,7 +1752,7 @@ import GlobalState from "../../js/GlobalState";
 import MarkdownRenderer from "../../js/MarkdownRenderer";
 import LinkUtils from "../../js/LinkUtils";
 import { findMapUriInContent, mapLinkKindFromMessage, parseMeshchatMapUri } from "../../js/mapLinkUtils.js";
-import { COLUMBA_REACTION_EMOJIS, mergeLxmfReactionRowsIntoMessages } from "../../js/lxmfReactions";
+import { LXMF_REACTION_EMOJIS, mergeLxmfReactionRowsIntoMessages } from "../../js/lxmfReactions";
 import { createOutboundQueue } from "../../js/outboundSendQueue";
 import emojiPickerEnDataUrl from "emoji-picker-element-data/en/emojibase/data.json?url";
 import "emoji-picker-element";
@@ -1902,7 +1892,7 @@ export default {
                 justOpened: false,
                 openedFromBubble: false,
             },
-            columbaReactionEmojis: COLUMBA_REACTION_EMOJIS,
+            lxmfReactionEmojis: LXMF_REACTION_EMOJIS,
             reactionPickerChatItem: null,
             reactionPickerPos: null,
             reactionDragState: null,
@@ -2060,7 +2050,7 @@ export default {
         },
         sendMessagePathfindingTooltip() {
             if (GlobalState.detailedOutboundSendStatus) {
-                return "Finding path to peer (Reticulum is resolving a route). Your message sends as soon as the route is ready. Hover status icons in the bubble for details.";
+                return this.$t("messages.send_pathfinding_tooltip");
             }
             return this.$t("messages.sending_ellipsis");
         },
@@ -3042,7 +3032,6 @@ export default {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        remote_identity_hash: this.selectedPeer.destination_hash,
                         lxmf_address: this.selectedPeer.destination_hash,
                         name: displayName,
                     }),
@@ -3530,12 +3519,16 @@ export default {
                 return;
             }
 
-            const prev = this.chatItems[chatItemIndex].lxmf_message;
+            const chatItem = this.chatItems[chatItemIndex];
+            const prev = chatItem.lxmf_message;
             const merged = { ...prev, ...lxmfMessage };
             if (!Object.prototype.hasOwnProperty.call(lxmfMessage, "_pendingPathfinding")) {
                 delete merged._pendingPathfinding;
             }
-            this.chatItems[chatItemIndex].lxmf_message = merged;
+            this.chatItems[chatItemIndex] = {
+                ...chatItem,
+                lxmf_message: merged,
+            };
         },
         onLxmfMessageDeleted(hash) {
             if (hash) {
@@ -4311,6 +4304,24 @@ export default {
                 return true;
             });
         },
+        outboundTransferProgressPercent(lxmfMessage) {
+            if (!lxmfMessage || lxmfMessage._pendingPathfinding) {
+                return null;
+            }
+            const progress = Number(lxmfMessage.progress ?? 0);
+            const state = lxmfMessage.state;
+            if (state === "sending") {
+                return Math.min(100, Math.max(0, Math.round(progress)));
+            }
+            if (progress > 0 && ["outbound", "generating"].includes(state)) {
+                return Math.min(100, Math.max(0, Math.round(progress)));
+            }
+            return null;
+        },
+        outboundSendingProgressLabel(lxmfMessage) {
+            const pct = this.outboundTransferProgressPercent(lxmfMessage);
+            return pct === null ? null : `${pct}%`;
+        },
         outboundSendingStatusTooltip(lxmfMessage) {
             if (!lxmfMessage) {
                 return "";
@@ -4320,7 +4331,10 @@ export default {
                 return this.$t("messages.sending_ellipsis");
             }
             if (lxmfMessage._pendingPathfinding) {
-                return "Finding path: Reticulum is resolving a route to this peer. Your message sends when the route is ready.";
+                return this.$t("messages.outbound_pathfinding_tooltip");
+            }
+            if (lxmfMessage.solving_stamps) {
+                return this.$t("messages.outbound_solving_stamps");
             }
             if (lxmfMessage.method === "propagated") {
                 if (lxmfMessage.state === "sending" && (lxmfMessage.progress ?? 0) > 0) {
@@ -4333,15 +4347,17 @@ export default {
                 }
             }
             if (lxmfMessage.state === "generating") {
-                return "Preparing message…";
+                return this.$t("messages.outbound_preparing_message");
             }
             if (lxmfMessage.state === "sending" && (lxmfMessage.progress ?? 0) > 0) {
-                return `Sending… ${Number(lxmfMessage.progress).toFixed(0)}%`;
+                return this.$t("messages.outbound_sending_with_progress", {
+                    progress: Number(lxmfMessage.progress).toFixed(0),
+                });
             }
             if (lxmfMessage.state === "sending") {
-                return "Sending…";
+                return this.$t("messages.sending_ellipsis");
             }
-            return "Pending";
+            return this.$t("messages.outbound_pending");
         },
         outboundSentStatusTitle(lxmfMessage) {
             if (!lxmfMessage) {
@@ -4487,7 +4503,7 @@ export default {
             if (this.isThemeOutboundBubble(chatItem)) {
                 return "text-sky-700/90 dark:text-sky-200/85";
             }
-            return "text-white/90";
+            return "text-white";
         },
         outboundSendingStatusIconClass(chatItem) {
             if (this.isOutboundWaitingBubble(chatItem)) {
@@ -4496,7 +4512,7 @@ export default {
             if (this.isThemeOutboundBubble(chatItem)) {
                 return "text-sky-700 dark:text-sky-300";
             }
-            return "text-white/90";
+            return "text-white";
         },
         outboundReplySnippetTitleClass(chatItem) {
             if (!chatItem.is_outbound) {
@@ -4532,13 +4548,13 @@ export default {
             if (this.isThemeOutboundBubble(chatItem)) {
                 return "text-sky-700 dark:text-sky-300";
             }
-            return "text-white/90";
+            return "text-white";
         },
         outboundBubblePendingCheckIconClass(chatItem) {
             if (this.isThemeOutboundBubble(chatItem)) {
                 return "text-sky-700 dark:text-sky-300 opacity-50";
             }
-            return "text-white/90 opacity-50";
+            return "text-white opacity-50";
         },
         outboundEmbeddedCardClass(chatItem) {
             if (!chatItem?.is_outbound) {
@@ -4567,6 +4583,15 @@ export default {
             }
             return "border-white/20 bg-white/10";
         },
+        outboundMessageMenuButtonClass(chatItem) {
+            if (!chatItem?.is_outbound) {
+                return "text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300 dark:text-zinc-500";
+            }
+            if (this.isThemeOutboundBubble(chatItem)) {
+                return "text-sky-700/90 dark:text-sky-200/85";
+            }
+            return "text-white/90 hover:text-white";
+        },
         outboundMessageMenuButtonHoverClass(chatItem) {
             if (!chatItem?.is_outbound) {
                 return "hover:bg-gray-200 dark:hover:bg-zinc-700";
@@ -4585,22 +4610,27 @@ export default {
                 return this.$t("messages.sending_ellipsis");
             }
             if (lxmfMessage._pendingPathfinding) {
-                return "Finding path";
+                return this.$t("messages.outbound_pathfinding_short");
+            }
+            if (lxmfMessage.solving_stamps) {
+                return this.$t("messages.outbound_solving_stamps_short");
             }
             if (lxmfMessage.state === "generating") {
-                return "Preparing message";
+                return this.$t("messages.outbound_preparing_message_short");
             }
             if (lxmfMessage.state === "sending" && (lxmfMessage.progress ?? 0) > 0) {
-                return `Sending ${Number(lxmfMessage.progress).toFixed(0)}%`;
+                return this.$t("messages.outbound_sending_with_progress", {
+                    progress: Number(lxmfMessage.progress).toFixed(0),
+                });
             }
             if (lxmfMessage.state === "sending") {
-                return "Sending";
+                return this.$t("messages.outbound_sending_short");
             }
             if (lxmfMessage.state === "outbound") {
                 if (lxmfMessage.method === "propagated") {
                     return this.$t("messages.outbound_pending_propagation");
                 }
-                return "Outbound";
+                return this.$t("messages.outbound_outbound_short");
             }
             return this.outboundSendingStatusTooltip(lxmfMessage);
         },
@@ -4614,7 +4644,10 @@ export default {
             if (lxmfMessage.state === "cancelled") {
                 return "Cancelled";
             }
-            return "Failed";
+            if (lxmfMessage.method === "opportunistic") {
+                return this.$t("messages.opportunistic_deferred_tooltip");
+            }
+            return this.$t("messages.failed_waiting_announce_tooltip");
         },
         isOpportunisticDeferredDelivery(lxmfMessage) {
             if (!lxmfMessage) {
@@ -6369,6 +6402,11 @@ export default {
             });
         },
         async markConversationAsRead(conversation) {
+            const wasUnread = conversation.is_unread === true;
+            if (!wasUnread) {
+                return;
+            }
+
             // manually mark conversation read in memory to avoid delay updating ui
             conversation.is_unread = false;
 

@@ -55,8 +55,8 @@ describe("messageTimestampGrouping", () => {
             chatItem: { is_outbound: true, lxmf_message: { created_at: t2, hash: "h2" } },
         };
         const out = buildTimestampGroupedOldestFirst([m0, m1, m2]).filter((x) => x.type === "single");
-        expect(out[0].showTimestamp).toBe(false);
-        expect(out[1].showTimestamp).toBe(false);
+        expect(out[0].showTimestamp).toBe(true);
+        expect(out[1].showTimestamp).toBe(true);
         expect(out[2].showTimestamp).toBe(true);
     });
 

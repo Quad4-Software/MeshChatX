@@ -324,6 +324,48 @@ async def test_lxm_ingest_uri_lxma_adds_contact(mock_app):
     assert payload["destination_hash"] == "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
 
+@pytest.mark.asyncio
+async def test_lxm_ingest_uri_lxma_accepts_128_hex_public_key(mock_app):
+    """64-byte RNS public keys must load from full material, not only the first 32 bytes."""
+    mock_app.database.contacts.get_contact_by_identity_hash.return_value = None
+    mock_app.database.contacts.add_contact = MagicMock()
+    mock_app.message_router.ingest_lxm_uri = MagicMock()
+
+    mock_client = MagicMock()
+    mock_client.send_str = MagicMock(return_value=asyncio.sleep(0))
+
+    fake_identity = MagicMock()
+    fake_identity.hash = bytes.fromhex("bb" * 16)
+
+    def load_public_key(key_bytes):
+        return len(key_bytes) == 64
+
+    fake_identity.load_public_key.side_effect = load_public_key
+
+    with (
+        patch(
+            "meshchatx.meshchat.AsyncUtils.run_async",
+            side_effect=lambda coro: asyncio.create_task(coro),
+        ),
+        patch("meshchatx.meshchat.RNS.Identity", return_value=fake_identity),
+    ):
+        await mock_app.on_websocket_data_received(
+            mock_client,
+            {
+                "type": "lxm.ingest_uri",
+                "uri": f"lxma://{'aa' * 16}:{'1' * 128}",
+            },
+        )
+        await asyncio.sleep(0)
+
+    mock_app.database.contacts.add_contact.assert_called_once()
+    payload = json.loads(mock_client.send_str.call_args[0][0])
+    assert payload["status"] == "success"
+    assert payload["ingest_type"] == "lxma_contact"
+    assert fake_identity.load_public_key.call_count >= 1
+    assert len(fake_identity.load_public_key.call_args[0][0]) == 64
+
+
 def test_db_upsert_lxmf_message_basic(mock_app):
     mock_msg = MagicMock()
     mock_msg.hash = b"h" * 16
@@ -582,8 +624,8 @@ async def _run_send(app, destination_hash="aa" * 16, **kwargs):
     fake_lxm.fields = {}
     fake_lxm.include_ticket = False
 
+    app.recall_identity = MagicMock(return_value=fake_identity)
     with (
-        patch("meshchatx.meshchat.RNS.Identity.recall", return_value=fake_identity),
         patch("meshchatx.meshchat.RNS.Destination", return_value=fake_destination),
         patch("meshchatx.meshchat.LXMF.LXMessage", return_value=fake_lxm),
         patch(

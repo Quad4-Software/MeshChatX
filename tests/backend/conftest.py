@@ -19,6 +19,7 @@ from meshchatx.src.backend.database.schema import DatabaseSchema
 # Set log dir to a temporary directory for tests to avoid permission issues
 # in restricted environments like sandboxes.
 os.environ["MESHCHAT_LOG_DIR"] = tempfile.mkdtemp()
+os.environ["MESHCHAT_SKIP_STORAGE_LOCK"] = "1"
 
 
 @pytest.fixture(scope="session")

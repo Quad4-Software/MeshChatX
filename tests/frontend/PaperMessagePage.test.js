@@ -2,6 +2,7 @@ import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import PaperMessagePage from "@/components/tools/PaperMessagePage.vue";
 import WebSocketConnection from "@/js/WebSocketConnection";
+import { mountToolsPageGlobals } from "./testI18n.js";
 
 vi.mock("@/js/WebSocketConnection", () => ({
     default: {
@@ -35,23 +36,13 @@ describe("PaperMessagePage.vue", () => {
 
     const mountPaperMessagePage = () => {
         return mount(PaperMessagePage, {
-            global: {
-                mocks: {
-                    $t: (key) => key,
-                },
-                stubs: {
-                    MaterialDesignIcon: {
-                        template: '<div class="mdi-stub" :data-icon-name="iconName"></div>',
-                        props: ["iconName"],
-                    },
-                },
-            },
+            global: mountToolsPageGlobals(),
         });
     };
 
     it("renders the paper message page", () => {
         const wrapper = mountPaperMessagePage();
-        expect(wrapper.text()).toContain("Paper Message Generator");
+        expect(wrapper.text()).toContain("Paper Message");
         expect(wrapper.text()).toContain("Compose Message");
     });
 

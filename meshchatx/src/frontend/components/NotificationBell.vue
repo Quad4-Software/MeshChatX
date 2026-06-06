@@ -82,7 +82,7 @@
                     <div v-else class="divide-y divide-gray-200 dark:divide-zinc-800">
                         <button
                             v-for="notification in notifications"
-                            :key="notification.destination_hash"
+                            :key="notification.id || notification.destination_hash"
                             type="button"
                             class="w-full p-4 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors text-left"
                             @click="onNotificationClick(notification)"
@@ -103,6 +103,12 @@
                                         />
                                     </div>
                                     <div
+                                        v-else-if="notification.type === 'rrc_mention'"
+                                        class="bg-indigo-100 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 p-2 rounded-lg"
+                                    >
+                                        <MaterialDesignIcon icon-name="forum-outline" class="w-6 h-6" />
+                                    </div>
+                                    <div
                                         v-else
                                         class="bg-gray-200 dark:bg-zinc-700 text-gray-500 dark:text-gray-400 p-2 rounded-lg"
                                     >
@@ -113,9 +119,17 @@
                                     <div class="flex items-start justify-between gap-2 mb-1">
                                         <div
                                             class="font-semibold text-gray-900 dark:text-white truncate"
-                                            :title="notification.custom_display_name ?? notification.display_name"
+                                            :title="
+                                                notification.title ??
+                                                notification.custom_display_name ??
+                                                notification.display_name
+                                            "
                                         >
-                                            {{ notification.custom_display_name ?? notification.display_name }}
+                                            {{
+                                                notification.title ??
+                                                notification.custom_display_name ??
+                                                notification.display_name
+                                            }}
                                         </div>
                                         <div
                                             class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap shrink-0"
@@ -402,6 +416,24 @@ export default {
                     name: "call",
                     query: { tab: "voicemail" },
                 });
+            } else if (notification.type === "rrc_mention") {
+                const remote = notification.destination_hash || "";
+                const sep = remote.indexOf(":");
+                if (sep > 0) {
+                    const hub = remote.slice(0, sep);
+                    const room = decodeURIComponent(remote.slice(sep + 1));
+                    try {
+                        await window.api.post(`/api/v1/rrc/hubs/${hub}/rooms/${encodeURIComponent(room)}/read`);
+                    } catch (e) {
+                        console.error("Failed to mark relay room read", e);
+                    }
+                    this.$router.push({
+                        name: "relay-chat",
+                        query: { hub, room },
+                    });
+                } else {
+                    this.$router.push({ name: "relay-chat" });
+                }
             }
         },
         formatTimeAgo(datetimeString) {
@@ -416,8 +448,12 @@ export default {
                 return false;
             }
             const fields = lxmfMessage.fields || {};
-            const appExt = fields.app_extensions;
-            if (appExt && typeof appExt === "object" && Object.prototype.hasOwnProperty.call(appExt, "reaction_to")) {
+            const reaction = fields.reaction;
+            if (
+                reaction &&
+                typeof reaction === "object" &&
+                Object.prototype.hasOwnProperty.call(reaction, "reaction_to")
+            ) {
                 return false;
             }
             const content = (lxmfMessage.content || "").toString().trim();
@@ -464,6 +500,17 @@ export default {
                 return;
             }
             if (json.type === "telephone_missed_call" || json.type === "new_voicemail") {
+                await this.loadNotifications();
+                if (this.isDropdownOpen) {
+                    const hadNotifications = this.notifications.length > 0;
+                    await this.markNotificationsAsViewed();
+                    if (hadNotifications) {
+                        await this.loadNotifications({ updateList: false });
+                    }
+                }
+                return;
+            }
+            if (json.type === "rrc.message" && (json.mention || json.message?.mention)) {
                 await this.loadNotifications();
                 if (this.isDropdownOpen) {
                     const hadNotifications = this.notifications.length > 0;

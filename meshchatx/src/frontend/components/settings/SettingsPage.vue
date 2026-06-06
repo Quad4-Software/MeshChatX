@@ -923,7 +923,7 @@
                                         {{ $t("settings.nomad_micron_wasm_desc_before_link") }}
                                         <a
                                             class="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2"
-                                            href="https://git.quad4.io/Go-Libs/micron-parser-go"
+                                            href="https://github.com/Quad4-Software/micron-parser-go"
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             >{{ $t("settings.nomad_micron_wasm_link_label") }}</a
@@ -1183,6 +1183,50 @@
                                     <span class="setting-toggle__title">{{ $t("app.ui_glass_enabled") }}</span>
                                     <span class="setting-toggle__description">{{
                                         $t("app.ui_glass_enabled_description")
+                                    }}</span>
+                                </span>
+                            </label>
+
+                            <label class="setting-toggle">
+                                <Toggle
+                                    id="messages-multi-pane-enabled"
+                                    v-model="config.messages_multi_pane_enabled"
+                                    @update:model-value="onMessagesMultiPaneEnabledChange"
+                                />
+                                <span class="setting-toggle__label">
+                                    <span class="setting-toggle__title">{{
+                                        $t("app.messages_multi_pane_enabled")
+                                    }}</span>
+                                    <span class="setting-toggle__description">{{
+                                        $t("app.messages_multi_pane_enabled_description")
+                                    }}</span>
+                                </span>
+                            </label>
+
+                            <label class="setting-toggle">
+                                <Toggle
+                                    id="nomad-tabs-enabled"
+                                    v-model="config.nomad_tabs_enabled"
+                                    @update:model-value="onNomadTabsEnabledChange"
+                                />
+                                <span class="setting-toggle__label">
+                                    <span class="setting-toggle__title">{{ $t("app.nomad_tabs_enabled") }}</span>
+                                    <span class="setting-toggle__description">{{
+                                        $t("app.nomad_tabs_enabled_description")
+                                    }}</span>
+                                </span>
+                            </label>
+
+                            <label class="setting-toggle">
+                                <Toggle
+                                    id="rrc-enabled"
+                                    v-model="config.rrc_enabled"
+                                    @update:model-value="onRrcEnabledChange"
+                                />
+                                <span class="setting-toggle__label">
+                                    <span class="setting-toggle__title">{{ $t("app.rrc_enabled") }}</span>
+                                    <span class="setting-toggle__description">{{
+                                        $t("app.rrc_enabled_description")
                                     }}</span>
                                 </span>
                             </label>
@@ -1577,8 +1621,7 @@
                                 'app.announce_store_lxmf',
                                 'app.announce_store_lxst',
                                 'app.announce_store_nomad',
-                                'app.announce_store_prop',
-                                'app.announce_store_git'
+                                'app.announce_store_prop'
                             )
                         "
                         class="settings-section break-inside-avoid"
@@ -1675,19 +1718,6 @@
                                         <span class="setting-toggle__label">
                                             <span class="setting-toggle__title">{{
                                                 $t("app.announce_store_prop")
-                                            }}</span>
-                                        </span>
-                                    </label>
-                                    <label class="setting-toggle sm:col-span-2">
-                                        <Toggle
-                                            :model-value="config.announce_store_git_repositories"
-                                            @update:model-value="
-                                                (v) => onAnnounceStoreToggle('announce_store_git_repositories', v)
-                                            "
-                                        />
-                                        <span class="setting-toggle__label">
-                                            <span class="setting-toggle__title">{{
-                                                $t("app.announce_store_git")
                                             }}</span>
                                         </span>
                                     </label>
@@ -2070,7 +2100,7 @@
                                 <input
                                     v-model="config.gitea_base_url"
                                     type="text"
-                                    placeholder="https://git.quad4.io"
+                                    placeholder="https://github.com/example-org"
                                     class="input-field"
                                     @input="onGiteaConfigChange"
                                 />
@@ -2622,6 +2652,7 @@ import Utils from "../../js/Utils";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
+import { importMessagesFromFile } from "../../js/messageImport";
 import DownloadUtils from "../../js/DownloadUtils";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
@@ -2703,7 +2734,6 @@ export default {
                 announce_store_lxst_telephony: true,
                 announce_store_nomadnetwork_node: true,
                 announce_store_lxmf_propagation: true,
-                announce_store_git_repositories: true,
                 announce_max_stored_lxmf_delivery: 1000,
                 announce_max_stored_nomadnetwork_node: 1000,
                 announce_max_stored_lxmf_propagation: 1000,
@@ -2714,6 +2744,9 @@ export default {
                 discovered_interfaces_max_return: 500,
                 message_font_size: 14,
                 messages_sidebar_position: "left",
+                messages_multi_pane_enabled: true,
+                nomad_tabs_enabled: true,
+                rrc_enabled: true,
                 message_icon_size: 28,
                 ui_transparency: 0,
                 ui_glass_enabled: true,
@@ -2728,7 +2761,7 @@ export default {
                 location_manual_lon: "0.0",
                 location_manual_alt: "0.0",
                 telemetry_enabled: false,
-                gitea_base_url: "https://git.quad4.io",
+                gitea_base_url: "",
                 csp_extra_connect_src: "",
                 csp_extra_img_src: "",
                 csp_extra_frame_src: "",
@@ -2928,6 +2961,10 @@ export default {
                     "app.messages_sidebar_position",
                     "app.messages_sidebar_position_left",
                     "app.messages_sidebar_position_right",
+                    "app.messages_multi_pane_enabled",
+                    "app.messages_multi_pane_enabled_description",
+                    "app.nomad_tabs_enabled",
+                    "app.nomad_tabs_enabled_description",
                     "app.ui_transparency",
                     "app.ui_glass_enabled",
                     "app.reset_appearance_defaults",
@@ -2962,7 +2999,6 @@ export default {
                     "app.announce_store_lxst",
                     "app.announce_store_nomad",
                     "app.announce_store_prop",
-                    "app.announce_store_git",
                     "app.announce_limit_lxmf",
                     "app.announce_limit_nomadnet",
                     "app.announce_limit_prop",
@@ -3410,6 +3446,30 @@ export default {
                     ui_glass_enabled: this.config.ui_glass_enabled,
                 },
                 "ui_glass_enabled"
+            );
+        },
+        async onMessagesMultiPaneEnabledChange() {
+            await this.updateConfig(
+                {
+                    messages_multi_pane_enabled: this.config.messages_multi_pane_enabled,
+                },
+                "messages_multi_pane_enabled"
+            );
+        },
+        async onNomadTabsEnabledChange() {
+            await this.updateConfig(
+                {
+                    nomad_tabs_enabled: this.config.nomad_tabs_enabled,
+                },
+                "nomad_tabs_enabled"
+            );
+        },
+        async onRrcEnabledChange() {
+            await this.updateConfig(
+                {
+                    rrc_enabled: this.config.rrc_enabled,
+                },
+                "rrc_enabled"
             );
         },
         async resetAppearanceDefaults() {
@@ -4210,22 +4270,12 @@ export default {
             const file = event.target.files[0];
             if (!file) return;
 
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    if (!data.messages) throw new Error("Invalid file format");
-
-                    await window.api.post("/api/v1/maintenance/messages/import", {
-                        messages: data.messages,
-                    });
-                    ToastUtils.success(this.$t("maintenance.import_success", { count: data.messages.length }));
-                } catch {
-                    ToastUtils.error(this.$t("maintenance.import_failed"));
-                }
-            };
-            reader.readAsText(file);
-            // Reset input
+            try {
+                const { imported } = await importMessagesFromFile(file);
+                ToastUtils.success(this.$t("maintenance.import_success", { count: imported }));
+            } catch {
+                ToastUtils.error(this.$t("maintenance.import_failed"));
+            }
             event.target.value = "";
         },
         async exportFolders() {

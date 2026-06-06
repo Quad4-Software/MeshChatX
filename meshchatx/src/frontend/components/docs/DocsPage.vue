@@ -2,26 +2,17 @@
 
 <template>
     <!-- eslint-disable vue/no-v-html -->
-    <div class="flex flex-col h-full bg-slate-50 dark:bg-zinc-950 overflow-hidden">
-        <!-- Header -->
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+        <ToolsPageHeader
+            icon="book-open-variant"
+            :title="$t('docs.title')"
+            :description="$t('docs.subtitle')"
+            accent="cyan"
+        />
+        <!-- Toolbar -->
         <div
-            class="p-2 md:p-3 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex items-center gap-4 z-30"
+            class="p-2 md:p-3 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex items-center gap-4 z-30 shrink-0"
         >
-            <!-- Title Section -->
-            <div class="flex items-center space-x-3 shrink-0">
-                <div class="hidden md:block p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                    <MaterialDesignIcon
-                        icon-name="book-open-variant"
-                        class="w-5 h-5 text-blue-600 dark:text-blue-400"
-                    />
-                </div>
-                <div class="shrink-0">
-                    <h1 class="text-xs md:text-sm font-bold text-gray-900 dark:text-zinc-100">
-                        {{ $t("docs.title") }}
-                    </h1>
-                </div>
-            </div>
-
             <!-- Search & Navigation (Desktop) -->
             <div class="hidden lg:flex flex-1 items-center gap-4 max-w-3xl">
                 <!-- Tabs -->
@@ -525,10 +516,12 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
 import GlobalState from "../../js/GlobalState";
 import { bundledReticulumDocsUrl } from "../../js/reticulumDocsEntryUrl.js";
+import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 
 export default {
     components: {
         MaterialDesignIcon,
+        ToolsPageHeader,
     },
     data() {
         return {

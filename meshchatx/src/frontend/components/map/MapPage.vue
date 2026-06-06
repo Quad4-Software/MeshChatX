@@ -237,7 +237,7 @@
             <div ref="drawFeatureInfoElement" class="absolute z-45 pointer-events-none">
                 <div
                     v-show="drawFeatureInfoPayload"
-                    class="pointer-events-auto min-w-44 max-w-[min(18rem,calc(100vw-2rem))] rounded-xl border border-gray-200 dark:border-zinc-700 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm shadow-xl px-3 py-2.5 transform -translate-x-1/2 -translate-y-full mb-2"
+                    class="info-popup pointer-events-auto min-w-44 max-w-[min(18rem,calc(100vw-2rem))] rounded-xl border border-gray-200 dark:border-zinc-700 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm shadow-xl px-3 py-2.5 transform -translate-x-1/2 -translate-y-full mb-2 overflow-x-hidden"
                 >
                     <template v-if="drawFeatureInfoPayload">
                         <div v-if="drawFeatureInfoPayload.iconSrc" class="flex justify-center mb-2">
@@ -262,23 +262,23 @@
                         <!-- eslint-disable vue/no-v-html -->
                         <div
                             v-else-if="drawFeatureDescriptionSanitized"
-                            class="text-[11px] text-gray-600 dark:text-zinc-400 prose prose-sm dark:prose-invert max-w-none leading-snug"
+                            class="text-[11px] text-gray-600 dark:text-zinc-400 prose prose-sm dark:prose-invert max-w-none leading-snug [&_*]:!bg-transparent [&_*]:!text-inherit"
                             v-html="drawFeatureDescriptionSanitized"
                         ></div>
                         <!-- eslint-enable vue/no-v-html -->
                         <dl
                             v-if="drawFeatureInfoPayload.extended.length"
-                            class="mt-2 space-y-1 border-t border-gray-100 dark:border-zinc-800 pt-2"
+                            class="mt-2 space-y-1 border-t border-gray-100 dark:border-zinc-800 pt-2 overflow-hidden"
                         >
                             <template v-for="row in drawFeatureInfoPayload.extended" :key="row.key">
-                                <div class="grid grid-cols-[minmax(0,40%)_1fr] gap-x-2 gap-y-0.5 text-[10px]">
+                                <div class="grid grid-cols-[minmax(0,40%)_1fr] gap-x-2 gap-y-0.5 text-[10px] min-w-0">
                                     <dt
                                         class="font-semibold text-gray-500 dark:text-zinc-500 truncate"
                                         :title="row.key"
                                     >
                                         {{ row.key }}
                                     </dt>
-                                    <dd class="text-gray-800 dark:text-zinc-200 wrap-break-word m-0">
+                                    <dd class="text-gray-800 dark:text-zinc-200 truncate m-0" :title="row.value">
                                         {{ row.value }}
                                     </dd>
                                 </div>
@@ -1105,8 +1105,9 @@ import TileState from "ol/TileState";
 import VectorSource from "ol/source/Vector";
 import Feature from "ol/Feature";
 import Point from "ol/geom/Point";
-import * as mdi from "@mdi/js";
+import { getMdiIconPath } from "../../js/mdiIconNames.js";
 import { Style, Text, Fill, Stroke, Circle as CircleStyle, Icon } from "ol/style";
+import { shared as olIconCache } from "ol/style/IconImageCache";
 import { fromLonLat, toLonLat } from "ol/proj";
 import { defaults as defaultControls } from "ol/control";
 import ScaleLine from "ol/control/ScaleLine";
@@ -1143,6 +1144,7 @@ import ContextMenuPanel from "../contextmenu/ContextMenuPanel.vue";
 import DOMPurify from "dompurify";
 import ToastUtils from "../../js/ToastUtils";
 import TileCache from "../../js/TileCache";
+import { detectRasterTileProviderId, nextRasterTileProviderId, TILE_PROVIDER_URLS } from "../../js/mapTileProviders.js";
 import {
     fetchTileBlobWithRetry,
     fetchJsonWithRetry,
@@ -1273,6 +1275,8 @@ export default {
             mbtilesDir: "",
             isMapLoaded: false,
             tileErrorCount: 0,
+            tileProvidersAttempted: [],
+            tileFailoverInProgress: false,
             showTileConnectivityBanner: false,
             tileConnectivityBannerTimer: null,
 
@@ -1420,6 +1424,7 @@ export default {
             }
             return DOMPurify.sanitize(p.description, {
                 USE_PROFILES: { html: true },
+                FORBID_ATTR: ["style"],
             });
         },
     },
@@ -1543,6 +1548,8 @@ export default {
         this.checkScreenSize();
         window.addEventListener("resize", this.checkScreenSize);
 
+        document.addEventListener("keydown", this.onDeleteKey);
+
         // Update info every few seconds
         this.reloadInterval = setInterval(() => {
             this.fetchTelemetryMarkers();
@@ -1571,6 +1578,7 @@ export default {
         }
         document.removeEventListener("click", this.handleClickOutside);
         window.removeEventListener("resize", this.checkScreenSize);
+        document.removeEventListener("keydown", this.onDeleteKey);
         WebSocketConnection.off("message", this.onWebsocketMessage);
         if (this._pointerMoveRaf != null) {
             cancelAnimationFrame(this._pointerMoveRaf);
@@ -1972,6 +1980,10 @@ export default {
                 } else {
                     this.selectedMarker = null;
                     this.selectedCluster = null;
+                    if (feature && this.drawLayer) {
+                        this.selectedFeature = markRaw(feature);
+                        this.syncDrawFeatureInfoOverlay();
+                    }
                 }
 
                 // Deselect drawing if clicking empty space
@@ -2560,20 +2572,61 @@ export default {
         },
         onOnlineRasterTileLoadedOk() {
             this.tileErrorCount = Math.max(0, this.tileErrorCount - 4);
+            if (this.tileErrorCount === 0) {
+                this.tileProvidersAttempted = [];
+            }
         },
         onOnlineRasterTileLoadFailure() {
+            if (this.offlineEnabled || this.tileFailoverInProgress) {
+                return;
+            }
             this.tileErrorCount++;
             if (this.tileErrorCount > 10) {
-                this.showTileConnectivityBanner = true;
                 this.tileErrorCount = 0;
-                if (this.tileConnectivityBannerTimer) {
-                    clearTimeout(this.tileConnectivityBannerTimer);
-                }
-                this.tileConnectivityBannerTimer = setTimeout(() => {
-                    this.showTileConnectivityBanner = false;
-                    this.tileConnectivityBannerTimer = null;
-                }, 45000);
+                this.tryTileProviderFailoverOrOffline();
             }
+        },
+        async tryTileProviderFailoverOrOffline() {
+            if (this.offlineEnabled || this.tileFailoverInProgress) {
+                return;
+            }
+            const currentId = detectRasterTileProviderId(this.tileServerUrl);
+            const nextId = nextRasterTileProviderId(currentId, this.tileProvidersAttempted);
+            if (nextId) {
+                this.tileFailoverInProgress = true;
+                if (currentId) {
+                    this.tileProvidersAttempted.push(currentId);
+                }
+                this.dismissTileConnectivityBanner();
+                const label = this.tileProviderLabel(nextId);
+                ToastUtils.info(this.$t("map.tile_failover_trying", { provider: label }));
+                this.setTileServer(nextId);
+                this.tileFailoverInProgress = false;
+                return;
+            }
+            if (this.hasOfflineMap) {
+                ToastUtils.info(this.$t("map.tile_failover_offline"));
+                await this.switchToOfflineFromTileBanner();
+                return;
+            }
+            this.showTileConnectivityBanner = true;
+            if (this.tileConnectivityBannerTimer) {
+                clearTimeout(this.tileConnectivityBannerTimer);
+            }
+            this.tileConnectivityBannerTimer = setTimeout(() => {
+                this.showTileConnectivityBanner = false;
+                this.tileConnectivityBannerTimer = null;
+            }, 45000);
+        },
+        tileProviderLabel(providerId) {
+            const labels = {
+                openfreemap: "OpenFreeMap",
+                osm: "OSM",
+                "carto-dark": "Carto Dark",
+                "carto-voyager": "Carto Voyager",
+                "carto-light": "Carto Light",
+            };
+            return labels[providerId] || providerId;
         },
         dismissTileConnectivityBanner() {
             this.showTileConnectivityBanner = false;
@@ -2887,17 +2940,11 @@ export default {
         },
         setTileServer(type) {
             this.tileErrorCount = 0;
+            this.tileProvidersAttempted = [];
             this.dismissTileConnectivityBanner();
-            if (type === "openfreemap") {
-                this.tileServerUrl = OPENFREEMAP_DEFAULT_STYLE;
-            } else if (type === "osm") {
-                this.tileServerUrl = LEGACY_DEFAULT_OSM_RASTER;
-            } else if (type === "carto-dark") {
-                this.tileServerUrl = "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
-            } else if (type === "carto-voyager") {
-                this.tileServerUrl = "https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
-            } else if (type === "carto-light") {
-                this.tileServerUrl = "https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
+            const url = TILE_PROVIDER_URLS[type];
+            if (url) {
+                this.tileServerUrl = url;
             }
             this.saveTileServerUrl();
         },
@@ -3294,6 +3341,7 @@ export default {
             this.drawSource.on("removefeature", persist);
             this.drawSource.on("changefeature", persist);
             this.drawSource.on("clear", persist);
+            this.drawSource.on("clear", () => olIconCache.clear());
         },
 
         deleteSelectedFeature() {
@@ -3669,6 +3717,20 @@ export default {
                 this.saveMapState();
             }
             this.closeContextMenu();
+        },
+        onDeleteKey(e) {
+            if (e.key !== "Delete" && e.key !== "Backspace") return;
+            if (
+                e.target &&
+                (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.isContentEditable)
+            )
+                return;
+            const f = this.selectedFeature;
+            if (!f || f.get("telemetry")) return;
+            this.drawSource.removeFeature(f);
+            this.selectedFeature = null;
+            this.syncDrawFeatureInfoOverlay();
+            this.saveMapState();
         },
         contextAddNote() {
             if (this.contextMenuFeature) {
@@ -4924,15 +4986,8 @@ export default {
         },
         getMdiPath(iconName) {
             if (!iconName) return null;
-            // same logic as MaterialDesignIcon.vue
-            const mdiName =
-                "mdi" +
-                iconName
-                    .split("-")
-                    .filter((word) => word.length > 0)
-                    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join("");
-            return mdi[mdiName] || null;
+            const path = getMdiIconPath(iconName);
+            return path || null;
         },
         openChat(hash) {
             this.$router.push({

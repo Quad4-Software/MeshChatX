@@ -99,7 +99,6 @@ export function buildFullServerConfig(overrides = {}) {
         announce_store_lxst_telephony: true,
         announce_store_nomadnetwork_node: true,
         announce_store_lxmf_propagation: true,
-        announce_store_git_repositories: true,
         announce_max_stored_lxmf_delivery: 1000,
         announce_max_stored_nomadnetwork_node: 1000,
         announce_max_stored_lxmf_propagation: 1000,
@@ -126,7 +125,7 @@ export function buildFullServerConfig(overrides = {}) {
         nomad_micron_wasm_enabled: true,
         nomad_micron_default_engine: "js",
         nomad_default_page_path: "/page/index.mu",
-        gitea_base_url: "https://git.quad4.io",
+        gitea_base_url: "",
         ...overrides,
     };
 }

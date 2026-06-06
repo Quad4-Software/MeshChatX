@@ -39,6 +39,11 @@ EOF
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+if [ "${MESHCHATX_OFFLINE_BUILD:-}" = "1" ]; then
+    echo "MESHCHATX_OFFLINE_BUILD=1: Android wheel build requires network access. Pre-build wheels offline or unset MESHCHATX_OFFLINE_BUILD." >&2
+    exit 1
+fi
+
 PYTHON_MINOR="3.11"
 TARGET_VERSION=""
 CHAQUOPY_REF="${CHAQUOPY_REF:-master}"
@@ -573,6 +578,9 @@ mkdir -p "${OUT_DIR}"
 cp -f "${PYPIDIR}/dist/chaquopy-libcodec2"/chaquopy_libcodec2-"${LIBCODEC2_VERSION}"-*.whl "${OUT_DIR}/"
 cp -f "${PYPIDIR}/dist/pycodec2"/pycodec2-"${PYCODEC2_VERSION}"-*.whl "${OUT_DIR}/"
 
+echo "Bundling libcodec2.so into pycodec2 wheels (Android dlopen)"
+"${VENV_DIR}/bin/python" "${ROOT_DIR}/scripts/repack-android-pycodec2-wheels.py" --vendor-dir "${OUT_DIR}"
+
 else
     echo "Skipping pycodec2/chaquopy-libcodec2 builds (--only-recipes set)"
 fi
@@ -651,7 +659,7 @@ with zipfile.ZipFile(src, "r") as zin, zipfile.ZipFile(dst, "w", compression=zip
         elif item.filename.endswith(".dist-info/METADATA"):
             text = data.decode("utf-8")
             text = text.replace("Requires-Dist: numpy>=2.3.4", "Requires-Dist: numpy==${NUMPY_VERSION}")
-            text = text.replace("Requires-Dist: cffi>=2.0.0", "Requires-Dist: cffi==1.15.1")
+            text = text.replace("Requires-Dist: cffi==1.15.1", "Requires-Dist: cffi>=1.15.1")
             data = text.encode("utf-8")
         zout.writestr(item, data)
 PY

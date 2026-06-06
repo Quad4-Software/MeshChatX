@@ -13,6 +13,7 @@ import "@mdi/font/css/materialdesignicons.css";
 import "./fonts/RobotoMonoNerdFont/font.css";
 import { startCodec2ScriptsBackgroundLoad } from "./js/Codec2Loader";
 import { createApiClient } from "./js/apiClient.js";
+import "./js/HeapMonitor.js";
 
 import App from "./components/App.vue";
 import ChangelogModal from "./components/ChangelogModal.vue";
@@ -81,6 +82,7 @@ const router = createRouter({
             name: "messages",
             path: "/messages/:destinationHash?",
             props: true,
+            meta: { stableKey: true },
             component: defineAsyncComponent(() => import("./components/messages/MessagesPage.vue")),
         },
         {
@@ -115,7 +117,20 @@ const router = createRouter({
             name: "nomadnetwork",
             path: "/nomadnetwork/:destinationHash?",
             props: true,
-            component: defineAsyncComponent(() => import("./components/nomadnetwork/NomadNetworkPage.vue")),
+            meta: { keepAlive: true },
+            component: defineAsyncComponent(() => import("./components/nomadnetwork/NomadNetworkBrowser.vue")),
+        },
+        {
+            name: "relay-chat",
+            path: "/relay-chat",
+            component: defineAsyncComponent(() => import("./components/relay/RelayChatPage.vue")),
+        },
+        {
+            name: "relay-chat-popout",
+            path: "/popout/relay-chat/:hubHash/:room?",
+            props: true,
+            meta: { popoutType: "relay", isPopout: true },
+            component: defineAsyncComponent(() => import("./components/relay/RelayChatPage.vue")),
         },
         {
             name: "archives",
@@ -145,9 +160,9 @@ const router = createRouter({
             component: defineAsyncComponent(() => import("./components/rncp/RNCPPage.vue")),
         },
         {
-            name: "rngit-explorer",
-            path: "/tools/rngit-explorer",
-            component: defineAsyncComponent(() => import("./components/tools/RNGitExplorerPage.vue")),
+            name: "rnsh",
+            path: "/rnsh",
+            component: defineAsyncComponent(() => import("./components/tools/RNSHManagerPage.vue")),
         },
         {
             name: "rnstatus",

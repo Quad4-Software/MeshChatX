@@ -2,38 +2,14 @@
 
 <template>
     <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+        <ToolsPageHeader
+            icon="filter-variant"
+            :title="$t('tools.sieve_filters.title')"
+            :description="$t('tools.sieve_filters.description')"
+            accent="violet"
+        />
         <div class="flex-1 overflow-y-auto w-full pb-[max(1rem,env(safe-area-inset-bottom))]">
             <div class="p-3 sm:p-4 md:p-6 max-w-6xl mx-auto w-full space-y-4 min-w-0">
-                <div
-                    class="flex flex-wrap items-start justify-between gap-3 border-b border-gray-200 dark:border-zinc-800 pb-4"
-                >
-                    <div class="flex items-start gap-3 min-w-0">
-                        <div
-                            class="p-2 bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-300 rounded-lg shrink-0"
-                        >
-                            <MaterialDesignIcon icon-name="filter-variant" class="size-6" />
-                        </div>
-                        <div class="min-w-0">
-                            <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                                {{ $t("tools.utilities") }}
-                            </div>
-                            <h1 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white tracking-tight">
-                                {{ $t("tools.sieve_filters.title") }}
-                            </h1>
-                            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 max-w-2xl">
-                                {{ $t("tools.sieve_filters.subtitle") }}
-                            </p>
-                        </div>
-                    </div>
-                    <RouterLink
-                        to="/tools"
-                        class="inline-flex items-center gap-2 text-sm text-violet-600 dark:text-violet-300 hover:underline shrink-0"
-                    >
-                        <MaterialDesignIcon icon-name="arrow-left" class="size-4" />
-                        {{ $t("tools.back_to_tools") }}
-                    </RouterLink>
-                </div>
-
                 <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
                     <div class="space-y-4 min-w-0 order-2 xl:order-1">
                         <div
@@ -274,6 +250,7 @@
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import SieveFlowNetwork from "./internal/SieveFlowNetwork.vue";
 import ToastUtils from "../../js/ToastUtils";
+import ToolsPageHeader from "./ToolsPageHeader.vue";
 
 function newRuleId() {
     if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -287,6 +264,7 @@ export default {
     components: {
         MaterialDesignIcon,
         SieveFlowNetwork,
+        ToolsPageHeader,
     },
     data() {
         return {

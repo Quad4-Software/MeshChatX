@@ -146,7 +146,19 @@ async function main() {
     }
 
     const root = micronWasmRepoRoot();
-    const { dir, wasm, wasmExec } = micronWasmVendorPaths(root);
+    const { wasm, wasmExec } = micronWasmVendorPaths(root);
+
+    if (process.env.MESHCHATX_OFFLINE_BUILD === "1") {
+        if (!fs.existsSync(wasm) || !fs.existsSync(wasmExec)) {
+            console.error(
+                "fetch-micron-wasm: MESHCHATX_OFFLINE_BUILD=1 but micron-parser-go.wasm or wasm_exec.js is missing."
+            );
+            process.exit(1);
+        }
+        console.log("fetch-micron-wasm: MESHCHATX_OFFLINE_BUILD=1 and artifacts present, skipping fetch.");
+        process.exit(0);
+    }
+    const { dir } = micronWasmVendorPaths(root);
     const wasmUrl = process.env.MICRON_PARSER_GO_WASM_URL || DEFAULT_WASM_URL;
     const execUrl = process.env.MICRON_GO_WASM_EXEC_URL || DEFAULT_WASM_EXEC_URL;
     const integrityPath = path.join(dir, "integrity.json");

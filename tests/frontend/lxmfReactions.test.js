@@ -1,5 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { mergeLxmfReactionRowsIntoMessages } from "../../meshchatx/src/frontend/js/lxmfReactions";
+import {
+    mergeLxmfReactionRowsIntoMessages,
+    reactionEmojiFromLxmfMessageFields,
+} from "../../meshchatx/src/frontend/js/lxmfReactions";
+
+describe("reactionEmojiFromLxmfMessageFields", () => {
+    it("reads standard LXMF reaction field", () => {
+        expect(
+            reactionEmojiFromLxmfMessageFields({
+                reaction: { reaction_to: "a".repeat(32), reaction_content: "\u{1F44D}" },
+            })
+        ).toBe("\u{1F44D}");
+    });
+
+    it("returns empty when reaction field is absent", () => {
+        expect(reactionEmojiFromLxmfMessageFields({})).toBe("");
+        expect(reactionEmojiFromLxmfMessageFields({ app_extensions: { pending: true } })).toBe("");
+    });
+});
 
 describe("mergeLxmfReactionRowsIntoMessages", () => {
     it("returns an empty array when input is not an array", () => {

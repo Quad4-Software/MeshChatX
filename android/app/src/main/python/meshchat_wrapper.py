@@ -102,6 +102,12 @@ def start_server(port=8000, app_files_dir=None):
         signal.signal = _safe_signal
         asyncio_signal_patch = _patch_asyncio_signal_handlers_for_android()
         aiohttp_run_app_patch = _patch_aiohttp_run_app_for_android()
+        try:
+            from meshchatx.android_codec2 import ensure_codec2_native_library
+
+            ensure_codec2_native_library()
+        except Exception as codec2_exc:
+            print(f"meshchat_wrapper: Codec2 preload skipped: {codec2_exc}")
         from meshchatx.meshchat import ReticulumMeshChat, main
 
         try:

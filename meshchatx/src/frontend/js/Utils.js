@@ -50,29 +50,21 @@ class Utils {
         const parsedSeconds = this.parseSeconds(seconds);
 
         if (parsedSeconds.days > 0) {
-            if (parsedSeconds.days === 1) {
-                return "1 day";
-            }
-            return parsedSeconds.days + " days";
+            return parsedSeconds.days === 1 ? "1 day" : parsedSeconds.days + " days";
         }
 
         if (parsedSeconds.hours > 0) {
-            if (parsedSeconds.hours === 1) {
-                return "1 hour";
-            }
-            return parsedSeconds.hours + " hours";
+            return parsedSeconds.hours === 1 ? "1 hour" : parsedSeconds.hours + " hours";
         }
 
         if (parsedSeconds.minutes > 0) {
-            if (parsedSeconds.minutes === 1) {
-                return "1 min";
-            }
-            return parsedSeconds.minutes + " mins";
+            return parsedSeconds.minutes === 1 ? "1 minute" : parsedSeconds.minutes + " minutes";
         }
 
         if (parsedSeconds.seconds <= 1) {
             return "a second";
         }
+
         return parsedSeconds.seconds + " seconds";
     }
 

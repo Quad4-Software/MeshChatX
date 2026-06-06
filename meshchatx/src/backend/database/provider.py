@@ -1,13 +1,20 @@
 # SPDX-License-Identifier: 0BSD
 
 import sqlite3
+import sys
 import threading
 import weakref
+
+_SQLITE_CONNECT_KW = {}
+if sys.version_info >= (3, 14):
+    _SQLITE_CONNECT_KW["cached_statements"] = 100
+
+_SQLITE_BUSY_TIMEOUT_MS = 5000
 
 
 class DatabaseProvider:
     _instance = None
-    _lock = threading.Lock()
+    _lock = threading.RLock()
     _all_locals = weakref.WeakSet()
 
     def __init__(self, db_path=None):
@@ -15,6 +22,19 @@ class DatabaseProvider:
         self._local = threading.local()
         self._all_locals.add(self._local)
         self._memory_connection = None
+
+    @staticmethod
+    def _configure_connection(connection):
+        if connection is None:
+            return
+        try:
+            connection.execute(f"PRAGMA busy_timeout={_SQLITE_BUSY_TIMEOUT_MS}")
+        except sqlite3.OperationalError:
+            pass
+        try:
+            connection.execute("PRAGMA journal_mode=WAL")
+        except sqlite3.OperationalError:
+            pass
 
     @classmethod
     def get_instance(cls, db_path=None):
@@ -25,8 +45,7 @@ class DatabaseProvider:
                     raise ValueError(msg)
                 cls._instance = cls(db_path)
             elif db_path is not None and cls._instance.db_path != db_path:
-                # If a different path is provided, close the old one and create new
-                cls._instance.close()
+                cls._instance.close_all()
                 cls._instance = cls(db_path)
             return cls._instance
 
@@ -43,8 +62,10 @@ class DatabaseProvider:
                             self.db_path,
                             check_same_thread=False,
                             isolation_level=None,
+                            **_SQLITE_CONNECT_KW,
                         )
                         self._memory_connection.row_factory = sqlite3.Row
+                        self._configure_connection(self._memory_connection)
             return self._memory_connection
 
         if not hasattr(self._local, "connection"):
@@ -54,15 +75,11 @@ class DatabaseProvider:
                 timeout=30.0,
                 check_same_thread=False,
                 isolation_level=None,
+                **_SQLITE_CONNECT_KW,
             )
             self._local.connection.row_factory = sqlite3.Row
-            # Enable WAL mode for better concurrency
             if self.db_path != ":memory:":
-                try:
-                    self._local.connection.execute("PRAGMA journal_mode=WAL")
-                except sqlite3.OperationalError:
-                    # Some environments might not support WAL
-                    pass
+                self._configure_connection(self._local.connection)
         return self._local.connection
 
     def execute(self, query, params=None, commit=None):
@@ -103,7 +120,9 @@ class DatabaseProvider:
 
     def begin(self):
         try:
-            self.connection.execute("BEGIN")
+            # IMMEDIATE acquires a reserved lock up front so concurrent writers wait
+            # on busy_timeout instead of failing with "database is locked" at commit.
+            self.connection.execute("BEGIN IMMEDIATE")
         except sqlite3.OperationalError as e:
             if "within a transaction" in str(e):
                 pass

@@ -49,13 +49,13 @@ class TestIntegrityManager(unittest.TestCase):
         """Test detection of database modification."""
         self.manager.save_manifest()
 
-        # Modify DB in a way that breaks SQLite integrity or at least changes hash
-        with open(self.db_path, "a") as f:
-            f.write("tampered")
+        with open(self.db_path, "r+b") as f:
+            f.seek(0)
+            f.write(b"NOTASQLITEFILE")
 
         is_ok, issues = self.manager.check_integrity()
         self.assertFalse(is_ok)
-        self.assertTrue(any("Database" in i for i in issues))
+        self.assertTrue(any("Database structural issue" in i for i in issues))
         self.assertTrue(any("Last integrity snapshot" in i for i in issues))
 
     def test_identity_mismatch(self):

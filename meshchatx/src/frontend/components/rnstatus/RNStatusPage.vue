@@ -2,23 +2,18 @@
 
 <template>
     <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+        <ToolsPageHeader
+            icon="chart-line"
+            :title="$t('tools.rnstatus.title')"
+            :description="$t('tools.rnstatus.description')"
+            :eyebrow="$t('rnprobe.network_diagnostics')"
+            accent="orange"
+        />
         <div
             class="flex-1 overflow-y-auto w-full px-4 md:px-5 lg:px-8 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
         >
             <div class="space-y-4 w-full max-w-6xl mx-auto">
                 <div class="glass-card space-y-5 rounded-2xl border border-slate-200/70 p-5 dark:border-zinc-700/80">
-                    <div class="space-y-2">
-                        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                            Network Diagnostics
-                        </div>
-                        <div class="text-2xl font-semibold text-gray-900 dark:text-white">
-                            RNStatus - Network Status
-                        </div>
-                        <div class="text-sm text-gray-600 dark:text-gray-300">
-                            View interface statistics and network status information.
-                        </div>
-                    </div>
-
                     <div class="flex flex-wrap items-center gap-2">
                         <button
                             type="button"
@@ -236,11 +231,13 @@
 
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 
 export default {
     name: "RNStatusPage",
     components: {
         MaterialDesignIcon,
+        ToolsPageHeader,
     },
     data() {
         return {

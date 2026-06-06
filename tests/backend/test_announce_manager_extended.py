@@ -62,12 +62,12 @@ def test_upsert_skips_when_store_disabled_for_aspect(mock_db):
 
 def test_is_storing_announce_for_aspect_respects_config(mock_db):
     config = MagicMock()
-    config.announce_store_git_repositories = MagicMock()
-    config.announce_store_git_repositories.get.return_value = False
+    config.announce_store_lxmf_propagation = MagicMock()
+    config.announce_store_lxmf_propagation.get.return_value = False
     manager = AnnounceManager(mock_db, config=config)
-    assert manager.is_storing_announce_for_aspect("git.repositories") is False
+    assert manager.is_storing_announce_for_aspect("lxmf.propagation") is False
     assert (
-        manager.is_storing_announce_for_aspect("git.repositories", force_store=True)
+        manager.is_storing_announce_for_aspect("lxmf.propagation", force_store=True)
         is True
     )
     assert manager.is_storing_announce_for_aspect("unknown.aspect") is True

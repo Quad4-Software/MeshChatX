@@ -1,46 +1,24 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="flex flex-col flex-1 h-full min-w-0 overflow-hidden bg-slate-50 dark:bg-zinc-950">
-        <!-- header -->
-        <div class="bg-slate-50 dark:bg-zinc-950 border-b border-gray-200 dark:border-zinc-800 shadow-xs z-10">
-            <div class="px-4 py-3 md:px-6 md:py-4 flex flex-wrap items-center justify-between gap-3 md:gap-4 min-w-0">
-                <div class="flex items-center gap-3 min-w-0">
-                    <div class="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl shrink-0">
-                        <MaterialDesignIcon
-                            icon-name="map-marker-path"
-                            class="size-5 md:size-6 text-indigo-600 dark:text-indigo-400"
-                        />
-                    </div>
-                    <div class="min-w-0">
-                        <h1 class="text-lg md:text-xl font-bold text-gray-900 dark:text-white truncate">
-                            {{ $t("tools.rnpath_trace.title") }}
-                        </h1>
-                        <p class="text-[10px] md:text-xs text-gray-500 dark:text-gray-400 truncate">
-                            {{ $t("tools.rnpath_trace.description") }}
-                        </p>
-                    </div>
-                </div>
-
-                <div class="flex items-center gap-2 shrink-0">
-                    <RouterLink
-                        to="/tools"
-                        class="inline-flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-300 hover:underline"
-                    >
-                        <MaterialDesignIcon icon-name="arrow-left" class="size-4" />
-                        {{ $t("tools.back_to_tools") }}
-                    </RouterLink>
-                    <button
-                        v-if="traceResult"
-                        class="p-2 text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors shrink-0"
-                        title="Refresh Trace"
-                        @click="runTrace"
-                    >
-                        <MaterialDesignIcon icon-name="refresh" class="size-5" :class="{ 'animate-spin': isLoading }" />
-                    </button>
-                </div>
-            </div>
-        </div>
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+        <ToolsPageHeader
+            icon="map-marker-path"
+            :title="$t('tools.rnpath_trace.title')"
+            :description="$t('tools.rnpath_trace.description')"
+            accent="blue"
+        >
+            <template #actions>
+                <button
+                    v-if="traceResult"
+                    class="p-2 text-gray-400 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors shrink-0"
+                    title="Refresh Trace"
+                    @click="runTrace"
+                >
+                    <MaterialDesignIcon icon-name="refresh" class="size-5" :class="{ 'animate-spin': isLoading }" />
+                </button>
+            </template>
+        </ToolsPageHeader>
 
         <div class="flex-1 overflow-y-auto min-w-0">
             <div
@@ -304,11 +282,13 @@
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
+import ToolsPageHeader from "./ToolsPageHeader.vue";
 
 export default {
     name: "RNPathTracePage",
     components: {
         MaterialDesignIcon,
+        ToolsPageHeader,
     },
     data() {
         return {

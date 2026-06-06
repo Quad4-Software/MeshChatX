@@ -7,8 +7,8 @@ Ein umfassend modifizierter und funktionsreicher Fork von Reticulum MeshChat von
 Dieses Projekt ist unabhaengig vom originalen Reticulum MeshChat und steht in keiner Verbindung dazu.
 
 - Website: [meshchatx.com](https://meshchatx.com)
-- Quellcode: [git.quad4.io/RNS-Things/MeshChatX](https://git.quad4.io/RNS-Things/MeshChatX)
-- Offizielles GitHub-Mirror: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
+- Quellcode: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
+- Mirror: [lavaforge.org/Reticulum-Things/MeshChatX](https://lavaforge.org/Reticulum-Things/MeshChatX)
 - Releases: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - Aenderungsprotokoll: [`CHANGELOG.md`](../CHANGELOG.md)
 - Spenden: [`donate.md`](../donate.md) ([Spenden](#spenden))
@@ -42,7 +42,7 @@ MeshChatX NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
 
 - Python `>=3.11` (aus `pyproject.toml`)
 - Node.js `>=24` (aus `package.json`, Feld `engines`)
-- pnpm `10.33.0` (aus `package.json`, Feld `packageManager`)
+- pnpm `11.1.2` (aus `package.json`, Feld `packageManager`)
 - Poetry (verwendet in `Taskfile.yml` und CI-Workflows)
 
 **Browser Versions Required:**
@@ -161,12 +161,12 @@ pipx install ./reticulum_meshchatx-*-py3-none-any.whl
 Fuer Entwicklung oder lokale Custom-Builds.
 
 ```bash
-git clone https://git.quad4.io/RNS-Things/MeshChatX.git
+git clone https://github.com/Quad4-Software/MeshChatX.git
 cd MeshChatX
 corepack enable
 pnpm config set verify-store-integrity true
 pnpm install --frozen-lockfile
-pip install "uv==0.11.12"
+pip install "uv==0.11.15"
 uv lock --check
 uv sync --group dev
 pnpm run build-frontend
@@ -176,10 +176,10 @@ uv run python -m meshchatx.meshchat --headless --host 127.0.0.1
 Hinweise zu den Installationsbefehlen:
 
 - `pnpm install --frozen-lockfile` verweigert Aenderungen an `pnpm-lock.yaml` und schlaegt fehl, wenn die Lockdatei nicht zu `package.json` passt. Damit wird verhindert, dass eine unerwartete Upstream-Version still eingespielt wird.
-- `verify-store-integrity=true` ist auch in der projektweiten `.npmrc` gesetzt; die explizite `pnpm config set`-Zeile haertet zusaetzlich die Benutzerkonfiguration.
-- Lifecycle-Skripte (`preinstall`/`postinstall`) sind in pnpm v10+ standardmaessig blockiert. Nur die unter `pnpm.onlyBuiltDependencies` in `package.json` aufgefuehrten Pakete duerfen Installationsskripte ausfuehren (aktuell `electron`, `electron-winstaller`, `esbuild`).
+- `verify-store-integrity=true` ist auch in der projektweiten `pnpm-workspace.yaml` gesetzt; die explizite `pnpm config set`-Zeile haertet zusaetzlich die Benutzerkonfiguration.
+- Lifecycle-Skripte (`preinstall`/`postinstall`) sind in pnpm v11+ standardmaessig blockiert. Nur die unter `allowBuilds` in `pnpm-workspace.yaml` aufgefuehrten Pakete duerfen Installationsskripte ausfuehren (aktuell `electron`, `electron-winstaller`, `esbuild`).
 - `uv lock --check` schlaegt frueh fehl, wenn `uv.lock` nicht mit `pyproject.toml` synchron ist; `uv sync --group dev` aufloest danach nur aus der Lockdatei.
-- Fuer eine strikte Lockfile-Installation (ohne implizite Lock-Aktualisierung) Poetry mit `pip install "uv==0.11.12"` pinnen, passend zur CI-Version.
+- Fuer eine strikte Lockfile-Installation (ohne implizite Lock-Aktualisierung) Poetry mit `pip install "uv==0.11.15"` pinnen, passend zur CI-Version.
 
 Wenn Sie absichtlich Abhaengigkeiten aktualisieren wollen, fuehren Sie `pnpm update` / `uv lock` in einem dedizierten Commit aus und pruefen Sie das resultierende Lockdatei-Diff vor dem Push.
 
@@ -345,7 +345,7 @@ task build:all
 
 ## Versionierung
 
-Aktuelle Version in diesem Repository: `4.6.2`.
+Aktuelle Version in diesem Repository: `4.7.0`.
 
 - Fuer Release-Bumps bearbeiten Sie **nur** `version` in **`package.json`**.
 - **`pnpm run version:sync`** (wird auch zu Beginn von **`pnpm run build`** ausgefuehrt) verbreitet diese Version in **`pyproject.toml`**, **`meshchatx/src/version.py`**, **`THIRD_PARTY_NOTICES.txt`** (Produktzeile), **README** / **lang/README.\*** (Zeilen mit aktueller Version), **`docs/meshchatx_on_raspberry_pi.md`** (pipx-Beispiel) und Hilfsfelder in **`packaging/arch/PKGBUILD`**.

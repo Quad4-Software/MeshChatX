@@ -7,8 +7,8 @@ Liam Cottle 开发的 Reticulum MeshChat 的一个功能丰富的深度修改分
 本项目独立于原始 Reticulum MeshChat 项目，与其无关联。
 
 - 网站: [meshchatx.com](https://meshchatx.com)
-- 源码: [git.quad4.io/RNS-Things/MeshChatX](https://git.quad4.io/RNS-Things/MeshChatX)
-- 官方 GitHub 镜像: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
+- 源码: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
+- 镜像: [lavaforge.org/Reticulum-Things/MeshChatX](https://lavaforge.org/Reticulum-Things/MeshChatX)
 - 发行版: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - 变更日志: [`CHANGELOG.md`](../CHANGELOG.md)
 - 捐赠: [`donate.md`](../donate.md) ([捐赠](#捐赠))
@@ -42,7 +42,7 @@ MeshChatX NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
 
 - Python `>=3.11`（来自 `pyproject.toml`）
 - Node.js `>=24`（来自 `package.json` 的 `engines`）
-- pnpm `10.33.0`（来自 `package.json` 的 `packageManager`）
+- pnpm `11.1.2`（来自 `package.json` 的 `packageManager`）
 - Poetry（用于 `Taskfile.yml` 与 CI 工作流）
 
 **Browser Versions Required:**
@@ -161,12 +161,12 @@ pipx install ./reticulum_meshchatx-*-py3-none-any.whl
 在开发或需要本地定制构建时使用。
 
 ```bash
-git clone https://git.quad4.io/RNS-Things/MeshChatX.git
+git clone https://github.com/Quad4-Software/MeshChatX.git
 cd MeshChatX
 corepack enable
 pnpm config set verify-store-integrity true
 pnpm install --frozen-lockfile
-pip install "uv==0.11.12"
+pip install "uv==0.11.15"
 uv lock --check
 uv sync --group dev
 pnpm run build-frontend
@@ -176,10 +176,10 @@ uv run python -m meshchatx.meshchat --headless --host 127.0.0.1
 关于上述安装命令的说明：
 
 - `pnpm install --frozen-lockfile` 禁止更新 `pnpm-lock.yaml`，若 lockfile 与 `package.json` 不一致则直接失败。这能阻止意外的上游版本被静默安装。
-- `verify-store-integrity=true` 已在项目的 `.npmrc` 中设置；显式的 `pnpm config set` 行同时加固用户级配置。
-- pnpm v10+ 默认禁用所有生命周期脚本（`preinstall`/`postinstall`）。仅 `package.json` 中 `pnpm.onlyBuiltDependencies` 列出的包允许执行安装脚本（当前为 `electron`、`electron-winstaller`、`esbuild`）。
+- `verify-store-integrity=true` 已在项目的 `pnpm-workspace.yaml` 中设置；显式的 `pnpm config set` 行同时加固用户级配置。
+- pnpm v11+ 默认禁用所有生命周期脚本（`preinstall`/`postinstall`）。仅 `pnpm-workspace.yaml` 中 `allowBuilds` 列出的包允许执行安装脚本（当前为 `electron`、`electron-winstaller`、`esbuild`）。
 - `uv lock --check` 会在 `uv.lock` 与 `pyproject.toml` 不同步时立即失败；随后的 `uv sync --group dev` 只会从 lock 文件解析依赖。
-- 若需严格按 lock 文件安装 Poetry 依赖（不进行隐式刷新），用 `pip install "uv==0.11.12"` 固定 Poetry 版本，与 CI 保持一致。
+- 若需严格按 lock 文件安装 Poetry 依赖（不进行隐式刷新），用 `pip install "uv==0.11.15"` 固定 Poetry 版本，与 CI 保持一致。
 
 如果确有意愿更新依赖，请在独立提交中运行 `pnpm update` / `uv lock`，并在推送前审查生成的 lock 文件 diff。
 
@@ -345,7 +345,7 @@ task build:all
 
 ## 版本管理
 
-本仓库当前版本: `4.6.2`。
+本仓库当前版本: `4.7.0`。
 
 - 发布版本号**只**改 **`package.json` 的 `version`**。
 - 运行 **`pnpm run version:sync`**（在 **`pnpm run build`** 开头也会执行）可将该版本同步到 **`pyproject.toml`**、**`meshchatx/src/version.py`**、**`THIRD_PARTY_NOTICES.txt`**（产品行）、**README** / **lang/README.\*** 中的“当前版本”行、**`docs/meshchatx_on_raspberry_pi.md`** 的 pipx 示例，以及 **`packaging/arch/PKGBUILD`** 的辅助字段。

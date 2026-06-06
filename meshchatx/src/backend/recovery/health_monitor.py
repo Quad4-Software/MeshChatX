@@ -15,6 +15,7 @@ import collections
 import gc
 import json
 import logging
+import sys
 import threading
 
 import psutil
@@ -35,6 +36,7 @@ class HealthMonitor:
         self.app = app
         self._running = False
         self._thread = None
+        self._stop_event = threading.Event()
 
         self._entropy_history = collections.deque(maxlen=self.ENTROPY_WINDOW)
         self._error_rate_history = collections.deque(maxlen=self.ENTROPY_WINDOW)
@@ -44,15 +46,24 @@ class HealthMonitor:
         if self._running:
             return
         self._running = True
+        self._stop_event.clear()
         self._thread = threading.Thread(target=self._run_loop, daemon=True)
         self._thread.start()
         _log.info("HealthMonitor started (interval=%ds)", self.CHECK_INTERVAL)
 
-    def stop(self):
+    def stop(self, timeout=5.0):
+        """Signal the loop to exit and wait briefly for the thread to finish."""
         self._running = False
+        self._stop_event.set()
+        thread = self._thread
+        if thread is not None and thread.is_alive():
+            thread.join(timeout=timeout)
 
     def _run_loop(self):
-        asyncio.run(self._async_loop())
+        try:
+            asyncio.run(self._async_loop())
+        except Exception as exc:
+            _log.debug("HealthMonitor loop terminated: %s", exc)
 
     async def _async_loop(self):
         while self._running:
@@ -60,8 +71,15 @@ class HealthMonitor:
                 self._check()
             except Exception as exc:
                 _log.debug("HealthMonitor check error: %s", exc)
-            gc.collect()
-            await asyncio.sleep(self.CHECK_INTERVAL)
+            try:
+                if sys.version_info >= (3, 14) and gc.get_threshold()[2] == 0:
+                    gc.collect(2)
+                else:
+                    gc.collect()
+            except Exception:
+                pass
+            if self._stop_event.wait(self.CHECK_INTERVAL):
+                break
 
     def _check(self):
         entropy = 0.0

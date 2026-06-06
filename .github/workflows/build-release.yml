@@ -40,8 +40,8 @@ env:
     NODE_OPTIONS: --max-old-space-size=8192
     PYTHON_VERSION: "3.14"
     NODE_VERSION: "24"
-    UV_VERSION: "0.11.12"
-    PNPM_VERSION: "10.33.0"
+    UV_VERSION: "0.11.15"
+    PNPM_VERSION: "11.1.2"
     COSIGN_VERSION: "3.0.6"
     # Official .deb from aquasecurity/trivy releases; scripts/ci/setup-trivy.sh verifies
     # checksums.txt (sigstore) + .deb SHA256 + .deb (sigstore). Bump with upstream tags.
@@ -56,7 +56,7 @@ jobs:
         with:
             artifact_name: meshchatx-frontend-release-${{ github.run_id }}-${{ github.run_attempt }}
             retention_days: 7
-            pnpm_version: "10.33.0"
+            pnpm_version: "11.1.2"
 
     frontend-android:
         name: Build frontend (Android / Python 3.11)
@@ -68,7 +68,7 @@ jobs:
             artifact_name: meshchatx-frontend-android-rel-${{ github.run_id }}-${{ github.run_attempt }}
             retention_days: 7
             python_version: "3.11"
-            pnpm_version: "10.33.0"
+            pnpm_version: "11.1.2"
 
     android-release:
         name: Android APKs (tag)
@@ -113,15 +113,11 @@ jobs:
                   restore-keys: |
                       ${{ runner.os }}-uv-
 
-            - name: Enable pnpm (corepack)
-              run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
-
-            - name: Set up Node
-              uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
+            - name: Set up Node and pnpm
+              uses: ./.github/actions/setup-node-pnpm
               with:
                   node-version: ${{ env.NODE_VERSION }}
-                  cache: pnpm
-                  cache-dependency-path: pnpm-lock.yaml
+                  pnpm-version: ${{ env.PNPM_VERSION }}
 
             - name: Linux packaging APT dependencies
               run: bash scripts/ci/github-apt-linux-packaging.sh
@@ -195,15 +191,11 @@ jobs:
                   restore-keys: |
                       ${{ runner.os }}-uv-
 
-            - name: Enable pnpm (corepack)
-              run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
-
-            - name: Set up Node
-              uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
+            - name: Set up Node and pnpm
+              uses: ./.github/actions/setup-node-pnpm
               with:
                   node-version: ${{ env.NODE_VERSION }}
-                  cache: pnpm
-                  cache-dependency-path: pnpm-lock.yaml
+                  pnpm-version: ${{ env.PNPM_VERSION }}
 
             - name: Linux packaging APT dependencies
               run: bash scripts/ci/github-apt-linux-packaging.sh
@@ -347,15 +339,11 @@ jobs:
                   restore-keys: |
                       ${{ runner.os }}-uv-
 
-            - name: Enable pnpm (corepack)
-              run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
-
-            - name: Set up Node
-              uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
+            - name: Set up Node and pnpm
+              uses: ./.github/actions/setup-node-pnpm
               with:
                   node-version: ${{ env.NODE_VERSION }}
-                  cache: pnpm
-                  cache-dependency-path: pnpm-lock.yaml
+                  pnpm-version: ${{ env.PNPM_VERSION }}
 
             - name: Install dependencies
               run: bash scripts/ci/github-install-deps.sh
@@ -434,15 +422,11 @@ jobs:
                   UV_VERSION: ${{ env.UV_VERSION }}
               run: bash scripts/ci/github-install-uv.sh
 
-            - name: Enable pnpm (corepack)
-              run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
-
-            - name: Set up Node
-              uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
+            - name: Set up Node and pnpm
+              uses: ./.github/actions/setup-node-pnpm
               with:
                   node-version: ${{ env.NODE_VERSION }}
-                  cache: pnpm
-                  cache-dependency-path: pnpm-lock.yaml
+                  pnpm-version: ${{ env.PNPM_VERSION }}
 
             - name: Install dependencies
               run: bash scripts/ci/github-install-deps.sh
@@ -490,6 +474,10 @@ jobs:
                       echo "no libcodec2*.dylib under ${_codec2}/lib" >&2
                       exit 1
                   fi
+
+            - name: Install Rust x86_64-apple-darwin target (cbor2 x64 slice)
+              if: matrix.label == 'macos'
+              run: bash scripts/ci/github-macos-rust-x64-target.sh
 
             - name: Install project deps into x64 Python (mac universal cx_Freeze)
               if: matrix.label == 'macos'

@@ -7,8 +7,8 @@
 Этот проект независим от оригинального Reticulum MeshChat и не связан с ним.
 
 - Сайт: [meshchatx.com](https://meshchatx.com)
-- Исходный код: [git.quad4.io/RNS-Things/MeshChatX](https://git.quad4.io/RNS-Things/MeshChatX)
-- Официальное зеркало на GitHub: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
+- Исходный код: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
+- Зеркало: [lavaforge.org/Reticulum-Things/MeshChatX](https://lavaforge.org/Reticulum-Things/MeshChatX)
 - Релизы: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - Журнал изменений: [`CHANGELOG.md`](../CHANGELOG.md)
 - Поддержка проекта: [`donate.md`](../donate.md) ([Поддержка проекта](#поддержка-проекта))
@@ -42,7 +42,7 @@ MeshChatX NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
 
 - Python `>=3.11` (из `pyproject.toml`)
 - Node.js `>=24` (из `package.json`, поле `engines`)
-- pnpm `10.33.0` (из `package.json`, поле `packageManager`)
+- pnpm `11.1.2` (из `package.json`, поле `packageManager`)
 - Poetry (используется в `Taskfile.yml` и CI)
 
 **Browser Versions Required:**
@@ -161,12 +161,12 @@ pipx install ./reticulum_meshchatx-*-py3-none-any.whl
 Для разработки или локальной сборки.
 
 ```bash
-git clone https://git.quad4.io/RNS-Things/MeshChatX.git
+git clone https://github.com/Quad4-Software/MeshChatX.git
 cd MeshChatX
 corepack enable
 pnpm config set verify-store-integrity true
 pnpm install --frozen-lockfile
-pip install "uv==0.11.12"
+pip install "uv==0.11.15"
 uv lock --check
 uv sync --group dev
 pnpm run build-frontend
@@ -176,10 +176,10 @@ uv run python -m meshchatx.meshchat --headless --host 127.0.0.1
 Пояснения к командам установки:
 
 - `pnpm install --frozen-lockfile` запрещает обновление `pnpm-lock.yaml` и завершится с ошибкой, если lock-файл не соответствует `package.json`. Это исключает скрытую установку неожиданной upstream-версии.
-- `verify-store-integrity=true` уже задан в `.npmrc` проекта; явный `pnpm config set` дополнительно ужесточает пользовательскую конфигурацию.
-- Lifecycle-скрипты (`preinstall`/`postinstall`) по умолчанию заблокированы в pnpm v10+. Скрипты установки могут запускать только пакеты из `pnpm.onlyBuiltDependencies` в `package.json` (сейчас `electron`, `electron-winstaller`, `esbuild`).
+- `verify-store-integrity=true` уже задан в `pnpm-workspace.yaml` проекта; явный `pnpm config set` дополнительно ужесточает пользовательскую конфигурацию.
+- Lifecycle-скрипты (`preinstall`/`postinstall`) по умолчанию заблокированы в pnpm v11+. Скрипты установки могут запускать только пакеты из `allowBuilds` в `pnpm-workspace.yaml` (сейчас `electron`, `electron-winstaller`, `esbuild`).
 - `uv lock --check` сразу падает, если `uv.lock` не синхронизирован с `pyproject.toml`; затем `uv sync --group dev` ставит зависимости только из lock-файла.
-- Для строгой установки Poetry только из lock-файла зафиксируйте версию Poetry через `pip install "uv==0.11.12"`, как это делает CI.
+- Для строгой установки Poetry только из lock-файла зафиксируйте версию Poetry через `pip install "uv==0.11.15"`, как это делает CI.
 
 Если вы намеренно хотите обновить зависимости, выполните `pnpm update` / `uv lock` отдельным коммитом и проверьте diff lock-файлов до пуша.
 
@@ -345,7 +345,7 @@ task build:all
 
 ## Версионирование
 
-Текущая версия в репозитории: `4.6.2`.
+Текущая версия в репозитории: `4.7.0`.
 
 - Редактируйте для релизного бампа **только** поле `version` в **`package.json`**.
 - Команда **`pnpm run version:sync`** (также в начале **`pnpm run build`**) распространяет эту версию в **`pyproject.toml`**, **`meshchatx/src/version.py`**, **`THIRD_PARTY_NOTICES.txt`** (строка продукта), **README** / **lang/README.\*** (строки «текущая версия»), **`docs/meshchatx_on_raspberry_pi.md`** (пример pipx) и вспомогательные поля **`packaging/arch/PKGBUILD`**.

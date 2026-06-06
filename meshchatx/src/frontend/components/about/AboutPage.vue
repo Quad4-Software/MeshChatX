@@ -96,18 +96,18 @@
                         <div class="mt-6 pt-6 border-t border-gray-200/70 dark:border-zinc-800/80">
                             <button
                                 type="button"
-                                class="group w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-gradient-to-br from-blue-500/[0.08] via-slate-500/[0.06] to-violet-500/[0.08] dark:from-blue-500/15 dark:via-zinc-800/40 dark:to-violet-500/15 hover:from-blue-500/15 hover:to-violet-500/15 dark:hover:from-blue-500/25 dark:hover:to-violet-500/25 border border-gray-200/80 dark:border-zinc-700/80 transition-all text-left min-h-[52px]"
+                                class="about-action-btn secondary-chip w-full justify-between text-left"
                                 :aria-expanded="showContactSupport"
                                 @click="showContactSupport = !showContactSupport"
                             >
                                 <div class="flex items-center gap-3 min-w-0">
                                     <span
-                                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/15 dark:bg-blue-500/25 text-blue-600 dark:text-blue-300 ring-1 ring-blue-500/20"
+                                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-300"
                                     >
                                         <v-icon icon="mdi-card-account-details-outline" size="22"></v-icon>
                                     </span>
                                     <span
-                                        class="text-xs font-black uppercase tracking-widest text-gray-800 dark:text-zinc-100 truncate"
+                                        class="text-xs font-semibold uppercase tracking-wide text-gray-800 dark:text-zinc-100 truncate"
                                     >
                                         {{ $t("about.contact_support_title") }}
                                     </span>
@@ -120,129 +120,105 @@
                             </button>
 
                             <transition name="fade">
-                                <div
-                                    v-if="showContactSupport"
-                                    class="mt-4 p-5 sm:p-6 rounded-2xl bg-white/70 dark:bg-zinc-950/70 border border-gray-200/90 dark:border-zinc-800 shadow-sm space-y-6"
-                                >
-                                    <div class="space-y-4">
+                                <div v-if="showContactSupport" class="mt-6 flex flex-col gap-6">
+                                    <div class="flex flex-col gap-3">
                                         <div
-                                            class="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-zinc-400"
+                                            class="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wide flex items-center gap-2"
                                         >
-                                            <v-icon
-                                                icon="mdi-account-circle-outline"
-                                                size="18"
-                                                class="text-blue-500 dark:text-blue-400"
-                                            ></v-icon>
+                                            <v-icon icon="mdi-account-circle-outline" size="16"></v-icon>
                                             {{ $t("about.contact_developer") }}
                                         </div>
-
-                                        <div class="space-y-3">
-                                            <div>
-                                                <div
-                                                    class="text-[9px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-1.5"
+                                        <div class="flex flex-col gap-2">
+                                            <div
+                                                class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-gray-50 dark:bg-zinc-900/40 border border-gray-100 dark:border-zinc-800"
+                                            >
+                                                <router-link
+                                                    :to="{
+                                                        name: 'messages',
+                                                        params: { destinationHash: developerLxmfPrimary },
+                                                    }"
+                                                    class="flex-1 min-w-0 text-sm font-mono text-gray-700 dark:text-zinc-300 hover:text-blue-600 dark:hover:text-blue-400 break-all leading-snug text-left"
+                                                    :title="$t('about.contact_open_messages')"
                                                 >
-                                                    {{ $t("about.contact_lxmf_address") }}
-                                                </div>
-                                                <div class="flex items-start gap-2">
-                                                    <router-link
-                                                        :to="{
-                                                            name: 'messages',
-                                                            params: { destinationHash: developerLxmfPrimary },
-                                                        }"
-                                                        class="flex-1 min-w-0 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline underline-offset-2 break-all leading-snug text-left"
-                                                        :title="$t('about.contact_open_messages')"
-                                                    >
-                                                        {{ developerLxmfPrimary }}
-                                                    </router-link>
-                                                    <button
-                                                        type="button"
-                                                        class="shrink-0 rounded-lg p-2 text-gray-500 hover:text-blue-600 dark:text-zinc-400 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-zinc-800/80 transition-colors"
-                                                        :aria-label="$t('about.contact_copy_address')"
-                                                        @click="
-                                                            copyValue(
-                                                                developerLxmfPrimary,
-                                                                'about.contact_lxmf_address'
-                                                            )
-                                                        "
-                                                    >
-                                                        <v-icon icon="mdi-content-copy" size="18"></v-icon>
-                                                    </button>
-                                                </div>
+                                                    {{ developerLxmfPrimary }}
+                                                </router-link>
+                                                <button
+                                                    type="button"
+                                                    class="shrink-0 rounded-lg p-1.5 text-gray-500 hover:text-blue-600 dark:text-zinc-400 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-zinc-800/80 transition-colors"
+                                                    :aria-label="$t('about.contact_copy_address')"
+                                                    @click="
+                                                        copyValue(developerLxmfPrimary, 'about.contact_lxmf_address')
+                                                    "
+                                                >
+                                                    <v-icon icon="mdi-content-copy" size="16"></v-icon>
+                                                </button>
                                             </div>
-                                            <div>
-                                                <div
-                                                    class="text-[9px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-1.5"
+                                            <div
+                                                class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-gray-50 dark:bg-zinc-900/40 border border-gray-100 dark:border-zinc-800"
+                                            >
+                                                <router-link
+                                                    :to="{
+                                                        name: 'messages',
+                                                        params: { destinationHash: developerLxmfAlternate },
+                                                    }"
+                                                    class="flex-1 min-w-0 text-sm font-mono text-gray-700 dark:text-zinc-300 hover:text-blue-600 dark:hover:text-blue-400 break-all leading-snug text-left"
+                                                    :title="$t('about.contact_open_messages')"
                                                 >
-                                                    {{ $t("about.contact_alternate") }}
-                                                </div>
-                                                <div class="flex items-start gap-2">
-                                                    <router-link
-                                                        :to="{
-                                                            name: 'messages',
-                                                            params: { destinationHash: developerLxmfAlternate },
-                                                        }"
-                                                        class="flex-1 min-w-0 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline underline-offset-2 break-all leading-snug text-left"
-                                                        :title="$t('about.contact_open_messages')"
-                                                    >
-                                                        {{ developerLxmfAlternate }}
-                                                    </router-link>
-                                                    <button
-                                                        type="button"
-                                                        class="shrink-0 rounded-lg p-2 text-gray-500 hover:text-blue-600 dark:text-zinc-400 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-zinc-800/80 transition-colors"
-                                                        :aria-label="$t('about.contact_copy_address')"
-                                                        @click="
-                                                            copyValue(developerLxmfAlternate, 'about.contact_alternate')
-                                                        "
-                                                    >
-                                                        <v-icon icon="mdi-content-copy" size="18"></v-icon>
-                                                    </button>
-                                                </div>
+                                                    {{ developerLxmfAlternate }}
+                                                </router-link>
+                                                <button
+                                                    type="button"
+                                                    class="shrink-0 rounded-lg p-1.5 text-gray-500 hover:text-blue-600 dark:text-zinc-400 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-zinc-800/80 transition-colors"
+                                                    :aria-label="$t('about.contact_copy_address')"
+                                                    @click="
+                                                        copyValue(developerLxmfAlternate, 'about.contact_alternate')
+                                                    "
+                                                >
+                                                    <v-icon icon="mdi-content-copy" size="16"></v-icon>
+                                                </button>
                                             </div>
                                         </div>
-
                                         <div
-                                            class="text-xs font-semibold text-gray-600 dark:text-zinc-400 bg-gray-50 dark:bg-zinc-900/50 p-3 rounded-xl border border-gray-200/90 dark:border-zinc-800 flex items-start gap-2.5"
+                                            class="text-xs text-gray-500 dark:text-zinc-400 bg-gray-50 dark:bg-zinc-900/40 p-3 rounded-xl border border-gray-100 dark:border-zinc-800 flex items-start gap-2"
                                         >
                                             <v-icon
                                                 icon="mdi-information-outline"
-                                                size="18"
-                                                class="text-blue-500 dark:text-blue-400 shrink-0 mt-0.5"
+                                                size="16"
+                                                class="shrink-0 mt-0.5"
                                             ></v-icon>
                                             <span>{{ $t("about.contact_propagation_hint") }}</span>
                                         </div>
                                     </div>
 
-                                    <div class="border-t border-gray-100 dark:border-zinc-800/90 pt-2"></div>
+                                    <div class="border-t border-gray-100 dark:border-zinc-800/90"></div>
 
-                                    <div class="space-y-4">
+                                    <div class="flex flex-col gap-3">
                                         <div
-                                            class="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-zinc-400"
+                                            class="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wide flex items-center gap-2"
                                         >
-                                            <v-icon
-                                                icon="mdi-hand-heart"
-                                                size="18"
-                                                class="text-blue-500 dark:text-blue-400"
-                                            ></v-icon>
+                                            <v-icon icon="mdi-hand-heart" size="16"></v-icon>
                                             {{ $t("about.donate_label") }}
                                         </div>
                                         <div>
                                             <div
-                                                class="text-[9px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest mb-1.5"
+                                                class="text-xs font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wide mb-1.5"
                                             >
                                                 {{ $t("about.donate_monero_label") }}
                                             </div>
-                                            <div class="flex items-start gap-2">
+                                            <div
+                                                class="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-gray-50 dark:bg-zinc-900/40 border border-gray-100 dark:border-zinc-800"
+                                            >
                                                 <span
-                                                    class="flex-1 min-w-0 text-sm font-medium text-gray-800 dark:text-zinc-200 break-all leading-snug select-all"
+                                                    class="flex-1 min-w-0 text-sm font-mono text-gray-700 dark:text-zinc-300 break-all leading-snug select-all"
                                                     >{{ moneroDonateAddress }}</span
                                                 >
                                                 <button
                                                     type="button"
-                                                    class="shrink-0 rounded-lg p-2 text-gray-500 hover:text-blue-600 dark:text-zinc-400 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-zinc-800/80 transition-colors"
+                                                    class="shrink-0 rounded-lg p-1.5 text-gray-500 hover:text-blue-600 dark:text-zinc-400 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-zinc-800/80 transition-colors"
                                                     :aria-label="$t('about.donate_copy_monero')"
                                                     @click="copyValue(moneroDonateAddress, 'about.donate_monero_label')"
                                                 >
-                                                    <v-icon icon="mdi-content-copy" size="18"></v-icon>
+                                                    <v-icon icon="mdi-content-copy" size="16"></v-icon>
                                                 </button>
                                             </div>
                                         </div>
@@ -252,12 +228,12 @@
                                                 href="https://ko-fi.com/quad4"
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                class="inline-flex flex-1 items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white/90 dark:bg-zinc-900/70 hover:bg-blue-500/[0.06] hover:border-blue-500/25 dark:hover:bg-zinc-800/80 text-gray-800 dark:text-zinc-100 text-xs font-bold uppercase tracking-wide min-h-[44px] transition-colors"
+                                                class="inline-flex flex-1 items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-900/40 hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-800 dark:text-zinc-100 text-xs font-semibold transition-colors"
                                             >
                                                 <v-icon
                                                     icon="mdi-coffee"
                                                     size="18"
-                                                    class="text-blue-600 dark:text-blue-400"
+                                                    class="text-gray-500 dark:text-zinc-400"
                                                 ></v-icon>
                                                 {{ $t("about.donate_kofi") }}
                                             </a>
@@ -265,12 +241,12 @@
                                                 href="https://buymeacoffee.com/quad4"
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                class="inline-flex flex-1 items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white/90 dark:bg-zinc-900/70 hover:bg-blue-500/[0.06] hover:border-blue-500/25 dark:hover:bg-zinc-800/80 text-gray-800 dark:text-zinc-100 text-xs font-bold uppercase tracking-wide min-h-[44px] transition-colors"
+                                                class="inline-flex flex-1 items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-900/40 hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-800 dark:text-zinc-100 text-xs font-semibold transition-colors"
                                             >
                                                 <v-icon
                                                     icon="mdi-cup"
                                                     size="18"
-                                                    class="text-blue-600 dark:text-blue-400"
+                                                    class="text-gray-500 dark:text-zinc-400"
                                                 ></v-icon>
                                                 {{ $t("about.donate_buymeacoffee") }}
                                             </a>
@@ -308,7 +284,7 @@
                             <div
                                 class="text-xs font-black text-blue-500 uppercase tracking-[0.2em] flex items-center gap-2"
                             >
-                                <v-icon icon="mdi-shield-lock" size="14"></v-icon>
+                                <v-icon icon="mdi-shield-search" size="14"></v-icon>
                                 {{ $t("about.security_integrity") }}
                             </div>
                             <div v-if="appInfo.integrity_issues" class="flex flex-wrap gap-2">
@@ -348,17 +324,21 @@
                             </div>
                         </div>
 
+                        <p class="text-[11px] leading-relaxed text-gray-500 dark:text-gray-400 mb-4">
+                            {{ $t("about.security_integrity_description") }}
+                        </p>
+
                         <div
                             v-if="appInfo.integrity_issues && appInfo.integrity_issues.length > 0"
-                            class="p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-xl"
+                            class="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-xl"
                         >
                             <div
-                                class="text-xs font-black text-red-700 dark:text-red-400 mb-3 uppercase tracking-wider flex items-center gap-2"
+                                class="text-xs font-black text-amber-700 dark:text-amber-400 mb-3 uppercase tracking-wider flex items-center gap-2"
                             >
-                                <v-icon icon="mdi-alert-octagon" size="16"></v-icon>
+                                <v-icon icon="mdi-alert" size="16"></v-icon>
                                 {{ $t("about.technical_issues_detected") }}
                             </div>
-                            <ul class="text-[11px] text-red-600 dark:text-red-300 space-y-2 list-none font-mono">
+                            <ul class="text-[11px] text-amber-700 dark:text-amber-300 space-y-2 list-none font-mono">
                                 <li v-for="(issue, index) in appInfo.integrity_issues" :key="index" class="flex gap-2">
                                     <span class="opacity-50">•</span>
                                     <span>{{ issue }}</span>
@@ -618,48 +598,48 @@
                                     class="py-4 sm:p-5 border-t border-gray-200/60 dark:border-zinc-800/80 sm:border sm:rounded-2xl sm:bg-black/2 dark:sm:bg-white/2 min-w-0"
                                 >
                                     <div
-                                        class="text-[10px] font-black text-gray-400 dark:text-zinc-600 uppercase tracking-[0.2em] mb-4"
+                                        class="text-[10px] font-black text-black dark:text-white uppercase tracking-[0.2em] mb-4"
                                     >
                                         {{ $t("about.core_runtime") }}
                                     </div>
                                     <div class="grid grid-cols-2 gap-x-6 gap-y-4">
                                         <div v-if="appInfo.lxst_version" class="flex flex-col">
                                             <span
-                                                class="text-[9px] font-black text-blue-500/60 uppercase leading-none"
+                                                class="text-[9px] font-black text-black dark:text-white uppercase leading-none"
                                                 >{{ $t("about.lxst_engine") }}</span
                                             >
                                             <span
-                                                class="text-[11px] font-mono font-bold mt-1.5 opacity-90 tracking-tight"
+                                                class="text-[11px] font-mono font-bold mt-1.5 text-black dark:text-white tracking-tight"
                                                 >v{{ appInfo.lxst_version }}</span
                                             >
                                         </div>
                                         <div v-if="electronVersion" class="flex flex-col">
                                             <span
-                                                class="text-[9px] font-black text-blue-500/60 uppercase leading-none"
+                                                class="text-[9px] font-black text-black dark:text-white uppercase leading-none"
                                                 >{{ $t("about.electron_runtime") }}</span
                                             >
                                             <span
-                                                class="text-[11px] font-mono font-bold mt-1.5 opacity-90 tracking-tight"
+                                                class="text-[11px] font-mono font-bold mt-1.5 text-black dark:text-white tracking-tight"
                                                 >v{{ electronVersion }}</span
                                             >
                                         </div>
                                         <div v-if="chromeVersion" class="flex flex-col">
                                             <span
-                                                class="text-[9px] font-black text-blue-500/60 uppercase leading-none"
+                                                class="text-[9px] font-black text-black dark:text-white uppercase leading-none"
                                                 >{{ $t("about.chrome_runtime") }}</span
                                             >
                                             <span
-                                                class="text-[11px] font-mono font-bold mt-1.5 opacity-90 tracking-tight"
+                                                class="text-[11px] font-mono font-bold mt-1.5 text-black dark:text-white tracking-tight"
                                                 >v{{ chromeVersion }}</span
                                             >
                                         </div>
                                         <div v-if="nodeVersion" class="flex flex-col">
                                             <span
-                                                class="text-[9px] font-black text-blue-500/60 uppercase leading-none"
+                                                class="text-[9px] font-black text-black dark:text-white uppercase leading-none"
                                                 >{{ $t("about.nodejs_runtime") }}</span
                                             >
                                             <span
-                                                class="text-[11px] font-mono font-bold mt-1.5 opacity-90 tracking-tight"
+                                                class="text-[11px] font-mono font-bold mt-1.5 text-black dark:text-white tracking-tight"
                                                 >v{{ nodeVersion }}</span
                                             >
                                         </div>
@@ -668,7 +648,7 @@
 
                                 <div v-if="appInfo.dependencies" class="pt-2">
                                     <div
-                                        class="text-[10px] font-black text-gray-400 dark:text-zinc-600 uppercase tracking-[0.2em] mb-4"
+                                        class="text-[10px] font-black text-black dark:text-white uppercase tracking-[0.2em] mb-4"
                                     >
                                         {{ $t("about.backend_stack") }}
                                     </div>
@@ -679,11 +659,11 @@
                                             class="flex flex-col"
                                         >
                                             <span
-                                                class="text-[9px] font-black text-gray-400 dark:text-zinc-600 uppercase truncate leading-none"
+                                                class="text-[9px] font-black text-black dark:text-white uppercase truncate leading-none"
                                                 >{{ name.replace("_", " ") }}</span
                                             >
                                             <span
-                                                class="text-[10px] font-mono font-bold mt-1.5 opacity-50 tracking-tight"
+                                                class="text-[10px] font-mono font-bold mt-1.5 text-black dark:text-white tracking-tight"
                                                 >v{{ version }}</span
                                             >
                                         </div>
@@ -801,16 +781,35 @@
                                         {{ $t("about.database_backups_desc") }}
                                     </div>
                                 </div>
-                                <button
-                                    type="button"
-                                    class="primary-chip px-5! py-2.5!"
-                                    :disabled="backupInProgress"
-                                    @click="backupDatabase"
-                                >
-                                    <v-icon icon="mdi-download" start></v-icon>
-                                    <span v-if="backupInProgress">{{ $t("about.downloading") }}</span>
-                                    <span v-else>{{ $t("about.download_backup") }}</span>
-                                </button>
+                                <div class="flex flex-col sm:flex-row gap-2">
+                                    <button
+                                        type="button"
+                                        class="primary-chip px-5! py-2.5!"
+                                        :disabled="backupInProgress"
+                                        @click="backupDatabase"
+                                    >
+                                        <v-icon icon="mdi-download" start></v-icon>
+                                        <span v-if="backupInProgress">{{ $t("about.downloading") }}</span>
+                                        <span v-else>{{ $t("about.download_backup") }}</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="secondary-chip px-5! py-2.5!"
+                                        :disabled="restoreInProgress"
+                                        @click="$refs.restoreFileInput?.click()"
+                                    >
+                                        <v-icon icon="mdi-upload" start></v-icon>
+                                        <span v-if="restoreInProgress">{{ $t("about.restoring") }}</span>
+                                        <span v-else>{{ $t("about.restore_from_file") }}</span>
+                                    </button>
+                                    <input
+                                        ref="restoreFileInput"
+                                        type="file"
+                                        accept=".zip,application/zip"
+                                        class="hidden"
+                                        @change="onRestoreFileChange"
+                                    />
+                                </div>
                             </div>
 
                             <!-- Snapshots -->
@@ -863,9 +862,7 @@
                                                     {{ Utils.formatTimeAgo(snapshot.created_at) }}</span
                                                 >
                                             </div>
-                                            <div
-                                                class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                                            >
+                                            <div class="flex gap-2 shrink-0">
                                                 <button
                                                     type="button"
                                                     class="primary-chip px-3! py-1! text-[10px]!"
@@ -958,9 +955,7 @@
                                                     {{ Utils.formatTimeAgo(backup.created_at) }}</span
                                                 >
                                             </div>
-                                            <div
-                                                class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                                            >
+                                            <div class="flex gap-2 shrink-0">
                                                 <button
                                                     type="button"
                                                     class="primary-chip px-3! py-1! text-[10px]!"
@@ -985,6 +980,19 @@
                                                 </button>
                                             </div>
                                         </div>
+                                    </div>
+
+                                    <div
+                                        v-if="autoBackups.some((b) => b.name.includes('SUSPICIOUS'))"
+                                        class="mt-4 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 text-xs text-amber-700 dark:text-amber-300 flex items-start gap-2"
+                                    >
+                                        <v-icon icon="mdi-alert" size="16" class="shrink-0 mt-0.5"></v-icon>
+                                        <span
+                                            >Suspicious backups are created when the database size or message count
+                                            drops unexpectedly compared to the last known baseline, usually after a
+                                            crash, corruption, or deletion. They are kept automatically so you can
+                                            inspect or restore from them.</span
+                                        >
                                     </div>
 
                                     <!-- Backups Pagination -->
@@ -1072,7 +1080,7 @@ export default {
             autoBackups: [],
             autoBackupsTotal: 0,
             autoBackupsOffset: 0,
-            autoBackupsLimit: 3,
+            autoBackupsLimit: 4,
             electronVersion: null,
             chromeVersion: null,
             nodeVersion: null,
@@ -1411,7 +1419,12 @@ export default {
                 return;
             }
             if (!this.restoreFile) {
-                this.restoreError = "Select a backup file to restore.";
+                this.restoreError = this.$t("about.restore_select_file");
+                return;
+            }
+            if (!(await DialogUtils.confirm(this.$t("about.restore_file_confirm")))) {
+                this.restoreFile = null;
+                this.restoreFileName = "";
                 return;
             }
             this.restoreInProgress = true;
@@ -1423,15 +1436,22 @@ export default {
                 const response = await window.api.post("/api/v1/database/restore", formData, {
                     headers: { "Content-Type": "multipart/form-data" },
                 });
-                this.restoreMessage = response.data.message || "Database restored";
+                this.restoreMessage = response.data.message || this.$t("about.database_restored");
                 this.databaseHealth = response.data.database?.health || this.databaseHealth;
                 this.databaseRecoveryActions = response.data.database?.actions || this.databaseRecoveryActions;
+                ToastUtils.success(this.$t("about.database_restored"));
+                if (this.isElectron) {
+                    setTimeout(() => ElectronUtils.relaunch(), 2000);
+                }
                 await this.getDatabaseHealth();
             } catch (e) {
-                this.restoreError = "Restore failed";
+                this.restoreError = this.$t("about.failed_restore_file");
+                ToastUtils.error(this.$t("about.failed_restore_file"));
                 console.log(e);
             } finally {
                 this.restoreInProgress = false;
+                this.restoreFile = null;
+                this.restoreFileName = "";
             }
         },
         async runRecovery() {
@@ -1562,14 +1582,18 @@ export default {
         formatBytesPerSecond: function (bytesPerSecond) {
             return Utils.formatBytesPerSecond(bytesPerSecond);
         },
-        onRestoreFileChange(event) {
-            const files = event.target.files;
+        async onRestoreFileChange(event) {
+            const input = event.target;
+            const files = input.files;
             if (files && files[0]) {
                 this.restoreFile = files[0];
                 this.restoreFileName = files[0].name;
                 this.restoreError = "";
                 this.restoreMessage = "";
+                await this.restoreDatabase();
             }
+            // allow re-selecting the same file later
+            input.value = "";
         },
         formatRecoveryResult(value) {
             if (value === null || value === undefined) {

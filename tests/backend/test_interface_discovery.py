@@ -137,7 +137,9 @@ async def test_reticulum_discovery_get_and_patch(temp_dir):
         )
         assert patch_data["discovery"]["interface_discovery_blacklist"] is None
         assert patch_data["discovery"]["required_discovery_value"] == 18
-        assert patch_data["discovery"]["autoconnect_discovered_interfaces"] == 5
+        assert patch_data["discovery"]["autoconnect_discovered_interfaces"] == (
+            ReticulumMeshChat.DEFAULT_AUTOCONNECT_DISCOVERED_INTERFACES
+        )
         assert patch_data["discovery"]["default_bootstrap_only"] is False
         assert patch_data["discovery"]["network_identity"] == "/tmp/other_id"
         assert config["reticulum"]["discover_interfaces"] is False
@@ -145,7 +147,7 @@ async def test_reticulum_discovery_get_and_patch(temp_dir):
         assert config["reticulum"]["interface_discovery_whitelist"] == "peer-*,172.16.*"
         assert "interface_discovery_blacklist" not in config["reticulum"]
         assert config["reticulum"]["required_discovery_value"] == 18
-        assert config["reticulum"]["autoconnect_discovered_interfaces"] == 5
+        assert "autoconnect_discovered_interfaces" not in config["reticulum"]
         assert "default_bootstrap_only" not in config["reticulum"]
         assert app_instance.current_context.config.default_bootstrap_only.get() is False
         assert config["reticulum"]["network_identity"] == "/tmp/other_id"
@@ -305,8 +307,21 @@ async def test_discovered_interfaces_respect_whitelist_and_blacklist(temp_dir):
         data = json.loads(response.body)
         interfaces = data["interfaces"]
 
-        assert len(interfaces) == 1
-        assert interfaces[0]["name"] == "peer-good-1"
+        assert len(interfaces) == 4
+        allowed = [
+            i for i in interfaces if i.get("is_allowed") and not i.get("is_blacklisted")
+        ]
+        assert len(allowed) == 1
+        assert allowed[0]["name"] == "peer-good-1"
+        blocked = [i for i in interfaces if i.get("is_blacklisted")]
+        assert len(blocked) == 2
+        # Check annotation matches correctly
+        peer_good = next(i for i in interfaces if i["name"] == "peer-good-1")
+        assert peer_good["is_allowed"] is True
+        assert peer_good["is_blacklisted"] is False
+        other = next(i for i in interfaces if i["name"] == "other-network")
+        assert other["is_allowed"] is False
+        assert other["is_blacklisted"] is False
 
 
 @pytest.mark.asyncio

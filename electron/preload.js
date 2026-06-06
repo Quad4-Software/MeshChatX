@@ -99,4 +99,16 @@ contextBridge.exposeInMainWorld("electron", {
     backendRuntimeState: async function () {
         return await ipcRenderer.invoke("backend-runtime-state");
     },
+    restartBackend: async function () {
+        return await ipcRenderer.invoke("restart-backend");
+    },
+    openBackendCrashReport: async function () {
+        return await ipcRenderer.invoke("open-backend-crash-report");
+    },
+    onBackendProcessExited: function (callback) {
+        if (typeof callback !== "function") {
+            return;
+        }
+        ipcRenderer.on("backend-process-exited", (_event, payload) => callback(payload));
+    },
 });

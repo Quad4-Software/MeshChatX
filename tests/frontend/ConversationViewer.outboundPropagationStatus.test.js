@@ -77,6 +77,17 @@ describe("ConversationViewer outbound propagation status", () => {
         expect(wrapper.vm.outboundSentStatusTitle(null)).toBe("");
     });
 
+    it("outboundTransferProgressPercent and label track resource transfer", () => {
+        const wrapper = mountViewer();
+        expect(wrapper.vm.outboundTransferProgressPercent({ state: "sending", progress: 42.5 })).toBe(43);
+        expect(wrapper.vm.outboundSendingProgressLabel({ state: "sending", progress: 42.5 })).toBe("43%");
+        expect(wrapper.vm.outboundTransferProgressPercent({ state: "sending", progress: 0 })).toBe(0);
+        expect(wrapper.vm.outboundTransferProgressPercent({ state: "outbound", progress: 50 })).toBe(50);
+        expect(wrapper.vm.outboundTransferProgressPercent({ state: "outbound", progress: 0 })).toBeNull();
+        expect(wrapper.vm.outboundTransferProgressPercent({ state: "sending", _pendingPathfinding: true })).toBeNull();
+        expect(wrapper.vm.outboundSendingProgressLabel(null)).toBeNull();
+    });
+
     it("outboundSendingStatusTooltip uses propagation pending strings for propagated method", () => {
         const wrapper = mountViewer();
         const withProgress = wrapper.vm.outboundSendingStatusTooltip({
@@ -110,6 +121,79 @@ describe("ConversationViewer outbound propagation status", () => {
                 state: "outbound",
             })
         ).toBe("messages.outbound_pending_propagation");
+    });
+
+    it("outboundSendingStatusTooltip uses solving stamps copy when solving_stamps is set", () => {
+        const wrapper = mountViewer();
+        expect(
+            wrapper.vm.outboundSendingStatusTooltip({
+                state: "outbound",
+                solving_stamps: true,
+            })
+        ).toBe("messages.outbound_solving_stamps");
+    });
+
+    it("outboundBubbleStatusHoverTitle uses solving stamps short copy when solving_stamps is set", () => {
+        const wrapper = mountViewer();
+        expect(
+            wrapper.vm.outboundBubbleStatusHoverTitle({
+                state: "outbound",
+                solving_stamps: true,
+            })
+        ).toBe("messages.outbound_solving_stamps_short");
+    });
+
+    it("onLxmfMessageUpdated preserves solving_stamps when websocket omits the field", () => {
+        const wrapper = mountViewer();
+        const hash = "abc123def456789012345678901234ab";
+        wrapper.vm.chatItems = [
+            {
+                type: "lxmf_message",
+                is_outbound: true,
+                lxmf_message: {
+                    hash,
+                    destination_hash: "peerhash111111111111111111111111",
+                    state: "outbound",
+                    solving_stamps: true,
+                    content: "hi",
+                    fields: {},
+                },
+            },
+        ];
+
+        wrapper.vm.onLxmfMessageUpdated({
+            hash,
+            state: "sending",
+        });
+
+        expect(wrapper.vm.chatItems[0].lxmf_message.solving_stamps).toBe(true);
+    });
+
+    it("onLxmfMessageUpdated clears solving_stamps when websocket sets it false", () => {
+        const wrapper = mountViewer();
+        const hash = "abc123def456789012345678901234ab";
+        wrapper.vm.chatItems = [
+            {
+                type: "lxmf_message",
+                is_outbound: true,
+                lxmf_message: {
+                    hash,
+                    destination_hash: "peerhash111111111111111111111111",
+                    state: "outbound",
+                    solving_stamps: true,
+                    content: "hi",
+                    fields: {},
+                },
+            },
+        ];
+
+        wrapper.vm.onLxmfMessageUpdated({
+            hash,
+            state: "sending",
+            solving_stamps: false,
+        });
+
+        expect(wrapper.vm.chatItems[0].lxmf_message.solving_stamps).toBe(false);
     });
 
     it("onLxmfMessageUpdated preserves merged method when websocket sends propagated handoff", () => {

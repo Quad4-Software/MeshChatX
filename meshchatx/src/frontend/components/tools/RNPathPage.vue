@@ -1,34 +1,14 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="flex flex-col flex-1 h-full min-w-0 overflow-hidden bg-slate-50 dark:bg-zinc-950">
-        <!-- header -->
-        <div
-            class="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 md:px-6 py-3 sm:py-4 bg-slate-50 dark:bg-zinc-950 border-b border-gray-200 dark:border-zinc-800"
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+        <ToolsPageHeader
+            icon="route"
+            :title="$t('tools.rnpath.title')"
+            :description="$t('tools.rnpath.description')"
+            accent="indigo"
         >
-            <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                <div class="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg shrink-0">
-                    <MaterialDesignIcon
-                        icon-name="route"
-                        class="size-5 sm:size-6 text-indigo-600 dark:text-indigo-400"
-                    />
-                </div>
-                <div class="min-w-0">
-                    <h1 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white truncate">RNPath</h1>
-                    <p class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 line-clamp-2 sm:line-clamp-none">
-                        Reticulum Path Management Utility
-                    </p>
-                </div>
-            </div>
-
-            <div class="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
-                <RouterLink
-                    to="/tools"
-                    class="inline-flex items-center gap-2 text-sm text-indigo-600 dark:text-indigo-300 hover:underline shrink-0"
-                >
-                    <MaterialDesignIcon icon-name="arrow-left" class="size-4" />
-                    {{ $t("tools.back_to_tools") }}
-                </RouterLink>
+            <template #actions>
                 <button
                     class="p-2 text-gray-500 hover:text-indigo-500 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors"
                     title="Refresh"
@@ -40,8 +20,8 @@
                         :class="{ 'animate-spin-reverse': isLoading }"
                     />
                 </button>
-            </div>
-        </div>
+            </template>
+        </ToolsPageHeader>
 
         <div
             class="flex-1 overflow-y-auto min-w-0 p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 pb-[max(1rem,env(safe-area-inset-bottom))]"
@@ -353,11 +333,13 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
 import DialogUtils from "../../js/DialogUtils";
 import Utils from "../../js/Utils";
+import ToolsPageHeader from "./ToolsPageHeader.vue";
 
 export default {
     name: "RNPathPage",
     components: {
         MaterialDesignIcon,
+        ToolsPageHeader,
     },
     data() {
         return {

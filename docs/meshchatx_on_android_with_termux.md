@@ -20,7 +20,7 @@ pkg install build-essential
 
 ### Download and Install Wheel
 
-Download the latest wheel from the [releases page](https://git.quad4.io/RNS-Things/MeshChatX/releases), then:
+Download the latest wheel from the [releases page](https://github.com/Quad4-Software/MeshChatX/releases), then:
 
 ```
 pip install reticulum_meshchatx-*-py3-none-any.whl
@@ -64,7 +64,7 @@ corepack prepare pnpm@latest --activate
 ### Clone and Build
 
 ```
-git clone https://git.quad4.io/RNS-Things/MeshChatX.git
+git clone https://github.com/Quad4-Software/MeshChatX.git
 cd MeshChatX
 pip install uv
 uv sync --group dev

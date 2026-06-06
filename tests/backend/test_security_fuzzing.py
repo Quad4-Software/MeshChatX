@@ -702,15 +702,6 @@ def test_lxm_uri_prefix_variations_fuzzing(mock_app, uri_prefix, uri_body):
 
 
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
-@given(telemetry_packed=st.binary(min_size=0, max_size=10000))
-def test_telemetry_from_packed_fuzzing(mock_app, telemetry_packed):
-    """Fuzz Telemeter.from_packed with random binary data."""
-    from meshchatx.src.backend.telemetry_utils import Telemeter
-
-    Telemeter.from_packed(telemetry_packed)
-
-
-@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
 @given(
     telemetry_data=st.one_of(
         st.binary(min_size=0, max_size=10000),

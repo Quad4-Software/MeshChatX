@@ -33,12 +33,12 @@ describe("lxmfConversationListPreview", () => {
         expect(s).toBe("Alex reacted \u2764\uFE0F");
     });
 
-    it("reads emoji from fields.app_extensions when body fields are used", () => {
+    it("reads emoji from fields.reaction when body fields are used", () => {
         const s = lxmfConversationListPreview(
             {
                 content: "",
                 is_incoming: true,
-                fields: { app_extensions: { reaction_to: "deadbeef", emoji: "\u{1F602}" } },
+                fields: { reaction: { reaction_to: "deadbeef", reaction_content: "\u{1F602}" } },
             },
             { myLxmfAddressHash: me, peerDisplayName: "Sam" }
         );

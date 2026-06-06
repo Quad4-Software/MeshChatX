@@ -8,6 +8,16 @@ import tempfile
 import pytest
 
 from meshchatx.src.backend.database import Database
+from meshchatx.src.backend.database.provider import DatabaseProvider
+
+
+@pytest.fixture(autouse=True)
+def reset_database_provider():
+    DatabaseProvider._instance = None
+    yield
+    if DatabaseProvider._instance is not None:
+        DatabaseProvider._instance.close_all()
+    DatabaseProvider._instance = None
 
 
 @pytest.fixture

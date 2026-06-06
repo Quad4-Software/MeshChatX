@@ -11,7 +11,6 @@ async def test_update_config_sets_announce_store_flags(mock_app):
             "announce_store_lxst_telephony": True,
             "announce_store_nomadnetwork_node": False,
             "announce_store_lxmf_propagation": True,
-            "announce_store_git_repositories": False,
         }
     )
     c = mock_app.config
@@ -19,4 +18,3 @@ async def test_update_config_sets_announce_store_flags(mock_app):
     assert c.announce_store_lxst_telephony.get() is True
     assert c.announce_store_nomadnetwork_node.get() is False
     assert c.announce_store_lxmf_propagation.get() is True
-    assert c.announce_store_git_repositories.get() is False

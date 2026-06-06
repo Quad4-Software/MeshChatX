@@ -154,10 +154,6 @@
         },
         {
             "method": "POST",
-            "path": "/api/v1/database/restore"
-        },
-        {
-            "method": "POST",
             "path": "/api/v1/database/snapshot"
         },
         {
@@ -211,6 +207,34 @@
         {
             "method": "GET",
             "path": "/api/v1/destination/{destination_hash}/signal-metrics"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/diagnostics/memory"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/diagnostics/memory/gc"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/diagnostics/memory/gc/collect"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/diagnostics/memory/heap"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/diagnostics/memory/referrers"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/diagnostics/memory/reset"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/diagnostics/memory/snapshot"
         },
         {
             "method": "GET",
@@ -487,6 +511,10 @@
         {
             "method": "POST",
             "path": "/api/v1/maintenance/messages/import"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/maintenance/messages/import-file"
         },
         {
             "method": "DELETE",
@@ -778,10 +806,6 @@
         },
         {
             "method": "POST",
-            "path": "/api/v1/rngit-tool/probe"
-        },
-        {
-            "method": "POST",
             "path": "/api/v1/rnpath/drop"
         },
         {
@@ -814,7 +838,151 @@
         },
         {
             "method": "GET",
+            "path": "/api/v1/rnsh/sessions"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rnsh/sessions"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/rnsh/sessions/{session_id}"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rnsh/sessions/{session_id}/clear"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rnsh/sessions/{session_id}/input"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/rnsh/sessions/{session_id}/output"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rnsh/sessions/{session_id}/start"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rnsh/sessions/{session_id}/stop"
+        },
+        {
+            "method": "GET",
             "path": "/api/v1/rnstatus"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/rrc/hubs"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rrc/hubs"
+        },
+        {
+            "method": "PUT",
+            "path": "/api/v1/rrc/hubs/order"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/rrc/hubs/{hub_hash}"
+        },
+        {
+            "method": "PATCH",
+            "path": "/api/v1/rrc/hubs/{hub_hash}"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rrc/hubs/{hub_hash}/command"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rrc/hubs/{hub_hash}/connect"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rrc/hubs/{hub_hash}/disconnect"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rrc/hubs/{hub_hash}/rooms"
+        },
+        {
+            "method": "PUT",
+            "path": "/api/v1/rrc/hubs/{hub_hash}/rooms/order"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/rrc/hubs/{hub_hash}/rooms/{room}"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/rrc/hubs/{hub_hash}/rooms/{room}/messages"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/rrc/hubs/{hub_hash}/rooms/{room}/messages"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rrc/hubs/{hub_hash}/rooms/{room}/messages"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rrc/hubs/{hub_hash}/rooms/{room}/read"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/rrc/servers"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rrc/servers"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/rrc/servers/{hub_id}"
+        },
+        {
+            "method": "PATCH",
+            "path": "/api/v1/rrc/servers/{hub_id}"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/rrc/servers/{hub_id}/activity"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rrc/servers/{hub_id}/announce"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/rrc/servers/{hub_id}/members"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/rrc/servers/{hub_id}/messages"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rrc/servers/{hub_id}/moderate"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rrc/servers/{hub_id}/rooms"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/rrc/servers/{hub_id}/rooms/{room}"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rrc/servers/{hub_id}/start"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rrc/servers/{hub_id}/stop"
         },
         {
             "method": "POST",

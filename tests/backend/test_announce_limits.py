@@ -29,7 +29,6 @@ def mock_config():
         "announce_store_lxst_telephony",
         "announce_store_nomadnetwork_node",
         "announce_store_lxmf_propagation",
-        "announce_store_git_repositories",
     ):
         _m = MagicMock()
         _m.get.return_value = True

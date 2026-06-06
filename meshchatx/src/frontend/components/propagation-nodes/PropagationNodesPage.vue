@@ -1,507 +1,528 @@
 <!-- SPDX-License-Identifier: 0BSD AND MIT -->
 
 <template>
-    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-gray-50 dark:bg-zinc-950">
-        <div class="px-4 py-4 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-            <div class="rounded-2xl border border-gray-200 dark:border-zinc-800 p-4">
-                <div class="flex items-start justify-between gap-3">
-                    <button
-                        type="button"
-                        class="min-w-0 text-left"
-                        @click="isLocalManagerCollapsed = !isLocalManagerCollapsed"
-                    >
-                        <div class="flex items-center gap-2 min-w-0">
-                            <MaterialDesignIcon
-                                :icon-name="isLocalManagerCollapsed ? 'chevron-right' : 'chevron-down'"
-                                class="size-5 text-gray-500 dark:text-zinc-400 shrink-0"
-                            />
-                            <div class="font-semibold text-gray-900 dark:text-zinc-100 truncate">
-                                Hosted Propagation Node
+    <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+        <ToolsPageHeader
+            icon="mailbox"
+            :title="$t('tools.propagation_nodes.title')"
+            :description="$t('tools.propagation_nodes.description')"
+            accent="cyan"
+        />
+        <div class="flex-1 overflow-y-auto min-w-0">
+            <div class="px-4 py-4 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+                <div class="rounded-2xl border border-gray-200 dark:border-zinc-800 p-4">
+                    <div class="flex items-start justify-between gap-3">
+                        <button
+                            type="button"
+                            class="min-w-0 text-left"
+                            @click="isLocalManagerCollapsed = !isLocalManagerCollapsed"
+                        >
+                            <div class="flex items-center gap-2 min-w-0">
+                                <MaterialDesignIcon
+                                    :icon-name="isLocalManagerCollapsed ? 'chevron-right' : 'chevron-down'"
+                                    class="size-5 text-gray-500 dark:text-zinc-400 shrink-0"
+                                />
+                                <div class="font-semibold text-gray-900 dark:text-zinc-100 truncate">
+                                    Hosted Propagation Node
+                                </div>
+                                <span
+                                    v-if="localPropagationNode"
+                                    class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold"
+                                    :class="
+                                        localNodeIsRunning
+                                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                                            : 'bg-gray-100 text-gray-700 dark:bg-zinc-800 dark:text-zinc-300'
+                                    "
+                                >
+                                    {{ localNodeIsRunning ? "Running" : "Stopped" }}
+                                </span>
+                                <span
+                                    v-if="
+                                        localPropagationNode &&
+                                        config.lxmf_preferred_propagation_node_destination_hash ===
+                                            localPropagationNode.destination_hash
+                                    "
+                                    class="inline-flex items-center gap-1 rounded-full bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:text-blue-300"
+                                >
+                                    Preferred
+                                </span>
                             </div>
-                            <span
-                                v-if="localPropagationNode"
-                                class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold"
-                                :class="
-                                    localNodeIsRunning
-                                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-                                        : 'bg-gray-100 text-gray-700 dark:bg-zinc-800 dark:text-zinc-300'
-                                "
+                        </button>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <button
+                                type="button"
+                                class="text-gray-500 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-40"
+                                title="Announce now"
+                                :disabled="!localPropagationNode"
+                                @click="announceNow"
                             >
-                                {{ localNodeIsRunning ? "Running" : "Stopped" }}
-                            </span>
-                            <span
-                                v-if="
-                                    localPropagationNode &&
-                                    config.lxmf_preferred_propagation_node_destination_hash ===
-                                        localPropagationNode.destination_hash
-                                "
-                                class="inline-flex items-center gap-1 rounded-full bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:text-blue-300"
+                                <MaterialDesignIcon icon-name="bullhorn" class="size-5" />
+                            </button>
+                            <button
+                                v-if="!localNodeIsRunning"
+                                type="button"
+                                class="text-gray-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 disabled:opacity-40"
+                                title="Start node"
+                                :disabled="!localPropagationNode"
+                                @click="startLocalPropagationNode"
                             >
-                                Preferred
-                            </span>
+                                <MaterialDesignIcon icon-name="play" class="size-5" />
+                            </button>
+                            <button
+                                v-if="localNodeIsRunning"
+                                type="button"
+                                class="text-gray-500 dark:text-zinc-400 hover:text-amber-600 dark:hover:text-amber-400"
+                                title="Restart node"
+                                @click="restartLocalPropagationNode"
+                            >
+                                <MaterialDesignIcon icon-name="refresh" class="size-5" />
+                            </button>
+                            <button
+                                v-if="localNodeIsRunning"
+                                type="button"
+                                class="text-gray-500 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400"
+                                title="Stop node"
+                                @click="stopLocalPropagationNode"
+                            >
+                                <MaterialDesignIcon icon-name="stop" class="size-5" />
+                            </button>
                         </div>
-                    </button>
-                    <div class="flex items-center gap-2 shrink-0">
-                        <button
-                            type="button"
-                            class="text-gray-500 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-40"
-                            title="Announce now"
-                            :disabled="!localPropagationNode"
-                            @click="announceNow"
-                        >
-                            <MaterialDesignIcon icon-name="bullhorn" class="size-5" />
-                        </button>
-                        <button
-                            v-if="!localNodeIsRunning"
-                            type="button"
-                            class="text-gray-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 disabled:opacity-40"
-                            title="Start node"
-                            :disabled="!localPropagationNode"
-                            @click="startLocalPropagationNode"
-                        >
-                            <MaterialDesignIcon icon-name="play" class="size-5" />
-                        </button>
-                        <button
-                            v-if="localNodeIsRunning"
-                            type="button"
-                            class="text-gray-500 dark:text-zinc-400 hover:text-amber-600 dark:hover:text-amber-400"
-                            title="Restart node"
-                            @click="restartLocalPropagationNode"
-                        >
-                            <MaterialDesignIcon icon-name="refresh" class="size-5" />
-                        </button>
-                        <button
-                            v-if="localNodeIsRunning"
-                            type="button"
-                            class="text-gray-500 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400"
-                            title="Stop node"
-                            @click="stopLocalPropagationNode"
-                        >
-                            <MaterialDesignIcon icon-name="stop" class="size-5" />
-                        </button>
                     </div>
-                </div>
 
-                <div v-if="!isLocalManagerCollapsed" class="mt-3 space-y-3">
-                    <div
-                        v-if="config.lxmf_local_propagation_node_address_hash"
-                        class="text-xs font-mono text-gray-600 dark:text-zinc-400 break-all"
-                    >
-                        &lt;{{ config.lxmf_local_propagation_node_address_hash }}&gt;
-                    </div>
-                    <div class="text-xs text-gray-600 dark:text-zinc-400 flex items-center gap-2">
-                        <template v-if="nodePathFor(config.lxmf_local_propagation_node_address_hash)">
-                            <span>{{
-                                formatPathLabel(nodePathFor(config.lxmf_local_propagation_node_address_hash))
-                            }}</span>
-                        </template>
-                        <template v-else>
-                            <span>No path yet</span>
-                        </template>
-                        <button
-                            type="button"
-                            class="text-gray-500 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-40"
-                            title="Find path now"
-                            :disabled="!config.lxmf_local_propagation_node_address_hash"
-                            @click="requestPathForNode(config.lxmf_local_propagation_node_address_hash)"
+                    <div v-if="!isLocalManagerCollapsed" class="mt-3 space-y-3">
+                        <div
+                            v-if="config.lxmf_local_propagation_node_address_hash"
+                            class="text-xs font-mono text-gray-600 dark:text-zinc-400 break-all"
                         >
-                            <MaterialDesignIcon icon-name="map-marker-path" class="size-4" />
-                        </button>
-                    </div>
-                    <label class="block text-xs text-gray-600 dark:text-zinc-400">
-                        Display name
-                        <div class="mt-1 flex items-center gap-2">
-                            <input
-                                v-model.trim="localNodeDisplayNameDraft"
-                                type="text"
-                                maxlength="64"
-                                class="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl px-3 py-2"
-                                placeholder="Anonymous Peer"
-                                @keydown.enter.prevent="saveLocalNodeDisplayName"
-                            />
+                            &lt;{{ config.lxmf_local_propagation_node_address_hash }}&gt;
+                        </div>
+                        <div class="text-xs text-gray-600 dark:text-zinc-400 flex items-center gap-2">
+                            <template v-if="nodePathFor(config.lxmf_local_propagation_node_address_hash)">
+                                <span>{{
+                                    formatPathLabel(nodePathFor(config.lxmf_local_propagation_node_address_hash))
+                                }}</span>
+                            </template>
+                            <template v-else>
+                                <span>No path yet</span>
+                            </template>
                             <button
                                 type="button"
-                                class="text-gray-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400"
-                                title="Save name"
-                                @click="saveLocalNodeDisplayName"
+                                class="text-gray-500 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400 disabled:opacity-40"
+                                title="Find path now"
+                                :disabled="!config.lxmf_local_propagation_node_address_hash"
+                                @click="requestPathForNode(config.lxmf_local_propagation_node_address_hash)"
                             >
-                                <MaterialDesignIcon icon-name="check" class="size-5" />
-                            </button>
-                            <button
-                                type="button"
-                                class="text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-zinc-100"
-                                title="Reset to Anonymous"
-                                @click="resetLocalNodeDisplayName"
-                            >
-                                <MaterialDesignIcon icon-name="restore" class="size-5" />
+                                <MaterialDesignIcon icon-name="map-marker-path" class="size-4" />
                             </button>
                         </div>
-                    </label>
-                    <div
-                        v-if="localNodeStatsVisible"
-                        class="text-xs text-gray-600 dark:text-zinc-400 flex flex-wrap gap-x-3 gap-y-1"
-                    >
-                        <span>{{ formatSeconds(localPropagationNode.local_node_stats.uptime_seconds) }} uptime</span>
-                        <span>{{ localPropagationNode.local_node_stats.total_peers }} peers</span>
-                        <span>{{ localPropagationNode.local_node_stats.messagestore_count }} messages stored</span>
-                        <span>{{ localPropagationNode.local_node_stats.client_messages_received }} received</span>
-                        <span>{{ localPropagationNode.local_node_stats.client_messages_served }} served</span>
-                        <span>{{ formatStorageUsage(localPropagationNode.local_node_stats) }} storage</span>
-                        <span>RX {{ formatByteSize(localPropagationNode.local_node_stats.rx_bytes) }}</span>
-                        <span>TX {{ formatByteSize(localPropagationNode.local_node_stats.tx_bytes) }}</span>
-                    </div>
-                    <div v-else class="text-xs text-gray-500 dark:text-zinc-500">Node stats appear when running.</div>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        <label class="text-xs text-gray-600 dark:text-zinc-400 block">
-                            {{ $t("app.incoming_message_size") }}
-                            <span class="block mt-0.5 font-normal text-[11px] text-gray-500 dark:text-zinc-500">{{
-                                $t("app.incoming_message_size_description")
-                            }}</span>
-                            <select
-                                v-model="lxmfIncomingDeliveryPreset"
-                                class="mt-1 w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl px-3 py-2"
-                                @change="onLxmfIncomingDeliveryPresetChange"
-                            >
-                                <option value="1mb">{{ $t("app.incoming_message_size_1mb") }}</option>
-                                <option value="10mb">{{ $t("app.incoming_message_size_10mb") }}</option>
-                                <option value="25mb">{{ $t("app.incoming_message_size_25mb") }}</option>
-                                <option value="50mb">{{ $t("app.incoming_message_size_50mb") }}</option>
-                                <option value="1gb">{{ $t("app.incoming_message_size_1gb") }}</option>
-                                <option value="custom">{{ $t("app.incoming_message_size_custom") }}</option>
-                            </select>
-                            <div
-                                v-if="lxmfIncomingDeliveryPreset === 'custom'"
-                                class="mt-1 flex flex-wrap items-center gap-2"
-                            >
+                        <label class="block text-xs text-gray-600 dark:text-zinc-400">
+                            Display name
+                            <div class="mt-1 flex items-center gap-2">
                                 <input
-                                    v-model.number="lxmfIncomingDeliveryCustomAmount"
+                                    v-model.trim="localNodeDisplayNameDraft"
+                                    type="text"
+                                    maxlength="64"
+                                    class="w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl px-3 py-2"
+                                    placeholder="Anonymous Peer"
+                                    @keydown.enter.prevent="saveLocalNodeDisplayName"
+                                />
+                                <button
+                                    type="button"
+                                    class="text-gray-500 dark:text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400"
+                                    title="Save name"
+                                    @click="saveLocalNodeDisplayName"
+                                >
+                                    <MaterialDesignIcon icon-name="check" class="size-5" />
+                                </button>
+                                <button
+                                    type="button"
+                                    class="text-gray-500 dark:text-zinc-400 hover:text-gray-800 dark:hover:text-zinc-100"
+                                    title="Reset to Anonymous"
+                                    @click="resetLocalNodeDisplayName"
+                                >
+                                    <MaterialDesignIcon icon-name="restore" class="size-5" />
+                                </button>
+                            </div>
+                        </label>
+                        <div
+                            v-if="localNodeStatsVisible"
+                            class="text-xs text-gray-600 dark:text-zinc-400 flex flex-wrap gap-x-3 gap-y-1"
+                        >
+                            <span
+                                >{{ formatSeconds(localPropagationNode.local_node_stats.uptime_seconds) }} uptime</span
+                            >
+                            <span>{{ localPropagationNode.local_node_stats.total_peers }} peers</span>
+                            <span>{{ localPropagationNode.local_node_stats.messagestore_count }} messages stored</span>
+                            <span>{{ localPropagationNode.local_node_stats.client_messages_received }} received</span>
+                            <span>{{ localPropagationNode.local_node_stats.client_messages_served }} served</span>
+                            <span>{{ formatStorageUsage(localPropagationNode.local_node_stats) }} storage</span>
+                            <span>RX {{ formatByteSize(localPropagationNode.local_node_stats.rx_bytes) }}</span>
+                            <span>TX {{ formatByteSize(localPropagationNode.local_node_stats.tx_bytes) }}</span>
+                        </div>
+                        <div v-else class="text-xs text-gray-500 dark:text-zinc-500">
+                            Node stats appear when running.
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <label class="text-xs text-gray-600 dark:text-zinc-400 block">
+                                {{ $t("app.incoming_message_size") }}
+                                <span class="block mt-0.5 font-normal text-[11px] text-gray-500 dark:text-zinc-500">{{
+                                    $t("app.incoming_message_size_description")
+                                }}</span>
+                                <select
+                                    v-model="lxmfIncomingDeliveryPreset"
+                                    class="mt-1 w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl px-3 py-2"
+                                    @change="onLxmfIncomingDeliveryPresetChange"
+                                >
+                                    <option value="1mb">{{ $t("app.incoming_message_size_1mb") }}</option>
+                                    <option value="10mb">{{ $t("app.incoming_message_size_10mb") }}</option>
+                                    <option value="25mb">{{ $t("app.incoming_message_size_25mb") }}</option>
+                                    <option value="50mb">{{ $t("app.incoming_message_size_50mb") }}</option>
+                                    <option value="1gb">{{ $t("app.incoming_message_size_1gb") }}</option>
+                                    <option value="custom">{{ $t("app.incoming_message_size_custom") }}</option>
+                                </select>
+                                <div
+                                    v-if="lxmfIncomingDeliveryPreset === 'custom'"
+                                    class="mt-1 flex flex-wrap items-center gap-2"
+                                >
+                                    <input
+                                        v-model.number="lxmfIncomingDeliveryCustomAmount"
+                                        type="number"
+                                        min="0.001"
+                                        step="any"
+                                        class="min-w-0 flex-1 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl px-3 py-2"
+                                        @input="onLxmfIncomingDeliveryCustomChange"
+                                    />
+                                    <select
+                                        v-model="lxmfIncomingDeliveryCustomUnit"
+                                        class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl px-3 py-2"
+                                        @change="onLxmfIncomingDeliveryCustomChange"
+                                    >
+                                        <option value="mb">{{ $t("app.incoming_message_size_unit_mb") }}</option>
+                                        <option value="gb">{{ $t("app.incoming_message_size_unit_gb") }}</option>
+                                    </select>
+                                </div>
+                                <div class="mt-1 text-[11px] text-gray-500 dark:text-zinc-500">
+                                    {{ formatByteSize(config.lxmf_delivery_transfer_limit_in_bytes) }}
+                                </div>
+                            </label>
+                            <label class="text-xs text-gray-600 dark:text-zinc-400">
+                                Propagation transfer limit (MB)
+                                <input
+                                    v-model.number="propagationLimitInputMb"
                                     type="number"
                                     min="0.001"
-                                    step="any"
-                                    class="min-w-0 flex-1 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl px-3 py-2"
-                                    @input="onLxmfIncomingDeliveryCustomChange"
+                                    step="0.01"
+                                    class="mt-1 w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl px-3 py-2"
+                                    @input="onPropagationTransferLimitChange"
                                 />
-                                <select
-                                    v-model="lxmfIncomingDeliveryCustomUnit"
-                                    class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl px-3 py-2"
-                                    @change="onLxmfIncomingDeliveryCustomChange"
-                                >
-                                    <option value="mb">{{ $t("app.incoming_message_size_unit_mb") }}</option>
-                                    <option value="gb">{{ $t("app.incoming_message_size_unit_gb") }}</option>
-                                </select>
-                            </div>
-                            <div class="mt-1 text-[11px] text-gray-500 dark:text-zinc-500">
-                                {{ formatByteSize(config.lxmf_delivery_transfer_limit_in_bytes) }}
-                            </div>
-                        </label>
-                        <label class="text-xs text-gray-600 dark:text-zinc-400">
-                            Propagation transfer limit (MB)
+                                <div class="mt-1 text-[11px] text-gray-500 dark:text-zinc-500">
+                                    {{ formatByteSize(config.lxmf_propagation_transfer_limit_in_bytes) }}
+                                </div>
+                            </label>
+                            <label class="text-xs text-gray-600 dark:text-zinc-400">
+                                Propagation sync limit (MB)
+                                <input
+                                    v-model.number="propagationSyncLimitInputMb"
+                                    type="number"
+                                    min="0.001"
+                                    step="0.01"
+                                    class="mt-1 w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl px-3 py-2"
+                                    @input="onPropagationSyncLimitChange"
+                                />
+                                <div class="mt-1 text-[11px] text-gray-500 dark:text-zinc-500">
+                                    {{ formatByteSize(config.lxmf_propagation_sync_limit_in_bytes) }}
+                                </div>
+                            </label>
+                        </div>
+                        <label class="block text-xs text-gray-600 dark:text-zinc-400">
+                            Propagation stamp cost
                             <input
-                                v-model.number="propagationLimitInputMb"
+                                v-model.number="config.lxmf_propagation_node_stamp_cost"
                                 type="number"
-                                min="0.001"
-                                step="0.01"
+                                min="13"
+                                max="254"
                                 class="mt-1 w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl px-3 py-2"
-                                @input="onPropagationTransferLimitChange"
+                                @input="onPropagationStampCostChange"
                             />
-                            <div class="mt-1 text-[11px] text-gray-500 dark:text-zinc-500">
-                                {{ formatByteSize(config.lxmf_propagation_transfer_limit_in_bytes) }}
-                            </div>
                         </label>
-                        <label class="text-xs text-gray-600 dark:text-zinc-400">
-                            Propagation sync limit (MB)
-                            <input
-                                v-model.number="propagationSyncLimitInputMb"
-                                type="number"
-                                min="0.001"
-                                step="0.01"
-                                class="mt-1 w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl px-3 py-2"
-                                @input="onPropagationSyncLimitChange"
-                            />
-                            <div class="mt-1 text-[11px] text-gray-500 dark:text-zinc-500">
-                                {{ formatByteSize(config.lxmf_propagation_sync_limit_in_bytes) }}
-                            </div>
-                        </label>
-                    </div>
-                    <label class="block text-xs text-gray-600 dark:text-zinc-400">
-                        Propagation stamp cost
-                        <input
-                            v-model.number="config.lxmf_propagation_node_stamp_cost"
-                            type="number"
-                            min="13"
-                            max="254"
-                            class="mt-1 w-full bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl px-3 py-2"
-                            @input="onPropagationStampCostChange"
-                        />
-                    </label>
-                    <div class="flex flex-wrap gap-2">
-                        <button
-                            type="button"
-                            class="inline-flex items-center gap-x-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-xs transition-colors disabled:opacity-40"
-                            :disabled="!localPropagationNode"
-                            @click="useLocalPropagationNode"
-                        >
-                            Use Our Node
-                        </button>
+                        <div class="flex flex-wrap gap-2">
+                            <button
+                                type="button"
+                                class="inline-flex items-center gap-x-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-xs transition-colors disabled:opacity-40"
+                                :disabled="!localPropagationNode"
+                                @click="useLocalPropagationNode"
+                            >
+                                Use Our Node
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- search and sort -->
-        <div
-            v-if="propagationNodes.length > 0"
-            class="flex flex-col sm:flex-row gap-2 bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-800 px-4 py-3"
-        >
-            <input
-                v-model="searchTerm"
-                type="text"
-                :placeholder="`Search ${propagationNodes.length} Propagation Nodes...`"
-                class="flex-1 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 px-4 py-2 shadow-xs transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500"
-            />
-            <select
-                v-model="sortBy"
-                class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 px-4 py-2 shadow-xs transition-all min-w-[180px]"
+            <!-- search and sort -->
+            <div
+                v-if="propagationNodes.length > 0"
+                class="flex flex-col sm:flex-row gap-2 bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-800 px-4 py-3"
             >
-                <option value="name">Sort by Name</option>
-                <option value="name-desc">Sort by Name (Z-A)</option>
-                <option value="recent">Sort by Recent</option>
-                <option value="oldest">Sort by Oldest</option>
-                <option value="preferred">Preferred First</option>
-            </select>
-        </div>
-
-        <!-- propagation nodes -->
-        <div class="h-full overflow-y-auto px-4 py-4">
-            <div v-if="paginatedNodes.length > 0" class="space-y-3 w-full">
-                <div
-                    v-for="propagationNode of paginatedNodes"
-                    :key="propagationNode.destination_hash"
-                    class="border border-gray-200 dark:border-zinc-800 rounded-2xl bg-white dark:bg-zinc-900 shadow-xs hover:shadow-md transition-shadow overflow-hidden"
-                    :class="{
-                        'ring-2 ring-blue-500 dark:ring-blue-400':
-                            config.lxmf_preferred_propagation_node_destination_hash ===
-                            propagationNode.destination_hash,
-                    }"
+                <input
+                    v-model="searchTerm"
+                    type="text"
+                    :placeholder="`Search ${propagationNodes.length} Propagation Nodes...`"
+                    class="flex-1 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 px-4 py-2 shadow-xs transition-all placeholder:text-gray-400 dark:placeholder:text-zinc-500"
+                />
+                <select
+                    v-model="sortBy"
+                    class="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 text-gray-900 dark:text-zinc-100 text-sm rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 px-4 py-2 shadow-xs transition-all min-w-[180px]"
                 >
-                    <div class="p-4 flex items-center gap-3">
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-2 mb-1">
-                                <div class="font-semibold text-gray-900 dark:text-zinc-100 truncate">
-                                    {{ propagationNode.operator_display_name ?? "Unknown Operator" }}
+                    <option value="name">Sort by Name</option>
+                    <option value="name-desc">Sort by Name (Z-A)</option>
+                    <option value="recent">Sort by Recent</option>
+                    <option value="oldest">Sort by Oldest</option>
+                    <option value="preferred">Preferred First</option>
+                </select>
+            </div>
+
+            <!-- propagation nodes -->
+            <div class="h-full overflow-y-auto px-4 py-4">
+                <div v-if="paginatedNodes.length > 0" class="space-y-3 w-full">
+                    <div
+                        v-for="propagationNode of paginatedNodes"
+                        :key="propagationNode.destination_hash"
+                        class="border border-gray-200 dark:border-zinc-800 rounded-2xl bg-white dark:bg-zinc-900 shadow-xs hover:shadow-md transition-shadow overflow-hidden"
+                        :class="{
+                            'ring-2 ring-blue-500 dark:ring-blue-400':
+                                config.lxmf_preferred_propagation_node_destination_hash ===
+                                propagationNode.destination_hash,
+                        }"
+                    >
+                        <div class="p-4 flex items-center gap-3">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 mb-1">
+                                    <div class="font-semibold text-gray-900 dark:text-zinc-100 truncate">
+                                        {{ propagationNode.operator_display_name ?? "Unknown Operator" }}
+                                    </div>
+                                    <span
+                                        v-if="
+                                            config.lxmf_preferred_propagation_node_destination_hash ===
+                                            propagationNode.destination_hash
+                                        "
+                                        class="inline-flex items-center gap-1 rounded-full bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:text-blue-300"
+                                    >
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            viewBox="0 0 20 20"
+                                            fill="currentColor"
+                                            class="w-3 h-3"
+                                        >
+                                            <path
+                                                fill-rule="evenodd"
+                                                d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z"
+                                                clip-rule="evenodd"
+                                            />
+                                        </svg>
+                                        Preferred
+                                    </span>
+                                    <span
+                                        v-if="propagationNode.is_propagation_enabled === false"
+                                        class="inline-flex items-center gap-1 rounded-full bg-red-100 dark:bg-red-900/30 px-2 py-0.5 text-xs font-semibold text-red-700 dark:text-red-300"
+                                    >
+                                        Disabled
+                                    </span>
+                                    <span
+                                        v-if="propagationNode.is_local_node"
+                                        class="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300"
+                                    >
+                                        Our Node
+                                    </span>
                                 </div>
-                                <span
+                                <div class="text-sm text-gray-600 dark:text-zinc-400 font-mono truncate">
+                                    &lt;{{ propagationNode.destination_hash }}&gt;
+                                </div>
+                                <div class="text-xs text-gray-500 dark:text-zinc-500 mt-1">
+                                    Announced {{ formatTimeAgo(propagationNode.updated_at) }}
+                                </div>
+                                <div class="text-xs text-gray-500 dark:text-zinc-500 mt-1 flex items-center gap-2">
+                                    <template v-if="nodePathFor(propagationNode.destination_hash)">
+                                        <span>{{
+                                            formatPathLabel(nodePathFor(propagationNode.destination_hash))
+                                        }}</span>
+                                    </template>
+                                    <template v-else>
+                                        <span>No path</span>
+                                    </template>
+                                    <button
+                                        type="button"
+                                        class="text-gray-500 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400"
+                                        title="Find path now"
+                                        @click="requestPathForNode(propagationNode.destination_hash)"
+                                    >
+                                        <MaterialDesignIcon icon-name="map-marker-path" class="size-4" />
+                                    </button>
+                                </div>
+                                <div
+                                    v-if="propagationNode.local_node_stats"
+                                    class="text-xs text-gray-500 dark:text-zinc-500 mt-1 flex flex-wrap gap-x-3 gap-y-1"
+                                >
+                                    <span
+                                        >{{
+                                            formatSeconds(propagationNode.local_node_stats.uptime_seconds)
+                                        }}
+                                        uptime</span
+                                    >
+                                    <span>{{ propagationNode.local_node_stats.total_peers }} peers</span>
+                                    <span>{{ propagationNode.local_node_stats.messagestore_count }} stored</span>
+                                    <span
+                                        >{{ propagationNode.local_node_stats.client_messages_received }} received</span
+                                    >
+                                    <span>{{ propagationNode.local_node_stats.client_messages_served }} served</span>
+                                    <span>{{ formatStorageUsage(propagationNode.local_node_stats) }} storage</span>
+                                    <span>RX {{ formatByteSize(propagationNode.local_node_stats.rx_bytes) }}</span>
+                                    <span>TX {{ formatByteSize(propagationNode.local_node_stats.tx_bytes) }}</span>
+                                </div>
+                            </div>
+                            <div class="shrink-0">
+                                <button
                                     v-if="
                                         config.lxmf_preferred_propagation_node_destination_hash ===
                                         propagationNode.destination_hash
                                     "
-                                    class="inline-flex items-center gap-1 rounded-full bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:text-blue-300"
-                                >
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        viewBox="0 0 20 20"
-                                        fill="currentColor"
-                                        class="w-3 h-3"
-                                    >
-                                        <path
-                                            fill-rule="evenodd"
-                                            d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z"
-                                            clip-rule="evenodd"
-                                        />
-                                    </svg>
-                                    Preferred
-                                </span>
-                                <span
-                                    v-if="propagationNode.is_propagation_enabled === false"
-                                    class="inline-flex items-center gap-1 rounded-full bg-red-100 dark:bg-red-900/30 px-2 py-0.5 text-xs font-semibold text-red-700 dark:text-red-300"
-                                >
-                                    Disabled
-                                </span>
-                                <span
-                                    v-if="propagationNode.is_local_node"
-                                    class="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300"
-                                >
-                                    Our Node
-                                </span>
-                            </div>
-                            <div class="text-sm text-gray-600 dark:text-zinc-400 font-mono truncate">
-                                &lt;{{ propagationNode.destination_hash }}&gt;
-                            </div>
-                            <div class="text-xs text-gray-500 dark:text-zinc-500 mt-1">
-                                Announced {{ formatTimeAgo(propagationNode.updated_at) }}
-                            </div>
-                            <div class="text-xs text-gray-500 dark:text-zinc-500 mt-1 flex items-center gap-2">
-                                <template v-if="nodePathFor(propagationNode.destination_hash)">
-                                    <span>{{ formatPathLabel(nodePathFor(propagationNode.destination_hash)) }}</span>
-                                </template>
-                                <template v-else>
-                                    <span>No path</span>
-                                </template>
-                                <button
                                     type="button"
-                                    class="text-gray-500 dark:text-zinc-400 hover:text-blue-600 dark:hover:text-blue-400"
-                                    title="Find path now"
-                                    @click="requestPathForNode(propagationNode.destination_hash)"
+                                    class="inline-flex items-center gap-x-1.5 rounded-xl bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 px-4 py-2 text-sm font-semibold text-white shadow-xs transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
+                                    @click="stopUsingPropagationNode"
                                 >
-                                    <MaterialDesignIcon icon-name="map-marker-path" class="size-4" />
+                                    Stop Using
+                                </button>
+                                <button
+                                    v-else
+                                    type="button"
+                                    class="inline-flex items-center gap-x-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-xs transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+                                    @click="usePropagationNode(propagationNode.destination_hash)"
+                                >
+                                    Set as Preferred
                                 </button>
                             </div>
-                            <div
-                                v-if="propagationNode.local_node_stats"
-                                class="text-xs text-gray-500 dark:text-zinc-500 mt-1 flex flex-wrap gap-x-3 gap-y-1"
-                            >
-                                <span>{{ formatSeconds(propagationNode.local_node_stats.uptime_seconds) }} uptime</span>
-                                <span>{{ propagationNode.local_node_stats.total_peers }} peers</span>
-                                <span>{{ propagationNode.local_node_stats.messagestore_count }} stored</span>
-                                <span>{{ propagationNode.local_node_stats.client_messages_received }} received</span>
-                                <span>{{ propagationNode.local_node_stats.client_messages_served }} served</span>
-                                <span>{{ formatStorageUsage(propagationNode.local_node_stats) }} storage</span>
-                                <span>RX {{ formatByteSize(propagationNode.local_node_stats.rx_bytes) }}</span>
-                                <span>TX {{ formatByteSize(propagationNode.local_node_stats.tx_bytes) }}</span>
-                            </div>
-                        </div>
-                        <div class="shrink-0">
-                            <button
-                                v-if="
-                                    config.lxmf_preferred_propagation_node_destination_hash ===
-                                    propagationNode.destination_hash
-                                "
-                                type="button"
-                                class="inline-flex items-center gap-x-1.5 rounded-xl bg-red-600 hover:bg-red-700 dark:bg-red-600 dark:hover:bg-red-700 px-4 py-2 text-sm font-semibold text-white shadow-xs transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
-                                @click="stopUsingPropagationNode"
-                            >
-                                Stop Using
-                            </button>
-                            <button
-                                v-else
-                                type="button"
-                                class="inline-flex items-center gap-x-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-xs transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-                                @click="usePropagationNode(propagationNode.destination_hash)"
-                            >
-                                Set as Preferred
-                            </button>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- pagination -->
-            <div
-                v-if="totalPages > 1"
-                class="flex items-center justify-between mt-6 pt-4 border-t border-gray-200 dark:border-zinc-800"
-            >
-                <div class="text-sm text-gray-600 dark:text-zinc-400">
-                    Showing {{ startIndex + 1 }}-{{ endIndex }} of {{ sortedAndSearchedPropagationNodes.length }}
-                </div>
-                <div class="flex items-center gap-2">
-                    <button
-                        :disabled="currentPage === 1"
-                        type="button"
-                        class="inline-flex items-center gap-x-1.5 rounded-xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2 text-sm font-medium text-gray-700 dark:text-zinc-300 shadow-xs transition-colors"
-                        @click="currentPage = Math.max(1, currentPage - 1)"
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke-width="1.5"
-                            stroke="currentColor"
-                            class="w-4 h-4"
-                        >
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-                        </svg>
-                        Previous
-                    </button>
-                    <div class="flex items-center gap-1">
+                <!-- pagination -->
+                <div
+                    v-if="totalPages > 1"
+                    class="flex items-center justify-between mt-6 pt-4 border-t border-gray-200 dark:border-zinc-800"
+                >
+                    <div class="text-sm text-gray-600 dark:text-zinc-400">
+                        Showing {{ startIndex + 1 }}-{{ endIndex }} of {{ sortedAndSearchedPropagationNodes.length }}
+                    </div>
+                    <div class="flex items-center gap-2">
                         <button
-                            v-for="page in visiblePages"
-                            :key="page"
+                            :disabled="currentPage === 1"
                             type="button"
-                            :class="[
-                                page === currentPage
-                                    ? 'bg-blue-600 text-white dark:bg-blue-600'
-                                    : 'bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800',
-                            ]"
-                            class="w-10 h-10 rounded-xl border border-gray-200 dark:border-zinc-800 text-sm font-medium shadow-xs transition-colors"
-                            @click="currentPage = page"
+                            class="inline-flex items-center gap-x-1.5 rounded-xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2 text-sm font-medium text-gray-700 dark:text-zinc-300 shadow-xs transition-colors"
+                            @click="currentPage = Math.max(1, currentPage - 1)"
                         >
-                            {{ page }}
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor"
+                                class="w-4 h-4"
+                            >
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                            </svg>
+                            Previous
+                        </button>
+                        <div class="flex items-center gap-1">
+                            <button
+                                v-for="page in visiblePages"
+                                :key="page"
+                                type="button"
+                                :class="[
+                                    page === currentPage
+                                        ? 'bg-blue-600 text-white dark:bg-blue-600'
+                                        : 'bg-white dark:bg-zinc-900 text-gray-700 dark:text-zinc-300 hover:bg-gray-50 dark:hover:bg-zinc-800',
+                                ]"
+                                class="w-10 h-10 rounded-xl border border-gray-200 dark:border-zinc-800 text-sm font-medium shadow-xs transition-colors"
+                                @click="currentPage = page"
+                            >
+                                {{ page }}
+                            </button>
+                        </div>
+                        <button
+                            :disabled="currentPage === totalPages"
+                            type="button"
+                            class="inline-flex items-center gap-x-1.5 rounded-xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2 text-sm font-medium text-gray-700 dark:text-zinc-300 shadow-xs transition-colors"
+                            @click="currentPage = Math.min(totalPages, currentPage + 1)"
+                        >
+                            Next
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke-width="1.5"
+                                stroke="currentColor"
+                                class="w-4 h-4"
+                            >
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                            </svg>
                         </button>
                     </div>
-                    <button
-                        :disabled="currentPage === totalPages"
-                        type="button"
-                        class="inline-flex items-center gap-x-1.5 rounded-xl bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed px-3 py-2 text-sm font-medium text-gray-700 dark:text-zinc-300 shadow-xs transition-colors"
-                        @click="currentPage = Math.min(totalPages, currentPage + 1)"
-                    >
-                        Next
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke-width="1.5"
-                            stroke="currentColor"
-                            class="w-4 h-4"
-                        >
-                            <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-                        </svg>
-                    </button>
                 </div>
-            </div>
 
-            <div v-else-if="sortedAndSearchedPropagationNodes.length === 0" class="flex h-full">
-                <div class="mx-auto my-auto text-center leading-5 text-gray-900 dark:text-gray-100">
-                    <!-- no propagation nodes at all -->
-                    <div v-if="propagationNodes.length === 0" class="flex flex-col">
-                        <div class="mx-auto mb-1">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="size-6"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="M2.25 13.5h3.86a2.25 2.25 0 0 1 2.012 1.244l.256.512a2.25 2.25 0 0 0 2.013 1.244h3.218a2.25 2.25 0 0 0 2.013-1.244l.256-.512a2.25 2.25 0 0 1 2.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 0 0-2.15-1.588H6.911a2.25 2.25 0 0 0-2.15 1.588L2.35 13.177a2.25 2.25 0 0 0-.1.661Z"
-                                />
-                            </svg>
+                <div v-else-if="sortedAndSearchedPropagationNodes.length === 0" class="flex h-full">
+                    <div class="mx-auto my-auto text-center leading-5 text-gray-900 dark:text-gray-100">
+                        <!-- no propagation nodes at all -->
+                        <div v-if="propagationNodes.length === 0" class="flex flex-col">
+                            <div class="mx-auto mb-1">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke-width="1.5"
+                                    stroke="currentColor"
+                                    class="size-6"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        d="M2.25 13.5h3.86a2.25 2.25 0 0 1 2.012 1.244l.256.512a2.25 2.25 0 0 0 2.013 1.244h3.218a2.25 2.25 0 0 0 2.013-1.244l.256-.512a2.25 2.25 0 0 1 2.013-1.244h3.859m-19.5.338V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18v-4.162c0-.224-.034-.447-.1-.661L19.24 5.338a2.25 2.25 0 0 0-2.15-1.588H6.911a2.25 2.25 0 0 0-2.15 1.588L2.35 13.177a2.25 2.25 0 0 0-.1.661Z"
+                                    />
+                                </svg>
+                            </div>
+                            <div class="font-semibold">No Propagation Nodes</div>
+                            <div>Check back later, once someone has announced.</div>
+                            <div class="mt-4">
+                                <button
+                                    type="button"
+                                    class="inline-flex items-center gap-x-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-xs transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+                                    @click="loadPropagationNodes"
+                                >
+                                    Reload
+                                </button>
+                            </div>
                         </div>
-                        <div class="font-semibold">No Propagation Nodes</div>
-                        <div>Check back later, once someone has announced.</div>
-                        <div class="mt-4">
-                            <button
-                                type="button"
-                                class="inline-flex items-center gap-x-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow-xs transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
-                                @click="loadPropagationNodes"
-                            >
-                                Reload
-                            </button>
-                        </div>
-                    </div>
 
-                    <!-- is searching, but no results -->
-                    <div v-if="searchTerm !== '' && propagationNodes.length > 0" class="flex flex-col">
-                        <div class="mx-auto mb-1">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke-width="1.5"
-                                stroke="currentColor"
-                                class="w-6 h-6"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
-                                />
-                            </svg>
+                        <!-- is searching, but no results -->
+                        <div v-if="searchTerm !== '' && propagationNodes.length > 0" class="flex flex-col">
+                            <div class="mx-auto mb-1">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke-width="1.5"
+                                    stroke="currentColor"
+                                    class="w-6 h-6"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
+                                    />
+                                </svg>
+                            </div>
+                            <div class="font-semibold">No Search Results</div>
+                            <div>Your search didn't match any Propagation Nodes!</div>
                         </div>
-                        <div class="font-semibold">No Search Results</div>
-                        <div>Your search didn't match any Propagation Nodes!</div>
                     </div>
                 </div>
             </div>
@@ -515,6 +536,7 @@ import WebSocketConnection from "../../js/WebSocketConnection";
 import ToastUtils from "../../js/ToastUtils";
 import { getDestinationPath } from "../../js/reticulumPathfinding.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 import {
     incomingDeliveryBytesFromCustom,
     incomingDeliveryBytesFromPresetKey,
@@ -525,6 +547,7 @@ export default {
     name: "PropagationNodesPage",
     components: {
         MaterialDesignIcon,
+        ToolsPageHeader,
     },
     data() {
         return {

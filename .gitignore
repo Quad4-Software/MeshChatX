@@ -8,6 +8,7 @@
 # Dependencies
 node_modules/
 .pnpm-store/
+vendor/offline/
 
 # Python
 __pycache__/

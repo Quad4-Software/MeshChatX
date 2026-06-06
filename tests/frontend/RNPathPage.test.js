@@ -1,6 +1,7 @@
 import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import RNPathPage from "@/components/tools/RNPathPage.vue";
+import { mountToolsPageGlobals } from "./testI18n.js";
 
 describe("RNPathPage.vue", () => {
     let axiosMock;
@@ -71,17 +72,7 @@ describe("RNPathPage.vue", () => {
 
     const mountRNPathPage = () => {
         return mount(RNPathPage, {
-            global: {
-                mocks: {
-                    $t: (key) => key,
-                },
-                stubs: {
-                    MaterialDesignIcon: {
-                        template: '<div class="mdi-stub" :data-icon-name="iconName"></div>',
-                        props: ["iconName"],
-                    },
-                },
-            },
+            global: mountToolsPageGlobals(),
         });
     };
 

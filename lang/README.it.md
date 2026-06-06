@@ -7,8 +7,8 @@ Un fork ampiamente modificato e ricco di funzionalita di Reticulum MeshChat di L
 Questo progetto e indipendente dal progetto originale Reticulum MeshChat e non e affiliato ad esso.
 
 - Sito web: [meshchatx.com](https://meshchatx.com)
-- Codice sorgente: [git.quad4.io/RNS-Things/MeshChatX](https://git.quad4.io/RNS-Things/MeshChatX)
-- Mirror ufficiale su GitHub: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
+- Codice sorgente: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
+- Mirror: [lavaforge.org/Reticulum-Things/MeshChatX](https://lavaforge.org/Reticulum-Things/MeshChatX)
 - Release: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - Changelog: [`CHANGELOG.md`](../CHANGELOG.md)
 - Donazioni: [`donate.md`](../donate.md) ([Donazioni](#donazioni))
@@ -42,7 +42,7 @@ MeshChatX NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
 
 - Python `>=3.11` (da `pyproject.toml`)
 - Node.js `>=24` (da `package.json`, campo `engines`)
-- pnpm `10.33.0` (da `package.json`, campo `packageManager`)
+- pnpm `11.1.2` (da `package.json`, campo `packageManager`)
 - Poetry (utilizzato in `Taskfile.yml` e nei workflow CI)
 
 **Browser Versions Required:**
@@ -161,12 +161,12 @@ pipx install ./reticulum_meshchatx-*-py3-none-any.whl
 Per sviluppo o build locali personalizzate.
 
 ```bash
-git clone https://git.quad4.io/RNS-Things/MeshChatX.git
+git clone https://github.com/Quad4-Software/MeshChatX.git
 cd MeshChatX
 corepack enable
 pnpm config set verify-store-integrity true
 pnpm install --frozen-lockfile
-pip install "uv==0.11.12"
+pip install "uv==0.11.15"
 uv lock --check
 uv sync --group dev
 pnpm run build-frontend
@@ -176,10 +176,10 @@ uv run python -m meshchatx.meshchat --headless --host 127.0.0.1
 Note sui comandi di installazione:
 
 - `pnpm install --frozen-lockfile` rifiuta di aggiornare `pnpm-lock.yaml` e fallisce se il lockfile non corrisponde a `package.json`. Cosi' si evita che una versione upstream inattesa venga installata silenziosamente.
-- `verify-store-integrity=true` e' impostato anche nel `.npmrc` del progetto; la riga esplicita `pnpm config set` rafforza inoltre la configurazione utente.
-- Gli script di lifecycle (`preinstall`/`postinstall`) sono bloccati di default in pnpm v10+. Solo i pacchetti elencati in `pnpm.onlyBuiltDependencies` di `package.json` possono eseguire script di installazione (attualmente `electron`, `electron-winstaller`, `esbuild`).
+- `verify-store-integrity=true` e' impostato anche nel `pnpm-workspace.yaml` del progetto; la riga esplicita `pnpm config set` rafforza inoltre la configurazione utente.
+- Gli script di lifecycle (`preinstall`/`postinstall`) sono bloccati di default in pnpm v11+. Solo i pacchetti elencati in `allowBuilds` di `pnpm-workspace.yaml` possono eseguire script di installazione (attualmente `electron`, `electron-winstaller`, `esbuild`).
 - `uv lock --check` fallisce subito se `uv.lock` non e' allineato con `pyproject.toml`; `uv sync --group dev` risolve poi solo dal lockfile.
-- Per un'installazione Poetry strettamente basata sul lockfile (senza refresh implicito), fissa Poetry con `pip install "uv==0.11.12"`, in linea con la CI.
+- Per un'installazione Poetry strettamente basata sul lockfile (senza refresh implicito), fissa Poetry con `pip install "uv==0.11.15"`, in linea con la CI.
 
 Se vuoi aggiornare intenzionalmente le dipendenze, esegui `pnpm update` / `uv lock` in un commit dedicato e rivedi il diff del lockfile prima del push.
 
@@ -345,7 +345,7 @@ Scorciatoie `Makefile`:
 
 ## Versionamento
 
-Versione attuale nel repository: `4.6.2`.
+Versione attuale nel repository: `4.7.0`.
 
 - L'unico valore che modifichi per un bump di release e **`version` in `package.json`**.
 - Esegui **`pnpm run version:sync`** (all'inizio anche di **`pnpm run build`**) per propagare in **`pyproject.toml`**, **`meshchatx/src/version.py`**, **`THIRD_PARTY_NOTICES.txt`** (riga prodotto), **README** / **lang/README.\*** (righe "versione attuale"), **esempio pipx in `docs/meshchatx_on_raspberry_pi.md`**, e aiuti in **`packaging/arch/PKGBUILD`**.

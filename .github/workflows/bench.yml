@@ -32,8 +32,8 @@ env:
     FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     PYTHON_VERSION: "3.14"
     NODE_VERSION: "24"
-    UV_VERSION: "0.11.12"
-    PNPM_VERSION: "10.33.0"
+    UV_VERSION: "0.11.15"
+    PNPM_VERSION: "11.1.2"
 
 jobs:
     bench:
@@ -61,15 +61,11 @@ jobs:
                   restore-keys: |
                       ${{ runner.os }}-uv-
 
-            - name: Enable pnpm (corepack)
-              run: corepack enable && corepack prepare "pnpm@${PNPM_VERSION}" --activate
-
-            - name: Set up Node
-              uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f
+            - name: Set up Node and pnpm
+              uses: ./.github/actions/setup-node-pnpm
               with:
                   node-version: ${{ env.NODE_VERSION }}
-                  cache: pnpm
-                  cache-dependency-path: pnpm-lock.yaml
+                  pnpm-version: ${{ env.PNPM_VERSION }}
 
             - name: Install dependencies
               run: bash scripts/ci/github-install-deps.sh

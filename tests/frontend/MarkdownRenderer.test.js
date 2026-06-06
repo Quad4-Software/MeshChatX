@@ -49,7 +49,7 @@ describe("MarkdownRenderer.js", () => {
         });
 
         it("keeps underscores intact in long https links", () => {
-            const url = "https://git.quad4.io/RNS-Things/MeshChatX/src/branch/dev/docs/meshchatx_on_raspberry_pi.md";
+            const url = "https://github.com/Quad4-Software/MeshChatX/src/branch/dev/docs/meshchatx_on_raspberry_pi.md";
             const result = MarkdownRenderer.render(`visit ${url}`);
             expect(result).toContain(`href="${url}"`);
             expect(result).toContain(url);
@@ -396,7 +396,7 @@ describe("MarkdownRenderer.js", () => {
         });
 
         it("strip keeps intraword underscores intact", () => {
-            const url = "https://git.quad4.io/RNS-Things/MeshChatX/src/branch/dev/docs/meshchatx_on_raspberry_pi.md";
+            const url = "https://github.com/Quad4-Software/MeshChatX/src/branch/dev/docs/meshchatx_on_raspberry_pi.md";
             expect(MarkdownRenderer.strip(url)).toBe(url);
         });
 
@@ -488,7 +488,7 @@ describe("MarkdownRenderer.js", () => {
             const msg = [
                 "# Deploy notes",
                 "",
-                "Read https://git.quad4.io/RNS-Things/MeshChatX/src/branch/dev/docs/meshchatx_on_raspberry_pi.md, then ping",
+                "Read https://github.com/Quad4-Software/MeshChatX/src/branch/dev/docs/meshchatx_on_raspberry_pi.md, then ping",
                 "nomadnet://1dfeb0d794963579bd21ac8f153c77a4:/page/meshchatx_on_pi.mu",
                 "",
                 "`inline_code` and _italic_ and snake_case stay sane.",
@@ -500,7 +500,7 @@ describe("MarkdownRenderer.js", () => {
             const result = MarkdownRenderer.render(msg);
             expect(result).toContain("<h1");
             expect(result).toContain(
-                'href="https://git.quad4.io/RNS-Things/MeshChatX/src/branch/dev/docs/meshchatx_on_raspberry_pi.md"'
+                'href="https://github.com/Quad4-Software/MeshChatX/src/branch/dev/docs/meshchatx_on_raspberry_pi.md"'
             );
             expect(result).toContain('data-nomadnet-url="1dfeb0d794963579bd21ac8f153c77a4:/page/meshchatx_on_pi.mu"');
             expect(result).toContain("<code");

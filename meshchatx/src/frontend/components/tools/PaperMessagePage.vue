@@ -2,36 +2,14 @@
 
 <template>
     <div class="flex flex-col flex-1 overflow-hidden min-w-0 bg-slate-50 dark:bg-zinc-950">
+        <ToolsPageHeader
+            icon="qrcode"
+            :title="$t('tools.paper_message.title')"
+            :description="$t('tools.paper_message.description')"
+            accent="blue"
+        />
         <div class="flex-1 overflow-y-auto w-full pb-[max(1rem,env(safe-area-inset-bottom))]">
             <div class="p-3 sm:p-4 md:p-6 max-w-5xl mx-auto w-full space-y-4 min-w-0">
-                <!-- header -->
-                <div
-                    class="flex flex-wrap items-start justify-between gap-3 border-b border-gray-200 dark:border-zinc-800 pb-4"
-                >
-                    <div class="flex items-start gap-3 min-w-0">
-                        <div
-                            class="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg shrink-0"
-                        >
-                            <MaterialDesignIcon icon-name="qrcode" class="size-6" />
-                        </div>
-                        <div class="min-w-0">
-                            <h2 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white tracking-tight">
-                                Paper Message Generator
-                            </h2>
-                            <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                Generate signed LXMF messages for physical delivery or offline transfer.
-                            </p>
-                        </div>
-                    </div>
-                    <RouterLink
-                        to="/tools"
-                        class="inline-flex items-center gap-2 text-sm text-blue-600 dark:text-blue-300 hover:underline shrink-0"
-                    >
-                        <MaterialDesignIcon icon-name="arrow-left" class="size-4" />
-                        {{ $t("tools.back_to_tools") }}
-                    </RouterLink>
-                </div>
-
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <!-- composer -->
                     <div class="space-y-4 min-w-0">
@@ -303,10 +281,11 @@ import QRCode from "qrcode";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import ToastUtils from "../../js/ToastUtils";
+import ToolsPageHeader from "./ToolsPageHeader.vue";
 
 export default {
     name: "PaperMessagePage",
-    components: { MaterialDesignIcon },
+    components: { MaterialDesignIcon, ToolsPageHeader },
     data() {
         return {
             destinationHash: "",

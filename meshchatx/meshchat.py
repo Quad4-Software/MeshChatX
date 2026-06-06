@@ -67,6 +67,7 @@ from meshchatx.src.backend.database.access_attempts import (
     user_agent_hash,
 )
 from meshchatx.src.backend.identity_context import IdentityContext
+from meshchatx.src.backend.rrc import protocol as rrc_protocol
 from meshchatx.src.backend.identity_manager import IdentityManager
 from meshchatx.src.backend.legacy_migrator import (
     assert_migration_context_paths,
@@ -92,14 +93,18 @@ from meshchatx.src.backend.lxmf_sieve import (
     parse_lxmf_sieve_filters_json,
 )
 from meshchatx.src.backend.lxmf_utils import (
+    FIELD_REACTION,
+    FIELD_REPLY_QUOTE,
+    FIELD_REPLY_TO,
     LXMF_APP_EXTENSIONS_FIELD,
+    build_lxmf_reaction_field,
     compute_lxmf_conversation_unread_from_latest_row,
     convert_db_lxmf_message_to_dict,
     convert_lxmf_message_to_dict,
     convert_lxmf_method_to_string,
     convert_lxmf_state_to_string,
     is_user_facing_lxmf_payload,
-    lxmf_fields_are_columba_reaction,
+    lxmf_fields_are_reaction,
     lxmf_sidebar_preview_for_conversation_latest_row,
 )
 from meshchatx.src.backend.map_manager import MAX_EXPORT_TILES, TRANSPARENT_TILE
@@ -132,7 +137,6 @@ from meshchatx.src.backend.page_node_manager import PageNodeManager
 from meshchatx.src.backend.persistent_log_handler import PersistentLogHandler
 from meshchatx.src.backend.recovery import CrashRecovery, HealthMonitor
 from meshchatx.src.backend import reticulum_pathfinding
-import meshchatx.src.backend.rngit_tool as rngit_tool
 from meshchatx.src.backend.rnprobe_handler import RNProbeHandler
 from meshchatx.src.backend.sideband_commands import SidebandCommands
 from meshchatx.src.backend.sticker_utils import (
@@ -315,8 +319,11 @@ class ReticulumMeshChat:
         ssl_key_path: str | None = None,
         rns_loglevel: str | None = None,
         migration_context: dict | None = None,
+        memory_diag_enabled: bool = False,
     ):
         self.running = True
+        self._memory_diag_enabled = memory_diag_enabled
+        self._mem_diag = None
         self.migration_context = (
             migration_context if migration_context is not None else {}
         )
@@ -324,6 +331,23 @@ class ReticulumMeshChat:
             reticulum_config_dir,
         )
         self.storage_dir = storage_dir or os.path.join("storage")
+        skip_storage_lock = os.environ.get(
+            "MESHCHAT_SKIP_STORAGE_LOCK", ""
+        ).lower() in (
+            "1",
+            "true",
+            "yes",
+        )
+        self._storage_lock = None
+        if not skip_storage_lock:
+            from meshchatx.src.backend.storage_lock import StorageLock, StorageLockError
+
+            self._storage_lock = StorageLock(self.storage_dir)
+            try:
+                self._storage_lock.acquire()
+            except StorageLockError as exc:
+                print(str(exc))
+                raise SystemExit(1) from exc
         self.ssl_cert_path = ssl_cert_path
         self.ssl_key_path = ssl_key_path
         self.identity_file_path = identity_file_path
@@ -511,6 +535,15 @@ class ReticulumMeshChat:
             self.current_context.rncp_handler = value
 
     @property
+    def rnsh_manager(self):
+        return self.current_context.rnsh_manager if self.current_context else None
+
+    @rnsh_manager.setter
+    def rnsh_manager(self, value):
+        if self.current_context:
+            self.current_context.rnsh_manager = value
+
+    @property
     def rnstatus_handler(self):
         return self.current_context.rnstatus_handler if self.current_context else None
 
@@ -574,6 +607,24 @@ class ReticulumMeshChat:
     def forwarding_manager(self, value):
         if self.current_context:
             self.current_context.forwarding_manager = value
+
+    @property
+    def rrc_manager(self):
+        return self.current_context.rrc_manager if self.current_context else None
+
+    @rrc_manager.setter
+    def rrc_manager(self, value):
+        if self.current_context:
+            self.current_context.rrc_manager = value
+
+    @property
+    def rrc_server_manager(self):
+        return self.current_context.rrc_server_manager if self.current_context else None
+
+    @rrc_server_manager.setter
+    def rrc_server_manager(self, value):
+        if self.current_context:
+            self.current_context.rrc_server_manager = value
 
     @property
     def community_interfaces_manager(self):
@@ -686,10 +737,42 @@ class ReticulumMeshChat:
             raise RuntimeError("Database not initialized")
         return self.database.backup_database(self.storage_dir, backup_path)
 
-    def restore_database(self, backup_path):
-        if not self.database:
-            raise RuntimeError("Database not initialized")
-        return self.database.restore_database(backup_path)
+    def prepare_for_database_restore(self) -> str | None:
+        db_path = self.database_path
+        self._teardown_all_contexts_for_reload()
+        from meshchatx.src.backend.database.provider import DatabaseProvider
+
+        if DatabaseProvider._instance is not None:
+            DatabaseProvider._instance.close_all()
+            DatabaseProvider._instance = None
+        return db_path
+
+    @staticmethod
+    def _schedule_process_restart(delay: float = 1.0) -> None:
+        def restart():
+            time.sleep(delay)
+            try:
+                os.execv(sys.executable, [sys.executable] + sys.argv)  # noqa: S606
+            except Exception as e:
+                print(f"Failed to restart: {e}")
+                os._exit(0)
+
+        threading.Thread(target=restart, daemon=True).start()
+
+    def restore_database(self, backup_path, *, relaunch: bool = False):
+        db_path = self.prepare_for_database_restore()
+        if not db_path:
+            raise RuntimeError("Database path is unknown")
+        from meshchatx.src.backend.database import Database
+
+        db = Database(db_path)
+        try:
+            result = db.restore_database(backup_path)
+        finally:
+            db.close_all()
+        if relaunch:
+            self._schedule_process_restart()
+        return result
 
     def reset_password(self):
         """Clear the stored password hash so a new password can be set via the web UI."""
@@ -700,44 +783,14 @@ class ReticulumMeshChat:
 
     @staticmethod
     def _disable_rnode_interfaces_on_android(config_path: str) -> bool:
-        """If running on Android, disable RNode* interfaces in Reticulum config.
-
-        Returns True if any interfaces were disabled.
-        """
+        """Disable enabled RNode* interfaces in Reticulum config (Android recovery helper)."""
         if not _is_chaquopy_android():
             return False
-        if not os.path.isfile(config_path):
-            return False
-        try:
-            from RNS.vendor.configobj import ConfigObj
+        from meshchatx.src.backend.rnode_support import (
+            disable_rnode_interfaces_in_config,
+        )
 
-            cfg = ConfigObj(config_path)
-        except Exception:
-            return False
-
-        modified = False
-        interfaces = cfg.get("interfaces")
-        if not isinstance(interfaces, dict):
-            return False
-        for _iface_name, iface in interfaces.items():
-            if not isinstance(iface, dict):
-                continue
-            iface_type = iface.get("type", "")
-            if isinstance(iface_type, str) and iface_type.startswith("RNode"):
-                if str(iface.get("interface_enabled", "")).lower() in (
-                    "true",
-                    "yes",
-                    "1",
-                    "on",
-                ):
-                    iface["interface_enabled"] = "false"
-                    modified = True
-        if modified:
-            try:
-                cfg.write()
-            except Exception:
-                pass
-        return modified
+        return disable_rnode_interfaces_in_config(config_path)
 
     def _ensure_reticulum_config(self, materialize: bool = True):
         """Normalize ``reticulum_config_dir`` and optionally ensure a ``config`` file exists.
@@ -780,13 +833,11 @@ class ReticulumMeshChat:
                 cfg.write()
         except Exception:
             pass
-        # Android: RNodeInterface crashes because serial port access isn't available
-        if _is_chaquopy_android():
-            disabled = self._disable_rnode_interfaces_on_android(config_path)
-            if disabled:
-                logging.getLogger(__name__).warning(
-                    "RNodeInterface is not supported on Android; disabled in config.",
-                )
+        from meshchatx.src.backend.rnode_support import (
+            guard_rnode_interfaces_on_android,
+        )
+
+        guard_rnode_interfaces_on_android(config_path)
 
     def setup_identity(self, identity: RNS.Identity):
         identity_hash = identity.hash.hex()
@@ -1903,7 +1954,7 @@ class ReticulumMeshChat:
             print(f"Auto recovery completed: {actions}")
         finally:
             try:
-                self.database.close()
+                self.database.close_all()
             except Exception as e:
                 print(f"Failed to close database during recovery: {e}")
 
@@ -2305,9 +2356,36 @@ class ReticulumMeshChat:
             if gc_counter >= 300:
                 gc_counter = 0
                 sweep_stale_links()
-                gc.collect()
+                # Python 3.14+ incremental GC: with threshold[2]==0 full gen2
+                # collections are never scheduled automatically, so force one.
+                if sys.version_info >= (3, 14) and gc.get_threshold()[2] == 0:
+                    gc.collect(2)
+                else:
+                    gc.collect()
 
             await asyncio.sleep(1)
+
+    async def _memory_diag_snapshot_loop(self):
+        if not self._mem_diag:
+            return
+        while self.running and self._mem_diag.enabled:
+            try:
+                await asyncio.to_thread(self._mem_diag.snapshot)
+                n = self._mem_diag.total_snapshots
+                if n % 12 == 0:
+                    report = await asyncio.to_thread(
+                        self._mem_diag.diff_snapshots,
+                        top_n=10,
+                    )
+                    if report:
+                        growth = sum(r["size_mib"] for r in report)
+                        print(
+                            f"[mem_diag] Snapshot #{n}: +{growth:.2f} MiB "
+                            f"growth in top {len(report)} sites",
+                        )
+            except Exception as exc:
+                print(f"[mem_diag] Snapshot error: {exc}")
+            await asyncio.sleep(300)  # every 5 minutes
 
     # automatically syncs propagation nodes based on user config
     async def announce_sync_propagation_nodes(self, session_id, context=None):
@@ -2315,6 +2393,8 @@ class ReticulumMeshChat:
         if not ctx:
             return
 
+        router = ctx.message_router
+        sync_start_time = None
         while self.running and ctx.running and ctx.session_id == session_id:
             auto_sync_interval_seconds = ctx.config.lxmf_preferred_propagation_node_auto_sync_interval_seconds.get()
             last_synced_at = (
@@ -2329,8 +2409,29 @@ class ReticulumMeshChat:
             )
 
             # sync
-            if should_sync:
+            if should_sync and sync_start_time is None:
+                sync_start_time = time.monotonic()
                 await self.sync_propagation_nodes(context=ctx)
+
+            # stuck-sync watchdog and completion detection
+            if sync_start_time is not None and router:
+                state = router.propagation_transfer_state
+                pr_complete = getattr(router, "PR_COMPLETE", None)
+                if state in {router.PR_IDLE, pr_complete}:
+                    ctx.config.lxmf_preferred_propagation_node_last_synced_at.set(
+                        int(time.time())
+                    )
+                    await self.send_config_to_websocket_clients(context=ctx)
+                    sync_start_time = None
+                elif time.monotonic() - sync_start_time > 120:
+                    self.stop_propagation_node_sync(context=ctx)
+                    with contextlib.suppress(Exception):
+                        router.propagation_transfer_state = router.PR_IDLE
+                    ctx.config.lxmf_preferred_propagation_node_last_synced_at.set(
+                        int(time.time())
+                    )
+                    await self.send_config_to_websocket_clients(context=ctx)
+                    sync_start_time = None
 
             # wait 1 second before next loop
             await asyncio.sleep(1)
@@ -2522,7 +2623,45 @@ class ReticulumMeshChat:
         ctx = context or self.current_context
         if not ctx or not ctx.message_router:
             return
-        ctx.message_router.cancel_propagation_node_requests()
+        router = ctx.message_router
+        with contextlib.suppress(Exception):
+            router.cancel_propagation_node_requests()
+        # cancel_propagation_node_requests resets via acknowledge_sync_completion,
+        # but a blocked RNS.Identity.recall can leave the router in an active state.
+        with contextlib.suppress(Exception):
+            active_states = {
+                router.PR_PATH_REQUESTED,
+                router.PR_LINK_ESTABLISHING,
+                router.PR_LINK_ESTABLISHED,
+                router.PR_REQUEST_SENT,
+                router.PR_RECEIVING,
+                router.PR_RESPONSE_RECEIVED,
+            }
+            if router.propagation_transfer_state in active_states:
+                router.propagation_transfer_state = router.PR_IDLE
+                router.propagation_transfer_progress = 0.0
+
+    async def _request_propagation_node_messages(self, context=None):
+        ctx = context or self.current_context
+        if not ctx or not ctx.message_router:
+            return
+
+        router = ctx.message_router
+
+        def _request():
+            try:
+                router.request_messages_from_propagation_node(ctx.identity)
+            except (EOFError, BrokenPipeError, ConnectionResetError, OSError):
+                with contextlib.suppress(Exception):
+                    router.propagation_transfer_state = router.PR_IDLE
+                    router.propagation_transfer_progress = 0.0
+            except Exception:
+                logging.getLogger("meshchatx").exception(
+                    "Propagation node message request failed",
+                )
+
+        await asyncio.to_thread(_request)
+        await self.send_config_to_websocket_clients(context=ctx)
 
     def _get_propagation_sync_metrics(self, context=None):
         ctx = context or self.current_context
@@ -3261,6 +3400,136 @@ class ReticulumMeshChat:
             ),
         )
 
+    def on_rrc_change(self, hub, context=None):
+        """Broadcast an RRC hub state change to connected clients."""
+        AsyncUtils.run_async(
+            self.websocket_broadcast(
+                json.dumps(
+                    {
+                        "type": "rrc.change",
+                        "hub_hash": hub.hub_hash.hex() if hub is not None else None,
+                    },
+                ),
+            ),
+        )
+
+    def _rrc_mention_remote_hash(self, hub_hash_hex, room):
+        from meshchatx.src.backend.rrc import protocol as rrc_protocol
+
+        return f"{hub_hash_hex}:{rrc_protocol.normalize_room(room)}"
+
+    def _maybe_add_rrc_mention_notification(self, hub, msg, context=None):
+        if hub is None or not getattr(msg, "mention", False):
+            return
+        if msg.kind not in ("msg", "action"):
+            return
+        if not msg.room:
+            return
+        ctx = context or self.current_context
+        if ctx is None:
+            return
+        from meshchatx.src.backend.rrc import protocol as rrc_protocol
+
+        room = rrc_protocol.normalize_room(msg.room)
+        hub_hash = hub.hub_hash.hex()
+        remote_hash = self._rrc_mention_remote_hash(hub_hash, room)
+        hub_label = (
+            hub.get_display_name()
+            if hasattr(hub, "get_display_name")
+            else (hub.name or hub_hash[:12])
+        )
+        nick = msg.nick if isinstance(msg.nick, str) and msg.nick else None
+        if not nick and isinstance(msg.src, (bytes, bytearray)):
+            nick = msg.src.hex()[:12]
+        nick = nick or "Someone"
+        preview = (msg.text or "").strip()
+        if len(preview) > 180:
+            preview = preview[:177] + "..."
+        title = f"#{room} · {hub_label}"
+        content = f"{nick}: {preview}" if preview else f"{nick} mentioned you"
+        ctx.database.misc.dismiss_unviewed_notifications(
+            notification_type="rrc_mention",
+            remote_hash=remote_hash,
+        )
+        ctx.database.misc.add_notification(
+            "rrc_mention",
+            remote_hash,
+            title,
+            content,
+        )
+
+    def _mark_rrc_mention_notifications_viewed(self, hub_hash_hex, room, context=None):
+        ctx = context or self.current_context
+        if ctx is None or not room:
+            return
+        with contextlib.suppress(ValueError):
+            ctx.database.misc.dismiss_unviewed_notifications(
+                notification_type="rrc_mention",
+                remote_hash=self._rrc_mention_remote_hash(hub_hash_hex, room),
+            )
+
+    def on_rrc_message(self, hub, msg, context=None):
+        """Broadcast a new RRC message to connected clients."""
+        with contextlib.suppress(Exception):
+            self._maybe_add_rrc_mention_notification(hub, msg, context=context)
+        AsyncUtils.run_async(
+            self.websocket_broadcast(
+                json.dumps(
+                    {
+                        "type": "rrc.message",
+                        "hub_hash": hub.hub_hash.hex() if hub is not None else None,
+                        "room": msg.room,
+                        "message": msg.to_dict(),
+                        "mention": bool(getattr(msg, "mention", False)),
+                    },
+                ),
+            ),
+        )
+
+    def on_rrc_server_change(self, hub, context=None):
+        """Broadcast a hosted RRC hub state change to connected clients."""
+        AsyncUtils.run_async(
+            self.websocket_broadcast(
+                json.dumps(
+                    {
+                        "type": "rrc.server.change",
+                        "hub_id": hub.hub_id if hub is not None else None,
+                    },
+                ),
+            ),
+        )
+
+    def on_rnsh_change(self, session, context=None):
+        """Broadcast an RNSh session state change to connected clients."""
+        AsyncUtils.run_async(
+            self.websocket_broadcast(
+                json.dumps(
+                    {
+                        "type": "rnsh.session.change",
+                        "session_id": session.session_id
+                        if session is not None
+                        else None,
+                    },
+                ),
+            ),
+        )
+
+    def on_rnsh_output(self, session, chunk, context=None):
+        """Broadcast RNSh output chunks to connected clients."""
+        AsyncUtils.run_async(
+            self.websocket_broadcast(
+                json.dumps(
+                    {
+                        "type": "rnsh.output",
+                        "session_id": session.session_id
+                        if session is not None
+                        else None,
+                        "chunk": chunk,
+                    },
+                ),
+            ),
+        )
+
     # web server has shutdown, likely ctrl+c, but if we don't do the following, the script never exits
     async def shutdown(self, app):
         for identity_hash in list(self.contexts.keys()):
@@ -3289,6 +3558,10 @@ class ReticulumMeshChat:
         if hasattr(self, "_health_monitor") and self._health_monitor is not None:
             with contextlib.suppress(Exception):
                 self._health_monitor.stop()
+
+        if self._mem_diag is not None:
+            with contextlib.suppress(Exception):
+                self._mem_diag.stop()
 
         # force close websocket clients (copy: close() may touch the client list)
         for websocket_client in list(self.websocket_clients):
@@ -3450,7 +3723,7 @@ class ReticulumMeshChat:
                             <p>The MeshChatX web interface files were not found.</p>
                             <p>If you are running from source, you must build the frontend first:</p>
                             <pre style="background: #1e293b; padding: 1rem; border-radius: 4px; color: #e2e8f0; border: 1px solid #334155;">pnpm install && pnpm run build-frontend</pre>
-                            <p>For more information, see the <a href="https://git.quad4.io/RNS-Things/MeshChatX" style="color: #38bdf8;">README</a>.</p>
+                            <p>For more information, see the <a href="https://github.com/Quad4-Software/MeshChatX" style="color: #38bdf8;">README</a>.</p>
                         </body>
                     </html>
                     """,
@@ -3539,6 +3812,120 @@ class ReticulumMeshChat:
                 },
             )
 
+        # ── Memory diagnostics (only when --memory-diag is active) ──────────
+
+        @routes.get("/api/v1/diagnostics/memory")
+        async def get_memory_diagnostics(request):
+            if self._mem_diag is None:
+                return web.json_response(
+                    {"enabled": False, "message": "Pass --memory-diag to enable"},
+                )
+            # tracemalloc.snapshot() + gc.get_objects() are CPU-bound and
+            # block the event loop for tens of seconds; run off-loop.
+            report = await asyncio.to_thread(self._mem_diag.report)
+            return web.json_response(report)
+
+        @routes.post("/api/v1/diagnostics/memory/snapshot")
+        async def take_memory_snapshot(request):
+            if self._mem_diag is None or not self._mem_diag.enabled:
+                return web.json_response(
+                    {"error": "Memory diagnostics not enabled"},
+                    status=400,
+                )
+            await asyncio.to_thread(self._mem_diag.snapshot)
+            gc_result = await asyncio.to_thread(self._mem_diag.find_cyclic_garbage)
+            stats = await asyncio.to_thread(self._mem_diag.gc_stats)
+            return web.json_response(
+                {
+                    "status": "ok",
+                    "snapshot_count": len(self._mem_diag._snapshots),
+                    "gc_collected": gc_result,
+                    "gc_stats": stats,
+                },
+            )
+
+        @routes.get("/api/v1/diagnostics/memory/heap")
+        async def get_heap_analysis(request):
+            if self._mem_diag is None or not self._mem_diag.enabled:
+                return web.json_response(
+                    {"error": "Memory diagnostics not enabled"},
+                    status=400,
+                )
+            top_n = int(request.query.get("top_n", 40))
+            by_type = await asyncio.to_thread(self._mem_diag.heap_by_type, top_n=top_n)
+            by_cat = await asyncio.to_thread(self._mem_diag.heap_by_category)
+            acc = await asyncio.to_thread(self._mem_diag.accumulating_types)
+            growth = await asyncio.to_thread(self._mem_diag.type_growth_since_start)
+            return web.json_response(
+                {
+                    "by_type": by_type,
+                    "by_category": by_cat,
+                    "accumulating": acc,
+                    "growth_since_start": growth,
+                },
+            )
+
+        @routes.get("/api/v1/diagnostics/memory/gc")
+        async def get_gc_stats(request):
+            if self._mem_diag is None or not self._mem_diag.enabled:
+                return web.json_response(
+                    {"enabled": False, "message": "Pass --memory-diag to enable"},
+                )
+            stats = await asyncio.to_thread(self._mem_diag.gc_stats)
+            return web.json_response(stats)
+
+        @routes.post("/api/v1/diagnostics/memory/gc/collect")
+        async def force_gc_collect(request):
+            if self._mem_diag is None or not self._mem_diag.enabled:
+                return web.json_response(
+                    {"error": "Memory diagnostics not enabled"},
+                    status=400,
+                )
+            result = await asyncio.to_thread(self._mem_diag.find_cyclic_garbage)
+            if self._mem_diag.enabled:
+                await asyncio.to_thread(self._mem_diag.snapshot)
+            stats = await asyncio.to_thread(self._mem_diag.gc_stats)
+            return web.json_response(
+                {
+                    "status": "ok",
+                    "gc_collected": result,
+                    "gc_stats": stats,
+                    "snapshot_count": len(self._mem_diag._snapshots),
+                },
+            )
+
+        @routes.get("/api/v1/diagnostics/memory/referrers")
+        async def get_referrers(request):
+            if self._mem_diag is None or not self._mem_diag.enabled:
+                return web.json_response(
+                    {"error": "Memory diagnostics not enabled"},
+                    status=400,
+                )
+            type_name = request.query.get("type", "")
+            if not type_name:
+                return web.json_response(
+                    {"error": "Specify ?type=<TypeName>"},
+                    status=400,
+                )
+            result = await asyncio.to_thread(
+                self._mem_diag.find_referrers,
+                type_name,
+            )
+            return web.json_response(result)
+
+        @routes.post("/api/v1/diagnostics/memory/reset")
+        async def reset_memory_diagnostics(request):
+            if self._mem_diag is None:
+                return web.json_response(
+                    {"error": "Memory diagnostics not enabled"},
+                    status=400,
+                )
+            await asyncio.to_thread(self._mem_diag.reset)
+            await asyncio.to_thread(self._mem_diag.start)
+            return web.json_response({"status": "ok", "message": "Diagnostics reset"})
+
+        # ── Database ─────────────────────────────────────────────────────
+
         @routes.post("/api/v1/database/snapshot")
         async def create_db_snapshot(request):
             try:
@@ -3595,6 +3982,43 @@ class ReticulumMeshChat:
         @routes.post("/api/v1/database/restore")
         async def restore_db_snapshot(request):
             try:
+                content_type = request.headers.get("Content-Type", "")
+
+                # multipart upload: restore from a user-provided backup/zip file
+                if "multipart/form-data" in content_type:
+                    reader = await request.multipart()
+                    field = await reader.next()
+                    if field is None or field.name != "file":
+                        return web.json_response(
+                            {"status": "error", "message": "Restore file is required"},
+                            status=400,
+                        )
+
+                    with tempfile.NamedTemporaryFile(delete=False) as tmp:
+                        while True:
+                            chunk = await field.read_chunk()
+                            if not chunk:
+                                break
+                            tmp.write(chunk)
+                        temp_path = tmp.name
+
+                    try:
+                        result = self.restore_database(temp_path, relaunch=True)
+                    finally:
+                        with contextlib.suppress(OSError):
+                            os.remove(temp_path)
+
+                    return web.json_response(
+                        {
+                            "status": "success",
+                            "result": result,
+                            "database": result,
+                            "requires_relaunch": True,
+                            "message": "Database restored. Application will restart.",
+                        },
+                    )
+
+                # JSON body: restore from an on-disk snapshot/auto-backup path
                 data = await request.json()
                 path = data.get("path")
                 if not path:
@@ -3617,9 +4041,14 @@ class ReticulumMeshChat:
                             status=404,
                         )
 
-                result = self.database.restore_database(path)
+                result = self.restore_database(path, relaunch=True)
                 return web.json_response(
-                    {"status": "success", "result": result, "requires_relaunch": True},
+                    {
+                        "status": "success",
+                        "result": result,
+                        "requires_relaunch": True,
+                        "message": "Database restored. Application will restart.",
+                    },
                 )
             except Exception as e:
                 return web.json_response(
@@ -4072,17 +4501,19 @@ class ReticulumMeshChat:
                 return web.json_response({"error": "URL is required"}, status=400)
 
             # Restrict to allowed sources for safety
-            gitea_url = "https://git.quad4.io"
+            gitea_url = ""
             if self.current_context and self.current_context.config:
                 gitea_url = self.current_context.config.gitea_base_url.get()
 
-            if (
-                not url.startswith(gitea_url + "/")
-                and not url.startswith("https://git.quad4.io/")
-                and not url.startswith("https://github.com/")
-                and not url.startswith("https://objects.githubusercontent.com/")
-                and not url.startswith("https://release-assets.githubusercontent.com/")
-            ):
+            allowed = [
+                "https://github.com/",
+                "https://objects.githubusercontent.com/",
+                "https://release-assets.githubusercontent.com/",
+            ]
+            if gitea_url:
+                allowed.insert(0, gitea_url + "/")
+
+            if not any(url.startswith(a) for a in allowed):
                 return web.json_response({"error": "Invalid download URL"}, status=403)
 
             try:
@@ -4460,6 +4891,24 @@ class ReticulumMeshChat:
             # update interface details
             interface_details["type"] = interface_type
 
+            if interface_type in (
+                "RNodeInterface",
+                "RNodeIPInterface",
+                "RNodeMultiInterface",
+            ):
+                from meshchatx.src.backend.rnode_support import rnode_serial_supported
+
+                if not rnode_serial_supported():
+                    return web.json_response(
+                        {
+                            "message": (
+                                "RNode serial and Bluetooth are not available on this device. "
+                                "On Android, the app must include usbserial4a (see MeshChatX issue #6)."
+                            ),
+                        },
+                        status=422,
+                    )
+
             # if interface doesn't have enabled or interface_enabled setting already, enable it by default
             if (
                 "enabled" not in interface_details
@@ -4595,7 +5044,15 @@ class ReticulumMeshChat:
                     data,
                     "max_reconnect_tries",
                 )
-                InterfaceEditor.update_value(interface_details, data, "fixed_mtu")
+                fixed_mtu_error = InterfaceEditor.apply_fixed_mtu(
+                    interface_details,
+                    data,
+                )
+                if fixed_mtu_error is not None:
+                    return web.json_response(
+                        {"message": fixed_mtu_error},
+                        status=422,
+                    )
 
             if interface_type == "BackboneInterface":
                 # BackboneInterface supports two distinct configurations:
@@ -6245,44 +6702,6 @@ class ReticulumMeshChat:
                     status=500,
                 )
 
-        @routes.post("/api/v1/database/restore")
-        async def database_restore(request):
-            try:
-                reader = await request.multipart()
-                field = await reader.next()
-                if field is None or field.name != "file":
-                    return web.json_response(
-                        {
-                            "message": "Restore file is required",
-                        },
-                        status=400,
-                    )
-
-                with tempfile.NamedTemporaryFile(delete=False) as tmp:
-                    while True:
-                        chunk = await field.read_chunk()
-                        if not chunk:
-                            break
-                        tmp.write(chunk)
-                    temp_path = tmp.name
-
-                result = self.database.restore_database(temp_path)
-                os.remove(temp_path)
-
-                return web.json_response(
-                    {
-                        "message": "Database restored successfully",
-                        "database": result,
-                    },
-                )
-            except Exception as e:
-                return web.json_response(
-                    {
-                        "message": f"Failed to restore database: {e!s}",
-                    },
-                    status=500,
-                )
-
         @routes.post("/api/v1/identity/restore")
         async def identity_restore(request):
             try:
@@ -6591,17 +7010,107 @@ class ReticulumMeshChat:
                     m["lxmf_icon"] = icons[h]
             return web.json_response({"messages": messages_list})
 
+        def _message_import_response(result):
+            imported = result["imported"]
+            skipped = result["skipped"]
+            errors = result["errors"]
+            if imported == 0 and errors:
+                return web.json_response(
+                    {
+                        "error": errors[0]["error"],
+                        "imported": imported,
+                        "skipped": skipped,
+                        "errors": errors,
+                    },
+                    status=400,
+                )
+            response = {
+                "message": f"Successfully imported {imported} messages",
+                "imported": imported,
+                "skipped": skipped,
+            }
+            if errors:
+                response["errors"] = errors
+            return web.json_response(response)
+
+        def _parse_message_import_payload(payload):
+            if isinstance(payload, list):
+                return payload
+            if isinstance(payload, dict):
+                messages = payload.get("messages", [])
+                return [] if messages is None else messages
+            return None
+
         # maintenance - import messages
         @routes.post("/api/v1/maintenance/messages/import")
         async def maintenance_import_messages(request):
             try:
                 data = await request.json()
-                messages = data.get("messages", [])
-                for msg in messages:
-                    self.database.messages.upsert_lxmf_message(msg)
-                return web.json_response(
-                    {"message": f"Successfully imported {len(messages)} messages"},
+                messages = _parse_message_import_payload(data)
+                if messages is None or not isinstance(messages, list):
+                    return web.json_response(
+                        {"error": "messages must be an array"},
+                        status=400,
+                    )
+                if self.database is None:
+                    return web.json_response(
+                        {"error": "No active identity database"},
+                        status=400,
+                    )
+
+                result = await asyncio.to_thread(
+                    self.database.messages.import_lxmf_messages,
+                    messages,
                 )
+                return _message_import_response(result)
+            except Exception as e:
+                return web.json_response({"error": str(e)}, status=400)
+
+        @routes.post("/api/v1/maintenance/messages/import-file")
+        async def maintenance_import_messages_file(request):
+            try:
+                if self.database is None:
+                    return web.json_response(
+                        {"error": "No active identity database"},
+                        status=400,
+                    )
+
+                reader = await request.multipart()
+                field = await reader.next()
+                if field is None or field.name != "file":
+                    return web.json_response(
+                        {"error": "Import file is required"},
+                        status=400,
+                    )
+
+                chunks = []
+                while True:
+                    chunk = await field.read_chunk(size=1024 * 1024)
+                    if not chunk:
+                        break
+                    chunks.append(chunk)
+                raw = b"".join(chunks)
+
+                try:
+                    payload = json.loads(raw)
+                except json.JSONDecodeError as exc:
+                    return web.json_response(
+                        {"error": f"Invalid JSON: {exc}"},
+                        status=400,
+                    )
+
+                messages = _parse_message_import_payload(payload)
+                if messages is None or not isinstance(messages, list):
+                    return web.json_response(
+                        {"error": "messages must be an array"},
+                        status=400,
+                    )
+
+                result = await asyncio.to_thread(
+                    self.database.messages.import_lxmf_messages,
+                    messages,
+                )
+                return _message_import_response(result)
             except Exception as e:
                 return web.json_response({"error": str(e)}, status=400)
 
@@ -6720,6 +7229,13 @@ class ReticulumMeshChat:
             ):
                 update_config_value(key)
 
+            # When discover_interfaces is off, also disable autoconnect so RNS
+            # does not connect to any discovered interfaces.
+            if "discover_interfaces" in data:
+                disc_val = data["discover_interfaces"]
+                if disc_val is False or str(disc_val).lower() in ("false", "no", "0"):
+                    reticulum_config.pop("autoconnect_discovered_interfaces", None)
+
             # default_bootstrap_only is a MeshChatX-only setting; do NOT write it
             # to Reticulum config so discovered/auto-connected interfaces are
             # never affected. Clean up any stale value in Reticulum config.
@@ -6738,6 +7254,11 @@ class ReticulumMeshChat:
                     {"message": "Failed to write Reticulum config"},
                     status=500,
                 )
+
+            try:
+                await self.reload_reticulum()
+            except Exception as e:
+                logger.debug(f"Failed to reload RNS after discovery config update: {e}")
 
             discovery_config = {
                 "discover_interfaces": reticulum_config.get("discover_interfaces"),
@@ -6778,11 +7299,6 @@ class ReticulumMeshChat:
                 )
                 blacklist_patterns = reticulum_config.get(
                     "interface_discovery_blacklist",
-                )
-                interfaces = ReticulumMeshChat.filter_discovered_interfaces(
-                    interfaces,
-                    whitelist_patterns,
-                    blacklist_patterns,
                 )
                 max_disc = 500
                 if self.current_context and self.current_context.config:
@@ -6871,6 +7387,31 @@ class ReticulumMeshChat:
                         to_jsonable(interfaces),
                     )
                 )
+                whitelist_sanitized = ReticulumMeshChat.sanitize_discovery_patterns(
+                    whitelist_patterns,
+                )
+                blacklist_sanitized = ReticulumMeshChat.sanitize_discovery_patterns(
+                    blacklist_patterns,
+                )
+                for iface in normalized_interfaces:
+                    if not isinstance(iface, dict):
+                        continue
+                    iface["is_allowed"] = (
+                        ReticulumMeshChat.matches_discovery_pattern(
+                            whitelist_sanitized,
+                            iface,
+                        )
+                        if whitelist_patterns
+                        else True
+                    )
+                    iface["is_blacklisted"] = (
+                        ReticulumMeshChat.matches_discovery_pattern(
+                            blacklist_sanitized,
+                            iface,
+                        )
+                        if blacklist_patterns
+                        else False
+                    )
 
                 return web.json_response(
                     {
@@ -7047,6 +7588,526 @@ class ReticulumMeshChat:
                 )
             except Exception as e:
                 return web.json_response({"error": str(e)}, status=500)
+
+        # Reticulum Relay Chat
+        def _rrc_require_manager():
+            manager = self.rrc_manager
+            if manager is None:
+                return None, web.json_response(
+                    {"message": "Relay chat is not available"},
+                    status=503,
+                )
+            return manager, None
+
+        def _rrc_require_hub(hub_hash_hex):
+            manager, error = _rrc_require_manager()
+            if error is not None:
+                return None, None, error
+            hub = manager.find_hub_by_hex(hub_hash_hex)
+            if hub is None:
+                return (
+                    manager,
+                    None,
+                    web.json_response(
+                        {"message": "Hub not found"},
+                        status=404,
+                    ),
+                )
+            return manager, hub, None
+
+        @routes.get("/api/v1/rrc/hubs")
+        async def rrc_hubs_get(request):
+            manager, error = _rrc_require_manager()
+            if error is not None:
+                return error
+            return web.json_response(manager.to_dict())
+
+        @routes.post("/api/v1/rrc/hubs")
+        async def rrc_hubs_post(request):
+            manager, error = _rrc_require_manager()
+            if error is not None:
+                return error
+            data = await request.json()
+            hub_hash_hex = (data.get("hub_hash") or "").strip()
+            try:
+                hub_hash = bytes.fromhex(hub_hash_hex)
+            except (ValueError, TypeError):
+                return web.json_response(
+                    {"message": "A valid hub hash is required"},
+                    status=400,
+                )
+            if len(hub_hash) != rrc_protocol.HUB_HASH_BYTES:
+                return web.json_response(
+                    {"message": "Hub hash has an invalid length"},
+                    status=400,
+                )
+            dest_name = data.get("dest_name") or None
+            name = data.get("name") or None
+            hub = manager.add_hub(hub_hash, dest_name=dest_name, name=name)
+            if data.get("connect"):
+                hub.connect()
+            return web.json_response({"hub": hub.to_dict()})
+
+        @routes.delete("/api/v1/rrc/hubs/{hub_hash}")
+        async def rrc_hub_delete(request):
+            manager, hub, error = _rrc_require_hub(
+                request.match_info.get("hub_hash", ""),
+            )
+            if error is not None:
+                return error
+            manager.remove_hub(hub)
+            return web.json_response({"message": "Hub removed"})
+
+        @routes.patch("/api/v1/rrc/hubs/{hub_hash}")
+        async def rrc_hub_patch(request):
+            _, hub, error = _rrc_require_hub(request.match_info.get("hub_hash", ""))
+            if error is not None:
+                return error
+            data = await request.json()
+            if "auto_reconnect" in data:
+                hub.set_auto_reconnect(bool(data["auto_reconnect"]))
+            if "auto_list" in data:
+                hub.set_auto_list(bool(data["auto_list"]))
+            if "auto_who" in data:
+                hub.set_auto_who(bool(data["auto_who"]))
+            if "nick" in data:
+                hub.set_nick_override(data["nick"])
+            if "custom_name" in data:
+                hub.set_custom_name(data.get("custom_name"))
+            if data.get("revert_custom_name"):
+                hub.set_custom_name(None)
+            if "hub_icon" in data:
+                try:
+                    hub.set_hub_icon(data.get("hub_icon"))
+                except ValueError as e:
+                    return web.json_response({"message": str(e)}, status=400)
+            if data.get("revert_hub_icon"):
+                hub.set_hub_icon(None)
+            return web.json_response({"hub": hub.to_dict()})
+
+        @routes.put("/api/v1/rrc/hubs/order")
+        async def rrc_hubs_reorder(request):
+            manager, error = _rrc_require_manager()
+            if error is not None:
+                return error
+            data = await request.json()
+            hub_hashes = data.get("hub_hashes")
+            if not isinstance(hub_hashes, list):
+                return web.json_response(
+                    {"message": "hub_hashes must be a list"},
+                    status=400,
+                )
+            if not manager.reorder_hubs(hub_hashes):
+                return web.json_response(
+                    {"message": "Invalid hub order"},
+                    status=400,
+                )
+            return web.json_response(manager.to_dict())
+
+        @routes.put("/api/v1/rrc/hubs/{hub_hash}/rooms/order")
+        async def rrc_hub_rooms_reorder(request):
+            _, hub, error = _rrc_require_hub(request.match_info.get("hub_hash", ""))
+            if error is not None:
+                return error
+            data = await request.json()
+            room_names = data.get("room_names")
+            if not isinstance(room_names, list):
+                return web.json_response(
+                    {"message": "room_names must be a list"},
+                    status=400,
+                )
+            if not hub.reorder_rooms(room_names):
+                return web.json_response(
+                    {"message": "Invalid room order"},
+                    status=400,
+                )
+            return web.json_response({"hub": hub.to_dict()})
+
+        @routes.post("/api/v1/rrc/hubs/{hub_hash}/connect")
+        async def rrc_hub_connect(request):
+            _, hub, error = _rrc_require_hub(request.match_info.get("hub_hash", ""))
+            if error is not None:
+                return error
+            hub.connect()
+            return web.json_response({"hub": hub.to_dict()})
+
+        @routes.post("/api/v1/rrc/hubs/{hub_hash}/disconnect")
+        async def rrc_hub_disconnect(request):
+            _, hub, error = _rrc_require_hub(request.match_info.get("hub_hash", ""))
+            if error is not None:
+                return error
+            hub.disconnect()
+            return web.json_response({"hub": hub.to_dict()})
+
+        @routes.post("/api/v1/rrc/hubs/{hub_hash}/rooms")
+        async def rrc_hub_join_room(request):
+            _, hub, error = _rrc_require_hub(request.match_info.get("hub_hash", ""))
+            if error is not None:
+                return error
+            data = await request.json()
+            room = (data.get("room") or "").strip()
+            if not room:
+                return web.json_response(
+                    {"message": "A room name is required"},
+                    status=400,
+                )
+            key = data.get("key") or None
+            try:
+                if hub.status == hub.STATUS_CONNECTED:
+                    hub.join_room(room, key=key)
+                else:
+                    hub.add_room(room)
+            except (ValueError, RuntimeError) as e:
+                return web.json_response({"message": str(e)}, status=400)
+            return web.json_response({"hub": hub.to_dict()})
+
+        @routes.delete("/api/v1/rrc/hubs/{hub_hash}/rooms/{room}")
+        async def rrc_hub_part_room(request):
+            _, hub, error = _rrc_require_hub(request.match_info.get("hub_hash", ""))
+            if error is not None:
+                return error
+            room = request.match_info.get("room", "")
+            try:
+                if hub.status == hub.STATUS_CONNECTED:
+                    hub.part_room(room)
+                else:
+                    hub.remove_room(room)
+            except ValueError as e:
+                return web.json_response({"message": str(e)}, status=400)
+            return web.json_response({"hub": hub.to_dict()})
+
+        @routes.delete("/api/v1/rrc/hubs/{hub_hash}/rooms/{room}/messages")
+        async def rrc_hub_clear_room(request):
+            _, hub, error = _rrc_require_hub(request.match_info.get("hub_hash", ""))
+            if error is not None:
+                return error
+            try:
+                hub.clear_messages(request.match_info.get("room", ""))
+            except ValueError as e:
+                return web.json_response({"message": str(e)}, status=400)
+            return web.json_response({"message": "Messages cleared"})
+
+        @routes.get("/api/v1/rrc/hubs/{hub_hash}/rooms/{room}/messages")
+        async def rrc_hub_room_messages(request):
+            manager, hub, error = _rrc_require_hub(
+                request.match_info.get("hub_hash", ""),
+            )
+            if error is not None:
+                return error
+            room = request.match_info.get("room", "")
+            try:
+                messages = hub.room_messages(room)
+                members = hub.members_dict(room)
+            except ValueError as e:
+                return web.json_response({"message": str(e)}, status=400)
+            manager.set_active(hub, room)
+            return web.json_response({"messages": messages, "members": members})
+
+        @routes.post("/api/v1/rrc/hubs/{hub_hash}/rooms/{room}/messages")
+        async def rrc_hub_send_message(request):
+            _, hub, error = _rrc_require_hub(request.match_info.get("hub_hash", ""))
+            if error is not None:
+                return error
+            room = request.match_info.get("room", "")
+            data = await request.json()
+            text = data.get("text")
+            is_action = bool(data.get("action"))
+            try:
+                if is_action:
+                    hub.send_action(room, text)
+                elif isinstance(text, str) and text.strip().startswith("/"):
+                    hub.send_command(text.strip(), room=room)
+                else:
+                    hub.send_message(room, text)
+            except (ValueError, RuntimeError) as e:
+                return web.json_response({"message": str(e)}, status=400)
+            return web.json_response({"message": "Sent"})
+
+        @routes.post("/api/v1/rrc/hubs/{hub_hash}/rooms/{room}/read")
+        async def rrc_hub_mark_read(request):
+            manager, hub, error = _rrc_require_hub(
+                request.match_info.get("hub_hash", ""),
+            )
+            if error is not None:
+                return error
+            room = request.match_info.get("room", "")
+            try:
+                manager.set_active(hub, room)
+            except ValueError as e:
+                return web.json_response({"message": str(e)}, status=400)
+            self._mark_rrc_mention_notifications_viewed(
+                request.match_info.get("hub_hash", ""),
+                room,
+            )
+            return web.json_response({"message": "Marked read"})
+
+        @routes.post("/api/v1/rrc/hubs/{hub_hash}/command")
+        async def rrc_hub_command(request):
+            _, hub, error = _rrc_require_hub(request.match_info.get("hub_hash", ""))
+            if error is not None:
+                return error
+            data = await request.json()
+            text = data.get("text")
+            room = data.get("room") or None
+            try:
+                hub.send_command(text, room=room)
+            except (ValueError, RuntimeError) as e:
+                return web.json_response({"message": str(e)}, status=400)
+            return web.json_response({"message": "Sent"})
+
+        # Reticulum Relay Chat hosting (local hubs)
+        def _rrc_server_require_manager():
+            manager = self.rrc_server_manager
+            if manager is None:
+                return None, web.json_response(
+                    {"message": "Relay chat hosting is not available"},
+                    status=503,
+                )
+            return manager, None
+
+        def _rrc_server_require_hub(hub_id):
+            manager, error = _rrc_server_require_manager()
+            if error is not None:
+                return None, None, error
+            hub = manager.find_hub(hub_id)
+            if hub is None:
+                return (
+                    manager,
+                    None,
+                    web.json_response(
+                        {"message": "Hub not found"},
+                        status=404,
+                    ),
+                )
+            return manager, hub, None
+
+        @routes.get("/api/v1/rrc/servers")
+        async def rrc_servers_get(request):
+            manager, error = _rrc_server_require_manager()
+            if error is not None:
+                return error
+            return web.json_response(manager.to_dict())
+
+        @routes.post("/api/v1/rrc/servers")
+        async def rrc_servers_post(request):
+            manager, error = _rrc_server_require_manager()
+            if error is not None:
+                return error
+            data = await request.json()
+            name = (data.get("name") or "").strip() or None
+            greeting = (data.get("greeting") or "").strip() or None
+            announce = bool(data.get("announce", True))
+            enabled = bool(data.get("enabled", True))
+            hub = manager.create_hub(
+                name=name,
+                greeting=greeting,
+                announce=announce,
+                enabled=enabled,
+            )
+            return web.json_response({"hub": hub.to_dict()})
+
+        @routes.delete("/api/v1/rrc/servers/{hub_id}")
+        async def rrc_server_delete(request):
+            manager, _, error = _rrc_server_require_hub(
+                request.match_info.get("hub_id", ""),
+            )
+            if error is not None:
+                return error
+            manager.delete_hub(request.match_info.get("hub_id", ""))
+            return web.json_response({"message": "Hub removed"})
+
+        @routes.patch("/api/v1/rrc/servers/{hub_id}")
+        async def rrc_server_patch(request):
+            manager, hub, error = _rrc_server_require_hub(
+                request.match_info.get("hub_id", ""),
+            )
+            if error is not None:
+                return error
+            data = await request.json()
+            manager.update_hub(
+                hub.hub_id,
+                name=(data.get("name") if "name" in data else None),
+                greeting=(data.get("greeting") if "greeting" in data else None),
+                announce=(data.get("announce") if "announce" in data else None),
+                trusted_identities=(
+                    data.get("trusted_identities")
+                    if "trusted_identities" in data
+                    else None
+                ),
+                banned_identities=(
+                    data.get("banned_identities")
+                    if "banned_identities" in data
+                    else None
+                ),
+            )
+            return web.json_response({"hub": hub.to_dict()})
+
+        @routes.post("/api/v1/rrc/servers/{hub_id}/start")
+        async def rrc_server_start(request):
+            manager, hub, error = _rrc_server_require_hub(
+                request.match_info.get("hub_id", ""),
+            )
+            if error is not None:
+                return error
+            manager.start_hub(hub.hub_id)
+            return web.json_response({"hub": hub.to_dict()})
+
+        @routes.post("/api/v1/rrc/servers/{hub_id}/stop")
+        async def rrc_server_stop(request):
+            manager, hub, error = _rrc_server_require_hub(
+                request.match_info.get("hub_id", ""),
+            )
+            if error is not None:
+                return error
+            manager.stop_hub(hub.hub_id)
+            return web.json_response({"hub": hub.to_dict()})
+
+        @routes.post("/api/v1/rrc/servers/{hub_id}/announce")
+        async def rrc_server_announce(request):
+            _, hub, error = _rrc_server_require_hub(
+                request.match_info.get("hub_id", ""),
+            )
+            if error is not None:
+                return error
+            hub.announce_now()
+            return web.json_response({"message": "Announced"})
+
+        @routes.post("/api/v1/rrc/servers/{hub_id}/rooms")
+        async def rrc_server_room_create(request):
+            manager, hub, error = _rrc_server_require_hub(
+                request.match_info.get("hub_id", ""),
+            )
+            if error is not None:
+                return error
+            data = await request.json()
+            name = (data.get("name") or "").strip()
+            if not name:
+                return web.json_response(
+                    {"message": "A room name is required"},
+                    status=400,
+                )
+            topic = (data.get("topic") or "").strip() or None
+            private = bool(data.get("private", False))
+            moderated = bool(data.get("moderated", False))
+            invite_only = bool(data.get("invite_only", False))
+            topic_ops_only = bool(data.get("topic_ops_only", False))
+            no_outside_msgs = bool(data.get("no_outside_msgs", False))
+            key = (data.get("key") or "").strip() or None
+            try:
+                manager.create_room(
+                    hub.hub_id,
+                    name,
+                    topic=topic,
+                    private=private,
+                    moderated=moderated,
+                    invite_only=invite_only,
+                    topic_ops_only=topic_ops_only,
+                    no_outside_msgs=no_outside_msgs,
+                    key=key,
+                )
+            except ValueError as e:
+                return web.json_response({"message": str(e)}, status=400)
+            return web.json_response({"hub": hub.to_dict()})
+
+        @routes.delete("/api/v1/rrc/servers/{hub_id}/rooms/{room}")
+        async def rrc_server_room_delete(request):
+            manager, hub, error = _rrc_server_require_hub(
+                request.match_info.get("hub_id", ""),
+            )
+            if error is not None:
+                return error
+            manager.delete_room(hub.hub_id, request.match_info.get("room", ""))
+            return web.json_response({"hub": hub.to_dict()})
+
+        @routes.get("/api/v1/rrc/servers/{hub_id}/members")
+        async def rrc_server_members(request):
+            _, hub, error = _rrc_server_require_hub(
+                request.match_info.get("hub_id", ""),
+            )
+            if error is not None:
+                return error
+            room = request.rel_url.query.get("room")
+            room_arg = room.strip() if isinstance(room, str) and room.strip() else None
+            try:
+                members = hub.members_dict(room_arg)
+            except ValueError as e:
+                return web.json_response({"message": str(e)}, status=400)
+            return web.json_response({"members": members})
+
+        @routes.get("/api/v1/rrc/servers/{hub_id}/activity")
+        async def rrc_server_activity(request):
+            _, hub, error = _rrc_server_require_hub(
+                request.match_info.get("hub_id", ""),
+            )
+            if error is not None:
+                return error
+            return web.json_response(hub.rooms_activity())
+
+        @routes.get("/api/v1/rrc/servers/{hub_id}/messages")
+        async def rrc_server_messages(request):
+            _, hub, error = _rrc_server_require_hub(
+                request.match_info.get("hub_id", ""),
+            )
+            if error is not None:
+                return error
+            peer = request.rel_url.query.get("peer")
+            if not isinstance(peer, str) or not peer.strip():
+                return web.json_response(
+                    {"message": "peer query parameter is required"},
+                    status=400,
+                )
+            room = request.rel_url.query.get("room")
+            room_arg = room.strip() if isinstance(room, str) and room.strip() else None
+            limit = request.rel_url.query.get("limit")
+            try:
+                messages = hub.messages_for_peer(
+                    peer.strip(), room=room_arg, limit=limit
+                )
+            except ValueError as e:
+                return web.json_response({"message": str(e)}, status=400)
+            return web.json_response({"messages": messages})
+
+        @routes.post("/api/v1/rrc/servers/{hub_id}/moderate")
+        async def rrc_server_moderate(request):
+            _, hub, error = _rrc_server_require_hub(
+                request.match_info.get("hub_id", ""),
+            )
+            if error is not None:
+                return error
+            data = await request.json()
+            action = (data.get("action") or "").strip().lower()
+            peer = (data.get("peer") or "").strip()
+            room = (data.get("room") or "").strip() or None
+            if action not in ("kick", "ban", "room_ban"):
+                return web.json_response(
+                    {"message": "action must be kick, ban, or room_ban"},
+                    status=400,
+                )
+            if not peer:
+                return web.json_response(
+                    {"message": "peer is required"},
+                    status=400,
+                )
+            try:
+                if action == "kick":
+                    if not room:
+                        return web.json_response(
+                            {"message": "room is required for kick"},
+                            status=400,
+                        )
+                    hub.admin_kick_from_room(peer, room)
+                elif action == "ban":
+                    hub.admin_hub_ban(peer)
+                else:
+                    if not room:
+                        return web.json_response(
+                            {"message": "room is required for room_ban"},
+                            status=400,
+                        )
+                    hub.admin_room_ban(peer, room)
+            except ValueError as e:
+                return web.json_response({"message": str(e)}, status=400)
+            return web.json_response({"message": "ok", "hub": hub.to_dict()})
 
         # serve telephone status
         @routes.get("/api/v1/telephone/status")
@@ -8069,6 +9130,9 @@ class ReticulumMeshChat:
                             remote_identity_hash = ident.hash.hex()
 
             if not remote_identity_hash:
+                # Fallback: use the provided lookup hash directly as identity hash
+                remote_identity_hash = lxmf_address or lxst_address
+            if not remote_identity_hash:
                 return web.json_response(
                     {"message": "Identity hash is required or could not be derived"},
                     status=400,
@@ -8320,8 +9384,8 @@ class ReticulumMeshChat:
                 for row in db_custom_names:
                     custom_names[row["destination_hash"]] = row["display_name"]
 
-                # Pre-fetch LXMF display names by identity (telephony + rngit heard list).
-                if aspect in ("lxst.telephony", rngit_tool.RNGIT_ANNOUNCE_ASPECT):
+                # Pre-fetch LXMF display names by identity (telephony heard list).
+                if aspect == "lxst.telephony":
                     identity_hashes = list(
                         {r["identity_hash"] for r in results if r.get("identity_hash")},
                     )
@@ -8366,14 +9430,10 @@ class ReticulumMeshChat:
                         display_name = lxmf_names_for_telephony.get(
                             announce["identity_hash"],
                         )
-                elif announce["aspect"] == rngit_tool.RNGIT_ANNOUNCE_ASPECT:
-                    display_name = rngit_tool.display_name_from_rngit_app_data(
+                elif announce["aspect"] == "rrc.hub":
+                    display_name = rrc_protocol.display_name_from_hub_app_data(
                         announce.get("app_data"),
                     )
-                    if not display_name or display_name == "Anonymous Peer":
-                        cand = lxmf_names_for_telephony.get(announce["identity_hash"])
-                        if cand and cand != "Anonymous Peer":
-                            display_name = cand
 
                 if not display_name or display_name == "Anonymous Peer":
                     if is_local and self.current_context:
@@ -9095,6 +10155,21 @@ class ReticulumMeshChat:
                 reticulum,
                 destination_hash_bytes,
             )
+
+            # if path is already available, resend failed messages for this destination
+            if RNS.Transport.has_path(destination_hash_bytes):
+                for _ctx in list(self.contexts.values()):
+                    if (
+                        _ctx.running
+                        and _ctx.config.auto_resend_failed_messages_when_announce_received.get()
+                    ):
+                        AsyncUtils.run_async(
+                            self.resend_failed_messages_for_destination(
+                                destination_hash,
+                                context=_ctx,
+                            ),
+                        )
+
             return web.json_response(
                 {
                     "message": "ok",
@@ -9270,6 +10345,19 @@ class ReticulumMeshChat:
             rtt_milliseconds = round(rtt * 1000, 3)
             rtt_duration_string = f"{rtt_milliseconds} ms"
 
+            # resend any previously failed messages to this destination now that path is available
+            for _ctx in list(self.contexts.values()):
+                if (
+                    _ctx.running
+                    and _ctx.config.auto_resend_failed_messages_when_announce_received.get()
+                ):
+                    AsyncUtils.run_async(
+                        self.resend_failed_messages_for_destination(
+                            destination_hash_str,
+                            context=_ctx,
+                        ),
+                    )
+
             return web.json_response(
                 {
                     "message": f"Valid reply from {receipt.destination.hash.hex()}\nDuration: {rtt_duration_string}\nHops There: {hops_there}\nHops Back: {hops_back}",
@@ -9286,6 +10374,150 @@ class ReticulumMeshChat:
                     },
                 },
             )
+
+        def _rnsh_require_manager():
+            manager = self.rnsh_manager
+            if manager is None:
+                return None, web.json_response(
+                    {"message": "RNSH manager is not available"},
+                    status=503,
+                )
+            return manager, None
+
+        @routes.get("/api/v1/rnsh/sessions")
+        async def rnsh_sessions_get(request):
+            manager, error = _rnsh_require_manager()
+            if error is not None:
+                return error
+            return web.json_response(manager.list_sessions())
+
+        @routes.post("/api/v1/rnsh/sessions")
+        async def rnsh_sessions_post(request):
+            manager, error = _rnsh_require_manager()
+            if error is not None:
+                return error
+            data = await request.json()
+            session = manager.create_session(data or {})
+            autostart = bool((data or {}).get("autostart", True))
+            if autostart:
+                try:
+                    session.start()
+                except Exception as e:
+                    return web.json_response({"message": str(e)}, status=400)
+            return web.json_response(
+                {"session": session.to_dict(include_output_tail=True)}
+            )
+
+        @routes.delete("/api/v1/rnsh/sessions/{session_id}")
+        async def rnsh_sessions_delete(request):
+            manager, error = _rnsh_require_manager()
+            if error is not None:
+                return error
+            session_id = request.match_info.get("session_id", "")
+            try:
+                manager.remove_session(session_id)
+            except KeyError:
+                return web.json_response({"message": "Session not found"}, status=404)
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+            return web.json_response({"message": "Session removed"})
+
+        @routes.post("/api/v1/rnsh/sessions/{session_id}/start")
+        async def rnsh_session_start(request):
+            manager, error = _rnsh_require_manager()
+            if error is not None:
+                return error
+            session_id = request.match_info.get("session_id", "")
+            try:
+                session = manager.start_session(session_id)
+            except KeyError:
+                return web.json_response({"message": "Session not found"}, status=404)
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=400)
+            return web.json_response({"session": session})
+
+        @routes.post("/api/v1/rnsh/sessions/{session_id}/stop")
+        async def rnsh_session_stop(request):
+            manager, error = _rnsh_require_manager()
+            if error is not None:
+                return error
+            session_id = request.match_info.get("session_id", "")
+            try:
+                session = manager.stop_session(session_id)
+            except KeyError:
+                return web.json_response({"message": "Session not found"}, status=404)
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=400)
+            return web.json_response({"session": session})
+
+        @routes.post("/api/v1/rnsh/sessions/{session_id}/input")
+        async def rnsh_session_input(request):
+            manager, error = _rnsh_require_manager()
+            if error is not None:
+                return error
+            session_id = request.match_info.get("session_id", "")
+            data = await request.json()
+            text = data.get("text")
+            if not isinstance(text, str):
+                return web.json_response(
+                    {"message": "Input text is required"}, status=400
+                )
+            add_newline = bool(data.get("newline", False))
+            if add_newline and not text.endswith("\n"):
+                text += "\n"
+            try:
+                session = manager.send_input(session_id, text)
+            except KeyError:
+                return web.json_response({"message": "Session not found"}, status=404)
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=400)
+            return web.json_response({"session": session})
+
+        @routes.post("/api/v1/rnsh/sessions/{session_id}/resize")
+        async def rnsh_session_resize(request):
+            manager, error = _rnsh_require_manager()
+            if error is not None:
+                return error
+            session_id = request.match_info.get("session_id", "")
+            data = await request.json()
+            rows = (data or {}).get("rows")
+            cols = (data or {}).get("cols")
+            try:
+                session = manager.resize_session(session_id, rows, cols)
+            except KeyError:
+                return web.json_response({"message": "Session not found"}, status=404)
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=400)
+            return web.json_response({"session": session})
+
+        @routes.get("/api/v1/rnsh/sessions/{session_id}/output")
+        async def rnsh_session_output(request):
+            manager, error = _rnsh_require_manager()
+            if error is not None:
+                return error
+            session_id = request.match_info.get("session_id", "")
+            cursor = request.query.get("cursor", 0)
+            try:
+                payload = manager.output_since(session_id, cursor)
+            except KeyError:
+                return web.json_response({"message": "Session not found"}, status=404)
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=400)
+            return web.json_response(payload)
+
+        @routes.post("/api/v1/rnsh/sessions/{session_id}/clear")
+        async def rnsh_session_clear(request):
+            manager, error = _rnsh_require_manager()
+            if error is not None:
+                return error
+            session_id = request.match_info.get("session_id", "")
+            try:
+                session = manager.clear_output(session_id)
+            except KeyError:
+                return web.json_response({"message": "Session not found"}, status=404)
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=400)
+            return web.json_response({"session": session})
 
         @routes.post("/api/v1/rncp/send")
         async def rncp_send(request):
@@ -9457,70 +10689,6 @@ class ReticulumMeshChat:
                 return web.json_response({"message": "RNCP listener stopped"})
             except Exception as e:
                 return web.json_response({"message": str(e)}, status=500)
-
-        @routes.post("/api/v1/rngit-tool/probe")
-        async def rngit_tool_probe(request):
-            if not getattr(self, "reticulum", None) or not self.current_context:
-                return web.json_response(
-                    {"message": "Reticulum not ready"},
-                    status=503,
-                )
-            try:
-                data = await request.json()
-            except Exception:
-                return web.json_response({"message": "Invalid JSON"}, status=400)
-
-            destination_hash_str = (data.get("destination_hash") or "").strip()
-            group_name = (data.get("group_name") or "").strip()
-            raw_names = data.get("repository_names")
-            if isinstance(raw_names, list):
-                name_list = [str(x).strip() for x in raw_names if str(x).strip()]
-            else:
-                text = (data.get("repository_names_text") or raw_names or "").strip()
-                name_list = rngit_tool.parse_repository_name_lines(text)
-
-            path_timeout = data.get("path_timeout")
-            link_timeout = data.get("link_timeout")
-            list_timeout = data.get("list_timeout")
-            for_push = bool(data.get("for_push", False))
-
-            try:
-                pto = float(path_timeout) if path_timeout is not None else None
-            except (TypeError, ValueError):
-                pto = None
-            try:
-                lto = float(link_timeout) if link_timeout is not None else None
-            except (TypeError, ValueError):
-                lto = None
-            try:
-                rto = float(list_timeout) if list_timeout is not None else None
-            except (TypeError, ValueError):
-                rto = None
-
-            result = await rngit_tool.probe_repositories(
-                self.current_context.identity,
-                destination_hash_str,
-                group_name,
-                name_list,
-                path_timeout=pto,
-                link_timeout=lto,
-                list_timeout=rto,
-                for_push=for_push,
-            )
-            if not result.get("ok"):
-                err = result.get("error", "unknown")
-                status = (
-                    400
-                    if err
-                    in (
-                        "invalid_destination_hash",
-                        "invalid_group_name",
-                        "no_repository_names",
-                    )
-                    else 502
-                )
-                return web.json_response(result, status=status)
-            return web.json_response(result)
 
         # --- Page Node API ---
 
@@ -10236,9 +11404,6 @@ class ReticulumMeshChat:
                     destination_hash,
                     display_name,
                 )
-                self.websocket_rebroadcast_rngit_after_custom_destination_display_name_change(
-                    destination_hash,
-                )
                 return web.json_response(
                     {
                         "message": "Custom display name has been updated",
@@ -10247,9 +11412,6 @@ class ReticulumMeshChat:
 
             # otherwise remove display name
             self.database.announces.delete_custom_display_name(destination_hash)
-            self.websocket_rebroadcast_rngit_after_custom_destination_display_name_change(
-                destination_hash,
-            )
             return web.json_response(
                 {
                     "message": "Custom display name has been removed",
@@ -10527,6 +11689,9 @@ class ReticulumMeshChat:
                             lxmf_message,
                             include_attachments=False,
                             reticulum=self.reticulum,
+                            message_router=self.current_context.message_router
+                            if self.current_context
+                            else None,
                         ),
                     },
                 )
@@ -10564,6 +11729,9 @@ class ReticulumMeshChat:
                             lxmf_message,
                             include_attachments=False,
                             reticulum=self.reticulum,
+                            message_router=self.current_context.message_router
+                            if self.current_context
+                            else None,
                         ),
                     },
                 )
@@ -10976,13 +12144,10 @@ class ReticulumMeshChat:
                                 or "Anonymous Peer"
                             ),
                         ),
-                        "latest_message_created_at": row["timestamp"],
+                        "latest_message_created_at": row["created_at"],
                         "lxmf_user_icon": user_icon,
                         "is_contact": bool(row.get("is_contact", 0)),
-                        "updated_at": datetime.fromtimestamp(
-                            row["timestamp"],
-                            UTC,
-                        ).isoformat(),
+                        "updated_at": row["created_at"],
                     },
                 )
 
@@ -11349,7 +12514,9 @@ class ReticulumMeshChat:
                     # Get remote user info if possible
                     display_name = "Unknown"
                     icon = None
-                    if n["remote_hash"]:
+                    if n["type"] == "rrc_mention":
+                        display_name = n.get("title") or "Relay Chat"
+                    elif n["remote_hash"]:
                         # Try to find associated LXMF hash for telephony identity hash
                         lxmf_hash = self.get_lxmf_destination_hash_for_identity_hash(
                             n["remote_hash"],
@@ -12856,10 +14023,14 @@ class ReticulumMeshChat:
                 except Exception:
                     print("failed to launch web browser")
 
+            # start memory diagnostics periodic snapshot task
+            if self._mem_diag and self._mem_diag.enabled:
+                asyncio.create_task(self._memory_diag_snapshot_loop())
+
         # create and run web app
         app = web.Application(
-            client_max_size=1024 * 1024 * 50,
-        )  # allow uploading files up to 50mb
+            client_max_size=1024 * 1024 * 256,
+        )  # allow large message exports with embedded attachments
 
         # setup session storage
         # aiohttp_session.setup must be called before other middlewares that use sessions
@@ -12934,6 +14105,17 @@ class ReticulumMeshChat:
 
         protocol = "https" if use_https else "http"
         print(f"Starting web server on {protocol}://{host}:{port}")
+
+        # Start memory diagnostics if enabled
+        if self._memory_diag_enabled:
+            from meshchatx.src.backend.diagnostics import MemoryDiagnostics
+
+            self._mem_diag = MemoryDiagnostics()
+            self._mem_diag.start()
+            print(
+                "[mem_diag] Memory diagnostics enabled — "
+                "see /api/v1/diagnostics/memory for reports",
+            )
 
         if use_https and ssl_context:
             web.run_app(app, host=host, port=port, ssl_context=ssl_context)
@@ -13127,8 +14309,10 @@ class ReticulumMeshChat:
             await self.send_config_to_websocket_clients(context=ctx)
             return
 
-        # request messages from propagation node
-        router.request_messages_from_propagation_node(ctx.identity)
+        # Kick off the LXMF request on a worker thread. Identity.recall and link
+        # setup can block on multiprocessing pipes; running inline would stall the
+        # HTTP handler and race with cancel_propagation_node_requests (EOFError).
+        asyncio.create_task(self._request_propagation_node_messages(context=ctx))
 
         # send config to websocket clients (used to tell ui last synced at)
         await self.send_config_to_websocket_clients(context=ctx)
@@ -13655,6 +14839,18 @@ class ReticulumMeshChat:
                 self._parse_bool(data["ui_glass_enabled"]),
             )
 
+        if "messages_multi_pane_enabled" in data:
+            self.config.messages_multi_pane_enabled.set(
+                self._parse_bool(data["messages_multi_pane_enabled"]),
+            )
+
+        if "nomad_tabs_enabled" in data:
+            self.config.nomad_tabs_enabled.set(
+                self._parse_bool(data["nomad_tabs_enabled"]),
+            )
+        if "rrc_enabled" in data:
+            self.config.rrc_enabled.set(self._parse_bool(data["rrc_enabled"]))
+
         if "message_outbound_bubble_color" in data:
             self.config.message_outbound_bubble_color.set(
                 data["message_outbound_bubble_color"],
@@ -13705,7 +14901,6 @@ class ReticulumMeshChat:
             "announce_store_lxst_telephony",
             "announce_store_nomadnetwork_node",
             "announce_store_lxmf_propagation",
-            "announce_store_git_repositories",
         ):
             if _k in data:
                 getattr(self.config, _k).set(self._parse_bool(data[_k]))
@@ -13776,7 +14971,9 @@ class ReticulumMeshChat:
                 and self.telephone_manager
                 and self.telephone_manager.telephone
             ):
-                self.telephone_manager.telephone.hangup()
+                self.telephone_manager.teardown()
+            elif value and self.telephone_manager:
+                self.telephone_manager.init_telephone()
 
         if "telephone_allow_calls_from_contacts_only" in data:
             self.config.telephone_allow_calls_from_contacts_only.set(
@@ -14606,7 +15803,7 @@ class ReticulumMeshChat:
                         )
                         return
 
-                # Columba-style contact sharing URI:
+                # LXMA contact sharing URI:
                 # lxma://<destination_hash_hex>:<public_key_hex>
                 if uri.lower().startswith("lxma://"):
                     lxma_payload = uri[7:]
@@ -14630,17 +15827,20 @@ class ReticulumMeshChat:
 
                     bytes.fromhex(destination_hash_hex)
                     raw_bytes = bytes.fromhex(public_key_hex)
-                    public_key_bytes = (
-                        raw_bytes[:32] if len(raw_bytes) >= 32 else raw_bytes
-                    )
 
                     identity = RNS.Identity(create_keys=False)
-                    if not identity.load_public_key(public_key_bytes):
-                        if len(raw_bytes) == 64:
-                            raise ValueError("Invalid LXMA public key")
-                        public_key_bytes = raw_bytes
-                        if not identity.load_public_key(public_key_bytes):
-                            raise ValueError("Invalid LXMA public key")
+                    loaded = False
+                    for candidate in (
+                        raw_bytes,
+                        raw_bytes[:32] if len(raw_bytes) > 32 else None,
+                    ):
+                        if not candidate:
+                            continue
+                        if identity.load_public_key(candidate):
+                            loaded = True
+                            break
+                    if not loaded:
+                        raise ValueError("Invalid LXMA public key")
 
                     remote_identity_hash = identity.hash.hex()
                     existing_contact = (
@@ -14873,6 +16073,10 @@ class ReticulumMeshChat:
                     self.websocket_clients.remove(client)
                 except ValueError:
                     pass
+                try:
+                    await client.close(code=WSCloseCode.GOING_AWAY)
+                except Exception:
+                    pass
 
     # broadcasts config to all websocket clients
     async def send_config_to_websocket_clients(self, context=None):
@@ -15014,6 +16218,9 @@ class ReticulumMeshChat:
             "banished_color": ctx.config.banished_color.get(),
             "message_font_size": ctx.config.message_font_size.get(),
             "messages_sidebar_position": ctx.config.messages_sidebar_position.get(),
+            "messages_multi_pane_enabled": ctx.config.messages_multi_pane_enabled.get(),
+            "nomad_tabs_enabled": ctx.config.nomad_tabs_enabled.get(),
+            "rrc_enabled": ctx.config.rrc_enabled.get(),
             "message_icon_size": ctx.config.message_icon_size.get(),
             "ui_transparency": ctx.config.ui_transparency.get(),
             "ui_glass_enabled": ctx.config.ui_glass_enabled.get(),
@@ -15032,7 +16239,6 @@ class ReticulumMeshChat:
             "announce_store_lxst_telephony": ctx.config.announce_store_lxst_telephony.get(),
             "announce_store_nomadnetwork_node": ctx.config.announce_store_nomadnetwork_node.get(),
             "announce_store_lxmf_propagation": ctx.config.announce_store_lxmf_propagation.get(),
-            "announce_store_git_repositories": ctx.config.announce_store_git_repositories.get(),
             "announce_max_stored_lxmf_delivery": ctx.config.announce_max_stored_lxmf_delivery.get(),
             "announce_max_stored_nomadnetwork_node": ctx.config.announce_max_stored_nomadnetwork_node.get(),
             "announce_max_stored_lxmf_propagation": ctx.config.announce_max_stored_lxmf_propagation.get(),
@@ -15237,9 +16443,9 @@ class ReticulumMeshChat:
             )
         elif announce["aspect"] == "lxst.telephony":
             display_name = parse_lxmf_display_name(announce["app_data"])
-        elif announce["aspect"] == rngit_tool.RNGIT_ANNOUNCE_ASPECT:
-            display_name = rngit_tool.display_name_from_rngit_app_data(
-                announce.get("app_data")
+        elif announce["aspect"] == "rrc.hub":
+            display_name = rrc_protocol.display_name_from_hub_app_data(
+                announce.get("app_data"),
             )
 
         # Try to find associated LXMF destination hash if this is a telephony announce
@@ -15284,23 +16490,6 @@ class ReticulumMeshChat:
                             pass
                 except Exception:
                     pass
-
-        if (
-            announce.get("aspect") == rngit_tool.RNGIT_ANNOUNCE_ASPECT
-            and announce.get("identity_hash")
-            and (not display_name or display_name == "Anonymous Peer")
-        ):
-            lxmf_announces = self.database.announces.get_filtered_announces(
-                aspect="lxmf.delivery",
-                search_term=announce["identity_hash"],
-            )
-            if lxmf_announces:
-                for lxmf_a in lxmf_announces:
-                    if lxmf_a["identity_hash"] == announce["identity_hash"]:
-                        cand = parse_lxmf_display_name(lxmf_a["app_data"])
-                        if cand and cand != "Anonymous Peer":
-                            display_name = cand
-                        break
 
         if not display_name or display_name == "Anonymous Peer":
             is_local = (
@@ -15463,14 +16652,21 @@ class ReticulumMeshChat:
         return encoded
 
     def is_destination_blocked(self, destination_hash: str, context=None) -> bool:
-        """Return whether ``destination_hash`` is in the block list."""
+        """Return whether ``destination_hash`` is in the block list.
+
+        Accepts either a destination hash or an identity hash. When an identity
+        hash is passed, any blocked destination belonging to that identity will
+        match.
+        """
         ctx = context or self.current_context
         if not ctx or not ctx.database:
             return False
         try:
             if ctx.database.misc.is_destination_blocked(destination_hash):
                 return True
-            # Check if any destination for this identity is blocked
+
+            # The provided hash might be a destination hash or an identity hash.
+            # Try looking it up as a destination hash first.
             announce = ctx.database.announces.get_announce_by_hash(destination_hash)
             if announce and announce.get("identity_hash"):
                 identity_hash = announce["identity_hash"]
@@ -15482,6 +16678,17 @@ class ReticulumMeshChat:
                         other["destination_hash"]
                     ):
                         return True
+
+            # If no announce was found by destination_hash, the provided hash
+            # may itself be an identity hash. Look up all announces for that
+            # identity and check whether any of their destinations are blocked.
+            identity_announces = ctx.database.announces.get_announces_by_identity_hash(
+                destination_hash
+            )
+            for ann in identity_announces:
+                if ctx.database.misc.is_destination_blocked(ann["destination_hash"]):
+                    return True
+
             return False
         except Exception:
             return False
@@ -15976,7 +17183,7 @@ class ReticulumMeshChat:
             elif message_title is None:
                 message_title = ""
 
-            is_reaction_delivery = lxmf_fields_are_columba_reaction(lxmf_fields)
+            is_reaction_delivery = lxmf_fields_are_reaction(lxmf_fields)
 
             # check spam keywords
             if not is_reaction_delivery and self.check_spam_keywords(
@@ -16429,6 +17636,7 @@ class ReticulumMeshChat:
             lxmf_message,
             include_attachments=False,
             reticulum=self.reticulum,
+            message_router=ctx.message_router,
         )
         self._merge_stored_path_fields_from_db(ctx, lxmf_message.hash.hex(), msg_dict)
 
@@ -16505,6 +17713,7 @@ class ReticulumMeshChat:
         lxmf_message_dict = convert_lxmf_message_to_dict(
             lxmf_message,
             reticulum=self.reticulum,
+            message_router=ctx.message_router,
         )
         lxmf_message_dict["is_spam"] = 1 if is_spam else 0
         lxmf_message_dict["attachments_stripped"] = 1 if attachments_stripped else 0
@@ -16548,6 +17757,8 @@ class ReticulumMeshChat:
         sender_identity_hash: str | None = None,
         reply_to_hash: str | None = None,
         reply_quoted_content: str | None = None,
+        reaction_to_hash: str | None = None,
+        reaction_emoji: str | None = None,
         app_extensions: dict | None = None,
         no_display: bool = False,
         context=None,
@@ -16561,10 +17772,11 @@ class ReticulumMeshChat:
         else:
             content_str = content or ""
         quoted_str = reply_quoted_content or ""
+        has_standard_reaction = (
+            reaction_to_hash is not None and reaction_emoji is not None
+        )
         is_reaction_only = bool(
-            app_extensions
-            and isinstance(app_extensions, dict)
-            and ("reaction_to" in app_extensions)
+            has_standard_reaction
             and not (content_str and content_str.strip())
             and image_field is None
             and audio_field is None
@@ -16582,7 +17794,7 @@ class ReticulumMeshChat:
         # We cannot replay "old" paths from the app layer — Transport.request_path refreshes discovery.
         path_outcome = await self._await_transport_path(destination_hash_bytes)
 
-        destination_identity = RNS.Identity.recall(destination_hash_bytes)
+        destination_identity = self.recall_identity(destination_hash)
         if destination_identity is None:
             # we have to bail out of sending, since we don't have the identity/path yet
             msg = "Could not find path to destination. Try again later."
@@ -16692,13 +17904,19 @@ class ReticulumMeshChat:
         if commands is not None:
             lxmf_message.fields[LXMF.FIELD_COMMANDS] = commands
 
-        # add reply_to field
         if reply_to_hash is not None:
-            lxmf_message.fields[0x30] = bytes.fromhex(reply_to_hash)
+            lxmf_message.fields[FIELD_REPLY_TO] = bytes.fromhex(reply_to_hash)
         if reply_quoted_content is not None and reply_quoted_content:
-            lxmf_message.fields[0x31] = reply_quoted_content.encode("utf-8")
+            lxmf_message.fields[FIELD_REPLY_QUOTE] = reply_quoted_content.encode(
+                "utf-8"
+            )
 
-        if app_extensions is not None:
+        if has_standard_reaction:
+            lxmf_message.fields[FIELD_REACTION] = build_lxmf_reaction_field(
+                reaction_to_hash,
+                reaction_emoji or "",
+            )
+        elif app_extensions is not None:
             lxmf_message.fields[LXMF_APP_EXTENSIONS_FIELD] = app_extensions
 
         # add icon appearance if configured and not already sent to this destination
@@ -16776,6 +17994,7 @@ class ReticulumMeshChat:
                             lxmf_message,
                             include_attachments=False,
                             reticulum=self.reticulum,
+                            message_router=ctx.message_router,
                         ),
                     },
                 ),
@@ -16801,17 +18020,12 @@ class ReticulumMeshChat:
         ctx = context or self.current_context
         if not ctx:
             raise RuntimeError("No identity context available for sending reaction")
-        sender_hex = ctx.identity.hash.hex()
-        app_extensions = {
-            "reaction_to": target_message_hash,
-            "emoji": emoji,
-            "sender": sender_hex,
-        }
         return await self.send_message(
             destination_hash=destination_hash,
             content="",
             delivery_method="opportunistic",
-            app_extensions=app_extensions,
+            reaction_to_hash=target_message_hash,
+            reaction_emoji=emoji,
             context=context,
         )
 
@@ -16935,8 +18149,6 @@ class ReticulumMeshChat:
 
         should_update_message = True
         while should_update_message:
-            await asyncio.sleep(1)
-
             progress_pct = round(lxmf_message.progress * 100, 2)
             ctx.database.messages.update_lxmf_message_state(
                 message_hash=lxmf_message.hash.hex(),
@@ -16956,6 +18168,7 @@ class ReticulumMeshChat:
                 lxmf_message,
                 include_attachments=False,
                 reticulum=self.reticulum,
+                message_router=ctx.message_router,
             )
             self._merge_stored_path_fields_from_db(
                 ctx, lxmf_message.hash.hex(), msg_dict
@@ -16985,6 +18198,8 @@ class ReticulumMeshChat:
             # check if we should stop updating
             if has_delivered or has_propagated or has_failed or is_cancelled:
                 should_update_message = False
+            else:
+                await asyncio.sleep(1)
 
     def on_telephone_announce_received(
         self,
@@ -17113,11 +18328,6 @@ class ReticulumMeshChat:
                     },
                 ),
             ),
-        )
-
-        self.websocket_rebroadcast_rngit_for_identity_hashes(
-            {identity_hash},
-            context=ctx,
         )
 
         # resend all failed messages that were intended for this destination
@@ -17272,85 +18482,7 @@ class ReticulumMeshChat:
             except Exception as e:
                 print("Error resending failed message: " + str(e))
 
-    def websocket_rebroadcast_rngit_for_identity_hashes(
-        self,
-        identity_hashes: set[str] | list[str] | None,
-        context=None,
-    ):
-        """Push stored ``git.repositories`` rows again so UIs pick up new derived display names."""
-        ctx = context or self.current_context
-        if not ctx or not ctx.database or not identity_hashes:
-            return
-        seen_dest: set[str] = set()
-        for raw_ih in identity_hashes:
-            if not raw_ih:
-                continue
-            ih = normalize_hex_identifier(raw_ih)
-            if not _truncated_hash32_hex_ok(ih):
-                continue
-            rows = ctx.database.announces.get_filtered_announces(
-                aspect=rngit_tool.RNGIT_ANNOUNCE_ASPECT,
-                identity_hash=ih,
-                limit=500,
-                offset=0,
-            )
-            for row in rows:
-                dh = row.get("destination_hash")
-                if not dh or dh in seen_dest:
-                    continue
-                seen_dest.add(dh)
-                announce = ctx.database.announces.get_announce_by_hash(dh)
-                if not announce:
-                    continue
-                ad = dict(announce) if not isinstance(announce, dict) else announce
-                AsyncUtils.run_async(
-                    self.websocket_broadcast(
-                        json.dumps(
-                            {
-                                "type": "announce",
-                                "announce": self.convert_db_announce_to_dict(ad),
-                            },
-                        ),
-                    ),
-                )
-
-    def websocket_rebroadcast_rngit_after_custom_destination_display_name_change(
-        self,
-        destination_hash_raw: str,
-        context=None,
-    ):
-        """Re-send rngit rows when a custom name is set on the rngit hash or the peer's LXMF hash."""
-        ctx = context or self.current_context
-        if not ctx or not ctx.database:
-            return
-        dh = normalize_hex_identifier(destination_hash_raw)
-        if not _truncated_hash32_hex_ok(dh):
-            return
-        row = ctx.database.announces.get_announce_by_hash(dh)
-        if not row:
-            return
-        rd = dict(row) if not isinstance(row, dict) else row
-        aspect = rd.get("aspect")
-        if aspect == rngit_tool.RNGIT_ANNOUNCE_ASPECT:
-            AsyncUtils.run_async(
-                self.websocket_broadcast(
-                    json.dumps(
-                        {
-                            "type": "announce",
-                            "announce": self.convert_db_announce_to_dict(rd),
-                        },
-                    ),
-                ),
-            )
-        elif aspect == "lxmf.delivery":
-            ih = rd.get("identity_hash")
-            if ih:
-                self.websocket_rebroadcast_rngit_for_identity_hashes(
-                    {ih},
-                    context=ctx,
-                )
-
-    def on_rngit_repositories_announce_received(
+    def on_rrc_hub_announce_received(
         self,
         aspect,
         destination_hash,
@@ -17359,14 +18491,16 @@ class ReticulumMeshChat:
         announce_packet_hash,
         context=None,
     ):
-        """Handle rngit ``git.repositories`` announces (same storage path as other aspects)."""
+        """Handle Relay Chat ``rrc.hub`` announces for hub discovery."""
         ctx = context or self.current_context
         if not ctx or not ctx.running or not ctx.announce_manager or not ctx.database:
+            return
+        if ctx.config and not ctx.config.rrc_enabled.get():
             return
 
         identity_hash = announced_identity.hash.hex()
         if self.is_destination_blocked(identity_hash, context=ctx):
-            print(f"Dropping rngit announce from blocked source: {identity_hash}")
+            print(f"Dropping rrc.hub announce from blocked source: {identity_hash}")
             if hasattr(self, "reticulum") and self.reticulum:
                 self.reticulum.drop_path(destination_hash)
             return
@@ -17377,7 +18511,7 @@ class ReticulumMeshChat:
         print(
             "Received an announce from "
             + RNS.prettyhexrep(destination_hash)
-            + " for [git.repositories]",
+            + " for [rrc.hub]",
         )
 
         self.announce_timestamps.append(time.time())
@@ -17737,7 +18871,7 @@ def main():
         "--gitea-base-url",
         type=str,
         default=os.environ.get("MESHCHAT_GITEA_BASE_URL"),
-        help="Base URL for Gitea instance (default: https://git.quad4.io). Can also be set via MESHCHAT_GITEA_BASE_URL environment variable.",
+        help="Base URL for Gitea instance. Can also be set via MESHCHAT_GITEA_BASE_URL environment variable.",
     )
     parser.add_argument(
         "--test-exception-message",
@@ -17779,6 +18913,13 @@ def main():
         action="store_true",
         default=env_bool("MESHCHAT_RESET_PASSWORD", False),
         help="Clear the stored password hash on startup so a new password can be set via the web UI. Can also be set via MESHCHAT_RESET_PASSWORD environment variable.",
+    )
+
+    parser.add_argument(
+        "--memory-diag",
+        action="store_true",
+        default=env_bool("MESHCHAT_MEMORY_DIAG", False),
+        help="Enable tracemalloc-based memory diagnostics. Can also be set via MESHCHAT_MEMORY_DIAG environment variable.",
     )
 
     args = parser.parse_args()
@@ -17914,6 +19055,7 @@ def main():
         ssl_key_path=ssl_key,
         rns_loglevel=rns_log_cli,
         migration_context=migration_context,
+        memory_diag_enabled=args.memory_diag,
     )
 
     # store recovery on app for wiring with identity context
@@ -17964,6 +19106,7 @@ def main():
             print(
                 f"Snapshot restoration complete. Integrity check: {result['integrity_check']}",
             )
+            reticulum_meshchat.setup_identity(identity)
         else:
             print(f"Error: Snapshot not found at {snapshot_path}")
 

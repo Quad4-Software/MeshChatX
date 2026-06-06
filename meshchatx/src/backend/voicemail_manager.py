@@ -171,6 +171,13 @@ class VoicemailManager:
             RNS.log("Voicemail: Voicemail is disabled", RNS.LOG_DEBUG)
             return
 
+        if self.db and self.db.misc.is_destination_blocked(caller_identity.hash.hex()):
+            RNS.log(
+                f"Voicemail: Caller {RNS.prettyhexrep(caller_identity.hash)} is blocked; skipping auto-answer",
+                RNS.LOG_DEBUG,
+            )
+            return
+
         delay = self.config.voicemail_auto_answer_delay_seconds.get()
         RNS.log(f"Voicemail: Will auto-answer in {delay} seconds", RNS.LOG_DEBUG)
 

@@ -16,7 +16,7 @@ Not for the foreseeable future. MeshChatX will continue to use the official Reti
 
 **Can you move your repository under a community organization?**
 
-No. Until the day I stop maintaining MeshChatX, it will remain under Quad4 control. The official source code is both on `git.quad4.io` and on Reticulum via rngit, while GitHub and other places are mirrors only. You are always welcome to fork if you do not like the way I do things.
+No. Until the day I stop maintaining MeshChatX, it will remain under Quad4 control. The official source code is available at `github.com/Quad4-Software/MeshChatX` and `lavaforge.org/Reticulum-Things/MeshChatX`, and also on Reticulum via rngit; all other places are mirrors. You are always welcome to fork if you do not like the way I do things.
 
 **Why are PRs disabled on GitHub?**
 

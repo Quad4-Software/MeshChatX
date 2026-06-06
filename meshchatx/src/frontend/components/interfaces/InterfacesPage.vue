@@ -73,17 +73,14 @@
                             </button>
                             <button
                                 type="button"
-                                class="secondary-chip text-sm min-h-[44px] sm:min-h-0 inline-flex items-center justify-center gap-1.5"
+                                class="secondary-chip text-sm min-h-[44px] sm:min-h-0 inline-flex items-center justify-center gap-1.5 relative overflow-hidden"
+                                :class="{ 'fill-up': refreshingCommunityInterfaces }"
                                 :disabled="refreshingCommunityInterfaces"
                                 :title="$t('interfaces.community_presets_refresh')"
                                 :aria-label="$t('interfaces.community_presets_refresh')"
                                 @click="refreshCommunityInterfaces"
                             >
-                                <MaterialDesignIcon
-                                    icon-name="refresh"
-                                    class="w-4 h-4"
-                                    :class="{ 'animate-spin-reverse': refreshingCommunityInterfaces }"
-                                />
+                                <MaterialDesignIcon icon-name="download" class="w-4 h-4 relative z-10" />
                             </button>
                         </div>
                     </div>
@@ -331,6 +328,18 @@
                                                     class="inline-flex items-center rounded-full bg-emerald-100 text-emerald-700 px-2 py-0.5 text-[10px] font-semibold dark:bg-emerald-900/40 dark:text-emerald-200 shrink-0"
                                                 >
                                                     Connected
+                                                </span>
+                                                <span
+                                                    v-if="iface.is_blacklisted"
+                                                    class="inline-flex items-center rounded-full bg-red-100 text-red-700 px-2 py-0.5 text-[10px] font-semibold dark:bg-red-900/40 dark:text-red-200 shrink-0"
+                                                >
+                                                    Blocked
+                                                </span>
+                                                <span
+                                                    v-else-if="iface.is_allowed === false"
+                                                    class="inline-flex items-center rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-[10px] font-semibold dark:bg-amber-900/40 dark:text-amber-200 shrink-0"
+                                                >
+                                                    Not allowed
                                                 </span>
                                             </div>
 
@@ -685,7 +694,6 @@
                                             <MaterialDesignIcon
                                                 :icon-name="savingDiscovery ? 'progress-clock' : 'content-save'"
                                                 class="w-4 h-4"
-                                                :class="{ 'animate-spin-reverse': savingDiscovery }"
                                             />
                                             <span class="ml-1">Save Discovery Settings</span>
                                         </button>
@@ -1293,6 +1301,7 @@ export default {
             if (this.savingDiscovery) return;
             this.savingDiscovery = true;
             try {
+                ToastUtils.loading(this.$t("app.reloading_rns"), 0, "interfaces-discovery-save");
                 const payload = {
                     discover_interfaces: this.discoveryConfig.discover_interfaces,
                     interface_discovery_sources: this.discoveryConfig.interface_discovery_sources || null,
@@ -1313,9 +1322,11 @@ export default {
                 };
 
                 await window.api.patch(`/api/v1/reticulum/discovery`, payload);
+                ToastUtils.dismiss("interfaces-discovery-save");
                 ToastUtils.success(this.$t("interfaces.discovery_settings_saved"));
                 await this.loadDiscoveryConfig();
             } catch (e) {
+                ToastUtils.dismiss("interfaces-discovery-save");
                 ToastUtils.error(this.$t("interfaces.failed_save_discovery"));
                 console.log(e);
             } finally {
@@ -1604,5 +1615,26 @@ export default {
 }
 .interfaces-subpanel {
     @apply mt-4 pt-4 border-t border-gray-200/50 dark:border-zinc-800/50 first:mt-0 first:pt-0 first:border-0;
+}
+.fill-up::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: currentColor;
+    opacity: 0.15;
+    border-radius: inherit;
+    animation: fillUp 1.5s ease-in-out infinite;
+    pointer-events: none;
+}
+@keyframes fillUp {
+    0% {
+        clip-path: inset(100% 0 0 0);
+    }
+    50% {
+        clip-path: inset(0% 0 0 0);
+    }
+    100% {
+        clip-path: inset(0% 0 0 0);
+    }
 }
 </style>

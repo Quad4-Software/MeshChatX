@@ -161,7 +161,7 @@ class ConfigManager:
         self.gitea_base_url = self.StringConfig(
             self,
             "gitea_base_url",
-            "https://git.quad4.io",
+            None,
         )
 
         # desktop config
@@ -362,6 +362,11 @@ class ConfigManager:
             "messages_sidebar_position",
             "left",
         )
+        self.messages_multi_pane_enabled = self.BoolConfig(
+            self,
+            "messages_multi_pane_enabled",
+            True,
+        )
         self.message_icon_size = self.IntConfig(self, "message_icon_size", 28)
         self.ui_transparency = self.IntConfig(self, "ui_transparency", 0)
         self.ui_glass_enabled = self.BoolConfig(self, "ui_glass_enabled", True)
@@ -407,12 +412,6 @@ class ConfigManager:
             "announce_store_lxmf_propagation",
             True,
         )
-        self.announce_store_git_repositories = self.BoolConfig(
-            self,
-            "announce_store_git_repositories",
-            True,
-        )
-
         # announce caps: max rows stored per aspect (oldest dropped). Default 2500.
         self.announce_max_stored_lxmf_delivery = self.IntConfig(
             self,
@@ -490,6 +489,12 @@ class ConfigManager:
             "nomad_render_plaintext_enabled",
             True,
         )
+        self.nomad_tabs_enabled = self.BoolConfig(
+            self,
+            "nomad_tabs_enabled",
+            True,
+        )
+        self.rrc_enabled = self.BoolConfig(self, "rrc_enabled", True)
         self.nomad_micron_wasm_enabled = self.BoolConfig(
             self,
             "nomad_micron_wasm_enabled",

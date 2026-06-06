@@ -7,6 +7,10 @@ from .provider import DatabaseProvider
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
+class DatabaseMigrationError(RuntimeError):
+    pass
+
+
 def _validate_identifier(name: str, label: str = "identifier") -> str:
     if not _IDENTIFIER_RE.match(name):
         msg = f"Invalid SQL {label}: {name!r}"
@@ -19,15 +23,18 @@ class DatabaseSchema:
 
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
+        self._strict_migrations = False
+        self._migration_errors: list[str] = []
 
     def _safe_execute(self, query, params=None):
         try:
             return self.provider.execute(query, params)
         except Exception as e:
-            # Silence expected errors during migrations (e.g. duplicate columns/indexes)
             err_msg = str(e).lower()
             if "duplicate column name" in err_msg or "already exists" in err_msg:
                 return None
+            if self._strict_migrations:
+                self._migration_errors.append(str(e))
             print(f"Database operation failed: {query[:100]}... Error: {e}")
             return None
 
@@ -565,7 +572,33 @@ class DatabaseSchema:
                     "CREATE INDEX IF NOT EXISTS idx_debug_logs_anomaly ON debug_logs(is_anomaly)",
                 )
 
+    def _update_database_version(self):
+        self.provider.execute(
+            """
+            INSERT INTO config (key, value, created_at, updated_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ON CONFLICT(key) DO UPDATE SET
+                value = EXCLUDED.value,
+                updated_at = EXCLUDED.updated_at
+            """,
+            ("database_version", str(self.LATEST_VERSION)),
+        )
+
     def migrate(self, current_version):
+        self._strict_migrations = True
+        self._migration_errors = []
+        try:
+            self._run_migrations(current_version)
+        finally:
+            self._strict_migrations = False
+        if self._migration_errors:
+            first = self._migration_errors[0]
+            raise DatabaseMigrationError(
+                f"{len(self._migration_errors)} migration step(s) failed: {first}",
+            )
+        self._update_database_version()
+
+    def _run_migrations(self, current_version):
         if current_version < 7:
             self._safe_execute("""
                 CREATE TABLE IF NOT EXISTS archived_pages (
@@ -1261,15 +1294,3 @@ class DatabaseSchema:
         if current_version < 48:
             self._ensure_column("lxmf_messages", "path_finding_measure", "TEXT")
             self._ensure_column("lxmf_messages", "path_row_hash_hex", "TEXT")
-
-        # Update version in config
-        self._safe_execute(
-            """
-            INSERT INTO config (key, value, created_at, updated_at) 
-            VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-            ON CONFLICT(key) DO UPDATE SET 
-                value = EXCLUDED.value,
-                updated_at = EXCLUDED.updated_at
-            """,
-            ("database_version", str(self.LATEST_VERSION)),
-        )

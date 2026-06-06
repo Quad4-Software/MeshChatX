@@ -17,12 +17,7 @@
 </template>
 
 <script>
-import * as mdi from "@mdi/js";
-
-const MDI_ICON_ALIASES = {
-    mdiRoute: "mdiRoutes",
-    mdiEmailSendOutline: "mdiSendOutline",
-};
+import { getMdiIconPath, resolveMdiIconKey } from "../js/mdiIconNames.js";
 
 export default {
     name: "MaterialDesignIcon",
@@ -35,42 +30,10 @@ export default {
     },
     computed: {
         mdiIconName() {
-            if (!this.iconName) return "mdiAccountOutline";
-
-            // if already starts with mdi and is camelCase, return as is
-            if (this.iconName.startsWith("mdi") && /[A-Z]/.test(this.iconName)) {
-                return this.iconName;
-            }
-
-            // convert icon name from lxmf icon appearance to format expected by the @mdi/js library
-            // e.g: alien-outline -> mdiAlienOutline
-            return (
-                "mdi" +
-                this.iconName
-                    .split("-")
-                    .filter((word) => word.length > 0)
-                    .map((word) => {
-                        // capitalise first letter of each part
-                        return word.charAt(0).toUpperCase() + word.slice(1);
-                    })
-                    .join("")
-            );
+            return resolveMdiIconKey(this.iconName);
         },
         iconPath() {
-            if (!mdi || Object.keys(mdi).length === 0) {
-                console.error("MDI library not loaded or empty");
-                return "";
-            }
-
-            const name = this.mdiIconName;
-            const aliasName = MDI_ICON_ALIASES[name] || name;
-            const path = mdi[aliasName];
-
-            if (path) return path;
-
-            // fallback logic
-            console.warn(`Icon not found: ${name} (original: ${this.iconName})`);
-            return mdi["mdiHelpCircleOutline"] || mdi["mdiProgressQuestion"] || "";
+            return getMdiIconPath(this.iconName);
         },
     },
 };

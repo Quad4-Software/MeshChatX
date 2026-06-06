@@ -97,7 +97,7 @@ export function buildTimestampGroupedOldestFirst(groupsOldestFirst, options = {}
         const g = onlyMsg[i];
         const next = onlyMsg[i + 1];
         let show = true;
-        if (next) {
+        if (next && !displayGroupIsOutbound(g)) {
             const cb = displayGroupSortBoundsMs(g);
             const nb = displayGroupSortBoundsMs(next);
             const sameSide = displayGroupIsOutbound(g) === displayGroupIsOutbound(next);

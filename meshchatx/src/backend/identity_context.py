@@ -25,6 +25,8 @@ from meshchatx.src.backend.message_handler import MessageHandler
 from meshchatx.src.backend.nomadnet_utils import NomadNetworkManager
 from meshchatx.src.backend.ringtone_manager import RingtoneManager
 from meshchatx.src.backend.rncp_handler import RNCPHandler
+from meshchatx.src.backend.rnsh_manager import RNSHManager
+from meshchatx.src.backend.rrc import RRCManager, RRCServerManager
 from meshchatx.src.backend.rnpath_handler import RNPathHandler
 from meshchatx.src.backend.rnpath_trace_handler import RNPathTraceHandler
 from meshchatx.src.backend.rnprobe_handler import RNProbeHandler
@@ -79,12 +81,15 @@ class IdentityContext:
         self.ringtone_manager = None
         self.auto_propagation_manager = None
         self.rncp_handler = None
+        self.rnsh_manager = None
         self.rnstatus_handler = None
         self.rnpath_handler = None
         self.rnpath_trace_handler = None
         self.rnprobe_handler = None
         self.translator_handler = None
         self.bot_handler = None
+        self.rrc_manager = None
+        self.rrc_server_manager = None
         self.forwarding_manager = None
         self.community_interfaces_manager = None
         self.local_lxmf_destination = None
@@ -96,6 +101,14 @@ class IdentityContext:
         )
 
         self.running = False
+
+    def _rrc_name_for_identity_hash(self, identity_hash):
+        try:
+            if isinstance(identity_hash, (bytes, bytearray)):
+                identity_hash = bytes(identity_hash).hex()
+            return self.app.get_name_for_identity_hash(identity_hash)
+        except Exception:
+            return None
 
     def _rncp_emit_receive_completed(self, payload):
         try:
@@ -185,8 +198,6 @@ class IdentityContext:
             self.database,
         )
 
-        # Vacuum and mark stuck messages
-        self.database.provider.vacuum()
         self.database.messages.mark_stuck_messages_as_failed()
 
         if not getattr(self.app, "emergency", False):
@@ -253,6 +264,11 @@ class IdentityContext:
             if preferred_node:
                 self.app.set_active_propagation_node(preferred_node, context=self)
 
+        # Enable local propagation node on startup if configured
+        with contextlib.suppress(Exception):
+            if self.config.lxmf_local_propagation_node_enabled.get():
+                self.app.enable_local_propagation_node(True, context=self)
+
         # 5. Initialize Handlers and Managers
         self.rncp_handler = RNCPHandler(
             reticulum_instance=getattr(self.app, "reticulum", None),
@@ -260,6 +276,22 @@ class IdentityContext:
             storage_dir=self.app.storage_dir,
         )
         self.rncp_handler.on_receive_completed = self._rncp_emit_receive_completed
+        self.rnsh_manager = RNSHManager(
+            storage_dir=self.storage_path,
+            reticulum_config_dir=getattr(self.app, "reticulum_config_dir", None),
+        )
+        self.rnsh_manager.set_change_callback(
+            lambda session: self.app.on_rnsh_change(session, context=self),
+        )
+        self.rnsh_manager.set_output_callback(
+            lambda session, chunk: self.app.on_rnsh_output(
+                session, chunk, context=self
+            ),
+        )
+        try:
+            self.rnsh_manager.load()
+        except Exception as exc:
+            print(f"Failed to load RNSH sessions for {self.identity_hash}: {exc}")
         self.rnstatus_handler = RNStatusHandler(
             reticulum_instance=getattr(self.app, "reticulum", None),
         )
@@ -354,6 +386,53 @@ class IdentityContext:
             app=self.app,
             context=self,
         )
+
+        # Reticulum Relay Chat (optional)
+        rrc_enabled = self.config.rrc_enabled.get() if self.config else True
+        if rrc_enabled:
+            self.rrc_manager = RRCManager(
+                identity=self.identity,
+                storage_dir=self.storage_path,
+                get_nickname=lambda: (
+                    self.config.display_name.get() if self.config else None
+                ),
+                get_name_for_identity_hash=self._rrc_name_for_identity_hash,
+            )
+            self.rrc_manager.set_change_callback(
+                lambda hub: self.app.on_rrc_change(hub, context=self),
+            )
+            self.rrc_manager.set_message_callback(
+                lambda hub, msg: self.app.on_rrc_message(hub, msg, context=self),
+            )
+            try:
+                self.rrc_manager.load()
+            except Exception as exc:
+                print(f"Failed to load RRC hubs for {self.identity_hash}: {exc}")
+
+            self.rrc_server_manager = RRCServerManager(
+                storage_dir=self.storage_path,
+                owner_identity=self.identity.hash,
+            )
+            self.rrc_server_manager.set_change_callback(
+                lambda hub: self.app.on_rrc_server_change(hub, context=self),
+            )
+            self.rrc_manager.set_server_manager(self.rrc_server_manager)
+            try:
+                self.rrc_server_manager.load()
+            except Exception as exc:
+                print(
+                    f"Failed to load RRC hub servers for {self.identity_hash}: {exc}",
+                )
+
+            try:
+                self.rrc_manager.connect_auto_reconnect_hubs()
+            except Exception as exc:
+                print(
+                    f"Failed to auto-connect RRC hubs for {self.identity_hash}: {exc}",
+                )
+        else:
+            self.rrc_manager = None
+            self.rrc_server_manager = None
 
         # 6. Register Announce Handlers
         self.register_announce_handlers()
@@ -491,18 +570,24 @@ class IdentityContext:
                     )
                 ),
             ),
-            AnnounceHandler(
-                "git.repositories",
-                lambda aspect, dh, ai, ad, aph: (
-                    self.app.on_rngit_repositories_announce_received(
-                        aspect,
-                        dh,
-                        ai,
-                        ad,
-                        aph,
-                        context=self,
-                    )
-                ),
+            *(
+                [
+                    AnnounceHandler(
+                        "rrc.hub",
+                        lambda aspect, dh, ai, ad, aph: (
+                            self.app.on_rrc_hub_announce_received(
+                                aspect,
+                                dh,
+                                ai,
+                                ad,
+                                aph,
+                                context=self,
+                            )
+                        ),
+                    ),
+                ]
+                if self.config and self.config.rrc_enabled.get()
+                else []
             ),
         ]
         for handler in handlers:
@@ -528,6 +613,38 @@ class IdentityContext:
             with contextlib.suppress(Exception):
                 RNS.Transport.deregister_announce_handler(handler)
         self.announce_handlers = []
+
+        if self.rrc_manager:
+            try:
+                self.rrc_manager.set_change_callback(None)
+                self.rrc_manager.set_message_callback(None)
+                self.rrc_manager.shutdown()
+            except Exception as e:
+                print(
+                    f"Error tearing down RRC manager for {self.identity_hash}: {e}",
+                )
+            self.rrc_manager = None
+
+        if self.rrc_server_manager:
+            try:
+                self.rrc_server_manager.set_change_callback(None)
+                self.rrc_server_manager.shutdown()
+            except Exception as e:
+                print(
+                    f"Error tearing down RRC hub servers for {self.identity_hash}: {e}",
+                )
+            self.rrc_server_manager = None
+
+        if self.rnsh_manager:
+            try:
+                self.rnsh_manager.set_change_callback(None)
+                self.rnsh_manager.set_output_callback(None)
+                self.rnsh_manager.shutdown()
+            except Exception as e:
+                print(
+                    f"Error tearing down RNSH manager for {self.identity_hash}: {e}",
+                )
+            self.rnsh_manager = None
 
         if self.forwarding_manager:
             try:
@@ -649,7 +766,6 @@ class IdentityContext:
                         print(
                             f"Database health at close for {self.identity_hash}: {', '.join(close_issues)}",
                         )
-                # 1. Checkpoint WAL and close database cleanly to ensure file is stable for hashing
                 self.database._checkpoint_and_close()
             except Exception as e:
                 print(

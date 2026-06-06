@@ -358,3 +358,33 @@ def test_extract_metadata_static_png():
     assert meta["height"] == 256
     assert meta["is_animated"] is False
     assert meta["is_video"] is False
+
+
+def test_parse_tgs_rejects_decompression_bomb():
+    import gzip
+
+    bomb = gzip.compress(b"\x00" * (sticker_utils.MAX_TGS_DECOMPRESSED_BYTES + 1024))
+    with pytest.raises(ValueError, match="invalid_tgs_too_large_decompressed"):
+        sticker_utils.parse_tgs(bomb)
+
+
+def test_parse_tgs_decompression_is_memory_bounded():
+    """A tiny payload that expands to hundreds of MiB must not be fully buffered."""
+    import gzip
+    import tracemalloc
+
+    decompressed = 256 * 1024 * 1024
+    bomb = gzip.compress(b"\x00" * decompressed)
+    assert len(bomb) < 1024 * 1024
+
+    tracemalloc.start()
+    try:
+        with pytest.raises(ValueError, match="invalid_tgs_too_large_decompressed"):
+            sticker_utils.parse_tgs(bomb)
+        _, peak = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+
+    assert peak < 8 * sticker_utils.MAX_TGS_DECOMPRESSED_BYTES, (
+        "decompression must stay bounded regardless of the decompressed size"
+    )

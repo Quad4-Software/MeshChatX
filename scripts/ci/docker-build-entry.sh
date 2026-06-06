@@ -5,8 +5,8 @@ set -euo pipefail
 
 cd /src
 
-export UV_VERSION="${UV_VERSION:-0.11.12}"
-export PNPM_VERSION="${PNPM_VERSION:-10.33.0}"
+export UV_VERSION="${UV_VERSION:-0.11.15}"
+export PNPM_VERSION="${PNPM_VERSION:-11.1.2}"
 
 apt-get update -y
 apt-get install -y --no-install-recommends \

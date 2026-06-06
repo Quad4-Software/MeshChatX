@@ -91,6 +91,15 @@ class RNCPHandler:
         self.allow_overwrite_on_receive = allow_overwrite
         self._listener_fetch_allowed = bool(fetch_allowed)
 
+        # Never expose the whole filesystem: when fetch is enabled without an
+        # explicit jail, confine reads to a dedicated shared directory instead
+        # of resolving arbitrary absolute paths.
+        if self._listener_fetch_allowed and not self.fetch_jail:
+            self.fetch_jail = os.path.join(self.storage_dir, "rncp_shared")
+        if self._listener_fetch_allowed and self.fetch_jail:
+            with contextlib.suppress(OSError):
+                os.makedirs(self.fetch_jail, exist_ok=True)
+
         identity_path = os.path.join(RNS.Reticulum.identitypath, self.APP_NAME)
         if os.path.isfile(identity_path):
             receive_identity = RNS.Identity.from_file(identity_path)
@@ -228,17 +237,17 @@ class RNCPHandler:
         remote_identity,
         requested_at,
     ):
-        if self.fetch_jail:
-            if data.startswith(self.fetch_jail + "/"):
-                data = data.replace(self.fetch_jail + "/", "")
-            file_path = os.path.realpath(
-                os.path.expanduser(f"{self.fetch_jail}/{data}"),
-            )
-            jail_real = os.path.realpath(self.fetch_jail)
-            if not file_path.startswith(jail_real + "/"):
-                return self.REQ_FETCH_NOT_ALLOWED
-        else:
-            file_path = os.path.abspath(os.path.expanduser(data))
+        if not self.fetch_jail:
+            return self.REQ_FETCH_NOT_ALLOWED
+
+        if data.startswith(self.fetch_jail + "/"):
+            data = data.replace(self.fetch_jail + "/", "")
+        file_path = os.path.realpath(
+            os.path.join(self.fetch_jail, data.lstrip("/")),
+        )
+        jail_real = os.path.realpath(self.fetch_jail)
+        if file_path != jail_real and not file_path.startswith(jail_real + os.sep):
+            return self.REQ_FETCH_NOT_ALLOWED
 
         target_link = None
         for link in RNS.Transport.active_links:
