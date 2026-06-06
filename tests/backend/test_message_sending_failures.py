@@ -210,7 +210,9 @@ async def test_handle_lxmf_message_progress_continues_while_propagation_fallback
         )
 
     assert iteration == 2
-    assert mock_app.database.messages.update_lxmf_message_state.call_count == 2
+    # Initial failed update, one more while propagation fallback is still pending,
+    # then the final propagated update after the second sleep.
+    assert mock_app.database.messages.update_lxmf_message_state.call_count == 3
 
 
 @pytest.mark.asyncio
