@@ -4,6 +4,18 @@ import * as mdi from "@mdi/js";
 
 export const DEFAULT_RRC_HUB_ICON = "forum-outline";
 
+const MDI_KEY_ALIASES = {
+    mdiRoute: "mdiRoutes",
+    mdiEmailSendOutline: "mdiSendOutline",
+};
+
+const MATERIAL_SYMBOL_ALIASES = {
+    "bug-report": "bug-outline",
+    "smart-toy": "robot-outline",
+    "robot-2": "robot-outline",
+    "emoji-objects": "lightbulb-on",
+};
+
 let cachedIconNames = null;
 
 function isKebabCaseIconName(name) {
@@ -56,4 +68,62 @@ export function normalizeMdiIconName(name) {
     }
     const trimmed = String(name).trim().toLowerCase();
     return isValidMdiIconName(trimmed) ? trimmed : null;
+}
+
+function splitIconParts(name) {
+    return name.split(/[-_]/).filter((word) => word.length > 0);
+}
+
+function kebabToMdiKey(kebab) {
+    return (
+        "mdi" +
+        splitIconParts(kebab)
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join("")
+    );
+}
+
+export function normalizeIconNameForLookup(name) {
+    if (!name || typeof name !== "string") {
+        return "";
+    }
+    return name.trim().toLowerCase().replace(/_/g, "-");
+}
+
+export function resolveMdiKebabIconName(iconName) {
+    const normalized = normalizeIconNameForLookup(iconName);
+    if (!normalized) {
+        return null;
+    }
+    if (isValidMdiIconName(normalized)) {
+        return normalized;
+    }
+    if (MATERIAL_SYMBOL_ALIASES[normalized]) {
+        return MATERIAL_SYMBOL_ALIASES[normalized];
+    }
+    const withoutNumericSuffix = normalized.replace(/-\d+$/, "");
+    if (withoutNumericSuffix !== normalized && isValidMdiIconName(withoutNumericSuffix)) {
+        return withoutNumericSuffix;
+    }
+    return null;
+}
+
+export function resolveMdiIconKey(iconName) {
+    if (!iconName) {
+        return "mdiAccountOutline";
+    }
+    if (iconName.startsWith("mdi") && /[A-Z]/.test(iconName)) {
+        const aliasKey = MDI_KEY_ALIASES[iconName] || iconName;
+        return mdi[aliasKey] ? aliasKey : "mdiAccountOutline";
+    }
+    const resolvedKebab = resolveMdiKebabIconName(iconName);
+    const lookupName = resolvedKebab || normalizeIconNameForLookup(iconName);
+    const mdiKey = kebabToMdiKey(lookupName);
+    const aliasKey = MDI_KEY_ALIASES[mdiKey] || mdiKey;
+    return mdi[aliasKey] ? aliasKey : "mdiAccountOutline";
+}
+
+export function getMdiIconPath(iconName) {
+    const key = resolveMdiIconKey(iconName);
+    return mdi[key] || mdi.mdiHelpCircleOutline || mdi.mdiProgressQuestion || "";
 }

@@ -490,10 +490,20 @@ export default {
             this.persistPanes();
         },
         destinationHash(newHash) {
-            if (newHash) {
-                this.isMobileComposeModalOpen = false;
-                this.onComposeNewMessage(newHash);
+            if (!newHash) {
+                return;
             }
+            this.isMobileComposeModalOpen = false;
+            // Avoid a redundant reload when the route change originates from selecting a
+            // conversation/peer in this page. The focused pane already shows that peer, so
+            // re-running onComposeNewMessage would set selectedPeer to a different object
+            // reference for the same hash and re-trigger a full message reload (visible flash).
+            const currentHash = this.selectedPeer?.destination_hash;
+            const normalizedNew = Utils.normalizeMeshchatHashHex(newHash);
+            if (currentHash && Utils.normalizeMeshchatHashHex(currentHash) === normalizedNew) {
+                return;
+            }
+            this.onComposeNewMessage(newHash);
         },
     },
     created() {

@@ -10,6 +10,14 @@ describe("MaterialDesignIcon.vue", () => {
         expect(wrapper.vm.mdiIconName).toBe("mdiAccountCircle");
     });
 
+    it("resolves material symbol snake_case icon names", () => {
+        const wrapper = mount(MaterialDesignIcon, {
+            props: { iconName: "bug_report" },
+        });
+        expect(wrapper.vm.mdiIconName).toBe("mdiBugOutline");
+        expect(wrapper.vm.iconPath).not.toBe("");
+    });
+
     it("renders svg with correct aria-label", () => {
         const wrapper = mount(MaterialDesignIcon, {
             props: { iconName: "home" },

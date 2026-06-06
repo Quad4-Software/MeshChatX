@@ -44,7 +44,7 @@
 import "vis-network/styles/vis-network.css";
 import { Network } from "vis-network";
 import { DataSet } from "vis-data";
-import * as mdi from "@mdi/js";
+import { getMdiIconPath } from "../../js/mdiIconNames.js";
 import Utils from "../../js/Utils";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import NetworkVisualiserLoadingOverlay from "./internal/NetworkVisualiserLoadingOverlay.vue";
@@ -488,16 +488,7 @@ export default {
             });
         },
         getMdiIconSvg(iconName, foregroundColor) {
-            const mdiIconName =
-                "mdi" +
-                iconName
-                    .split("-")
-                    .map((word) => {
-                        return word.charAt(0).toUpperCase() + word.slice(1);
-                    })
-                    .join("");
-
-            const iconPath = mdi[mdiIconName] || mdi["mdiAccountOutline"];
+            const iconPath = getMdiIconPath(iconName);
 
             return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="${foregroundColor}" d="${iconPath}"/></svg>`;
         },

@@ -6402,6 +6402,11 @@ export default {
             });
         },
         async markConversationAsRead(conversation) {
+            const wasUnread = conversation.is_unread === true;
+            if (!wasUnread) {
+                return;
+            }
+
             // manually mark conversation read in memory to avoid delay updating ui
             conversation.is_unread = false;
 

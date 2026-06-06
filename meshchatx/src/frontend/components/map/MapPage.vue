@@ -1105,7 +1105,7 @@ import TileState from "ol/TileState";
 import VectorSource from "ol/source/Vector";
 import Feature from "ol/Feature";
 import Point from "ol/geom/Point";
-import * as mdi from "@mdi/js";
+import { getMdiIconPath } from "../../js/mdiIconNames.js";
 import { Style, Text, Fill, Stroke, Circle as CircleStyle, Icon } from "ol/style";
 import { shared as olIconCache } from "ol/style/IconImageCache";
 import { fromLonLat, toLonLat } from "ol/proj";
@@ -4986,15 +4986,8 @@ export default {
         },
         getMdiPath(iconName) {
             if (!iconName) return null;
-            // same logic as MaterialDesignIcon.vue
-            const mdiName =
-                "mdi" +
-                iconName
-                    .split("-")
-                    .filter((word) => word.length > 0)
-                    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                    .join("");
-            return mdi[mdiName] || null;
+            const path = getMdiIconPath(iconName);
+            return path || null;
         },
         openChat(hash) {
             this.$router.push({

@@ -99,6 +99,34 @@ describe("ConversationViewer.vue", () => {
         });
     };
 
+    it("markConversationAsRead skips server call and reload when conversation is already read", async () => {
+        const wrapper = mountConversationViewer();
+        await flushPromises();
+        axiosMock.post.mockClear();
+
+        const conversation = { destination_hash: "read-hash", is_unread: false };
+        await wrapper.vm.markConversationAsRead(conversation);
+
+        const markCalls = axiosMock.post.mock.calls.filter((c) => String(c[0]).includes("/mark-as-read"));
+        expect(markCalls).toHaveLength(0);
+        expect(wrapper.emitted("reload-conversations")).toBeFalsy();
+    });
+
+    it("markConversationAsRead marks read and reloads once when conversation is unread", async () => {
+        const wrapper = mountConversationViewer();
+        await flushPromises();
+        axiosMock.post.mockClear();
+
+        const conversation = { destination_hash: "unread-hash", is_unread: true };
+        await wrapper.vm.markConversationAsRead(conversation);
+        await flushPromises();
+
+        expect(conversation.is_unread).toBe(false);
+        const markCalls = axiosMock.post.mock.calls.filter((c) => String(c[0]).includes("/mark-as-read"));
+        expect(markCalls).toHaveLength(1);
+        expect(wrapper.emitted("reload-conversations")).toHaveLength(1);
+    });
+
     it("onMessagePaste adds images from clipboard and prevents default", async () => {
         const wrapper = mountConversationViewer();
         const file = new File([""], "clip.png", { type: "image/png" });

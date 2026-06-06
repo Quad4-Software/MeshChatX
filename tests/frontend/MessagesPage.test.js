@@ -363,6 +363,41 @@ describe("MessagesPage.vue", () => {
         expect(wrapper.vm.conversations[0].display_name).toBe("Peer");
     });
 
+    it("does not reload the conversation when the route hash matches the selected peer", async () => {
+        const destHash = "b".repeat(32);
+        const wrapper = mountMessagesPage();
+        await wrapper.vm.$nextTick();
+
+        // simulate a conversation already opened in the focused pane (as onPeerClick does)
+        wrapper.vm.selectedPeer = { destination_hash: destHash, display_name: "Peer" };
+        await wrapper.vm.$nextTick();
+
+        const composeSpy = vi.spyOn(wrapper.vm, "onComposeNewMessage");
+
+        // simulate router.replace propagating the same hash back into the prop
+        await wrapper.setProps({ destinationHash: destHash });
+        await wrapper.vm.$nextTick();
+
+        expect(composeSpy).not.toHaveBeenCalled();
+    });
+
+    it("composes the conversation when the route hash differs from the selected peer", async () => {
+        const selectedHash = "a".repeat(32);
+        const newHash = "b".repeat(32);
+        const wrapper = mountMessagesPage();
+        await wrapper.vm.$nextTick();
+
+        wrapper.vm.selectedPeer = { destination_hash: selectedHash, display_name: "Peer" };
+        await wrapper.vm.$nextTick();
+
+        const composeSpy = vi.spyOn(wrapper.vm, "onComposeNewMessage").mockResolvedValue(undefined);
+
+        await wrapper.setProps({ destinationHash: newHash });
+        await wrapper.vm.$nextTick();
+
+        expect(composeSpy).toHaveBeenCalledWith(newHash);
+    });
+
     it("uses conversation display name instead of Unknown Peer when composing", async () => {
         const destHash = "c".repeat(32);
         axiosMock.get.mockImplementation((url) => {

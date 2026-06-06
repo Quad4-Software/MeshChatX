@@ -610,7 +610,7 @@
                                 <component
                                     :is="Component"
                                     v-if="!route.meta.keepAlive"
-                                    :key="route.fullPath"
+                                    :key="route.meta.stableKey ? route.name : route.fullPath"
                                     class="flex-1 min-w-0 h-full"
                                 />
                             </template>

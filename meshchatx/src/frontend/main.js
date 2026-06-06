@@ -82,6 +82,7 @@ const router = createRouter({
             name: "messages",
             path: "/messages/:destinationHash?",
             props: true,
+            meta: { stableKey: true },
             component: defineAsyncComponent(() => import("./components/messages/MessagesPage.vue")),
         },
         {
