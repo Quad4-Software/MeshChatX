@@ -90,6 +90,28 @@ def cleanup_sqlite_connections():
     gc.collect()
 
 
+def _uses_real_lxst_telephone(request) -> bool:
+    return request.node.get_closest_marker("lxst_real") is not None
+
+
+@pytest.fixture(autouse=True)
+def stub_lxst_telephone_unless_real(request):
+    """Avoid LXST background announce threads during ReticulumMeshChat tests."""
+    if _uses_real_lxst_telephone(request):
+        yield
+        return
+
+    mock_instance = MagicMock()
+    mock_instance.busy = False
+    mock_instance.call_status = 3
+    mock_instance.active_call = None
+    with patch(
+        "meshchatx.src.backend.telephone_manager.Telephone",
+        return_value=mock_instance,
+    ):
+        yield mock_instance
+
+
 @pytest.fixture
 def temp_db(tmp_path):
     db_path = os.path.join(tmp_path, "test_meshchat.db")

@@ -18,6 +18,8 @@ overrides:
     "@electron/get": "3.1.0"
     ajv: ">=6.14.0"
     ansi-regex: ">=6.0.1"
+    strip-ansi: "6.0.1"
+    "strip-ansi>ansi-regex": "5.0.1"
     braces: ">=3.0.3"
     brace-expansion: ">=1.1.13"
     browserslist: ">=4.16.5"

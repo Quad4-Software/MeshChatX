@@ -862,6 +862,10 @@
         },
         {
             "method": "POST",
+            "path": "/api/v1/rnsh/sessions/{session_id}/resize"
+        },
+        {
+            "method": "POST",
             "path": "/api/v1/rnsh/sessions/{session_id}/start"
         },
         {

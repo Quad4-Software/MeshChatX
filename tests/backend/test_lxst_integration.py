@@ -12,6 +12,7 @@ from unittest.mock import MagicMock
 import pytest
 
 pytest.importorskip("LXST")
+pytestmark = pytest.mark.lxst_real
 
 from LXST.Primitives import Telephony as LXSTTelephony
 
