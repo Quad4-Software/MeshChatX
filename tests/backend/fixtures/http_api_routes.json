@@ -154,10 +154,6 @@
         },
         {
             "method": "POST",
-            "path": "/api/v1/database/restore"
-        },
-        {
-            "method": "POST",
             "path": "/api/v1/database/snapshot"
         },
         {

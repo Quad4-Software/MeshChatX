@@ -3982,6 +3982,43 @@ class ReticulumMeshChat:
         @routes.post("/api/v1/database/restore")
         async def restore_db_snapshot(request):
             try:
+                content_type = request.headers.get("Content-Type", "")
+
+                # multipart upload: restore from a user-provided backup/zip file
+                if "multipart/form-data" in content_type:
+                    reader = await request.multipart()
+                    field = await reader.next()
+                    if field is None or field.name != "file":
+                        return web.json_response(
+                            {"status": "error", "message": "Restore file is required"},
+                            status=400,
+                        )
+
+                    with tempfile.NamedTemporaryFile(delete=False) as tmp:
+                        while True:
+                            chunk = await field.read_chunk()
+                            if not chunk:
+                                break
+                            tmp.write(chunk)
+                        temp_path = tmp.name
+
+                    try:
+                        result = self.restore_database(temp_path, relaunch=True)
+                    finally:
+                        with contextlib.suppress(OSError):
+                            os.remove(temp_path)
+
+                    return web.json_response(
+                        {
+                            "status": "success",
+                            "result": result,
+                            "database": result,
+                            "requires_relaunch": True,
+                            "message": "Database restored. Application will restart.",
+                        },
+                    )
+
+                # JSON body: restore from an on-disk snapshot/auto-backup path
                 data = await request.json()
                 path = data.get("path")
                 if not path:
@@ -6661,45 +6698,6 @@ class ReticulumMeshChat:
                 return web.json_response(
                     {
                         "message": f"Failed to export identity: {e!s}",
-                    },
-                    status=500,
-                )
-
-        @routes.post("/api/v1/database/restore")
-        async def database_restore(request):
-            try:
-                reader = await request.multipart()
-                field = await reader.next()
-                if field is None or field.name != "file":
-                    return web.json_response(
-                        {
-                            "message": "Restore file is required",
-                        },
-                        status=400,
-                    )
-
-                with tempfile.NamedTemporaryFile(delete=False) as tmp:
-                    while True:
-                        chunk = await field.read_chunk()
-                        if not chunk:
-                            break
-                        tmp.write(chunk)
-                    temp_path = tmp.name
-
-                result = self.restore_database(temp_path, relaunch=True)
-                os.remove(temp_path)
-
-                return web.json_response(
-                    {
-                        "message": "Database restored successfully. Application will restart.",
-                        "database": result,
-                        "requires_relaunch": True,
-                    },
-                )
-            except Exception as e:
-                return web.json_response(
-                    {
-                        "message": f"Failed to restore database: {e!s}",
                     },
                     status=500,
                 )

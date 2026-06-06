@@ -781,16 +781,35 @@
                                         {{ $t("about.database_backups_desc") }}
                                     </div>
                                 </div>
-                                <button
-                                    type="button"
-                                    class="primary-chip px-5! py-2.5!"
-                                    :disabled="backupInProgress"
-                                    @click="backupDatabase"
-                                >
-                                    <v-icon icon="mdi-download" start></v-icon>
-                                    <span v-if="backupInProgress">{{ $t("about.downloading") }}</span>
-                                    <span v-else>{{ $t("about.download_backup") }}</span>
-                                </button>
+                                <div class="flex flex-col sm:flex-row gap-2">
+                                    <button
+                                        type="button"
+                                        class="primary-chip px-5! py-2.5!"
+                                        :disabled="backupInProgress"
+                                        @click="backupDatabase"
+                                    >
+                                        <v-icon icon="mdi-download" start></v-icon>
+                                        <span v-if="backupInProgress">{{ $t("about.downloading") }}</span>
+                                        <span v-else>{{ $t("about.download_backup") }}</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="secondary-chip px-5! py-2.5!"
+                                        :disabled="restoreInProgress"
+                                        @click="$refs.restoreFileInput?.click()"
+                                    >
+                                        <v-icon icon="mdi-upload" start></v-icon>
+                                        <span v-if="restoreInProgress">{{ $t("about.restoring") }}</span>
+                                        <span v-else>{{ $t("about.restore_from_file") }}</span>
+                                    </button>
+                                    <input
+                                        ref="restoreFileInput"
+                                        type="file"
+                                        accept=".zip,application/zip"
+                                        class="hidden"
+                                        @change="onRestoreFileChange"
+                                    />
+                                </div>
                             </div>
 
                             <!-- Snapshots -->
@@ -843,9 +862,7 @@
                                                     {{ Utils.formatTimeAgo(snapshot.created_at) }}</span
                                                 >
                                             </div>
-                                            <div
-                                                class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                                            >
+                                            <div class="flex gap-2 shrink-0">
                                                 <button
                                                     type="button"
                                                     class="primary-chip px-3! py-1! text-[10px]!"
@@ -938,9 +955,7 @@
                                                     {{ Utils.formatTimeAgo(backup.created_at) }}</span
                                                 >
                                             </div>
-                                            <div
-                                                class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                                            >
+                                            <div class="flex gap-2 shrink-0">
                                                 <button
                                                     type="button"
                                                     class="primary-chip px-3! py-1! text-[10px]!"
@@ -1404,7 +1419,12 @@ export default {
                 return;
             }
             if (!this.restoreFile) {
-                this.restoreError = "Select a backup file to restore.";
+                this.restoreError = this.$t("about.restore_select_file");
+                return;
+            }
+            if (!(await DialogUtils.confirm(this.$t("about.restore_file_confirm")))) {
+                this.restoreFile = null;
+                this.restoreFileName = "";
                 return;
             }
             this.restoreInProgress = true;
@@ -1416,15 +1436,22 @@ export default {
                 const response = await window.api.post("/api/v1/database/restore", formData, {
                     headers: { "Content-Type": "multipart/form-data" },
                 });
-                this.restoreMessage = response.data.message || "Database restored";
+                this.restoreMessage = response.data.message || this.$t("about.database_restored");
                 this.databaseHealth = response.data.database?.health || this.databaseHealth;
                 this.databaseRecoveryActions = response.data.database?.actions || this.databaseRecoveryActions;
+                ToastUtils.success(this.$t("about.database_restored"));
+                if (this.isElectron) {
+                    setTimeout(() => ElectronUtils.relaunch(), 2000);
+                }
                 await this.getDatabaseHealth();
             } catch (e) {
-                this.restoreError = "Restore failed";
+                this.restoreError = this.$t("about.failed_restore_file");
+                ToastUtils.error(this.$t("about.failed_restore_file"));
                 console.log(e);
             } finally {
                 this.restoreInProgress = false;
+                this.restoreFile = null;
+                this.restoreFileName = "";
             }
         },
         async runRecovery() {
@@ -1555,14 +1582,18 @@ export default {
         formatBytesPerSecond: function (bytesPerSecond) {
             return Utils.formatBytesPerSecond(bytesPerSecond);
         },
-        onRestoreFileChange(event) {
-            const files = event.target.files;
+        async onRestoreFileChange(event) {
+            const input = event.target;
+            const files = input.files;
             if (files && files[0]) {
                 this.restoreFile = files[0];
                 this.restoreFileName = files[0].name;
                 this.restoreError = "";
                 this.restoreMessage = "";
+                await this.restoreDatabase();
             }
+            // allow re-selecting the same file later
+            input.value = "";
         },
         formatRecoveryResult(value) {
             if (value === null || value === undefined) {

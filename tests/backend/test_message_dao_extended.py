@@ -1,11 +1,15 @@
 # SPDX-License-Identifier: 0BSD
 
 import json
+import time
 from unittest.mock import MagicMock
 
 import pytest
 
+from meshchatx.src.backend.database import Database
 from meshchatx.src.backend.database.messages import MessageDAO
+from meshchatx.src.backend.database.provider import DatabaseProvider
+from meshchatx.src.backend.database.schema import DatabaseSchema
 
 
 @pytest.fixture
@@ -16,6 +20,69 @@ def mock_provider():
 @pytest.fixture
 def message_dao(mock_provider):
     return MessageDAO(mock_provider)
+
+
+@pytest.fixture
+def real_db(tmp_path):
+    db_path = str(tmp_path / "messages.db")
+    provider = DatabaseProvider(db_path)
+    DatabaseSchema(provider).initialize()
+    return Database(db_path)
+
+
+def _insert_message(db, hash_hex, *, is_incoming, state, method="direct"):
+    peer = "b" * 32
+    db.messages.upsert_lxmf_message(
+        {
+            "hash": hash_hex,
+            "source_hash": peer,
+            "destination_hash": peer,
+            "peer_hash": peer,
+            "state": state,
+            "progress": 0.0,
+            "is_incoming": is_incoming,
+            "method": method,
+            "delivery_attempts": 0,
+            "next_delivery_attempt_at": None,
+            "title": "t",
+            "content": "c",
+            "fields": None,
+            "timestamp": time.time(),
+            "rssi": None,
+            "snr": None,
+            "quality": None,
+            "is_spam": 0,
+            "reply_to_hash": None,
+            "attachments_stripped": 0,
+        },
+    )
+
+
+def test_mark_stuck_messages_never_fails_incoming_messages(real_db):
+    # Incoming messages are stored with the default "generating" state and must
+    # never be flagged as failed by the stuck-message sweep.
+    _insert_message(real_db, "a" * 32, is_incoming=1, state="generating")
+    # Outbound messages stuck mid-send should be failed.
+    _insert_message(real_db, "c" * 32, is_incoming=0, state="generating")
+    _insert_message(real_db, "d" * 32, is_incoming=0, state="sending")
+    _insert_message(real_db, "e" * 32, is_incoming=0, state="delivered")
+
+    real_db.messages.mark_stuck_messages_as_failed()
+
+    assert real_db.messages.get_lxmf_message_by_hash("a" * 32)["state"] == "generating"
+    assert real_db.messages.get_lxmf_message_by_hash("c" * 32)["state"] == "failed"
+    assert real_db.messages.get_lxmf_message_by_hash("d" * 32)["state"] == "failed"
+    assert real_db.messages.get_lxmf_message_by_hash("e" * 32)["state"] == "delivered"
+
+
+def test_mark_stuck_messages_repairs_previously_failed_incoming(real_db):
+    # Simulate a database corrupted by the previous buggy sweep that flipped
+    # received messages to "failed".
+    _insert_message(real_db, "a" * 32, is_incoming=1, state="failed")
+
+    real_db.messages.mark_stuck_messages_as_failed()
+
+    assert real_db.messages.get_lxmf_message_by_hash("a" * 32)["state"] == "generating"
 
 
 def test_upsert_lxmf_message(message_dao, mock_provider):

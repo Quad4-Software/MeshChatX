@@ -389,13 +389,26 @@ class MessageDAO:
     def mark_stuck_messages_as_failed(self):
         self.provider.execute(
             """
-            UPDATE lxmf_messages 
+            UPDATE lxmf_messages
+            SET state = 'generating'
+            WHERE is_incoming = 1 AND state = 'failed'
+            """,
+        )
+
+        # Only outbound messages can get stuck mid-send; incoming messages are
+        # never failed (we already received them).
+        self.provider.execute(
+            """
+            UPDATE lxmf_messages
             SET state = 'failed', updated_at = ?
-            WHERE state = 'outbound' 
-            OR (state = 'sent' AND method = 'opportunistic') 
-            OR state = 'sending'
-            OR state = 'generating'
-        """,
+            WHERE is_incoming = 0
+            AND (
+                state = 'outbound'
+                OR (state = 'sent' AND method = 'opportunistic')
+                OR state = 'sending'
+                OR state = 'generating'
+            )
+            """,
             (datetime.now(UTC).isoformat(),),
         )
 
