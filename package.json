@@ -123,7 +123,8 @@
             "appimage": "1.0.2"
         },
         "files": [
-            "electron/**/*"
+            "electron/",
+            "electron/**"
         ],
         "directories": {
             "buildResources": "electron/build"
