@@ -50,6 +50,7 @@
             @bulk-delete="onBulkDelete"
             @export-folders="onExportFolders"
             @import-folders="onImportFolders"
+            @messages-imported="onMessagesImported"
             @toggle-conversation-pin="onToggleConversationPin"
             @toggle-collapse="messagesListSidebarCollapsed = !messagesListSidebarCollapsed"
         />
@@ -1013,6 +1014,9 @@ export default {
             if (input && typeof input.click === "function") {
                 input.click();
             }
+        },
+        async onMessagesImported() {
+            await this.getConversations();
         },
         onFoldersImportFileSelected(event) {
             const target = event.target;

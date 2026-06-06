@@ -2652,6 +2652,7 @@ import Utils from "../../js/Utils";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
+import { importMessagesFromFile } from "../../js/messageImport";
 import DownloadUtils from "../../js/DownloadUtils";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
@@ -4269,22 +4270,12 @@ export default {
             const file = event.target.files[0];
             if (!file) return;
 
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    if (!data.messages) throw new Error("Invalid file format");
-
-                    await window.api.post("/api/v1/maintenance/messages/import", {
-                        messages: data.messages,
-                    });
-                    ToastUtils.success(this.$t("maintenance.import_success", { count: data.messages.length }));
-                } catch {
-                    ToastUtils.error(this.$t("maintenance.import_failed"));
-                }
-            };
-            reader.readAsText(file);
-            // Reset input
+            try {
+                const { imported } = await importMessagesFromFile(file);
+                ToastUtils.success(this.$t("maintenance.import_success", { count: imported }));
+            } catch {
+                ToastUtils.error(this.$t("maintenance.import_failed"));
+            }
             event.target.value = "";
         },
         async exportFolders() {

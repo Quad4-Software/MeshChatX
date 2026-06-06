@@ -5,43 +5,143 @@ from datetime import UTC, datetime
 
 from .provider import DatabaseProvider
 
+_LXMF_UPSERT_FIELDS = (
+    "hash",
+    "source_hash",
+    "destination_hash",
+    "peer_hash",
+    "state",
+    "progress",
+    "is_incoming",
+    "method",
+    "delivery_attempts",
+    "next_delivery_attempt_at",
+    "title",
+    "content",
+    "fields",
+    "timestamp",
+    "rssi",
+    "snr",
+    "quality",
+    "is_spam",
+    "reply_to_hash",
+    "attachments_stripped",
+    "path_hops_at_send",
+    "path_interface_at_send",
+    "path_finding_measure",
+    "path_row_hash_hex",
+)
+_LXMF_OPTIONAL_UPSERT_FIELDS = frozenset({"attachments_stripped"})
+_LXMF_EXPORT_ONLY_KEYS = frozenset({"id", "lxmf_icon"})
+
 
 class MessageDAO:
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
+        self._lxmf_columns_cache = None
+        self._lxmf_upsert_fields_cache = None
+
+    def _lxmf_table_columns(self):
+        if self._lxmf_columns_cache is None:
+            rows = self.provider.fetchall("PRAGMA table_info(lxmf_messages)")
+            self._lxmf_columns_cache = {row["name"] for row in rows}
+        return self._lxmf_columns_cache
+
+    def _lxmf_upsert_field_names(self):
+        if self._lxmf_upsert_fields_cache is None:
+            columns = self._lxmf_table_columns()
+            self._lxmf_upsert_fields_cache = [
+                field
+                for field in _LXMF_UPSERT_FIELDS
+                if field in columns or field not in _LXMF_OPTIONAL_UPSERT_FIELDS
+            ]
+        return self._lxmf_upsert_fields_cache
+
+    @staticmethod
+    def normalize_lxmf_message_for_import(data):
+        if not isinstance(data, dict):
+            data = dict(data)
+
+        row = {
+            key: value
+            for key, value in data.items()
+            if key not in _LXMF_EXPORT_ONLY_KEYS
+        }
+
+        message_hash = row.get("hash")
+        if not message_hash or not isinstance(message_hash, str):
+            return None
+
+        source_hash = row.get("source_hash")
+        destination_hash = row.get("destination_hash")
+        if not source_hash or not destination_hash:
+            return None
+
+        if not row.get("peer_hash"):
+            is_incoming = row.get("is_incoming")
+            row["peer_hash"] = (
+                source_hash if is_incoming in (1, True, "1") else destination_hash
+            )
+
+        fields_value = row.get("fields")
+        if isinstance(fields_value, dict):
+            row["fields"] = json.dumps(fields_value)
+        elif isinstance(fields_value, str):
+            stripped = fields_value.strip()
+            if stripped.startswith("{") or stripped.startswith("["):
+                try:
+                    parsed = json.loads(stripped)
+                    if isinstance(parsed, dict):
+                        row["fields"] = json.dumps(parsed)
+                except json.JSONDecodeError:
+                    pass
+
+        for key in ("is_incoming", "is_spam", "attachments_stripped"):
+            if key in row and isinstance(row[key], bool):
+                row[key] = int(row[key])
+
+        if row.get("progress") is None:
+            row["progress"] = 0.0
+
+        return row
+
+    def import_lxmf_messages(self, messages):
+        imported = 0
+        skipped = 0
+        errors = []
+
+        if not isinstance(messages, list):
+            raise ValueError("messages must be an array")
+
+        for index, message in enumerate(messages):
+            normalized = self.normalize_lxmf_message_for_import(message)
+            if normalized is None:
+                skipped += 1
+                continue
+            try:
+                self.upsert_lxmf_message(normalized)
+                imported += 1
+            except Exception as exc:
+                errors.append(
+                    {
+                        "index": index,
+                        "hash": normalized.get("hash"),
+                        "error": str(exc),
+                    },
+                )
+
+        return {
+            "imported": imported,
+            "skipped": skipped,
+            "errors": errors,
+        }
 
     def upsert_lxmf_message(self, data):
         # Ensure data is a dict if it's a sqlite3.Row
         if not isinstance(data, dict):
             data = dict(data)
 
-        # Ensure all required fields are present and handle defaults
-        fields = [
-            "hash",
-            "source_hash",
-            "destination_hash",
-            "peer_hash",
-            "state",
-            "progress",
-            "is_incoming",
-            "method",
-            "delivery_attempts",
-            "next_delivery_attempt_at",
-            "title",
-            "content",
-            "fields",
-            "timestamp",
-            "rssi",
-            "snr",
-            "quality",
-            "is_spam",
-            "reply_to_hash",
-            "attachments_stripped",
-            "path_hops_at_send",
-            "path_interface_at_send",
-            "path_finding_measure",
-            "path_row_hash_hex",
-        ]
+        fields = self._lxmf_upsert_field_names()
 
         columns = ", ".join(fields)
         placeholders = ", ".join(["?"] * len(fields))
@@ -67,15 +167,21 @@ class MessageDAO:
         )
 
         params = []
-        for f in fields:
-            val = data.get(f)
-            if f == "fields" and isinstance(val, dict):
+        for field in fields:
+            val = data.get(field)
+            if field == "fields" and isinstance(val, dict):
                 val = json.dumps(val)
             params.append(val)
 
         now = datetime.now(UTC).isoformat()
-        params.append(now)
-        params.append(now)
+        created_at = data.get("created_at")
+        updated_at = data.get("updated_at")
+        if not isinstance(created_at, str) or not created_at.strip():
+            created_at = now
+        if not isinstance(updated_at, str) or not updated_at.strip():
+            updated_at = now
+        params.append(created_at)
+        params.append(updated_at)
 
         self.provider.execute(query, params)
 

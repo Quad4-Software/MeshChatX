@@ -184,3 +184,141 @@ async def test_messages_export_without_icons(mock_rns_minimal, temp_dir):
         data = json.loads(response.body)
         assert len(data["messages"]) == 1
         assert "lxmf_icon" not in data["messages"][0]
+
+
+@pytest.mark.asyncio
+async def test_messages_import_export_roundtrip(mock_rns_minimal, temp_dir):
+    with patch("meshchatx.meshchat.generate_ssl_certificate"):
+        app = ReticulumMeshChat(
+            identity=mock_rns_minimal,
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+        app.database.messages.upsert_lxmf_message(
+            {
+                "hash": "40509ace976b2e572bff2944d60207218135ef69940a25a423e60615760e7e06",
+                "source_hash": "695ff7ffdd5f9ef1ae7772cfa2ecf028",
+                "destination_hash": "7cc8d66b4f6a0e0e49d34af7f6077b5a",
+                "peer_hash": "695ff7ffdd5f9ef1ae7772cfa2ecf028",
+                "state": "generating",
+                "progress": 0,
+                "is_incoming": 1,
+                "method": "opportunistic",
+                "delivery_attempts": 0,
+                "next_delivery_attempt_at": None,
+                "title": "",
+                "content": "i ran nomadnet on orange pi lite too",
+                "fields": "{}",
+                "timestamp": 1773512977.322906,
+                "rssi": None,
+                "snr": None,
+                "quality": None,
+                "is_spam": 0,
+                "reply_to_hash": None,
+                "attachments_stripped": 0,
+            },
+        )
+
+        export_handler = None
+        import_handler = None
+        for route in app.get_routes():
+            if (
+                route.path == "/api/v1/maintenance/messages/export"
+                and route.method == "GET"
+            ):
+                export_handler = route.handler
+            if (
+                route.path == "/api/v1/maintenance/messages/import"
+                and route.method == "POST"
+            ):
+                import_handler = route.handler
+        assert export_handler is not None
+        assert import_handler is not None
+
+        export_response = await export_handler(MagicMock())
+        export_data = json.loads(export_response.body)
+        assert len(export_data["messages"]) == 1
+        assert "lxmf_icon" not in export_data["messages"][0]
+
+        import_request = MagicMock()
+        import_request.json = MagicMock(
+            return_value={"messages": export_data["messages"]},
+        )
+        import_response = await import_handler(import_request)
+        assert import_response.status == 200
+        import_data = json.loads(import_response.body)
+        assert import_data["imported"] == 1
+        assert import_data["skipped"] == 0
+
+
+@pytest.mark.asyncio
+async def test_messages_import_file_upload(mock_rns_minimal, temp_dir):
+    with patch("meshchatx.meshchat.generate_ssl_certificate"):
+        app = ReticulumMeshChat(
+            identity=mock_rns_minimal,
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+
+        import_file_handler = None
+        for route in app.get_routes():
+            if (
+                route.path == "/api/v1/maintenance/messages/import-file"
+                and route.method == "POST"
+            ):
+                import_file_handler = route.handler
+                break
+        assert import_file_handler is not None
+
+        payload = {
+            "messages": [
+                {
+                    "hash": "40509ace976b2e572bff2944d60207218135ef69940a25a423e60615760e7e06",
+                    "source_hash": "695ff7ffdd5f9ef1ae7772cfa2ecf028",
+                    "destination_hash": "7cc8d66b4f6a0e0e49d34af7f6077b5a",
+                    "peer_hash": "695ff7ffdd5f9ef1ae7772cfa2ecf028",
+                    "state": "generating",
+                    "progress": 0,
+                    "is_incoming": 1,
+                    "method": "opportunistic",
+                    "fields": "{}",
+                    "timestamp": 1773512977.322906,
+                },
+            ],
+        }
+        body = json.dumps(payload).encode("utf-8")
+
+        class _MultipartField:
+            name = "file"
+
+            def __init__(self, data):
+                self._data = data
+                self._offset = 0
+
+            async def read_chunk(self, size=1024 * 1024):
+                if self._offset >= len(self._data):
+                    return b""
+                chunk = self._data[self._offset : self._offset + size]
+                self._offset += len(chunk)
+                return chunk
+
+        class _MultipartReader:
+            def __init__(self, field):
+                self._field = field
+                self._done = False
+
+            async def next(self):
+                if self._done:
+                    return None
+                self._done = True
+                return self._field
+
+        request = MagicMock()
+        request.multipart = MagicMock(
+            return_value=_MultipartReader(_MultipartField(body)),
+        )
+
+        response = await import_file_handler(request)
+        assert response.status == 200
+        data = json.loads(response.body)
+        assert data["imported"] == 1

@@ -513,6 +513,10 @@
             "path": "/api/v1/maintenance/messages/import"
         },
         {
+            "method": "POST",
+            "path": "/api/v1/maintenance/messages/import-file"
+        },
+        {
             "method": "DELETE",
             "path": "/api/v1/maintenance/stickers"
         },

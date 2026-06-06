@@ -7010,17 +7010,107 @@ class ReticulumMeshChat:
                     m["lxmf_icon"] = icons[h]
             return web.json_response({"messages": messages_list})
 
+        def _message_import_response(result):
+            imported = result["imported"]
+            skipped = result["skipped"]
+            errors = result["errors"]
+            if imported == 0 and errors:
+                return web.json_response(
+                    {
+                        "error": errors[0]["error"],
+                        "imported": imported,
+                        "skipped": skipped,
+                        "errors": errors,
+                    },
+                    status=400,
+                )
+            response = {
+                "message": f"Successfully imported {imported} messages",
+                "imported": imported,
+                "skipped": skipped,
+            }
+            if errors:
+                response["errors"] = errors
+            return web.json_response(response)
+
+        def _parse_message_import_payload(payload):
+            if isinstance(payload, list):
+                return payload
+            if isinstance(payload, dict):
+                messages = payload.get("messages", [])
+                return [] if messages is None else messages
+            return None
+
         # maintenance - import messages
         @routes.post("/api/v1/maintenance/messages/import")
         async def maintenance_import_messages(request):
             try:
                 data = await request.json()
-                messages = data.get("messages", [])
-                for msg in messages:
-                    self.database.messages.upsert_lxmf_message(msg)
-                return web.json_response(
-                    {"message": f"Successfully imported {len(messages)} messages"},
+                messages = _parse_message_import_payload(data)
+                if messages is None or not isinstance(messages, list):
+                    return web.json_response(
+                        {"error": "messages must be an array"},
+                        status=400,
+                    )
+                if self.database is None:
+                    return web.json_response(
+                        {"error": "No active identity database"},
+                        status=400,
+                    )
+
+                result = await asyncio.to_thread(
+                    self.database.messages.import_lxmf_messages,
+                    messages,
                 )
+                return _message_import_response(result)
+            except Exception as e:
+                return web.json_response({"error": str(e)}, status=400)
+
+        @routes.post("/api/v1/maintenance/messages/import-file")
+        async def maintenance_import_messages_file(request):
+            try:
+                if self.database is None:
+                    return web.json_response(
+                        {"error": "No active identity database"},
+                        status=400,
+                    )
+
+                reader = await request.multipart()
+                field = await reader.next()
+                if field is None or field.name != "file":
+                    return web.json_response(
+                        {"error": "Import file is required"},
+                        status=400,
+                    )
+
+                chunks = []
+                while True:
+                    chunk = await field.read_chunk(size=1024 * 1024)
+                    if not chunk:
+                        break
+                    chunks.append(chunk)
+                raw = b"".join(chunks)
+
+                try:
+                    payload = json.loads(raw)
+                except json.JSONDecodeError as exc:
+                    return web.json_response(
+                        {"error": f"Invalid JSON: {exc}"},
+                        status=400,
+                    )
+
+                messages = _parse_message_import_payload(payload)
+                if messages is None or not isinstance(messages, list):
+                    return web.json_response(
+                        {"error": "messages must be an array"},
+                        status=400,
+                    )
+
+                result = await asyncio.to_thread(
+                    self.database.messages.import_lxmf_messages,
+                    messages,
+                )
+                return _message_import_response(result)
             except Exception as e:
                 return web.json_response({"error": str(e)}, status=400)
 
@@ -13922,8 +14012,8 @@ class ReticulumMeshChat:
 
         # create and run web app
         app = web.Application(
-            client_max_size=1024 * 1024 * 50,
-        )  # allow uploading files up to 50mb
+            client_max_size=1024 * 1024 * 256,
+        )  # allow large message exports with embedded attachments
 
         # setup session storage
         # aiohttp_session.setup must be called before other middlewares that use sessions

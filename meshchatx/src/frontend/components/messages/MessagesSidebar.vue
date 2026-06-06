@@ -117,9 +117,13 @@
             <div
                 v-if="tab === 'conversations'"
                 :class="[
-                    'flex-1 flex flex-col bg-white dark:bg-zinc-950 border-gray-200 dark:border-zinc-800 overflow-hidden min-h-0',
+                    'relative flex-1 flex flex-col bg-white dark:bg-zinc-950 border-gray-200 dark:border-zinc-800 overflow-hidden min-h-0',
                     edgeBorderClass,
                 ]"
+                @dragenter.prevent="onMessagesImportDragEnter"
+                @dragover.prevent="onMessagesImportDragOver"
+                @dragleave="onMessagesImportDragLeave"
+                @drop.prevent="onMessagesImportDrop"
             >
                 <!-- Folders Section -->
                 <div class="border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
@@ -640,6 +644,24 @@
                         </div>
                     </div>
                 </div>
+
+                <div
+                    v-if="messageImportDragOver"
+                    class="pointer-events-none absolute inset-0 z-50 flex items-center justify-center border-2 border-dashed border-indigo-500 bg-indigo-500/10"
+                >
+                    <div class="px-4 text-center">
+                        <MaterialDesignIcon
+                            icon-name="import"
+                            class="mx-auto size-8 text-indigo-600 dark:text-indigo-400"
+                        />
+                        <p class="mt-2 text-sm font-semibold text-indigo-700 dark:text-indigo-300">
+                            {{ $t("maintenance.import_messages") }}
+                        </p>
+                        <p class="text-xs text-indigo-600/80 dark:text-indigo-400/80">
+                            {{ $t("maintenance.import_messages_desc") }}
+                        </p>
+                    </div>
+                </div>
             </div>
 
             <!-- discover -->
@@ -788,6 +810,8 @@ import ContextMenuSectionLabel from "../contextmenu/ContextMenuSectionLabel.vue"
 import GlobalState from "../../js/GlobalState";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import MarkdownRenderer from "../../js/MarkdownRenderer";
+import ToastUtils from "../../js/ToastUtils";
+import { importMessagesFromFile } from "../../js/messageImport";
 
 export default {
     name: "MessagesSidebar",
@@ -896,6 +920,7 @@ export default {
         "bulk-delete",
         "export-folders",
         "import-folders",
+        "messages-imported",
         "toggle-conversation-pin",
         "toggle-collapse",
     ],
@@ -930,6 +955,8 @@ export default {
             },
             draggedHash: null,
             dragOverFolderId: null,
+            messageImportDragOver: false,
+            messageImportDragDepth: 0,
             smUp: typeof window !== "undefined" ? window.innerWidth >= 640 : true,
             conversationLongPressTimer: null,
             conversationLongPressFired: false,
@@ -1160,6 +1187,60 @@ export default {
                 });
             }
             this.draggedHash = null;
+        },
+        isMessagesImportFileDrag(event) {
+            if (this.draggedHash) {
+                return false;
+            }
+            const dataTransfer = event.dataTransfer;
+            if (!dataTransfer) {
+                return false;
+            }
+            return Array.from(dataTransfer.types || []).includes("Files");
+        },
+        onMessagesImportDragEnter(event) {
+            if (!this.isMessagesImportFileDrag(event)) {
+                return;
+            }
+            this.messageImportDragDepth += 1;
+            this.messageImportDragOver = true;
+        },
+        onMessagesImportDragOver(event) {
+            if (!this.isMessagesImportFileDrag(event)) {
+                return;
+            }
+            event.dataTransfer.dropEffect = "copy";
+        },
+        onMessagesImportDragLeave() {
+            if (this.messageImportDragDepth > 0) {
+                this.messageImportDragDepth -= 1;
+            }
+            if (this.messageImportDragDepth === 0) {
+                this.messageImportDragOver = false;
+            }
+        },
+        async onMessagesImportDrop(event) {
+            this.messageImportDragDepth = 0;
+            this.messageImportDragOver = false;
+            if (!this.isMessagesImportFileDrag(event)) {
+                return;
+            }
+            const file = event.dataTransfer?.files?.[0];
+            if (!file) {
+                return;
+            }
+            const name = file.name.toLowerCase();
+            if (!name.endsWith(".json") && file.type !== "application/json") {
+                ToastUtils.error(this.$t("maintenance.import_failed"));
+                return;
+            }
+            try {
+                const { imported } = await importMessagesFromFile(file);
+                ToastUtils.success(this.$t("maintenance.import_success", { count: imported }));
+                this.$emit("messages-imported");
+            } catch {
+                ToastUtils.error(this.$t("maintenance.import_failed"));
+            }
         },
         async createFolder() {
             const name = await DialogUtils.prompt(

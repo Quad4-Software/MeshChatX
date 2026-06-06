@@ -85,7 +85,97 @@ def test_mark_stuck_messages_repairs_previously_failed_incoming(real_db):
     assert real_db.messages.get_lxmf_message_by_hash("a" * 32)["state"] == "generating"
 
 
+def test_normalize_lxmf_message_for_import_strips_export_metadata():
+    row = {
+        "id": 1,
+        "hash": "a" * 64,
+        "source_hash": "b" * 32,
+        "destination_hash": "c" * 32,
+        "state": "generating",
+        "is_incoming": 1,
+        "fields": "{}",
+        "created_at": "2026-05-09T01:12:37.063720+00:00",
+        "lxmf_icon": {"icon_name": "account"},
+    }
+    normalized = MessageDAO.normalize_lxmf_message_for_import(row)
+    assert normalized is not None
+    assert normalized["peer_hash"] == "b" * 32
+    assert "id" not in normalized
+    assert "lxmf_icon" not in normalized
+
+
+def test_import_lxmf_messages_skips_invalid_rows(real_db):
+    messages = [
+        {"hash": "a" * 64, "source_hash": "b" * 32, "destination_hash": "c" * 32},
+        {"hash": "", "source_hash": "b" * 32, "destination_hash": "c" * 32},
+    ]
+    result = real_db.messages.import_lxmf_messages(messages)
+    assert result["imported"] == 1
+    assert result["skipped"] == 1
+    assert result["errors"] == []
+
+
+def test_import_lxmf_messages_without_attachments_stripped_column(tmp_path):
+    db_path = str(tmp_path / "legacy.db")
+    provider = DatabaseProvider(db_path)
+    DatabaseSchema(provider).initialize()
+    provider.execute("ALTER TABLE lxmf_messages DROP COLUMN attachments_stripped")
+    db = Database(db_path)
+
+    result = db.messages.import_lxmf_messages(
+        [
+            {
+                "id": 1,
+                "hash": "a" * 64,
+                "source_hash": "b" * 32,
+                "destination_hash": "c" * 32,
+                "peer_hash": "b" * 32,
+                "state": "generating",
+                "progress": 0,
+                "is_incoming": 1,
+                "method": "opportunistic",
+                "fields": "{}",
+                "timestamp": 1773512977.322906,
+                "attachments_stripped": 0,
+            },
+        ],
+    )
+    assert result["imported"] == 1
+    assert result["errors"] == []
+
+
 def test_upsert_lxmf_message(message_dao, mock_provider):
+    mock_provider.fetchall.return_value = [
+        {"name": field}
+        for field in (
+            "hash",
+            "source_hash",
+            "destination_hash",
+            "peer_hash",
+            "state",
+            "progress",
+            "is_incoming",
+            "method",
+            "delivery_attempts",
+            "next_delivery_attempt_at",
+            "title",
+            "content",
+            "fields",
+            "timestamp",
+            "rssi",
+            "snr",
+            "quality",
+            "is_spam",
+            "reply_to_hash",
+            "attachments_stripped",
+            "path_hops_at_send",
+            "path_interface_at_send",
+            "path_finding_measure",
+            "path_row_hash_hex",
+            "created_at",
+            "updated_at",
+        )
+    ]
     data = {"hash": "hash1", "content": "hello", "fields": {"key": "val"}}
     message_dao.upsert_lxmf_message(data)
 
