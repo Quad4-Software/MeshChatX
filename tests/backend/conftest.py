@@ -105,6 +105,7 @@ def stub_lxst_telephone_unless_real(request):
     mock_instance.busy = False
     mock_instance.call_status = 3
     mock_instance.active_call = None
+    mock_instance.destination.hexhash = "test_telephone_hexhash"
     with patch(
         "meshchatx.src.backend.telephone_manager.Telephone",
         return_value=mock_instance,
