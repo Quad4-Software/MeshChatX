@@ -33,7 +33,7 @@
         "test:e2e": "playwright test",
         "test:e2e:ui": "playwright test --ui",
         "test:e2e:install": "playwright install chromium",
-        "electron-postinstall": "electron-builder install-app-deps && node scripts/ensure-micron-parser-package.js && node scripts/patch-electron-builder-fs.cjs",
+        "electron-postinstall": "electron-builder install-app-deps && node scripts/ensure-micron-parser-package.js && node scripts/patch-electron-builder-fs.cjs && node scripts/patch-electron-installer-common.cjs",
         "electron": "pnpm run electron-postinstall && pnpm run build && electron .",
         "dist": "pnpm run electron-postinstall && pnpm run build && electron-builder --publish=never",
         "dist:linux": "pnpm run electron-postinstall && cross-env PLATFORM=linux pnpm run build && electron-builder --linux AppImage deb --publish=never",
