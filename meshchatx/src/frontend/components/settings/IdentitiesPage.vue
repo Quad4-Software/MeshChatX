@@ -4,49 +4,43 @@
     <div
         class="flex flex-col flex-1 overflow-hidden min-w-0 bg-linear-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
     >
-        <div class="flex-1 overflow-y-auto w-full px-4 md:px-5 lg:px-8 py-6">
-            <div class="space-y-6 w-full max-w-4xl mx-auto">
-                <!-- header -->
-                <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div class="min-w-0">
-                        <h1 class="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">
-                            {{ $t("identities.title") }}
-                        </h1>
-                        <p class="text-gray-600 dark:text-gray-400 mt-1">
-                            {{ $t("identities.manage") }}
-                        </p>
-                    </div>
-                    <div class="flex flex-row gap-2 sm:flex-wrap sm:items-stretch sm:justify-end">
-                        <button
-                            type="button"
-                            class="inline-flex items-center justify-center gap-x-2 rounded-xl bg-blue-600 p-2.5 sm:px-4 sm:py-2.5 text-sm font-semibold text-white shadow-xs hover:bg-blue-500 transition-all active:scale-[0.98] sm:rounded-2xl"
-                            :title="$t('identities.new_identity')"
-                            @click="showCreateModal = true"
-                        >
-                            <MaterialDesignIcon icon-name="plus" class="w-5 h-5 shrink-0" />
-                            <span class="hidden sm:inline truncate">{{ $t("identities.new_identity") }}</span>
-                        </button>
-                        <button
-                            type="button"
-                            class="inline-flex items-center justify-center gap-x-2 rounded-xl border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 p-2.5 sm:px-4 sm:py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-700 transition-all active:scale-[0.98] sm:rounded-2xl"
-                            :title="$t('identities.import')"
-                            @click="showImportModal = true"
-                        >
-                            <MaterialDesignIcon icon-name="upload" class="w-5 h-5 shrink-0" />
-                            <span class="hidden sm:inline truncate">{{ $t("identities.import") }}</span>
-                        </button>
-                        <button
-                            type="button"
-                            class="inline-flex items-center justify-center gap-x-2 rounded-xl border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 p-2.5 sm:px-4 sm:py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-zinc-700 transition-all active:scale-[0.98] disabled:opacity-50 sm:rounded-2xl"
-                            :disabled="identities.length === 0"
-                            :title="$t('identities.export_all')"
-                            @click="downloadAllIdentities"
-                        >
-                            <MaterialDesignIcon icon-name="file-export" class="w-5 h-5 shrink-0" />
-                            <span class="hidden sm:inline truncate">{{ $t("identities.export_all") }}</span>
-                        </button>
+        <div class="flex-1 overflow-y-auto overflow-x-hidden w-full px-3 sm:px-5 md:px-5 lg:px-8 py-4 sm:py-6">
+            <div class="space-y-0 w-full max-w-5xl mx-auto min-w-0">
+                <div class="identities-section identities-section--hero">
+                    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div class="space-y-2 flex-1 min-w-0">
+                            <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                                {{ $t("identities.eyebrow") }}
+                            </div>
+                            <h1 class="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+                                {{ $t("identities.title") }}
+                            </h1>
+                            <p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed max-w-xl">
+                                {{ $t("identities.manage") }}
+                            </p>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2 shrink-0">
+                            <button type="button" class="primary-chip" @click="showCreateModal = true">
+                                <MaterialDesignIcon icon-name="plus" class="size-4" />
+                                <span class="hidden sm:inline">{{ $t("identities.new_identity") }}</span>
+                            </button>
+                            <button type="button" class="secondary-chip" @click="showImportModal = true">
+                                <MaterialDesignIcon icon-name="file-import" class="size-4" />
+                                <span class="hidden sm:inline">{{ $t("identities.import") }}</span>
+                            </button>
+                            <button
+                                type="button"
+                                class="secondary-chip"
+                                :disabled="identities.length === 0"
+                                @click="downloadAllIdentities"
+                            >
+                                <MaterialDesignIcon icon-name="file-export" class="size-4" />
+                                <span class="hidden sm:inline">{{ $t("identities.export_all") }}</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
+
                 <input
                     ref="identityFileInput"
                     type="file"
@@ -55,316 +49,374 @@
                     @change="onIdentityRestoreFileChange"
                 />
 
-                <!-- identities list -->
-                <div class="grid gap-4">
-                    <template v-if="isLoading && identities.length === 0">
+                <template v-if="isLoading && identities.length === 0">
+                    <div class="identities-section">
                         <div
                             v-for="i in 4"
                             :key="'skel-' + i"
-                            class="glass-card overflow-hidden p-5 flex items-center gap-4"
+                            class="flex items-center gap-3 border-b border-gray-100 px-1 py-3 dark:border-zinc-800"
                         >
-                            <div class="w-14 h-14 rounded-2xl bg-gray-200 dark:bg-zinc-700 animate-pulse shrink-0" />
+                            <div
+                                class="size-10 sm:size-12 rounded-full bg-gray-200 dark:bg-zinc-700 animate-pulse shrink-0"
+                            />
                             <div class="flex-1 min-w-0 space-y-2">
-                                <div class="h-5 w-32 bg-gray-200 dark:bg-zinc-700 rounded-sm animate-pulse" />
+                                <div class="h-4 w-32 bg-gray-200 dark:bg-zinc-700 rounded-sm animate-pulse" />
                                 <div class="h-3 w-48 bg-gray-100 dark:bg-zinc-800 rounded-sm animate-pulse" />
                             </div>
                         </div>
-                    </template>
-                    <div
-                        v-for="identity in identities"
-                        v-else
-                        :key="identity.hash"
-                        v-memo="[
-                            identity.hash,
-                            identity.is_current,
-                            identity.display_name,
-                            identity.lxmf_address,
-                            identity.lxst_address,
-                            identity.message_count,
-                            identity.icon_name,
-                            identity.icon_background_colour,
-                            identity.icon_foreground_colour,
-                        ]"
-                        class="glass-card overflow-hidden group transition-all duration-300"
-                        :class="{
-                            'ring-2 ring-blue-500/50 dark:ring-blue-400/40 bg-blue-50/30 dark:bg-blue-900/10':
-                                identity.is_current,
-                        }"
-                    >
-                        <div class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-                            <div class="flex items-start gap-3 sm:gap-4 sm:flex-1 sm:min-w-0">
-                                <!-- icon -->
-                                <div class="relative shrink-0">
-                                    <div
-                                        class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shadow-inner overflow-hidden transition-all duration-500"
-                                        :class="
-                                            identity.is_current && !identity.icon_background_colour
-                                                ? 'bg-linear-to-br from-blue-100 to-indigo-100 dark:from-blue-900/50 dark:to-indigo-900/50'
-                                                : !identity.icon_background_colour
-                                                  ? 'bg-linear-to-br from-gray-100 to-slate-100 dark:from-zinc-800 dark:to-zinc-800/50'
-                                                  : ''
-                                        "
-                                        :style="
-                                            identity.icon_background_colour
-                                                ? { 'background-color': identity.icon_background_colour }
-                                                : {}
-                                        "
-                                    >
-                                        <MaterialDesignIcon
-                                            v-if="identity.icon_name"
-                                            :icon-name="identity.icon_name"
-                                            class="w-7 h-7 sm:w-8 sm:h-8"
-                                            :style="{ color: identity.icon_foreground_colour || 'inherit' }"
-                                        />
-                                        <MaterialDesignIcon
-                                            v-else
-                                            :icon-name="identity.is_current ? 'account-check' : 'account'"
-                                            class="w-7 h-7 sm:w-8 sm:h-8"
-                                            :class="
-                                                identity.is_current
-                                                    ? 'text-blue-600 dark:text-blue-400'
-                                                    : 'text-gray-500 dark:text-gray-400'
-                                            "
-                                        />
-                                    </div>
-                                    <div
-                                        v-if="identity.is_current"
-                                        class="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white dark:border-zinc-900 shadow-xs"
-                                    ></div>
-                                </div>
+                    </div>
+                </template>
 
-                                <!-- info -->
-                                <div class="flex-1 min-w-0">
-                                    <div class="flex flex-wrap items-center gap-2">
-                                        <h3 class="font-bold text-gray-900 dark:text-white wrap-break-word sm:truncate">
-                                            {{ identity.display_name }}
-                                        </h3>
-                                        <span
-                                            v-if="identity.is_current"
-                                            class="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-[10px] font-bold uppercase tracking-wider"
-                                        >
-                                            {{ $t("identities.current") }}
-                                        </span>
-                                    </div>
-                                    <div
-                                        class="text-xs font-mono text-gray-500 dark:text-zinc-500 mt-0.5 tracking-tight break-all sm:truncate"
-                                        :title="'RNS: ' + identity.hash"
+                <template v-else-if="currentIdentity">
+                    <div class="identities-section space-y-4">
+                        <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                            {{ $t("identities.active_identity") }}
+                        </div>
+                        <div class="flex items-center gap-3 sm:gap-4">
+                            <div class="size-10 sm:size-12 shrink-0">
+                                <LxmfUserIcon
+                                    :icon-name="currentIdentity.icon_name"
+                                    :icon-foreground-colour="currentIdentity.icon_foreground_colour"
+                                    :icon-background-colour="currentIdentity.icon_background_colour"
+                                    icon-class="w-full h-full"
+                                />
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <h2 class="text-lg font-bold text-gray-900 dark:text-white truncate">
+                                        {{ currentIdentity.display_name }}
+                                    </h2>
+                                    <span
+                                        class="px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-[10px] font-semibold uppercase tracking-wide"
                                     >
-                                        ID: {{ identity.hash }}
+                                        {{ $t("identities.current") }}
+                                    </span>
+                                </div>
+                                <p
+                                    v-if="currentIdentity.message_count != null"
+                                    class="text-sm text-gray-500 dark:text-zinc-400 mt-0.5"
+                                >
+                                    {{ $t("identities.message_count", { count: currentIdentity.message_count }) }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <div class="address-card">
+                                <div class="address-card__label">{{ $t("app.identity_hash") }}</div>
+                                <div class="address-card__value monospace-field">{{ currentIdentity.hash }}</div>
+                                <button
+                                    type="button"
+                                    class="address-card__action"
+                                    @click="copyAddress(currentIdentity.hash)"
+                                >
+                                    <MaterialDesignIcon icon-name="content-copy" class="w-4 h-4" />
+                                    {{ $t("app.copy") }}
+                                </button>
+                            </div>
+                            <div v-if="currentIdentity.lxmf_address" class="address-card">
+                                <div class="address-card__label">{{ $t("app.lxmf_address") }}</div>
+                                <div class="address-card__value monospace-field">
+                                    {{ currentIdentity.lxmf_address }}
+                                </div>
+                                <button
+                                    type="button"
+                                    class="address-card__action"
+                                    @click="copyAddress(currentIdentity.lxmf_address)"
+                                >
+                                    <MaterialDesignIcon icon-name="content-copy" class="w-4 h-4" />
+                                    {{ $t("app.copy") }}
+                                </button>
+                            </div>
+                            <div v-if="currentIdentity.lxst_address" class="address-card">
+                                <div class="address-card__label">{{ $t("identities.lxst_address") }}</div>
+                                <div class="address-card__value monospace-field">
+                                    {{ currentIdentity.lxst_address }}
+                                </div>
+                                <button
+                                    type="button"
+                                    class="address-card__action"
+                                    @click="copyAddress(currentIdentity.lxst_address)"
+                                >
+                                    <MaterialDesignIcon icon-name="content-copy" class="w-4 h-4" />
+                                    {{ $t("app.copy") }}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" class="secondary-chip" @click="downloadIdentityFile">
+                                <MaterialDesignIcon icon-name="file-export" class="size-4" />
+                                {{ $t("identities.export_key_file") }}
+                            </button>
+                            <button type="button" class="secondary-chip" @click="copyIdentityBase32">
+                                <MaterialDesignIcon icon-name="content-copy" class="size-4" />
+                                {{ $t("identities.copy_base32") }}
+                            </button>
+                        </div>
+                    </div>
+                </template>
+
+                <div v-if="!isLoading && otherIdentities.length > 0" class="identities-section">
+                    <div class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">
+                        {{ $t("identities.other_identities") }}
+                    </div>
+                    <div class="divide-y divide-gray-100 dark:divide-zinc-800">
+                        <div
+                            v-for="identity in otherIdentities"
+                            :key="identity.hash"
+                            v-memo="[
+                                identity.hash,
+                                identity.display_name,
+                                identity.lxmf_address,
+                                identity.lxst_address,
+                                identity.message_count,
+                                identity.icon_name,
+                                identity.icon_background_colour,
+                                identity.icon_foreground_colour,
+                                expandedAddressHashes[identity.hash],
+                            ]"
+                            class="identity-row group py-3 px-1 transition-colors hover:bg-gray-50/80 dark:hover:bg-zinc-900/70"
+                        >
+                            <div class="flex items-center gap-3">
+                                <div class="size-10 sm:size-12 shrink-0">
+                                    <LxmfUserIcon
+                                        :icon-name="identity.icon_name"
+                                        :icon-foreground-colour="identity.icon_foreground_colour"
+                                        :icon-background-colour="identity.icon_background_colour"
+                                        icon-class="w-full h-full"
+                                    />
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <div class="font-semibold text-gray-900 dark:text-zinc-100 truncate">
+                                        {{ identity.display_name }}
                                     </div>
-                                    <div
-                                        v-if="identity.lxmf_address"
-                                        class="text-[10px] font-mono text-gray-400 dark:text-zinc-600 mt-0.5 tracking-tighter break-all sm:truncate"
-                                        :title="'LXMF: ' + identity.lxmf_address"
-                                    >
-                                        LXMF: {{ identity.lxmf_address }}
-                                    </div>
-                                    <div
-                                        v-if="identity.lxst_address"
-                                        class="text-[10px] font-mono text-gray-400 dark:text-zinc-600 mt-0.5 tracking-tighter break-all sm:truncate"
-                                        :title="'LXST: ' + identity.lxst_address"
-                                    >
-                                        LXST: {{ identity.lxst_address }}
-                                    </div>
-                                    <div
+                                    <p
                                         v-if="identity.message_count != null"
-                                        class="text-[10px] text-gray-400 dark:text-zinc-500 mt-0.5"
+                                        class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5"
                                     >
                                         {{ $t("identities.message_count", { count: identity.message_count }) }}
-                                    </div>
+                                    </p>
+                                </div>
+                                <div class="flex items-center gap-2 shrink-0">
+                                    <button
+                                        type="button"
+                                        class="secondary-chip"
+                                        :title="$t('identities.switch')"
+                                        @click="switchIdentity(identity)"
+                                    >
+                                        <MaterialDesignIcon icon-name="swap-horizontal" class="size-4" />
+                                        <span class="hidden sm:inline">{{ $t("identities.switch_label") }}</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="p-2 rounded-xl text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 dark:hover:text-red-400 transition"
+                                        :title="$t('identities.delete')"
+                                        @click="deleteIdentity(identity)"
+                                    >
+                                        <MaterialDesignIcon icon-name="delete-outline" class="size-5" />
+                                    </button>
                                 </div>
                             </div>
-
-                            <!-- actions -->
                             <div
-                                class="flex items-center justify-end gap-2 border-t border-gray-100 dark:border-zinc-800 pt-3 sm:border-0 sm:pt-0 sm:shrink-0"
+                                v-if="identity.lxmf_address || identity.lxst_address || identity.hash"
+                                class="mt-2 pl-11 sm:pl-14"
                             >
-                                <template v-if="identity.is_current">
-                                    <div
-                                        class="flex items-center gap-1.5 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
-                                    >
+                                <button
+                                    type="button"
+                                    class="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                                    @click="toggleAddresses(identity.hash)"
+                                >
+                                    {{
+                                        expandedAddressHashes[identity.hash]
+                                            ? $t("identities.hide_addresses")
+                                            : $t("identities.show_addresses")
+                                    }}
+                                </button>
+                                <div v-if="expandedAddressHashes[identity.hash]" class="grid gap-2 mt-2 sm:grid-cols-2">
+                                    <div class="address-card">
+                                        <div class="address-card__label">{{ $t("app.identity_hash") }}</div>
+                                        <div class="address-card__value monospace-field text-xs">{{ identity.hash }}</div>
                                         <button
                                             type="button"
-                                            class="p-2 sm:p-2.5 rounded-xl bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-amber-500 hover:text-white dark:hover:bg-amber-600 transition-all active:scale-90"
-                                            :title="$t('identities.export_key_file')"
-                                            @click="downloadIdentityFile"
+                                            class="address-card__action"
+                                            @click="copyAddress(identity.hash)"
                                         >
-                                            <MaterialDesignIcon icon-name="file-export" class="w-5 h-5" />
-                                        </button>
-                                        <button
-                                            type="button"
-                                            class="p-2 sm:p-2.5 rounded-xl bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-amber-500 hover:text-white dark:hover:bg-amber-600 transition-all active:scale-90"
-                                            :title="$t('identities.copy_base32')"
-                                            @click="copyIdentityBase32"
-                                        >
-                                            <MaterialDesignIcon icon-name="content-copy" class="w-5 h-5" />
+                                            <MaterialDesignIcon icon-name="content-copy" class="w-4 h-4" />
+                                            {{ $t("app.copy") }}
                                         </button>
                                     </div>
-                                </template>
-                                <button
-                                    v-if="!identity.is_current"
-                                    type="button"
-                                    class="p-2 sm:p-2.5 rounded-xl bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-blue-500 hover:text-white dark:hover:bg-blue-600 transition-all active:scale-90"
-                                    :title="$t('identities.switch')"
-                                    @click="switchIdentity(identity)"
-                                >
-                                    <MaterialDesignIcon icon-name="swap-horizontal" class="w-5 h-5" />
-                                </button>
-                                <button
-                                    v-if="!identity.is_current"
-                                    type="button"
-                                    class="p-2 sm:p-2.5 rounded-xl bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-red-500 hover:text-white dark:hover:bg-red-600 transition-all active:scale-90"
-                                    :title="$t('identities.delete')"
-                                    @click="deleteIdentity(identity)"
-                                >
-                                    <MaterialDesignIcon icon-name="delete-outline" class="w-5 h-5" />
-                                </button>
+                                    <div v-if="identity.lxmf_address" class="address-card">
+                                        <div class="address-card__label">{{ $t("app.lxmf_address") }}</div>
+                                        <div class="address-card__value monospace-field text-xs">
+                                            {{ identity.lxmf_address }}
+                                        </div>
+                                        <button
+                                            type="button"
+                                            class="address-card__action"
+                                            @click="copyAddress(identity.lxmf_address)"
+                                        >
+                                            <MaterialDesignIcon icon-name="content-copy" class="w-4 h-4" />
+                                            {{ $t("app.copy") }}
+                                        </button>
+                                    </div>
+                                    <div v-if="identity.lxst_address" class="address-card">
+                                        <div class="address-card__label">{{ $t("identities.lxst_address") }}</div>
+                                        <div class="address-card__value monospace-field text-xs">
+                                            {{ identity.lxst_address }}
+                                        </div>
+                                        <button
+                                            type="button"
+                                            class="address-card__action"
+                                            @click="copyAddress(identity.lxst_address)"
+                                        >
+                                            <MaterialDesignIcon icon-name="content-copy" class="w-4 h-4" />
+                                            {{ $t("app.copy") }}
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- empty state -->
-                <div v-if="!isLoading && identities.length === 0" class="glass-card p-12 text-center">
-                    <div
-                        class="w-20 h-20 bg-gray-100 dark:bg-zinc-800 rounded-3xl flex items-center justify-center mx-auto mb-4"
-                    >
-                        <MaterialDesignIcon icon-name="account-group" class="w-10 h-10 text-gray-400" />
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">
+                <div
+                    v-if="!isLoading && identities.length === 0"
+                    class="identities-section py-12 text-center text-gray-500 dark:text-zinc-400"
+                >
+                    <MaterialDesignIcon icon-name="account-group" class="size-12 mx-auto mb-3 opacity-40" />
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
                         {{ $t("identities.no_identities") }}
                     </h3>
-                    <p class="text-gray-500 dark:text-gray-400 mt-2">{{ $t("identities.create_first") }}</p>
+                    <p class="mt-1 text-sm">{{ $t("identities.create_first") }}</p>
+                    <button type="button" class="primary-chip mt-4" @click="showCreateModal = true">
+                        <MaterialDesignIcon icon-name="plus" class="size-4" />
+                        {{ $t("identities.new_identity") }}
+                    </button>
                 </div>
             </div>
         </div>
 
-        <!-- create modal -->
         <div
             v-if="showCreateModal"
-            class="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs"
+            class="fixed inset-0 z-200 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
+            @click.self="showCreateModal = false"
         >
-            <div class="glass-card w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200">
-                <div class="p-6">
-                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+            <div class="w-full max-w-md rounded-2xl bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden">
+                <div class="px-5 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
+                    <h2 class="text-lg font-bold text-gray-900 dark:text-white">
                         {{ $t("identities.new_identity") }}
                     </h2>
-                    <p class="text-gray-500 dark:text-gray-400 mt-1">{{ $t("identities.generate_fresh") }}</p>
-
-                    <div class="mt-6 space-y-4">
-                        <div>
-                            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                                {{ $t("identities.display_name") }}
-                            </label>
-                            <input
-                                v-model="newIdentityName"
-                                type="text"
-                                :placeholder="$t('identities.display_name_hint')"
-                                class="input-field"
-                                autofocus
-                                @keyup.enter="createIdentity"
-                            />
-                        </div>
+                    <button
+                        type="button"
+                        class="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300"
+                        @click="showCreateModal = false"
+                    >
+                        <MaterialDesignIcon icon-name="close" class="size-5" />
+                    </button>
+                </div>
+                <div class="p-5 space-y-4">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ $t("identities.generate_fresh") }}</p>
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider font-semibold text-gray-500 mb-1">
+                            {{ $t("identities.display_name") }}
+                        </label>
+                        <input
+                            v-model="newIdentityName"
+                            type="text"
+                            :placeholder="$t('identities.display_name_hint')"
+                            class="input-field"
+                            autofocus
+                            @keyup.enter="createIdentity"
+                        />
                     </div>
+                </div>
+                <div class="px-5 py-4 border-t border-gray-100 dark:border-zinc-800 flex justify-end gap-2">
+                    <button type="button" class="secondary-chip" @click="showCreateModal = false">
+                        {{ $t("common.cancel") }}
+                    </button>
+                    <button type="button" class="primary-chip" :disabled="isCreating" @click="createIdentity">
+                        <MaterialDesignIcon
+                            :icon-name="isCreating ? 'loading' : 'check'"
+                            class="size-4"
+                            :class="{ 'animate-spin': isCreating }"
+                        />
+                        {{ $t("common.add") }}
+                    </button>
+                </div>
+            </div>
+        </div>
 
-                    <div class="mt-8 flex gap-3">
+        <div
+            v-if="showImportModal"
+            class="fixed inset-0 z-200 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
+            @click.self="showImportModal = false"
+        >
+            <div class="w-full max-w-md rounded-2xl bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden">
+                <div class="px-5 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
+                    <h2 class="text-lg font-bold text-gray-900 dark:text-white">
+                        {{ $t("identities.import") }}
+                    </h2>
+                    <button
+                        type="button"
+                        class="text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300"
+                        @click="showImportModal = false"
+                    >
+                        <MaterialDesignIcon icon-name="close" class="size-5" />
+                    </button>
+                </div>
+                <div class="p-5 space-y-4">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ $t("identities.import_hint") }}</p>
+                    <button
+                        type="button"
+                        class="w-full secondary-chip justify-center"
+                        @click="
+                            $refs.identityFileInput?.click();
+                            showImportModal = false;
+                        "
+                    >
+                        <MaterialDesignIcon icon-name="upload" class="size-4" />
+                        {{ $t("identities.upload_key_file") }}
+                    </button>
+                    <div class="border-t border-gray-200 dark:border-zinc-700 pt-4 space-y-3">
+                        <label class="block text-xs uppercase tracking-wider font-semibold text-gray-500">
+                            {{ $t("identities.paste_base32") }}
+                        </label>
+                        <textarea
+                            v-model="identityRestoreBase32"
+                            rows="3"
+                            class="input-field font-mono text-xs w-full"
+                            :placeholder="$t('identities.paste_base32_placeholder')"
+                        />
+                        <div v-if="identityRestoreError" class="text-sm text-red-600 dark:text-red-400">
+                            {{ identityRestoreError }}
+                        </div>
+                        <div v-if="identityRestoreMessage" class="text-sm text-green-600 dark:text-green-400">
+                            {{ identityRestoreMessage }}
+                        </div>
                         <button
                             type="button"
-                            class="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-700 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800 transition"
-                            @click="showCreateModal = false"
+                            class="primary-chip"
+                            :disabled="identityRestoreInProgress || !identityRestoreBase32.trim()"
+                            @click="restoreIdentityBase32"
                         >
-                            {{ $t("common.cancel") }}
-                        </button>
-                        <button
-                            type="button"
-                            class="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold shadow-lg shadow-blue-500/25 hover:bg-blue-500 transition active:scale-95"
-                            :disabled="isCreating"
-                            @click="createIdentity"
-                        >
-                            <span v-if="isCreating" class="animate-spin mr-2">
-                                <MaterialDesignIcon icon-name="loading" class="w-4 h-4" />
-                            </span>
-                            {{ $t("common.add") }}
+                            <MaterialDesignIcon
+                                v-if="identityRestoreInProgress"
+                                icon-name="loading"
+                                class="size-4 animate-spin"
+                            />
+                            {{
+                                identityRestoreInProgress
+                                    ? $t("identities.restoring")
+                                    : $t("identities.confirm_restore")
+                            }}
                         </button>
                     </div>
                 </div>
-
-                <!-- import modal -->
-                <div
-                    v-if="showImportModal"
-                    class="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs"
-                    @click.self="showImportModal = false"
-                >
-                    <div class="glass-card w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200">
-                        <div class="p-6">
-                            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
-                                {{ $t("identities.import") }}
-                            </h2>
-                            <p class="text-gray-500 dark:text-gray-400 mt-1">{{ $t("identities.import_hint") }}</p>
-                            <div class="mt-6 space-y-4">
-                                <button
-                                    type="button"
-                                    class="w-full secondary-chip justify-center"
-                                    @click="
-                                        $refs.identityFileInput?.click();
-                                        showImportModal = false;
-                                    "
-                                >
-                                    <MaterialDesignIcon icon-name="upload" class="w-4 h-4" />
-                                    {{ $t("identities.upload_key_file") }}
-                                </button>
-                                <div class="border-t border-gray-200 dark:border-zinc-700 pt-4">
-                                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                                        {{ $t("identities.paste_base32") }}
-                                    </label>
-                                    <textarea
-                                        v-model="identityRestoreBase32"
-                                        rows="3"
-                                        class="input-field font-mono text-xs w-full"
-                                        :placeholder="$t('identities.paste_base32_placeholder')"
-                                    />
-                                    <div
-                                        v-if="identityRestoreError"
-                                        class="text-sm text-red-600 dark:text-red-400 mt-2"
-                                    >
-                                        {{ identityRestoreError }}
-                                    </div>
-                                    <div
-                                        v-if="identityRestoreMessage"
-                                        class="text-sm text-green-600 dark:text-green-400 mt-2"
-                                    >
-                                        {{ identityRestoreMessage }}
-                                    </div>
-                                    <button
-                                        type="button"
-                                        class="primary-chip mt-3"
-                                        :disabled="identityRestoreInProgress || !identityRestoreBase32.trim()"
-                                        @click="restoreIdentityBase32"
-                                    >
-                                        <MaterialDesignIcon
-                                            v-if="identityRestoreInProgress"
-                                            icon-name="loading"
-                                            class="w-4 h-4 animate-spin"
-                                        />
-                                        {{
-                                            identityRestoreInProgress
-                                                ? $t("identities.restoring")
-                                                : $t("identities.confirm_restore")
-                                        }}
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="mt-6">
-                                <button
-                                    type="button"
-                                    class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-zinc-700 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800"
-                                    @click="showImportModal = false"
-                                >
-                                    {{ $t("common.cancel") }}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                <div class="px-5 py-4 border-t border-gray-100 dark:border-zinc-800">
+                    <button type="button" class="w-full secondary-chip justify-center" @click="showImportModal = false">
+                        {{ $t("common.cancel") }}
+                    </button>
                 </div>
             </div>
         </div>
@@ -373,6 +425,7 @@
 
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
+import LxmfUserIcon from "../LxmfUserIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
 import DialogUtils from "../../js/DialogUtils";
 import GlobalEmitter from "../../js/GlobalEmitter";
@@ -381,6 +434,7 @@ export default {
     name: "IdentitiesPage",
     components: {
         MaterialDesignIcon,
+        LxmfUserIcon,
     },
     data() {
         return {
@@ -395,11 +449,15 @@ export default {
             identityRestoreMessage: "",
             identityRestoreError: "",
             identityRestoreFile: null,
+            expandedAddressHashes: {},
         };
     },
     computed: {
         currentIdentity() {
             return this.identities.find((i) => i.is_current) || null;
+        },
+        otherIdentities() {
+            return this.identities.filter((i) => !i.is_current);
         },
     },
     mounted() {
@@ -413,6 +471,21 @@ export default {
         onIdentitySwitched() {
             this.getIdentities();
             this.isCreating = false;
+        },
+        toggleAddresses(hash) {
+            this.expandedAddressHashes = {
+                ...this.expandedAddressHashes,
+                [hash]: !this.expandedAddressHashes[hash],
+            };
+        },
+        async copyAddress(value) {
+            if (!value) return;
+            try {
+                await navigator.clipboard.writeText(value);
+                ToastUtils.success(this.$t("common.copied"));
+            } catch {
+                ToastUtils.error(this.$t("identities.identity_copy_failed"));
+            }
         },
         async getIdentities() {
             this.isLoading = true;
@@ -580,10 +653,7 @@ export default {
                     e.response?.data?.message || this.$t("identities.failed_switch") || "Failed to switch identity";
                 ToastUtils.error(errorMsg);
                 this.isCreating = false;
-
-                // If it was a partial failure, we might need to reload anyway to be safe,
-                // but let's try to stay on the page if hotswap just failed.
-                GlobalEmitter.emit("identity-switched"); // To clear any global loading overlays
+                GlobalEmitter.emit("identity-switched");
             }
         },
         async deleteIdentity(identity) {
@@ -606,10 +676,10 @@ export default {
 
 <style scoped>
 @reference "../../style.css";
-.glass-card {
-    @apply bg-white/90 dark:bg-zinc-900/80 backdrop-blur-sm border border-gray-200 dark:border-zinc-800 rounded-3xl shadow-lg;
+.identities-section {
+    @apply w-full border-b border-gray-200/60 dark:border-zinc-800/60 py-4 sm:py-6;
 }
-.input-field {
-    @apply bg-gray-50/90 dark:bg-zinc-800/80 border border-gray-200 dark:border-zinc-700 text-sm rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 dark:focus:ring-blue-500 dark:focus:border-blue-500 block w-full p-3 text-gray-900 dark:text-gray-100 transition;
+.identities-section--hero {
+    @apply border-b border-gray-200/60 dark:border-zinc-800/60 py-4 sm:py-6;
 }
 </style>

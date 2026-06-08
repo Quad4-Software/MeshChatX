@@ -664,6 +664,13 @@
     },
     "identities": {
         "title": "身份",
+        "eyebrow": "账户",
+        "active_identity": "当前身份",
+        "other_identities": "其他身份",
+        "show_addresses": "显示地址",
+        "hide_addresses": "隐藏地址",
+        "lxst_address": "LXST 地址",
+        "switch_label": "切换",
         "manage": "管理和切换多个 Reticulum 身份。",
         "new_identity": "新身份",
         "import": "导入",

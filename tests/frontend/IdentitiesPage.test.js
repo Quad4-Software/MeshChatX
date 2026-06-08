@@ -78,6 +78,7 @@ describe("IdentitiesPage.vue", () => {
             global: {
                 stubs: {
                     MaterialDesignIcon: { template: '<div class="mdi"></div>' },
+                    LxmfUserIcon: { template: '<div class="lxmf-user-icon"></div>' },
                 },
                 mocks: {
                     $t: (key) => key,
@@ -103,8 +104,8 @@ describe("IdentitiesPage.vue", () => {
         expect(wrapper.text()).toContain("Identity 1");
         expect(wrapper.text()).toContain("Identity 2");
         expect(wrapper.vm.isLoading).toBe(false);
-        const cards = wrapper.findAll(".glass-card");
-        expect(cards.length).toBeGreaterThanOrEqual(2);
+        const rows = wrapper.findAll(".identity-row");
+        expect(rows.length).toBe(1);
     });
 
     it("exposes current identity with LXMF and message_count", async () => {
@@ -239,7 +240,7 @@ describe("IdentitiesPage.vue", () => {
         const renderTime = end - start;
         console.log(`Rendered ${numIdentities} identities in ${renderTime.toFixed(2)}ms`);
 
-        expect(wrapper.findAll(".glass-card").length).toBeGreaterThanOrEqual(numIdentities);
+        expect(wrapper.findAll(".identity-row").length).toBe(numIdentities - 1);
         expect(renderTime).toBeLessThan(2000);
     });
 

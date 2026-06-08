@@ -664,6 +664,13 @@
     },
     "identities": {
         "title": "Identiteiten",
+        "eyebrow": "Account",
+        "active_identity": "Actieve identiteit",
+        "other_identities": "Overige identiteiten",
+        "show_addresses": "Adressen tonen",
+        "hide_addresses": "Adressen verbergen",
+        "lxst_address": "LXST-adres",
+        "switch_label": "Wisselen",
         "manage": "Beheer en schakel tussen meerdere Reticulum identiteiten.",
         "new_identity": "Nieuwe identiteit",
         "import": "Importeren",

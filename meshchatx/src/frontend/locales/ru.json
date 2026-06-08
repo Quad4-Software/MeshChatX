@@ -664,6 +664,13 @@
     },
     "identities": {
         "title": "Личности",
+        "eyebrow": "Аккаунт",
+        "active_identity": "Активная личность",
+        "other_identities": "Другие личности",
+        "show_addresses": "Показать адреса",
+        "hide_addresses": "Скрыть адреса",
+        "lxst_address": "Адрес LXST",
+        "switch_label": "Переключить",
         "manage": "Управляйте и переключайтесь между несколькими личностями Reticulum.",
         "new_identity": "Новая личность",
         "import": "Импорт",

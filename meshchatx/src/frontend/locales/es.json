@@ -664,6 +664,13 @@
     },
     "identities": {
         "title": "Identidades",
+        "eyebrow": "Cuenta",
+        "active_identity": "Identidad activa",
+        "other_identities": "Otras identidades",
+        "show_addresses": "Mostrar direcciones",
+        "hide_addresses": "Ocultar direcciones",
+        "lxst_address": "Dirección LXST",
+        "switch_label": "Cambiar",
         "manage": "Gestionar y cambiar entre múltiples identidades Reticulum.",
         "new_identity": "Nueva identidad",
         "import": "Importación",
