@@ -66,6 +66,31 @@ describe("Utils.js", () => {
         });
     });
 
+    describe("formatCountupDuration", () => {
+        it("formats seconds and minutes", () => {
+            expect(Utils.formatCountupDuration(0)).toBe("0:00");
+            expect(Utils.formatCountupDuration(42)).toBe("0:42");
+            expect(Utils.formatCountupDuration(125)).toBe("2:05");
+        });
+
+        it("formats hours when needed", () => {
+            expect(Utils.formatCountupDuration(3661)).toBe("1:01:01");
+        });
+    });
+
+    describe("lxmfMessageTransferTotalBytes", () => {
+        it("sums content and attachment sizes", () => {
+            const total = Utils.lxmfMessageTransferTotalBytes({
+                content: "hello",
+                fields: {
+                    audio: { audio_size: 1000 },
+                    file_attachments: [{ file_size: 500 }],
+                },
+            });
+            expect(total).toBe(new TextEncoder().encode("hello").length + 1500);
+        });
+    });
+
     describe("formatSeconds", () => {
         it('formats "a second ago"', () => {
             expect(Utils.formatSeconds(1)).toBe("a second ago");

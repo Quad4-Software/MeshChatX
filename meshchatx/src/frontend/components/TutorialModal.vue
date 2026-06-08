@@ -1083,7 +1083,7 @@
                     </button>
 
                     <button
-                        v-if="currentStep < totalSteps"
+                        v-if="showFooterContinue"
                         type="button"
                         class="tutorial-action-btn tutorial-action-btn-primary"
                         :disabled="currentStep === 2 && identityImportInProgress"
@@ -2225,7 +2225,7 @@
                         </button>
 
                         <button
-                            v-if="currentStep < totalSteps"
+                            v-if="showFooterContinue"
                             type="button"
                             class="tutorial-action-btn tutorial-action-btn-primary"
                             :disabled="currentStep === 2 && identityImportInProgress"
@@ -2383,6 +2383,12 @@ export default {
         },
         bootstrapSelectedLabels() {
             return this.selectedBootstrapKeys.map((k) => this.bootstrapDisplayLabelForKey(k)).filter(Boolean);
+        },
+        showFooterContinue() {
+            if (this.currentStep === 3 || this.currentStep === 4) {
+                return false;
+            }
+            return this.currentStep < this.totalSteps;
         },
     },
     watch: {
@@ -2713,10 +2719,10 @@ export default {
                 const payload = {
                     discover_interfaces: true,
                     autoconnect_discovered_interfaces: 3,
-                    default_bootstrap_only: true,
+                    default_bootstrap_only: false,
                 };
                 await window.api.patch(`/api/v1/reticulum/discovery`, payload);
-                this.defaultBootstrapOnly = true;
+                this.defaultBootstrapOnly = false;
                 ToastUtils.success(this.$t("tutorial.discovery_enabled"));
                 this.connectionMode = "discovery";
                 this.currentStep = 4;
@@ -2746,7 +2752,10 @@ export default {
                 GlobalState.hasPendingInterfaceChanges = true;
                 GlobalState.modifiedInterfaceNames.add("Local Network");
                 ToastUtils.success(this.$t("tutorial.local_added"));
-                await this.reloadReticulum();
+                const reloaded = await this.reloadReticulum();
+                if (!reloaded) {
+                    return;
+                }
                 this.connectionMode = "local";
                 this.currentStep = 5;
             } catch (e) {
@@ -2992,8 +3001,11 @@ export default {
                 await window.api.patch("/api/v1/reticulum/discovery", {
                     default_bootstrap_only: value === true,
                 });
+                this.defaultBootstrapOnly = value === true;
             } catch (e) {
                 console.error("Failed to save default_bootstrap_only:", e);
+                ToastUtils.error(this.$t("tutorial.failed_save_bootstrap_only"));
+                this.defaultBootstrapOnly = !value;
             }
         },
         async confirmBootstraps() {
@@ -3029,13 +3041,18 @@ export default {
                     ToastUtils.error(e.response?.data?.message || this.$t("tutorial.failed_add_bootstrap"));
                 }
             }
-            if (added > 0) {
-                this.interfaceAddedViaTutorial = true;
-                ToastUtils.success(this.$t("tutorial.bootstrap_added", { count: added }));
-                await this.reloadReticulum();
+            if (added === 0) {
+                ToastUtils.warning(this.$t("tutorial.failed_add_bootstrap_none"));
+                this.addingBootstraps = false;
+                return;
             }
+            this.interfaceAddedViaTutorial = true;
+            ToastUtils.success(this.$t("tutorial.bootstrap_added", { count: added }));
+            const reloaded = await this.reloadReticulum();
             this.addingBootstraps = false;
-            this.currentStep = 5;
+            if (reloaded) {
+                this.currentStep = 5;
+            }
         },
         skipBootstraps() {
             this.currentStep = 5;
@@ -3046,11 +3063,14 @@ export default {
                 await window.api.patch("/api/v1/config", {
                     lxmf_preferred_propagation_node_auto_select: true,
                 });
-                ToastUtils.success("Auto-propagation enabled");
+                if (GlobalState.config) {
+                    GlobalState.config.lxmf_preferred_propagation_node_auto_select = true;
+                }
+                ToastUtils.success(this.$t("tutorial.auto_propagation_enabled"));
                 this.nextStep();
             } catch (e) {
                 console.error("Failed to enable auto-propagation:", e);
-                ToastUtils.error("Failed to enable auto-propagation");
+                ToastUtils.error(e.response?.data?.message || this.$t("tutorial.failed_enable_propagation"));
             } finally {
                 this.savingPropagation = false;
             }
@@ -3104,29 +3124,6 @@ export default {
                 query: { view: "discovered" },
             });
         },
-        async selectCommunityInterface(iface) {
-            try {
-                await window.api.post("/api/v1/reticulum/interfaces/add", {
-                    name: iface.name,
-                    type: iface.type,
-                    target_host: iface.target_host,
-                    target_port: iface.target_port,
-                    enabled: true,
-                });
-                ToastUtils.success(`Added interface: ${iface.name}`);
-
-                this.interfaceAddedViaTutorial = true;
-
-                // track change
-                GlobalState.hasPendingInterfaceChanges = true;
-                GlobalState.modifiedInterfaceNames.add(iface.name);
-
-                this.nextStep();
-            } catch (e) {
-                console.error(e);
-                ToastUtils.error(e.response?.data?.message || "Failed to add interface");
-            }
-        },
         gotoAddInterface() {
             if (!this.isPage) {
                 this.visible = false;
@@ -3152,8 +3149,18 @@ export default {
         },
         nextStep() {
             if (this.currentStep >= this.totalSteps) return;
-            if (this.currentStep === 3 && this.connectionMode !== "discovery") {
-                this.currentStep = 5;
+            if (this.currentStep === 3) {
+                if (!this.connectionMode) {
+                    ToastUtils.warning(this.$t("tutorial.connect_mode_required"));
+                    return;
+                }
+                if (this.connectionMode !== "discovery") {
+                    this.currentStep = 5;
+                    return;
+                }
+            }
+            if (this.currentStep === 4) {
+                ToastUtils.warning(this.$t("tutorial.bootstrap_pick_at_least_one"));
                 return;
             }
             this.currentStep++;
@@ -3190,7 +3197,10 @@ export default {
         },
         async finishTutorial() {
             if (GlobalState.hasPendingInterfaceChanges) {
-                await this.reloadReticulum();
+                const reloaded = await this.reloadReticulum();
+                if (!reloaded) {
+                    return;
+                }
             }
             if (this.identityImportedHash && this.identityImportedHash !== this.originalIdentityHash) {
                 try {
@@ -3205,8 +3215,8 @@ export default {
                     return;
                 }
             }
+            await this.markSeen();
             this.visible = false;
-            this.markSeen();
             if (this.interfaceAddedViaTutorial) {
                 ToastUtils.success(this.$t("tutorial.ready_finished"));
             }

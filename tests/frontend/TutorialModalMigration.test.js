@@ -571,6 +571,202 @@ describe("TutorialModal getting started migration", () => {
         wrapper.unmount();
     });
 
+    it("hides footer Continue on connection and bootstrap steps", async () => {
+        axiosMock.get.mockImplementation(discoveryApiHandlers({ show_choice: false }));
+
+        const router = createRouter({
+            history: createWebHashHistory(),
+            routes: [{ path: "/", name: "home", component: { template: "<div/>" } }],
+        });
+        await router.push("/");
+        await router.isReady();
+
+        const wrapper = mount(TutorialModal, {
+            attachTo: document.body,
+            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+        });
+
+        await wrapper.vm.show();
+        await flushPromises();
+
+        wrapper.vm.currentStep = 3;
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.showFooterContinue).toBe(false);
+
+        wrapper.vm.currentStep = 4;
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.showFooterContinue).toBe(false);
+
+        wrapper.vm.currentStep = 5;
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.showFooterContinue).toBe(true);
+
+        wrapper.unmount();
+    });
+
+    it("nextStep on connection step without a mode shows warning and does not advance", async () => {
+        axiosMock.get.mockImplementation(discoveryApiHandlers({ show_choice: false }));
+
+        const router = createRouter({
+            history: createWebHashHistory(),
+            routes: [{ path: "/", name: "home", component: { template: "<div/>" } }],
+        });
+        await router.push("/");
+        await router.isReady();
+
+        const wrapper = mount(TutorialModal, {
+            attachTo: document.body,
+            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+        });
+
+        await wrapper.vm.show();
+        await flushPromises();
+        wrapper.vm.currentStep = 3;
+        wrapper.vm.connectionMode = null;
+        wrapper.vm.nextStep();
+
+        expect(wrapper.vm.currentStep).toBe(3);
+        expect(ToastUtils.warning).toHaveBeenCalledWith(en.tutorial.connect_mode_required);
+
+        wrapper.unmount();
+    });
+
+    it("useLocalMode stays on connection step when Reticulum reload fails", async () => {
+        axiosMock.get.mockImplementation(discoveryApiHandlers({ show_choice: false }));
+        axiosMock.post.mockImplementation((url) => {
+            if (url === "/api/v1/reticulum/interfaces/add") {
+                return Promise.resolve({ data: { message: "added" } });
+            }
+            if (url === "/api/v1/reticulum/reload") {
+                return Promise.reject({ response: { data: { error: "reload failed" } } });
+            }
+            return Promise.resolve({ data: {} });
+        });
+
+        const router = createRouter({
+            history: createWebHashHistory(),
+            routes: [{ path: "/", name: "home", component: { template: "<div/>" } }],
+        });
+        await router.push("/");
+        await router.isReady();
+
+        const wrapper = mount(TutorialModal, {
+            attachTo: document.body,
+            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+        });
+
+        await wrapper.vm.show();
+        await flushPromises();
+        wrapper.vm.currentStep = 3;
+        await wrapper.vm.useLocalMode();
+        await flushPromises();
+
+        expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/reticulum/interfaces/add", {
+            name: "Local Network",
+            type: "AutoInterface",
+            enabled: true,
+        });
+        expect(wrapper.vm.currentStep).toBe(3);
+        expect(ToastUtils.error).toHaveBeenCalledWith(en.tutorial.failed_reload_rns);
+
+        wrapper.unmount();
+    });
+
+    it("confirmBootstraps reload failure keeps user on bootstrap step", async () => {
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/community-interfaces") {
+                return Promise.resolve({
+                    data: {
+                        interfaces: [
+                            {
+                                name: "Test TCP",
+                                type: "TCPClientInterface",
+                                target_host: "1.2.3.4",
+                                target_port: 4242,
+                            },
+                        ],
+                    },
+                });
+            }
+            return discoveryApiHandlers({ show_choice: false })(url);
+        });
+        axiosMock.post.mockImplementation((url) => {
+            if (url === "/api/v1/reticulum/interfaces/add") {
+                return Promise.resolve({ data: { message: "added" } });
+            }
+            if (url === "/api/v1/reticulum/reload") {
+                return Promise.reject({ response: { data: { error: "reload failed" } } });
+            }
+            return Promise.resolve({ data: {} });
+        });
+
+        const router = createRouter({
+            history: createWebHashHistory(),
+            routes: [{ path: "/", name: "home", component: { template: "<div/>" } }],
+        });
+        await router.push("/");
+        await router.isReady();
+
+        const wrapper = mount(TutorialModal, {
+            attachTo: document.body,
+            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+        });
+
+        await wrapper.vm.show();
+        await flushPromises();
+        wrapper.vm.currentStep = 4;
+        wrapper.vm.connectionMode = "discovery";
+        wrapper.vm.selectedBootstrapKeys = ["comm:Test TCP"];
+        await wrapper.vm.confirmBootstraps();
+        await flushPromises();
+
+        expect(wrapper.vm.currentStep).toBe(4);
+        expect(ToastUtils.error).toHaveBeenCalledWith(en.tutorial.failed_reload_rns);
+
+        wrapper.unmount();
+    });
+
+    it("finishTutorial blocks when pending interface reload fails", async () => {
+        const GlobalState = (await import("../../meshchatx/src/frontend/js/GlobalState.js")).default;
+        GlobalState.hasPendingInterfaceChanges = true;
+
+        axiosMock.get.mockImplementation(discoveryApiHandlers({ show_choice: false }));
+        axiosMock.post.mockImplementation((url) => {
+            if (url === "/api/v1/reticulum/reload") {
+                return Promise.reject({ response: { data: { error: "reload failed" } } });
+            }
+            if (url === "/api/v1/app/tutorial/seen") {
+                return Promise.resolve({ data: {} });
+            }
+            return Promise.resolve({ data: {} });
+        });
+
+        const router = createRouter({
+            history: createWebHashHistory(),
+            routes: [{ path: "/", name: "home", component: { template: "<div/>" } }],
+        });
+        await router.push("/");
+        await router.isReady();
+
+        const wrapper = mount(TutorialModal, {
+            attachTo: document.body,
+            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+        });
+
+        await wrapper.vm.show();
+        await flushPromises();
+        wrapper.vm.visible = true;
+        wrapper.vm.currentStep = wrapper.vm.totalSteps;
+        await wrapper.vm.finishTutorial();
+        await flushPromises();
+
+        expect(wrapper.vm.visible).toBe(true);
+        expect(axiosMock.post).not.toHaveBeenCalledWith("/api/v1/app/tutorial/seen", expect.anything());
+
+        GlobalState.hasPendingInterfaceChanges = false;
+        wrapper.unmount();
+    });
+
     it("finishTutorial keeps modal open and reports error when identity switch fails", async () => {
         axiosMock.get.mockImplementation(discoveryApiHandlers({ show_choice: false }));
         axiosMock.post.mockImplementation((url) => {

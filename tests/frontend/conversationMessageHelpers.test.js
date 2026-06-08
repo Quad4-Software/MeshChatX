@@ -2,6 +2,9 @@ import { describe, it, expect } from "vitest";
 import {
     isTelemetryOnly,
     hasRenderableContent,
+    hasFileAttachments,
+    hasMessageBubble,
+    isFileOnlyMessage,
     isImageOnlyMessage,
     collectImageFilesFromDataTransfer,
     extractClipboardImageFiles,
@@ -12,6 +15,26 @@ describe("conversationMessageHelpers", () => {
         expect(hasRenderableContent({ content: " hi " })).toBe(true);
         expect(hasRenderableContent({ content: "", fields: { image: {} } })).toBe(true);
         expect(hasRenderableContent({ content: "  ", fields: {} })).toBe(false);
+        expect(hasRenderableContent({ content: "", fields: { file_attachments: [] } })).toBe(false);
+        expect(hasRenderableContent({ content: "", fields: { file_attachments: [{ file_name: "a.zip" }] } })).toBe(
+            true
+        );
+    });
+
+    it("hasFileAttachments requires a non-empty array", () => {
+        expect(hasFileAttachments({ fields: { file_attachments: [{ file_name: "a.zip" }] } })).toBe(true);
+        expect(hasFileAttachments({ fields: { file_attachments: [] } })).toBe(false);
+        expect(hasFileAttachments({ fields: {} })).toBe(false);
+    });
+
+    it("isFileOnlyMessage matches attachment-only rows", () => {
+        const chatItem = {
+            lxmf_message: {
+                fields: { file_attachments: [{ file_name: "readme.txt" }] },
+            },
+        };
+        expect(isFileOnlyMessage(chatItem, () => false)).toBe(true);
+        expect(hasMessageBubble(chatItem, () => false)).toBe(true);
     });
 
     it("isTelemetryOnly when only telemetry fields", () => {

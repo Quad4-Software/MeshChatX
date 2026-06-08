@@ -115,6 +115,8 @@ from meshchatx.src.backend.meshchat_utils import (
     has_attachments,
     hex_identifier_to_bytes,
     interval_action_due,
+    propagation_sync_idle_like,
+    propagation_sync_is_terminal,
     message_fields_have_attachments,
     normalize_hex_identifier,
     parse_bool_query_param,
@@ -2400,7 +2402,8 @@ class ReticulumMeshChat:
             last_synced_at = (
                 ctx.config.lxmf_preferred_propagation_node_last_synced_at.get()
             )
-            should_sync = interval_action_due(
+            outbound_node = router.get_outbound_propagation_node() if router else None
+            should_sync = outbound_node is not None and interval_action_due(
                 auto_sync_interval_seconds is not None
                 and auto_sync_interval_seconds > 0,
                 last_synced_at,
@@ -2408,22 +2411,31 @@ class ReticulumMeshChat:
                 time.time(),
             )
 
-            # sync
             if should_sync and sync_start_time is None:
-                sync_start_time = time.monotonic()
-                await self.sync_propagation_nodes(context=ctx)
+                started = await self.sync_propagation_nodes(context=ctx)
+                if started:
+                    sync_start_time = time.monotonic()
 
-            # stuck-sync watchdog and completion detection
             if sync_start_time is not None and router:
                 state = router.propagation_transfer_state
-                pr_complete = getattr(router, "PR_COMPLETE", None)
-                if state in {router.PR_IDLE, pr_complete}:
+                elapsed = time.monotonic() - sync_start_time
+                path_stuck = (
+                    state == router.PR_PATH_REQUESTED
+                    and outbound_node is not None
+                    and not RNS.Transport.has_path(outbound_node)
+                    and elapsed > 45.0
+                )
+                if propagation_sync_is_terminal(state):
+                    if state not in {router.PR_IDLE, router.PR_COMPLETE}:
+                        self.stop_propagation_node_sync(context=ctx)
+                        with contextlib.suppress(Exception):
+                            router.propagation_transfer_state = router.PR_IDLE
                     ctx.config.lxmf_preferred_propagation_node_last_synced_at.set(
                         int(time.time())
                     )
                     await self.send_config_to_websocket_clients(context=ctx)
                     sync_start_time = None
-                elif time.monotonic() - sync_start_time > 120:
+                elif path_stuck or elapsed > 120:
                     self.stop_propagation_node_sync(context=ctx)
                     with contextlib.suppress(Exception):
                         router.propagation_transfer_state = router.PR_IDLE
@@ -14260,35 +14272,38 @@ class ReticulumMeshChat:
     async def sync_propagation_nodes(self, context=None, force=False):
         ctx = context or self.current_context
         if not ctx:
-            return
+            return False
 
         router = ctx.message_router
         if not router:
-            return
+            return False
 
-        # Prevent overlapping auto-syncs from piling up requests.
-        # A manual/API call can force a restart by cancelling the old sync first.
-        if router.propagation_transfer_state != router.PR_IDLE:
-            if not force:
-                return
+        outbound_node = router.get_outbound_propagation_node()
+        if outbound_node is None:
+            return False
+
+        state = router.propagation_transfer_state
+        if propagation_sync_idle_like(state):
+            if state == router.PR_COMPLETE:
+                with contextlib.suppress(Exception):
+                    router.propagation_transfer_state = router.PR_IDLE
+                    router.propagation_transfer_progress = 0.0
+        elif not force:
+            return False
+        else:
             self.stop_propagation_node_sync(context=ctx)
-            # Give the router a moment to settle back to idle
             settle_deadline = time.monotonic() + 5.0
             while time.monotonic() < settle_deadline:
                 if router.propagation_transfer_state == router.PR_IDLE:
                     break
                 await asyncio.sleep(0.2)
             else:
-                # Force reset if it didn't settle
                 with contextlib.suppress(Exception):
                     router.propagation_transfer_state = router.PR_IDLE
 
         self._begin_propagation_sync_metrics(context=ctx)
 
-        # update last synced at timestamp
         ctx.config.lxmf_preferred_propagation_node_last_synced_at.set(int(time.time()))
-
-        outbound_node = router.get_outbound_propagation_node()
         local_propagation_destination = getattr(
             router,
             "propagation_destination",
@@ -14307,15 +14322,15 @@ class ReticulumMeshChat:
                 router.propagation_transfer_progress = 1.0
                 router.propagation_transfer_last_result = 0
             await self.send_config_to_websocket_clients(context=ctx)
-            return
+            return True
 
         # Kick off the LXMF request on a worker thread. Identity.recall and link
         # setup can block on multiprocessing pipes; running inline would stall the
         # HTTP handler and race with cancel_propagation_node_requests (EOFError).
         asyncio.create_task(self._request_propagation_node_messages(context=ctx))
 
-        # send config to websocket clients (used to tell ui last synced at)
         await self.send_config_to_websocket_clients(context=ctx)
+        return True
 
     # helper to parse boolean from possible string or bool
     @staticmethod

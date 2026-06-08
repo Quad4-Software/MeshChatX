@@ -28,7 +28,27 @@ export function estimateGroupHeight(entry) {
     if (entry.type === "imageGroup") {
         return 340;
     }
-    return 120;
+    const msg = entry.chatItem?.lxmf_message;
+    const fields = msg?.fields;
+    if (fields?.image && !fields?.file_attachments?.length && !fields?.audio) {
+        return 280;
+    }
+    let height = 88;
+    const content = (msg?.content || "").trim();
+    if (content) {
+        height += Math.min(160, Math.ceil(content.length / 40) * 18);
+    }
+    const fileCount = Array.isArray(fields?.file_attachments) ? fields.file_attachments.length : 0;
+    if (fileCount > 0) {
+        height += fileCount * 56;
+    }
+    if (fields?.audio) {
+        height += 72;
+    }
+    if (fields?.telemetry || fields?.telemetry_stream || fields?.commands?.length) {
+        height += 48;
+    }
+    return height;
 }
 
 /**

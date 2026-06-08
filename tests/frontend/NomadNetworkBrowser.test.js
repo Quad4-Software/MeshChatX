@@ -9,8 +9,9 @@ vi.mock("@/components/nomadnetwork/NomadNetworkPage.vue", () => ({
             destinationHash: { type: String, default: "" },
             initialPath: { type: String, default: null },
             embedded: { type: Boolean, default: false },
+            tabsEnabled: { type: Boolean, default: false },
         },
-        emits: ["navigate", "close-tab"],
+        emits: ["navigate", "open-node", "close-tab"],
     },
 }));
 
@@ -25,14 +26,14 @@ const MaterialDesignIconStub = {
 describe("NomadNetworkBrowser.vue", () => {
     let routerReplace;
 
-    const mountBrowser = (props = {}, route = { params: {}, query: {} }) => {
+    const mountBrowser = (props = {}, route = { name: "nomadnetwork", params: {}, query: {} }) => {
         routerReplace = vi.fn(() => Promise.resolve());
         return mount(NomadNetworkBrowser, {
             props,
             global: {
                 mocks: {
                     $t: (key) => key,
-                    $route: route,
+                    $route: { name: "nomadnetwork", ...route },
                     $router: { replace: routerReplace },
                 },
                 stubs: {
@@ -205,5 +206,82 @@ describe("NomadNetworkBrowser.vue", () => {
         await wrapper.vm.$nextTick();
         expect(wrapper.findAllComponents({ name: "NomadNetworkPage" })).toHaveLength(2);
         expect(wrapper.findComponent({ name: "NomadNetworkPage" }).props("embedded")).toBe(true);
+    });
+
+    it("onOpenNode creates and activates a new tab for the node", () => {
+        const wrapper = mountBrowser();
+        const first = wrapper.vm.activeTabId;
+        wrapper.vm.onOpenNode({
+            destinationHash: "g".repeat(32),
+            pagePath: "/page/index.mu",
+            title: "Remote Node",
+            activate: true,
+        });
+        expect(wrapper.vm.tabs).toHaveLength(2);
+        expect(wrapper.vm.activeTabId).not.toBe(first);
+        expect(wrapper.vm.activeTab.destinationHash).toBe("g".repeat(32));
+        expect(wrapper.vm.activeTab.initialPath).toBe("/page/index.mu");
+        expect(wrapper.vm.activeTab.title).toBe("Remote Node");
+    });
+
+    it("onOpenNode can open a background tab without switching focus", () => {
+        const wrapper = mountBrowser();
+        const first = wrapper.vm.activeTabId;
+        wrapper.vm.onOpenNode({
+            destinationHash: "h".repeat(32),
+            pagePath: "/page/index.mu",
+            title: "Background",
+            activate: false,
+        });
+        expect(wrapper.vm.tabs).toHaveLength(2);
+        expect(wrapper.vm.activeTabId).toBe(first);
+    });
+
+    it("Ctrl+T opens a new tab when tabs are enabled", () => {
+        const wrapper = mountBrowser();
+        const before = wrapper.vm.tabs.length;
+        window.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "t", ctrlKey: true, bubbles: true, cancelable: true })
+        );
+        expect(wrapper.vm.tabs).toHaveLength(before + 1);
+    });
+
+    it("Ctrl+W closes the active tab when tabs are enabled", () => {
+        const wrapper = mountBrowser();
+        wrapper.vm.addTab("i".repeat(32));
+        expect(wrapper.vm.tabs).toHaveLength(2);
+        window.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "w", ctrlKey: true, bubbles: true, cancelable: true })
+        );
+        expect(wrapper.vm.tabs).toHaveLength(1);
+    });
+
+    it("Ctrl+Tab cycles to the next tab", () => {
+        const wrapper = mountBrowser();
+        const first = wrapper.vm.activeTabId;
+        const second = wrapper.vm.addTab("j".repeat(32));
+        wrapper.vm.activeTabId = first;
+
+        window.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "Tab", ctrlKey: true, bubbles: true, cancelable: true })
+        );
+        expect(wrapper.vm.activeTabId).toBe(second);
+    });
+
+    it("Ctrl+1 switches to the first tab", () => {
+        const wrapper = mountBrowser();
+        const first = wrapper.vm.tabs[0].id;
+        wrapper.vm.addTab("k".repeat(32));
+
+        window.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "1", ctrlKey: true, bubbles: true, cancelable: true })
+        );
+        expect(wrapper.vm.activeTabId).toBe(first);
+    });
+
+    it("passes tabsEnabled to embedded NomadNetworkPage instances", async () => {
+        const wrapper = mountBrowser();
+        await wrapper.vm.$nextTick();
+        expect(wrapper.findComponent({ name: "NomadNetworkPage" }).props("tabsEnabled")).toBe(true);
     });
 });

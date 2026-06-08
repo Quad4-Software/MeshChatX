@@ -1306,6 +1306,26 @@
                                     class="flex items-start gap-3 rounded-xl border border-gray-200 dark:border-zinc-700 px-3 py-2.5"
                                 >
                                     <input
+                                        id="outbound-transfer-progress-enabled"
+                                        type="checkbox"
+                                        class="mt-1 rounded-sm border-gray-300 dark:border-zinc-600"
+                                        :checked="GlobalState.outboundTransferProgressEnabled"
+                                        @change="onOutboundTransferProgressEnabledChange"
+                                    />
+                                    <label for="outbound-transfer-progress-enabled" class="min-w-0 cursor-pointer">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            {{ $t("app.outbound_transfer_progress_enabled") }}
+                                        </div>
+                                        <div class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
+                                            {{ $t("app.outbound_transfer_progress_enabled_description") }}
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <div
+                                    class="flex items-start gap-3 rounded-xl border border-gray-200 dark:border-zinc-700 px-3 py-2.5"
+                                >
+                                    <input
                                         id="message-timestamp-grouping"
                                         type="checkbox"
                                         class="mt-1 rounded-sm border-gray-300 dark:border-zinc-600"
@@ -3517,6 +3537,15 @@ export default {
             GlobalState.detailedOutboundSendStatus = checked;
             try {
                 localStorage.setItem("meshchatx_detailed_outbound_send_status", checked ? "true" : "false");
+            } catch {
+                // ignore
+            }
+        },
+        onOutboundTransferProgressEnabledChange(event) {
+            const checked = event.target.checked;
+            GlobalState.outboundTransferProgressEnabled = checked;
+            try {
+                localStorage.setItem("meshchatx_outbound_transfer_progress_enabled", checked ? "true" : "false");
             } catch {
                 // ignore
             }

@@ -410,6 +410,7 @@
                     ]"
                     :style="nodeContainerShellStyle"
                     @click.capture="onElementClick"
+                    @auxclick.capture="onElementClick"
                 >
                     <!-- archived version notice -->
                     <div
@@ -613,13 +614,17 @@ export default {
             type: Boolean,
             default: false,
         },
+        tabsEnabled: {
+            type: Boolean,
+            default: false,
+        },
         initialPath: {
             type: String,
             required: false,
             default: null,
         },
     },
-    emits: ["navigate", "close-tab"],
+    emits: ["navigate", "open-node", "close-tab"],
     data() {
         return {
             GlobalState,
@@ -1144,6 +1149,34 @@ export default {
                 (b) => b.destination_hash === identityHash
             );
         },
+        getLinkNavOptions(event) {
+            const modifierClick = event.ctrlKey || event.metaKey;
+            const middleClick = event.button === 1;
+            return {
+                forceNewTab: modifierClick || middleClick,
+                activate: !modifierClick && !middleClick,
+            };
+        },
+        shouldOpenInNewTab(destinationHash, navOptions = {}) {
+            if (!this.embedded || !this.tabsEnabled) {
+                return false;
+            }
+            if (navOptions.forceNewTab) {
+                return true;
+            }
+            if (!destinationHash || !this.destinationHash) {
+                return false;
+            }
+            return destinationHash !== this.destinationHash;
+        },
+        emitOpenNode(destinationHash, pagePath, title = null, navOptions = {}) {
+            this.$emit("open-node", {
+                destinationHash,
+                pagePath,
+                title,
+                activate: navOptions.activate !== false,
+            });
+        },
         onElementClick(event) {
             const nomadLink = event.target.closest("a.nomadnet-link[data-nomadnet-url]");
             if (nomadLink) {
@@ -1151,7 +1184,7 @@ export default {
                 event.stopPropagation();
                 const url = nomadLink.getAttribute("data-nomadnet-url");
                 if (url) {
-                    this.onNodePageUrlClick(url);
+                    this.onNodePageUrlClick(url, null, true, false, this.getLinkNavOptions(event));
                 }
                 return;
             }
@@ -1186,7 +1219,7 @@ export default {
             const destination = element.getAttribute("data-destination");
             const fields = element.getAttribute("data-fields");
 
-            this.onNodePageUrlClick(destination, fields);
+            this.onNodePageUrlClick(destination, fields, true, false, this.getLinkNavOptions(event));
         },
         async onWebsocketMessage(message) {
             const json = JSON.parse(message.data);
@@ -1606,7 +1639,24 @@ export default {
             // navigate to the url
             await this.onNodePageUrlClick(url);
         },
-        async loadNodePage(destinationHash, pagePath, fieldData = null, addToHistory = true, loadFromCache = true) {
+        async loadNodePage(
+            destinationHash,
+            pagePath,
+            fieldData = null,
+            addToHistory = true,
+            loadFromCache = true,
+            navOptions = {}
+        ) {
+            if (this.shouldOpenInNewTab(destinationHash, navOptions)) {
+                this.emitOpenNode(
+                    destinationHash,
+                    pagePath,
+                    this.selectedNode?.custom_display_name || this.selectedNode?.display_name || null,
+                    navOptions
+                );
+                return;
+            }
+
             // update current route (skipped while embedded; the browser shell owns routing)
             if (this.embedded) {
                 this.$emit("navigate", {
@@ -2030,7 +2080,7 @@ export default {
             // unsupported url
             return null;
         },
-        async onNodePageUrlClick(url, options = null, addToHistory = true, useCache = false) {
+        async onNodePageUrlClick(url, options = null, addToHistory = true, useCache = false, navOptions = {}) {
             let fieldData = [];
 
             if (options === "*") {
@@ -2219,7 +2269,7 @@ export default {
                 };
 
                 // navigate to node page
-                this.loadNodePage(destinationHash, parsedUrl.path, fieldData, addToHistory, useCache);
+                this.loadNodePage(destinationHash, parsedUrl.path, fieldData, addToHistory, useCache, navOptions);
                 return;
             }
 
@@ -2233,10 +2283,17 @@ export default {
             return Utils.formatBytesPerSecond(bytesPerSecond);
         },
         onNodeClick: function (node) {
-            // update selected node
-            this.selectedNode = node;
+            if (this.shouldOpenInNewTab(node.destination_hash, {})) {
+                this.emitOpenNode(
+                    node.destination_hash,
+                    this.defaultNodePagePath,
+                    node.custom_display_name || node.display_name || null,
+                    { activate: true }
+                );
+                return;
+            }
 
-            // load default node page
+            this.selectedNode = node;
             this.loadNodePage(node.destination_hash, this.defaultNodePagePath);
         },
         async onRenameFavourite(favourite) {

@@ -972,6 +972,10 @@ export default {
             if (tg === "true" || tg === "false") {
                 GlobalState.messageTimestampGroupingEnabled = tg === "true";
             }
+            const tp = localStorage.getItem("meshchatx_outbound_transfer_progress_enabled");
+            if (tp === "true" || tp === "false") {
+                GlobalState.outboundTransferProgressEnabled = tp === "true";
+            }
         } catch {
             // ignore
         }

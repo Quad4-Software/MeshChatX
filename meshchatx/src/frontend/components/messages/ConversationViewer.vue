@@ -183,7 +183,7 @@
                         :class="useVirtualMessageList ? 'relative flex flex-col' : ''"
                     >
                         <template v-if="!useVirtualMessageList">
-                            <div class="flex flex-col flex-col-reverse min-w-0">
+                            <div class="flex flex-col flex-col-reverse min-w-0 [overflow-anchor:none]">
                                 <template
                                     v-for="entry in selectedPeerChatDisplayGroupsNewestFirstAugmented"
                                     :key="entry.key"
@@ -1716,6 +1716,9 @@ import {
 import {
     isTelemetryOnly as isTelemetryOnlyMessage,
     hasRenderableContent as messageHasRenderableContent,
+    hasFileAttachments as messageHasFileAttachments,
+    hasMessageBubble as computeHasMessageBubble,
+    isFileOnlyMessage as computeIsFileOnlyMessage,
     isImageOnlyMessage as computeIsImageOnlyMessage,
     collectImageFilesFromDataTransfer as collectImagesFromDataTransfer,
     extractClipboardImageFiles,
@@ -4304,6 +4307,12 @@ export default {
                 return true;
             });
         },
+        showOutboundTransferProgress(lxmfMessage) {
+            if (!GlobalState.outboundTransferProgressEnabled) {
+                return false;
+            }
+            return this.outboundTransferProgressPercent(lxmfMessage) !== null;
+        },
         outboundTransferProgressPercent(lxmfMessage) {
             if (!lxmfMessage || lxmfMessage._pendingPathfinding) {
                 return null;
@@ -4321,6 +4330,58 @@ export default {
         outboundSendingProgressLabel(lxmfMessage) {
             const pct = this.outboundTransferProgressPercent(lxmfMessage);
             return pct === null ? null : `${pct}%`;
+        },
+        outboundTransferElapsedSeconds(lxmfMessage, chatItem) {
+            void this.sendStatusUiMs;
+            const createdAt = chatItem?.created_at || lxmfMessage?.created_at;
+            if (!createdAt) {
+                return 0;
+            }
+            const createdMs = new Date(createdAt).getTime();
+            if (!createdMs) {
+                return 0;
+            }
+            return Math.max(0, Math.floor((this.sendStatusUiMs - createdMs) / 1000));
+        },
+        outboundTransferSpeedBytesPerSecond(lxmfMessage, chatItem) {
+            const progress = Number(lxmfMessage?.progress ?? 0);
+            const totalBytes = Utils.lxmfMessageTransferTotalBytes(lxmfMessage, (value) =>
+                this.base64ByteLength(value)
+            );
+            const elapsedSeconds = this.outboundTransferElapsedSeconds(lxmfMessage, chatItem);
+            if (totalBytes <= 0 || progress <= 0 || elapsedSeconds <= 0) {
+                return 0;
+            }
+            const transferredBytes = (progress / 100) * totalBytes;
+            return transferredBytes / elapsedSeconds;
+        },
+        outboundTransferHopsLabel(lxmfMessage) {
+            const hops = lxmfMessage?.path_hops_at_send;
+            if (hops == null) {
+                return null;
+            }
+            const count = Number(hops);
+            if (!Number.isFinite(count)) {
+                return null;
+            }
+            if (count === 1) {
+                return this.$t("messages.transfer_progress_hop_one");
+            }
+            return this.$t("messages.transfer_progress_hops", { count });
+        },
+        outboundTransferStatsLabel(lxmfMessage, chatItem) {
+            void GlobalState.outboundTransferProgressEnabled;
+            if (!this.showOutboundTransferProgress(lxmfMessage)) {
+                return null;
+            }
+            const bytesPerSecond = this.outboundTransferSpeedBytesPerSecond(lxmfMessage, chatItem);
+            const parts = [Utils.formatBytesPerSecond(bytesPerSecond)];
+            const hopsLabel = this.outboundTransferHopsLabel(lxmfMessage);
+            if (hopsLabel) {
+                parts.push(hopsLabel);
+            }
+            parts.push(Utils.formatCountupDuration(this.outboundTransferElapsedSeconds(lxmfMessage, chatItem)));
+            return parts.join(" · ");
         },
         outboundSendingStatusTooltip(lxmfMessage) {
             if (!lxmfMessage) {
@@ -5451,6 +5512,15 @@ export default {
         },
         hasRenderableContent(msg) {
             return messageHasRenderableContent(msg);
+        },
+        hasFileAttachments(msg) {
+            return messageHasFileAttachments(msg);
+        },
+        hasMessageBubble(chatItem) {
+            return computeHasMessageBubble(chatItem, (item) => this.shouldHideAutoImageCaption(item));
+        },
+        isFileOnlyMessage(chatItem) {
+            return computeIsFileOnlyMessage(chatItem, (item) => this.shouldHideAutoImageCaption(item));
         },
         isImageOnlyMessage(chatItem) {
             return computeIsImageOnlyMessage(chatItem, (item) => this.shouldHideAutoImageCaption(item));

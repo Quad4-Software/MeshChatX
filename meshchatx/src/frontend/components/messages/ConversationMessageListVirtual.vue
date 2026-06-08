@@ -7,7 +7,7 @@
             :key="groups[v.index]?.key ?? v.index"
             :ref="measureElement"
             :data-index="v.index"
-            class="absolute left-0 top-0 w-full box-border px-0"
+            class="absolute left-0 top-0 w-full box-border px-0 [overflow-anchor:none]"
             :style="{ transform: `translateY(${v.start}px)` }"
         >
             <ConversationMessageEntry :entry="groups[v.index]" :cv="cv" />

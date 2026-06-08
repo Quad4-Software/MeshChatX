@@ -13,6 +13,7 @@ describe("ConversationViewer outbound propagation status", () => {
         GlobalState.config.message_waiting_bubble_color = "#e5e7eb";
         GlobalState.config.warn_on_stranger_links = true;
         GlobalState.detailedOutboundSendStatus = true;
+        GlobalState.outboundTransferProgressEnabled = true;
 
         WebSocketConnection.connect();
         axiosMock = {
@@ -29,6 +30,7 @@ describe("ConversationViewer outbound propagation status", () => {
 
     afterEach(() => {
         GlobalState.detailedOutboundSendStatus = false;
+        GlobalState.outboundTransferProgressEnabled = true;
         delete window.api;
         WebSocketConnection.destroy();
     });
@@ -86,6 +88,36 @@ describe("ConversationViewer outbound propagation status", () => {
         expect(wrapper.vm.outboundTransferProgressPercent({ state: "outbound", progress: 0 })).toBeNull();
         expect(wrapper.vm.outboundTransferProgressPercent({ state: "sending", _pendingPathfinding: true })).toBeNull();
         expect(wrapper.vm.outboundSendingProgressLabel(null)).toBeNull();
+    });
+
+    it("showOutboundTransferProgress respects the settings toggle", () => {
+        const wrapper = mountViewer();
+        const message = { state: "sending", progress: 25 };
+        expect(wrapper.vm.showOutboundTransferProgress(message)).toBe(true);
+        GlobalState.outboundTransferProgressEnabled = false;
+        expect(wrapper.vm.showOutboundTransferProgress(message)).toBe(false);
+    });
+
+    it("outboundTransferStatsLabel includes speed, hops, and elapsed time", () => {
+        const wrapper = mountViewer();
+        const createdAt = new Date(Date.now() - 65000).toISOString();
+        wrapper.vm.sendStatusUiMs = Date.now();
+        const stats = wrapper.vm.outboundTransferStatsLabel(
+            {
+                state: "sending",
+                progress: 50,
+                content: "hello",
+                path_hops_at_send: 3,
+                created_at: createdAt,
+            },
+            {
+                created_at: createdAt,
+            }
+        );
+        expect(stats).toContain("B/s");
+        expect(stats).not.toContain("bps");
+        expect(stats).toContain("messages.transfer_progress_hops");
+        expect(stats).toMatch(/1:0[45]/);
     });
 
     it("outboundSendingStatusTooltip uses propagation pending strings for propagated method", () => {

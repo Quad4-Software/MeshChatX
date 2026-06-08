@@ -552,6 +552,17 @@ describe("SettingsPage — visualiser display prefs (localStorage + emitter)", (
         expect(GlobalState.detailedOutboundSendStatus).toBe(false);
         expect(localStorage.getItem("meshchatx_detailed_outbound_send_status")).toBe("false");
     });
+
+    it("onOutboundTransferProgressEnabledChange updates GlobalState and localStorage", async () => {
+        localStorage.removeItem("meshchatx_outbound_transfer_progress_enabled");
+        const w = await mountSettingsPage(api);
+        await w.vm.onOutboundTransferProgressEnabledChange({ target: { checked: false } });
+        expect(GlobalState.outboundTransferProgressEnabled).toBe(false);
+        expect(localStorage.getItem("meshchatx_outbound_transfer_progress_enabled")).toBe("false");
+        await w.vm.onOutboundTransferProgressEnabledChange({ target: { checked: true } });
+        expect(GlobalState.outboundTransferProgressEnabled).toBe(true);
+        expect(localStorage.getItem("meshchatx_outbound_transfer_progress_enabled")).toBe("true");
+    });
 });
 
 describe("SettingsPage — maintenance, exports, telemetry trust, RNS reload", () => {

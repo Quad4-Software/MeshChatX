@@ -78,6 +78,29 @@ def has_attachments(lxmf_fields: dict) -> bool:
         return False
 
 
+_PROPAGATION_SYNC_TERMINAL_STATES = frozenset(
+    {
+        LXMRouter.PR_IDLE,
+        LXMRouter.PR_COMPLETE,
+        LXMRouter.PR_NO_PATH,
+        LXMRouter.PR_LINK_FAILED,
+        LXMRouter.PR_TRANSFER_FAILED,
+        LXMRouter.PR_NO_IDENTITY_RCVD,
+        LXMRouter.PR_NO_ACCESS,
+        LXMRouter.PR_FAILED,
+        LXMRouter.PR_PATH_TIMEOUT,
+    },
+)
+
+
+def propagation_sync_is_terminal(state) -> bool:
+    return state in _PROPAGATION_SYNC_TERMINAL_STATES
+
+
+def propagation_sync_idle_like(state) -> bool:
+    return state in {LXMRouter.PR_IDLE, LXMRouter.PR_COMPLETE}
+
+
 def convert_propagation_node_state_to_string(state):
     state_map = {
         LXMRouter.PR_IDLE: "idle",

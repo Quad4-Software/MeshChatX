@@ -176,7 +176,7 @@ class Utils {
         const decimals = 0;
         const sizes = ["bps", "kbps", "Mbps", "Gbps", "Tbps", "Pbps", "Ebps", "Zbps", "Ybps"];
 
-        const i = Math.floor(Math.log(bits) / Math.log(k));
+        const i = Math.max(0, Math.floor(Math.log(bits) / Math.log(k)));
 
         return parseFloat((bits / Math.pow(k, i)).toFixed(decimals)) + " " + sizes[i];
     }
@@ -190,9 +190,71 @@ class Utils {
         const decimals = 1;
         const sizes = ["B/s", "KB/s", "MB/s", "GB/s", "TB/s", "PB/s", "EB/s", "ZB/s", "YB/s"];
 
-        const i = Math.floor(Math.log(bytesPerSecond) / Math.log(k));
+        const i = Math.max(0, Math.floor(Math.log(bytesPerSecond) / Math.log(k)));
 
         return parseFloat((bytesPerSecond / Math.pow(k, i)).toFixed(decimals)) + " " + sizes[i];
+    }
+
+    static formatCountupDuration(totalSeconds) {
+        const seconds = Math.max(0, Math.floor(Number(totalSeconds) || 0));
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const remainingSeconds = seconds % 60;
+        if (hours > 0) {
+            return `${hours}:${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
+        }
+        return `${minutes}:${String(remainingSeconds).padStart(2, "0")}`;
+    }
+
+    static lxmfMessageTransferTotalBytes(lxmfMessage, base64ByteLength = null) {
+        if (!lxmfMessage) {
+            return 0;
+        }
+
+        const decodeBase64Length = (value) => {
+            if (!value || typeof base64ByteLength !== "function") {
+                return 0;
+            }
+            return base64ByteLength(value);
+        };
+
+        let total = 0;
+        const content = lxmfMessage.content || "";
+        if (content) {
+            total += new TextEncoder().encode(content).length;
+        }
+
+        const fields = lxmfMessage.fields || {};
+        const image = fields.image;
+        if (image) {
+            if (image.image_size != null) {
+                total += Number(image.image_size) || 0;
+            } else if (image.image_bytes) {
+                total += decodeBase64Length(image.image_bytes);
+            }
+        }
+
+        const audio = fields.audio;
+        if (audio) {
+            if (audio.audio_size != null) {
+                total += Number(audio.audio_size) || 0;
+            } else if (audio.audio_bytes) {
+                total += decodeBase64Length(audio.audio_bytes);
+            }
+        }
+
+        const fileAttachments = fields.file_attachments;
+        if (Array.isArray(fileAttachments)) {
+            for (const file of fileAttachments) {
+                if (file?.file_size != null) {
+                    total += Number(file.file_size) || 0;
+                } else if (file?.file_bytes) {
+                    total += decodeBase64Length(file.file_bytes);
+                }
+            }
+        }
+
+        return total;
     }
 
     static formatFrequency(hz) {

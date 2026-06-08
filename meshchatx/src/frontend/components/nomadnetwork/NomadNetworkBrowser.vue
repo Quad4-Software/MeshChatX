@@ -34,7 +34,7 @@
             <button
                 type="button"
                 class="flex items-center justify-center w-9 shrink-0 text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
-                :title="$t('nomadnet.new_tab')"
+                :title="$t('nomadnet.new_tab_shortcut')"
                 @click="addTab()"
             >
                 <MaterialDesignIcon icon-name="plus" class="size-5" />
@@ -47,9 +47,11 @@
                 v-show="tab.id === activeTabId"
                 :key="tab.id"
                 embedded
+                :tabs-enabled="tabsEnabled"
                 :destination-hash="tab.destinationHash"
                 :initial-path="tab.initialPath"
                 @navigate="onTabNavigate(tab.id, $event)"
+                @open-node="onOpenNode"
                 @close-tab="closeTab(tab.id)"
             />
         </div>
@@ -111,6 +113,7 @@ export default {
     },
     mounted() {
         this.setupViewportWatcher();
+        window.addEventListener("keydown", this.handleKeydown, true);
 
         const initialHash = (this.destinationHash || this.$route?.params?.destinationHash || "").trim();
         const initialPath = this.$route?.query?.path || null;
@@ -121,6 +124,7 @@ export default {
     },
     beforeUnmount() {
         this.teardownViewportWatcher();
+        window.removeEventListener("keydown", this.handleKeydown, true);
     },
     methods: {
         setupViewportWatcher() {
@@ -151,7 +155,7 @@ export default {
             this.mediaQuery = null;
             this.mediaQueryListener = null;
         },
-        addTab(destinationHash = "", initialPath = null, title = null) {
+        addTab(destinationHash = "", initialPath = null, title = null, activate = true) {
             const id = this.nextTabId++;
             this.tabs.push({
                 id,
@@ -160,9 +164,90 @@ export default {
                 path: initialPath || null,
                 title: title || null,
             });
-            this.activeTabId = id;
-            this.syncRoute();
+            if (activate) {
+                this.activeTabId = id;
+                this.syncRoute();
+            }
             return id;
+        },
+        onOpenNode(payload) {
+            this.addTab(
+                payload?.destinationHash || "",
+                payload?.pagePath || null,
+                payload?.title || null,
+                payload?.activate !== false
+            );
+        },
+        selectRelativeTab(offset) {
+            if (this.tabs.length < 2) {
+                return;
+            }
+            const index = this.tabs.findIndex((tab) => tab.id === this.activeTabId);
+            if (index === -1) {
+                return;
+            }
+            const nextIndex = (index + offset + this.tabs.length) % this.tabs.length;
+            this.selectTab(this.tabs[nextIndex].id);
+        },
+        selectTabByIndex(index) {
+            if (index >= 0 && index < this.tabs.length) {
+                this.selectTab(this.tabs[index].id);
+            }
+        },
+        handleKeydown(event) {
+            if (!this.tabsEnabled || this.$route?.name !== "nomadnetwork") {
+                return;
+            }
+
+            const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+            const mod = isMac ? event.metaKey : event.ctrlKey;
+            const hasModifier = event.ctrlKey || event.metaKey || event.altKey;
+            const isInput =
+                ["INPUT", "TEXTAREA"].includes(document.activeElement?.tagName) ||
+                document.activeElement?.isContentEditable;
+            if (isInput && !hasModifier) {
+                return;
+            }
+
+            const key = event.key.toLowerCase();
+
+            if (mod && key === "t") {
+                event.preventDefault();
+                event.stopPropagation();
+                this.addTab();
+                return;
+            }
+            if (mod && key === "w") {
+                event.preventDefault();
+                event.stopPropagation();
+                if (this.activeTabId != null) {
+                    this.closeTab(this.activeTabId);
+                }
+                return;
+            }
+            if (event.ctrlKey && key === "tab") {
+                event.preventDefault();
+                event.stopPropagation();
+                this.selectRelativeTab(event.shiftKey ? -1 : 1);
+                return;
+            }
+            if (event.ctrlKey && key === "pageup") {
+                event.preventDefault();
+                event.stopPropagation();
+                this.selectRelativeTab(-1);
+                return;
+            }
+            if (event.ctrlKey && key === "pagedown") {
+                event.preventDefault();
+                event.stopPropagation();
+                this.selectRelativeTab(1);
+                return;
+            }
+            if (mod && key >= "1" && key <= "9") {
+                event.preventDefault();
+                event.stopPropagation();
+                this.selectTabByIndex(parseInt(key, 10) - 1);
+            }
         },
         restoreTabs(routeHash, routePath) {
             const saved = loadNomadTabs();

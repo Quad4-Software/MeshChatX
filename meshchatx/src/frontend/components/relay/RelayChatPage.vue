@@ -1022,7 +1022,12 @@
                 @select="onHubIconPicked"
             />
 
-            <ContextMenuPanel :show="sidebarMenu.show" :x="sidebarMenu.x" :y="sidebarMenu.y" @click="closeSidebarMenu">
+            <ContextMenuPanel
+                v-click-outside="{ handler: closeSidebarMenu, capture: true }"
+                :show="sidebarMenu.show"
+                :x="sidebarMenu.x"
+                :y="sidebarMenu.y"
+            >
                 <ContextMenuItem v-if="!sidebarMenu.hub" @click="openAddHubFromMenu">
                     {{ $t("relay_chat.ctx_add_hub") }}
                 </ContextMenuItem>
@@ -1052,7 +1057,12 @@
                 </template>
             </ContextMenuPanel>
 
-            <ContextMenuPanel :show="messageMenu.show" :x="messageMenu.x" :y="messageMenu.y" @click="closeMessageMenu">
+            <ContextMenuPanel
+                v-click-outside="{ handler: closeMessageMenu, capture: true }"
+                :show="messageMenu.show"
+                :x="messageMenu.x"
+                :y="messageMenu.y"
+            >
                 <ContextMenuItem
                     v-if="messageMenu.msg && canQuoteMessage(messageMenu.msg)"
                     @click="replyWithQuoteFromMenu"

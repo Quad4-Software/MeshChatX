@@ -6,6 +6,7 @@ const globalState = reactive({
     authEnabled: false,
     authenticated: false,
     detailedOutboundSendStatus: false,
+    outboundTransferProgressEnabled: true,
     messageTimestampGroupingEnabled: true,
     unreadConversationsCount: 0,
     relayChatUnreadCount: 0,

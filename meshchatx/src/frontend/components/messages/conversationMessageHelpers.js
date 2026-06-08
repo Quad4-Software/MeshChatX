@@ -6,9 +6,18 @@
  * @param {object} msg
  * @returns {boolean}
  */
+export function hasFileAttachments(msg) {
+    const files = msg?.fields?.file_attachments;
+    return Array.isArray(files) && files.length > 0;
+}
+
+/**
+ * @param {object} msg
+ * @returns {boolean}
+ */
 export function isTelemetryOnly(msg) {
     const hasContent = msg.content && msg.content.trim() !== "";
-    const hasAttachments = msg.fields?.image || msg.fields?.audio || msg.fields?.file_attachments;
+    const hasAttachments = msg.fields?.image || msg.fields?.audio || hasFileAttachments(msg);
     const hasTelemetry = msg.fields?.telemetry || msg.fields?.telemetry_stream;
     const hasCommands = msg.fields?.commands && msg.fields.commands.some((c) => c["0x01"]);
 
@@ -23,7 +32,7 @@ export function hasRenderableContent(msg) {
     if (msg.content && msg.content.trim() !== "") return true;
     if (msg.fields?.image) return true;
     if (msg.fields?.audio) return true;
-    if (msg.fields?.file_attachments) return true;
+    if (hasFileAttachments(msg)) return true;
     if (msg.fields?.telemetry || msg.fields?.telemetry_stream) return true;
     if (msg.fields?.commands && msg.fields.commands.some((c) => c["0x01"] || c["1"] || c["0x1"])) return true;
     return false;
@@ -34,10 +43,42 @@ export function hasRenderableContent(msg) {
  * @param {(item: object) => boolean} shouldHideAutoImageCaption
  * @returns {boolean}
  */
+export function isFileOnlyMessage(chatItem, shouldHideAutoImageCaption) {
+    const msg = chatItem.lxmf_message;
+    if (!hasFileAttachments(msg)) return false;
+    if (msg.fields?.image || msg.fields?.audio) return false;
+    const content = (msg.content || "").trim();
+    if (content && !shouldHideAutoImageCaption(chatItem)) return false;
+    if (msg.reply_to_hash) return false;
+    if (msg.fields?.telemetry || msg.fields?.telemetry_stream) return false;
+    if (msg.fields?.commands && msg.fields.commands.some((c) => c["0x01"] || c["1"] || c["0x1"])) return false;
+    return true;
+}
+
+/**
+ * @param {object} chatItem
+ * @param {(item: object) => boolean} shouldHideAutoImageCaption
+ * @returns {boolean}
+ */
+export function hasMessageBubble(chatItem, shouldHideAutoImageCaption) {
+    if (!chatItem?.lxmf_message) {
+        return false;
+    }
+    if (isImageOnlyMessage(chatItem, shouldHideAutoImageCaption)) {
+        return false;
+    }
+    return hasRenderableContent(chatItem.lxmf_message);
+}
+
+/**
+ * @param {object} chatItem
+ * @param {(item: object) => boolean} shouldHideAutoImageCaption
+ * @returns {boolean}
+ */
 export function isImageOnlyMessage(chatItem, shouldHideAutoImageCaption) {
     const msg = chatItem.lxmf_message;
     if (!msg.fields?.image) return false;
-    if (msg.fields?.audio || msg.fields?.file_attachments) return false;
+    if (msg.fields?.audio || hasFileAttachments(msg)) return false;
     const content = (msg.content || "").trim();
     if (content && !shouldHideAutoImageCaption(chatItem)) return false;
     if (msg.reply_to_hash) return false;

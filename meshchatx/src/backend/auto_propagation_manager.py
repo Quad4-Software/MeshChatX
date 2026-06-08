@@ -19,6 +19,7 @@ _PROP_FAILURE_STATES = frozenset(
         LXMRouter.PR_NO_IDENTITY_RCVD,
         LXMRouter.PR_NO_ACCESS,
         LXMRouter.PR_FAILED,
+        LXMRouter.PR_PATH_TIMEOUT,
     },
 )
 

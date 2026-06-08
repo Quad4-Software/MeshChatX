@@ -22,6 +22,30 @@ describe("messageListVirtual.js", () => {
         );
     });
 
+    it("estimateGroupHeight scales with file attachment count", () => {
+        const oneFile = estimateGroupHeight({
+            type: "single",
+            chatItem: {
+                lxmf_message: {
+                    content: "",
+                    fields: { file_attachments: [{ file_name: "a.zip" }] },
+                },
+            },
+        });
+        const threeFiles = estimateGroupHeight({
+            type: "single",
+            chatItem: {
+                lxmf_message: {
+                    content: "",
+                    fields: {
+                        file_attachments: [{ file_name: "a.zip" }, { file_name: "b.zip" }, { file_name: "c.zip" }],
+                    },
+                },
+            },
+        });
+        expect(threeFiles).toBeGreaterThan(oneFile);
+    });
+
     it("findDisplayGroupIndexForMessageHash finds single and image group members", () => {
         const groups = [
             { type: "single", key: "x", chatItem: { lxmf_message: { hash: "h1" } } },
