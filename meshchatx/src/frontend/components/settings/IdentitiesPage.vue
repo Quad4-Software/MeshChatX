@@ -236,7 +236,9 @@
                                 <div v-if="expandedAddressHashes[identity.hash]" class="grid gap-2 mt-2 sm:grid-cols-2">
                                     <div class="address-card">
                                         <div class="address-card__label">{{ $t("app.identity_hash") }}</div>
-                                        <div class="address-card__value monospace-field text-xs">{{ identity.hash }}</div>
+                                        <div class="address-card__value monospace-field text-xs">
+                                            {{ identity.hash }}
+                                        </div>
                                         <button
                                             type="button"
                                             class="address-card__action"
