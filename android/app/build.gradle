@@ -9,7 +9,7 @@ def repositoryBundledWheelsDir = new File(meshchatSourceDir, "public/repository-
 def chaquopyBuildPython = System.getenv("CHAQUOPY_BUILD_PYTHON")
 def pythonTempDir = new File(buildDir, "python-tmp")
 def vendorWheelDir = new File(rootProject.projectDir, "vendor")
-def lxstPatchedWheel = new File(rootProject.projectDir, "vendor/lxst-0.4.6-py3-none-any.whl")
+def lxstPatchedWheel = new File(rootProject.projectDir, "vendor/lxst-0.4.7-py3-none-any.whl")
 def allAndroidAbis = ["arm64-v8a", "x86_64", "armeabi-v7a"]
 def selectedAndroidAbis = (
     project.findProperty("meshchatxAbis")

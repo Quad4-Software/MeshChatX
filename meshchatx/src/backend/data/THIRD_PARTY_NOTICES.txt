@@ -52,7 +52,7 @@ lxmf 1.0.1
 lxmfy 1.6.2
   License: BSD-0-Clause
   Author: Quad4 <team@quad4.io>
-lxst 0.4.6
+lxst 0.4.7
   License: Other/Proprietary License
   Author: Mark Qvist
 miniaudio 1.71

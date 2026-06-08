@@ -49,7 +49,7 @@ lxmf==1.0.1
     # via
     #   lxst
     #   reticulum-meshchatx
-lxst==0.4.6
+lxst==0.4.7
     # via reticulum-meshchatx
 miniaudio==1.71
     # via reticulum-meshchatx

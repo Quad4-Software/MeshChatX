@@ -1095,7 +1095,7 @@ wheels = [
 
 [[package]]
 name = "lxst"
-version = "0.4.6"
+version = "0.4.7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "audioop-lts", marker = "python_full_version >= '3.13'" },
@@ -1106,7 +1106,7 @@ dependencies = [
     { name = "rns" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d3/7f/10d10eadd1f2b9a6f62441c8aa391ca0f225f5431d26f87ed052f74aa1d7/lxst-0.4.6-py3-none-any.whl", hash = "sha256:49b3c03e93c18e13c83ad04c39fba386da174ac649b91124c695a4cafaf78f58", size = 3676370, upload-time = "2026-01-07T13:06:00.328Z" },
+    { url = "https://files.pythonhosted.org/packages/94/6e/13d946563893273853afa5c2a7c035e87a8c9122365882d1877891fd370b/lxst-0.4.7-py3-none-any.whl", hash = "sha256:a582378b56a2762f530eb28308523cfa5d6b6b83227b03d3c0f8c4f9ba084ea6", size = 3676786, upload-time = "2026-06-07T13:03:23.649Z" },
 ]
 
 [[package]]
@@ -1932,7 +1932,7 @@ requires-dist = [
     { name = "idna", specifier = ">=3.15" },
     { name = "jaraco-context", specifier = ">=6.1.1" },
     { name = "lxmf", specifier = ">=1.0.1" },
-    { name = "lxst", specifier = ">=0.4.6" },
+    { name = "lxst", specifier = ">=0.4.7" },
     { name = "miniaudio", specifier = ">=1.70,<2.0" },
     { name = "ply", specifier = ">=3.11,<4.0" },
     { name = "psutil", specifier = ">=7.2.2" },
