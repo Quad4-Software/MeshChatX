@@ -27,6 +27,23 @@ def size_str(num, suffix="B"):
     return f"{num:.2f}{last_unit}{suffix}"
 
 
+def speed_str(num, suffix="bps"):
+    units = ["", "k", "M", "G", "T", "P", "E", "Z"]
+    last_unit = "Y"
+
+    if suffix == "Bps":
+        num /= 8
+        units = ["", "K", "M", "G", "T", "P", "E", "Z"]
+        last_unit = "Y"
+
+    for unit in units:
+        if abs(num) < 1000.0:
+            return f"{num:3.2f} {unit}{suffix}"
+        num /= 1000.0
+
+    return f"{num:.2f} {last_unit}{suffix}"
+
+
 def fmt_per_second(value: Any) -> str | None:
     if value is None:
         return None
@@ -225,7 +242,7 @@ class RNStatusHandler:
                 formatted_if["mode"] = "Full"
 
             if "bitrate" in ifstat and ifstat["bitrate"] is not None:
-                formatted_if["bitrate"] = size_str(ifstat["bitrate"], "b") + "ps"
+                formatted_if["bitrate"] = speed_str(ifstat["bitrate"])
 
             if "rxb" in ifstat:
                 formatted_if["rx_bytes"] = ifstat["rxb"]
