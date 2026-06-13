@@ -1201,13 +1201,14 @@ export default {
         },
         async downloadSnapshot(filename) {
             try {
+                const downloadName = filename.endsWith(".zip") ? filename : `${filename}.zip`;
                 const response = await window.api.get(`/api/v1/database/snapshots/${filename}/download`, {
                     responseType: "blob",
                 });
-                const url = window.URL.createObjectURL(new Blob([response.data]));
+                const url = window.URL.createObjectURL(new Blob([response.data], { type: "application/zip" }));
                 const link = document.createElement("a");
                 link.href = url;
-                link.setAttribute("download", filename);
+                link.setAttribute("download", downloadName);
                 document.body.appendChild(link);
                 link.click();
                 link.remove();

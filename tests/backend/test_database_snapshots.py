@@ -48,7 +48,7 @@ def test_database_snapshot_creation(temp_dir):
     # List snapshots
     snapshots = db.list_snapshots(temp_dir)
     assert len(snapshots) == 1
-    assert snapshots[0]["name"] == snapshot_name
+    assert snapshots[0]["name"] == f"{snapshot_name}.zip"
 
 
 def test_database_snapshot_restoration(temp_dir):

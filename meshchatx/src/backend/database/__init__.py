@@ -554,7 +554,7 @@ class Database:
                 stats = os.stat(full_path)
                 snapshots.append(
                     {
-                        "name": file[:-4],
+                        "name": file,
                         "path": full_path,
                         "size": stats.st_size,
                         "created_at": datetime.fromtimestamp(
