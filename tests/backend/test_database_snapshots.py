@@ -345,3 +345,107 @@ def test_is_backup_suspicious_does_not_mistrigger_small_db():
         db._is_backup_suspicious({"message_count": 5, "total_bytes": 55_000}, baseline)
         is False
     )
+
+
+def test_backup_includes_identity_rrc_and_history(temp_dir):
+    import zipfile
+
+    import RNS
+
+    identity_dir = os.path.join(temp_dir, "identities", "abc123")
+    os.makedirs(identity_dir, exist_ok=True)
+    db_path = os.path.join(identity_dir, "database.db")
+    db = Database(db_path)
+    db.initialize()
+
+    identity_bytes = RNS.Identity(create_keys=True).get_private_key()
+    with open(os.path.join(identity_dir, "identity"), "wb") as handle:
+        handle.write(identity_bytes)
+
+    rrc_hubs_path = os.path.join(identity_dir, "rrc_hubs")
+    with open(rrc_hubs_path, "wb") as handle:
+        handle.write(b"rrc-hub-data")
+
+    history_dir = os.path.join(identity_dir, "rrc_history", "hub1")
+    os.makedirs(history_dir, exist_ok=True)
+    history_path = os.path.join(history_dir, "lobby.log")
+    with open(history_path, "wb") as handle:
+        handle.write(b"history-entry")
+
+    result = db.backup_database(identity_dir)
+    assert os.path.exists(result["path"])
+    assert result.get("identity_files", 0) >= 3
+
+    with zipfile.ZipFile(result["path"], "r") as zf:
+        names = set(zf.namelist())
+        assert "identity" in names
+        assert "rrc_hubs" in names
+        assert any(name.startswith("rrc_history/") for name in names)
+        assert "backup-manifest.json" in names
+
+
+def test_restore_includes_identity_rrc_and_history(temp_dir):
+
+    import RNS
+
+    identity_dir = os.path.join(temp_dir, "identities", "abc123")
+    os.makedirs(identity_dir, exist_ok=True)
+    db_path = os.path.join(identity_dir, "database.db")
+    db = Database(db_path)
+    db.initialize()
+    db.execute_sql(
+        "INSERT INTO config (key, value) VALUES (?, ?)",
+        ("marker", "before-backup"),
+    )
+
+    identity_bytes = RNS.Identity(create_keys=True).get_private_key()
+    with open(os.path.join(identity_dir, "identity"), "wb") as handle:
+        handle.write(identity_bytes)
+
+    rrc_hubs_path = os.path.join(identity_dir, "rrc_hubs")
+    with open(rrc_hubs_path, "wb") as handle:
+        handle.write(b"rrc-hub-data")
+
+    history_dir = os.path.join(identity_dir, "rrc_history", "hub1")
+    os.makedirs(history_dir, exist_ok=True)
+    history_path = os.path.join(history_dir, "lobby.log")
+    with open(history_path, "wb") as handle:
+        handle.write(b"history-entry")
+
+    backup = db.backup_database(identity_dir)
+    db.close_all()
+    DatabaseProvider._instance = None
+
+    for path in (
+        db_path,
+        f"{db_path}-wal",
+        f"{db_path}-shm",
+        os.path.join(identity_dir, "identity"),
+        rrc_hubs_path,
+        history_path,
+    ):
+        if os.path.exists(path):
+            os.remove(path)
+    shutil.rmtree(os.path.join(identity_dir, "rrc_history"), ignore_errors=True)
+
+    restored = Database(db_path)
+    restored.restore_database(backup["path"])
+    restored.close_all()
+
+    assert os.path.isfile(os.path.join(identity_dir, "identity"))
+    with open(os.path.join(identity_dir, "identity"), "rb") as handle:
+        assert handle.read() == identity_bytes
+    with open(rrc_hubs_path, "rb") as handle:
+        assert handle.read() == b"rrc-hub-data"
+    with open(history_path, "rb") as handle:
+        assert handle.read() == b"history-entry"
+
+    reopened = Database(db_path)
+    reopened.initialize()
+    row = reopened.provider.fetchone(
+        "SELECT value FROM config WHERE key = ?",
+        ("marker",),
+    )
+    reopened.close_all()
+    assert row is not None
+    assert row["value"] == "before-backup"

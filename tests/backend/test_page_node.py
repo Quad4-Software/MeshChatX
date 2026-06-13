@@ -433,11 +433,19 @@ class TestNormalizePageFilename:
 class TestPageNodeEdgeCases:
     def test_add_page_before_running(self, node_dir, mock_rns):
         node = _make_node(node_dir, mock_rns)
-        os.makedirs(node.pages_dir, exist_ok=True)
+        assert not os.path.isdir(node.pages_dir)
         name = node.add_page("offline.mu", "data")
         assert name == "offline.mu"
         assert os.path.isfile(os.path.join(node.pages_dir, "offline.mu"))
         assert "/page/offline.mu" not in node._registered_page_paths
+
+    def test_add_file_before_running(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        assert not os.path.isdir(node.files_dir)
+        name = node.add_file("offline.txt", b"data")
+        assert name == "offline.txt"
+        assert os.path.isfile(os.path.join(node.files_dir, "offline.txt"))
+        assert "/file/offline.txt" not in node._registered_file_paths
 
     def test_setup_registers_existing_pages(self, node_dir, mock_rns):
         node = _make_node(node_dir, mock_rns)

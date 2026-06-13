@@ -50,6 +50,14 @@ class TestPageNodeManagerCreate:
         assert node.node_id in mgr.nodes
         assert os.path.isdir(node.base_dir)
 
+    def test_add_page_without_starting(self, storage_dir, mock_rns):
+        mgr = _make_manager(storage_dir)
+        node = mgr.create_node("Publish Target")
+        saved_name = node.add_page("index", "hello mesh")
+        assert saved_name == "index.mu"
+        assert node.list_pages() == ["index.mu"]
+        assert node.running is False
+
     def test_create_node_with_custom_id(self, storage_dir, mock_rns):
         mgr = _make_manager(storage_dir)
         node = mgr.create_node("Custom", node_id="custom-123")

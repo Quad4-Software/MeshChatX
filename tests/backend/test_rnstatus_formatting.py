@@ -4,6 +4,7 @@ from meshchatx.src.backend.rnstatus_handler import (
     fmt_packet_count,
     fmt_per_second,
     fmt_percentage,
+    speed_str,
 )
 
 
@@ -23,3 +24,9 @@ def test_fmt_percentage():
     assert fmt_percentage(3.14159265) == "3.14"
     assert fmt_percentage(101.2) == "101.2"
     assert fmt_percentage(0.5) == "0.5"
+
+
+def test_speed_str_bitrate_not_scaled():
+    assert speed_str(100) == "100.00 bps"
+    assert speed_str(5_000_000) == "5.00 Mbps"
+    assert speed_str(8_000_000) == "8.00 Mbps"

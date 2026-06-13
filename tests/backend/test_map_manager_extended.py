@@ -8,7 +8,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from meshchatx.src.backend.map_manager import MAX_EXPORT_TILES, MapManager
+from meshchatx.src.backend.map_manager import (
+    MAX_EXPORT_TILES,
+    MapManager,
+    is_mbtiles_filename,
+    is_path_within_dir,
+)
 
 
 @pytest.fixture
@@ -122,3 +127,28 @@ def test_count_export_tiles_dedupes(mock_config, temp_dir):
     mm = MapManager(mock_config, temp_dir)
     single = mm.count_export_tiles([0, 0, 0.0001, 0.0001], 2, 2)
     assert single > 0
+
+
+def test_is_path_within_dir_allows_nested_file(mock_config, temp_dir):
+    nested = os.path.join(temp_dir, "maps", "area.mbtiles")
+    os.makedirs(os.path.dirname(nested), exist_ok=True)
+    assert is_path_within_dir(nested, temp_dir)
+
+
+def test_is_path_within_dir_rejects_parent_traversal(mock_config, temp_dir):
+    outside = os.path.join(os.path.dirname(temp_dir), "escape.mbtiles")
+    assert not is_path_within_dir(outside, temp_dir)
+
+
+def test_is_path_within_dir_case_insensitive(monkeypatch, mock_config, temp_dir):
+    def fake_normcase(path):
+        return path.lower()
+
+    monkeypatch.setattr(os.path, "normcase", fake_normcase)
+    nested = os.path.join(temp_dir, "MAP.MBTILES")
+    assert is_path_within_dir(nested, temp_dir)
+
+
+def test_is_mbtiles_filename_case_insensitive():
+    assert is_mbtiles_filename("world.MBTILES")
+    assert not is_mbtiles_filename("notes.txt")
