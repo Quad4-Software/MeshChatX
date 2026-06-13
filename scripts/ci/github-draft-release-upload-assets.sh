@@ -23,7 +23,16 @@ if [ -z "${GH_REPO:-}" ] && [ -n "${GITHUB_REPOSITORY:-}" ]; then
     export GH_REPO="$GITHUB_REPOSITORY"
 fi
 
-mapfile -d '' -t all < <(find "$DIR" -type f -print0)
+mapfile -d '' -t all < <(
+    find "$DIR" -type f \
+        ! -path '*/win-unpacked/*' \
+        ! -path '*/linux-unpacked/*' \
+        ! -path '*/mac-universal/*' \
+        ! -path '*/mac-arm64/*' \
+        ! -path '*/mac-x64/*' \
+        ! -path '*/mac/*.app/*' \
+        -print0
+)
 
 skip_noise() {
     local base="$1"
@@ -56,7 +65,8 @@ for f in "${all[@]}"; do
 done
 
 STAGE=$(mktemp -d)
-trap 'rm -rf "$STAGE"' EXIT
+notes_file=$(mktemp)
+trap 'rm -rf "$STAGE" "$notes_file"' EXIT
 
 for f in "${all[@]}"; do
     b=$(basename "$f")
@@ -71,35 +81,32 @@ done
 
 mapfile -t files < <(find "$STAGE" -type f)
 
-# Build SHA256 section for release notes
-sha256_table=""
-for f in "${files[@]}"; do
-    b=$(basename "$f")
-    hash=$(sha256sum "$f" | awk '{print $1}')
-    sha256_table="${sha256_table}\n| ${b} | \`${hash}\` |"
-done
-
-notes=$(cat <<EOF
-Automated draft release. Review assets and provenance before publishing.
-
-## SHA256 Checksums
-
-| Asset | SHA256 |
-|-------|--------|
-${sha256_table}
-
-## Verification
-
-- **Cosign bundles** (\`.cosign.bundle\`) are attached for keyless sigstore verification.
-- **SLSA provenance** (\`.intoto.jsonl\`) is available for supply-chain attestation.
-- Or verify manually using the SHA256 table above.
-EOF
-)
+{
+    echo "Automated draft release. Review assets and provenance before publishing."
+    echo
+    echo "## SHA256 Checksums"
+    echo
+    echo "| Asset | SHA256 |"
+    echo "|-------|--------|"
+    for f in "${files[@]}"; do
+        b=$(basename "$f")
+        hash=$(sha256sum "$f" | awk '{print $1}')
+        printf '| %s | `%s` |\n' "$b" "$hash"
+    done
+    echo
+    echo "## Verification"
+    echo
+    echo "- **Cosign bundles** (\`.cosign.bundle\`) are attached for keyless sigstore verification."
+    echo "- **SLSA provenance** (\`.intoto.jsonl\`) is available for supply-chain attestation."
+    echo "- Or verify manually using the SHA256 table above."
+} > "$notes_file"
 
 if ! gh release view "$TAG" >/dev/null 2>&1; then
-    gh release create "$TAG" --draft --title "$TAG" --notes "$notes"
+    gh release create "$TAG" --draft --title "$TAG" --notes-file "$notes_file"
 else
-    gh release edit "$TAG" --notes "$notes"
+    gh release edit "$TAG" --notes-file "$notes_file"
 fi
 
-gh release upload "$TAG" "${files[@]}" --clobber
+for f in "${files[@]}"; do
+    gh release upload "$TAG" "$f" --clobber
+done
