@@ -12,6 +12,7 @@ This project is independent from the original Reticulum MeshChat project and is 
 - Releases: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - Changelog: [`CHANGELOG.md`](CHANGELOG.md)
 - Donate: [`donate.md`](donate.md) ([Donation](#donation))
+- LXMF: `f489752fbef161c64d65e385a4e9fc74`
 - Umbrel App Store: [apps.umbrel.com/app/meshchatx](https://apps.umbrel.com/app/meshchatx)
 
 <a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/Quad4-Software/MeshChatX"><img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" height="60" alt="Get it on Obtainium"></a>
@@ -447,7 +448,7 @@ Security and integrity details:
 
 My workflow: ArgosTranslate -> Local LLM (Qwen 3 + Gemma 4)
 
-People are then welcome to submit fixes to me via LXMF or wherever you can contact me.
+People are then welcome to submit fixes to me via LXMF (`f489752fbef161c64d65e385a4e9fc74`) or wherever you can contact me.
 
 Locale discovery is automatic. Add a new file under `meshchatx/src/frontend/locales/` (for example `xx.json`) with the same keys as `en.json` and a top-level `_languageName` string for the label shown in the language selector. You can copy `en.json` and translate every value by hand; **machine-assisted generation is optional** and never required.
 

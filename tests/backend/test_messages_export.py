@@ -243,7 +243,7 @@ async def test_messages_import_export_roundtrip(mock_rns_minimal, temp_dir):
             {
                 "hash": "40509ace976b2e572bff2944d60207218135ef69940a25a423e60615760e7e06",
                 "source_hash": "695ff7ffdd5f9ef1ae7772cfa2ecf028",
-                "destination_hash": "7cc8d66b4f6a0e0e49d34af7f6077b5a",
+                "destination_hash": "f489752fbef161c64d65e385a4e9fc74",
                 "peer_hash": "695ff7ffdd5f9ef1ae7772cfa2ecf028",
                 "state": "generating",
                 "progress": 0,
@@ -318,7 +318,7 @@ async def test_messages_import_file_upload(mock_rns_minimal, temp_dir):
                 {
                     "hash": "40509ace976b2e572bff2944d60207218135ef69940a25a423e60615760e7e06",
                     "source_hash": "695ff7ffdd5f9ef1ae7772cfa2ecf028",
-                    "destination_hash": "7cc8d66b4f6a0e0e49d34af7f6077b5a",
+                    "destination_hash": "f489752fbef161c64d65e385a4e9fc74",
                     "peer_hash": "695ff7ffdd5f9ef1ae7772cfa2ecf028",
                     "state": "generating",
                     "progress": 0,

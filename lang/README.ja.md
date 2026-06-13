@@ -12,6 +12,7 @@ Liam Cottle 氏による Reticulum MeshChat を大幅に改修・機能拡張し
 - リリース: [github.com/Quad4-Software/MeshChatX](https://github.com/Quad4-Software/MeshChatX)
 - 変更履歴: [`CHANGELOG.md`](../CHANGELOG.md)
 - 寄付: [`donate.md`](../donate.md) ([寄付](#寄付))
+- LXMF: `f489752fbef161c64d65e385a4e9fc74`
 - Umbrel App Store: [apps.umbrel.com/app/meshchatx](https://apps.umbrel.com/app/meshchatx)
 
 <a href="https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://add/https://github.com/Quad4-Software/MeshChatX"><img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" height="60" alt="Get it on Obtainium"></a>

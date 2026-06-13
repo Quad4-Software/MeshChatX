@@ -328,7 +328,7 @@ class CrashRecovery:
             )
 
         out.write(
-            "  *. If the issue persists, report it to Ivan over another LXMF client: 7cc8d66b4f6a0e0e49d34af7f6077b5a\n",
+            "  *. If the issue persists, report it to Ivan over another LXMF client: f489752fbef161c64d65e385a4e9fc74\n",
         )
         out.write("=" * 70 + "\n\n")
         out.flush()

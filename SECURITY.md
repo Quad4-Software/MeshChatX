@@ -6,7 +6,7 @@ If you believe you have found a **security vulnerability** in MeshChatX, please 
 
 **Preferred contact (in order):**
 
-1. **LXMF**: `7cc8d66b4f6a0e0e49d34af7f6077b5a`
+1. **LXMF**: `f489752fbef161c64d65e385a4e9fc74`
 
 Include enough detail to reproduce or understand the issue (what version or build you used, what you expected, what happened). Do not open a public issue for unfixed vulnerabilities.
 

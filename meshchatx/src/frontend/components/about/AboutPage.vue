@@ -1085,7 +1085,7 @@ export default {
             chromeVersion: null,
             nodeVersion: null,
             showContactSupport: false,
-            developerLxmfPrimary: "7cc8d66b4f6a0e0e49d34af7f6077b5a",
+            developerLxmfPrimary: "f489752fbef161c64d65e385a4e9fc74",
             developerLxmfAlternate: "43d3309adf27fc446556121b553b56a6",
             moneroDonateAddress:
                 "83SUg6mmkkVGwCycckLEgRfdmXNm7H9XtVjbGXp5kko71N6pTefYURJeS7WdEGHrz2aagmt4nF3dWg6mHcYs6yu4EokwhTh",

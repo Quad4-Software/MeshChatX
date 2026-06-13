@@ -33,7 +33,7 @@ Patches are the preferred way to contribute. Create your changes locally, export
 Send the `.patch` file as an LXMF message over Reticulum to:
 
 ```
-7cc8d66b4f6a0e0e49d34af7f6077b5a
+f489752fbef161c64d65e385a4e9fc74
 ```
 
 You can attach the file using Sideband, Meshchat, MeshchatX, or any LXMF-capable client with attachments support. Include a brief description of what the patch does in the message body.
