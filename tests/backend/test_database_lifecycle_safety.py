@@ -208,6 +208,8 @@ class TestMeshchatRestoreFlow(unittest.TestCase):
             app = object.__new__(ReticulumMeshChat)
             app.contexts = {}
             app.current_context = None
+            app.storage_dir = temp
+            app.identity_file_path = None
             app._teardown_all_contexts_for_reload = unittest.mock.Mock()
 
             db = Database(db_path)
