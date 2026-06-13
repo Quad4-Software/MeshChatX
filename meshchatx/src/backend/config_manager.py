@@ -279,7 +279,7 @@ class ConfigManager:
         self.map_tile_server_url = self.StringConfig(
             self,
             "map_tile_server_url",
-            "https://tiles.openfreemap.org/styles/bright",
+            "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
         )
         self.map_nominatim_api_url = self.StringConfig(
             self,

@@ -107,7 +107,7 @@ from meshchatx.src.backend.lxmf_utils import (
     lxmf_fields_are_reaction,
     lxmf_sidebar_preview_for_conversation_latest_row,
 )
-from meshchatx.src.backend.map_manager import MAX_EXPORT_TILES, TRANSPARENT_TILE
+from meshchatx.src.backend.map_manager import MAX_EXPORT_TILES, TRANSPARENT_TILE, is_mbtiles_filename, is_path_within_dir
 from meshchatx.src.backend.markdown_renderer import MarkdownRenderer
 from meshchatx.src.backend.meshchat_utils import (
     convert_db_favourite_to_dict,
@@ -737,7 +737,7 @@ class ReticulumMeshChat:
     def backup_database(self, backup_path=None):
         if not self.database:
             raise RuntimeError("Database not initialized")
-        return self.database.backup_database(self.storage_dir, backup_path)
+        return self.database.backup_database(self.storage_path, backup_path)
 
     def prepare_for_database_restore(self) -> str | None:
         db_path = self.database_path
@@ -772,6 +772,14 @@ class ReticulumMeshChat:
             result = db.restore_database(backup_path)
         finally:
             db.close_all()
+        identity_storage_file = os.path.join(os.path.dirname(db_path), "identity")
+        main_identity_file = self.identity_file_path or os.path.join(
+            self.storage_dir,
+            "identity",
+        )
+        if os.path.isfile(identity_storage_file):
+            os.makedirs(os.path.dirname(main_identity_file), exist_ok=True)
+            shutil.copy2(identity_storage_file, main_identity_file)
         if relaunch:
             self._schedule_process_restart()
         return result
@@ -3943,7 +3951,7 @@ class ReticulumMeshChat:
             try:
                 data = await request.json()
                 name = data.get("name", f"snapshot-{int(time.time())}")
-                result = self.database.create_snapshot(self.storage_dir, name)
+                result = self.database.create_snapshot(self.storage_path, name)
                 return web.json_response({"status": "success", "result": result})
             except Exception as e:
                 return web.json_response(
@@ -3956,7 +3964,7 @@ class ReticulumMeshChat:
             try:
                 limit = int(request.query.get("limit", 100))
                 offset = int(request.query.get("offset", 0))
-                snapshots = self.database.list_snapshots(self.storage_dir)
+                snapshots = self.database.list_snapshots(self.storage_path)
                 total = len(snapshots)
                 paginated_snapshots = snapshots[offset : offset + limit]
                 return web.json_response(
@@ -3980,7 +3988,7 @@ class ReticulumMeshChat:
                 if not filename.endswith(".zip"):
                     filename += ".zip"
                 self.database.delete_snapshot_or_backup(
-                    self.storage_dir,
+                    self.storage_path,
                     filename,
                     is_backup=False,
                 )
@@ -4039,10 +4047,10 @@ class ReticulumMeshChat:
                         status=400,
                     )
 
-                # Verify path is within storage_dir/snapshots or provided directly
+                # Verify path is within identity storage snapshots or provided directly
                 if not os.path.exists(path):
                     # Try relative to snapshots dir
-                    potential_path = os.path.join(self.storage_dir, "snapshots", path)
+                    potential_path = os.path.join(self.storage_path, "snapshots", path)
                     if os.path.exists(potential_path):
                         path = potential_path
                     elif os.path.exists(potential_path + ".zip"):
@@ -4073,7 +4081,7 @@ class ReticulumMeshChat:
             try:
                 limit = int(request.query.get("limit", 100))
                 offset = int(request.query.get("offset", 0))
-                backup_dir = os.path.join(self.storage_dir, "database-backups")
+                backup_dir = os.path.join(self.storage_path, "database-backups")
                 if not os.path.exists(backup_dir):
                     return web.json_response(
                         {"backups": [], "total": 0, "limit": limit, "offset": offset},
@@ -4123,7 +4131,7 @@ class ReticulumMeshChat:
                 if not filename.endswith(".zip"):
                     filename += ".zip"
                 self.database.delete_snapshot_or_backup(
-                    self.storage_dir,
+                    self.storage_path,
                     filename,
                     is_backup=True,
                 )
@@ -4140,7 +4148,7 @@ class ReticulumMeshChat:
                 filename = request.match_info.get("filename")
                 if not filename.endswith(".zip"):
                     filename += ".zip"
-                backup_dir = os.path.join(self.storage_dir, "database-backups")
+                backup_dir = os.path.join(self.storage_path, "database-backups")
                 full_path = os.path.join(backup_dir, filename)
 
                 if not os.path.exists(full_path) or not full_path.startswith(
@@ -4169,7 +4177,7 @@ class ReticulumMeshChat:
                 filename = request.match_info.get("filename")
                 if not filename.endswith(".zip"):
                     filename += ".zip"
-                snapshot_dir = os.path.join(self.storage_dir, "snapshots")
+                snapshot_dir = os.path.join(self.storage_path, "snapshots")
                 full_path = os.path.join(snapshot_dir, filename)
 
                 if not os.path.exists(full_path) or not full_path.startswith(
@@ -12931,9 +12939,7 @@ class ReticulumMeshChat:
             mbtiles_dir = self.map_manager.get_mbtiles_dir()
             safe_name = os.path.basename(filename)
             file_path = os.path.join(mbtiles_dir, safe_name)
-            resolved = os.path.realpath(file_path)
-            base = os.path.realpath(mbtiles_dir)
-            if not resolved.startswith(base + os.sep):
+            if not is_path_within_dir(file_path, mbtiles_dir):
                 return web.json_response({"error": "Invalid filename"}, status=400)
             if os.path.exists(file_path):
                 self.map_manager.close()
@@ -13537,7 +13543,7 @@ class ReticulumMeshChat:
                     return web.json_response({"error": "No file field"}, status=400)
 
                 filename = os.path.basename(field.filename or "")
-                if not filename.endswith(".mbtiles"):
+                if not is_mbtiles_filename(filename):
                     return web.json_response(
                         {"error": "Invalid file format, must be .mbtiles"},
                         status=400,
@@ -13548,9 +13554,7 @@ class ReticulumMeshChat:
                     os.makedirs(mbtiles_dir)
 
                 dest_path = os.path.join(mbtiles_dir, filename)
-                resolved = os.path.realpath(dest_path)
-                base = os.path.realpath(mbtiles_dir)
-                if not resolved.startswith(base + os.sep):
+                if not is_path_within_dir(dest_path, mbtiles_dir):
                     return web.json_response(
                         {"error": "Invalid filename"},
                         status=400,
@@ -14150,7 +14154,7 @@ class ReticulumMeshChat:
                         f"Performing scheduled auto-backup for {ctx.identity_hash}...",
                     )
                     max_count = ctx.config.backup_max_count.get()
-                    ctx.database.backup_database(self.storage_dir, max_count=max_count)
+                    ctx.database.backup_database(ctx.storage_path, max_count=max_count)
             except Exception as e:
                 print(f"Auto-backup failed: {e}")
 
@@ -19104,9 +19108,9 @@ def main():
     if args.restore_from_snapshot:
         snapshot_path = args.restore_from_snapshot
         if not os.path.exists(snapshot_path):
-            # Try in storage_dir/snapshots
+            # Try in identity storage snapshots
             potential_path = os.path.join(
-                reticulum_meshchat.storage_dir,
+                reticulum_meshchat.storage_path,
                 "snapshots",
                 snapshot_path,
             )
