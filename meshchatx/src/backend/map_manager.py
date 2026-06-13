@@ -20,6 +20,17 @@ TRANSPARENT_TILE = base64.b64decode(
 MAX_EXPORT_TILES = 200_000
 
 
+def is_path_within_dir(path, directory):
+    """Return True when path resolves to a location inside directory."""
+    candidate = os.path.normcase(os.path.normpath(os.path.realpath(path)))
+    root = os.path.normcase(os.path.normpath(os.path.realpath(directory)))
+    return candidate == root or candidate.startswith(root + os.sep)
+
+
+def is_mbtiles_filename(filename):
+    return os.path.basename(filename or "").lower().endswith(".mbtiles")
+
+
 class MapManager:
     def __init__(self, config_manager, storage_dir):
         self.config = config_manager
@@ -65,7 +76,7 @@ class MapManager:
         files = []
         if os.path.exists(mbtiles_dir):
             for f in os.listdir(mbtiles_dir):
-                if f.endswith(".mbtiles"):
+                if is_mbtiles_filename(f):
                     full_path = os.path.join(mbtiles_dir, f)
                     stats = os.stat(full_path)
                     files.append(
@@ -83,11 +94,9 @@ class MapManager:
         mbtiles_dir = self.get_mbtiles_dir()
         safe_name = os.path.basename(filename)
         file_path = os.path.join(mbtiles_dir, safe_name)
-        resolved = os.path.realpath(file_path)
-        base = os.path.realpath(mbtiles_dir)
-        if not resolved.startswith(base + os.sep):
+        if not is_path_within_dir(file_path, mbtiles_dir):
             return False
-        if os.path.exists(file_path) and file_path.endswith(".mbtiles"):
+        if os.path.exists(file_path) and is_mbtiles_filename(file_path):
             if file_path == self.get_offline_path():
                 self.config.map_offline_path.set(None)
                 self.config.map_offline_enabled.set(False)

@@ -100,6 +100,7 @@
         <!-- map container (h-full so absolute overlays can use max-h-full / inset height) -->
         <div ref="mapViewOverlayRoot" class="relative flex-1 min-h-0 h-full">
             <MapDrawingToolbar
+                ref="mapDrawingToolbar"
                 :tools="drawingTools"
                 :draw-type="drawType"
                 :measuring="isMeasuring"
@@ -165,7 +166,7 @@
             >
                 <MaterialDesignIcon icon-name="map-plus" class="w-16 h-16 text-blue-600 dark:text-blue-400 mb-4" />
                 <h3 class="text-lg font-bold text-blue-700 dark:text-blue-300">{{ $t("map.drop_geo_files") }}</h3>
-                <p class="text-sm text-blue-600 dark:text-blue-400 mt-1">GeoJSON, KML, or KMZ</p>
+                <p class="text-sm text-blue-600 dark:text-blue-400 mt-1">{{ $t("map.drop_map_files_hint") }}</p>
             </div>
 
             <!-- note hover tooltip -->
@@ -1174,7 +1175,7 @@ import { styleFromMcxProperties } from "../../js/mapExchange/styleFromProperties
 import { computeSegmentMetrics, buildBearingOverlayHtml, buildBearingLiveTooltipHtml } from "../../js/mapGeodesy.js";
 
 const OPENFREEMAP_DEFAULT_STYLE = "https://tiles.openfreemap.org/styles/bright";
-const LEGACY_DEFAULT_OSM_RASTER = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+const DEFAULT_OSM_RASTER = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 const OFFLINE_MB_TILES_URL = "/api/v1/map/tiles/{z}/{x}/{y}.png";
 const OFFLINE_TRANSPARENT_TILE_PNG =
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
@@ -1237,7 +1238,7 @@ export default {
             cachingEnabled: true,
 
             // tile server
-            tileServerUrl: OPENFREEMAP_DEFAULT_STYLE,
+            tileServerUrl: DEFAULT_OSM_RASTER,
 
             // search
             searchQuery: "",
@@ -2241,20 +2242,37 @@ export default {
         isOpenFreeMapStyleUrl(url) {
             return typeof url === "string" && url.includes("tiles.openfreemap.org/styles/");
         },
+        isKnownDefaultBasemapUrl(url) {
+            const normalized = (url || "").trim();
+            return normalized === OPENFREEMAP_DEFAULT_STYLE || normalized === DEFAULT_OSM_RASTER;
+        },
+        resolveRasterTileUrl(url) {
+            const normalized = (url || DEFAULT_OSM_RASTER).trim();
+            if (this.isOpenFreeMapStyleUrl(normalized)) {
+                return DEFAULT_OSM_RASTER;
+            }
+            return normalized;
+        },
+        getExportToolButtonEl() {
+            const toolbar = this.$refs.mapDrawingToolbar;
+            if (!toolbar) return null;
+            const ref = toolbar.$refs.exportToolButton;
+            if (!ref) return null;
+            return Array.isArray(ref) ? ref[0] : ref;
+        },
         usesOfflineMbtilesRaster() {
             if (!this.offlineEnabled) return false;
-            const defaultTileUrl = OPENFREEMAP_DEFAULT_STYLE;
-            const customTileUrl = this.tileServerUrl || defaultTileUrl;
+            const customTileUrl = this.tileServerUrl || DEFAULT_OSM_RASTER;
             const isCustomLocal = this.isLocalUrl(customTileUrl);
             if (isCustomLocal) return false;
             const isDefaultOnline = this.isDefaultOnlineUrl(customTileUrl);
             if (isDefaultOnline) return true;
-            if (customTileUrl !== defaultTileUrl && customTileUrl !== LEGACY_DEFAULT_OSM_RASTER) return false;
+            if (!this.isKnownDefaultBasemapUrl(customTileUrl)) return false;
             return true;
         },
         async buildBaseMapLayer() {
-            const url = (this.tileServerUrl || OPENFREEMAP_DEFAULT_STYLE).trim();
-            if (!this.offlineEnabled && this.isOpenFreeMapStyleUrl(url)) {
+            const url = (this.tileServerUrl || DEFAULT_OSM_RASTER).trim();
+            if (!this.offlineEnabled && !this.cachingEnabled && this.isOpenFreeMapStyleUrl(url)) {
                 const group = new LayerGroup();
                 await applyMapboxStyle(group, url);
                 return group;
@@ -2398,11 +2416,8 @@ export default {
                 if (typeof u === "string" && u.length > 0 && !ordered.includes(u)) ordered.push(u);
             };
             push(primarySrc);
-            const ts = this.tileServerUrl || OPENFREEMAP_DEFAULT_STYLE;
-            if (!this.isOpenFreeMapStyleUrl(ts)) {
-                for (const u of this.expandRasterTileUrlTemplates(ts, z, x, y)) push(u);
-            }
-            for (const u of this.expandRasterTileUrlTemplates(LEGACY_DEFAULT_OSM_RASTER, z, x, y)) push(u);
+            const ts = this.resolveRasterTileUrl(this.tileServerUrl || DEFAULT_OSM_RASTER);
+            for (const u of this.expandRasterTileUrlTemplates(ts, z, x, y)) push(u);
             return ordered;
         },
         offlineCachedRasterOnlyLookupUrls(tileCoord, primarySrc) {
@@ -2422,11 +2437,8 @@ export default {
             const push = (u) => {
                 if (typeof u === "string" && u.length > 0 && !ordered.includes(u)) ordered.push(u);
             };
-            const ts = this.tileServerUrl || OPENFREEMAP_DEFAULT_STYLE;
-            if (!this.isOpenFreeMapStyleUrl(ts)) {
-                for (const u of this.expandRasterTileUrlTemplates(ts, z, x, y)) push(u);
-            }
-            for (const u of this.expandRasterTileUrlTemplates(LEGACY_DEFAULT_OSM_RASTER, z, x, y)) push(u);
+            const ts = this.resolveRasterTileUrl(this.tileServerUrl || DEFAULT_OSM_RASTER);
+            for (const u of this.expandRasterTileUrlTemplates(ts, z, x, y)) push(u);
             return ordered;
         },
         async tryApplyCachedRasterTilesOnly(tile, src) {
@@ -2493,8 +2505,7 @@ export default {
         },
         getTileSource() {
             const isOffline = this.offlineEnabled;
-            const defaultTileUrl = OPENFREEMAP_DEFAULT_STYLE;
-            const customTileUrl = this.tileServerUrl || defaultTileUrl;
+            const customTileUrl = this.tileServerUrl || DEFAULT_OSM_RASTER;
             const isCustomLocal = this.isLocalUrl(customTileUrl);
             const isDefaultOnline = this.isDefaultOnlineUrl(customTileUrl);
 
@@ -2506,7 +2517,7 @@ export default {
                 } else if (isCustomLocal) {
                     // It's a local/mesh URL, allow it
                     tileUrl = customTileUrl;
-                } else if (customTileUrl !== defaultTileUrl && customTileUrl !== LEGACY_DEFAULT_OSM_RASTER) {
+                } else if (!this.isKnownDefaultBasemapUrl(customTileUrl)) {
                     // It's a custom URL that isn't a known online one,
                     // assume it might be a local mesh server with a domain.
                     tileUrl = customTileUrl;
@@ -2514,7 +2525,7 @@ export default {
                     tileUrl = OFFLINE_MB_TILES_URL;
                 }
             } else {
-                tileUrl = customTileUrl;
+                tileUrl = this.resolveRasterTileUrl(customTileUrl);
             }
 
             const source = new XYZ({
@@ -2710,15 +2721,11 @@ export default {
             this.dismissTileConnectivityBanner();
 
             if (enabled) {
-                const defaultTileUrl = OPENFREEMAP_DEFAULT_STYLE;
                 const defaultNominatimUrl = "https://nominatim.openstreetmap.org";
 
                 const isCustomTileLocal = this.isLocalUrl(this.tileServerUrl);
                 const isDefaultTileOnline = this.isDefaultOnlineUrl(this.tileServerUrl);
-                const hasCustomTile =
-                    this.tileServerUrl &&
-                    this.tileServerUrl !== defaultTileUrl &&
-                    this.tileServerUrl !== LEGACY_DEFAULT_OSM_RASTER;
+                const hasCustomTile = this.tileServerUrl && !this.isKnownDefaultBasemapUrl(this.tileServerUrl);
 
                 const isCustomNominatimLocal = this.isLocalUrl(this.nominatimApiUrl);
                 const isDefaultNominatimOnline = this.isDefaultOnlineUrl(this.nominatimApiUrl);
@@ -2771,6 +2778,7 @@ export default {
                 await window.api.patch("/api/v1/config", {
                     map_tile_cache_enabled: enabled,
                 });
+                await this.updateMapSource();
             } catch (e) {
                 console.error("Failed to save caching setting", e);
             }
@@ -2854,21 +2862,24 @@ export default {
             const file = event.target.files[0];
             if (!file) return;
 
-            if (!file.name.endsWith(".mbtiles")) {
+            await this.uploadMbtilesFile(file);
+            event.target.value = "";
+        },
+        isMbtilesFile(file) {
+            return Boolean(file?.name && file.name.toLowerCase().endsWith(".mbtiles"));
+        },
+        async uploadMbtilesFile(file) {
+            if (!this.isMbtilesFile(file)) {
                 ToastUtils.error(this.$t("map.select_mbtiles_error"));
-                return;
+                return false;
             }
 
             this.isUploading = true;
             const formData = new FormData();
-            formData.append("file", file);
+            formData.append("file", file, file.name);
 
             try {
-                const response = await window.api.post("/api/v1/map/offline", formData, {
-                    headers: {
-                        "Content-Type": "multipart/form-data",
-                    },
-                });
+                const response = await window.api.post("/api/v1/map/offline", formData);
 
                 this.metadata = response.data.metadata;
                 this.hasOfflineMap = true;
@@ -2883,7 +2894,6 @@ export default {
                 await this.updateMapSource();
                 ToastUtils.success(this.$t("map.upload_success"));
 
-                // If the map has bounds, we might want to fit to them
                 if (this.metadata.bounds) {
                     const bounds = this.metadata.bounds.split(",").map(parseFloat);
                     if (bounds.length === 4) {
@@ -2891,12 +2901,13 @@ export default {
                         this.map.getView().fit(extent, { padding: [20, 20, 20, 20] });
                     }
                 }
+                return true;
             } catch (e) {
                 const error = e.response?.data?.error || e.message;
                 ToastUtils.error(this.$t("map.upload_failed") + ": " + error);
+                return false;
             } finally {
                 this.isUploading = false;
-                event.target.value = ""; // Reset input
             }
         },
         async setAsDefaultView() {
@@ -2969,11 +2980,9 @@ export default {
         },
         positionOnboardingTooltip() {
             this.$nextTick(() => {
-                if (!this.$refs.exportToolButton || !this.$refs.tooltipElement) return;
+                const exportButton = this.getExportToolButtonEl();
+                if (!exportButton || !this.$refs.tooltipElement) return;
 
-                const exportButton = Array.isArray(this.$refs.exportToolButton)
-                    ? this.$refs.exportToolButton[0]
-                    : this.$refs.exportToolButton;
                 const tooltip = this.$refs.tooltipElement;
                 const buttonRect = exportButton.getBoundingClientRect();
                 const tooltipRect = tooltip.getBoundingClientRect();
@@ -4401,6 +4410,7 @@ export default {
             const files = Array.from(ev.dataTransfer?.files || []);
             if (!files.length) return;
 
+            const mbtilesFiles = files.filter((f) => this.isMbtilesFile(f));
             const geoFiles = files.filter((f) => {
                 const name = f.name.toLowerCase();
                 return (
@@ -4410,9 +4420,13 @@ export default {
                     name.endsWith(".kmz")
                 );
             });
-            if (!geoFiles.length) {
-                ToastUtils.warning(this.$t("map.drop_no_geo_files"));
+            if (!mbtilesFiles.length && !geoFiles.length) {
+                ToastUtils.warning(this.$t("map.drop_no_supported_files"));
                 return;
+            }
+
+            for (const file of mbtilesFiles) {
+                await this.uploadMbtilesFile(file);
             }
 
             for (const file of geoFiles) {

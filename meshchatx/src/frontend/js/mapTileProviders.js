@@ -1,6 +1,6 @@
 /** Raster basemap providers tried in order when tiles fail to load. */
 
-export const RASTER_TILE_PROVIDER_ORDER = ["openfreemap", "osm"];
+export const RASTER_TILE_PROVIDER_ORDER = ["osm", "openfreemap"];
 
 export const TILE_PROVIDER_URLS = {
     openfreemap: "https://tiles.openfreemap.org/styles/bright",
