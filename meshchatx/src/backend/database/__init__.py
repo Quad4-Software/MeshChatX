@@ -28,6 +28,8 @@ from .telephone import TelephoneDAO
 from .voicemails import VoicemailDAO
 
 BACKUP_BASELINE_FILENAME = "backup-baseline.json"
+BACKUP_MANIFEST_NAME = "backup-manifest.json"
+BACKUP_SKIP_DIR_NAMES = frozenset({"database-backups", "snapshots"})
 MIN_SIZE_RATIO = 0.2
 
 _log = logging.getLogger("meshchatx.database")
@@ -389,6 +391,40 @@ class Database:
         if hasattr(self, "provider"):
             self.provider.close_all()
 
+    def _identity_storage_dir(self) -> str:
+        return os.path.dirname(os.path.abspath(self.provider.db_path))
+
+    def _add_identity_storage_to_zip(
+        self,
+        zf: zipfile.ZipFile,
+        db_basenames: set[str],
+    ) -> list[str]:
+        identity_dir = self._identity_storage_dir()
+        included: list[str] = []
+        for root, dirs, files in os.walk(identity_dir):
+            dirs[:] = [d for d in dirs if d not in BACKUP_SKIP_DIR_NAMES]
+            for name in files:
+                if name in db_basenames or name == BACKUP_MANIFEST_NAME:
+                    continue
+                full_path = os.path.join(root, name)
+                rel_path = os.path.relpath(full_path, identity_dir).replace("\\", "/")
+                if rel_path.startswith(".."):
+                    continue
+                zf.write(full_path, arcname=rel_path)
+                included.append(rel_path)
+        return included
+
+    @staticmethod
+    def _safe_zip_extract_member(
+        zf: zipfile.ZipFile, member: str, target_dir: str
+    ) -> None:
+        dest_path = os.path.abspath(os.path.join(target_dir, member))
+        abs_target = os.path.abspath(target_dir)
+        if not dest_path.startswith(abs_target + os.sep) and dest_path != abs_target:
+            msg = f"Unsafe zip entry path: {member}"
+            raise DatabaseRestoreError(msg)
+        zf.extract(member, target_dir)
+
     def _backup_to_zip(self, backup_path: str):
         paths = self._database_paths()
         os.makedirs(os.path.dirname(backup_path), exist_ok=True)
@@ -396,16 +432,26 @@ class Database:
         self._checkpoint_wal()
 
         main_filename = os.path.basename(paths["main"])
+        db_basenames = {os.path.basename(p) for p in paths.values()}
         with zipfile.ZipFile(backup_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
             zf.write(paths["main"], arcname=main_filename)
             if os.path.exists(paths["wal"]):
                 zf.write(paths["wal"], arcname=f"{main_filename}-wal")
             if os.path.exists(paths["shm"]):
                 zf.write(paths["shm"], arcname=f"{main_filename}-shm")
+            included = self._add_identity_storage_to_zip(zf, db_basenames)
+            manifest = {
+                "version": 1,
+                "created_at": datetime.now(UTC).isoformat(),
+                "includes_identity_storage": True,
+                "files": sorted(included),
+            }
+            zf.writestr(BACKUP_MANIFEST_NAME, json.dumps(manifest, indent=2))
 
         return {
             "path": backup_path,
             "size": os.path.getsize(backup_path),
+            "identity_files": len(included),
         }
 
     def backup_database(
@@ -563,8 +609,12 @@ class Database:
                 os.remove(p)
 
         if zipfile.is_zipfile(backup_path):
+            target_dir = os.path.dirname(paths["main"])
             with zipfile.ZipFile(backup_path, "r") as zf:
-                zf.extractall(os.path.dirname(paths["main"]))
+                for member in zf.namelist():
+                    if member.endswith("/"):
+                        continue
+                    self._safe_zip_extract_member(zf, member, target_dir)
         else:
             shutil.copy2(backup_path, paths["main"])
 
