@@ -107,7 +107,12 @@ from meshchatx.src.backend.lxmf_utils import (
     lxmf_fields_are_reaction,
     lxmf_sidebar_preview_for_conversation_latest_row,
 )
-from meshchatx.src.backend.map_manager import MAX_EXPORT_TILES, TRANSPARENT_TILE, is_mbtiles_filename, is_path_within_dir
+from meshchatx.src.backend.map_manager import (
+    MAX_EXPORT_TILES,
+    TRANSPARENT_TILE,
+    is_mbtiles_filename,
+    is_path_within_dir,
+)
 from meshchatx.src.backend.markdown_renderer import MarkdownRenderer
 from meshchatx.src.backend.meshchat_utils import (
     convert_db_favourite_to_dict,
