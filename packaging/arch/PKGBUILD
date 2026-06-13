@@ -8,7 +8,7 @@ arch=('x86_64' 'aarch64')
 url="https://github.com/Quad4-Software/MeshChatX"
 license=('0BSD' 'MIT')
 depends=('opus' 'opusfile' 'portaudio' 'espeak-ng')
-makedepends=('git' 'nodejs' 'pnpm' 'python' 'python-poetry')
+makedepends=('git' 'nodejs' 'pnpm' 'python' 'python-pip' 'python-setuptools' 'python-wheel')
 provides=("$_pkgname")
 conflicts=("$_pkgname")
 source=("$_pkgname::git+https://github.com/Quad4-Software/MeshChatX.git"
@@ -25,20 +25,26 @@ pkgver() {
 prepare() {
   cd "$_pkgname"
   export PNPM_HOME="$srcdir/.pnpm-home"
-  export POETRY_CACHE_DIR="$srcdir/.poetry-cache"
-  export POETRY_VIRTUALENVS_IN_PROJECT=true
-  
-  pnpm install
-  poetry install
-  poetry run python scripts/patch_lxst_pyogg_ogg_ctypes.py
+  local _venv="$srcdir/$_pkgname/.build-venv"
+
+  pnpm install --frozen-lockfile
+
+  python -m venv "$_venv"
+  # shellcheck disable=SC1091
+  source "$_venv/bin/activate"
+  pip install --upgrade pip setuptools wheel
+  pip install -r requirements.txt
+  pip install 'cx-freeze>=7.0.0'
+  pip install --no-build-isolation .
+  python scripts/patch_lxst_pyogg_ogg_ctypes.py
 }
 
 build() {
   cd "$_pkgname"
   export PNPM_HOME="$srcdir/.pnpm-home"
-  export POETRY_CACHE_DIR="$srcdir/.poetry-cache"
-  export POETRY_VIRTUALENVS_IN_PROJECT=true
-  
+  export PYTHON_CMD="$srcdir/$_pkgname/.build-venv/bin/python"
+
+  pnpm run electron-postinstall
   pnpm run build
   pnpm exec electron-builder --linux --dir
 }
