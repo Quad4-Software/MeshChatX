@@ -304,6 +304,7 @@ class PageNode:
 
     def add_page(self, name, content):
         """Write a page file and register its request handler."""
+        os.makedirs(self.pages_dir, exist_ok=True)
         name = normalize_page_filename(name)
         _reject_name_component_too_long(self.pages_dir, name)
         page_path = os.path.join(self.pages_dir, name)
@@ -355,6 +356,7 @@ class PageNode:
 
     def add_file(self, name, data):
         """Write a file and register its request handler."""
+        os.makedirs(self.files_dir, exist_ok=True)
         name = _safe_mesh_file_basename(name)
         _reject_name_component_too_long(self.files_dir, name)
         file_path = os.path.join(self.files_dir, name)
