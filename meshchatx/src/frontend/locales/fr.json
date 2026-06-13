@@ -1111,7 +1111,9 @@
         "vector_import_failed": "Could not read vector file.",
         "vector_export_ok": "Export started.",
         "drop_geo_files": "Déposez le fichier carte ici",
-        "drop_no_geo_files": "Aucun fichier GeoJSON, KML ou KMZ détecté."
+        "drop_map_files_hint": "GeoJSON, KML, KMZ ou MBTiles",
+        "drop_no_geo_files": "Aucun fichier GeoJSON, KML ou KMZ détecté.",
+        "drop_no_supported_files": "Aucun fichier GeoJSON, KML, KMZ ou MBTiles détecté."
     },
     "interface": {
         "disable": "Désactiver",

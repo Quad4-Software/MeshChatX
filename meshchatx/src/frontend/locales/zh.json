@@ -1111,7 +1111,9 @@
         "vector_import_failed": "Could not read vector file.",
         "vector_export_ok": "Export started.",
         "drop_geo_files": "将地图文件拖放到此处",
-        "drop_no_geo_files": "未检测到 GeoJSON、KML 或 KMZ 文件。"
+        "drop_map_files_hint": "GeoJSON、KML、KMZ 或 MBTiles",
+        "drop_no_geo_files": "未检测到 GeoJSON、KML 或 KMZ 文件。",
+        "drop_no_supported_files": "未检测到 GeoJSON、KML、KMZ 或 MBTiles 文件。"
     },
     "interface": {
         "disable": "禁用",

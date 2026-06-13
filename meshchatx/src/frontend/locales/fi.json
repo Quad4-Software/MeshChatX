@@ -1111,7 +1111,9 @@
         "vector_import_failed": "Vektoritiedoston lukeminen epäonnistui.",
         "vector_export_ok": "Vienti aloitettu.",
         "drop_geo_files": "Pudota karttatiedosto tähän",
-        "drop_no_geo_files": "GeoJSON, KML, tai KMZ -tiedostoa ei havaittu."
+        "drop_map_files_hint": "GeoJSON, KML, KMZ tai MBTiles",
+        "drop_no_geo_files": "GeoJSON, KML, tai KMZ -tiedostoa ei havaittu.",
+        "drop_no_supported_files": "GeoJSON-, KML-, KMZ- tai MBTiles-tiedostoa ei havaittu."
     },
     "interface": {
         "disable": "Disable",
