@@ -59,6 +59,12 @@ describe("NetworkVisualiser Optimization and Abort", () => {
                     return Promise.resolve({ data: { announces: [], total_count: 0 } });
                 return Promise.resolve({ data: {} });
             }),
+            post: vi.fn().mockImplementation((url) => {
+                if (url.includes("/api/v1/announces/query")) {
+                    return Promise.resolve({ data: { announces: [], total_count: 0 } });
+                }
+                return Promise.resolve({ data: {} });
+            }),
             isCancel: vi.fn().mockImplementation((e) => e && e.name === "AbortError"),
         };
         window.api = axiosMock;
@@ -234,6 +240,42 @@ describe("NetworkVisualiser Optimization and Abort", () => {
 
         console.log(`LOD update for ${nodeCount} nodes took ${(end - start).toFixed(2)}ms`);
         expect(end - start).toBeLessThan(100); // Should be very fast
+    });
+
+    it("fetches announces via bulk query endpoint", async () => {
+        vi.spyOn(NetworkVisualiser.methods, "init").mockImplementation(() => {});
+        const wrapper = mountVisualiser();
+        wrapper.vm.pathTable = [
+            { hash: "aa", interface: "eth0", hops: 1 },
+            { hash: "bb", interface: "eth0", hops: 2 },
+        ];
+
+        axiosMock.post.mockImplementation((url) => {
+            if (url.includes("/api/v1/announces/query")) {
+                return Promise.resolve({
+                    data: {
+                        announces: [
+                            {
+                                destination_hash: "aa",
+                                aspect: "lxmf.delivery",
+                                display_name: "A",
+                                updated_at: new Date().toISOString(),
+                            },
+                        ],
+                        total_count: 1,
+                    },
+                });
+            }
+            return Promise.resolve({ data: {} });
+        });
+
+        await wrapper.vm.ensureAnnouncesForPathHashes({ reset: true });
+        expect(axiosMock.post).toHaveBeenCalledWith(
+            "/api/v1/announces/query",
+            expect.objectContaining({ destination_hashes: expect.arrayContaining(["aa", "bb"]) }),
+            expect.any(Object)
+        );
+        expect(wrapper.vm.announces.aa).toBeTruthy();
     });
 
     it("reuses one cached icon for 500 nodes with identical lxmf_user_icon", async () => {

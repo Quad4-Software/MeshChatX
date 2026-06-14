@@ -147,3 +147,24 @@ def test_get_filtered_announces_all_fields(mock_db):
     assert "a.identity_hash NOT IN (?, ?)" in sql
     assert 10 in params
     assert 20 in params
+
+
+def test_get_announces_for_destination_hashes_chunks_and_filters(mock_db):
+    manager = AnnounceManager(mock_db)
+    mock_db.provider.fetchall.side_effect = [
+        [{"destination_hash": "aa", "aspect": "lxmf.delivery"}],
+        [{"destination_hash": "bb", "aspect": "nomadnetwork.node"}],
+    ]
+    hashes = ["AA", "bb", "aa"]
+    out = manager.get_announces_for_destination_hashes(
+        hashes,
+        aspects=["lxmf.delivery", "nomadnetwork.node"],
+        blocked_identity_hashes=["blocked"],
+    )
+    assert len(out) == 2
+    assert mock_db.provider.fetchall.call_count == 2
+    first_sql, first_params = mock_db.provider.fetchall.call_args_list[0][0]
+    assert "a.destination_hash IN (?, ?)" in first_sql
+    assert "aa" in first_params
+    assert "bb" in first_params
+    assert "blocked" in first_params

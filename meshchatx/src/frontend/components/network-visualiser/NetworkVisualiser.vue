@@ -50,6 +50,13 @@ import GlobalEmitter from "../../js/GlobalEmitter";
 import NetworkVisualiserLoadingOverlay from "./internal/NetworkVisualiserLoadingOverlay.vue";
 import NetworkVisualiserToolbar from "./internal/NetworkVisualiserToolbar.vue";
 import NetworkVisualiserLegend from "./internal/NetworkVisualiserLegend.vue";
+import {
+    ANNOUNCE_HASH_CHUNK_SIZE,
+    VIZ_ANNOUNCE_ASPECTS,
+    dedupeIconQueueEntries,
+    pathHashesWithinHopFilter,
+    pickAdaptiveFetchConcurrency,
+} from "../../js/networkVisualiserPerf.js";
 
 const HOP_MAX_FILTER_STORAGE_KEY = "meshchatx.visualiser.maxHops";
 
@@ -158,9 +165,11 @@ export default {
             currentLOD: "high",
             didDisableStabilization: false,
             vizChunkSize: pickAdaptiveChunkSize(),
+            pathFetchConcurrency: pickAdaptiveFetchConcurrency(),
             iconQueue: [],
             iconQueueRunning: false,
             iconQueueGeneration: 0,
+            lodRafId: null,
         };
     },
     computed: {
@@ -189,8 +198,9 @@ export default {
         },
         hopMaxFilter() {
             if (this.hopFilterDebounceTimer) clearTimeout(this.hopFilterDebounceTimer);
-            this.hopFilterDebounceTimer = setTimeout(() => {
+            this.hopFilterDebounceTimer = setTimeout(async () => {
                 this.hopFilterDebounceTimer = null;
+                await this.ensureAnnouncesForPathHashes();
                 this.processVisualization();
             }, 80);
         },
@@ -208,6 +218,10 @@ export default {
         if (this.hopFilterDebounceTimer) {
             clearTimeout(this.hopFilterDebounceTimer);
             this.hopFilterDebounceTimer = null;
+        }
+        if (this.lodRafId != null) {
+            cancelAnimationFrame(this.lodRafId);
+            this.lodRafId = null;
         }
         if (this.network) {
             this.network.destroy();
@@ -290,7 +304,7 @@ export default {
                     this.pathTable.push(...firstResp.data.path_table);
                     const totalCount = firstResp.data.total_count;
                     if (totalCount > this.pageSize) {
-                        const concurrency = 3;
+                        const concurrency = this.pathFetchConcurrency;
                         for (let offset = this.pageSize; offset < totalCount; offset += this.pageSize * concurrency) {
                             if (this.abortController.signal.aborted) return;
                             const chunk = [];
@@ -316,33 +330,56 @@ export default {
                 console.error("Failed to fetch path table batch", e);
             }
         },
-        async getAnnouncesBatch() {
-            this.announces = {};
-            const aspectsToFetch = ["lxmf.delivery", "nomadnetwork.node"];
-            try {
-                for (const aspect of aspectsToFetch) {
-                    if (this.abortController.signal.aborted) return;
-                    this.loadingStatus = `Loading ${aspect}...`;
-                    let offset = 0;
-                    let hasMore = true;
-                    while (hasMore) {
-                        const resp = await window.api.get(`/api/v1/announces`, {
-                            params: { aspect, limit: this.pageSize, offset },
-                            signal: this.abortController.signal,
-                        });
-                        for (const announce of resp.data.announces) {
+        async fetchAnnouncesForHashes(hashes) {
+            if (!Array.isArray(hashes) || hashes.length === 0) {
+                return;
+            }
+            const concurrency = this.pathFetchConcurrency;
+            for (let i = 0; i < hashes.length; i += ANNOUNCE_HASH_CHUNK_SIZE * concurrency) {
+                if (this.abortController.signal.aborted) return;
+                const offsets = [];
+                for (let j = 0; j < concurrency && i + j * ANNOUNCE_HASH_CHUNK_SIZE < hashes.length; j++) {
+                    offsets.push(i + j * ANNOUNCE_HASH_CHUNK_SIZE);
+                }
+                const promises = offsets.map((start) => {
+                    const chunk = hashes.slice(start, start + ANNOUNCE_HASH_CHUNK_SIZE);
+                    return window.api.post(
+                        "/api/v1/announces/query",
+                        {
+                            destination_hashes: chunk,
+                            aspects: VIZ_ANNOUNCE_ASPECTS,
+                        },
+                        { signal: this.abortController.signal }
+                    );
+                });
+                const responses = await Promise.all(promises);
+                for (const resp of responses) {
+                    for (const announce of resp.data?.announces || []) {
+                        if (announce?.destination_hash) {
                             this.announces[announce.destination_hash] = announce;
                         }
-                        const loaded = Object.keys(this.announces).length;
-                        const total = resp.data.total_count;
-                        this.loadingStatus = `Loading announces (${loaded})`;
-                        offset += resp.data.announces.length;
-                        hasMore = resp.data.announces.length === this.pageSize && offset < total;
                     }
                 }
-            } catch (e) {
-                if (window.api.isCancel(e)) return;
-                console.error("Failed to fetch announces batch", e);
+                this.loadingStatus = `Loading announces (${Object.keys(this.announces).length})`;
+            }
+        },
+        async ensureAnnouncesForPathHashes({ reset = false } = {}) {
+            const needed = pathHashesWithinHopFilter(this.pathTable, this.hopMaxFilter);
+            if (reset) {
+                this.announces = {};
+            }
+            const missing = needed.filter((hash) => !this.announces[hash]);
+            if (missing.length > 0) {
+                this.loadingStatus = "Loading announces...";
+                await this.fetchAnnouncesForHashes(missing);
+            }
+            if (reset && needed.length > 0) {
+                const neededSet = new Set(needed);
+                for (const hash of Object.keys(this.announces)) {
+                    if (!neededSet.has(hash)) {
+                        delete this.announces[hash];
+                    }
+                }
             }
         },
         async getConfig() {
@@ -614,7 +651,7 @@ export default {
             this.refreshPhysicsEnabled();
 
             this.network.on("zoom", () => {
-                this.updateLOD();
+                this.scheduleUpdateLOD();
             });
 
             await this.manualUpdate();
@@ -642,6 +679,15 @@ export default {
                 this.isUpdating = false;
             }
         },
+        scheduleUpdateLOD() {
+            if (this.lodRafId != null) {
+                cancelAnimationFrame(this.lodRafId);
+            }
+            this.lodRafId = requestAnimationFrame(() => {
+                this.lodRafId = null;
+                this.updateLOD();
+            });
+        },
         updateLOD() {
             if (!this.network) return;
             if (typeof this.network.getScale !== "function") return;
@@ -661,6 +707,10 @@ export default {
                 return this.getNodeLODProps(node, newLOD);
             });
             this.nodes.update(updates);
+
+            if (newLOD === "high" && this.iconQueue.length > 0) {
+                this.scheduleIconQueue();
+            }
         },
         nodeColor(border, background) {
             return {
@@ -716,9 +766,9 @@ export default {
             if (this.abortController.signal.aborted) return;
 
             this.loadingStatus = "Fetching network data...";
-            await this.getAnnouncesBatch();
+            await this.getPathTableBatch();
             if (this.abortController.signal.aborted) return;
-            await this.getPathTableBatch(Object.keys(this.announces));
+            await this.ensureAnnouncesForPathHashes({ reset: true });
             if (this.abortController.signal.aborted) return;
 
             await this.processVisualization();
@@ -936,7 +986,6 @@ export default {
             if (discoveredNodes.length > 0) this.nodes.update(discoveredNodes);
             if (discoveredEdges.length > 0) this.edges.update(discoveredEdges);
 
-            await this.$nextTick();
             if (this.abortController.signal.aborted) return;
 
             // Process path table in batches to prevent UI block
@@ -1038,15 +1087,17 @@ export default {
                                     entry.hops === 1
                                         ? "/assets/images/network-visualiser/user_1hop.png"
                                         : "/assets/images/network-visualiser/user.png";
-                                this.iconQueue.push({
-                                    nodeId: node.id,
-                                    cacheKey,
-                                    iconName: conversation.lxmf_user_icon.icon_name,
-                                    fg: conversation.lxmf_user_icon.foreground_colour,
-                                    bg: conversation.lxmf_user_icon.background_colour,
-                                    size: 64,
-                                    generation: this.iconQueueGeneration,
-                                });
+                                if (this.currentLOD !== "low") {
+                                    this.iconQueue.push({
+                                        nodeId: node.id,
+                                        cacheKey,
+                                        iconName: conversation.lxmf_user_icon.icon_name,
+                                        fg: conversation.lxmf_user_icon.foreground_colour,
+                                        bg: conversation.lxmf_user_icon.background_colour,
+                                        size: 64,
+                                        generation: this.iconQueueGeneration,
+                                    });
+                                }
                             }
                             node.size = 30;
                             node._originalSize = 30;
@@ -1143,7 +1194,23 @@ export default {
                 this.network.setOptions({ physics: { enabled: this.enablePhysics } });
             }
 
-            this.runIconQueue();
+            this.scheduleIconQueue();
+        },
+        scheduleIconQueue() {
+            if (this.currentLOD === "low" || this.iconQueue.length === 0) {
+                return;
+            }
+            if (this.iconQueueRunning) {
+                return;
+            }
+            const run = () => {
+                this.runIconQueue();
+            };
+            if (typeof requestIdleCallback === "function") {
+                requestIdleCallback(run, { timeout: 1500 });
+            } else {
+                run();
+            }
         },
         /*
          * Drains the deferred lxmf custom-icon queue. Runs sequentially with
@@ -1153,36 +1220,40 @@ export default {
          * we were running) are skipped, as are nodes that no longer exist.
          */
         async runIconQueue() {
-            if (this.iconQueueRunning) return;
+            if (this.iconQueueRunning || this.currentLOD === "low") return;
             this.iconQueueRunning = true;
             try {
-                while (this.iconQueue.length > 0) {
+                const work = dedupeIconQueueEntries(this.iconQueue);
+                this.iconQueue = [];
+                for (const item of work) {
                     if (this.abortController.signal.aborted) return;
-                    const item = this.iconQueue.shift();
                     if (item.generation !== this.iconQueueGeneration) {
                         continue;
                     }
-                    if (!this.nodes.get(item.nodeId)) {
-                        continue;
-                    }
-                    /*
-                     * Queue items can collapse onto a single cached icon: if
-                     * a previous iteration already painted this cacheKey we
-                     * can short-circuit instead of re-invoking createIconImage
-                     * (which would also redo the canvas+SVG decode work).
-                     */
                     let url = this.iconCache[item.cacheKey];
                     if (!url) {
                         url = await this.createIconImage(item.iconName, item.fg, item.bg, item.size);
                         if (this.abortController.signal.aborted) return;
                     }
-                    if (url && this.nodes.get(item.nodeId)) {
-                        this.nodes.update({ id: item.nodeId, image: url });
+                    if (!url) {
+                        continue;
+                    }
+                    const updates = [];
+                    for (const nodeId of item.nodeIds) {
+                        if (this.nodes.get(nodeId)) {
+                            updates.push({ id: nodeId, image: url });
+                        }
+                    }
+                    if (updates.length > 0) {
+                        this.nodes.update(updates);
                     }
                     await yieldToMain();
                 }
             } finally {
                 this.iconQueueRunning = false;
+                if (this.iconQueue.length > 0 && this.currentLOD !== "low") {
+                    this.scheduleIconQueue();
+                }
             }
         },
     },

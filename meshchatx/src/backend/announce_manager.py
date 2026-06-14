@@ -202,6 +202,59 @@ class AnnounceManager:
         result = self.db.provider.fetchone(sql, params)
         return result["count"] if result else 0
 
+    def get_announces_for_destination_hashes(
+        self,
+        destination_hashes,
+        aspects=None,
+        blocked_identity_hashes=None,
+    ):
+        """Return announce rows for many destination hashes (visualiser bulk query)."""
+        if not destination_hashes:
+            return []
+        aspect_list = aspects or ["lxmf.delivery", "nomadnetwork.node"]
+        hash_list = []
+        seen = set()
+        for raw in destination_hashes:
+            if not isinstance(raw, str):
+                continue
+            h = raw.lower().strip()
+            if not h or h in seen:
+                continue
+            seen.add(h)
+            hash_list.append(h)
+        if not hash_list:
+            return []
+
+        chunk_size = 400
+        out = []
+        for aspect in aspect_list:
+            if not isinstance(aspect, str) or not aspect:
+                continue
+            for offset in range(0, len(hash_list), chunk_size):
+                chunk = hash_list[offset : offset + chunk_size]
+                placeholders = ", ".join(["?"] * len(chunk))
+                sql = f"""
+                    SELECT a.*, c.custom_image as contact_image
+                    FROM announces a
+                    LEFT JOIN contacts c ON (
+                        a.identity_hash = c.remote_identity_hash OR
+                        a.destination_hash = c.lxmf_address OR
+                        a.destination_hash = c.lxst_address
+                    )
+                    WHERE a.aspect = ?
+                    AND a.destination_hash IN ({placeholders})
+                """
+                params = [aspect, *chunk]
+                if blocked_identity_hashes:
+                    blocked_placeholders = ", ".join(
+                        ["?"] * len(blocked_identity_hashes)
+                    )
+                    sql += f" AND a.identity_hash NOT IN ({blocked_placeholders})"
+                    params.extend(blocked_identity_hashes)
+                sql += " ORDER BY a.updated_at DESC"
+                out.extend(self.db.provider.fetchall(sql, params))
+        return out
+
 
 def filter_announced_dicts_by_search_query(
     items: list[dict],

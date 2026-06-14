@@ -9379,131 +9379,11 @@ class ReticulumMeshChat:
                     )
 
             # pre-fetch icons and other data to avoid N+1 queries in convert_db_announce_to_dict
-            other_user_hashes = [r["destination_hash"] for r in results]
-            user_icons = {}
-            if other_user_hashes:
-
-                def _fetch_icons():
-                    return self.database.misc.get_user_icons(other_user_hashes)
-
-                db_icons = await asyncio.to_thread(_fetch_icons)
-                for icon in db_icons:
-                    user_icons[icon["destination_hash"]] = {
-                        "icon_name": icon["icon_name"],
-                        "foreground_colour": icon["foreground_colour"],
-                        "background_colour": icon["background_colour"],
-                    }
-
-            # fetch custom display names
-            custom_names = {}
-            lxmf_names_for_telephony = {}
-            if other_user_hashes:
-
-                def _fetch_custom_names():
-                    return self.database.provider.fetchall(
-                        f"SELECT destination_hash, display_name FROM custom_destination_display_names WHERE destination_hash IN ({','.join(['?'] * len(other_user_hashes))})",
-                        other_user_hashes,
-                    )
-
-                db_custom_names = await asyncio.to_thread(_fetch_custom_names)
-                for row in db_custom_names:
-                    custom_names[row["destination_hash"]] = row["display_name"]
-
-                # Pre-fetch LXMF display names by identity (telephony heard list).
-                if aspect == "lxst.telephony":
-                    identity_hashes = list(
-                        {r["identity_hash"] for r in results if r.get("identity_hash")},
-                    )
-                    if identity_hashes:
-
-                        def _fetch_lxmf_names():
-                            return self.database.announces.provider.fetchall(
-                                f"SELECT identity_hash, app_data FROM announces WHERE aspect = 'lxmf.delivery' AND identity_hash IN ({','.join(['?'] * len(identity_hashes))})",
-                                identity_hashes,
-                            )
-
-                        lxmf_results = await asyncio.to_thread(_fetch_lxmf_names)
-                        for row in lxmf_results:
-                            lxmf_names_for_telephony[row["identity_hash"]] = (
-                                parse_lxmf_display_name(row["app_data"])
-                            )
-
-            # process all announces
-            all_announces = []
-            for announce in results:
-                # Optimized convert_db_announce_to_dict logic inline to use pre-fetched data
-                if not isinstance(announce, dict):
-                    announce = dict(announce)
-
-                # parse display name from announce
-                display_name = None
-                is_local = (
-                    self.current_context
-                    and announce["identity_hash"] == self.current_context.identity_hash
-                )
-
-                if announce["aspect"] == "lxmf.delivery":
-                    display_name = parse_lxmf_display_name(announce["app_data"])
-                elif announce["aspect"] == "nomadnetwork.node":
-                    display_name = parse_nomadnetwork_node_display_name(
-                        announce["app_data"],
-                    )
-                elif announce["aspect"] == "lxst.telephony":
-                    display_name = parse_lxmf_display_name(announce["app_data"])
-                    if not display_name or display_name == "Anonymous Peer":
-                        # Try pre-fetched LXMF name
-                        display_name = lxmf_names_for_telephony.get(
-                            announce["identity_hash"],
-                        )
-                elif announce["aspect"] == "rrc.hub":
-                    display_name = rrc_protocol.display_name_from_hub_app_data(
-                        announce.get("app_data"),
-                    )
-
-                if not display_name or display_name == "Anonymous Peer":
-                    if is_local and self.current_context:
-                        display_name = self.current_context.config.display_name.get()
-                    else:
-                        # try to resolve name from identity hash (checks contacts too)
-                        display_name = (
-                            self.get_name_for_identity_hash(announce["identity_hash"])
-                            or "Anonymous Peer"
-                        )
-
-                hops = RNS.Transport.hops_to(
-                    bytes.fromhex(announce["destination_hash"]),
-                )
-
-                # ensure created_at and updated_at have Z suffix
-                created_at = str(announce["created_at"])
-                if created_at and "+" not in created_at and "Z" not in created_at:
-                    created_at += "Z"
-                updated_at = str(announce["updated_at"])
-                if updated_at and "+" not in updated_at and "Z" not in updated_at:
-                    updated_at += "Z"
-
-                all_announces.append(
-                    {
-                        "id": announce["id"],
-                        "destination_hash": announce["destination_hash"],
-                        "aspect": announce["aspect"],
-                        "identity_hash": announce["identity_hash"],
-                        "identity_public_key": announce["identity_public_key"],
-                        "app_data": announce["app_data"],
-                        "hops": hops,
-                        "rssi": announce["rssi"],
-                        "snr": announce["snr"],
-                        "quality": announce["quality"],
-                        "created_at": created_at,
-                        "updated_at": updated_at,
-                        "display_name": display_name,
-                        "custom_display_name": custom_names.get(
-                            announce["destination_hash"],
-                        ),
-                        "lxmf_user_icon": user_icons.get(announce["destination_hash"]),
-                        "contact_image": announce.get("contact_image"),
-                    },
-                )
+            all_announces = await asyncio.to_thread(
+                self._batch_convert_announces_to_api_dicts,
+                results,
+                aspect,
+            )
 
             # apply search query filter if provided
             if search_query:
@@ -9526,6 +9406,45 @@ class ReticulumMeshChat:
                 {
                     "announces": paginated_results,
                     "total_count": total_count,
+                },
+            )
+
+        @routes.post("/api/v1/announces/query")
+        async def announces_query(request):
+            try:
+                data = await request.json()
+            except Exception:
+                data = {}
+            destination_hashes = data.get("destination_hashes")
+            aspects = data.get("aspects")
+            if not isinstance(destination_hashes, list) or not destination_hashes:
+                return web.json_response({"announces": [], "total_count": 0})
+            if not isinstance(aspects, list) or not aspects:
+                aspects = ["lxmf.delivery", "nomadnetwork.node"]
+
+            blocked_identity_hashes = None
+            if self.current_context and self.current_context.config:
+                blocked = await asyncio.to_thread(
+                    self.database.misc.get_blocked_destinations,
+                )
+                blocked_identity_hashes = [b["destination_hash"] for b in blocked]
+
+            results = await asyncio.to_thread(
+                self.announce_manager.get_announces_for_destination_hashes,
+                destination_hashes=destination_hashes,
+                aspects=aspects,
+                blocked_identity_hashes=blocked_identity_hashes,
+            )
+            all_announces = await asyncio.to_thread(
+                self._batch_convert_announces_to_api_dicts,
+                results,
+                None,
+                False,
+            )
+            return web.json_response(
+                {
+                    "announces": all_announces,
+                    "total_count": len(all_announces),
                 },
             )
 
@@ -16452,6 +16371,122 @@ class ReticulumMeshChat:
     # convert an lxmf message to a dictionary, for sending over websocket
 
     # convert database announce to a dictionary
+    def _batch_convert_announces_to_api_dicts(
+        self, results, aspect=None, include_hops=True
+    ):
+        """Batch-convert announce rows using prefetched icons and custom names."""
+        if not results:
+            return []
+
+        other_user_hashes = [r["destination_hash"] for r in results]
+        user_icons = {}
+        if other_user_hashes:
+            db_icons = self.database.misc.get_user_icons(other_user_hashes)
+            for icon in db_icons:
+                user_icons[icon["destination_hash"]] = {
+                    "icon_name": icon["icon_name"],
+                    "foreground_colour": icon["foreground_colour"],
+                    "background_colour": icon["background_colour"],
+                }
+
+        custom_names = {}
+        lxmf_names_for_telephony = {}
+        if other_user_hashes:
+            db_custom_names = self.database.provider.fetchall(
+                f"SELECT destination_hash, display_name FROM custom_destination_display_names WHERE destination_hash IN ({','.join(['?'] * len(other_user_hashes))})",
+                other_user_hashes,
+            )
+            for row in db_custom_names:
+                custom_names[row["destination_hash"]] = row["display_name"]
+
+            if aspect == "lxst.telephony":
+                identity_hashes = list(
+                    {r["identity_hash"] for r in results if r.get("identity_hash")},
+                )
+                if identity_hashes:
+                    lxmf_results = self.database.announces.provider.fetchall(
+                        f"SELECT identity_hash, app_data FROM announces WHERE aspect = 'lxmf.delivery' AND identity_hash IN ({','.join(['?'] * len(identity_hashes))})",
+                        identity_hashes,
+                    )
+                    for row in lxmf_results:
+                        lxmf_names_for_telephony[row["identity_hash"]] = (
+                            parse_lxmf_display_name(row["app_data"])
+                        )
+
+        all_announces = []
+        for announce in results:
+            if not isinstance(announce, dict):
+                announce = dict(announce)
+
+            display_name = None
+            is_local = (
+                self.current_context
+                and announce["identity_hash"] == self.current_context.identity_hash
+            )
+
+            if announce["aspect"] == "lxmf.delivery":
+                display_name = parse_lxmf_display_name(announce["app_data"])
+            elif announce["aspect"] == "nomadnetwork.node":
+                display_name = parse_nomadnetwork_node_display_name(
+                    announce["app_data"],
+                )
+            elif announce["aspect"] == "lxst.telephony":
+                display_name = parse_lxmf_display_name(announce["app_data"])
+                if not display_name or display_name == "Anonymous Peer":
+                    display_name = lxmf_names_for_telephony.get(
+                        announce["identity_hash"],
+                    )
+            elif announce["aspect"] == "rrc.hub":
+                display_name = rrc_protocol.display_name_from_hub_app_data(
+                    announce.get("app_data"),
+                )
+
+            if not display_name or display_name == "Anonymous Peer":
+                if is_local and self.current_context:
+                    display_name = self.current_context.config.display_name.get()
+                else:
+                    display_name = (
+                        self.get_name_for_identity_hash(announce["identity_hash"])
+                        or "Anonymous Peer"
+                    )
+
+            hops = None
+            if include_hops:
+                hops = RNS.Transport.hops_to(
+                    bytes.fromhex(announce["destination_hash"]),
+                )
+
+            created_at = str(announce["created_at"])
+            if created_at and "+" not in created_at and "Z" not in created_at:
+                created_at += "Z"
+            updated_at = str(announce["updated_at"])
+            if updated_at and "+" not in updated_at and "Z" not in updated_at:
+                updated_at += "Z"
+
+            all_announces.append(
+                {
+                    "id": announce["id"],
+                    "destination_hash": announce["destination_hash"],
+                    "aspect": announce["aspect"],
+                    "identity_hash": announce["identity_hash"],
+                    "identity_public_key": announce["identity_public_key"],
+                    "app_data": announce["app_data"],
+                    "hops": hops,
+                    "rssi": announce["rssi"],
+                    "snr": announce["snr"],
+                    "quality": announce["quality"],
+                    "created_at": created_at,
+                    "updated_at": updated_at,
+                    "display_name": display_name,
+                    "custom_display_name": custom_names.get(
+                        announce["destination_hash"],
+                    ),
+                    "lxmf_user_icon": user_icons.get(announce["destination_hash"]),
+                    "contact_image": announce.get("contact_image"),
+                },
+            )
+        return all_announces
+
     def convert_db_announce_to_dict(self, announce):
         # convert to dict if it's a sqlite3.Row
         if not isinstance(announce, dict):

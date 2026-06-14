@@ -117,6 +117,21 @@ describe("NetworkVisualiser.vue", () => {
                         data: { path_table: [{ hash: "node1", interface: "eth0", hops: 1 }], total_count: 1 },
                     });
                 }
+                if (url.includes("/api/v1/announces/query")) {
+                    return Promise.resolve({
+                        data: {
+                            announces: [
+                                {
+                                    destination_hash: "node1",
+                                    aspect: "lxmf.delivery",
+                                    display_name: "Remote Node",
+                                    updated_at: new Date().toISOString(),
+                                },
+                            ],
+                            total_count: 1,
+                        },
+                    });
+                }
                 return Promise.resolve({ data: {} });
             }),
             isCancel: vi.fn().mockReturnValue(false),
