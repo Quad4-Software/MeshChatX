@@ -6,11 +6,38 @@ const notice = require("../../electron/loadingStatusNotice.js");
 
 describe("electron/loadingStatusNotice", () => {
     it("classifyConnectionIssue prefers backend-exited when runtime not running", () => {
-        const r = notice.classifyConnectionIssue([], {
-            running: false,
-            lastExitCode: 1,
-        });
+        const r = notice.classifyConnectionIssue(
+            [],
+            {
+                running: false,
+                lastExitCode: 1,
+            },
+            {
+                crash: { stderr: "MemoryError: out of memory", stdout: "" },
+                paths: { backendLogPath: "C:\\Users\\x\\.reticulum-meshchatx\\logs\\meshchatx.log" },
+            }
+        );
         expect(r.reason).toBe("backend-exited");
+        expect(r.category).toBe("memory");
+        expect(r.logHint).toContain("meshchatx.log");
+    });
+
+    it("classifyConnectionIssue parses MESHCHAT_MEMORY startup lines", () => {
+        const r = notice.classifyConnectionIssue(
+            [],
+            {
+                running: false,
+                lastExitCode: 1,
+            },
+            {
+                crash: {
+                    stderr: "",
+                    stdout: "MESHCHAT_MEMORY: total_mb=4096.0 available_mb=120.0 percent_used=97.0 action=abort emergency=false",
+                },
+            }
+        );
+        expect(r.category).toBe("memory");
+        expect(r.detail).toContain("120");
     });
 
     it("classifyConnectionIssue flags loopback blocked", () => {

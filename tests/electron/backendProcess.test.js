@@ -49,6 +49,33 @@ describe("electron/backendProcess", () => {
         expect(manager.getRuntimeState().lastExitCode).toBe(255);
     });
 
+    it("notifies loading screen when backend exits during startup", async () => {
+        const notifyRenderer = vi.fn();
+        const showCrashPage = vi.fn();
+        const manager = createBackendProcessManager({
+            log: vi.fn(),
+            getDefaultStorageDir: () => "/tmp/storage",
+            getDefaultReticulumConfigDir: () => "/tmp/reticulum",
+            getMainWindowPageKind: () => "loading",
+            isQuiting: () => false,
+            notifyRenderer,
+            showCrashPage,
+            spawn: spawnMock,
+        });
+
+        manager.setUserProvidedArguments([]);
+        await manager.spawnBackend("/tmp/ReticulumMeshChatX", { backend: { ok: true, issues: [] } });
+        fakeProc.emit("exit", 9);
+        await new Promise((resolve) => setImmediate(resolve));
+
+        expect(notifyRenderer).toHaveBeenCalledWith(
+            "backend-startup-failed",
+            expect.objectContaining({ code: 9, paths: expect.any(Object) })
+        );
+        expect(showCrashPage).not.toHaveBeenCalled();
+        expect(manager.getLastCrash()).toEqual(expect.objectContaining({ code: 9 }));
+    });
+
     it("opens the crash page when backend exits outside the main shell", async () => {
         const notifyRenderer = vi.fn();
         const showCrashPage = vi.fn();

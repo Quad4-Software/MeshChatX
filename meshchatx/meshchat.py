@@ -142,7 +142,12 @@ from meshchatx.src.backend.nomadnet_utils import (
 )
 from meshchatx.src.backend.page_node_manager import PageNodeManager
 from meshchatx.src.backend.persistent_log_handler import PersistentLogHandler
-from meshchatx.src.backend.recovery import CrashRecovery, HealthMonitor
+from meshchatx.src.backend.recovery import (
+    CrashRecovery,
+    HealthMonitor,
+    evaluate_startup_memory,
+    format_memory_log_line,
+)
 from meshchatx.src.backend import reticulum_pathfinding
 from meshchatx.src.backend.rnprobe_handler import RNProbeHandler
 from meshchatx.src.backend.sideband_commands import SidebandCommands
@@ -19099,6 +19104,19 @@ def main():
 
     # init app (allow optional one-shot backup/restore before running)
     rns_log_cli = (args.rns_log_level or "").strip() or None
+
+    mem_check = evaluate_startup_memory(args.emergency)
+    print(format_memory_log_line(mem_check), flush=True)
+    if mem_check.get("message"):
+        print(mem_check["message"], flush=True)
+    if mem_check["action"] == "abort":
+        print(
+            "Startup aborted due to critically low memory. "
+            "Free RAM or relaunch with --emergency.",
+            file=sys.stderr,
+            flush=True,
+        )
+        sys.exit(1)
 
     reticulum_meshchat = ReticulumMeshChat(
         identity,

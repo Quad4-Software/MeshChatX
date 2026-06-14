@@ -2,8 +2,16 @@ const path = require("node:path");
 const { spawn: defaultSpawn } = require("child_process");
 
 const { verifyBackendIntegrity } = require("./backendIntegrity");
+const {
+    clearCrashReport,
+    getDiagnosticPaths,
+    getLogsDir,
+    loadCrashReport,
+    persistCrashReport,
+} = require("./backendCrashReport");
+const { killOrphanBackendProcesses } = require("./backendProcessWin");
 
-const LOG_LINE_CAP = 100;
+const LOG_LINE_CAP = 200;
 
 function createInitialRuntimeState() {
     return {
@@ -34,6 +42,17 @@ function createBackendProcessManager(deps) {
     let resolvedExePath = null;
     let userProvidedArguments = [];
 
+    const storageDir = () => getDefaultStorageDir();
+    const reticulumConfigDir = () => getDefaultReticulumConfigDir();
+
+    function hydratePersistedCrash() {
+        const persisted = loadCrashReport(storageDir());
+        if (persisted) {
+            lastCrash = persisted;
+        }
+    }
+    hydratePersistedCrash();
+
     function isRunning() {
         return !!childProcess && childProcess.exitCode === null && childProcess.signalCode === null;
     }
@@ -63,6 +82,15 @@ function createBackendProcessManager(deps) {
         return lastCrash;
     }
 
+    function getStartupDiagnostics() {
+        const paths = getDiagnosticPaths(storageDir(), reticulumConfigDir());
+        return {
+            runtime: getRuntimeState(),
+            crash: lastCrash,
+            paths,
+        };
+    }
+
     function setUserProvidedArguments(args) {
         userProvidedArguments = Array.isArray(args) ? args : [];
     }
@@ -70,6 +98,35 @@ function createBackendProcessManager(deps) {
     function resolveExecutablePath(findExePath) {
         resolvedExePath = findExePath();
         return resolvedExePath;
+    }
+
+    function recordCrash(code) {
+        const logs = getJoinedLogs();
+        lastCrash = {
+            code,
+            stdout: logs.stdout,
+            stderr: logs.stderr,
+            at: Date.now(),
+            pid: runtimeState.pid,
+            platform: process.platform,
+        };
+        try {
+            persistCrashReport(storageDir(), lastCrash);
+        } catch (error) {
+            log(`Failed to persist backend crash report: ${error && error.message ? error.message : error}`);
+        }
+    }
+
+    function notifyStartupFailure(code) {
+        const paths = getDiagnosticPaths(storageDir(), reticulumConfigDir());
+        notifyRenderer("backend-startup-failed", {
+            code,
+            at: lastCrash?.at ?? Date.now(),
+            stdout: lastCrash?.stdout || "",
+            stderr: lastCrash?.stderr || "",
+            paths,
+        });
+        notifyRenderer("backend-process-exited", { code, at: lastCrash?.at ?? Date.now() });
     }
 
     function attachChildHandlers(proc) {
@@ -105,18 +162,17 @@ function createBackendProcessManager(deps) {
                 return;
             }
 
-            const logs = getJoinedLogs();
-            lastCrash = {
-                code,
-                stdout: logs.stdout,
-                stderr: logs.stderr,
-                at: Date.now(),
-            };
+            recordCrash(code);
+
+            const page = getMainWindowPageKind();
+            if (page === "loading") {
+                notifyStartupFailure(code);
+                return;
+            }
 
             notifyRenderer("backend-process-exited", { code, at: lastCrash.at });
 
-            const page = getMainWindowPageKind();
-            if (page === "loading" || page === "app") {
+            if (page === "app") {
                 return;
             }
 
@@ -128,12 +184,27 @@ function createBackendProcessManager(deps) {
         });
     }
 
+    function buildSpawnEnv() {
+        const logsDir = getLogsDir(storageDir());
+        return {
+            ...process.env,
+            MESHCHAT_LOG_DIR: logsDir,
+            MESHCHAT_STORAGE_DIR: storageDir(),
+            MESHCHAT_RETICULUM_CONFIG_DIR: reticulumConfigDir(),
+        };
+    }
+
     async function spawnBackend(exePath, integrityStatusRef) {
         if (!exePath) {
             throw new Error("Backend executable path is not set.");
         }
         if (isRunning()) {
             return { ok: true, alreadyRunning: true };
+        }
+
+        const removed = killOrphanBackendProcesses(null);
+        if (removed > 0) {
+            log(`Removed ${removed} orphan backend process(es) before startup.`);
         }
 
         resolvedExePath = exePath;
@@ -154,13 +225,16 @@ function createBackendProcessManager(deps) {
 
         const requiredArguments = ["--headless", "--port", "9337"];
         if (!userProvidedArguments.includes("--reticulum-config-dir")) {
-            requiredArguments.push("--reticulum-config-dir", getDefaultReticulumConfigDir());
+            requiredArguments.push("--reticulum-config-dir", reticulumConfigDir());
         }
         if (!userProvidedArguments.includes("--storage-dir")) {
-            requiredArguments.push("--storage-dir", getDefaultStorageDir());
+            requiredArguments.push("--storage-dir", storageDir());
         }
 
-        const proc = spawnFn(exePath, [...requiredArguments, ...userProvidedArguments]);
+        const proc = spawnFn(exePath, [...requiredArguments, ...userProvidedArguments], {
+            env: buildSpawnEnv(),
+            windowsHide: true,
+        });
         if (!proc || !proc.pid) {
             throw new Error("Failed to start backend process (no PID).");
         }
@@ -189,6 +263,18 @@ function createBackendProcessManager(deps) {
         if (childProcess.exitCode !== null || childProcess.signalCode !== null) {
             return;
         }
+        if (process.platform === "win32") {
+            try {
+                const { execFileSync } = require("node:child_process");
+                execFileSync("taskkill", ["/F", "/T", "/PID", String(childProcess.pid)], {
+                    stdio: "ignore",
+                    windowsHide: true,
+                });
+            } catch (error) {
+                log(error);
+            }
+            return;
+        }
         childProcess.kill(signal);
     }
 
@@ -215,6 +301,13 @@ function createBackendProcessManager(deps) {
         return { ok: true };
     }
 
+    function markBackendHealthy() {
+        runtimeState.lastExitCode = null;
+        runtimeState.lastError = "";
+        clearCrashReport(storageDir());
+        lastCrash = null;
+    }
+
     return {
         createInitialRuntimeState,
         setUserProvidedArguments,
@@ -224,6 +317,8 @@ function createBackendProcessManager(deps) {
         openCrashReport,
         getRuntimeState,
         getLastCrash,
+        getStartupDiagnostics,
+        markBackendHealthy,
         getChildProcess,
         isRunning,
         killChild,

@@ -78,6 +78,8 @@
                             </div>
                         </div>
 
+                        <p id="saved-log-path" class="break-all text-[10px] text-slate-600 dark:text-zinc-400 px-1"></p>
+
                         <div class="space-y-3">
                             <div class="flex flex-col sm:flex-row items-center justify-between gap-2 px-1">
                                 <h3
@@ -141,6 +143,19 @@
             // Get data from URL parameters
             const params = new URLSearchParams(window.location.search);
             document.getElementById("exit-code").innerText = params.get("code") || "Unknown";
+            const savedLogPath = document.getElementById("saved-log-path");
+            const logPath = params.get("logPath") || "";
+            const crashReportPath = params.get("crashReportPath") || "";
+            if (savedLogPath) {
+                const parts = [];
+                if (logPath) {
+                    parts.push(`meshchatx.log: ${logPath}`);
+                }
+                if (crashReportPath) {
+                    parts.push(`last-backend-crash.json: ${crashReportPath}`);
+                }
+                savedLogPath.textContent = parts.join(" | ");
+            }
 
             // Decoded from base64 to handle complex characters safely
             try {
@@ -161,7 +176,7 @@
                 const stderr = document.getElementById("stderr").innerText;
                 const exitCode = document.getElementById("exit-code").innerText;
 
-                const fullReport = `MeshChatX Crash Report\nExit Code: ${exitCode}\n\n--- STDOUT ---\n${stdout}\n\n--- STDERR ---\n${stderr}`;
+                const fullReport = `MeshChatX Crash Report\nExit Code: ${exitCode}\nLog file: ${logPath}\nCrash report: ${crashReportPath}\n\n--- STDOUT ---\n${stdout}\n\n--- STDERR ---\n${stderr}`;
 
                 navigator.clipboard.writeText(fullReport).then(() => {
                     const btn = event && event.currentTarget ? event.currentTarget : null;

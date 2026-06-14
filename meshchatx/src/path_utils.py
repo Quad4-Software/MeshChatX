@@ -16,6 +16,10 @@ def resolve_log_dir():
     if env_dir:
         candidates.append(env_dir)
 
+    storage_dir = os.environ.get("MESHCHAT_STORAGE_DIR")
+    if storage_dir:
+        candidates.append(os.path.join(storage_dir, "logs"))
+
     candidates.append("/config/logs")
 
     if os.name == "nt":

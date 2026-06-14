@@ -171,6 +171,16 @@ class TestCrashRecovery(unittest.TestCase):
         self.assertIsNotNone(oom_cause)
         self.assertEqual(oom_cause["probability"], 85)
 
+    def test_heuristic_analysis_memoryerror(self):
+        causes = self.recovery._analyze_cause(
+            MemoryError,
+            MemoryError("unable to allocate array"),
+            {"low_memory": False, "available_mem_mb": 1024},
+        )
+        oom_cause = next((c for c in causes if "OOM" in c["description"]), None)
+        self.assertIsNotNone(oom_cause)
+        self.assertEqual(oom_cause["probability"], 95)
+
     def test_heuristic_analysis_rns_missing(self):
         """Verify high confidence for missing RNS config."""
         exc_type = RuntimeError

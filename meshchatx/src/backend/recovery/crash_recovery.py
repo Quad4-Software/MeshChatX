@@ -379,6 +379,7 @@ class CrashRecovery:
                 "reasoning": "Available system memory is extremely low, leading to allocation failures.",
                 "suggestions": [
                     "Close other memory-intensive applications.",
+                    "Relaunch in Emergency Mode (--emergency) to reduce startup memory use.",
                     "Add more RAM or swap space to the system.",
                 ],
             },
@@ -518,12 +519,24 @@ class CrashRecovery:
             else:
                 potential_causes["ASYNC_RACE"]["probability"] = 0.45
 
+        if exc_type is MemoryError or "memoryerror" in error_type:
+            potential_causes["OOM"]["probability"] = 0.95
+            potential_causes["OOM"]["reasoning"] += (
+                " Python raised MemoryError during allocation."
+            )
+
         if symptoms["low_mem"]:
             # If we have a DB error and low memory, OOM is highly likely as the true cause
             if symptoms["sqlite_in_msg"]:
-                potential_causes["OOM"]["probability"] = 0.85
+                potential_causes["OOM"]["probability"] = max(
+                    potential_causes["OOM"]["probability"],
+                    0.85,
+                )
             else:
-                potential_causes["OOM"]["probability"] = 0.75
+                potential_causes["OOM"]["probability"] = max(
+                    potential_causes["OOM"]["probability"],
+                    0.75,
+                )
 
         if symptoms["rns_config_missing"]:
             potential_causes["CONFIG_MISSING"]["probability"] = 0.99
@@ -739,7 +752,7 @@ class CrashRecovery:
             file.write(
                 f"- Memory: {mem.percent}% used ({results['available_mem_mb']:.1f} MB available)\n",
             )
-            if mem.percent > 95:
+            if mem.percent > 95 or results["available_mem_mb"] < 400:
                 results["low_memory"] = True
                 file.write("  [CRITICAL] System memory is dangerously low!\n")
 

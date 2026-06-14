@@ -99,6 +99,12 @@ contextBridge.exposeInMainWorld("electron", {
     backendRuntimeState: async function () {
         return await ipcRenderer.invoke("backend-runtime-state");
     },
+    backendStartupDiagnostics: async function () {
+        return await ipcRenderer.invoke("backend-startup-diagnostics");
+    },
+    markBackendHealthy: async function () {
+        return await ipcRenderer.invoke("mark-backend-healthy");
+    },
     restartBackend: async function () {
         return await ipcRenderer.invoke("restart-backend");
     },
@@ -110,5 +116,11 @@ contextBridge.exposeInMainWorld("electron", {
             return;
         }
         ipcRenderer.on("backend-process-exited", (_event, payload) => callback(payload));
+    },
+    onBackendStartupFailed: function (callback) {
+        if (typeof callback !== "function") {
+            return;
+        }
+        ipcRenderer.on("backend-startup-failed", (_event, payload) => callback(payload));
     },
 });

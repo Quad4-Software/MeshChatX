@@ -59,6 +59,53 @@
                             id="connection-notice"
                             class="mt-2 min-h-[2rem] text-center text-xs leading-relaxed text-amber-700 dark:text-amber-300"
                         ></p>
+                        <div
+                            id="startup-diagnostics"
+                            class="mt-3 hidden rounded-xl border border-red-200/80 bg-red-50/70 p-3 text-left dark:border-red-900/50 dark:bg-red-950/30"
+                        >
+                            <div
+                                id="startup-diagnosis-summary"
+                                class="text-xs font-medium text-red-800 dark:text-red-200"
+                            ></div>
+                            <pre
+                                id="startup-diagnosis-log"
+                                class="mt-2 max-h-36 overflow-auto rounded-lg border border-red-200/60 bg-white/80 p-2 font-mono text-[10px] text-red-900 dark:border-red-900/40 dark:bg-zinc-950 dark:text-red-300"
+                            ></pre>
+                            <p
+                                id="startup-log-path"
+                                class="mt-2 break-all text-[10px] text-red-700 dark:text-red-300"
+                            ></p>
+                            <div class="mt-3 flex flex-wrap justify-center gap-2">
+                                <button
+                                    id="btn-view-crash-report"
+                                    type="button"
+                                    class="rounded-lg bg-blue-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-blue-500"
+                                >
+                                    View full report
+                                </button>
+                                <button
+                                    id="btn-open-logs"
+                                    type="button"
+                                    class="rounded-lg border border-red-300 bg-white px-3 py-1.5 text-[11px] font-semibold text-red-800 hover:bg-red-100 dark:border-red-800 dark:bg-zinc-900 dark:text-red-200 dark:hover:bg-zinc-800"
+                                >
+                                    Open logs folder
+                                </button>
+                                <button
+                                    id="btn-restart-backend"
+                                    type="button"
+                                    class="rounded-lg border border-red-300 bg-white px-3 py-1.5 text-[11px] font-semibold text-red-800 hover:bg-red-100 dark:border-red-800 dark:bg-zinc-900 dark:text-red-200 dark:hover:bg-zinc-800"
+                                >
+                                    Retry backend
+                                </button>
+                                <button
+                                    id="btn-emergency-relaunch"
+                                    type="button"
+                                    class="rounded-lg border border-red-300 bg-white px-3 py-1.5 text-[11px] font-semibold text-red-800 hover:bg-red-100 dark:border-red-800 dark:bg-zinc-900 dark:text-red-200 dark:hover:bg-zinc-800"
+                                >
+                                    Emergency mode
+                                </button>
+                            </div>
+                        </div>
                         <p class="mt-4 text-center text-[11px] text-slate-400 dark:text-zinc-600" id="app-version">
                             v0.0.0
                         </p>
@@ -72,6 +119,14 @@
             const statusLine = document.getElementById("status-line");
             const attemptHint = document.getElementById("attempt-hint");
             const connectionNotice = document.getElementById("connection-notice");
+            const startupDiagnostics = document.getElementById("startup-diagnostics");
+            const startupDiagnosisSummary = document.getElementById("startup-diagnosis-summary");
+            const startupDiagnosisLog = document.getElementById("startup-diagnosis-log");
+            const startupLogPath = document.getElementById("startup-log-path");
+            const btnViewCrashReport = document.getElementById("btn-view-crash-report");
+            const btnOpenLogs = document.getElementById("btn-open-logs");
+            const btnRestartBackend = document.getElementById("btn-restart-backend");
+            const btnEmergencyRelaunch = document.getElementById("btn-emergency-relaunch");
 
             const API_HOST = "127.0.0.1";
             const API_PORT = "9337";
@@ -90,6 +145,18 @@
 
             (async function bootstrap() {
                 applyStartupErrorHint();
+                wireStartupActions();
+                if (window.electron && typeof window.electron.onBackendStartupFailed === "function") {
+                    window.electron.onBackendStartupFailed((payload) => {
+                        handleStartupFailure(payload);
+                    });
+                }
+                try {
+                    if (window.electron && typeof window.electron.backendStartupDiagnostics === "function") {
+                        cachedDiagnostics = await window.electron.backendStartupDiagnostics();
+                        cachedCrash = cachedDiagnostics?.crash || null;
+                    }
+                } catch (e) {}
                 try {
                     if (window.electron && typeof window.electron.backendHttpOnly === "function") {
                         const httpOnly = await window.electron.backendHttpOnly();
@@ -100,6 +167,105 @@
                 } catch (e) {}
                 check();
             })();
+
+            function wireStartupActions() {
+                if (btnViewCrashReport) {
+                    btnViewCrashReport.addEventListener("click", async () => {
+                        if (!window.electron?.openBackendCrashReport) {
+                            return;
+                        }
+                        await window.electron.openBackendCrashReport();
+                    });
+                }
+                if (btnOpenLogs) {
+                    btnOpenLogs.addEventListener("click", async () => {
+                        const logsDir = cachedDiagnostics?.paths?.logsDir;
+                        if (!logsDir || !window.electron?.openPath) {
+                            return;
+                        }
+                        await window.electron.openPath(logsDir);
+                    });
+                }
+                if (btnRestartBackend) {
+                    btnRestartBackend.addEventListener("click", async () => {
+                        if (!window.electron?.restartBackend) {
+                            return;
+                        }
+                        startupFailed = false;
+                        if (startupDiagnostics) {
+                            startupDiagnostics.classList.add("hidden");
+                        }
+                        statusLine.textContent = "Retrying backend startup…";
+                        connectionNotice.textContent = "";
+                        const result = await window.electron.restartBackend();
+                        if (!result?.ok) {
+                            connectionNotice.textContent = result?.error || "Backend restart failed.";
+                            return;
+                        }
+                        attemptCount = 0;
+                        recentFailures.length = 0;
+                        scheduleCheck(250);
+                    });
+                }
+                if (btnEmergencyRelaunch) {
+                    btnEmergencyRelaunch.addEventListener("click", async () => {
+                        if (!window.electron?.relaunchEmergency) {
+                            return;
+                        }
+                        await window.electron.relaunchEmergency();
+                    });
+                }
+            }
+
+            function scheduleCheck(delayMs) {
+                if (pollTimer != null) {
+                    clearTimeout(pollTimer);
+                }
+                pollTimer = setTimeout(check, delayMs);
+            }
+
+            function formatCrashExcerpt(crash) {
+                if (!crash || typeof crash !== "object") {
+                    return "No backend output was captured.";
+                }
+                const stderr = (crash.stderr || "").trim();
+                const stdout = (crash.stdout || "").trim();
+                const chunk = stderr || stdout;
+                if (!chunk) {
+                    return "No backend output was captured.";
+                }
+                if (chunk.length <= 1800) {
+                    return chunk;
+                }
+                return chunk.slice(-1800);
+            }
+
+            function showStartupDiagnostics(issue) {
+                if (!startupDiagnostics || !issue) {
+                    return;
+                }
+                startupDiagnostics.classList.remove("hidden");
+                if (startupDiagnosisSummary) {
+                    const codeText = issue.exitCode != null ? `Exit code ${issue.exitCode}. ` : "";
+                    startupDiagnosisSummary.textContent = `${codeText}${issue.detail || issue.headline || ""}`;
+                }
+                if (startupDiagnosisLog) {
+                    startupDiagnosisLog.textContent = formatCrashExcerpt(issue.crash || cachedCrash);
+                }
+                if (startupLogPath) {
+                    startupLogPath.textContent = issue.logHint || "";
+                }
+            }
+
+            function handleStartupFailure(payload) {
+                startupFailed = true;
+                cachedCrash = payload || cachedCrash;
+                if (pollTimer != null) {
+                    clearTimeout(pollTimer);
+                    pollTimer = null;
+                }
+                updateStartupNotice(true);
+            }
 
             function applyStartupErrorHint() {
                 const startupError = startupParams.get("startup_error");
@@ -151,6 +317,10 @@
             let attemptCount = 0;
             let runtimeProbeAttempt = 0;
             let cachedRuntimeState = null;
+            let cachedDiagnostics = null;
+            let cachedCrash = null;
+            let startupFailed = false;
+            let pollTimer = null;
             const recentFailures = [];
 
             function parseStatusJson(text) {
@@ -229,6 +399,8 @@
                     return helper.classifyConnectionIssue(recentFailures, cachedRuntimeState, {
                         attemptCount: attemptCount,
                         networkWarnAfterAttempts: NETWORK_WARNING_AFTER_ATTEMPTS,
+                        crash: cachedCrash,
+                        paths: cachedDiagnostics?.paths || null,
                     });
                 }
                 return {
@@ -238,18 +410,36 @@
                 };
             }
 
-            async function updateStartupNotice() {
+            async function updateStartupNotice(forceDiagnostics) {
+                if (startupFailed || forceDiagnostics) {
+                    await refreshBackendRuntimeStateIfNeeded();
+                    const issue = classifyConnectionIssue();
+                    statusLine.textContent = issue.headline;
+                    connectionNotice.textContent = issue.detail;
+                    showStartupDiagnostics(issue);
+                    return;
+                }
                 if (attemptCount < NOTICE_AFTER_ATTEMPTS) {
                     connectionNotice.textContent = "";
+                    if (startupDiagnostics) {
+                        startupDiagnostics.classList.add("hidden");
+                    }
                     return;
                 }
                 await refreshBackendRuntimeStateIfNeeded();
                 const issue = classifyConnectionIssue();
                 statusLine.textContent = issue.headline;
                 connectionNotice.textContent = issue.detail;
+                if (issue.reason === "backend-exited") {
+                    startupFailed = true;
+                    showStartupDiagnostics(issue);
+                }
             }
 
             async function check() {
+                if (startupFailed) {
+                    return;
+                }
                 attemptCount += 1;
                 if (attemptCount === 1) {
                     attemptHint.textContent = "";
@@ -262,6 +452,11 @@
                 for (const protocol of protocolOrder) {
                     const result = await tryOnce(protocol);
                     if (result.ok) {
+                        if (window.electron && typeof window.electron.markBackendHealthy === "function") {
+                            try {
+                                await window.electron.markBackendHealthy();
+                            } catch (e) {}
+                        }
                         detectedProtocol = result.protocol;
                         statusLine.textContent = "Opening the app…";
                         attemptHint.textContent = "";
@@ -274,8 +469,8 @@
                         rememberFailure(result.failure);
                     }
                 }
-                await updateStartupNotice();
-                setTimeout(check, 350);
+                await updateStartupNotice(false);
+                scheduleCheck(350);
             }
 
             function onReady() {

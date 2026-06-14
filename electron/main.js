@@ -181,6 +181,15 @@ ipcMain.handle("backend-runtime-state", () => {
     return getBackendManager().getRuntimeState();
 });
 
+ipcMain.handle("backend-startup-diagnostics", () => {
+    return getBackendManager().getStartupDiagnostics();
+});
+
+ipcMain.handle("mark-backend-healthy", () => {
+    getBackendManager().markBackendHealthy();
+    return { ok: true };
+});
+
 ipcMain.handle("restart-backend", async () => {
     return await getBackendManager().restartBackend(integrityStatus);
 });
@@ -479,6 +488,7 @@ async function loadBackendCrashPage(crash) {
     const stdoutBase64 = Buffer.from((crash && crash.stdout) || "").toString("base64");
     const stderrBase64 = Buffer.from((crash && crash.stderr) || "").toString("base64");
     const code = crash && crash.code != null ? String(crash.code) : "";
+    const paths = getBackendManager().getStartupDiagnostics().paths;
 
     if (!mainWindow || mainWindow.isDestroyed()) {
         await dialog.showMessageBox({
@@ -497,6 +507,8 @@ async function loadBackendCrashPage(crash) {
             code: code,
             stdout: stdoutBase64,
             stderr: stderrBase64,
+            logPath: paths?.backendLogPath || "",
+            crashReportPath: paths?.crashReportPath || "",
         },
     });
 }
