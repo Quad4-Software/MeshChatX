@@ -18,6 +18,7 @@ build/
 linux-unpacked/
 win-unpacked/
 mac-unpacked/
+packaging/
 
 # Public assets and libraries
 meshchatx/public/
