@@ -260,7 +260,19 @@ export default {
                 return "Auto-detect Ethernet and Wi-Fi peers";
             }
             if (this.iface.type === "BackboneInterface") {
-                return "Backbone (IFAC tunnel)";
+                if (this.isBackboneIfacTunnel) {
+                    return "Backbone (IFAC tunnel)";
+                }
+                const remote = this.iface.remote || this.iface.target_host;
+                const port = this.iface.target_port ?? this.iface.listen_port;
+                if (remote && port != null && port !== "") {
+                    return `${remote}:${port}`;
+                }
+                const listenIp = this.iface.listen_ip;
+                if ((listenIp || listenIp === "") && port != null && port !== "") {
+                    return `${listenIp || "0.0.0.0"}:${port}`;
+                }
+                return "Backbone (public relay)";
             }
             return this.iface.description || "Custom interface";
         },
@@ -314,6 +326,17 @@ export default {
             if (st.connected === true || st.online === true) return true;
             if (st.connected === false || st.online === false) return false;
             return null;
+        },
+        isBackboneIfacTunnel() {
+            if (this.iface.type !== "BackboneInterface") {
+                return false;
+            }
+            if (this.iface._stats?.ifac_signature) {
+                return true;
+            }
+            return Boolean(
+                this.iface.passphrase || this.iface.network_name || this.iface.ifac_netname || this.iface.ifac_netkey
+            );
         },
     },
     methods: {

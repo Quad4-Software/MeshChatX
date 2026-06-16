@@ -115,6 +115,40 @@ describe("Interface.vue", () => {
             expect(el.classes()).toContain("min-w-0");
         });
     });
+
+    it("shows public relay endpoint for non-IFAC BackboneInterface", () => {
+        const wrapper = mountInterface({
+            _name: "0rbit Iceland",
+            type: "BackboneInterface",
+            remote: "iceland.example",
+            target_port: 4242,
+        });
+        expect(wrapper.text()).toContain("iceland.example:4242");
+        expect(wrapper.text()).not.toContain("IFAC tunnel");
+    });
+
+    it("shows IFAC tunnel label for BackboneInterface with passphrase", () => {
+        const wrapper = mountInterface({
+            _name: "kin.earth",
+            type: "BackboneInterface",
+            remote: "rns.kin.earth",
+            target_port: 4242,
+            network_name: "kin.earth",
+            passphrase: "secret",
+        });
+        expect(wrapper.text()).toContain("Backbone (IFAC tunnel)");
+    });
+
+    it("shows IFAC tunnel label when backbone stats include ifac_signature", () => {
+        const wrapper = mountInterface({
+            _name: "kin.earth",
+            type: "BackboneInterface",
+            remote: "rns.kin.earth",
+            target_port: 4242,
+            _stats: { ifac_signature: "a".repeat(64), ifac_size: 16 },
+        });
+        expect(wrapper.text()).toContain("Backbone (IFAC tunnel)");
+    });
 });
 
 describe("Interface.vue overflow at different viewports", () => {
