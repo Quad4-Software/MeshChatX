@@ -2,41 +2,71 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.7.0] - 2026-06-15 - Upcoming
+## [4.7.0] - 2026-06-19
 
 ### Fixed
 
 - **Messages**: Conversation history preserves original message timestamps and sorts correctly when the API returns rows out of order.
 - **Propagation**: The local propagation node is started on boot when **`lxmf_local_propagation_node_enabled`** is set in config (previously the setting could be on while the node never came up until toggled in the UI).
-- **Interfaces / discovery**: Turning discovery off also disables **autoconnect** for that interface. Saving discovery settings shows a **restarting RNS** toast with a proper spinner. The interfaces list shows **all** discovered peers with **allowlist** status, and the allowlist is applied when configuration is saved.
+- **Interfaces / discovery**: Turning discovery off also disables **autoconnect** for that interface. Saving discovery settings shows a **restarting RNS** toast with a proper spinner. The interfaces list shows **all** discovered peers with **allowlist** status, and the allowlist is applied when configuration is saved. **Backbone** interface cards label **IFAC tunnels** vs **public relays** and show remote host/port or listen address where applicable.
 - **Chat UI**: Outbound bubbles always show timestamps; the **three-dot** menu stays visible on orange and red outbound themes; timestamp and status icons remain readable on solid-colored outbound bubbles. Reply-quote previews wrap instead of truncating with `line-clamp`.
 - **Relative time**: Sidebar and list **time ago** strings use finer combined units (e.g. hours and minutes) instead of coarse single-unit rounding.
 - **macOS**: DMG builds include the **microphone** audio-input entitlement so calls can use the mic without extra manual signing steps.
 - **Voicemail**: Auto-answer no longer runs for callers whose identity or destination is **blocked**.
 - **Banishment**: **`is_destination_blocked`** treats an **identity hash** like a destination hash so voicemail, delivery, and other checks stay consistent with identity-level blocks.
+- **Identity / keys**: Public key loading accepts both **64-byte** and **128-byte** keys; identity recall uses consistent hashing.
+- **Database**: Snapshot download names include the **`.zip`** extension; restore and backup paths handle identity storage correctly.
+- **Storage**: Identity file path references and storage directory setup are more reliable across migration and restore flows.
+- **Relay chat**: **RelayChatPage** layout and overflow handling on smaller screens.
 - **CI**: **setup-node** runs before **corepack** on Ubuntu 24.04 so **pnpm** installs reliably; Micron WASM fetch and Electron coverage work with **offline** build flags.
 - **Docker**: **`pnpm-workspace.yaml`** is included in image build contexts.
+- **Android wheels**: **cffi** metadata pinned for consistent **pycodec2** wheel builds; **RECORD** regeneration for installable Codec2 wheels.
 
 ### Added
 
-- **LXMF reactions and replies (standard fields)**: Outbound reactions use **`FIELD_REACTION` (0x40)** with **`REACTION_TO`** and **`REACTION_CONTENT`**. Replies use **`FIELD_REPLY_TO` (0x30)** and **`FIELD_REPLY_QUOTE` (0x31)**. Parsing, delivery filtering, notification bell logic, and UI merge paths use the LXMF 0.9.8 field layout (legacy field-16 reaction payloads are no longer emitted or interpreted as reactions).
-- **Micron editor / Mesh Server**: **Publish to Mesh Server** defaults new pages to **`index.mu`**; if **`index.mu`** already exists and the tab still has a default name (**New Tab**), the editor prompts for another filename. **Publish all tabs** uses the same rules per tab.
+- **RRC (Reticulum Relay Chat)**: Wire-compatible **RRC** client and local hub hosting (**rrcd**-style). Connect to remote hubs, join rooms, send messages, and host hubs locally. **Member moderation** for hub operators, **keep-alive** routing, **message search**, **mention** counts, and persisted hub history. Sidebar **unread badge** for relay chat; backup/restore includes **RRC hubs** and history files.
+- **RNSh**: Remote shell tool with terminal session management, **session resizing** API, and config-directory support for saved sessions.
+- **LXMF reactions and replies (standard fields)**: Outbound reactions use **`FIELD_REACTION` (0x40)** with **`REACTION_TO`** and **`REACTION_CONTENT`**. Replies use **`FIELD_REPLY_TO` (0x30)** and **`FIELD_REPLY_QUOTE` (0x31)**. Parsing, delivery filtering, notification bell logic, and UI merge paths use the current LXMF field layout (legacy field-16 reaction payloads are no longer emitted or interpreted as reactions).
 - **LXMF delivery**: When **`auto_resend_failed_messages_when_announce_received`** is enabled, failed outbound messages for a peer are resent after a successful **ping** or when an **announce** arrives and a path is already available.
+- **LXMF stamps**: UI for **solving stamps** with clearer tooltips and user feedback during proof-of-work.
+- **Messages / attachments**: Improved **file attachment** handling; optional **outbound transfer progress** bar (speed, hops, elapsed time). **Message import** supports **file upload** with better error handling.
+- **Path finder**: Shared **`reticulumPathfinding.js`** helper for **quick request**, **force find**, and **drop path + request**. Available from the **conversation peer header** and the **Nomad browser** toolbar when a page load fails; Nomad also offers **load latest archive snapshot** when archives exist.
+- **Maintenance**: **`DELETE /api/v1/maintenance/path-table`** clears the Reticulum path table; settings UI exposes **Clear Path Table** with localized description.
+- **Crash recovery / diagnostics**: Backend **crash recovery** with adaptive memory checks and improved logging. **Electron** persists backend crash reports, surfaces recovery hints in the loading UI, and can open the saved report from the desktop shell.
 - **Memory diagnostics**: Optional **`--memory-diag`** mode with **`/api/v1/diagnostics/memory`** endpoints (snapshots, heap breakdown by type/category, GC, referrers). SQLite **prepared-statement cache** is capped to reduce long-lived backend memory growth.
 - **Frontend heap monitor**: **`HeapMonitor`** logs JS heap usage in development builds (`window.heapSnapshot` when enabled).
+- **Network visualiser**: **`POST /api/v1/announces/query`** bulk endpoint for fetching many destination hashes in one request; faster graph hydration for large networks.
+- **Database**: SQLite **WAL mode** and **busy timeout** for better concurrency. **Multipart file upload** for database restore. Backups include **identity** storage with manifest creation; restore flow supports **relaunch** after import with optional storage lock bypass.
 - **Offline / air-gapped builds**: **`scripts/create-offline-bundle.sh`** and **`scripts/install-offline.sh`**, plus **`pnpm run bundle:offline`**, **`build:offline`**, and **`:offline`** Linux dist targets that set **`MESHCHATX_OFFLINE_BUILD=1`**.
-- **Map**: Export panel and metadata handling improvements for exchange exports.
-- **Interfaces**: Reworked interfaces page layout and discovery UX; API lists each interface’s **allowlist** membership.
+- **Map**: **MBTiles** import and tile-provider logic improvements; export panel and metadata handling for exchange exports; localized file-drop hints for map layers.
+- **Micron editor / Mesh Server**: **Publish to Mesh Server** defaults new pages to **`index.mu`**; if **`index.mu`** already exists and the tab still has a default name (**New Tab**), the editor prompts for another filename. **Publish all tabs** uses the same rules per tab.
+- **Nomad browser**: Opening a node **focuses an existing tab** for the same destination (or opens a new tab when **`forceNewTab`** is set). Restored tabs validate destination hashes and filter external URLs. **Dark shell** styling and readable inputs on dark full-bleed pages; external **`http`/`https`** links open in a new browser tab.
+- **Interfaces**: Reworked interfaces page layout and discovery UX; API lists each interface’s **allowlist** membership. Minimum **MTU** validation for **TCP client** interfaces.
+- **Identities**: Redesigned **Identities** page layout and translations.
 - **Telephony**: **Minimize** control on active calls; call-related settings persist reliably across sessions (tests added).
-- **i18n**: New strings for map, interfaces, Micron editor publish prompts, call minimize, and failed-message status text across supported locales.
+- **RNStatus**: **`speed_str`** helper for human-readable bitrate formatting.
+- **Codec2**: Native **Codec2** library integration in **Android** builds and CI workflows.
+- **Android**: **`AndroidStorageManager`** for internal vs external storage, migration, and setup options; refactored **RNode** interface handling; vendor wheel verification for **aiohttp** and **cbor2**.
+- **Electron**: Backend **process management** and automatic recovery; patches for **electron-installer-common** glob handling and **electron-builder** filesystem constants.
+- **Sticker utils**: Bounded **gzip** decompression to prevent unbounded memory allocation on malformed payloads.
+- **Panes / tabs**: Browser-style pane and tab improvements across Nomad and tool pages.
+- **Tools UI**: **`ToolsPageHeader`** component replaces ad-hoc headers on tool pages for consistent navigation and back links.
+- **Docs**: **Meta Quest** headset installation guide; **LXMF** address updates across documentation.
+- **i18n**: **Finnish (`fi`)** locale. New strings for map, interfaces, RRC, transfer progress, maintenance, MTU hints, Micron editor publish prompts, call minimize, and failed-message status across supported locales.
 
 ### Changed
 
-- **Dependencies**: **LXMF** updated to **0.9.8**; **pnpm** workspace tooling updated to **v11**.
+- **Dependencies**: **LXMF** updated to **1.0.1**, **RNS** to **1.3.5**, **aiohttp** to **3.14.0**, **lxst** to **0.4.7**, **Electron** to **42.4.0**, **UV** to **0.11.15**; **cbor2** added for RRC; **pnpm** workspace tooling updated to **v11**.
 - **Project URLs**: Default homepage and documentation links moved from **git.quad4.io** to **github.com/Quad4-Software/MeshChatX** and official mirrors.
-- **Frontend**: General styling refresh; **Identities** sidebar icon updated.
-- **Android**: Build metadata and wheel-fetch scripts updated (retries, local wheel paths).
-- **Tests**: HTTP API route contract, interface discovery, call page, Micron editor publish, LXMF reaction field **0x40**, and notification user-facing filters updated for the above behavior.
+- **Frontend**: General styling refresh; **Identities** sidebar icon updated; **MaterialDesignIcon** uses centralized icon resolution.
+- **Interface discovery**: Allowlist and blacklist pattern matching sanitizes patterns before matching.
+- **Android**: Build metadata, wheel-fetch scripts (retries, local wheel paths), and **PKGBUILD** / Arch packaging now use a Python virtual environment.
+- **CI**: Custom **setup-node-pnpm** action; GitHub release script excludes specific asset paths and improves notes generation; **Rust** `x86_64-apple-darwin` target for macOS builds; Node.js version verification in workflows.
+- **Tests**: HTTP API route contract, interface discovery, call page, Micron editor publish, LXMF reaction field **0x40**, RRC, RNSh, relay moderation, network visualiser bulk fetch, database restore, path finder / path-table maintenance, Nomad tab management, backbone interface labels, and notification user-facing filters updated for the above behavior.
+
+### Removed
+
+- **RNGit explorer**: The in-app **RNGit** tool and its tests were removed.
 
 ## [4.6.2] - 2026-05-10
 
