@@ -407,6 +407,7 @@
                         nomadRenderedShellFullBleed
                             ? 'p-0 bg-transparent min-h-full text-gray-900 dark:text-gray-100'
                             : 'p-3 bg-black text-white',
+                        nomadShellDark ? 'nomad-shell-dark' : '',
                     ]"
                     :style="nodeContainerShellStyle"
                     @click.capture="onElementClick"
@@ -858,6 +859,28 @@ export default {
             }
             return { background: this.pageShellBackground };
         },
+        nomadShellDark() {
+            if (!this.nomadRenderedShellFullBleed) {
+                return true;
+            }
+            const bg = this.pageShellBackground;
+            if (!bg || typeof bg !== "string") {
+                return false;
+            }
+            const lower = bg.toLowerCase().replace(/\s/g, "");
+            if (lower === "#000" || lower === "#000000" || lower === "black" || lower === "rgb(0,0,0)") {
+                return true;
+            }
+            const rgbMatch = lower.match(/^rgba?\((\d+),(\d+),(\d+)/);
+            if (rgbMatch) {
+                const r = Number(rgbMatch[1]);
+                const g = Number(rgbMatch[2]);
+                const b = Number(rgbMatch[3]);
+                const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+                return luminance < 0.45;
+            }
+            return false;
+        },
         nomadRenderedShellFullBleed() {
             if (!this.nodePagePath || this.isShowingNodePageSource) {
                 return false;
@@ -1175,6 +1198,7 @@ export default {
                 pagePath,
                 title,
                 activate: navOptions.activate !== false,
+                forceNewTab: navOptions.forceNewTab === true,
             });
         },
         onElementClick(event) {
@@ -1187,6 +1211,18 @@ export default {
                     this.onNodePageUrlClick(url, null, true, false, this.getLinkNavOptions(event));
                 }
                 return;
+            }
+
+            const externalAnchor = event.target.closest("a[href]");
+            if (externalAnchor && !externalAnchor.classList.contains("nomadnet-link")) {
+                const href = externalAnchor.getAttribute("href");
+                const httpHref = href ? LinkUtils.httpUrlHrefOrNull(href.trim()) : null;
+                if (httpHref) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    window.open(httpHref, "_blank", "noopener,noreferrer");
+                    return;
+                }
             }
 
             const fragAnchor = event.target.closest("a[href]");
@@ -2675,7 +2711,27 @@ pre.text-wrap > div > :last-child {
     border-radius: 0;
     background: transparent;
     color: inherit;
+    caret-color: currentColor;
+    -webkit-text-fill-color: currentColor;
     box-sizing: content-box;
+}
+
+.nodeContainer.bg-black input[type="text"],
+.nodeContainer.bg-black input[type="password"],
+.nodeContainer.bg-black textarea {
+    color: #f3f4f6 !important;
+    caret-color: #f3f4f6 !important;
+    -webkit-text-fill-color: #f3f4f6 !important;
+    border-bottom-color: #f3f4f6 !important;
+}
+
+.nodeContainer.nomad-shell-dark input[type="text"],
+.nodeContainer.nomad-shell-dark input[type="password"],
+.nodeContainer.nomad-shell-dark textarea {
+    color: #f3f4f6 !important;
+    caret-color: #f3f4f6 !important;
+    -webkit-text-fill-color: #f3f4f6 !important;
+    border-bottom-color: #f3f4f6 !important;
 }
 
 .nomad-markdown-host {

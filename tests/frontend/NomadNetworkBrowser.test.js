@@ -224,6 +224,41 @@ describe("NomadNetworkBrowser.vue", () => {
         expect(wrapper.vm.activeTab.title).toBe("Remote Node");
     });
 
+    it("onOpenNode focuses an existing tab when the node is already open", () => {
+        const wrapper = mountBrowser();
+        const existingHash = "g".repeat(32);
+        const existingTabId = wrapper.vm.addTab(existingHash, "/page/index.mu", "Remote Node");
+        wrapper.vm.addTab("h".repeat(32));
+        expect(wrapper.vm.tabs).toHaveLength(3);
+        expect(wrapper.vm.activeTabId).not.toBe(existingTabId);
+
+        wrapper.vm.onOpenNode({
+            destinationHash: existingHash,
+            pagePath: "/page/other.mu",
+            title: "Remote Node",
+            activate: true,
+        });
+
+        expect(wrapper.vm.tabs).toHaveLength(3);
+        expect(wrapper.vm.activeTabId).toBe(existingTabId);
+        expect(wrapper.vm.activeTab.destinationHash).toBe(existingHash);
+    });
+
+    it("onOpenNode still creates a duplicate tab when forceNewTab is set", () => {
+        const wrapper = mountBrowser();
+        const existingHash = "g".repeat(32);
+        wrapper.vm.addTab(existingHash, "/page/index.mu", "Remote Node");
+        expect(wrapper.vm.tabs).toHaveLength(2);
+        wrapper.vm.onOpenNode({
+            destinationHash: existingHash,
+            pagePath: "/page/other.mu",
+            title: "Remote Node",
+            activate: true,
+            forceNewTab: true,
+        });
+        expect(wrapper.vm.tabs).toHaveLength(3);
+    });
+
     it("onOpenNode can open a background tab without switching focus", () => {
         const wrapper = mountBrowser();
         const first = wrapper.vm.activeTabId;

@@ -63,6 +63,7 @@ import NomadNetworkPage from "./NomadNetworkPage.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import GlobalState from "../../js/GlobalState";
 import { loadNomadTabs, saveNomadTabs } from "../../js/browserLayoutStore";
+import LinkUtils from "../../js/LinkUtils";
 
 export default {
     name: "NomadNetworkBrowser",
@@ -171,8 +172,24 @@ export default {
             return id;
         },
         onOpenNode(payload) {
+            const destinationHash = payload?.destinationHash || "";
+            const forceNewTab = payload?.forceNewTab === true;
+
+            if (destinationHash && !forceNewTab) {
+                const existing = this.tabs.find((tab) => tab.destinationHash === destinationHash);
+                if (existing) {
+                    if (payload?.title) {
+                        existing.title = payload.title;
+                    }
+                    if (payload?.activate !== false) {
+                        this.selectTab(existing.id);
+                    }
+                    return;
+                }
+            }
+
             this.addTab(
-                payload?.destinationHash || "",
+                destinationHash,
                 payload?.pagePath || null,
                 payload?.title || null,
                 payload?.activate !== false
@@ -255,13 +272,22 @@ export default {
                 return false;
             }
 
-            this.tabs = saved.tabs.map((tab) => ({
-                id: this.nextTabId++,
-                destinationHash: typeof tab.destinationHash === "string" ? tab.destinationHash : "",
-                initialPath: typeof tab.path === "string" ? tab.path : null,
-                path: typeof tab.path === "string" ? tab.path : null,
-                title: typeof tab.title === "string" ? tab.title : null,
-            }));
+            this.tabs = saved.tabs
+                .map((tab) => ({
+                    id: this.nextTabId++,
+                    destinationHash:
+                        typeof tab.destinationHash === "string" && /^[0-9a-fA-F]{32}$/.test(tab.destinationHash)
+                            ? tab.destinationHash
+                            : "",
+                    initialPath: this.sanitizeNomadTabPath(tab.path),
+                    path: this.sanitizeNomadTabPath(tab.path),
+                    title: typeof tab.title === "string" ? tab.title : null,
+                }))
+                .filter((tab) => !this.isExternalNomadTabPath(tab.path));
+
+            if (this.tabs.length === 0) {
+                return false;
+            }
 
             const activeIndex =
                 Number.isInteger(saved.activeIndex) && saved.activeIndex >= 0 && saved.activeIndex < this.tabs.length
@@ -281,12 +307,24 @@ export default {
             this.syncRoute();
             return true;
         },
+        sanitizeNomadTabPath(path) {
+            if (typeof path !== "string" || path.length === 0) {
+                return null;
+            }
+            if (LinkUtils.httpUrlHrefOrNull(path.trim())) {
+                return null;
+            }
+            return path;
+        },
+        isExternalNomadTabPath(path) {
+            return typeof path === "string" && LinkUtils.httpUrlHrefOrNull(path.trim()) != null;
+        },
         persistTabs() {
             const activeIndex = this.tabs.findIndex((tab) => tab.id === this.activeTabId);
             saveNomadTabs({
                 tabs: this.tabs.map((tab) => ({
                     destinationHash: tab.destinationHash || "",
-                    path: tab.path || null,
+                    path: this.sanitizeNomadTabPath(tab.path),
                     title: tab.title || null,
                 })),
                 activeIndex: activeIndex < 0 ? 0 : activeIndex,
