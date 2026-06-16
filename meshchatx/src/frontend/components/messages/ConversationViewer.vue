@@ -28,11 +28,15 @@
             :selected-peer-path="selectedPeerPath"
             :selected-peer-signal-metrics="selectedPeerSignalMetrics"
             :selected-peer-lxmf-stamp-info="selectedPeerLxmfStampInfo"
+            :pathfinder-in-progress="pathfinderInProgress"
             @edit-display-name="updateCustomDisplayName"
             @copy-hash="copyHash"
             @destination-path-click="onDestinationPathClick"
             @signal-metrics-click="onSignalMetricsClick"
             @stamp-info-click="onStampInfoClick"
+            @path-finder-quick="runPathFinderQuickRequest"
+            @path-finder-force="runPathFinderForceFind"
+            @path-finder-drop="runPathFinderDropAndRequest"
             @conversation-deleted="onConversationDeleted"
             @popout="openConversationPopout"
             @retry-failed="retryAllFailedOrCancelledMessages"
@@ -1728,7 +1732,7 @@ import ConversationMessageEntry from "./ConversationMessageEntry.vue";
 import ConversationMessageListVirtual from "./ConversationMessageListVirtual.vue";
 import { displayGroupsOldestFirst, MIN_VIRTUAL_DISPLAY_GROUPS } from "./messageListVirtual.js";
 import DialogUtils from "../../js/DialogUtils";
-import { getDestinationPath, postRequestPath } from "../../js/reticulumPathfinding.js";
+import { getDestinationPath, postRequestPath, runDestinationPathFinder } from "../../js/reticulumPathfinding.js";
 import MicrophoneRecorder from "../../js/MicrophoneRecorder";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import AddAudioButton from "./AddAudioButton.vue";
@@ -1811,6 +1815,7 @@ export default {
             selectedPeerPath: null,
             selectedPeerLxmfStampInfo: null,
             selectedPeerSignalMetrics: null,
+            pathfinderInProgress: false,
 
             lxmfMessagesRequestSequence: 0,
             chatItems: [],
@@ -4724,6 +4729,65 @@ export default {
                 await postRequestPath(window.api, this.selectedPeer.destination_hash);
             } catch (e) {
                 console.log(e);
+            }
+        },
+        async runPathFinderQuickRequest() {
+            const hash = this.selectedPeer?.destination_hash;
+            if (!hash || this.pathfinderInProgress) {
+                return;
+            }
+            this.pathfinderInProgress = true;
+            try {
+                await runDestinationPathFinder(window.api, hash, "quick");
+                ToastUtils.success(this.$t("nomadnet.path_finder_request_sent"));
+                await this.getPeerPath();
+            } catch (e) {
+                console.error("path finder quick request failed", e);
+                ToastUtils.error(this.$t("nomadnet.path_finder_failed"));
+            } finally {
+                this.pathfinderInProgress = false;
+            }
+        },
+        async runPathFinderForceFind() {
+            const hash = this.selectedPeer?.destination_hash;
+            if (!hash || this.pathfinderInProgress) {
+                return;
+            }
+            this.pathfinderInProgress = true;
+            try {
+                const { path } = await runDestinationPathFinder(window.api, hash, "force", {
+                    forceTimeout: 15,
+                });
+                if (path) {
+                    ToastUtils.success(this.$t("nomadnet.path_finder_found"));
+                    this.selectedPeerPath = path;
+                } else {
+                    ToastUtils.error(this.$t("nomadnet.path_finder_not_found"));
+                }
+            } catch (e) {
+                console.error("path finder force find failed", e);
+                ToastUtils.error(this.$t("nomadnet.path_finder_failed"));
+            } finally {
+                this.pathfinderInProgress = false;
+            }
+        },
+        async runPathFinderDropAndRequest() {
+            const hash = this.selectedPeer?.destination_hash;
+            if (!hash || this.pathfinderInProgress) {
+                return;
+            }
+            this.pathfinderInProgress = true;
+            try {
+                await runDestinationPathFinder(window.api, hash, "drop_then_request", {
+                    onDropPathError: (e) => console.warn("drop-path failed (continuing)", e),
+                });
+                ToastUtils.success(this.$t("nomadnet.path_finder_dropped_and_requested"));
+                await this.getPeerPath();
+            } catch (e) {
+                console.error("path finder drop+request failed", e);
+                ToastUtils.error(this.$t("nomadnet.path_finder_failed"));
+            } finally {
+                this.pathfinderInProgress = false;
             }
         },
         imageGroupGalleryUrls(items) {

@@ -121,6 +121,20 @@ class RNPathHandler:
         except Exception:
             return False
 
+    def drop_all_paths(self) -> int:
+        dropped = 0
+        try:
+            table = self.reticulum.get_path_table()
+            for entry in table:
+                try:
+                    if self.reticulum.drop_path(entry["hash"]):
+                        dropped += 1
+                except Exception:
+                    continue
+        except Exception:
+            return dropped
+        return dropped
+
     def drop_all_via(self, transport_instance_hash: str) -> bool:
         try:
             ti_bytes = bytes.fromhex(transport_instance_hash)

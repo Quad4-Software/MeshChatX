@@ -130,3 +130,35 @@ async def test_rnpath_drop_endpoint(mock_rns_minimal, temp_dir):
 
         app_instance.reticulum.drop_path.assert_called_with(bytes.fromhex(target_hash))
         assert json.loads(response.body)["success"] is True
+
+
+@pytest.mark.asyncio
+async def test_maintenance_clear_path_table(mock_rns_minimal, temp_dir):
+    with patch("meshchatx.meshchat.generate_ssl_certificate"):
+        app_instance = ReticulumMeshChat(
+            identity=mock_rns_minimal,
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+
+        entry = {
+            "hash": b"\x01" * 32,
+            "hops": 1,
+            "via": b"\x02" * 32,
+            "interface": "UDP",
+            "expires": 1234567890,
+        }
+        app_instance.reticulum.get_path_table.return_value = [entry, entry]
+
+        request = MagicMock()
+        handler = next(
+            r.handler
+            for r in app_instance.get_routes()
+            if r.path == "/api/v1/maintenance/path-table"
+        )
+        response = await handler(request)
+        data = json.loads(response.body)
+
+        assert response.status == 200
+        assert data["dropped"] == 2
+        assert app_instance.reticulum.drop_path.call_count == 2

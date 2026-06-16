@@ -114,6 +114,35 @@
         </div>
 
         <div class="ml-auto flex items-center gap-0.5 sm:gap-1.5 min-w-0 shrink-0">
+            <DropDownMenu class="shrink-0">
+                <template #button>
+                    <IconButton
+                        :title="$t('nomadnet.path_finder')"
+                        :disabled="pathfinderInProgress"
+                        class="text-blue-600 dark:text-blue-400"
+                    >
+                        <MaterialDesignIcon
+                            :icon-name="pathfinderInProgress ? 'loading' : 'map-marker-path'"
+                            :class="['size-6 sm:size-7', pathfinderInProgress ? 'animate-spin' : '']"
+                        />
+                    </IconButton>
+                </template>
+                <template #items>
+                    <DropDownMenuItem @click="$emit('path-finder-quick')">
+                        <MaterialDesignIcon icon-name="flash" class="size-5" />
+                        <span>{{ $t("nomadnet.path_finder_quick_request") }}</span>
+                    </DropDownMenuItem>
+                    <DropDownMenuItem @click="$emit('path-finder-force')">
+                        <MaterialDesignIcon icon-name="map-marker-radius" class="size-5" />
+                        <span>{{ $t("nomadnet.path_finder_force_find") }}</span>
+                    </DropDownMenuItem>
+                    <DropDownMenuItem @click="$emit('path-finder-drop')">
+                        <MaterialDesignIcon icon-name="reload-alert" class="size-5" />
+                        <span>{{ $t("nomadnet.path_finder_drop_and_request") }}</span>
+                    </DropDownMenuItem>
+                </template>
+            </DropDownMenu>
+
             <ConversationDropDownMenu
                 v-if="selectedPeer"
                 :peer="selectedPeer"
@@ -143,6 +172,8 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import IconButton from "../IconButton.vue";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 import ConversationDropDownMenu from "./ConversationDropDownMenu.vue";
+import DropDownMenu from "../DropDownMenu.vue";
+import DropDownMenuItem from "../DropDownMenuItem.vue";
 
 dayjs.extend(relativeTime);
 
@@ -153,6 +184,8 @@ export default {
         IconButton,
         LxmfUserIcon,
         ConversationDropDownMenu,
+        DropDownMenu,
+        DropDownMenuItem,
     },
     props: {
         selectedPeer: {
@@ -183,6 +216,10 @@ export default {
             type: Object,
             default: null,
         },
+        pathfinderInProgress: {
+            type: Boolean,
+            default: false,
+        },
     },
     emits: [
         "edit-display-name",
@@ -197,6 +234,9 @@ export default {
         "start-call",
         "share-contact",
         "close",
+        "path-finder-quick",
+        "path-finder-force",
+        "path-finder-drop",
     ],
     computed: {
         destinationDisplay() {
