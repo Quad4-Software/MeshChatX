@@ -61,6 +61,13 @@ export async function clearReticulumDocs(api) {
 }
 
 /**
+ * @param {{ delete: (path: string) => Promise<{ data?: { dropped?: number } }> }} api
+ */
+export async function clearPathTable(api) {
+    return api.delete("/api/v1/maintenance/path-table");
+}
+
+/**
  * @param {{ post: (path: string) => Promise<unknown> }} api
  */
 export async function reloadReticulum(api) {

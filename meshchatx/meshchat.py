@@ -7009,6 +7009,16 @@ class ReticulumMeshChat:
             n = self.database.gifs.delete_all_for_identity(identity_hash)
             return web.json_response({"message": "GIFs cleared", "deleted": n})
 
+        @routes.delete("/api/v1/maintenance/path-table")
+        async def maintenance_clear_path_table(request):
+            try:
+                dropped = self.rnpath_handler.drop_all_paths()
+                return web.json_response(
+                    {"message": "Path table cleared", "dropped": dropped},
+                )
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+
         # maintenance - export messages
         @routes.get("/api/v1/maintenance/messages/export")
         async def maintenance_export_messages(request):

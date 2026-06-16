@@ -547,6 +547,22 @@
                                         </div>
                                     </div>
                                 </button>
+
+                                <button
+                                    type="button"
+                                    class="btn-maintenance border-teal-200 dark:border-teal-900/30 text-teal-800 dark:text-teal-300 bg-teal-50 dark:bg-teal-900/10 hover:bg-teal-100 dark:hover:bg-teal-900/20"
+                                    @click="clearPathTable"
+                                >
+                                    <div class="flex flex-col items-start text-left">
+                                        <div class="font-bold flex items-center gap-2">
+                                            <MaterialDesignIcon icon-name="map-marker-remove" class="size-4" />
+                                            {{ $t("maintenance.clear_path_table") }}
+                                        </div>
+                                        <div class="text-xs opacity-80">
+                                            {{ $t("maintenance.clear_path_table_desc") }}
+                                        </div>
+                                    </div>
+                                </button>
                             </div>
 
                             <div class="space-y-2 pt-2 border-t border-gray-100 dark:border-zinc-800">
@@ -2910,6 +2926,8 @@ export default {
                     "maintenance.clear_archives_desc",
                     "maintenance.clear_reticulum_docs",
                     "maintenance.clear_reticulum_docs_desc",
+                    "maintenance.clear_path_table",
+                    "maintenance.clear_path_table_desc",
                     "maintenance.export_messages",
                     "maintenance.export_messages_desc",
                     "maintenance.import_messages",
@@ -4276,6 +4294,15 @@ export default {
             try {
                 await maintenanceClient.clearReticulumDocs(window.api);
                 ToastUtils.success(this.$t("maintenance.docs_cleared"));
+            } catch {
+                ToastUtils.error(this.$t("common.error"));
+            }
+        },
+        async clearPathTable() {
+            if (!(await DialogUtils.confirm(this.$t("maintenance.clear_confirm")))) return;
+            try {
+                await maintenanceClient.clearPathTable(window.api);
+                ToastUtils.success(this.$t("maintenance.path_table_cleared"));
             } catch {
                 ToastUtils.error(this.$t("common.error"));
             }
