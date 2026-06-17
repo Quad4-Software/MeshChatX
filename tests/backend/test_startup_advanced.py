@@ -208,6 +208,18 @@ def test_identity_loading_fallback(mock_rns, temp_dir):
         patch("RNS.Identity") as mock_id_class,
         patch("os.path.exists", return_value=False),  # Pretend files don't exist
         patch("builtins.open", mock_open()) as mock_file,
+        patch(
+            "meshchatx.meshchat.evaluate_startup_memory",
+            return_value={
+                "total_mb": 8192.0,
+                "available_mb": 4096.0,
+                "percent_used": 50.0,
+                "action": "ok",
+                "message": "",
+                "emergency_requested": False,
+                "low_memory": False,
+            },
+        ),
     ):
         mock_config = mock_config_class.return_value
         mock_config.auth_session_secret.get.return_value = "test_secret"

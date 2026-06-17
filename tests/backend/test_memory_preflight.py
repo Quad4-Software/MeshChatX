@@ -30,7 +30,7 @@ def test_evaluate_startup_memory_ok():
 def test_evaluate_startup_memory_warn_on_low_total():
     with patch(
         "meshchatx.src.backend.recovery.memory_preflight.psutil.virtual_memory",
-        return_value=_mock_memory(4096, 900, 78),
+        return_value=_mock_memory(4096, 900, 86),
     ):
         result = evaluate_startup_memory(emergency=False)
     assert result["action"] == "warn"
@@ -79,4 +79,4 @@ def test_format_and_parse_memory_log_line():
     parsed = parse_memory_log_line(f"booting\n{line}\n")
     assert parsed["available_mb"] == 512.5
     assert parsed["action"] == "warn"
-    assert parsed["emergency"] == "false"
+    assert parsed["emergency"] is False
