@@ -31,7 +31,7 @@ promote_installers_from_staging() {
     )
 }
 
-for name in win-unpacked linux-unpacked mac mac-arm64 mac-x64 mac-universal; do
+for name in win-unpacked linux-unpacked mac mac-arm64 mac-x64 mac-universal mac-universal-x64-temp mac-universal-arm64-temp; do
     if [[ -e "dist/${name}" ]]; then
         promote_installers_from_staging "dist/${name}"
         echo "github-prune-electron-dist-staging.sh: removing dist/${name}"

@@ -118,12 +118,14 @@
             "buildResources": "electron/build"
         },
         "mac": {
-            "target": {
-                "target": "dmg",
-                "arch": [
-                    "universal"
-                ]
-            },
+            "target": [
+                {
+                    "target": "dmg",
+                    "arch": [
+                        "universal"
+                    ]
+                }
+            ],
             "identity": "-",
             "artifactName": "ReticulumMeshChatX-v${version}-mac-${arch}.${ext}",
             "entitlements": "electron/build/entitlements.mac.plist",
