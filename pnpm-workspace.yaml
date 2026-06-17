@@ -29,6 +29,7 @@ overrides:
     ejs: ">=3.1.10"
     glob: ">=10.5.0"
     "@electron/asar>glob": "7.2.3"
+    "minimatch@3.1.4>brace-expansion": "1.1.12"
     got: ">=11.8.6"
     hosted-git-info: ">=2.8.9"
     http-cache-semantics: ">=4.1.1"
