@@ -2088,4 +2088,109 @@ describe("ConversationViewer.vue", () => {
             expect(wrapper.vm.androidNativeWavAttachmentAllowed()).toBe(false);
         });
     });
+
+    describe("outbound pending placeholder dedupe", () => {
+        it("removes all pending placeholders for a peer when the real message is created", () => {
+            const wrapper = mountConversationViewer();
+            wrapper.vm.chatItems = [
+                {
+                    type: "lxmf_message",
+                    is_outbound: true,
+                    lxmf_message: {
+                        hash: "pending-1",
+                        content: "hello",
+                        destination_hash: "test-hash",
+                        state: "sending",
+                        _pendingPathfinding: true,
+                    },
+                },
+                {
+                    type: "lxmf_message",
+                    is_outbound: true,
+                    lxmf_message: {
+                        hash: "pending-2",
+                        content: "hello",
+                        destination_hash: "TEST-HASH",
+                        state: "sending",
+                    },
+                },
+            ];
+
+            wrapper.vm.onLxmfMessageCreated({
+                hash: "real-hash",
+                content: "hello",
+                destination_hash: "test-hash",
+                source_hash: "my-hash",
+                state: "sending",
+            });
+
+            expect(wrapper.vm.chatItems).toHaveLength(1);
+            expect(wrapper.vm.chatItems[0].lxmf_message.hash).toBe("real-hash");
+        });
+
+        it("hides pending bubbles when a matching real outbound message is already loaded", () => {
+            const wrapper = mountConversationViewer();
+            wrapper.vm.chatItems = [
+                {
+                    type: "lxmf_message",
+                    is_outbound: true,
+                    lxmf_message: {
+                        hash: "real-hash",
+                        content: "hello",
+                        destination_hash: "test-hash",
+                        source_hash: "my-hash",
+                        state: "failed",
+                    },
+                },
+                {
+                    type: "lxmf_message",
+                    is_outbound: true,
+                    lxmf_message: {
+                        hash: "pending-1",
+                        content: "hello",
+                        destination_hash: "test-hash",
+                        source_hash: "my-hash",
+                        state: "sending",
+                        _pendingPathfinding: true,
+                    },
+                },
+            ];
+
+            const visible = wrapper.vm.selectedPeerChatItems;
+            expect(visible).toHaveLength(1);
+            expect(visible[0].lxmf_message.hash).toBe("real-hash");
+        });
+
+        it("reconciles pending placeholders after loading conversation history", () => {
+            const wrapper = mountConversationViewer();
+            wrapper.vm.chatItems = [
+                {
+                    type: "lxmf_message",
+                    is_outbound: true,
+                    lxmf_message: {
+                        hash: "real-hash",
+                        content: "hello",
+                        destination_hash: "test-hash",
+                        source_hash: "my-hash",
+                        state: "failed",
+                    },
+                },
+                {
+                    type: "lxmf_message",
+                    is_outbound: true,
+                    lxmf_message: {
+                        hash: "pending-1",
+                        content: "hello",
+                        destination_hash: "test-hash",
+                        source_hash: "my-hash",
+                        state: "sending",
+                    },
+                },
+            ];
+
+            wrapper.vm.reconcileOutboundPendingPlaceholders();
+            expect(wrapper.vm.chatItems).toHaveLength(1);
+            expect(wrapper.vm.chatItems[0].lxmf_message.hash).toBe("real-hash");
+        });
+    });
 });
