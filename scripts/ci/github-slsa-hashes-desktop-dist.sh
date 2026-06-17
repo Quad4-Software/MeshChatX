@@ -26,8 +26,10 @@ tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
 
 find "${roots[@]}" -type f \( \
-    -name '*.exe' -o -name '*.dmg' -o -name '*.blockmap' -o -name '*.yml' -o -name '*.yaml' \
-    \) ! -path '*/.*' -print0 \
+    -name '*.exe' -o -name '*.dmg' -o -name '*.blockmap' -o \
+    \( -name '*.yml' ! -name '*.so.yml' \) -o \
+    \( -name '*.yaml' ! -name '*.so.yaml' \) \
+    \) ! -name 'library.zip' ! -path '*/.*' -print0 \
     | LC_ALL=C sort -z \
     | xargs -0r sha256sum >"$tmp"
 

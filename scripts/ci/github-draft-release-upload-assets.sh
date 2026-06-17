@@ -39,6 +39,10 @@ skip_noise() {
     case "$base" in
         builder-debug.yml | builder-debug.yml.cosign.bundle) return 0 ;;
         *__builder-debug.yml | *__builder-debug.yml.cosign.bundle) return 0 ;;
+        library.zip | library.zip.cosign.bundle) return 0 ;;
+        *__library.zip | *__library.zip.cosign.bundle) return 0 ;;
+        *.so.yml | *.so.yml.cosign.bundle) return 0 ;;
+        *__*.so.yml | *__*.so.yml.cosign.bundle) return 0 ;;
     esac
     return 1
 }
