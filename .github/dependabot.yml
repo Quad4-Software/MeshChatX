@@ -12,4 +12,3 @@ updates:
                   - electron
                   - electron-*
                   - "@electron/*"
-                  - "@electron-forge/*"

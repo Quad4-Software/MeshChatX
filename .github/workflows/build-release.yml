@@ -285,9 +285,8 @@ jobs:
                   rm -f /tmp/cosign.key
 
     flatpak:
-        name: Flatpak (electron-forge)
+        name: Flatpak (electron-builder)
         needs: frontend
-        continue-on-error: true
         runs-on: ubuntu-latest
         timeout-minutes: 90
         permissions:
@@ -367,22 +366,20 @@ jobs:
             - name: List flatpak output
               run: |
                   set -euo pipefail
-                  ls -la out/make 2>/dev/null || true
-                  find out/make -maxdepth 5 -type f \( -name "*.flatpak" -o -name "*.flatpakref" \) -print || true
+                  ls -la dist 2>/dev/null || true
+                  find dist -maxdepth 3 -type f \( -name "*.flatpak" -o -name "*.flatpakref" \) -print
 
             - name: Upload flatpak artifact
               uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
               with:
                   name: meshchatx-linux-flatpak-${{ github.ref_name }}-${{ github.run_id }}
-                  path: |
-                      out/make/**/*.flatpak
-                  if-no-files-found: warn
+                  path: dist/*.flatpak
+                  if-no-files-found: error
                   retention-days: 30
 
     build-release:
         name: Build release (${{ matrix.label }})
         needs: frontend
-        continue-on-error: true
         permissions:
             contents: read
             actions: write
@@ -519,12 +516,16 @@ jobs:
               with:
                   name: ${{ matrix.artifact_prefix }}-${{ github.ref_name }}-${{ github.run_id }}
                   path: dist/
-                  if-no-files-found: warn
+                  if-no-files-found: error
 
     collect-desktop-slsa-subjects:
         name: SLSA subjects (Windows + macOS)
         needs: [build-release]
-        if: startsWith(github.ref, 'refs/tags/')
+        if: >-
+            always() &&
+            !cancelled() &&
+            startsWith(github.ref, 'refs/tags/') &&
+            (needs.build-release.result == 'success' || needs.build-release.result == 'failure')
         runs-on: ubuntu-latest
         outputs:
             hashes: ${{ steps.hash.outputs.hashes }}
@@ -567,7 +568,11 @@ jobs:
     slsa-provenance-desktop:
         name: SLSA provenance (Windows + macOS)
         needs: [collect-desktop-slsa-subjects]
-        if: startsWith(github.ref, 'refs/tags/')
+        if: >-
+            always() &&
+            !cancelled() &&
+            startsWith(github.ref, 'refs/tags/') &&
+            needs.collect-desktop-slsa-subjects.result == 'success'
         permissions:
             id-token: write
             contents: write
@@ -581,7 +586,12 @@ jobs:
     collect-android-flatpak-slsa-subjects:
         name: SLSA subjects (Android APK + Flatpak)
         needs: [android-release, flatpak]
-        if: startsWith(github.ref, 'refs/tags/')
+        if: >-
+            always() &&
+            !cancelled() &&
+            startsWith(github.ref, 'refs/tags/') &&
+            (needs.android-release.result == 'success' || needs.android-release.result == 'skipped') &&
+            (needs.flatpak.result == 'success' || needs.flatpak.result == 'failure')
         runs-on: ubuntu-latest
         outputs:
             hashes: ${{ steps.hash.outputs.hashes }}
@@ -643,14 +653,9 @@ jobs:
             needs.linux-release-arm64.result == 'success' &&
             needs.collect-linux-slsa-subjects.result == 'success' &&
             needs.slsa-provenance-linux.result == 'success' &&
-            needs.build-release.result == 'success' &&
+            (needs.build-release.result == 'success' || needs.build-release.result == 'failure') &&
             needs.collect-desktop-slsa-subjects.result == 'success' &&
-            needs.slsa-provenance-desktop.result == 'success' &&
-            needs.flatpak.result == 'success' &&
-            needs.android-release.result == 'success' &&
-            needs.collect-android-flatpak-slsa-subjects.result == 'success' &&
-            (needs.slsa-provenance-android-flatpak.result == 'success' ||
-             needs.slsa-provenance-android-flatpak.result == 'skipped')
+            needs.slsa-provenance-desktop.result == 'success'
         runs-on: ubuntu-latest
         timeout-minutes: 45
         permissions:
@@ -801,3 +806,33 @@ jobs:
                     export BUNNY_STORAGE_OBJECT_PREFIX="${BUNNY_RELEASE_TRACK}/${GITHUB_REF_NAME}"
                   fi
                   python3 scripts/ci/github-upload-bunny-storage-release-assets.py upload
+
+    release-artifact-gate:
+        name: Verify required tagged release artifacts
+        if: >-
+            always() &&
+            !cancelled() &&
+            startsWith(github.ref, 'refs/tags/')
+        needs:
+            - flatpak
+            - build-release
+            - draft-github-release
+        runs-on: ubuntu-latest
+        steps:
+            - name: Fail when required build jobs did not succeed
+              run: |
+                  set -euo pipefail
+                  fail=0
+                  if [[ "${{ needs.flatpak.result }}" != "success" ]]; then
+                    echo "::error::Flatpak job did not succeed (${{ needs.flatpak.result }})"
+                    fail=1
+                  fi
+                  if [[ "${{ needs.build-release.result }}" != "success" ]]; then
+                    echo "::error::Desktop build job did not succeed (${{ needs.build-release.result }})"
+                    fail=1
+                  fi
+                  if [[ "${{ needs.draft-github-release.result }}" != "success" ]]; then
+                    echo "::error::Draft release job did not succeed (${{ needs.draft-github-release.result }})"
+                    fail=1
+                  fi
+                  exit "$fail"

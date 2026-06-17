@@ -1,16 +1,14 @@
 #!/usr/bin/env bash
-# Build a Flatpak via electron-forge's @electron-forge/maker-flatpak.
+# Build a Flatpak via electron-builder (same stack as AppImage/deb/macOS/Windows CI).
 #
 # Expects ``meshchatx/public/`` to already contain a prebuilt frontend bundle
 # (downloaded from the reusable Frontend build workflow), so this script only
-# rebuilds the cx_Freeze backend before running ``electron-forge make``.
+# rebuilds the cx_Freeze backend before running electron-builder.
 #
 # Required system packages (installed by the workflow):
 #   - flatpak, flatpak-builder, elfutils (for eu-strip)
 #   - org.freedesktop.Platform/Sdk//25.08
 #   - org.electronjs.Electron2.BaseApp//25.08
-# ``electron-forge-local-tmp.js`` registers the Flathub user remote before Forge so
-# ``@malept/flatpak-bundler`` can auto-install those refs when missing.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -22,11 +20,8 @@ if [[ ! -f "meshchatx/public/index.html" ]]; then
 fi
 
 export PLATFORM=linux
+export MESHCHATX_FRONTEND_PREBUILT=1
 
-pnpm run electron-postinstall
-pnpm run version:sync
-pnpm run build-backend
+pnpm run dist:flatpak-prebuilt
 
-DEBUG="${DEBUG:-@malept/flatpak-bundler*,electron-installer-flatpak*}" \
-FORGE_MAKE_FLATPAK=1 \
-    node scripts/electron-forge-local-tmp.js make --targets @electron-forge/maker-flatpak
+bash scripts/ci/github-verify-electron-dist.sh flatpak

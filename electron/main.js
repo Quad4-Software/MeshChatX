@@ -757,7 +757,7 @@ app.whenReady().then(async () => {
         path.join(resourcesPath, "backend", exeName),
         // @electron/packager extraResource: copies build/exe/<platform>-<arch> to resources/<platform>-<arch>/
         packagedExtraResourceDir,
-        // electron-forge extraResource location (resources/exe)
+        // legacy electron-forge extraResource location (resources/exe)
         path.join(resourcesPath, "exe", exeName),
         // legacy packaged app - extraFiles location (resources/app/electron/build/exe)
         path.join(resourcesPath, "app", "electron", "build", "exe", exeName),

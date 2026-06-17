@@ -24,3 +24,4 @@ else
 fi
 
 bash scripts/ci/github-prune-electron-dist-staging.sh
+bash scripts/ci/github-verify-electron-dist.sh win

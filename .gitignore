@@ -28,9 +28,6 @@ env.bak/
 venv.bak/
 .venv/
 
-# Legacy Electron Forge in-repo temp (see scripts/electron-forge-local-tmp.js)
-.forge-tmp/
-
 # flatpak-builder / snapcraft working trees (large; may contain root-owned cache)
 .flatpak-builder/
 parts/

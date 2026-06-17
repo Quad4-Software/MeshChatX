@@ -20,8 +20,6 @@ on:
             - dev
         paths:
             - "package.json"
-            - "forge.config.js"
-            - "scripts/electron-forge-local-tmp.js"
             - "scripts/ensure-flatpak-flathub-remote.sh"
             - "scripts/ci/github-build-linux-*.sh"
             - ".github/workflows/build-linux-packages.yml"
@@ -199,7 +197,7 @@ jobs:
                   retention-days: 1
 
     flatpak:
-        name: Flatpak (electron-forge)
+        name: Flatpak (electron-builder)
         needs: frontend
         runs-on: ubuntu-latest
         timeout-minutes: 90
@@ -279,14 +277,13 @@ jobs:
             - name: List flatpak output
               run: |
                   set -euo pipefail
-                  ls -la out/make 2>/dev/null || true
-                  find out/make -maxdepth 5 -type f \( -name "*.flatpak" -o -name "*.flatpakref" \) -print || true
+                  ls -la dist 2>/dev/null || true
+                  find dist -maxdepth 3 -type f \( -name "*.flatpak" -o -name "*.flatpakref" \) -print
 
             - name: Upload flatpak artifact
               uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
               with:
                   name: meshchatx-linux-flatpak-${{ github.ref_name }}-${{ github.run_id }}
-                  path: |
-                      out/make/**/*.flatpak
-                  if-no-files-found: warn
+                  path: dist/*.flatpak
+                  if-no-files-found: error
                   retention-days: 7
