@@ -26,6 +26,9 @@
             :has-failed-or-cancelled-messages="hasFailedOrCancelledMessages"
             :message-icon-style="messageIconStyle"
             :selected-peer-path="selectedPeerPath"
+            :peer-path-snapshot="peerPathSnapshot"
+            :peer-path-loading="peerPathLoading"
+            :peer-path-warming="peerPathWarming"
             :selected-peer-signal-metrics="selectedPeerSignalMetrics"
             :selected-peer-lxmf-stamp-info="selectedPeerLxmfStampInfo"
             :pathfinder-in-progress="pathfinderInProgress"
@@ -1732,7 +1735,13 @@ import ConversationMessageEntry from "./ConversationMessageEntry.vue";
 import ConversationMessageListVirtual from "./ConversationMessageListVirtual.vue";
 import { displayGroupsOldestFirst, MIN_VIRTUAL_DISPLAY_GROUPS } from "./messageListVirtual.js";
 import DialogUtils from "../../js/DialogUtils";
-import { getDestinationPath, postRequestPath, runDestinationPathFinder } from "../../js/reticulumPathfinding.js";
+import {
+    fetchPeerPathSnapshot,
+    normalizePathSnapshot,
+    pathNeedsRefresh,
+    runDestinationPathFinder,
+    warmPathIfNeeded,
+} from "../../js/reticulumPathfinding.js";
 import MicrophoneRecorder from "../../js/MicrophoneRecorder";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import AddAudioButton from "./AddAudioButton.vue";
@@ -1812,7 +1821,10 @@ export default {
     data() {
         return {
             GlobalState,
-            selectedPeerPath: null,
+            peerPathSnapshot: null,
+            peerPathLoading: false,
+            peerPathWarming: false,
+            peerPathRequestSequence: 0,
             selectedPeerLxmfStampInfo: null,
             selectedPeerSignalMetrics: null,
             pathfinderInProgress: false,
@@ -1940,6 +1952,9 @@ export default {
         },
         compactPeerActions() {
             return this.windowWidth < 640 || this.peerHeaderCompact;
+        },
+        selectedPeerPath() {
+            return this.peerPathSnapshot?.path ?? null;
         },
         compactSendLayout() {
             return this.windowWidth < 640 || this.peerHeaderCompact;
@@ -3104,7 +3119,9 @@ export default {
             this.messagesViewportReady = false;
             this.chatItems = [];
             this.hasMorePrevious = true;
-            this.selectedPeerPath = null;
+            this.peerPathSnapshot = null;
+            this.peerPathLoading = false;
+            this.peerPathWarming = false;
             this.selectedPeerLxmfStampInfo = null;
             this.selectedPeerSignalMetrics = null;
             if (!this.selectedPeer) {
@@ -3116,10 +3133,9 @@ export default {
             await this.$nextTick();
             this.resetStaleConversationScrollSurface();
 
-            this.getPeerPath();
+            this.refreshPeerPath({ warm: true });
             this.getPeerLxmfStampInfo();
             this.getPeerSignalMetrics();
-            this.warmPathToPeer();
 
             this.markConversationAsRead(this.selectedPeer);
 
@@ -3349,7 +3365,7 @@ export default {
                 case "announce": {
                     // update stamp info and signal metrics if an announce is received from the selected peer
                     if (json.announce.destination_hash === this.selectedPeer?.destination_hash) {
-                        await this.getPeerPath();
+                        await this.refreshPeerPath({ warm: true });
                         await this.getPeerLxmfStampInfo();
                         await this.getPeerSignalMetrics();
                     }
@@ -3357,13 +3373,13 @@ export default {
                 }
                 case "lxmf.delivery": {
                     this.onLxmfMessageReceived(json.lxmf_message);
-                    await this.getPeerPath();
+                    await this.refreshPeerPath({ warm: false });
                     await this.getPeerSignalMetrics();
                     break;
                 }
                 case "lxmf_message_created": {
                     this.onLxmfMessageCreated(json.lxmf_message);
-                    await this.getPeerPath();
+                    await this.refreshPeerPath({ warm: false });
                     break;
                 }
                 case "lxmf_message_state_updated": {
@@ -3545,16 +3561,59 @@ export default {
                 });
             }
         },
-        async getPeerPath() {
-            if (this.selectedPeer) {
-                try {
-                    const response = await getDestinationPath(window.api, this.selectedPeer.destination_hash, {});
-                    this.selectedPeerPath = response.data.path;
-                } catch (e) {
-                    console.log(e);
-                    this.selectedPeerPath = null;
+        applyPeerPathSnapshot(snapshot, hash) {
+            if (!this._hexEqual(this.selectedPeer?.destination_hash, hash)) {
+                return;
+            }
+            this.peerPathSnapshot = snapshot ?? normalizePathSnapshot(null);
+        },
+        async refreshPeerPath(options = {}) {
+            const hash = options.hash ?? this.selectedPeer?.destination_hash;
+            if (!hash) {
+                return null;
+            }
+
+            const warm = options.warm === true;
+            const seq = ++this.peerPathRequestSequence;
+            this.peerPathLoading = true;
+
+            try {
+                let snapshot = await fetchPeerPathSnapshot(window.api, hash);
+                if (seq !== this.peerPathRequestSequence) {
+                    return null;
+                }
+                this.applyPeerPathSnapshot(snapshot, hash);
+
+                if (warm) {
+                    const { requested } = await warmPathIfNeeded(window.api, hash, snapshot);
+                    if (requested) {
+                        if (seq !== this.peerPathRequestSequence) {
+                            return snapshot;
+                        }
+                        this.peerPathWarming = true;
+                        snapshot = await fetchPeerPathSnapshot(window.api, hash);
+                        if (seq === this.peerPathRequestSequence) {
+                            this.applyPeerPathSnapshot(snapshot, hash);
+                        }
+                    }
+                }
+
+                return snapshot;
+            } catch (e) {
+                console.log(e);
+                if (seq === this.peerPathRequestSequence) {
+                    this.applyPeerPathSnapshot(null, hash);
+                }
+                return null;
+            } finally {
+                if (seq === this.peerPathRequestSequence) {
+                    this.peerPathLoading = false;
+                    this.peerPathWarming = false;
                 }
             }
+        },
+        async getPeerPath() {
+            await this.refreshPeerPath({ warm: false });
         },
         async getPeerLxmfStampInfo() {
             if (this.selectedPeer) {
@@ -3593,7 +3652,15 @@ export default {
             }
         },
         onDestinationPathClick(path) {
-            DialogUtils.alert(`${path.hops} ${path.hops === 1 ? "hop" : "hops"} away via ${path.next_hop_interface}`);
+            const snapshot = this.peerPathSnapshot;
+            const parts = [`${path.hops} ${path.hops === 1 ? "hop" : "hops"} away via ${path.next_hop_interface}`];
+            if (snapshot?.path_stale) {
+                parts.push(this.$t("messages.path_stale_hint"));
+            }
+            if (snapshot?.path_unresponsive) {
+                parts.push(this.$t("messages.path_unresponsive_hint"));
+            }
+            DialogUtils.alert(parts.join("\n\n"));
         },
         onStampInfoClick(stampInfo) {
             const stampCost = stampInfo.stamp_cost;
@@ -4722,14 +4789,7 @@ export default {
             return lxmfMessage.method === "opportunistic" && lxmfMessage.state === "failed";
         },
         async warmPathToPeer() {
-            if (!this.selectedPeer?.destination_hash) {
-                return;
-            }
-            try {
-                await postRequestPath(window.api, this.selectedPeer.destination_hash);
-            } catch (e) {
-                console.log(e);
-            }
+            await this.refreshPeerPath({ warm: true });
         },
         async runPathFinderQuickRequest() {
             const hash = this.selectedPeer?.destination_hash;
@@ -4738,9 +4798,18 @@ export default {
             }
             this.pathfinderInProgress = true;
             try {
+                let snapshot = this.peerPathSnapshot;
+                if (!snapshot) {
+                    snapshot = await fetchPeerPathSnapshot(window.api, hash);
+                    this.applyPeerPathSnapshot(snapshot, hash);
+                }
+                if (!pathNeedsRefresh(snapshot)) {
+                    ToastUtils.info(this.$t("messages.path_already_available"));
+                    return;
+                }
                 await runDestinationPathFinder(window.api, hash, "quick");
                 ToastUtils.success(this.$t("nomadnet.path_finder_request_sent"));
-                await this.getPeerPath();
+                await this.refreshPeerPath({ warm: false });
             } catch (e) {
                 console.error("path finder quick request failed", e);
                 ToastUtils.error(this.$t("nomadnet.path_finder_failed"));
@@ -4760,9 +4829,13 @@ export default {
                 });
                 if (path) {
                     ToastUtils.success(this.$t("nomadnet.path_finder_found"));
-                    this.selectedPeerPath = path;
+                    this.applyPeerPathSnapshot(
+                        normalizePathSnapshot({ path, path_stale: false, path_unresponsive: false }),
+                        hash
+                    );
                 } else {
                     ToastUtils.error(this.$t("nomadnet.path_finder_not_found"));
+                    await this.refreshPeerPath({ warm: false });
                 }
             } catch (e) {
                 console.error("path finder force find failed", e);
@@ -4782,7 +4855,7 @@ export default {
                     onDropPathError: (e) => console.warn("drop-path failed (continuing)", e),
                 });
                 ToastUtils.success(this.$t("nomadnet.path_finder_dropped_and_requested"));
-                await this.getPeerPath();
+                await this.refreshPeerPath({ warm: false });
             } catch (e) {
                 console.error("path finder drop+request failed", e);
                 ToastUtils.error(this.$t("nomadnet.path_finder_failed"));
@@ -5129,6 +5202,7 @@ export default {
                             _preview_url: previewUrl,
                         };
                     }
+                    const needsPathfinding = pathNeedsRefresh(this.peerPathSnapshot);
                     this.chatItems.push({
                         type: "lxmf_message",
                         lxmf_message: {
@@ -5141,7 +5215,7 @@ export default {
                             source_hash: job.myLxmfAddressHash,
                             fields: Object.keys(pendingFields).length > 0 ? pendingFields : undefined,
                             reply_to_hash: job.replyToHash,
-                            _pendingPathfinding: true,
+                            _pendingPathfinding: needsPathfinding,
                         },
                         is_outbound: true,
                     });
@@ -5229,6 +5303,7 @@ export default {
                 }
 
                 this.scrollMessagesToBottom();
+                this.refreshPeerPath({ warm: false });
             } catch (e) {
                 this.removePendingOutboundPlaceholder(job.pendingHash);
                 const message = e.response?.data?.message ?? "failed to send message";

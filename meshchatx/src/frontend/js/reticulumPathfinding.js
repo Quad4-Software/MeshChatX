@@ -1,6 +1,79 @@
 const destinationPath = (hash) => `/api/v1/destination/${hash}/path`;
 
 /**
+ * @typedef {{ path: object | null, path_stale: boolean, path_unresponsive: boolean }} PeerPathSnapshot
+ */
+
+/**
+ * @param {unknown} data
+ * @returns {PeerPathSnapshot}
+ */
+export function normalizePathSnapshot(data) {
+    if (!data || typeof data !== "object") {
+        return { path: null, path_stale: true, path_unresponsive: false };
+    }
+    const row = /** @type {{ path?: object | null, path_stale?: boolean, path_unresponsive?: boolean }} */ (data);
+    const path = row.path ?? null;
+    return {
+        path,
+        path_stale: path == null ? true : Boolean(row.path_stale),
+        path_unresponsive: Boolean(row.path_unresponsive),
+    };
+}
+
+/**
+ * @param {PeerPathSnapshot | null | undefined} snapshot
+ */
+export function pathNeedsRefresh(snapshot) {
+    if (!snapshot) {
+        return true;
+    }
+    if (!snapshot.path) {
+        return true;
+    }
+    if (snapshot.path_stale) {
+        return true;
+    }
+    if (snapshot.path_unresponsive) {
+        return true;
+    }
+    return false;
+}
+
+/**
+ * @param {PeerPathSnapshot | null | undefined} snapshot
+ */
+export function pathIsReady(snapshot) {
+    return Boolean(snapshot?.path && !snapshot.path_stale && !snapshot.path_unresponsive);
+}
+
+/**
+ * @param {import("axios").AxiosInstance} api
+ * @param {string} hash
+ * @returns {Promise<PeerPathSnapshot>}
+ */
+export async function fetchPeerPathSnapshot(api, hash) {
+    const res = await getDestinationPath(api, hash, {});
+    return normalizePathSnapshot(res.data);
+}
+
+/**
+ * Request a mesh path refresh only when the current snapshot is missing or stale.
+ *
+ * @param {import("axios").AxiosInstance} api
+ * @param {string} hash
+ * @param {PeerPathSnapshot | null | undefined} snapshot
+ * @returns {Promise<{ requested: boolean }>}
+ */
+export async function warmPathIfNeeded(api, hash, snapshot) {
+    if (!pathNeedsRefresh(snapshot)) {
+        return { requested: false };
+    }
+    await postRequestPath(api, hash);
+    return { requested: true };
+}
+
+/**
  * @param {import("axios").AxiosInstance} api
  * @param {string} hash
  * @param {{ request?: "0" | "1" | boolean, timeout?: number } & Record<string, string | number | boolean | undefined>} [params]

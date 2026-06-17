@@ -6,6 +6,10 @@ import {
     postRequestPath,
     postDropPath,
     runDestinationPathFinder,
+    normalizePathSnapshot,
+    pathNeedsRefresh,
+    pathIsReady,
+    warmPathIfNeeded,
 } from "../../meshchatx/src/frontend/js/reticulumPathfinding.js";
 
 describe("reticulumPathfinding.js", () => {
@@ -41,5 +45,41 @@ describe("reticulumPathfinding.js", () => {
     it("runDestinationPathFinder rejects unknown mode", async () => {
         const api = { get: vi.fn(), post: vi.fn() };
         await expect(runDestinationPathFinder(api, "h", "invalid-mode")).rejects.toThrow("unknown path finder mode");
+    });
+
+    it("normalizePathSnapshot defaults missing metadata to stale", () => {
+        expect(normalizePathSnapshot({ path: null })).toEqual({
+            path: null,
+            path_stale: true,
+            path_unresponsive: false,
+        });
+        expect(normalizePathSnapshot(null)).toEqual({
+            path: null,
+            path_stale: true,
+            path_unresponsive: false,
+        });
+    });
+
+    it("pathNeedsRefresh respects stale and unresponsive flags", () => {
+        const fresh = { path: { hops: 1 }, path_stale: false, path_unresponsive: false };
+        expect(pathNeedsRefresh(fresh)).toBe(false);
+        expect(pathIsReady(fresh)).toBe(true);
+        expect(pathNeedsRefresh({ ...fresh, path_stale: true })).toBe(true);
+        expect(pathNeedsRefresh({ ...fresh, path_unresponsive: true })).toBe(true);
+        expect(pathNeedsRefresh({ path: null, path_stale: true, path_unresponsive: false })).toBe(true);
+    });
+
+    it("warmPathIfNeeded skips request when path is ready", async () => {
+        const api = { post: vi.fn() };
+        const snapshot = { path: { hops: 1 }, path_stale: false, path_unresponsive: false };
+        const r = await warmPathIfNeeded(api, "abc", snapshot);
+        expect(r).toEqual({ requested: false });
+        expect(api.post).not.toHaveBeenCalled();
+    });
+
+    it("warmPathIfNeeded posts when path is missing or stale", async () => {
+        const api = { post: vi.fn().mockResolvedValue({}) };
+        await warmPathIfNeeded(api, "abc", { path: null, path_stale: true, path_unresponsive: false });
+        expect(api.post).toHaveBeenCalledWith("/api/v1/destination/abc/request-path");
     });
 });
