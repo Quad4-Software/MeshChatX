@@ -22,6 +22,9 @@ fi
 export PLATFORM=linux
 export MESHCHATX_FRONTEND_PREBUILT=1
 
-pnpm run dist:flatpak-prebuilt
+bash scripts/ensure-flatpak-flathub-remote.sh
+
+DEBUG="${DEBUG:-@malept/flatpak-bundler*}" \
+    pnpm run dist:flatpak-prebuilt
 
 bash scripts/ci/github-verify-electron-dist.sh flatpak

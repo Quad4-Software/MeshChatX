@@ -93,7 +93,7 @@
         "vue-eslint-parser": "^10.4.0"
     },
     "build": {
-        "appId": "com.meshchatx",
+        "appId": "com.quad4.meshchatx",
         "productName": "Reticulum MeshChatX",
         "electronLanguages": [
             "en-US"
@@ -229,6 +229,21 @@
             "sdk": "org.freedesktop.Sdk",
             "base": "org.electronjs.Electron2.BaseApp",
             "baseVersion": "25.08",
+            "category": "Network",
+            "useWaylandFlags": true,
+            "modules": [
+                {
+                    "name": "zypak",
+                    "sources": [
+                        {
+                            "type": "git",
+                            "url": "https://github.com/refi64/zypak",
+                            "tag": "v2025.09",
+                            "commit": "693a71c5ffa80ec9c9ce2ae03b1ccc493c698e53"
+                        }
+                    ]
+                }
+            ],
             "finishArgs": [
                 "--share=ipc",
                 "--share=network",
@@ -240,7 +255,8 @@
                 "--talk-name=org.freedesktop.Notifications",
                 "--talk-name=org.freedesktop.DBus",
                 "--talk-name=org.freedesktop.portal.Desktop",
-                "--own-name=com.sudoivan.reticulummeshchatx",
+                "--own-name=com.quad4.meshchatx",
+                "--env=TMPDIR=/var/tmp",
                 "--socket=pulseaudio",
                 "--filesystem=xdg-run/pipewire-0"
             ]
