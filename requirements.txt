@@ -29,7 +29,7 @@ cffi==2.0.0
     #   cryptography
     #   lxst
     #   miniaudio
-cryptography==46.0.7
+cryptography==48.0.1
     # via
     #   reticulum-meshchatx
     #   rns
