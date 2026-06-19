@@ -4393,12 +4393,11 @@ export default {
             try {
                 const response = await window.api.get("/api/v1/stickers/export");
                 const dataStr = JSON.stringify(response.data, null, 2);
-                const dataUri = "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);
                 const exportFileDefaultName = `meshchat_stickers_${new Date().toISOString().slice(0, 10)}.json`;
-                const linkElement = document.createElement("a");
-                linkElement.setAttribute("href", dataUri);
-                linkElement.setAttribute("download", exportFileDefaultName);
-                linkElement.click();
+                await DownloadUtils.downloadFile(
+                    exportFileDefaultName,
+                    new Blob([dataStr], { type: "application/json" })
+                );
                 ToastUtils.success(this.$t("stickers.export_done"));
             } catch {
                 ToastUtils.error(this.$t("stickers.import_failed"));
@@ -4451,12 +4450,11 @@ export default {
             try {
                 const response = await window.api.get("/api/v1/gifs/export");
                 const dataStr = JSON.stringify(response.data, null, 2);
-                const dataUri = "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);
                 const exportFileDefaultName = `meshchat_gifs_${new Date().toISOString().slice(0, 10)}.json`;
-                const linkElement = document.createElement("a");
-                linkElement.setAttribute("href", dataUri);
-                linkElement.setAttribute("download", exportFileDefaultName);
-                linkElement.click();
+                await DownloadUtils.downloadFile(
+                    exportFileDefaultName,
+                    new Blob([dataStr], { type: "application/json" })
+                );
                 ToastUtils.success(this.$t("gifs.export_done"));
             } catch {
                 ToastUtils.error(this.$t("gifs.import_failed"));

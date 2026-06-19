@@ -1016,6 +1016,13 @@
                 </ContextMenuItem>
                 <ContextMenuItem
                     v-if="messageContextMenu.chatItem?.lxmf_message?.fields?.image"
+                    @click="downloadMessageImage(messageContextMenu.chatItem)"
+                >
+                    <MaterialDesignIcon icon-name="download" class="size-4 text-blue-500" />
+                    {{ $t("messages.save_image_to_device") }}
+                </ContextMenuItem>
+                <ContextMenuItem
+                    v-if="messageContextMenu.chatItem?.lxmf_message?.fields?.image"
                     @click="saveMessageImageToStickers(messageContextMenu.chatItem)"
                 >
                     <MaterialDesignIcon icon-name="bookmark-plus-outline" class="size-4 text-teal-500" />
@@ -4982,6 +4989,51 @@ export default {
         },
         downloadFileFromBase64: async function (fileName, fileBytesBase64) {
             DownloadUtils.downloadFromBase64(fileName, fileBytesBase64);
+        },
+        async downloadLxmfFileAttachment(chatItem, fileIndex) {
+            const msg = chatItem?.lxmf_message;
+            const attachments = msg?.fields?.file_attachments;
+            if (!msg?.hash || !Array.isArray(attachments) || fileIndex < 0 || fileIndex >= attachments.length) {
+                return;
+            }
+            const attachment = attachments[fileIndex];
+            const fileName = attachment.file_name || "download";
+            try {
+                const response = await window.api.get(`/api/v1/lxmf-messages/attachment/${msg.hash}/file`, {
+                    params: { file_index: fileIndex },
+                    responseType: "arraybuffer",
+                });
+                await DownloadUtils.downloadFromApiResponse(response, fileName);
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error(this.$t("common.error"));
+            }
+        },
+        async downloadMessageImage(chatItem) {
+            this.messageContextMenu.show = false;
+            const msg = chatItem?.lxmf_message;
+            const img = msg?.fields?.image;
+            if (!msg?.hash || !img) {
+                return;
+            }
+            const rawType = String(img.image_type || "png")
+                .replace(/^image\//, "")
+                .toLowerCase();
+            const ext = rawType === "jpeg" ? "jpg" : rawType || "png";
+            const fileName = `image-${msg.hash.slice(0, 8)}.${ext}`;
+            try {
+                if (img.image_bytes) {
+                    DownloadUtils.downloadFromBase64(fileName, img.image_bytes);
+                    return;
+                }
+                const response = await window.api.get(`/api/v1/lxmf-messages/attachment/${msg.hash}/image`, {
+                    responseType: "arraybuffer",
+                });
+                await DownloadUtils.downloadFromApiResponse(response, fileName);
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error(this.$t("common.error"));
+            }
         },
         async processAudioForSelectedPeerChatItems() {
             for (const chatItem of this.selectedPeerChatItems) {

@@ -899,19 +899,17 @@
 
                     <!-- file attachment fields -->
                     <div v-if="cv.hasFileAttachments(chatItem.lxmf_message)" class="space-y-2 mt-1">
-                        <a
+                        <button
                             v-for="(file_attachment, index) of chatItem.lxmf_message.fields?.file_attachments ?? []"
                             :key="file_attachment.file_name"
-                            target="_blank"
-                            :download="file_attachment.file_name"
-                            :href="`/api/v1/lxmf-messages/attachment/${chatItem.lxmf_message.hash}/file?file_index=${index}`"
-                            class="flex items-center gap-3 border rounded-lg px-3 py-2 text-sm font-medium cursor-pointer transition-colors"
+                            type="button"
+                            class="flex w-full items-center gap-3 border rounded-lg px-3 py-2 text-sm font-medium cursor-pointer transition-colors text-left"
                             :class="
                                 chatItem.is_outbound
                                     ? cv.outboundEmbeddedCardClass(chatItem)
                                     : 'bg-gray-50 dark:bg-zinc-800/50 text-gray-700 dark:text-zinc-300 border-gray-200/60 dark:border-zinc-700 hover:bg-gray-100 dark:hover:bg-zinc-800'
                             "
-                            @click.stop
+                            @click.stop="cv.downloadLxmfFileAttachment(chatItem, index)"
                         >
                             <div class="my-auto">
                                 <MaterialDesignIcon icon-name="paperclip" class="size-5" />
@@ -934,7 +932,7 @@
                             <div class="my-auto">
                                 <MaterialDesignIcon icon-name="download" class="size-5" />
                             </div>
-                        </a>
+                        </button>
                     </div>
 
                     <!-- commands -->

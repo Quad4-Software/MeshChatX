@@ -430,6 +430,7 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
 import DialogUtils from "../../js/DialogUtils";
+import DownloadUtils from "../../js/DownloadUtils";
 import GlobalEmitter from "../../js/GlobalEmitter";
 
 export default {
@@ -504,17 +505,9 @@ export default {
         async downloadIdentityFile() {
             try {
                 const response = await window.api.get("/api/v1/identity/backup/download", {
-                    responseType: "blob",
+                    responseType: "arraybuffer",
                 });
-                const blob = new Blob([response.data], { type: "application/octet-stream" });
-                const url = window.URL.createObjectURL(blob);
-                const link = document.createElement("a");
-                link.href = url;
-                link.setAttribute("download", "identity");
-                document.body.appendChild(link);
-                link.click();
-                link.remove();
-                window.URL.revokeObjectURL(url);
+                await DownloadUtils.downloadFromApiResponse(response, "identity");
                 ToastUtils.success(this.$t("identities.identity_exported"));
             } catch {
                 ToastUtils.error(this.$t("identities.identity_export_failed"));
@@ -537,16 +530,9 @@ export default {
         async downloadAllIdentities() {
             try {
                 const response = await window.api.get("/api/v1/identities/export-all", {
-                    responseType: "blob",
+                    responseType: "arraybuffer",
                 });
-                const url = window.URL.createObjectURL(new Blob([response.data], { type: "application/zip" }));
-                const link = document.createElement("a");
-                link.href = url;
-                link.setAttribute("download", "identities_export.zip");
-                document.body.appendChild(link);
-                link.click();
-                link.remove();
-                window.URL.revokeObjectURL(url);
+                await DownloadUtils.downloadFromApiResponse(response, "identities_export.zip");
                 ToastUtils.success(this.$t("identities.export_all_success"));
             } catch (e) {
                 const msg = e?.response?.data?.message || this.$t("identities.export_all_failed");

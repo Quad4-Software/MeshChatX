@@ -25,4 +25,25 @@ describe("DownloadUtils", () => {
         expect(typeof b64).toBe("string");
         expect(b64.length).toBeGreaterThan(0);
     });
+
+    it("parseFilenameFromContentDisposition prefers UTF-8 filename*", () => {
+        const header = "attachment; filename=\"fallback.bin\"; filename*=UTF-8''photo%2Epng";
+        expect(DownloadUtils.parseFilenameFromContentDisposition(header, "default.bin")).toBe("photo.png");
+    });
+
+    it("downloadFromApiResponse uses Android bridge when present", async () => {
+        const saveDownload = vi.fn();
+        window.MeshChatXAndroid = { saveDownload };
+        await DownloadUtils.downloadFromApiResponse(
+            {
+                data: new Uint8Array([9, 8, 7]),
+                headers: {
+                    "content-disposition": 'attachment; filename="backup.zip"',
+                    "content-type": "application/zip",
+                },
+            },
+            "fallback.zip"
+        );
+        expect(saveDownload).toHaveBeenCalledWith("backup.zip", expect.any(String));
+    });
 });

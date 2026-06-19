@@ -7,6 +7,34 @@ function isAndroidSaveBridge() {
 }
 
 class DownloadUtils {
+    static parseFilenameFromContentDisposition(header, defaultFilename) {
+        if (!header || typeof header !== "string") {
+            return defaultFilename;
+        }
+        const star = header.match(/filename\*=UTF-8''([^;\s]+)/i);
+        if (star?.[1]) {
+            try {
+                return decodeURIComponent(star[1]);
+            } catch {
+                // fall through
+            }
+        }
+        const plain = header.match(/filename="?([^";\n]+)"?/i);
+        if (plain?.[1]) {
+            return plain[1].trim();
+        }
+        return defaultFilename;
+    }
+
+    static async downloadFromApiResponse(response, defaultFilename) {
+        const headers = response?.headers || {};
+        const cd = headers["content-disposition"] || headers["Content-Disposition"];
+        const filename = DownloadUtils.parseFilenameFromContentDisposition(cd, defaultFilename);
+        const type = headers["content-type"] || headers["Content-Type"] || "application/octet-stream";
+        const blob = new Blob([response.data], { type });
+        await DownloadUtils.downloadFile(filename, blob);
+    }
+
     static _blobToBase64(blob) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
