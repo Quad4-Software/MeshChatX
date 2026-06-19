@@ -306,6 +306,14 @@
         >
             <div class="flex items-center gap-2">
                 <button
+                    v-if="cv.canCancelOutboundSend(entry.items[0])"
+                    type="button"
+                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-amber-600 transition-colors"
+                    @click.stop="cv.cancelSendingMessage(entry.items[0])"
+                >
+                    {{ $t("messages.cancel_send") }}
+                </button>
+                <button
                     type="button"
                     class="inline-flex items-center gap-x-1.5 rounded-lg bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-600 transition-colors"
                     @click.stop="cv.replyToMessage(entry.items[0])"
@@ -395,7 +403,7 @@
                         v-if="isAnimatedRasterType(chatItem.lxmf_message.fields?.image?.image_type)"
                         :src="cv.pendingOutboundImageSrc(chatItem)"
                         img-class="max-h-[min(320px,55vh)] w-full cursor-pointer object-contain object-center bg-black/5 dark:bg-white/5 transition-transform hover:scale-[1.01]"
-                        @click.stop="cv.openImage(cv.pendingOutboundImageSrc(chatItem))"
+                        @click.stop="cv.onOutboundImageClick(chatItem)"
                     />
                     <img
                         v-else
@@ -404,7 +412,7 @@
                         decoding="async"
                         class="max-h-[min(320px,55vh)] w-full cursor-pointer object-contain object-center bg-black/5 dark:bg-white/5 transition-transform hover:scale-[1.01]"
                         alt=""
-                        @click.stop="cv.openImage(cv.pendingOutboundImageSrc(chatItem))"
+                        @click.stop="cv.onOutboundImageClick(chatItem)"
                     />
                 </template>
                 <div
@@ -430,6 +438,21 @@
                 :cv="cv"
                 :elevated="chatItem.is_outbound && cv.showOutboundTransferProgress(chatItem.lxmf_message)"
             />
+        </div>
+        <div
+            v-if="chatItem.is_actions_expanded && cv.canCancelOutboundSend(chatItem)"
+            class="border-t px-4 py-2.5 rounded-b-2xl rounded-t-md w-full max-w-[min(280px,85vw)] mb-1.5"
+            :class="[chatItem.is_outbound ? 'ml-auto' : 'mr-auto', cv.outboundExpandedActionsShellClass(chatItem)]"
+        >
+            <div class="flex items-center gap-2">
+                <button
+                    type="button"
+                    class="inline-flex items-center gap-x-1.5 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-amber-600 transition-colors"
+                    @click.stop="cv.cancelSendingMessage(chatItem)"
+                >
+                    {{ $t("messages.cancel_send") }}
+                </button>
+            </div>
         </div>
         <!-- image-only: inline timestamp overlay (no bubble) -->
         <div
@@ -1174,6 +1197,14 @@
                     :class="cv.outboundExpandedActionsShellClass(chatItem)"
                 >
                     <div class="flex items-center gap-2">
+                        <button
+                            v-if="cv.canCancelOutboundSend(chatItem)"
+                            type="button"
+                            class="inline-flex items-center gap-x-1.5 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-amber-600 transition-colors"
+                            @click.stop="cv.cancelSendingMessage(chatItem)"
+                        >
+                            {{ $t("messages.cancel_send") }}
+                        </button>
                         <button
                             type="button"
                             class="inline-flex items-center gap-x-1.5 rounded-lg bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-blue-600 transition-colors"

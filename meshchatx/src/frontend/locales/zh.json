@@ -1414,6 +1414,7 @@
         "forward_open_party_is_self": "That is your own address.",
         "message_actions": "消息操作",
         "save_image_to_device": "保存图片到设备",
+        "cancel_send": "取消发送",
         "react": "反应",
         "reaction_you": "您",
         "reaction_send_failed": "无法发送反应",

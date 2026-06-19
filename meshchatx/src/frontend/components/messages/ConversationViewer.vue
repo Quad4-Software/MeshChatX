@@ -1036,6 +1036,14 @@
                     {{ $t("gifs.save_to_library") }}
                 </ContextMenuItem>
                 <ContextMenuItem
+                    v-if="canCancelOutboundSend(messageContextMenu.chatItem)"
+                    item-class="text-amber-600 dark:text-amber-400"
+                    @click="cancelSendingMessage(messageContextMenu.chatItem)"
+                >
+                    <MaterialDesignIcon icon-name="close-circle-outline" class="size-4" />
+                    {{ $t("messages.cancel_send") }}
+                </ContextMenuItem>
+                <ContextMenuItem
                     v-if="
                         messageContextMenu.chatItem?.is_outbound &&
                         ['failed', 'cancelled'].includes(messageContextMenu.chatItem?.lxmf_message?.state)
@@ -3944,6 +3952,16 @@ export default {
                 chatItem.is_actions_expanded = false;
             }
         },
+        onOutboundImageClick(chatItem) {
+            if (this.canCancelOutboundSend(chatItem)) {
+                this.onChatItemClick(chatItem);
+                return;
+            }
+            const src = this.pendingOutboundImageSrc(chatItem);
+            if (src) {
+                this.openImage(src);
+            }
+        },
         copyableMessagePlainText(chatItem) {
             const raw = chatItem?.lxmf_message?.content;
             if (typeof raw !== "string") {
@@ -4683,6 +4701,15 @@ export default {
             }
             return ["outbound", "sending", "generating"].includes(m.state);
         },
+        canCancelOutboundSend(chatItem) {
+            if (!chatItem?.is_outbound || !chatItem.lxmf_message?.hash) {
+                return false;
+            }
+            if (this._isPendingOutboundHash(chatItem.lxmf_message.hash)) {
+                return true;
+            }
+            return this.isOutboundPendingForUi(chatItem);
+        },
         isOutboundSendEscalated(chatItem) {
             const m = chatItem?.lxmf_message;
             if (!chatItem?.is_outbound || !m) {
@@ -5323,6 +5350,12 @@ export default {
                 replyQuotedContent,
                 myLxmfAddressHash: this.myLxmfAddressHash,
                 canOptimisticPending,
+                cancelKey: this._outboundPendingMatchKey({
+                    destination_hash: destinationHash,
+                    content: text,
+                    reply_to_hash: replyToHash,
+                    fields,
+                }),
             };
         },
         async sendMessage() {
@@ -5357,6 +5390,9 @@ export default {
         },
         async _executeOutboundSendJob(job) {
             try {
+                if (job.cancelled) {
+                    return;
+                }
                 job.pendingHash = null;
                 if (job.canOptimisticPending) {
                     const pendingHash = `pending-${uuidv4()}`;
@@ -5396,6 +5432,11 @@ export default {
                     });
                 }
 
+                if (job.cancelled) {
+                    this.removePendingOutboundPlaceholder(job.pendingHash);
+                    return;
+                }
+
                 if (job.images.length === 0) {
                     const response = await window.api.post(`/api/v1/lxmf-messages/send`, {
                         delivery_method: job.deliveryMethod,
@@ -5408,6 +5449,12 @@ export default {
                         },
                     });
 
+                    if (job.cancelled) {
+                        await this._cancelOutboundByHash(response.data.lxmf_message.hash);
+                        this.removePendingOutboundPlaceholder(job.pendingHash);
+                        return;
+                    }
+                    job.messageHash = response.data.lxmf_message.hash;
                     this._absorbOutboundSendResponse(job, response.data.lxmf_message);
                 } else {
                     const firstImage = job.images[0];
@@ -5427,6 +5474,12 @@ export default {
                         },
                     });
 
+                    if (job.cancelled) {
+                        await this._cancelOutboundByHash(response.data.lxmf_message.hash);
+                        this.removePendingOutboundPlaceholder(job.pendingHash);
+                        return;
+                    }
+                    job.messageHash = response.data.lxmf_message.hash;
                     this._absorbOutboundSendResponse(job, response.data.lxmf_message);
 
                     for (let i = 1; i < job.images.length; i++) {
@@ -5468,27 +5521,53 @@ export default {
                 console.log(e);
             }
         },
+        async _cancelOutboundByHash(messageHash) {
+            if (!messageHash || this._isPendingOutboundHash(messageHash)) {
+                return;
+            }
+            try {
+                const response = await window.api.post(`/api/v1/lxmf-messages/${messageHash}/cancel`);
+                const lxmfMessage = response.data.lxmf_message;
+                if (lxmfMessage) {
+                    this.onLxmfMessageUpdated(lxmfMessage);
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        },
         async cancelSendingMessage(chatItem) {
-            // get lxmf message hash else do nothing
-            const lxmfMessageHash = chatItem.lxmf_message.hash;
+            const lxmfMessage = chatItem?.lxmf_message;
+            const lxmfMessageHash = lxmfMessage?.hash;
             if (!lxmfMessageHash) {
                 return;
             }
 
+            chatItem.is_actions_expanded = false;
+            this.messageContextMenu.show = false;
+
+            const cancelMatch = {
+                pendingHash: this._isPendingOutboundHash(lxmfMessageHash) ? lxmfMessageHash : null,
+                messageHash: !this._isPendingOutboundHash(lxmfMessageHash) ? lxmfMessageHash : null,
+                cancelKey: this._outboundPendingMatchKey(lxmfMessage),
+            };
+            this._outboundQueue.cancelJob(cancelMatch);
+
+            if (this._isPendingOutboundHash(lxmfMessageHash)) {
+                this.removePendingOutboundPlaceholder(lxmfMessageHash);
+                return;
+            }
+
+            if (!this.canCancelOutboundSend(chatItem)) {
+                return;
+            }
+
             try {
-                // cancel sending lxmf message
                 const response = await window.api.post(`/api/v1/lxmf-messages/${lxmfMessageHash}/cancel`);
-
-                // get lxmf message from response
-                const lxmfMessage = response.data.lxmf_message;
-                if (!lxmfMessage) {
-                    return;
+                const updated = response.data.lxmf_message;
+                if (updated) {
+                    this.onLxmfMessageUpdated(updated);
                 }
-
-                // update lxmf message in ui
-                this.onLxmfMessageUpdated(lxmfMessage);
             } catch (e) {
-                // show error
                 const message = e.response?.data?.message ?? "failed to cancel message";
                 DialogUtils.alert(message);
                 console.log(e);

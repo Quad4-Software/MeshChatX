@@ -1466,6 +1466,7 @@
         "forward_open_party_is_self": "That is your own address.",
         "message_actions": "Azioni messaggio",
         "save_image_to_device": "Salva immagine sul dispositivo",
+        "cancel_send": "Annulla invio",
         "react": "Reagisci",
         "reaction_you": "Tu",
         "reaction_send_failed": "Impossibile inviare la reazione",

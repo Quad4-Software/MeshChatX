@@ -32,4 +32,33 @@ describe("outboundSendQueue", () => {
         await new Promise((r) => setTimeout(r, 40));
         expect(maxConcurrent).toBe(1);
     });
+
+    it("skips cancelled queued jobs and in-flight job after cancel flag", async () => {
+        const order = [];
+        let releaseFirst;
+        const firstGate = new Promise((r) => {
+            releaseFirst = r;
+        });
+        const processJob = vi.fn(async (job) => {
+            order.push(`start:${job.id}`);
+            if (job.id === "a") {
+                await firstGate;
+            }
+            if (job.cancelled) {
+                order.push(`skip:${job.id}`);
+                return;
+            }
+            order.push(`end:${job.id}`);
+        });
+        const q = createOutboundQueue(processJob);
+        q.enqueue({ id: "a" });
+        q.enqueue({ id: "b", cancelKey: "peer|reply|hello|" });
+        await new Promise((r) => setTimeout(r, 5));
+        q.cancelJob({ cancelKey: "peer|reply|hello|" });
+        q.cancelJob({ pendingHash: "pending-a" });
+        releaseFirst();
+        await new Promise((r) => setTimeout(r, 20));
+        expect(order).toEqual(["start:a", "end:a"]);
+        expect(processJob).toHaveBeenCalledTimes(1);
+    });
 });

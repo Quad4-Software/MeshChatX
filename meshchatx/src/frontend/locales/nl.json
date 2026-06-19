@@ -1414,6 +1414,7 @@
         "forward_open_party_is_self": "That is your own address.",
         "message_actions": "Berichtacties",
         "save_image_to_device": "Afbeelding opslaan op apparaat",
+        "cancel_send": "Verzending annuleren",
         "react": "Reageren",
         "reaction_you": "Jij",
         "reaction_send_failed": "Kon reactie niet versturen",
