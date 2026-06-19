@@ -20,6 +20,7 @@ import android.os.Looper;
 import android.os.PowerManager;
 import android.provider.MediaStore;
 import android.provider.Settings;
+import android.webkit.CookieManager;
 import android.webkit.GeolocationPermissions;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
@@ -56,6 +57,11 @@ import java.io.StringWriter;
 import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import okhttp3.Request;
+import okhttp3.Response;
 import org.json.JSONObject;
 
 public class MainActivity extends AppCompatActivity {
@@ -273,6 +279,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         webView.addJavascriptInterface(new MeshChatXAndroidBridge(this), "MeshChatXAndroid");
+        webView.setDownloadListener(this::onWebViewDownloadStart);
 
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
@@ -874,6 +881,97 @@ public class MainActivity extends AppCompatActivity {
 
     WebView getWebViewForNativeBridge() {
         return webView;
+    }
+
+    private void onWebViewDownloadStart(
+        String url,
+        String userAgent,
+        String contentDisposition,
+        String mimeType,
+        long contentLength
+    ) {
+        if (url == null || url.isEmpty()) {
+            return;
+        }
+        Uri uri = Uri.parse(url);
+        if (!isAllowedWebViewNavigationUri(uri)) {
+            return;
+        }
+        String scheme = uri.getScheme();
+        if (scheme == null) {
+            return;
+        }
+        String s = scheme.toLowerCase(Locale.ROOT);
+        if (!"http".equals(s) && !"https".equals(s)) {
+            return;
+        }
+        String fileName = parseDownloadFileName(contentDisposition, uri);
+        new Thread(() -> fetchAndPersistWebViewDownload(url, fileName), "meshchatx-webview-dl").start();
+    }
+
+    private static String parseDownloadFileName(String contentDisposition, Uri uri) {
+        if (contentDisposition != null && !contentDisposition.isEmpty()) {
+            Matcher star = Pattern.compile("filename\\*=UTF-8''([^;\\s]+)", Pattern.CASE_INSENSITIVE)
+                .matcher(contentDisposition);
+            if (star.find()) {
+                try {
+                    return java.net.URLDecoder.decode(star.group(1), "UTF-8");
+                } catch (Exception ignored) {
+                    // fall through
+                }
+            }
+            Matcher plain = Pattern.compile("filename=\"?([^\";\\n]+)\"?", Pattern.CASE_INSENSITIVE)
+                .matcher(contentDisposition);
+            if (plain.find()) {
+                return plain.group(1).trim();
+            }
+        }
+        String segment = uri != null ? uri.getLastPathSegment() : null;
+        if (segment != null && !segment.isEmpty()) {
+            return segment;
+        }
+        return "download.bin";
+    }
+
+    private void fetchAndPersistWebViewDownload(String url, String fileName) {
+        try {
+            Request.Builder builder = new Request.Builder().url(url);
+            String cookie = CookieManager.getInstance().getCookie(url);
+            if (cookie != null && !cookie.isEmpty()) {
+                builder.addHeader("Cookie", cookie);
+            }
+            try (Response response = LocalhostTrustOkHttpClient.get().newCall(builder.build()).execute()) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    runOnUiThread(
+                        () ->
+                            Toast.makeText(
+                                this,
+                                "Download failed: HTTP " + response.code(),
+                                Toast.LENGTH_LONG
+                            ).show()
+                    );
+                    return;
+                }
+                byte[] data = response.body().bytes();
+                runOnUiThread(
+                    () -> {
+                        try {
+                            persistMeshchatDownload(fileName, data);
+                        } catch (IOException e) {
+                            Toast.makeText(
+                                this,
+                                "Save failed: " + e.getMessage(),
+                                Toast.LENGTH_LONG
+                            ).show();
+                        }
+                    }
+                );
+            }
+        } catch (Exception e) {
+            runOnUiThread(
+                () -> Toast.makeText(this, "Download failed: " + e.getMessage(), Toast.LENGTH_LONG).show()
+            );
+        }
     }
 
     void persistMeshchatDownload(String fileName, byte[] data) throws IOException {
