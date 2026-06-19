@@ -260,6 +260,15 @@ class TestPageNodeFiles:
         with open(path, "rb") as f:
             assert f.read() == b"\x00\x01\x02"
 
+    def test_add_file_writes_bytearray(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        name = node.add_file("upload.bin", bytearray(b"\xde\xad\xbe\xef"))
+        assert name == "upload.bin"
+        path = os.path.join(node.files_dir, "upload.bin")
+        with open(path, "rb") as f:
+            assert f.read() == b"\xde\xad\xbe\xef"
+
     def test_add_file_registers_handler(self, node_dir, mock_rns):
         node = _make_node(node_dir, mock_rns)
         node.setup()
@@ -462,6 +471,15 @@ class TestPageNodeEdgeCases:
             f.write(b"existing")
         node.setup()
         assert "/file/pre.txt" in node._registered_file_paths
+
+    def test_list_files_registers_manually_added_files(self, node_dir, mock_rns):
+        node = _make_node(node_dir, mock_rns)
+        node.setup()
+        with open(os.path.join(node.files_dir, "dropped.bin"), "wb") as f:
+            f.write(b"dropped")
+        assert "/file/dropped.bin" not in node._registered_file_paths
+        node.list_files()
+        assert "/file/dropped.bin" in node._registered_file_paths
 
     def test_path_traversal_blocked(self, node_dir, mock_rns):
         node = _make_node(node_dir, mock_rns)
