@@ -71,9 +71,38 @@ def coerce_rnode_frequency_hz(value):
     return int(round(f))
 
 
+RNODE_TXPOWER_MIN = 0
+RNODE_TXPOWER_MAX = 37
+
+
+def normalize_rnode_txpower(value):
+    """Return integer dBm for Reticulum ``RNodeInterface`` config."""
+    if value is None or value == "":
+        return value
+    return int(float(str(value).strip()))
+
+
+def validate_rnode_txpower(value) -> str | None:
+    """Return an API error message when TX power is invalid for Reticulum."""
+    if value is None or value == "":
+        return "TX power is required"
+    try:
+        power = normalize_rnode_txpower(value)
+    except (TypeError, ValueError):
+        return "TX power must be an integer dBm value"
+    if power < RNODE_TXPOWER_MIN or power > RNODE_TXPOWER_MAX:
+        return (
+            f"TX power must be between {RNODE_TXPOWER_MIN} and {RNODE_TXPOWER_MAX} dBm "
+            "(Reticulum RNodeInterface limit; typical SX1262 range is 0-22 dBm)"
+        )
+    return None
+
+
 class InterfaceEditor:
     coerce_rnode_frequency_hz = staticmethod(coerce_rnode_frequency_hz)
     normalize_rnode_tcp_port = staticmethod(normalize_rnode_tcp_port)
+    normalize_rnode_txpower = staticmethod(normalize_rnode_txpower)
+    validate_rnode_txpower = staticmethod(validate_rnode_txpower)
 
     @staticmethod
     def minimum_fixed_mtu() -> int:

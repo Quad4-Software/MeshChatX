@@ -46,6 +46,25 @@ def test_coerce_rnode_frequency_hz_leaves_midrange_hz():
     assert InterfaceEditor.coerce_rnode_frequency_hz(125000) == 125000
 
 
+def test_normalize_rnode_txpower_integer():
+    assert InterfaceEditor.normalize_rnode_txpower(7) == 7
+    assert InterfaceEditor.normalize_rnode_txpower("14") == 14
+    assert InterfaceEditor.normalize_rnode_txpower("7.0") == 7
+
+
+def test_validate_rnode_txpower_accepts_reticulum_range():
+    assert InterfaceEditor.validate_rnode_txpower(0) is None
+    assert InterfaceEditor.validate_rnode_txpower(22) is None
+    assert InterfaceEditor.validate_rnode_txpower(37) is None
+
+
+def test_validate_rnode_txpower_rejects_out_of_range():
+    assert InterfaceEditor.validate_rnode_txpower(-9) is not None
+    assert InterfaceEditor.validate_rnode_txpower(38) is not None
+    assert InterfaceEditor.validate_rnode_txpower("bad") is not None
+    assert InterfaceEditor.validate_rnode_txpower(None) is not None
+
+
 def test_normalize_rnode_tcp_port_host_only():
     assert (
         InterfaceEditor.normalize_rnode_tcp_port("tcp://10.0.0.5") == "tcp://10.0.0.5"

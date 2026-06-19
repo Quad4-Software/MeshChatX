@@ -897,10 +897,12 @@ class ReticulumMeshChat:
         except Exception:
             pass
         from meshchatx.src.backend.rnode_support import (
+            guard_invalid_rnode_txpower_in_config,
             guard_rnode_interfaces_on_android,
         )
 
         guard_rnode_interfaces_on_android(config_path)
+        guard_invalid_rnode_txpower_in_config(config_path)
 
     def setup_identity(self, identity: RNS.Identity):
         identity_hash = identity.hash.hex()
@@ -5550,12 +5552,15 @@ class ReticulumMeshChat:
                         status=422,
                     )
 
-                # ensure txpower provided
+                # ensure txpower provided and within Reticulum limits
                 interface_txpower = data.get("txpower")
-                if interface_txpower is None or interface_txpower == "":
+                txpower_error = InterfaceEditor.validate_rnode_txpower(
+                    interface_txpower,
+                )
+                if txpower_error is not None:
                     return web.json_response(
                         {
-                            "message": "TX power is required",
+                            "message": txpower_error,
                         },
                         status=422,
                     )
@@ -5588,7 +5593,9 @@ class ReticulumMeshChat:
                     )
                 )
                 interface_details["bandwidth"] = interface_bandwidth
-                interface_details["txpower"] = interface_txpower
+                interface_details["txpower"] = InterfaceEditor.normalize_rnode_txpower(
+                    interface_txpower,
+                )
                 interface_details["spreadingfactor"] = interface_spreadingfactor
                 interface_details["codingrate"] = interface_codingrate
 
@@ -5672,6 +5679,17 @@ class ReticulumMeshChat:
                             status=422,
                         )
 
+                    sub_txpower_error = InterfaceEditor.validate_rnode_txpower(
+                        sub_interface.get("txpower"),
+                    )
+                    if sub_txpower_error is not None:
+                        return web.json_response(
+                            {
+                                "message": f"Sub-interface {idx + 1}: {sub_txpower_error}",
+                            },
+                            status=422,
+                        )
+
                     sub_interface_name = sub_interface.get("name")
                     interface_details[sub_interface_name] = {
                         "interface_enabled": "true",
@@ -5679,7 +5697,9 @@ class ReticulumMeshChat:
                             sub_interface["frequency"],
                         ),
                         "bandwidth": int(sub_interface["bandwidth"]),
-                        "txpower": int(sub_interface["txpower"]),
+                        "txpower": InterfaceEditor.normalize_rnode_txpower(
+                            sub_interface["txpower"],
+                        ),
                         "spreadingfactor": int(sub_interface["spreadingfactor"]),
                         "codingrate": int(sub_interface["codingrate"]),
                         "vport": int(sub_interface["vport"]),
@@ -5995,13 +6015,53 @@ class ReticulumMeshChat:
                             iface_body["frequency"] = (
                                 InterfaceEditor.coerce_rnode_frequency_hz(freq)
                             )
+                        txpower = iface_body.get("txpower")
+                        if txpower is not None and txpower != "":
+                            txpower_error = InterfaceEditor.validate_rnode_txpower(
+                                txpower,
+                            )
+                            if txpower_error is not None:
+                                return web.json_response(
+                                    {
+                                        "message": (
+                                            f'Interface "{interface_name}": {txpower_error}'
+                                        ),
+                                    },
+                                    status=422,
+                                )
+                            iface_body["txpower"] = (
+                                InterfaceEditor.normalize_rnode_txpower(txpower)
+                            )
                     elif iface_type == "RNodeMultiInterface":
-                        for _sub_key, sub in list(iface_body.items()):
+                        for sub_key, sub in list(iface_body.items()):
                             if isinstance(sub, dict):
                                 freq = sub.get("frequency")
                                 if freq is not None and freq != "":
                                     sub["frequency"] = (
                                         InterfaceEditor.coerce_rnode_frequency_hz(freq)
+                                    )
+                                txpower = sub.get("txpower")
+                                if txpower is not None and txpower != "":
+                                    txpower_error = (
+                                        InterfaceEditor.validate_rnode_txpower(
+                                            txpower,
+                                        )
+                                    )
+                                    if txpower_error is not None:
+                                        return web.json_response(
+                                            {
+                                                "message": (
+                                                    f'Interface "{interface_name}" '
+                                                    f'sub-interface "{sub_key}": '
+                                                    f"{txpower_error}"
+                                                ),
+                                            },
+                                            status=422,
+                                        )
+                                    sub["txpower"] = (
+                                        InterfaceEditor.normalize_rnode_txpower(
+                                            txpower,
+                                        )
                                     )
 
                 # update reticulum config with new interfaces

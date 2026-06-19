@@ -801,8 +801,11 @@
                                                 <div>
                                                     <FormLabel class="glass-label">Power (dBm)</FormLabel>
                                                     <input
-                                                        v-model="newInterfaceTxpower"
+                                                        v-model.number="newInterfaceTxpower"
                                                         type="number"
+                                                        :min="RNodeInterfaceDefaults.txpowerMin"
+                                                        :max="RNodeInterfaceDefaults.txpowerMax"
+                                                        step="1"
                                                         class="input-field"
                                                     />
                                                 </div>
@@ -2027,6 +2030,8 @@ export default {
                     8, // 4:8
                 ],
                 spreadingfactors: [5, 6, 7, 8, 9, 10, 11, 12],
+                txpowerMin: 0,
+                txpowerMax: 37,
             },
 
             RNodeInterfaceLoRaParameters: {

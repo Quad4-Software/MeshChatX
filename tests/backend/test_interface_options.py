@@ -534,6 +534,49 @@ async def test_rnode_frequency_mhz_decimal_normalized_to_hz(temp_dir):
 
 
 @pytest.mark.asyncio
+async def test_rnode_rejects_invalid_txpower(temp_dir):
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    async with make_app(temp_dir, config) as handler:
+        payload = {
+            "name": "RadioBad",
+            "type": "RNodeInterface",
+            "port": "/dev/ttyUSB0",
+            "frequency": 868000000,
+            "bandwidth": 125000,
+            "txpower": -9,
+            "spreadingfactor": 8,
+            "codingrate": 5,
+        }
+        response = await handler(make_request(payload))
+        body = json.loads(response.body)
+        assert response.status == 422, body
+        assert "TX power" in body["message"]
+        assert "RadioBad" not in config["interfaces"]
+
+
+@pytest.mark.asyncio
+async def test_rnode_normalizes_txpower_to_integer(temp_dir):
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    async with make_app(temp_dir, config) as handler:
+        payload = {
+            "name": "Radio",
+            "type": "RNodeInterface",
+            "port": "/dev/ttyUSB0",
+            "frequency": 868000000,
+            "bandwidth": 125000,
+            "txpower": "14.0",
+            "spreadingfactor": 8,
+            "codingrate": 5,
+        }
+        response = await handler(make_request(payload))
+        body = json.loads(response.body)
+        assert response.status == 200, body
+        assert config["interfaces"]["Radio"]["txpower"] == 14
+
+
+@pytest.mark.asyncio
 async def test_kiss_persists_full_serial_options(temp_dir):
     config = ConfigDict({"reticulum": {}, "interfaces": {}})
 
