@@ -481,6 +481,22 @@
             "path": "/api/v1/lxmf/sieve-filters"
         },
         {
+            "method": "GET",
+            "path": "/api/v1/lxmf/message-blocklist"
+        },
+        {
+            "method": "PUT",
+            "path": "/api/v1/lxmf/message-blocklist"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/lxmf/message-blocklist/export"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/lxmf/message-blocklist/import"
+        },
+        {
             "method": "DELETE",
             "path": "/api/v1/maintenance/announces"
         },

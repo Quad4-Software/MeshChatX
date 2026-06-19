@@ -170,6 +170,7 @@ export default {
             iconQueueRunning: false,
             iconQueueGeneration: 0,
             lodRafId: null,
+            vizRunGeneration: 0,
         };
     },
     computed: {
@@ -570,8 +571,8 @@ export default {
                     interaction: {
                         tooltipDelay: 100,
                         hover: true,
-                        hideEdgesOnDrag: true,
-                        hideEdgesOnZoom: true,
+                        hideEdgesOnDrag: false,
+                        hideEdgesOnZoom: false,
                     },
                     layout: {
                         randomSeed: 42,
@@ -613,11 +614,18 @@ export default {
                         shadow: false,
                     },
                     edges: {
-                        // "continuous" computes bezier curves on every frame and
-                        // is noticeably heavier than straight edges on slow ARM
-                        // CPUs once you have a few hundred edges. Straight edges
-                        // still look clean against the dotted background.
-                        smooth: false,
+                        /*
+                         * Keep smooth as an object. Passing the boolean `false`
+                         * makes vis-network 9.x throw in updateEdgeType() on any
+                         * later setOptions() call (it reads smooth.type.enabled),
+                         * which aborts the edge redraw and makes all links vanish.
+                         * "continuous" renders correctly under the physics layout.
+                         */
+                        smooth: {
+                            enabled: true,
+                            type: "continuous",
+                            roundness: 0.5,
+                        },
                         selectionWidth: 3,
                         hoverWidth: 2,
                         color: {
@@ -779,6 +787,8 @@ export default {
             });
             if (this.abortController.signal.aborted) return;
 
+            const runId = ++this.vizRunGeneration;
+
             this.loadingStatus = "Processing visualization...";
 
             /*
@@ -802,6 +812,25 @@ export default {
                 this.network.setOptions({ physics: { enabled: false } });
             }
 
+            try {
+                await this._processVisualizationGraph(runId);
+            } finally {
+                if (runId === this.vizRunGeneration) {
+                    if (this.network && !this.didDisableStabilization) {
+                        this.didDisableStabilization = true;
+                        this.network.setOptions({ physics: { stabilization: { enabled: false } } });
+                    }
+                    if (physicsWasOn && this.network) {
+                        this.network.setOptions({ physics: { enabled: this.enablePhysics } });
+                    }
+                    if (this.network && typeof this.network.redraw === "function") {
+                        this.network.redraw();
+                    }
+                }
+            }
+        },
+        async _processVisualizationGraph(runId) {
+            const isCurrentRun = () => runId === this.vizRunGeneration && !this.abortController.signal.aborted;
             const processedNodeIds = new Set();
             const processedEdgeIds = new Set();
 
@@ -986,7 +1015,7 @@ export default {
             if (discoveredNodes.length > 0) this.nodes.update(discoveredNodes);
             if (discoveredEdges.length > 0) this.edges.update(discoveredEdges);
 
-            if (this.abortController.signal.aborted) return;
+            if (!isCurrentRun()) return;
 
             // Process path table in batches to prevent UI block
             this.totalNodesToLoad = this.pathTable.length;
@@ -1007,7 +1036,7 @@ export default {
             this.currentBatch = 0;
 
             for (let i = 0; i < this.pathTable.length; i += chunkSize) {
-                if (this.abortController.signal.aborted) return;
+                if (!isCurrentRun()) return;
                 this.currentBatch++;
                 const chunk = this.pathTable.slice(i, i + chunkSize);
                 const batchNodes = [];
@@ -1165,8 +1194,10 @@ export default {
                  */
                 await yieldToMain();
 
-                if (this.abortController.signal.aborted) return;
+                if (!isCurrentRun()) return;
             }
+
+            if (!isCurrentRun()) return;
 
             // Cleanup: remove nodes/edges that are no longer in the network
             const nodesToRemove = this.nodes.getIds().filter((id) => !processedNodeIds.has(id));
@@ -1179,20 +1210,6 @@ export default {
             this.loadedNodesCount = 0;
             this.currentBatch = 0;
             this.totalBatches = 0;
-
-            if (this.network && !this.didDisableStabilization) {
-                this.didDisableStabilization = true;
-                this.network.setOptions({ physics: { stabilization: { enabled: false } } });
-            }
-
-            /*
-             * Re-enable physics now that all nodes/edges are in place. The
-             * solver runs once on the final graph instead of repeatedly on
-             * partial states, which is dramatically cheaper.
-             */
-            if (physicsWasOn && this.network) {
-                this.network.setOptions({ physics: { enabled: this.enablePhysics } });
-            }
 
             this.scheduleIconQueue();
         },

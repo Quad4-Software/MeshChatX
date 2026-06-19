@@ -12,15 +12,20 @@ from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
 from meshchatx.src.backend.config_manager import ConfigManager
+from tests.backend.conftest import extend_meshchat_middlewares, fetch_api_csrf_headers
 
 
 def _make_aio_app(mock_app, use_https: bool):
     mock_app.session_secret_key = secrets.token_urlsafe(32)
+    mock_app.listen_host = "127.0.0.1"
+    mock_app.listen_port = 8000
+    mock_app.use_https = use_https
+    mock_app.landlock_active = False
     routes = web.RouteTableDef()
-    auth_mw, mime_mw, sec_mw = mock_app._define_routes(routes)
+    middlewares = mock_app._define_routes(routes)
     aio_app = web.Application()
     setup_session(aio_app, mock_app._encrypted_cookie_storage(use_https))
-    aio_app.middlewares.extend([auth_mw, mime_mw, sec_mw])
+    extend_meshchat_middlewares(aio_app, middlewares)
     aio_app.add_routes(routes)
     return aio_app
 
@@ -63,9 +68,11 @@ async def test_login_sets_cookie_and_allows_protected_api(mock_app):
     aio_app = _make_aio_app(mock_app, use_https=False)
 
     async with TestClient(TestServer(aio_app)) as client:
+        headers = await fetch_api_csrf_headers(client)
         login = await client.post(
             "/api/v1/auth/login",
             json={"password": pw.decode("utf-8")},
+            headers=headers,
         )
         assert login.status == 200
         set_cookie = login.headers.get("Set-Cookie", "")
@@ -104,10 +111,16 @@ async def test_logout_clears_session_for_protected_api(mock_app):
     aio_app = _make_aio_app(mock_app, use_https=False)
 
     async with TestClient(TestServer(aio_app)) as client:
-        await client.post("/api/v1/auth/login", json={"password": pw.decode("utf-8")})
+        headers = await fetch_api_csrf_headers(client)
+        await client.post(
+            "/api/v1/auth/login",
+            json={"password": pw.decode("utf-8")},
+            headers=headers,
+        )
         assert (await client.get("/api/v1/database/backups")).status == 200
 
-        out = await client.post("/api/v1/auth/logout")
+        headers = await fetch_api_csrf_headers(client)
+        out = await client.post("/api/v1/auth/logout", headers=headers)
         assert out.status == 200
 
         assert (await client.get("/api/v1/database/backups")).status == 401
@@ -123,10 +136,11 @@ async def test_auth_login_invalid_json_returns_400(mock_app):
     aio_app = _make_aio_app(mock_app, use_https=False)
 
     async with TestClient(TestServer(aio_app)) as client:
+        headers = await fetch_api_csrf_headers(client)
         r = await client.post(
             "/api/v1/auth/login",
             data="{not-json",
-            headers={"Content-Type": "application/json"},
+            headers={**headers, "Content-Type": "application/json"},
         )
         assert r.status == 400
         body = await r.json()
@@ -149,10 +163,11 @@ def test_auth_login_fuzz_never_500(mock_app, body):
 
     async def run():
         async with TestClient(TestServer(aio_app)) as client:
+            headers = await fetch_api_csrf_headers(client)
             r = await client.post(
                 "/api/v1/auth/login",
                 data=body,
-                headers={"Content-Type": "application/json"},
+                headers={**headers, "Content-Type": "application/json"},
             )
             assert r.status != 500
 

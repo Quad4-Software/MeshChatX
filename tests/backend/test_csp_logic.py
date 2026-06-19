@@ -59,7 +59,7 @@ async def test_csp_header_logic(mock_rns_minimal, tmp_path):
 
         # Call _define_routes to get the security_middleware
         routes = web.RouteTableDef()
-        _, _, security_middleware = app_instance._define_routes(routes)
+        _, _, security_middleware, _, _ = app_instance._define_routes(routes)
 
         response = await security_middleware(request, mock_handler)
 
@@ -94,7 +94,7 @@ async def test_security_middleware_sets_cors_headers_on_rnode_flasher(
             return web.Response(text="// module")
 
         routes = web.RouteTableDef()
-        _, _, security_middleware = app_instance._define_routes(routes)
+        _, _, security_middleware, _, _ = app_instance._define_routes(routes)
 
         response = await security_middleware(request, mock_handler)
 
@@ -127,7 +127,7 @@ async def test_security_middleware_does_not_set_cors_on_reticulum_docs(
             return web.Response(text="<html></html>")
 
         routes = web.RouteTableDef()
-        _, _, security_middleware = app_instance._define_routes(routes)
+        _, _, security_middleware, _, _ = app_instance._define_routes(routes)
 
         response = await security_middleware(request, mock_handler)
 
@@ -187,3 +187,37 @@ async def test_config_update_csp(mock_rns_minimal, tmp_path):
             == "https://api1.com, https://api2.com"
         )
         assert app_instance.config.csp_extra_img_src.get() == "https://img.com"
+
+
+@pytest.mark.asyncio
+async def test_csp_privacy_mode_strips_external_sources(mock_rns_minimal, tmp_path):
+    storage_dir = str(tmp_path / "storage")
+    config_dir = str(tmp_path / "config")
+
+    with patch("meshchatx.meshchat.generate_ssl_certificate"):
+        app_instance = ReticulumMeshChat(
+            identity=mock_rns_minimal,
+            storage_dir=storage_dir,
+            reticulum_config_dir=config_dir,
+        )
+        app_instance.config.privacy_mode_enabled.set(True)
+        app_instance.config.csp_extra_connect_src.set("https://api.example.com")
+        app_instance.config.map_tile_server_url.set(
+            "https://tiles.example.com/{z}/{x}/{y}.png",
+        )
+
+        request = MagicMock(spec=web.Request)
+        request.path = "/"
+        request.app = {}
+
+        async def mock_handler(req):
+            return web.Response(text="test")
+
+        routes = web.RouteTableDef()
+        _, _, security_middleware, _, _ = app_instance._define_routes(routes)
+        response = await security_middleware(request, mock_handler)
+        csp = response.headers.get("Content-Security-Policy", "")
+        assert "openstreetmap.org" not in csp
+        assert "api.example.com" not in csp
+        assert "tiles.example.com" not in csp
+        assert "connect-src 'self'" in csp

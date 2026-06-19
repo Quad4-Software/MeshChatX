@@ -454,8 +454,8 @@ async def test_auth_middleware_returns_401_for_api_without_session_when_auth_ena
     app.config.auth_enabled.set(True)
 
     routes = web.RouteTableDef()
-    auth_mw, mime_mw, sec_mw = app._define_routes(routes)
-    aio_app = web.Application(middlewares=[auth_mw, mime_mw, sec_mw])
+    auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw = app._define_routes(routes)
+    aio_app = web.Application(middlewares=[auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw])
     aio_app.add_routes(routes)
 
     async with TestClient(TestServer(aio_app)) as client:

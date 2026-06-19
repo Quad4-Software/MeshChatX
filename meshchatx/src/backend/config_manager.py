@@ -158,6 +158,7 @@ class ConfigManager:
         self.auth_enabled = self.BoolConfig(self, "auth_enabled", False)
         self.auth_password_hash = self.StringConfig(self, "auth_password_hash", None)
         self.auth_session_secret = self.StringConfig(self, "auth_session_secret", None)
+        self.privacy_mode_enabled = self.BoolConfig(self, "privacy_mode_enabled", False)
         self.gitea_base_url = self.StringConfig(
             self,
             "gitea_base_url",
@@ -519,6 +520,16 @@ class ConfigManager:
             self,
             "lxmf_sieve_filters_json",
             "[]",
+        )
+        self.message_blocklist_enabled = self.BoolConfig(
+            self,
+            "message_blocklist_enabled",
+            False,
+        )
+        self.message_blocklist_json = self.StringConfig(
+            self,
+            "message_blocklist_json",
+            '{"scope":"non_contacts","match_peer_fields":false,"match_message":true,"entries":[]}',
         )
 
         self.local_message_auto_delete_enabled = self.BoolConfig(

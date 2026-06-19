@@ -74,6 +74,12 @@
                                 <div class="flex items-center gap-2 flex-wrap">
                                     <div class="tool-card__title">{{ tool.title }}</div>
                                     <span
+                                        v-if="tool.beta"
+                                        class="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-sm border border-amber-200 dark:border-amber-800"
+                                    >
+                                        {{ $t("tools.beta_badge") }}
+                                    </span>
+                                    <span
                                         v-if="tool.comingSoon"
                                         class="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-gray-400 rounded-sm border border-gray-200 dark:border-zinc-700"
                                     >
@@ -221,6 +227,15 @@ export default {
                     iconBg: "tool-card__icon bg-violet-50 text-violet-600 dark:bg-violet-900/30 dark:text-violet-200",
                     titleKey: "tools.sieve_filters.title",
                     descriptionKey: "tools.sieve_filters.description",
+                },
+                {
+                    name: "message-blocklist",
+                    route: { name: "message-blocklist" },
+                    icon: "shield-alert",
+                    iconBg: "tool-card__icon bg-rose-50 text-rose-600 dark:bg-rose-900/30 dark:text-rose-200",
+                    titleKey: "tools.message_blocklist.title",
+                    descriptionKey: "tools.message_blocklist.description",
+                    beta: true,
                 },
                 {
                     name: "documentation",

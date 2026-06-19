@@ -20,6 +20,7 @@ from meshchatx.src.backend.database.schema import DatabaseSchema
 # in restricted environments like sandboxes.
 os.environ["MESHCHAT_LOG_DIR"] = tempfile.mkdtemp()
 os.environ["MESHCHAT_SKIP_STORAGE_LOCK"] = "1"
+os.environ["MESHCHAT_DISABLE_CSRF"] = "1"
 
 
 @pytest.fixture(scope="session")
@@ -250,3 +251,17 @@ def mock_app(db, tmp_path, temp_db):
 
         yield app
         app.teardown_identity()
+
+
+async def fetch_api_csrf_headers(client):
+    response = await client.get("/api/v1/auth/csrf")
+    assert response.status == 200
+    payload = await response.json()
+    token = payload.get("csrf_token")
+    assert token
+    return {"X-CSRF-Token": token}
+
+
+def extend_meshchat_middlewares(aio_app, middlewares):
+    auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw = middlewares
+    aio_app.middlewares.extend([auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw])

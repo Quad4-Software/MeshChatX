@@ -2018,6 +2018,27 @@
                             </div>
                         </div>
 
+                        <div class="border-t border-gray-200 dark:border-zinc-800 pt-4 space-y-3">
+                            <div
+                                class="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-400"
+                            >
+                                {{ $t("app.privacy_eyebrow") }}
+                            </div>
+                            <label class="setting-toggle">
+                                <Toggle
+                                    id="privacy-mode-enabled"
+                                    v-model="config.privacy_mode_enabled"
+                                    @update:model-value="onPrivacyModeChange"
+                                />
+                                <span class="setting-toggle__label">
+                                    <span class="setting-toggle__title">{{ $t("app.privacy_mode_enabled") }}</span>
+                                    <span class="setting-toggle__description">{{
+                                        $t("app.privacy_mode_description")
+                                    }}</span>
+                                </span>
+                            </label>
+                        </div>
+
                         <div class="border-t border-gray-200 dark:border-zinc-800 pt-4 space-y-4">
                             <div
                                 class="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-400"
@@ -2114,6 +2135,116 @@
                                     Authentication is currently enabled. You will be asked for your password when
                                     accessing the web interface.
                                 </p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section
+                        v-show="matchesSearch(...sectionKeywords.webExposure)"
+                        class="settings-section break-inside-avoid"
+                    >
+                        <header class="settings-section__header">
+                            <div>
+                                <div class="settings-section__eyebrow">Security</div>
+                                <h2>{{ $t("app.web_exposure_title") }}</h2>
+                                <p>{{ $t("app.web_exposure_description") }}</p>
+                            </div>
+                        </header>
+                        <div class="settings-section__body space-y-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                                <div>
+                                    <div class="text-gray-500 dark:text-zinc-400">
+                                        {{ $t("app.web_listen_address") }}
+                                    </div>
+                                    <div class="font-mono text-gray-900 dark:text-gray-100">
+                                        {{ serverSecurity.listen_host || "—" }}:{{ serverSecurity.listen_port ?? "—" }}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="text-gray-500 dark:text-zinc-400">{{ $t("app.web_listen_https") }}</div>
+                                    <div class="text-gray-900 dark:text-gray-100">
+                                        {{ serverSecurity.https_enabled ? $t("app.enabled") : $t("app.disabled") }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div
+                                v-if="serverSecurity.landlock_requested !== undefined"
+                                class="text-xs text-gray-600 dark:text-gray-400"
+                            >
+                                {{ $t("app.landlock_status") }}:
+                                {{
+                                    serverSecurity.landlock_active
+                                        ? serverSecurity.landlock_auto_enabled
+                                            ? $t("app.landlock_auto_enabled")
+                                            : $t("app.landlock_active")
+                                        : serverSecurity.landlock_kernel_supported === false
+                                          ? $t("app.landlock_kernel_unsupported")
+                                          : serverSecurity.landlock_disabled_by_env
+                                            ? $t("app.landlock_disabled_by_env")
+                                            : $t("app.landlock_inactive")
+                                }}
+                            </div>
+                            <div
+                                v-if="serverSecurity.is_loopback_bind === false"
+                                class="rounded-md border border-amber-500/40 bg-amber-500/10 p-4 space-y-3"
+                            >
+                                <div class="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                                    {{ $t("app.web_exposure_warning_title") }}
+                                </div>
+                                <p class="text-sm text-amber-950/90 dark:text-amber-100/90">
+                                    {{ $t("app.web_exposure_warning_body") }}
+                                </p>
+                                <ul class="space-y-2 text-sm">
+                                    <li class="flex items-start gap-2">
+                                        <MaterialDesignIcon
+                                            :icon-name="serverSecurity.auth_enabled ? 'check-circle' : 'alert-circle'"
+                                            class="size-4 mt-0.5 shrink-0"
+                                            :class="serverSecurity.auth_enabled ? 'text-green-600' : 'text-amber-600'"
+                                        />
+                                        <span>{{
+                                            serverSecurity.auth_enabled
+                                                ? $t("app.web_exposure_check_auth")
+                                                : $t("app.web_exposure_check_auth_off")
+                                        }}</span>
+                                    </li>
+                                    <li>
+                                        <label class="flex items-start gap-2 cursor-pointer">
+                                            <input
+                                                v-model="exposureAckFirewall"
+                                                type="checkbox"
+                                                class="rounded-sm mt-1"
+                                                @change="persistExposureAcknowledgements"
+                                            />
+                                            <span>{{ $t("app.web_exposure_check_firewall") }}</span>
+                                        </label>
+                                    </li>
+                                    <li>
+                                        <label class="flex items-start gap-2 cursor-pointer">
+                                            <input
+                                                v-model="exposureAckVpn"
+                                                type="checkbox"
+                                                class="rounded-sm mt-1"
+                                                @change="persistExposureAcknowledgements"
+                                            />
+                                            <span>{{ $t("app.web_exposure_check_vpn") }}</span>
+                                        </label>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    {{ $t("app.web_ui_ip_allowlist") }}
+                                </div>
+                                <input
+                                    v-model="serverSecurity.web_ui_ip_allowlist"
+                                    type="text"
+                                    class="input-field font-mono text-xs"
+                                    :placeholder="$t('app.web_ui_ip_allowlist_placeholder')"
+                                    @input="onWebUiAllowlistChange"
+                                />
+                                <div class="text-xs text-gray-600 dark:text-gray-400">
+                                    {{ $t("app.web_ui_ip_allowlist_description") }}
+                                </div>
                             </div>
                         </div>
                     </section>
@@ -2812,7 +2943,23 @@ export default {
                 local_message_auto_delete_enabled: false,
                 local_message_auto_delete_value: 30,
                 local_message_auto_delete_unit: "days",
+                privacy_mode_enabled: false,
             },
+            serverSecurity: {
+                listen_host: null,
+                listen_port: null,
+                https_enabled: true,
+                is_loopback_bind: true,
+                web_ui_ip_allowlist: "",
+                auth_enabled: false,
+                landlock_requested: false,
+                landlock_active: false,
+                landlock_kernel_supported: false,
+                landlock_auto_enabled: false,
+                landlock_disabled_by_env: false,
+            },
+            exposureAckFirewall: false,
+            exposureAckVpn: false,
             saveTimeouts: {},
             lxmfIncomingDeliveryPreset: "10mb",
             lxmfIncomingDeliveryCustomAmount: 10,
@@ -3060,6 +3207,21 @@ export default {
                 ],
                 blocked: ["Privacy", "Banished", "Manage Banished users and nodes"],
                 auth: ["Security", "Authentication", "password", "Protect your instance with a password"],
+                webExposure: [
+                    "Security",
+                    "Network exposure",
+                    "app.web_exposure_title",
+                    "app.web_exposure_description",
+                    "app.web_listen_address",
+                    "app.web_ui_ip_allowlist",
+                    "app.web_exposure_warning_title",
+                    "app.landlock_status",
+                    "allowlist",
+                    "firewall",
+                    "VPN",
+                    "bind",
+                    "localhost",
+                ],
                 infrastructure: ["Infrastructure", "Sources & Mirroring", "gitea", "documentation", "download", "urls"],
                 messages: [
                     "app.lxmf_settings_eyebrow",
@@ -3115,6 +3277,8 @@ export default {
                 privacyData: [
                     "app.privacy_data_title",
                     "app.privacy_data_description",
+                    "app.privacy_mode_enabled",
+                    "app.privacy_mode_description",
                     "app.local_message_auto_delete_title",
                     "app.local_message_auto_delete_description",
                     "app.local_message_auto_delete_age",
@@ -3197,6 +3361,8 @@ export default {
         WebSocketConnection.on("message", this.onWebsocketMessage);
 
         this.getConfig();
+        this.getServerSecurity();
+        this.loadExposureAcknowledgements();
         this.getTrustedTelemetryPeers();
         this.loadStickerCount();
         this.loadGifCount();
@@ -3307,6 +3473,51 @@ export default {
             } catch (e) {
                 console.log(e);
             }
+        },
+        loadExposureAcknowledgements() {
+            try {
+                this.exposureAckFirewall = localStorage.getItem("meshchatx_exposure_ack_firewall") === "1";
+                this.exposureAckVpn = localStorage.getItem("meshchatx_exposure_ack_vpn") === "1";
+            } catch {
+                this.exposureAckFirewall = false;
+                this.exposureAckVpn = false;
+            }
+        },
+        persistExposureAcknowledgements() {
+            try {
+                localStorage.setItem("meshchatx_exposure_ack_firewall", this.exposureAckFirewall ? "1" : "0");
+                localStorage.setItem("meshchatx_exposure_ack_vpn", this.exposureAckVpn ? "1" : "0");
+            } catch {
+                // ignore storage failures
+            }
+        },
+        async getServerSecurity() {
+            try {
+                const response = await window.api.get("/api/v1/server/security");
+                this.serverSecurity = { ...this.serverSecurity, ...response.data };
+            } catch (e) {
+                console.log(e);
+            }
+        },
+        async onPrivacyModeChange(value) {
+            await this.updateConfig({ privacy_mode_enabled: value }, "privacy_mode_enabled");
+        },
+        onWebUiAllowlistChange() {
+            if (this.saveTimeouts.webUiAllowlist) clearTimeout(this.saveTimeouts.webUiAllowlist);
+            this.saveTimeouts.webUiAllowlist = setTimeout(async () => {
+                try {
+                    const response = await window.api.patch("/api/v1/server/security", {
+                        web_ui_ip_allowlist: this.serverSecurity.web_ui_ip_allowlist,
+                    });
+                    this.serverSecurity = { ...this.serverSecurity, ...response.data };
+                    ToastUtils.success(
+                        this.$t("app.setting_auto_saved", { label: this.$t("app.web_ui_ip_allowlist") })
+                    );
+                } catch (e) {
+                    ToastUtils.error(this.$t("common.save_failed"));
+                    console.log(e);
+                }
+            }, 800);
         },
         getKeyboardShortcuts() {
             WebSocketConnection.send(
@@ -4033,6 +4244,7 @@ export default {
                 },
                 "authentication"
             );
+            this.serverSecurity.auth_enabled = !!value;
 
             if (value) {
                 // if enabled, redirect to setup page if password not set

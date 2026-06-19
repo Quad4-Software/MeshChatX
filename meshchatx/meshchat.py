@@ -92,6 +92,13 @@ from meshchatx.src.backend.lxmf_sieve import (
     normalize_lxmf_sieve_filters,
     parse_lxmf_sieve_filters_json,
 )
+from meshchatx.src.backend.message_blocklist import (
+    build_export_document as build_blocklist_export_document,
+    first_matching_blocklist_entry,
+    normalize_message_blocklist,
+    parse_import_document,
+    parse_message_blocklist_json,
+)
 from meshchatx.src.backend.lxmf_utils import (
     FIELD_REACTION,
     FIELD_REPLY_QUOTE,
@@ -142,6 +149,29 @@ from meshchatx.src.backend.nomadnet_utils import (
 )
 from meshchatx.src.backend.page_node_manager import PageNodeManager
 from meshchatx.src.backend.persistent_log_handler import PersistentLogHandler
+from meshchatx.src.backend.app_security_settings import (
+    get_web_ui_ip_allowlist,
+    load_app_security_settings,
+    save_app_security_settings,
+)
+from meshchatx.src.backend.csrf import (
+    ensure_session_csrf_token,
+    rotate_session_csrf_token,
+    validate_csrf_header,
+)
+from meshchatx.src.backend.ip_allowlist import client_ip_allowed
+from meshchatx.src.backend.landlock_sandbox import (
+    apply_landlock_sandbox,
+    landlock_auto_enabled,
+    landlock_disabled_by_env,
+    landlock_kernel_supported,
+    landlock_requested,
+)
+from meshchatx.src.backend.privacy_mode import (
+    OutboundHttpBlockedError,
+    ensure_outbound_http_allowed,
+    privacy_mode_enabled,
+)
 from meshchatx.src.backend.recovery import (
     CrashRecovery,
     HealthMonitor,
@@ -313,6 +343,15 @@ def list_host_network_interfaces():
     return out, None
 
 
+def _is_loopback_bind_host(host: str | None) -> bool:
+    h = (host or "").strip().lower()
+    return h in ("127.0.0.1", "localhost", "::1", "[::1]")
+
+
+def _csrf_exempt_path(path: str) -> bool:
+    return path == "/api/v1/auth/csrf"
+
+
 class ReticulumMeshChat:
     DEFAULT_AUTOCONNECT_DISCOVERED_INTERFACES = 3
 
@@ -371,6 +410,10 @@ class ReticulumMeshChat:
         self._rns_loglevel_cli = rns_loglevel
         self.websocket_clients: list[web.WebSocketResponse] = []
         self._websocket_broadcast_lock = asyncio.Lock()
+        self.listen_host: str | None = None
+        self.listen_port: int | None = None
+        self.use_https: bool = True
+        self.landlock_active: bool = False
 
         # track announce timestamps for rate calculation
         self.announce_timestamps = []
@@ -3620,12 +3663,73 @@ class ReticulumMeshChat:
     def exit_app(self, code=0):
         sys.exit(code)
 
+    def _require_outbound_http(self, feature: str) -> None:
+        if self.config:
+            ensure_outbound_http_allowed(self.config, feature=feature)
+
+    def _landlock_status_dict(self) -> dict:
+        return {
+            "landlock_kernel_supported": landlock_kernel_supported(),
+            "landlock_requested": landlock_requested(),
+            "landlock_auto_enabled": landlock_auto_enabled(),
+            "landlock_disabled_by_env": landlock_disabled_by_env(),
+            "landlock_active": self.landlock_active,
+        }
+
     def get_routes(self):
         routes = web.RouteTableDef()
         self._define_routes(routes)
         return routes
 
     def _define_routes(self, routes):
+        # IP allowlist middleware (app-wide)
+        @web.middleware
+        async def ip_allowlist_middleware(request, handler):
+            path = request.path
+            if path == "/api/v1/status":
+                return await handler(request)
+            allowlist = get_web_ui_ip_allowlist(self.storage_dir)
+            if allowlist:
+                ip = _request_client_ip(request)
+                if not client_ip_allowed(ip, allowlist):
+                    if path.startswith("/api/"):
+                        return web.json_response(
+                            {"error": "Forbidden: client IP not on allowlist"},
+                            status=403,
+                        )
+                    return web.Response(
+                        text="Forbidden",
+                        status=403,
+                        headers={"Content-Type": "text/html"},
+                    )
+            return await handler(request)
+
+        # CSRF middleware for cookie-authenticated mutating requests
+        @web.middleware
+        async def csrf_middleware(request, handler):
+            if env_bool("MESHCHAT_DISABLE_CSRF", False):
+                return await handler(request)
+            if request.method in ("GET", "HEAD", "OPTIONS"):
+                return await handler(request)
+            path = request.path
+            if not path.startswith("/api/"):
+                return await handler(request)
+            if _csrf_exempt_path(path):
+                return await handler(request)
+            try:
+                session = await get_session(request)
+            except Exception:
+                return web.json_response(
+                    {"error": "Session required for CSRF validation"},
+                    status=403,
+                )
+            if not validate_csrf_header(request, session):
+                return web.json_response(
+                    {"error": "Invalid or missing CSRF token"},
+                    status=403,
+                )
+            return await handler(request)
+
         # authentication middleware
         @web.middleware
         async def auth_middleware(request, handler):
@@ -3670,6 +3774,7 @@ class ReticulumMeshChat:
             # allow access to auth endpoints and setup page
             public_paths = [
                 "/api/v1/status",
+                "/api/v1/auth/csrf",
                 "/api/v1/auth/setup",
                 "/api/v1/auth/login",
                 "/api/v1/auth/status",
@@ -4215,8 +4320,69 @@ class ReticulumMeshChat:
             return web.json_response(
                 {
                     "status": "ok",
+                    "listen_host": self.listen_host,
+                    "listen_port": self.listen_port,
+                    "https_enabled": self.use_https,
+                    "is_loopback_bind": _is_loopback_bind_host(self.listen_host),
+                    **self._landlock_status_dict(),
                 },
             )
+
+        @routes.get("/api/v1/server/security")
+        async def server_security_get(request):
+            settings = load_app_security_settings(self.storage_dir)
+            return web.json_response(
+                {
+                    "listen_host": self.listen_host,
+                    "listen_port": self.listen_port,
+                    "https_enabled": self.use_https,
+                    "is_loopback_bind": _is_loopback_bind_host(self.listen_host),
+                    "web_ui_ip_allowlist": settings.get("web_ui_ip_allowlist", ""),
+                    **self._landlock_status_dict(),
+                    "privacy_mode_enabled": privacy_mode_enabled(self.config),
+                    "auth_enabled": self.auth_enabled,
+                },
+            )
+
+        @routes.patch("/api/v1/server/security")
+        async def server_security_patch(request):
+            try:
+                data = await request.json()
+            except (json.JSONDecodeError, UnicodeDecodeError, ValueError):
+                return web.json_response({"error": "Invalid JSON body"}, status=400)
+            if not isinstance(data, dict):
+                return web.json_response({"error": "Invalid request body"}, status=400)
+            try:
+                if "web_ui_ip_allowlist" in data:
+                    settings = save_app_security_settings(
+                        self.storage_dir,
+                        {"web_ui_ip_allowlist": data.get("web_ui_ip_allowlist")},
+                    )
+                else:
+                    settings = load_app_security_settings(self.storage_dir)
+            except ValueError as exc:
+                return web.json_response({"error": str(exc)}, status=400)
+            return web.json_response(
+                {
+                    "listen_host": self.listen_host,
+                    "listen_port": self.listen_port,
+                    "https_enabled": self.use_https,
+                    "is_loopback_bind": _is_loopback_bind_host(self.listen_host),
+                    "web_ui_ip_allowlist": settings.get("web_ui_ip_allowlist", ""),
+                    **self._landlock_status_dict(),
+                    "privacy_mode_enabled": privacy_mode_enabled(self.config),
+                    "auth_enabled": self.auth_enabled,
+                },
+            )
+
+        @routes.get("/api/v1/auth/csrf")
+        async def auth_csrf(request):
+            try:
+                session = await get_session(request)
+            except Exception as e:
+                return web.json_response({"error": str(e)}, status=500)
+            token = ensure_session_csrf_token(session)
+            return web.json_response({"csrf_token": token})
 
         # auth status
         @routes.get("/api/v1/auth/status")
@@ -4331,6 +4497,7 @@ class ReticulumMeshChat:
             session = await get_session(request)
             session["authenticated"] = True
             session["identity_hash"] = self.identity.hash.hex()
+            rotate_session_csrf_token(session)
 
             if dao:
                 dao.insert(
@@ -4424,6 +4591,7 @@ class ReticulumMeshChat:
                 session = await get_session(request)
                 session["authenticated"] = True
                 session["identity_hash"] = self.identity.hash.hex()
+                rotate_session_csrf_token(session)
                 if dao:
                     dao.insert(
                         id_hash,
@@ -4507,6 +4675,11 @@ class ReticulumMeshChat:
                 "User-Agent": "MeshChatX-RNodeFlasher",
             }
             try:
+                if self.current_context and self.current_context.config:
+                    ensure_outbound_http_allowed(
+                        self.current_context.config,
+                        feature="RNode firmware metadata fetch",
+                    )
                 timeout = aiohttp.ClientTimeout(total=15)
                 async with aiohttp.ClientSession(timeout=timeout) as session:
                     async with session.get(
@@ -4521,6 +4694,8 @@ class ReticulumMeshChat:
                             )
                         data = await response.json(content_type=None)
                         return web.json_response(data)
+            except OutboundHttpBlockedError as e:
+                return web.json_response({"error": str(e)}, status=403)
             except Exception as e:
                 return web.json_response({"error": str(e)}, status=500)
 
@@ -4547,6 +4722,11 @@ class ReticulumMeshChat:
                 return web.json_response({"error": "Invalid download URL"}, status=403)
 
             try:
+                if self.current_context and self.current_context.config:
+                    ensure_outbound_http_allowed(
+                        self.current_context.config,
+                        feature="RNode firmware download",
+                    )
                 async with aiohttp.ClientSession() as session:
                     async with session.get(url, allow_redirects=True) as response:
                         if response.status != 200:
@@ -4565,6 +4745,8 @@ class ReticulumMeshChat:
                                 "Content-Disposition": f'attachment; filename="{filename}"',
                             },
                         )
+            except OutboundHttpBlockedError as e:
+                return web.json_response({"error": str(e)}, status=403)
             except Exception as e:
                 return web.json_response({"error": str(e)}, status=500)
 
@@ -4604,6 +4786,11 @@ class ReticulumMeshChat:
             gh_headers = {"User-Agent": "MeshChatX-MicronWasmRelease/1.0"}
 
             try:
+                if self.current_context and self.current_context.config:
+                    ensure_outbound_http_allowed(
+                        self.current_context.config,
+                        feature="Micron parser release fetch",
+                    )
                 timeout = aiohttp.ClientTimeout(total=120)
                 async with aiohttp.ClientSession(timeout=timeout) as session:
                     async with session.get(
@@ -4708,12 +4895,19 @@ class ReticulumMeshChat:
                     )
 
             def do_refresh():
+                if self.config:
+                    ensure_outbound_http_allowed(
+                        self.config,
+                        feature="community interfaces directory fetch",
+                    )
                 return self.community_interfaces_manager.refresh_from_directory(
                     url=url.strip() if isinstance(url, str) and url.strip() else None,
                 )
 
             try:
                 result = await asyncio.to_thread(do_refresh)
+            except OutboundHttpBlockedError as e:
+                return web.json_response({"ok": False, "message": str(e)}, status=403)
             except ValueError as e:
                 return web.json_response({"ok": False, "message": str(e)}, status=400)
             except OSError as e:
@@ -11011,6 +11205,11 @@ class ReticulumMeshChat:
         async def translator_languages(request):
             try:
                 libretranslate_url = request.query.get("libretranslate_url")
+                if libretranslate_url or (
+                    self.translator_handler
+                    and self.translator_handler.translator_libretranslate_enabled
+                ):
+                    self._require_outbound_http("translator language lookup")
                 th = self.translator_handler
                 out = th.get_translator_languages_response(
                     libretranslate_url=libretranslate_url,
@@ -11027,6 +11226,8 @@ class ReticulumMeshChat:
                 )
             except ValueError as e:
                 return web.json_response({"message": str(e)}, status=400)
+            except OutboundHttpBlockedError as e:
+                return web.json_response({"message": str(e)}, status=403)
             except Exception as e:
                 return web.json_response(
                     {"message": str(e)},
@@ -11056,6 +11257,8 @@ class ReticulumMeshChat:
                 )
 
             try:
+                if not use_argos:
+                    self._require_outbound_http("LibreTranslate")
                 result = self.translator_handler.translate_text(
                     text=text,
                     source_lang=source_lang,
@@ -11067,6 +11270,8 @@ class ReticulumMeshChat:
                 return web.json_response(result)
             except ValueError as e:
                 return web.json_response({"message": str(e)}, status=400)
+            except OutboundHttpBlockedError as e:
+                return web.json_response({"message": str(e)}, status=403)
             except Exception as e:
                 return web.json_response(
                     {"message": str(e)},
@@ -11079,6 +11284,7 @@ class ReticulumMeshChat:
             package_name = data.get("package", "translate")
 
             try:
+                self._require_outbound_http("Argos language package install")
                 result = self.translator_handler.install_language_package(package_name)
                 return web.json_response(result)
             except Exception as e:
@@ -12178,6 +12384,75 @@ class ReticulumMeshChat:
                     )
             self.config.lxmf_sieve_filters_json.set(json.dumps(normalized))
             return web.json_response({"filters": normalized})
+
+        @routes.get("/api/v1/lxmf/message-blocklist")
+        async def lxmf_message_blocklist_get(request):
+            raw = self.config.message_blocklist_json.get()
+            return web.json_response(
+                {
+                    "enabled": self.config.message_blocklist_enabled.get(),
+                    "blocklist": parse_message_blocklist_json(raw),
+                },
+            )
+
+        @routes.put("/api/v1/lxmf/message-blocklist")
+        async def lxmf_message_blocklist_put(request):
+            data = await request.json()
+            blocklist_in = data.get("blocklist")
+            if not isinstance(blocklist_in, dict):
+                return web.json_response(
+                    {"message": "blocklist must be an object"},
+                    status=400,
+                )
+            normalized = normalize_message_blocklist(blocklist_in)
+            if "enabled" in data:
+                self.config.message_blocklist_enabled.set(
+                    self._parse_bool(data["enabled"]),
+                )
+            self.config.message_blocklist_json.set(json.dumps(normalized))
+            return web.json_response(
+                {
+                    "enabled": self.config.message_blocklist_enabled.get(),
+                    "blocklist": normalized,
+                },
+            )
+
+        @routes.get("/api/v1/lxmf/message-blocklist/export")
+        async def lxmf_message_blocklist_export(request):
+            raw = self.config.message_blocklist_json.get()
+            blocklist = parse_message_blocklist_json(raw)
+            return web.json_response(build_blocklist_export_document(blocklist))
+
+        @routes.post("/api/v1/lxmf/message-blocklist/import")
+        async def lxmf_message_blocklist_import(request):
+            data = await request.json()
+            document = data.get("document")
+            if not isinstance(document, dict):
+                return web.json_response(
+                    {"message": "document must be an object"},
+                    status=400,
+                )
+            merge = self._parse_bool(data.get("merge", False))
+            existing = parse_message_blocklist_json(
+                self.config.message_blocklist_json.get(),
+            )
+            imported = parse_import_document(
+                document,
+                merge=merge,
+                existing=existing,
+            )
+            if imported is None:
+                return web.json_response(
+                    {"message": "Invalid blocklist document"},
+                    status=400,
+                )
+            self.config.message_blocklist_json.set(json.dumps(imported))
+            return web.json_response(
+                {
+                    "enabled": self.config.message_blocklist_enabled.get(),
+                    "blocklist": imported,
+                },
+            )
 
         @routes.post("/api/v1/lxmf/conversations/move-to-folder")
         async def lxmf_conversations_move_to_folder(request):
@@ -13553,6 +13828,8 @@ class ReticulumMeshChat:
                 if not bbox or len(bbox) != 4:
                     return web.json_response({"error": "Invalid bbox"}, status=400)
 
+                self._require_outbound_http("map tile export")
+
                 tile_count = self.map_manager.count_export_tiles(
                     bbox,
                     min_zoom,
@@ -13574,6 +13851,8 @@ class ReticulumMeshChat:
                 self.map_manager.start_export(export_id, bbox, min_zoom, max_zoom, name)
 
                 return web.json_response({"export_id": export_id})
+            except OutboundHttpBlockedError as e:
+                return web.json_response({"error": str(e)}, status=403)
             except Exception as e:
                 return web.json_response({"error": str(e)}, status=500)
 
@@ -13669,29 +13948,38 @@ class ReticulumMeshChat:
             response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
 
             # CSP base configuration
+            privacy_mode = privacy_mode_enabled(self.config)
             connect_sources = [
                 "'self'",
                 "ws://localhost:*",
                 "wss://localhost:*",
                 "blob:",
-                "https://*.tile.openstreetmap.org",
-                "https://tile.openstreetmap.org",
-                "https://nominatim.openstreetmap.org",
-                "https://*.cartocdn.com",
-                "https://tiles.openfreemap.org",
-                "https://*.openfreemap.org",
             ]
-
             img_sources = [
                 "'self'",
                 "data:",
                 "blob:",
-                "https://*.tile.openstreetmap.org",
-                "https://tile.openstreetmap.org",
-                "https://*.cartocdn.com",
-                "https://tiles.openfreemap.org",
-                "https://*.openfreemap.org",
             ]
+            if not privacy_mode:
+                connect_sources.extend(
+                    [
+                        "https://*.tile.openstreetmap.org",
+                        "https://tile.openstreetmap.org",
+                        "https://nominatim.openstreetmap.org",
+                        "https://*.cartocdn.com",
+                        "https://tiles.openfreemap.org",
+                        "https://*.openfreemap.org",
+                    ],
+                )
+                img_sources.extend(
+                    [
+                        "https://*.tile.openstreetmap.org",
+                        "https://tile.openstreetmap.org",
+                        "https://*.cartocdn.com",
+                        "https://tiles.openfreemap.org",
+                        "https://*.openfreemap.org",
+                    ],
+                )
 
             frame_sources = [
                 "'self'",
@@ -13724,7 +14012,11 @@ class ReticulumMeshChat:
                 script_sources = ["'self'", "'wasm-unsafe-eval'", "blob:"]
             style_sources = ["'self'", "'unsafe-inline'"]
 
-            if self.current_context and self.current_context.config:
+            if (
+                self.current_context
+                and self.current_context.config
+                and not privacy_mode
+            ):
                 # Helper to add domain from URL
                 def add_domain_from_url(url, target_list):
                     if not url:
@@ -13796,8 +14088,12 @@ class ReticulumMeshChat:
                 f"script-src {' '.join(script_sources)}; "
                 f"style-src {' '.join(style_sources)}; "
                 f"img-src {' '.join(img_sources)}; "
-                "font-src 'self' data: https://tiles.openfreemap.org https://*.openfreemap.org; "
-                f"connect-src {' '.join(connect_sources)}; "
+                + (
+                    "font-src 'self' data:; "
+                    if privacy_mode
+                    else "font-src 'self' data: https://tiles.openfreemap.org https://*.openfreemap.org; "
+                )
+                + f"connect-src {' '.join(connect_sources)}; "
                 "media-src 'self' blob:; "
                 "worker-src 'self' blob:; "
                 f"frame-src {' '.join(frame_sources)}; "
@@ -13807,7 +14103,13 @@ class ReticulumMeshChat:
             response.headers["Content-Security-Policy"] = csp
             return response
 
-        return auth_middleware, mime_type_middleware, security_middleware
+        return (
+            auth_middleware,
+            mime_type_middleware,
+            security_middleware,
+            csrf_middleware,
+            ip_allowlist_middleware,
+        )
 
     def _encrypted_cookie_storage(self, use_https: bool) -> EncryptedCookieStorage:
         try:
@@ -13902,12 +14204,19 @@ class ReticulumMeshChat:
     def run(self, host, port, launch_browser: bool, enable_https: bool = True):
         # create route table
         routes = web.RouteTableDef()
-        auth_middleware, mime_type_middleware, security_middleware = (
-            self._define_routes(routes)
-        )
+        (
+            auth_middleware,
+            mime_type_middleware,
+            security_middleware,
+            csrf_middleware,
+            ip_allowlist_middleware,
+        ) = self._define_routes(routes)
 
         ssl_context = None
         use_https = enable_https
+        self.listen_host = host
+        self.listen_port = port
+        self.use_https = use_https
         if enable_https:
             custom_ssl = bool(self.ssl_cert_path and self.ssl_key_path)
             if custom_ssl:
@@ -13996,7 +14305,13 @@ class ReticulumMeshChat:
 
         # add other middlewares
         app.middlewares.extend(
-            [auth_middleware, mime_type_middleware, security_middleware],
+            [
+                auth_middleware,
+                mime_type_middleware,
+                security_middleware,
+                csrf_middleware,
+                ip_allowlist_middleware,
+            ],
         )
 
         app.add_routes(routes)
@@ -14531,6 +14846,11 @@ class ReticulumMeshChat:
             if not value:
                 self.config.auth_password_hash.set(None)
 
+        if "privacy_mode_enabled" in data:
+            self.config.privacy_mode_enabled.set(
+                self._parse_bool(data["privacy_mode_enabled"]),
+            )
+
         # update map settings
         if "map_offline_enabled" in data:
             self.config.map_offline_enabled.set(
@@ -14633,6 +14953,10 @@ class ReticulumMeshChat:
         if "local_message_auto_delete_enabled" in data:
             self.config.local_message_auto_delete_enabled.set(
                 self._parse_bool(data["local_message_auto_delete_enabled"]),
+            )
+        if "message_blocklist_enabled" in data:
+            self.config.message_blocklist_enabled.set(
+                self._parse_bool(data["message_blocklist_enabled"]),
             )
         if (
             "local_message_auto_delete_value" in data
@@ -16139,6 +16463,7 @@ class ReticulumMeshChat:
             "crawler_retry_delay_seconds": ctx.config.crawler_retry_delay_seconds.get(),
             "crawler_max_concurrent": ctx.config.crawler_max_concurrent.get(),
             "auth_enabled": self.auth_enabled,
+            "privacy_mode_enabled": ctx.config.privacy_mode_enabled.get(),
             "voicemail_enabled": ctx.config.voicemail_enabled.get(),
             "voicemail_greeting": ctx.config.voicemail_greeting.get(),
             "voicemail_auto_answer_delay_seconds": ctx.config.voicemail_auto_answer_delay_seconds.get(),
@@ -16228,6 +16553,7 @@ class ReticulumMeshChat:
             "local_message_auto_delete_value": ctx.config.local_message_auto_delete_value.get(),
             "local_message_auto_delete_unit": ctx.config.local_message_auto_delete_unit.get()
             or "days",
+            "message_blocklist_enabled": ctx.config.message_blocklist_enabled.get(),
         }
 
     # try and get a name for the provided identity hash
@@ -17124,6 +17450,45 @@ class ReticulumMeshChat:
             return
         self.banish_lxmf_peer(peer_hash, context=context)
 
+    def _apply_message_blocklist_banish_rule(
+        self,
+        peer_hash: str,
+        context=None,
+        *,
+        message_title=None,
+        message_content=None,
+    ):
+        ctx = context or self.current_context
+        if not ctx or not ctx.config:
+            return
+        if not ctx.config.message_blocklist_enabled.get():
+            return
+        raw = ctx.config.message_blocklist_json.get()
+        blocklist = parse_message_blocklist_json(raw)
+        contact = None
+        is_contact = False
+        if ctx.database:
+            contact = ctx.database.contacts.get_contact_by_identity_hash(peer_hash)
+            is_contact = bool(contact)
+        haystack = self._collect_lxmf_sieve_peer_haystack(
+            peer_hash,
+            context=ctx,
+            contact=contact,
+        )
+        msg_hs = self._lxmf_sieve_message_haystack(message_title, message_content)
+        match = first_matching_blocklist_entry(
+            blocklist,
+            haystack,
+            is_contact=is_contact,
+            message_haystack=msg_hs,
+        )
+        if not match:
+            return
+        print(
+            f"Message blocklist matched entry {match.get('entry_id')} for {peer_hash}; banishing",
+        )
+        self.banish_lxmf_peer(peer_hash, context=ctx)
+
     def on_lxmf_delivery(self, lxmf_message: LXMF.LXMessage, context=None):
         """Handle inbound LXMF delivery from Reticulum (synchronous callback)."""
         ctx = context or self.current_context
@@ -17320,6 +17685,12 @@ class ReticulumMeshChat:
                 message_content=message_content,
             )
             self._apply_lxmf_sieve_banish_rule(
+                source_hash,
+                context=ctx,
+                message_title=message_title,
+                message_content=message_content,
+            )
+            self._apply_message_blocklist_banish_rule(
                 source_hash,
                 context=ctx,
                 message_title=message_title,
@@ -19198,6 +19569,12 @@ def main():
             print(f"Error: Snapshot not found at {snapshot_path}")
 
     enable_https = not args.no_https
+    reticulum_meshchat.landlock_active = apply_landlock_sandbox(
+        storage_dir=reticulum_meshchat.storage_dir,
+        reticulum_config_dir=reticulum_meshchat.reticulum_config_dir,
+        public_dir=reticulum_meshchat.public_dir_override or get_file_path("public"),
+        log_dir=resolve_log_dir(),
+    )
     reticulum_meshchat.run(
         args.host,
         args.port,

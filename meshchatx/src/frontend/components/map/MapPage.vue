@@ -9,7 +9,7 @@
             <div class="hidden sm:flex items-center min-w-0 gap-2">
                 <v-icon icon="mdi-map" class="text-blue-500 dark:text-blue-400 shrink-0" size="24"></v-icon>
                 <h1 class="text-lg sm:text-xl font-black text-gray-900 dark:text-white truncate">
-                    {{ $t("map.title") }}
+                    {{ embedded && tabTitle ? tabTitle : $t("map.title") }}
                 </h1>
             </div>
 
@@ -1204,6 +1204,25 @@ export default {
         MapLoadingOverlay,
         MapVectorExchangePanel,
     },
+    props: {
+        embedded: {
+            type: Boolean,
+            default: false,
+        },
+        tabStorageId: {
+            type: String,
+            default: "",
+        },
+        tabTitle: {
+            type: String,
+            default: "",
+        },
+        isActiveTab: {
+            type: Boolean,
+            default: true,
+        },
+    },
+    emits: ["update-title"],
     data() {
         return {
             map: null,
@@ -1356,6 +1375,12 @@ export default {
         };
     },
     computed: {
+        mapStateKey() {
+            if (this.tabStorageId) {
+                return `map_tab_${this.tabStorageId}`;
+            }
+            return "last_view";
+        },
         popoutRouteType() {
             if (this.$route?.meta?.popoutType) {
                 return this.$route.meta.popoutType;
@@ -1454,6 +1479,9 @@ export default {
                 if (name !== "map" && name !== "map-popout") {
                     return;
                 }
+                if (this.embedded && !this.isActiveTab) {
+                    return;
+                }
                 if (!this.map || !this.markerSource) {
                     return;
                 }
@@ -1461,13 +1489,26 @@ export default {
             },
             deep: true,
         },
+        isActiveTab(active) {
+            if (!active || !this.map) {
+                return;
+            }
+            this.$nextTick(() => {
+                if (this.map && typeof this.map.updateSize === "function") {
+                    this.map.updateSize();
+                }
+            });
+            if (this.embedded) {
+                this.applyMapViewFromRoute();
+            }
+        },
     },
     async mounted() {
         await this.getConfig();
 
         // Load persisted map state
         try {
-            const savedState = await TileCache.getMapState("last_view");
+            const savedState = await TileCache.getMapState(this.mapStateKey);
             if (savedState) {
                 this.currentCenter = savedState.center || [0, 0];
                 this.currentZoom = savedState.zoom || 2;
@@ -1655,7 +1696,7 @@ export default {
                         telemetry: this.telemetryList,
                     })
                 );
-                await TileCache.setMapState("last_view", state);
+                await TileCache.setMapState(this.mapStateKey, state);
                 console.log("Map state persisted to cache, drawings size:", drawings ? drawings.length : 0);
             } catch (e) {
                 console.error("Failed to save map state", e);
@@ -3158,6 +3199,10 @@ export default {
             }
 
             this.clearSearch();
+            const label = (result.display_name || result.name || "").trim();
+            if (label) {
+                this.$emit("update-title", label);
+            }
         },
         clearSearch() {
             this.searchQuery = "";

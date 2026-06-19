@@ -2,6 +2,8 @@
  * Axios-shaped HTTP helpers backed by fetch (same-origin API calls).
  */
 
+import { getCsrfToken } from "./csrfToken.js";
+
 export function isCancel(error) {
     if (!error) return false;
     return error.name === "AbortError" || error.name === "CanceledError";
@@ -72,6 +74,12 @@ export function createApiClient(options = {}) {
         const { params, data, signal, headers = {}, responseType } = config;
         const url = buildUrl(path, params);
         const hdrs = new Headers(headers);
+        if (method !== "GET" && method !== "HEAD" && path.startsWith("/api/")) {
+            const csrf = getCsrfToken();
+            if (csrf) {
+                hdrs.set("X-CSRF-Token", csrf);
+            }
+        }
         const init = { method, signal, headers: hdrs };
 
         if (data !== undefined && method !== "GET" && method !== "HEAD") {

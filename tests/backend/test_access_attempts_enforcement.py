@@ -231,10 +231,10 @@ def test_enforce_untrusted_monotone_hypothesis(mock_app, n):
 def _make_aio_app(mock_app, use_https: bool):
     mock_app.session_secret_key = secrets.token_urlsafe(32)
     routes = web.RouteTableDef()
-    auth_mw, mime_mw, sec_mw = mock_app._define_routes(routes)
+    auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw = mock_app._define_routes(routes)
     aio_app = web.Application()
     setup_session(aio_app, mock_app._encrypted_cookie_storage(use_https))
-    aio_app.middlewares.extend([auth_mw, mime_mw, sec_mw])
+    aio_app.middlewares.extend([auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw])
     aio_app.add_routes(routes)
     return aio_app
 

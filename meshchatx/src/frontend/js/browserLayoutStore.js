@@ -1,4 +1,5 @@
 const NOMAD_TABS_KEY = "meshchatx.nomadnet.tabs";
+const MAP_TABS_KEY = "meshchatx.map.tabs";
 const MESSAGE_PANES_KEY = "meshchatx.messages.panes";
 const RNSH_LAYOUT_KEY = "meshchatx.rnsh.layout";
 
@@ -60,6 +61,28 @@ export function loadNomadTabs() {
  */
 export function saveNomadTabs(state) {
     writeJson(NOMAD_TABS_KEY, state);
+}
+
+/**
+ * Load the persisted Map browser tab layout.
+ *
+ * @returns {{tabs: Array, activeIndex: number}|null} saved layout or null
+ */
+export function loadMapTabs() {
+    const data = readJson(MAP_TABS_KEY);
+    if (!data || !Array.isArray(data.tabs)) {
+        return null;
+    }
+    return data;
+}
+
+/**
+ * Persist the Map browser tab layout.
+ *
+ * @param {{tabs: Array, activeIndex: number}} state layout to save
+ */
+export function saveMapTabs(state) {
+    writeJson(MAP_TABS_KEY, state);
 }
 
 /**

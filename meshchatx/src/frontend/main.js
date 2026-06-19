@@ -13,6 +13,7 @@ import "@mdi/font/css/materialdesignicons.css";
 import "./fonts/RobotoMonoNerdFont/font.css";
 import { startCodec2ScriptsBackgroundLoad } from "./js/Codec2Loader";
 import { createApiClient } from "./js/apiClient.js";
+import { fetchCsrfToken } from "./js/csrfToken.js";
 import "./js/HeapMonitor.js";
 
 import App from "./components/App.vue";
@@ -93,7 +94,8 @@ const router = createRouter({
         {
             name: "map",
             path: "/map",
-            component: defineAsyncComponent(() => import("./components/map/MapPage.vue")),
+            meta: { keepAlive: true },
+            component: defineAsyncComponent(() => import("./components/map/MapBrowser.vue")),
         },
         {
             name: "map-popout",
@@ -260,6 +262,11 @@ const router = createRouter({
             component: defineAsyncComponent(() => import("./components/tools/SieveFiltersPage.vue")),
         },
         {
+            name: "message-blocklist",
+            path: "/tools/message-blocklist",
+            component: defineAsyncComponent(() => import("./components/tools/MessageBlocklistPage.vue")),
+        },
+        {
             name: "rnode-flasher",
             path: "/tools/rnode-flasher",
             component: defineAsyncComponent(() => import("./components/tools/RNodeFlasherPage.vue")),
@@ -308,6 +315,12 @@ window.api = createApiClient({
         }
     },
 });
+
+try {
+    await fetchCsrfToken(window.api);
+} catch {
+    // CSRF token will be retried on the next mutating request if needed.
+}
 
 router.beforeEach(async (to, from, next) => {
     try {
