@@ -1465,6 +1465,7 @@
         "forward_content_stub": "_Forwarded via MeshChatX_\nAttachments and quoted text belong to the original sender.",
         "forward_open_party_is_self": "That is your own address.",
         "message_actions": "Действия с сообщением",
+        "save_image_to_device": "Сохранить изображение на устройство",
         "react": "Реакции",
         "reaction_you": "Вы",
         "reaction_send_failed": "Не удалось отправить реакцию",
