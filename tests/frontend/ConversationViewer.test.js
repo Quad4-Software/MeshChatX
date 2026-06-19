@@ -6,6 +6,7 @@ import GlobalState from "@/js/GlobalState";
 import DialogUtils from "@/js/DialogUtils";
 import ToastUtils from "@/js/ToastUtils";
 import { MESSAGE_BODY_MAX_DISPLAY_CHARS } from "../../meshchatx/src/frontend/js/messageDisplayLimits.js";
+import DownloadUtils from "@/js/DownloadUtils";
 
 vi.mock("@/js/DialogUtils", () => ({
     default: {
@@ -839,6 +840,44 @@ describe("ConversationViewer.vue", () => {
 
         expect(axiosMock.post).not.toHaveBeenCalled();
         expect(wrapper.vm.chatItems.some((i) => i.lxmf_message?.hash === "pending-abc")).toBe(false);
+    });
+
+    it("downloadLxmfFileAttachment fetches attachment bytes and saves through DownloadUtils", async () => {
+        const saveSpy = vi.spyOn(DownloadUtils, "downloadFromApiResponse").mockResolvedValue(undefined);
+
+        const wrapper = mountConversationViewer();
+        const hash = "ff".repeat(16);
+        const chatItem = {
+            type: "lxmf_message",
+            is_outbound: false,
+            lxmf_message: {
+                hash,
+                state: "delivered",
+                content: "",
+                destination_hash: "test-hash",
+                source_hash: "peer-hash",
+                fields: {
+                    file_attachments: [{ file_name: "doc.pdf", file_size: 42 }],
+                },
+            },
+        };
+
+        axiosMock.get.mockResolvedValueOnce({
+            data: new ArrayBuffer(3),
+            headers: { "content-type": "application/pdf" },
+        });
+
+        await wrapper.vm.downloadLxmfFileAttachment(chatItem, 0);
+
+        expect(axiosMock.get).toHaveBeenCalledWith(
+            `/api/v1/lxmf-messages/attachment/${hash}/file`,
+            expect.objectContaining({
+                params: { file_index: 0 },
+                responseType: "arraybuffer",
+            })
+        );
+        expect(saveSpy).toHaveBeenCalledWith(expect.objectContaining({ data: expect.any(ArrayBuffer) }), "doc.pdf");
+        saveSpy.mockRestore();
     });
 
     it("calls retrySendingMessage when retry context menu clicked", async () => {
