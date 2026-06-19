@@ -33,7 +33,7 @@ describe("outboundSendQueue", () => {
         expect(maxConcurrent).toBe(1);
     });
 
-    it("skips cancelled queued jobs and in-flight job after cancel flag", async () => {
+    it("skips cancelled jobs still waiting in the queue", async () => {
         const order = [];
         let releaseFirst;
         const firstGate = new Promise((r) => {
@@ -44,10 +44,6 @@ describe("outboundSendQueue", () => {
             if (job.id === "a") {
                 await firstGate;
             }
-            if (job.cancelled) {
-                order.push(`skip:${job.id}`);
-                return;
-            }
             order.push(`end:${job.id}`);
         });
         const q = createOutboundQueue(processJob);
@@ -55,10 +51,27 @@ describe("outboundSendQueue", () => {
         q.enqueue({ id: "b", cancelKey: "peer|reply|hello|" });
         await new Promise((r) => setTimeout(r, 5));
         q.cancelJob({ cancelKey: "peer|reply|hello|" });
-        q.cancelJob({ pendingHash: "pending-a" });
         releaseFirst();
         await new Promise((r) => setTimeout(r, 20));
         expect(order).toEqual(["start:a", "end:a"]);
         expect(processJob).toHaveBeenCalledTimes(1);
+    });
+
+    it("sets cancelled on the in-flight job for cooperative abort", async () => {
+        let inFlightJob;
+        let release;
+        const gate = new Promise((r) => {
+            release = r;
+        });
+        const q = createOutboundQueue(async (job) => {
+            inFlightJob = job;
+            await gate;
+        });
+        q.enqueue({ id: "a", pendingHash: "pending-1" });
+        await new Promise((r) => setTimeout(r, 5));
+        q.cancelJob({ pendingHash: "pending-1" });
+        expect(inFlightJob?.cancelled).toBe(true);
+        release();
+        await new Promise((r) => setTimeout(r, 10));
     });
 });

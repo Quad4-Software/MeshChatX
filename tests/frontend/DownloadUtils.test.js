@@ -46,4 +46,22 @@ describe("DownloadUtils", () => {
         );
         expect(saveDownload).toHaveBeenCalledWith("backup.zip", expect.any(String));
     });
+
+    it("downloadFile triggers anchor download when Android bridge is absent", async () => {
+        const click = vi.fn();
+        const append = vi.fn();
+        const remove = vi.fn();
+        const link = { click, remove, download: "", href: "", style: { display: "" } };
+        vi.spyOn(document, "createElement").mockReturnValue(link);
+        vi.spyOn(document.body, "append").mockImplementation(append);
+        URL.createObjectURL = vi.fn(() => "blob:mock");
+
+        await DownloadUtils.downloadFile("browser.bin", new Blob([new Uint8Array([1])]));
+
+        expect(click).toHaveBeenCalledTimes(1);
+        expect(link.download).toBe("browser.bin");
+        expect(link.href).toBe("blob:mock");
+        expect(append).toHaveBeenCalledWith(link);
+        expect(remove).toHaveBeenCalledTimes(1);
+    });
 });

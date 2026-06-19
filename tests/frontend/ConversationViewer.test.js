@@ -771,6 +771,76 @@ describe("ConversationViewer.vue", () => {
         expect(retryButtons).toHaveLength(0);
     });
 
+    it("canCancelOutboundSend is true while outbound message is still sending", () => {
+        const wrapper = mountConversationViewer();
+        const sendingItem = {
+            type: "lxmf_message",
+            is_outbound: true,
+            lxmf_message: {
+                hash: "sending-hash",
+                state: "sending",
+                progress: 12,
+                content: "still going",
+                destination_hash: "test-hash",
+                source_hash: "my-hash",
+                fields: {},
+            },
+        };
+        expect(wrapper.vm.canCancelOutboundSend(sendingItem)).toBe(true);
+        expect(wrapper.vm.canCancelOutboundSend({ ...sendingItem, is_outbound: false })).toBe(false);
+    });
+
+    it("cancelSendingMessage calls cancel API for in-flight outbound hash", async () => {
+        const wrapper = mountConversationViewer();
+        const sendingItem = {
+            type: "lxmf_message",
+            is_outbound: true,
+            is_actions_expanded: true,
+            lxmf_message: {
+                hash: "aa".repeat(16),
+                state: "sending",
+                progress: 40,
+                content: "cancel me",
+                destination_hash: "test-hash",
+                source_hash: "my-hash",
+                fields: {},
+            },
+        };
+        wrapper.vm.chatItems = [sendingItem];
+        const hash = sendingItem.lxmf_message.hash;
+        axiosMock.post.mockResolvedValueOnce({
+            data: { lxmf_message: { ...sendingItem.lxmf_message, state: "cancelled" } },
+        });
+
+        await wrapper.vm.cancelSendingMessage(sendingItem);
+
+        expect(axiosMock.post).toHaveBeenCalledWith(expect.stringContaining(`/lxmf-messages/${hash}/cancel`));
+        expect(sendingItem.is_actions_expanded).toBe(false);
+        expect(wrapper.vm.messageContextMenu.show).toBe(false);
+    });
+
+    it("cancelSendingMessage removes optimistic pending placeholder without API call", async () => {
+        const wrapper = mountConversationViewer();
+        const pendingItem = {
+            type: "lxmf_message",
+            is_outbound: true,
+            lxmf_message: {
+                hash: "pending-abc",
+                state: "sending",
+                content: "queued",
+                destination_hash: "test-hash",
+                source_hash: "my-hash",
+                fields: {},
+            },
+        };
+        wrapper.vm.chatItems = [pendingItem];
+
+        await wrapper.vm.cancelSendingMessage(pendingItem);
+
+        expect(axiosMock.post).not.toHaveBeenCalled();
+        expect(wrapper.vm.chatItems.some((i) => i.lxmf_message?.hash === "pending-abc")).toBe(false);
+    });
+
     it("calls retrySendingMessage when retry context menu clicked", async () => {
         const wrapper = mountConversationViewer();
         const failedChatItem = {
