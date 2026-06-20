@@ -120,6 +120,13 @@ function pickAdaptiveChunkSize() {
     return 250;
 }
 
+/*
+ * Straight edges ({ enabled: false } object, never the boolean `false`). Boolean
+ * smooth breaks vis-network 9.x on later setOptions(); "continuous" curves
+ * recompute every drag frame and are too heavy once the graph is large.
+ */
+const VIZ_EDGE_SMOOTH = { enabled: false };
+
 export default {
     name: "NetworkVisualiser",
     components: {
@@ -171,6 +178,7 @@ export default {
             iconQueueGeneration: 0,
             lodRafId: null,
             vizRunGeneration: 0,
+            physicsPausedForDrag: false,
         };
     },
     computed: {
@@ -546,7 +554,11 @@ export default {
         },
         refreshPhysicsEnabled() {
             if (!this.network) return;
-            this.network.setOptions({ physics: { enabled: this.enablePhysics } });
+            if (this.physicsPausedForDrag) return;
+            this.network.setOptions({
+                physics: { enabled: this.enablePhysics },
+                edges: { smooth: VIZ_EDGE_SMOOTH },
+            });
         },
         pickStablePosition(id, posById, initialFn) {
             const prev = posById[id];
@@ -571,7 +583,7 @@ export default {
                     interaction: {
                         tooltipDelay: 100,
                         hover: true,
-                        hideEdgesOnDrag: false,
+                        hideEdgesOnDrag: true,
                         hideEdgesOnZoom: false,
                     },
                     layout: {
@@ -614,18 +626,7 @@ export default {
                         shadow: false,
                     },
                     edges: {
-                        /*
-                         * Keep smooth as an object. Passing the boolean `false`
-                         * makes vis-network 9.x throw in updateEdgeType() on any
-                         * later setOptions() call (it reads smooth.type.enabled),
-                         * which aborts the edge redraw and makes all links vanish.
-                         * "continuous" renders correctly under the physics layout.
-                         */
-                        smooth: {
-                            enabled: true,
-                            type: "continuous",
-                            roundness: 0.5,
-                        },
+                        smooth: VIZ_EDGE_SMOOTH,
                         selectionWidth: 3,
                         hoverWidth: 2,
                         color: {
@@ -657,6 +658,23 @@ export default {
             });
 
             this.refreshPhysicsEnabled();
+
+            this.network.on("dragStart", () => {
+                if (!this.enablePhysics || !this.network || this.physicsPausedForDrag) return;
+                this.physicsPausedForDrag = true;
+                this.network.setOptions({
+                    physics: { enabled: false },
+                    edges: { smooth: VIZ_EDGE_SMOOTH },
+                });
+            });
+            this.network.on("dragEnd", () => {
+                if (!this.physicsPausedForDrag || !this.network) return;
+                this.physicsPausedForDrag = false;
+                this.network.setOptions({
+                    physics: { enabled: this.enablePhysics },
+                    edges: { smooth: VIZ_EDGE_SMOOTH },
+                });
+            });
 
             this.network.on("zoom", () => {
                 this.scheduleUpdateLOD();
@@ -727,6 +745,44 @@ export default {
                 highlight: { border, background },
                 hover: { border, background },
             };
+        },
+        pathHopCount(hops) {
+            const n = Number(hops);
+            return Number.isFinite(n) ? n : null;
+        },
+        isDirectPathHop(hops) {
+            return this.pathHopCount(hops) === 1;
+        },
+        directEdgeColor(isDarkMode) {
+            return {
+                color: isDarkMode ? "#34d399" : "#10b981",
+                opacity: 1,
+            };
+        },
+        multiHopEdgeColor(isDarkMode) {
+            return {
+                color: isDarkMode ? "#60a5fa" : "#3b82f6",
+                opacity: 0.5,
+            };
+        },
+        directEdgeArrows() {
+            return { to: { enabled: true, scaleFactor: 0.5 } };
+        },
+        interfaceDisplayLabel(name) {
+            if (!name) return "Interface";
+            const bracket = name.match(/\[([^\]]+)\]/);
+            if (bracket) return bracket[1];
+            if (name.length > 28) return `${name.slice(0, 25)}...`;
+            return name;
+        },
+        pathTableInterfaceNames() {
+            const names = new Set();
+            for (const entry of this.pathTable) {
+                if (!entry?.interface || entry.hops == null) continue;
+                if (this.hopFilterMax != null && entry.hops > this.hopFilterMax) continue;
+                names.add(entry.interface);
+            }
+            return names;
         },
         getNodeLODProps(node, lod) {
             const isDarkMode = document.documentElement.classList.contains("dark");
@@ -809,7 +865,10 @@ export default {
              */
             const physicsWasOn = this.network && this.enablePhysics;
             if (physicsWasOn) {
-                this.network.setOptions({ physics: { enabled: false } });
+                this.network.setOptions({
+                    physics: { enabled: false },
+                    edges: { smooth: VIZ_EDGE_SMOOTH },
+                });
             }
 
             try {
@@ -818,10 +877,16 @@ export default {
                 if (runId === this.vizRunGeneration) {
                     if (this.network && !this.didDisableStabilization) {
                         this.didDisableStabilization = true;
-                        this.network.setOptions({ physics: { stabilization: { enabled: false } } });
+                        this.network.setOptions({
+                            physics: { stabilization: { enabled: false } },
+                            edges: { smooth: VIZ_EDGE_SMOOTH },
+                        });
                     }
-                    if (physicsWasOn && this.network) {
-                        this.network.setOptions({ physics: { enabled: this.enablePhysics } });
+                    if (physicsWasOn && this.network && !this.physicsPausedForDrag) {
+                        this.network.setOptions({
+                            physics: { enabled: this.enablePhysics },
+                            edges: { smooth: VIZ_EDGE_SMOOTH },
+                        });
                     }
                     if (this.network && typeof this.network.redraw === "function") {
                         this.network.redraw();
@@ -931,14 +996,75 @@ export default {
                     id: edgeId,
                     from: "me",
                     to: entry.name,
-                    color: entry.status ? (isDarkMode ? "#065f46" : "#10b981") : isDarkMode ? "#7f1d1d" : "#ef4444",
+                    color: entry.status
+                        ? this.directEdgeColor(isDarkMode)
+                        : {
+                              color: isDarkMode ? "#f87171" : "#ef4444",
+                              opacity: 1,
+                          },
                     width: 3,
                     length: 200,
-                    arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+                    arrows: this.directEdgeArrows(),
                     hidden: false,
                 });
                 processedEdgeIds.add(edgeId);
             }
+
+            /*
+             * interface-stats can be empty while the path table still names
+             * interfaces on every hop. vis-network drops any edge whose from/to
+             * node does not exist, so synthesize interface nodes from the path
+             * table whenever stats did not already create them.
+             */
+            const pathOnlyInterfaces = [...this.pathTableInterfaceNames()].filter(
+                (name) => !processedNodeIds.has(name)
+            );
+            const nPathIface = pathOnlyInterfaces.length;
+            for (let j = 0; j < nPathIface; j++) {
+                const ifaceName = pathOnlyInterfaces[j];
+                if (!matchesSearch(ifaceName) && !matchesSearch(this.interfaceDisplayLabel(ifaceName))) {
+                    continue;
+                }
+                const angle = nPathIface > 0 ? (j / nPathIface) * 2 * Math.PI : 0;
+                const initialX = Math.cos(angle) * radius;
+                const initialY = Math.sin(angle) * radius;
+                const pos = this.pickStablePosition(ifaceName, posById, () => ({ x: initialX, y: initialY }));
+                const label = this.interfaceDisplayLabel(ifaceName);
+                let pathIfaceNode = {
+                    id: ifaceName,
+                    group: "interface",
+                    label,
+                    title: `${ifaceName}\nState: Active (path table)\nUsed as next-hop for known routes`,
+                    size: 35,
+                    _originalSize: 35,
+                    shape: "circularImage",
+                    _originalShape: "circularImage",
+                    image: "/assets/images/network-visualiser/interface_connected.png",
+                    color: this.nodeColor("#10b981", isDarkMode ? "#064e3b" : "#ecfdf5"),
+                    font: { color: fontColor, size: 12, bold: true },
+                    x: pos.x,
+                    y: pos.y,
+                };
+                pathIfaceNode = { ...pathIfaceNode, ...this.getNodeLODProps(pathIfaceNode, this.currentLOD) };
+                interfaceNodes.push(pathIfaceNode);
+                processedNodeIds.add(ifaceName);
+
+                if (processedNodeIds.has("me")) {
+                    const edgeId = `me~${ifaceName}`;
+                    interfaceEdges.push({
+                        id: edgeId,
+                        from: "me",
+                        to: ifaceName,
+                        color: this.directEdgeColor(isDarkMode),
+                        width: 3,
+                        length: 200,
+                        arrows: this.directEdgeArrows(),
+                        hidden: false,
+                    });
+                    processedEdgeIds.add(edgeId);
+                }
+            }
+
             if (interfaceNodes.length > 0) this.nodes.update(interfaceNodes);
             if (interfaceEdges.length > 0) this.edges.update(interfaceEdges);
 
@@ -1112,10 +1238,9 @@ export default {
                                  * nodes) and queue the real icon for async
                                  * generation once all chunks are processed.
                                  */
-                                node.image =
-                                    entry.hops === 1
-                                        ? "/assets/images/network-visualiser/user_1hop.png"
-                                        : "/assets/images/network-visualiser/user.png";
+                                node.image = this.isDirectPathHop(entry.hops)
+                                    ? "/assets/images/network-visualiser/user_1hop.png"
+                                    : "/assets/images/network-visualiser/user.png";
                                 if (this.currentLOD !== "low") {
                                     this.iconQueue.push({
                                         nodeId: node.id,
@@ -1133,25 +1258,35 @@ export default {
                         } else {
                             node.shape = "circularImage";
                             node._originalShape = "circularImage";
-                            node.image =
-                                entry.hops === 1
-                                    ? "/assets/images/network-visualiser/user_1hop.png"
-                                    : "/assets/images/network-visualiser/user.png";
+                            node.image = this.isDirectPathHop(entry.hops)
+                                ? "/assets/images/network-visualiser/user_1hop.png"
+                                : "/assets/images/network-visualiser/user.png";
                         }
                         node.color = this.nodeColor(
-                            entry.hops === 1 ? "#10b981" : "#3b82f6",
-                            entry.hops === 1 ? (isDarkMode ? "#064e3b" : "#ecfdf5") : isDarkMode ? "#1e40af" : "#eff6ff"
+                            this.isDirectPathHop(entry.hops) ? "#10b981" : "#3b82f6",
+                            this.isDirectPathHop(entry.hops)
+                                ? isDarkMode
+                                    ? "#064e3b"
+                                    : "#ecfdf5"
+                                : isDarkMode
+                                  ? "#1e40af"
+                                  : "#eff6ff"
                         );
                     } else if (announce.aspect === "nomadnetwork.node") {
                         node.shape = "circularImage";
                         node._originalShape = "circularImage";
-                        node.image =
-                            entry.hops === 1
-                                ? "/assets/images/network-visualiser/server_1hop.png"
-                                : "/assets/images/network-visualiser/server.png";
+                        node.image = this.isDirectPathHop(entry.hops)
+                            ? "/assets/images/network-visualiser/server_1hop.png"
+                            : "/assets/images/network-visualiser/server.png";
                         node.color = this.nodeColor(
-                            entry.hops === 1 ? "#10b981" : "#8b5cf6",
-                            entry.hops === 1 ? (isDarkMode ? "#064e3b" : "#ecfdf5") : isDarkMode ? "#4c1d95" : "#f5f3ff"
+                            this.isDirectPathHop(entry.hops) ? "#10b981" : "#8b5cf6",
+                            this.isDirectPathHop(entry.hops)
+                                ? isDarkMode
+                                    ? "#064e3b"
+                                    : "#ecfdf5"
+                                : isDarkMode
+                                  ? "#4c1d95"
+                                  : "#f5f3ff"
                         );
                     }
 
@@ -1159,23 +1294,15 @@ export default {
                     batchNodes.push(node);
                     processedNodeIds.add(node.id);
 
+                    const directHop = this.isDirectPathHop(entry.hops);
                     batchEdges.push({
                         id: edgeId,
                         from: entry.interface,
                         to: entry.hash,
-                        color: {
-                            color:
-                                entry.hops === 1
-                                    ? isDarkMode
-                                        ? "#065f46"
-                                        : "#10b981"
-                                    : isDarkMode
-                                      ? "#1e3a8a"
-                                      : "#3b82f6",
-                            opacity: entry.hops === 1 ? 1 : 0.5,
-                        },
-                        width: entry.hops === 1 ? 2 : 1,
-                        dashes: entry.hops > 1,
+                        color: directHop ? this.directEdgeColor(isDarkMode) : this.multiHopEdgeColor(isDarkMode),
+                        width: directHop ? 2 : 1,
+                        dashes: !directHop,
+                        arrows: directHop ? this.directEdgeArrows() : undefined,
                         hidden: false,
                     });
                     processedEdgeIds.add(edgeId);
