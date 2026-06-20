@@ -204,6 +204,33 @@ fi
 echo "Using Chaquopy git ref: ${CHAQUOPY_REF}"
 echo "Using Chaquopy target version: ${TARGET_VERSION}"
 
+apply_chaquopy_libpython3_link_fix() {
+    local build_wheel="${PYPIDIR}/build-wheel.py"
+    "${PYTHON_BIN}" - <<'PY'
+from pathlib import Path
+import os
+import sys
+
+path = Path(os.environ["BUILD_WHEEL_PY"])
+text = path.read_text()
+if "python_abi3_link" in text:
+    print("libpython3.so symlink fix already present in build-wheel.py")
+    sys.exit(0)
+needle = '                    run(f"ln -s {filename} {reqs_lib_dir}/{link_filename}")'
+if needle not in text:
+    print("Could not find SONAME symlink loop in build-wheel.py", file=sys.stderr)
+    sys.exit(1)
+insert = needle + """
+
+        python_soname = f"libpython{self.python}.so"
+        python_abi3_link = "libpython3.so"
+        if exists(f"{reqs_lib_dir}/{python_soname}") and not exists(f"{reqs_lib_dir}/{python_abi3_link}"):
+            run(f"ln -s {python_soname} {reqs_lib_dir}/{python_abi3_link}")"""
+path.write_text(text.replace(needle, insert, 1))
+print("Applied libpython3.so symlink fix to build-wheel.py")
+PY
+}
+
 pushd "${CHAQUOPY_DIR}" >/dev/null
 TARGET_PATH="maven/com/chaquo/python/target/${TARGET_VERSION}"
 if [[ ! -d "${TARGET_PATH}" ]]; then
@@ -214,6 +241,8 @@ fi
 popd >/dev/null
 
 PYPIDIR="${CHAQUOPY_DIR}/server/pypi"
+export BUILD_WHEEL_PY="${PYPIDIR}/build-wheel.py"
+apply_chaquopy_libpython3_link_fix
 VENV_DIR="${PYPIDIR}/.venv-local"
 rm -rf "${VENV_DIR}"
 "${PYTHON_BIN}" -m venv "${VENV_DIR}"
