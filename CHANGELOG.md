@@ -7,8 +7,14 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - **Messages**: Conversation history preserves original message timestamps and sorts correctly when the API returns rows out of order.
+- **Messages / conversations**: Outbound **pending** rows are **deduplicated** and reconciled when the conversation syncs so duplicate optimistic entries do not linger.
 - **Propagation**: The local propagation node is started on boot when **`lxmf_local_propagation_node_enabled`** is set in config (previously the setting could be on while the node never came up until toggled in the UI).
 - **Interfaces / discovery**: Turning discovery off also disables **autoconnect** for that interface. Saving discovery settings shows a **restarting RNS** toast with a proper spinner. The interfaces list shows **all** discovered peers with **allowlist** status, and the allowlist is applied when configuration is saved. **Backbone** interface cards label **IFAC tunnels** vs **public relays** and show remote host/port or listen address where applicable.
+- **RNode**: **TX power** values are validated and normalized before interfaces start so invalid power settings cannot crash Reticulum on startup.
+- **Network visualiser**: Direct and multi-hop **edges** render again when the path table references interfaces missing from **interface-stats** (synthesized interface nodes). **vis-network** edge **smooth** options use the object form required by v9; physics pauses during node drag for smoother interaction.
+- **Path finder**: Conversation and Nomad pathfinding UI shows clearer **loading** states and handles archive **snapshots** more reliably.
+- **Downloads**: Shared **`DownloadUtils`** parses **`Content-Disposition`** filenames, routes API blob saves consistently, and uses the Android **`saveDownload`** bridge when present. **WebView** downloads use a dedicated listener with **cookie** forwarding and safer filename handling.
+- **Page node (Nomad)**: File payloads accept **bytearray** bodies; existing files are registered during announces and listings.
 - **Chat UI**: Outbound bubbles always show timestamps; the **three-dot** menu stays visible on orange and red outbound themes; timestamp and status icons remain readable on solid-colored outbound bubbles. Reply-quote previews wrap instead of truncating with `line-clamp`.
 - **Relative time**: Sidebar and list **time ago** strings use finer combined units (e.g. hours and minutes) instead of coarse single-unit rounding.
 - **macOS**: DMG builds include the **microphone** audio-input entitlement so calls can use the mic without extra manual signing steps.
@@ -24,6 +30,9 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- **Security**: App-wide **web UI IP allowlist** (settings + middleware), **CSRF** tokens on mutating HTTP routes (with **`/api/v1/auth/csrf`** bootstrap), and an **LXMF message blocklist** tool/API with import/export and inbound delivery filtering.
+- **Messages**: **Cancel send** for in-flight outbound LXMF messages (API, conversation UI, and localized strings).
+- **Attachments**: **Save image to device** on Android (and shared download helpers elsewhere).
 - **RRC (Reticulum Relay Chat)**: Wire-compatible **RRC** client and local hub hosting (**rrcd**-style). Connect to remote hubs, join rooms, send messages, and host hubs locally. **Member moderation** for hub operators, **keep-alive** routing, **message search**, **mention** counts, and persisted hub history. Sidebar **unread badge** for relay chat; backup/restore includes **RRC hubs** and history files.
 - **RNSh**: Remote shell tool with terminal session management, **session resizing** API, and config-directory support for saved sessions.
 - **LXMF reactions and replies (standard fields)**: Outbound reactions use **`FIELD_REACTION` (0x40)** with **`REACTION_TO`** and **`REACTION_CONTENT`**. Replies use **`FIELD_REPLY_TO` (0x30)** and **`FIELD_REPLY_QUOTE` (0x31)**. Parsing, delivery filtering, notification bell logic, and UI merge paths use the current LXMF field layout (legacy field-16 reaction payloads are no longer emitted or interpreted as reactions).
@@ -46,27 +55,31 @@ All notable changes to this project will be documented in this file.
 - **Telephony**: **Minimize** control on active calls; call-related settings persist reliably across sessions (tests added).
 - **RNStatus**: **`speed_str`** helper for human-readable bitrate formatting.
 - **Codec2**: Native **Codec2** library integration in **Android** builds and CI workflows.
-- **Android**: **`AndroidStorageManager`** for internal vs external storage, migration, and setup options; refactored **RNode** interface handling; vendor wheel verification for **aiohttp** and **cbor2**.
+- **Android**: **`AndroidStorageManager`** for internal vs external storage, migration, and setup options; refactored **RNode** interface handling; vendor wheel verification for **aiohttp**, **cbor2**, and **cryptography**.
 - **Electron**: Backend **process management** and automatic recovery; patches for **electron-installer-common** glob handling and **electron-builder** filesystem constants.
+- **Flatpak**: **Wayland** socket, **zypak** Chromium sandbox module, and updated **appId** in packaging metadata.
 - **Sticker utils**: Bounded **gzip** decompression to prevent unbounded memory allocation on malformed payloads.
 - **Panes / tabs**: Browser-style pane and tab improvements across Nomad and tool pages.
 - **Tools UI**: **`ToolsPageHeader`** component replaces ad-hoc headers on tool pages for consistent navigation and back links.
 - **Docs**: **Meta Quest** headset installation guide; **LXMF** address updates across documentation.
-- **i18n**: **Finnish (`fi`)** locale. New strings for map, interfaces, RRC, transfer progress, maintenance, MTU hints, Micron editor publish prompts, call minimize, and failed-message status across supported locales.
+- **i18n**: **Finnish (`fi`)** locale. New strings for map, interfaces, RRC, transfer progress, maintenance, MTU hints, Micron editor publish prompts, call minimize, cancel send, save-to-device, security settings, and failed-message status across supported locales.
 
 ### Changed
 
-- **Dependencies**: **LXMF** updated to **1.0.1**, **RNS** to **1.3.5**, **aiohttp** to **3.14.0**, **lxst** to **0.4.7**, **Electron** to **42.4.0**, **UV** to **0.11.15**; **cbor2** added for RRC; **pnpm** workspace tooling updated to **v11**.
+- **Dependencies**: **LXMF** updated to **1.0.1**, **RNS** to **1.3.5**, **aiohttp** to **3.14.1**, **cryptography** to **49.0.0**, **lxst** to **0.4.7**, **Electron** to **42.4.0**, **Vite** to **8.0.16**, **dompurify** to **3.4.11**, **UV** to **0.11.15**; **cbor2** added for RRC; **pnpm** workspace **overrides** bump transitive **form-data**, **socks**, **tar**, **tmp**, **undici**, **js-yaml**, **minimatch**, and **brace-expansion** for known advisories.
+- **Android**: Chaquopy recipes and **`build.gradle`** pin **aiohttp 3.14.1** and **cryptography 49.0.0**; CI wheel verification updated for the new versions.
 - **Project URLs**: Default homepage and documentation links moved from **git.quad4.io** to **github.com/Quad4-Software/MeshChatX** and official mirrors.
 - **Frontend**: General styling refresh; **Identities** sidebar icon updated; **MaterialDesignIcon** uses centralized icon resolution.
 - **Interface discovery**: Allowlist and blacklist pattern matching sanitizes patterns before matching.
 - **Android**: Build metadata, wheel-fetch scripts (retries, local wheel paths), and **PKGBUILD** / Arch packaging now use a Python virtual environment.
-- **CI**: Custom **setup-node-pnpm** action; GitHub release script excludes specific asset paths and improves notes generation; **Rust** `x86_64-apple-darwin` target for macOS builds; Node.js version verification in workflows.
-- **Tests**: HTTP API route contract, interface discovery, call page, Micron editor publish, LXMF reaction field **0x40**, RRC, RNSh, relay moderation, network visualiser bulk fetch, database restore, path finder / path-table maintenance, Nomad tab management, backbone interface labels, and notification user-facing filters updated for the above behavior.
+- **Electron / packaging**: Legacy **Electron Forge** configs and scripts removed; desktop builds use **electron-builder** only. **macOS** target config uses an array form; CI can build additional Mac architectures.
+- **CI**: Custom **setup-node-pnpm** action; GitHub release script excludes specific asset paths (**`library.zip`**, **`*.so.yml`**) and improves notes generation; **Rust** `x86_64-apple-darwin` target for macOS builds; Node.js version verification in workflows.
+- **Tests**: HTTP API route contract, interface discovery, call page, Micron editor publish, LXMF reaction field **0x40**, RRC, RNSh, relay moderation, network visualiser bulk fetch and edge rendering, database restore, path finder / path-table maintenance, Nomad tab management, backbone interface labels, outbound **cancel send**, **DownloadUtils**, message blocklist, CSRF/IP allowlist, and notification user-facing filters updated for the above behavior.
 
 ### Removed
 
 - **RNGit explorer**: The in-app **RNGit** tool and its tests were removed.
+- **Electron Forge**: Forge makers, config, and related packaging scripts (replaced by **electron-builder** workflows).
 
 ## [4.6.2] - 2026-05-10
 
