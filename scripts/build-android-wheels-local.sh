@@ -205,7 +205,6 @@ echo "Using Chaquopy git ref: ${CHAQUOPY_REF}"
 echo "Using Chaquopy target version: ${TARGET_VERSION}"
 
 apply_chaquopy_libpython3_link_fix() {
-    local build_wheel="${PYPIDIR}/build-wheel.py"
     "${PYTHON_BIN}" - <<'PY'
 from pathlib import Path
 import os
@@ -213,21 +212,66 @@ import sys
 
 path = Path(os.environ["BUILD_WHEEL_PY"])
 text = path.read_text()
-if "python_abi3_link" in text:
-    print("libpython3.so symlink fix already present in build-wheel.py")
-    sys.exit(0)
-needle = '                    run(f"ln -s {filename} {reqs_lib_dir}/{link_filename}")'
-if needle not in text:
-    print("Could not find SONAME symlink loop in build-wheel.py", file=sys.stderr)
-    sys.exit(1)
-insert = needle + """
+changed = False
 
+if "chaquopy_python_abi3_link" not in text:
+    needle = '                    run(f"ln -s {filename} {reqs_lib_dir}/{link_filename}")'
+    if needle not in text:
+        print("Could not find SONAME symlink loop in build-wheel.py", file=sys.stderr)
+        sys.exit(1)
+    insert = needle + """
+
+        # PyO3 0.29 abi3 Android builds link libpython3.so (PEP 738).
         python_soname = f"libpython{self.python}.so"
         python_abi3_link = "libpython3.so"
         if exists(f"{reqs_lib_dir}/{python_soname}") and not exists(f"{reqs_lib_dir}/{python_abi3_link}"):
             run(f"ln -s {python_soname} {reqs_lib_dir}/{python_abi3_link}")"""
-path.write_text(text.replace(needle, insert, 1))
-print("Applied libpython3.so symlink fix to build-wheel.py")
+    text = text.replace(needle, insert, 1)
+    changed = True
+
+if "chaquopy_python_abi3_needed" not in text:
+    needle = """                elif tag.needed in available_libs:
+                    pass
+                else:
+                    raise CommandError(f"{filename} is linked against unknown library "
+                                       f"'{tag.needed}'.")"""
+    if needle not in text:
+        print("Could not find check_requirements validation in build-wheel.py", file=sys.stderr)
+        sys.exit(1)
+    insert = """                elif tag.needed in available_libs:
+                    pass
+                elif (
+                    tag.needed == "libpython3.so"  # chaquopy_python_abi3_needed
+                    and exists(self.python_lib)
+                ):
+                    pass
+                else:
+                    raise CommandError(f"{filename} is linked against unknown library "
+                                       f"'{tag.needed}'.")"""
+    text = text.replace(needle, insert, 1)
+    changed = True
+
+if "chaquopy_python_abi3_available_lib" not in text:
+    needle = "                            available_libs.add(name)\n\n        reqs = set()"
+    if needle not in text:
+        print("Could not find available_libs loop in build-wheel.py fix_wheel", file=sys.stderr)
+        sys.exit(1)
+    insert = """                            available_libs.add(name)
+
+        # abi3 Rust wheels link libpython3.so; only the versioned SONAME is scanned above.
+        python_soname = f"libpython{self.python}.so"
+        if python_soname in available_libs:
+            available_libs.add("libpython3.so")
+
+        reqs = set()"""
+    text = text.replace(needle, insert, 1)
+    changed = True
+
+if changed:
+    path.write_text(text)
+    print("Applied libpython3.so Chaquopy build-wheel fixes")
+else:
+    print("libpython3.so Chaquopy build-wheel fixes already present")
 PY
 }
 
