@@ -1,5 +1,5 @@
 Reticulum MeshChatX - Third-party notices
-Generated at: 2026-06-17T00:32:06.918617Z
+Generated at: 2026-06-20T02:59:07.040351Z
 Frontend source: pnpm
 
 Python dependencies
@@ -7,7 +7,7 @@ Python dependencies
 aiohappyeyeballs 2.6.1
   License: PSF-2.0
   Author: J. Nick Koston
-aiohttp 3.14.0
+aiohttp 3.14.1
   License: Apache-2.0 AND MIT
   Author: —
 aiohttp-session 2.12.1
@@ -31,7 +31,7 @@ cbor2 6.1.1
 cffi 2.0.0
   License: MIT
   Author: Armin Rigo, Maciej Fijalkowski
-cryptography 46.0.7
+cryptography 49.0.0
   License: Apache-2.0 OR BSD-3-Clause
   Author: The Python Cryptographic Authority and individual contributors <cryptography-dev@python.org>
 dbus-fast 4.0.4
@@ -247,9 +247,6 @@ Node dependencies
 @intlify/shared 11.4.0
   License: MIT
   Author: kazuya kawaguchi
-@isaacs/cliui 8.0.2
-  License: ISC
-  Author: Ben Coe
 @isaacs/fs-minipass 4.0.0
   License: ISC
   Author: Isaac Z. Schlueter
@@ -304,15 +301,12 @@ Node dependencies
 @one-ini/wasm 0.1.1
   License: MIT
   Author: —
-@oxc-project/types 0.127.0
+@oxc-project/types 0.133.0
   License: MIT
   Author: Boshen and oxc contributors
 @petamoriken/float16 3.9.3
   License: MIT
   Author: Kenta Moriuchi
-@pkgjs/parseargs 0.11.0
-  License: MIT
-  Author: —
 @pkgr/core 0.2.9
   License: MIT
   Author: JounQin
@@ -322,7 +316,7 @@ Node dependencies
 @polka/url 1.0.0-next.24
   License: MIT
   Author: Luke Edwards
-@rolldown/binding-linux-x64-gnu 1.0.0-rc.17
+@rolldown/binding-linux-x64-gnu 1.0.3
   License: MIT
   Author: —
 @rolldown/pluginutils 1.0.0-rc.13
@@ -376,7 +370,7 @@ Node dependencies
 @types/fs-extra 9.0.13
   License: MIT
   Author: —
-@types/hammerjs 2.0.46
+@types/hammerjs 2.0.36
   License: MIT
   Author: —
 @types/http-cache-semantics 4.0.0
@@ -538,7 +532,7 @@ at-least-node 1.0.0
 available-typed-arrays 1.0.7
   License: MIT
   Author: Jordan Harband
-balanced-match 4.0.4
+balanced-match 1.0.2
   License: MIT
   Author: —
 base64-js 1.5.1
@@ -556,7 +550,7 @@ boolbase 1.0.0
 boolean 3.2.0
   License: MIT
   Author: —
-brace-expansion 5.0.6
+brace-expansion 1.1.12
   License: MIT
   Author: —
 buffer-from 1.0.0
@@ -655,6 +649,9 @@ component-emitter 2.0.0
 compressorjs 1.3.0
   License: MIT
   Author: Chen Fengyuan
+concat-map 0.0.1
+  License: MIT
+  Author: James Halliday
 config-chain 1.1.13
   License: MIT
   Author: Dominic Tarr
@@ -742,7 +739,7 @@ dir-compare 4.2.0
 dmg-builder 26.8.1
   License: MIT
   Author: Vladimir Krivosheev
-dompurify 3.4.5
+dompurify 3.4.11
   License: (MPL-2.0 OR Apache-2.0)
   Author: Dr.-Ing. Mario Heiderich, Cure53
 dotenv 16.6.1
@@ -757,9 +754,6 @@ dunder-proto 1.0.0
 earcut 3.0.0
   License: ISC
   Author: Vladimir Agafonkin
-eastasianwidth 0.2.0
-  License: MIT
-  Author: Masaki Komagata
 editorconfig 1.0.3
   License: MIT
   Author: EditorConfig Team
@@ -940,10 +934,7 @@ for-each 0.3.5
 foreach 2.0.6
   License: MIT
   Author: Manuel Stofer
-foreground-child 3.1.0
-  License: ISC
-  Author: Isaac Z. Schlueter
-form-data 4.0.5
+form-data 4.0.6
   License: MIT
   Author: Felix Geisendörfer
 fs-extra 7.0.1
@@ -952,6 +943,9 @@ fs-extra 7.0.1
 fs-minipass 3.0.0
   License: ISC
   Author: GitHub Inc.
+fs.realpath 1.0.0
+  License: ISC
+  Author: Isaac Z. Schlueter
 function-bind 1.1.1
   License: MIT
   Author: Raynos
@@ -982,7 +976,7 @@ get-stream 4.0.0
 get-symbol-description 1.1.0
   License: MIT
   Author: Jordan Harband
-glob 10.5.0
+glob 7.2.3
   License: ISC
   Author: Isaac Z. Schlueter
 glob 13.0.6
@@ -1069,6 +1063,9 @@ import-fresh 3.2.1
 imurmurhash 0.1.4
   License: MIT
   Author: Jens Taylor
+inflight 1.0.4
+  License: ISC
+  Author: Isaac Z. Schlueter
 inherits 2.0.1
   License: ISC
   Author: —
@@ -1084,9 +1081,9 @@ internal-slot 1.1.0
 invert-kv 2.0.0
   License: MIT
   Author: Sindre Sorhus
-ip 2.0.1
+ip-address 10.1.1
   License: MIT
-  Author: Fedor Indutny
+  Author: Beau Gunderson
 is-array-buffer 3.0.5
   License: MIT
   Author: Jordan Harband
@@ -1189,9 +1186,6 @@ istanbul-lib-report 3.0.1
 istanbul-reports 3.2.0
   License: BSD-3-Clause
   Author: Krishnan Anantheswaran
-jackspeak 3.1.2
-  License: BlueOak-1.0.0
-  Author: Isaac Z. Schlueter
 jake 10.8.5
   License: Apache-2.0
   Author: Matthew Eernisse
@@ -1321,10 +1315,10 @@ micron-parser 0.0.0
 mime 2.5.2
   License: MIT
   Author: Robert Kieffer
-mime-db 1.24.0
+mime-db 1.52.0
   License: MIT
   Author: —
-mime-types 2.1.12
+mime-types 2.1.35
   License: MIT
   Author: —
 mimic-fn 1.0.0
@@ -1480,9 +1474,6 @@ p-map 7.0.2
 p-try 2.0.0
   License: MIT
   Author: Sindre Sorhus
-package-json-from-dist 1.0.0
-  License: BlueOak-1.0.0
-  Author: Isaac Z. Schlueter
 pako 1.0.11
   License: (MIT AND Zlib)
   Author: —
@@ -1498,10 +1489,13 @@ parse5 8.0.1
 path-exists 3.0.0
   License: MIT
   Author: Sindre Sorhus
+path-is-absolute 1.0.0
+  License: MIT
+  Author: Sindre Sorhus
 path-key 2.0.0
   License: MIT
   Author: Sindre Sorhus
-path-scurry 1.11.1
+path-scurry 2.0.2
   License: BlueOak-1.0.0
   Author: Isaac Z. Schlueter
 pathe 2.0.3
@@ -1651,7 +1645,7 @@ rimraf 2.6.3
 roarr 2.15.3
   License: BSD-3-Clause
   Author: Gajus Kuizinas
-rolldown 1.0.0-rc.17
+rolldown 1.0.3
   License: MIT
   Author: —
 rw 1.3.3
@@ -1741,7 +1735,7 @@ sirv 3.0.2
 smart-buffer 4.2.0
   License: MIT
   Author: Josh Glazebrook
-socks 2.7.1
+socks 2.8.9
   License: MIT
   Author: Josh Glazebrook
 socks-proxy-agent 8.0.3
@@ -1816,7 +1810,7 @@ tailwindcss 4.2.4
 tapable 2.3.3
   License: MIT
   Author: Tobias Koppers @sokra
-tar 7.5.15
+tar 7.5.16
   License: BlueOak-1.0.0
   Author: Isaac Z. Schlueter
 temp 0.9.0
@@ -1855,7 +1849,7 @@ tldts 7.0.5
 tldts-core 7.0.5
   License: MIT
   Author: Rémi Berson
-tmp 0.2.6
+tmp 0.2.7
   License: MIT
   Author: KARASZI István
 tmp-promise 3.0.2
@@ -1894,7 +1888,7 @@ typed-array-length 1.0.7
 unbox-primitive 1.1.0
   License: MIT
   Author: Jordan Harband
-undici 7.26.0
+undici 7.28.0
   License: MIT
   Author: —
 undici-types 7.16.0
@@ -1939,7 +1933,7 @@ vis-network 9.1.13
 vis-util 5.0.7
   License: (Apache-2.0 OR MIT)
   Author: Alex de Mulder
-vite 8.0.10
+vite 8.0.16
   License: MIT
   Author: Evan You
 vite-plugin-vuetify 2.1.3

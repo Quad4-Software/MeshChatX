@@ -109,8 +109,9 @@ tasks.register("syncCodec2JniLibs", Exec) {
 tasks.register("verifyVendorWheels") {
     doLast {
         def vendorPackages = [
-            "aiohttp": "3.13.5",
+            "aiohttp": "3.14.1",
             "cbor2": "5.6.5",
+            "cryptography": "49.0.0",
         ]
         def wheels = vendorWheelDir.list()?.toList() ?: []
         selectedAndroidAbis.each { abi ->
@@ -224,7 +225,7 @@ chaquopy {
             }
             options "--find-links", vendorWheelDir.absolutePath
             install "packaging>=23"
-            install "aiohttp==3.13.5"
+            install "aiohttp==3.14.1"
             install "rns>=1.3.5"
             install "bleak==3.0.2"
             install "lxmf>=1.0.1"
@@ -240,7 +241,7 @@ chaquopy {
             install "websockets>=16.0"
             install "bcrypt==3.1.7"
             install "aiohttp-session>=2.12.1,<3.0.0"
-            install "cryptography==46.0.7"
+            install "cryptography==49.0.0"
             install "pycparser>=3.0"
             install "pyserial>=3.5"
             install "usbserial4a==0.4.0"
