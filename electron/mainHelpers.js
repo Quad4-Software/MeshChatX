@@ -47,8 +47,31 @@ function isLocalBackendUrl(url) {
     );
 }
 
+/**
+ * Whether window.open should create a child Electron window instead of the OS browser.
+ * Local backend popouts and call.html must stay in Electron so they keep the app session.
+ * @param {unknown} url
+ * @returns {boolean}
+ */
+function shouldOpenInElectronWindow(url) {
+    if (!url || typeof url !== "string") {
+        return false;
+    }
+    if (url.startsWith("blob:")) {
+        return true;
+    }
+    if (!isLocalBackendUrl(url)) {
+        return false;
+    }
+    if (url.includes("/call.html")) {
+        return true;
+    }
+    return url.includes("#/popout/");
+}
+
 module.exports = {
     getUserProvidedArguments,
     formatRenderProcessGoneDetails,
     isLocalBackendUrl,
+    shouldOpenInElectronWindow,
 };

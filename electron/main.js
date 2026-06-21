@@ -17,7 +17,12 @@ const fs = require("fs");
 const path = require("node:path");
 
 const { createBackendProcessManager } = require("./backendProcess");
-const { getUserProvidedArguments, formatRenderProcessGoneDetails, isLocalBackendUrl } = require("./mainHelpers");
+const {
+    getUserProvidedArguments,
+    formatRenderProcessGoneDetails,
+    isLocalBackendUrl,
+    shouldOpenInElectronWindow,
+} = require("./mainHelpers");
 const { isAllowedShellPath } = require("./shellPathGuard");
 const { normalizeExternalUrlForOpen } = require("./safeExternalUrl");
 
@@ -331,6 +336,40 @@ ipcMain.handle("pick-directory", async () => {
     return filePaths[0];
 });
 
+function getChildBrowserWindowOptions() {
+    return {
+        autoHideMenuBar: true,
+        webPreferences: {
+            preload: path.join(__dirname, "preload.js"),
+            nodeIntegration: false,
+            contextIsolation: true,
+            sandbox: true,
+            enableRemoteModule: false,
+        },
+    };
+}
+
+function handleWindowOpenRequest(url) {
+    if (shouldOpenInElectronWindow(url)) {
+        return {
+            action: "allow",
+            overrideBrowserWindowOptions: getChildBrowserWindowOptions(),
+        };
+    }
+
+    const safe = normalizeExternalUrlForOpen(url);
+    if (safe) {
+        shell.openExternal(safe);
+    }
+    return {
+        action: "deny",
+    };
+}
+
+function attachWindowOpenHandler(browserWindow) {
+    browserWindow.webContents.setWindowOpenHandler(({ url }) => handleWindowOpenRequest(url));
+}
+
 function attachDevToolsF12Shortcut(browserWindow) {
     browserWindow.webContents.on("before-input-event", (event, input) => {
         if (input.type !== "keyDown" || input.key !== "F12") {
@@ -570,6 +609,7 @@ app.whenReady().then(async () => {
     app.on("browser-window-created", (event, browserWindow) => {
         attachDefaultContextMenu(browserWindow);
         attachDevToolsF12Shortcut(browserWindow);
+        attachWindowOpenHandler(browserWindow);
     });
 
     // Security: Enforce CSP for all requests as a shell-level fallback
@@ -668,52 +708,6 @@ app.whenReady().then(async () => {
                 mainWindow.hide();
                 return false;
             }
-        });
-
-        // open external links in default web browser instead of electron
-        mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-            var shouldShowInNewElectronWindow = false;
-
-            // we want to open call.html in a new electron window
-            // but all other target="_blank" links should open in the system web browser
-            // we don't want /rnode-flasher/index.html to open in electron, otherwise user can't select usb devices...
-            if (
-                (url.startsWith("http://localhost") || url.startsWith("https://localhost")) &&
-                url.includes("/call.html")
-            ) {
-                shouldShowInNewElectronWindow = true;
-            }
-
-            // we want to open blob urls in a new electron window
-            else if (url.startsWith("blob:")) {
-                shouldShowInNewElectronWindow = true;
-            }
-
-            // open in new electron window
-            if (shouldShowInNewElectronWindow) {
-                return {
-                    action: "allow",
-                    overrideBrowserWindowOptions: {
-                        autoHideMenuBar: true,
-                        webPreferences: {
-                            preload: path.join(__dirname, "preload.js"),
-                            nodeIntegration: false,
-                            contextIsolation: true,
-                            sandbox: true,
-                            enableRemoteModule: false,
-                        },
-                    },
-                };
-            }
-
-            // fallback to opening any other url in external browser (http(s) / mailto only)
-            const safe = normalizeExternalUrlForOpen(url);
-            if (safe) {
-                shell.openExternal(safe);
-            }
-            return {
-                action: "deny",
-            };
         });
 
         // navigate to loading page
