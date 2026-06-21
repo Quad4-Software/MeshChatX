@@ -372,6 +372,8 @@
         "csp_extra_style_src_description": "Дополнительные источники для таблиц стилей.",
         "location": "Местоположение",
         "location_source": "Источник местоположения",
+        "location_source_disabled": "Отключено",
+        "location_source_disabled_desc": "Обмен местоположением отключён. Выберите автоматический или ручной режим для отправки координат.",
         "location_source_browser": "Автоматически (браузер)",
         "location_source_manual": "Вручную",
         "location_source_browser_desc": "Использует API геолокации вашего браузера. Примечание: в десктопном приложении это может использовать сервисы Google.",

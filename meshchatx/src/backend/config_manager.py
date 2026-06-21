@@ -314,7 +314,7 @@ class ConfigManager:
         )
 
         # location config
-        self.location_source = self.StringConfig(self, "location_source", "browser")
+        self.location_source = self.StringConfig(self, "location_source", "disabled")
         self.location_manual_lat = self.StringConfig(self, "location_manual_lat", "0.0")
         self.location_manual_lon = self.StringConfig(self, "location_manual_lon", "0.0")
         self.location_manual_alt = self.StringConfig(self, "location_manual_alt", "0.0")

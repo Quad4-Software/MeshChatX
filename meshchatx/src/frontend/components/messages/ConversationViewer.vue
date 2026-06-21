@@ -5627,6 +5627,11 @@ export default {
         async shareLocation() {
             const toastKey = "location_share";
             try {
+                if (this.config?.location_source === "disabled") {
+                    ToastUtils.error(this.$t("messages.location_disabled"), 5000, toastKey);
+                    return;
+                }
+
                 if (this.config?.location_source === "manual") {
                     const lat = parseFloat(this.config.location_manual_lat);
                     const lon = parseFloat(this.config.location_manual_lon);

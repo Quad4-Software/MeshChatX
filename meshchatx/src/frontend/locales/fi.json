@@ -380,6 +380,8 @@
         "csp_extra_style_src_description": "Additional sources for stylesheets.",
         "location": "Location",
         "location_source": "Location Source",
+        "location_source_disabled": "Disabled",
+        "location_source_disabled_desc": "Location sharing is turned off. Choose automatic or manual to share your coordinates.",
         "location_source_browser": "Automatic (Browser)",
         "location_source_manual": "Manual",
         "location_source_browser_desc": "Uses your browser's geolocation API. Note: In the desktop app, this may use Google services.",

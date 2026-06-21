@@ -372,6 +372,8 @@
         "csp_extra_style_src_description": "Sorgenti aggiuntive per fogli di stile.",
         "location": "Posizione",
         "location_source": "Sorgente posizione",
+        "location_source_disabled": "Disabilitato",
+        "location_source_disabled_desc": "La condivisione della posizione è disattivata. Scegli automatica o manuale per condividere le coordinate.",
         "location_source_browser": "Automatica (Browser)",
         "location_source_manual": "Manuale",
         "location_source_browser_desc": "Utilizza l'API di geolocalizzazione del browser. Nota: nell'app desktop, potrebbe utilizzare i servizi Google.",

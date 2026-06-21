@@ -17621,8 +17621,7 @@ class ReticulumMeshChat:
                             f"Telemetry request from untrusted peer {source_hash}, ignoring",
                         )
                     else:
-                        lat = self.database.config.get("map_default_lat")
-                        lon = self.database.config.get("map_default_lon")
+                        lat, lon = self._resolve_location_for_telemetry()
                         if lat is not None and lon is not None:
                             print(f"Responding to telemetry request from {source_hash}")
                             self.handle_telemetry_request(source_hash)
@@ -18610,10 +18609,20 @@ class ReticulumMeshChat:
         except Exception as e:
             print(f"Error processing incoming telemetry: {e}")
 
+    def _resolve_location_for_telemetry(self):
+        location_source = self.config.location_source.get()
+        if location_source == "disabled":
+            return None, None
+        if location_source == "manual":
+            lat = self.config.location_manual_lat.get()
+            lon = self.config.location_manual_lon.get()
+        else:
+            lat = self.database.config.get("map_default_lat")
+            lon = self.database.config.get("map_default_lon")
+        return lat, lon
+
     def handle_telemetry_request(self, to_addr_hash: str):
-        # get our location from config
-        lat = self.database.config.get("map_default_lat")
-        lon = self.database.config.get("map_default_lon")
+        lat, lon = self._resolve_location_for_telemetry()
 
         if lat is None or lon is None:
             print(

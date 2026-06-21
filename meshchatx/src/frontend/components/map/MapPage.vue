@@ -4110,6 +4110,9 @@ export default {
         },
 
         async resolveMyLocationWgs84() {
+            if (this.config?.location_source === "disabled") {
+                return null;
+            }
             if (this.config?.location_source === "manual") {
                 const lat = parseFloat(this.config.location_manual_lat);
                 const lon = parseFloat(this.config.location_manual_lon);
@@ -4591,6 +4594,10 @@ export default {
         },
 
         goToMyLocation() {
+            if (this.config?.location_source === "disabled") {
+                ToastUtils.warning(this.$t("map.location_not_determined"));
+                return;
+            }
             // Priority 1: Use manual location if configured
             if (this.config?.location_source === "manual") {
                 const lat = parseFloat(this.config.location_manual_lat);

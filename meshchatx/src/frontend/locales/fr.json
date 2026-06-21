@@ -372,6 +372,8 @@
         "csp_extra_style_src_description": "Sources supplémentaires pour les feuilles de style.",
         "location": "Lieu",
         "location_source": "Lieu Source",
+        "location_source_disabled": "Désactivé",
+        "location_source_disabled_desc": "Le partage de position est désactivé. Choisissez automatique ou manuel pour partager vos coordonnées.",
         "location_source_browser": "Automatique (navigateur)",
         "location_source_manual": "Manuel",
         "location_source_browser_desc": "Utilise l'API de géolocalisation de votre navigateur. Note: Dans l'application de bureau, cela peut utiliser les services Google.",

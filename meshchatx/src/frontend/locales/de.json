@@ -372,6 +372,8 @@
         "csp_extra_style_src_description": "Zusätzliche Quellen für Stylesheets.",
         "location": "Standort",
         "location_source": "Standortquelle",
+        "location_source_disabled": "Deaktiviert",
+        "location_source_disabled_desc": "Standortfreigabe ist ausgeschaltet. Wählen Sie automatisch oder manuell, um Koordinaten zu teilen.",
         "location_source_browser": "Automatisch (Browser)",
         "location_source_manual": "Manuell",
         "location_source_browser_desc": "Verwendet die Geolocation-API Ihres Browsers. Hinweis: In der Desktop-App kann dies Google-Dienste nutzen.",

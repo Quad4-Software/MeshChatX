@@ -42,6 +42,9 @@ def mock_app():
     app.process_incoming_telemetry = (
         ReticulumMeshChat.process_incoming_telemetry.__get__(app, ReticulumMeshChat)
     )
+    app._resolve_location_for_telemetry = (
+        ReticulumMeshChat._resolve_location_for_telemetry.__get__(app, ReticulumMeshChat)
+    )
 
     return app
 
@@ -122,6 +125,7 @@ async def test_telemetry_request_parsing(mock_app):
     mock_app.database.messages.get_lxmf_message_by_hash.return_value = {}
     mock_app.database.config.set("map_default_lat", 50.0)
     mock_app.database.config.set("map_default_lon", 10.0)
+    mock_app.current_context.config.location_source.get.return_value = "browser"
 
     mock_app.on_lxmf_delivery(mock_lxmf_message)
 
@@ -152,6 +156,7 @@ async def test_telemetry_request_no_location_does_not_call_handler(mock_app):
     }
     mock_app.database.messages.get_lxmf_message_by_hash.return_value = {}
     mock_app.database.config.get.side_effect = lambda key, default=None: None
+    mock_app.current_context.config.location_source.get.return_value = "disabled"
 
     mock_app.on_lxmf_delivery(mock_lxmf_message)
 
