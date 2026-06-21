@@ -32,10 +32,9 @@ prepare() {
   python -m venv "$_venv"
   # shellcheck disable=SC1091
   source "$_venv/bin/activate"
-  pip install --upgrade pip setuptools wheel
-  pip install -r requirements.txt
-  pip install 'cx-freeze>=7.0.0'
-  pip install --no-build-isolation .
+  pip install --upgrade pip setuptools wheel "uv==0.11.15"
+  uv lock --check
+  uv sync --group dev --active
   python scripts/patch_lxst_pyogg_ogg_ctypes.py
 }
 
