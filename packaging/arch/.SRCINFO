@@ -1,6 +1,6 @@
 pkgbase = reticulum-meshchatx-git
 	pkgdesc = A simple mesh network communications app powered by the Reticulum Network Stack
-	pkgver = 4.7.0.r0.gebacc00
+	pkgver = 4.7.1.r0.gebacc00
 	pkgrel = 1
 	url = https://github.com/Quad4-Software/MeshChatX
 	arch = x86_64

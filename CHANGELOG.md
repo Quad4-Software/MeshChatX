@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.7.1] - 2026-06-21
+
+### Fixed
+
+- **Android**: APK startup no longer crashes with **`library "libpython3.so" not found`** when loading **cryptography 49** wheels. The Android wheel build rewrites PyO3 **abi3** extension **DT_NEEDED** entries from the unversioned **`libpython3.so`** SONAME to Chaquopy's **`libpython3.11.so`** at pack time.
+- **Electron**: **`window.open`** for local backend **popout** routes (`#/popout/`), **call** pages, and **blob:** URLs now opens a child Electron window with the app session instead of failing or delegating to the OS browser.
+
 ## [4.7.0] - 2026-06-21
 
 ### Fixed
