@@ -12,6 +12,7 @@ vendor/offline/
 
 # Python
 __pycache__/
+fuzz/
 *.py[cod]
 *$py.class
 *.so
