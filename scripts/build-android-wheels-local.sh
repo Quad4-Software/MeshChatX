@@ -160,6 +160,7 @@ require_cmd curl
 require_cmd sed
 require_cmd awk
 require_cmd sort
+require_cmd patchelf
 
 case ",${ABI_LIST}," in
     *,armeabi-v7a,*)
@@ -258,7 +259,6 @@ if "chaquopy_python_abi3_available_lib" not in text:
         sys.exit(1)
     insert = """                            available_libs.add(name)
 
-        # abi3 Rust wheels link libpython3.so; only the versioned SONAME is scanned above.
         python_soname = f"libpython{self.python}.so"
         if python_soname in available_libs:
             available_libs.add("libpython3.so")
@@ -738,6 +738,61 @@ with zipfile.ZipFile(src, "r") as zin, zipfile.ZipFile(dst, "w", compression=zip
 PY
 fi
 
+fix_wheel_libpython_needed() {
+    local wheel="$1"
+    local python_soname="$2"
+    PYTHON_SONAME="${python_soname}" "${VENV_DIR}/bin/python" - "${wheel}" <<'PY'
+import os
+import subprocess
+import sys
+import tempfile
+import zipfile
+from pathlib import Path
+
+wheel = Path(sys.argv[1])
+old_soname = "libpython3.so"
+new_soname = os.environ["PYTHON_SONAME"]
+
+def patch_so(data):
+    with tempfile.NamedTemporaryFile(suffix=".so", delete=False) as handle:
+        handle.write(data)
+        so_path = handle.name
+    try:
+        result = subprocess.run(
+            ["patchelf", "--print-needed", so_path],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0 or old_soname not in result.stdout.split():
+            return None
+        subprocess.run(
+            ["patchelf", "--replace-needed", old_soname, new_soname, so_path],
+            check=True,
+        )
+        return Path(so_path).read_bytes()
+    finally:
+        Path(so_path).unlink(missing_ok=True)
+
+changed = False
+tmp = wheel.with_suffix(".tmp.whl")
+with zipfile.ZipFile(wheel, "r") as zin, zipfile.ZipFile(tmp, "w", compression=zipfile.ZIP_DEFLATED) as zout:
+    for item in zin.infolist():
+        data = zin.read(item.filename)
+        if item.filename.endswith(".so"):
+            patched = patch_so(data)
+            if patched is not None:
+                data = patched
+                changed = True
+        zout.writestr(item, data)
+
+if changed:
+    tmp.replace(wheel)
+    print(f"Rewrote {old_soname} -> {new_soname} in {wheel.name}")
+else:
+    tmp.unlink(missing_ok=True)
+PY
+}
+
 CUSTOM_RECIPES_DIR="${ROOT_DIR}/android/chaquopy-recipes"
 ONLY_RECIPES_FILTER=""
 if [[ -n "${ONLY_RECIPES}" ]]; then
@@ -790,7 +845,10 @@ PY
                 echo "Missing wheel output for ${PACKAGE_NAME} ${PACKAGE_VERSION} ${abi}" >&2
                 exit 1
             fi
-            cp -f ${WHEEL_GLOB} "${OUT_DIR}/"
+            for built_wheel in ${WHEEL_GLOB}; do
+                cp -f "${built_wheel}" "${OUT_DIR}/"
+                fix_wheel_libpython_needed "${OUT_DIR}/$(basename "${built_wheel}")" "libpython${PYTHON_MINOR}.so"
+            done
         done
 
         if [[ "${PACKAGE_NAME}" == "cryptography" ]]; then
