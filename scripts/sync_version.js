@@ -4,8 +4,8 @@
  *
  * Writes: meshchatx/__init__.py (__version__), meshchatx/src/version.py, pyproject.toml [project].version,
  * meshchatx/src/backend/data/THIRD_PARTY_NOTICES.txt (reticulum-meshchatx line only),
- * README + lang README "current version" lines, docs/meshchatx_on_raspberry_pi.md
- * (and meshchatx/src/frontend/public/meshchatx-docs copy), android/app/build.gradle,
+ * README + lang README "current version" lines, docs/meshchatx_on_raspberry_pi.md,
+ * android/app/build.gradle,
  * pipx example, packaging/arch/PKGBUILD pkgver / printf fallback.
  *
  * __version__ lives in meshchatx/__init__.py so Chaquopy/Android (which may not ship loose .py
@@ -99,7 +99,6 @@ function patchRaspberryPiDoc(c) {
 }
 
 patchFile("docs/meshchatx_on_raspberry_pi.md", patchRaspberryPiDoc);
-patchFile("meshchatx/src/frontend/public/meshchatx-docs/meshchatx_on_raspberry_pi.md", patchRaspberryPiDoc);
 
 const versionParts = version.split(".").map((n) => Number.parseInt(n, 10));
 if (versionParts.length === 3 && versionParts.every((n) => Number.isFinite(n))) {

@@ -8,7 +8,7 @@ This install path uses a release wheel, which already includes frontend assets.
 ## Automated Setup Scripts
 
 ```bash
-curl -fsSL 'https://github.com/Quad4-Software/MeshChatX/raw/branch/master/scripts/rpi/install_meshchatx.sh' | bash
+curl -fsSL 'https://raw.githubusercontent.com/Quad4-Software/MeshChatX/refs/heads/master/scripts/rpi/install_meshchatx.sh' | bash
 ```
 
 If you have the repo cloned locally already:
@@ -224,6 +224,22 @@ journalctl -u meshchatx.service -f
 journalctl -u meshchatx.service -n 200 --no-pager
 systemctl show meshchatx.service -p ExecStart -p User -p Group
 ```
+
+## Reset Password
+
+If you forget the web UI password and have SSH access to the Pi, reset it with the `--reset-password` flag:
+
+```bash
+meshchatx --reset-password --headless --host 0.0.0.0 --port 8000
+```
+
+Or set the environment variable:
+
+```bash
+MESHCHAT_RESET_PASSWORD=true meshchatx --headless --host 0.0.0.0 --port 8000
+```
+
+This clears the stored password hash on startup. Open the web UI and you will see the Initial Setup screen where you can set a new password. After resetting, you can stop the app and restart without the flag.
 
 ## Notes
 

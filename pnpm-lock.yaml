@@ -194,9 +194,6 @@ importers:
       micron-parser:
         specifier: github:RFnexus/micron-parser-js
         version: https://codeload.github.com/RFnexus/micron-parser-js/tar.gz/33feb1054c8b2cb3f5f05abbb8903360d3f0c098
-      postcss:
-        specifier: ^8.5.15
-        version: 8.5.15
       prettier:
         specifier: ^3.8.3
         version: 3.8.3
