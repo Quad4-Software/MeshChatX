@@ -1537,9 +1537,16 @@
                                         updateConfig({ location_source: config.location_source }, 'location_source')
                                     "
                                 >
+                                    <option value="disabled">{{ $t("app.location_source_disabled") }}</option>
                                     <option value="browser">{{ $t("app.location_source_browser") }}</option>
                                     <option value="manual">{{ $t("app.location_source_manual") }}</option>
                                 </select>
+                                <div
+                                    v-if="config.location_source === 'disabled'"
+                                    class="text-xs text-gray-600 dark:text-gray-400"
+                                >
+                                    {{ $t("app.location_source_disabled_desc") }}
+                                </div>
                                 <div
                                     v-if="config.location_source === 'browser'"
                                     class="text-xs text-gray-600 dark:text-gray-400"
@@ -2923,7 +2930,7 @@ export default {
                 message_waiting_bubble_color: "#e5e7eb",
                 telephone_tone_generator_enabled: true,
                 telephone_tone_generator_volume: 50,
-                location_source: "browser",
+                location_source: "disabled",
                 location_manual_lat: "0.0",
                 location_manual_lon: "0.0",
                 location_manual_alt: "0.0",
@@ -3317,7 +3324,7 @@ export default {
                     lxmf_address_hash: "",
                     theme: "dark",
                     is_transport_enabled: false,
-                    location_source: "browser",
+                    location_source: "disabled",
                     location_manual_lat: "0.0",
                     location_manual_lon: "0.0",
                     location_manual_alt: "0.0",

@@ -114,7 +114,7 @@ export function buildFullServerConfig(overrides = {}) {
         csp_extra_style_src: "",
         telephone_tone_generator_enabled: true,
         telephone_tone_generator_volume: 50,
-        location_source: "browser",
+        location_source: "disabled",
         location_manual_lat: "0.0",
         location_manual_lon: "0.0",
         location_manual_alt: "0.0",

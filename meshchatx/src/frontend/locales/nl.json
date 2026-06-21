@@ -372,6 +372,8 @@
         "csp_extra_style_src_description": "Aanvullende bronnen voor stijlbladen.",
         "location": "Locatie",
         "location_source": "Locatiebron",
+        "location_source_disabled": "Uitgeschakeld",
+        "location_source_disabled_desc": "Locatiedeling is uitgeschakeld. Kies automatisch of handmatig om coördinaten te delen.",
         "location_source_browser": "Automatisch (browser)",
         "location_source_manual": "Handleiding",
         "location_source_browser_desc": "Gebruikt de geolocatie API van uw browser. Opmerking: In de desktop-app kan dit gebruik maken van Google-services.",

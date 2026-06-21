@@ -372,6 +372,8 @@
         "csp_extra_style_src_description": "Fuentes adicionales para hojas de estilo.",
         "location": "Ubicación",
         "location_source": "Localización Fuente",
+        "location_source_disabled": "Desactivado",
+        "location_source_disabled_desc": "El uso compartido de ubicación está desactivado. Elija automático o manual para compartir coordenadas.",
         "location_source_browser": "Automático (Browser)",
         "location_source_manual": "Manual",
         "location_source_browser_desc": "Utiliza la API de geolocalización de su navegador. Nota: En la aplicación de escritorio, esto puede utilizar los servicios de Google.",

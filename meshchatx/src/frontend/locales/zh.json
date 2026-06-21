@@ -372,6 +372,8 @@
         "csp_extra_style_src_description": "样式表的额外来源。",
         "location": "位置",
         "location_source": "位置来源",
+        "location_source_disabled": "已禁用",
+        "location_source_disabled_desc": "位置共享已关闭。选择自动或手动以共享坐标。",
         "location_source_browser": "自动（浏览器）",
         "location_source_manual": "手动",
         "location_source_browser_desc": "使用您浏览器的地理定位 API。注意：在桌面应用程序中，这可能使用 Google 服务。",
