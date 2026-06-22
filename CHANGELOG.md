@@ -13,6 +13,14 @@ All notable changes to this project will be documented in this file.
 - **Archives / RNCP / messages**: Rich HTML link clicks use a shared navigation policy so **http(s)** links open externally and mesh links stay in-app (same behavior as Nomad Network and the micron editor preview).
 - **Android**: External **http(s)** links open in the system browser instead of being silently blocked in the WebView.
 
+### Added
+
+- **Rich HTML links**: Shared **`NomadRichHtmlLinks`** click handler for **v-html** surfaces (Nomad browser, micron editor preview, archives, RNCP, conversation messages). Routes Nomad mesh and LXMF links in-app, opens **http(s)** externally, scrolls in-page anchors, and blocks unsafe **`javascript:`** navigation. Behavior contract tests guard wiring across frontend, Electron, and Android.
+
+### Changed
+
+- **Tests**: Removed obsolete no-op backend tests; strengthened frontend security and UI coverage (**BlockedPage**, **SettingsPage** copy/banished visibility, TGS decode fuzz, **RelayChat** XSS fuzz, **interfaceDiscoveryUtils**, **ArchivesPage**, **NomadRichHtmlLinks**) with behavior assertions instead of always-true checks.
+
 ## [4.7.1] - 2026-06-21
 
 ### Fixed
