@@ -95,6 +95,45 @@ describe("behavior contracts: user-visible wiring must stay connected", () => {
             expect(meshchat).toContain("async def page_nodes_upload_file");
             expect(meshchat).toContain("node.add_file(filename, file_data)");
         });
+
+        it("page node upload returns JSON errors instead of unhandled 500s", () => {
+            const meshchat = readSource("meshchatx/meshchat.py");
+            const start = meshchat.indexOf("async def page_nodes_upload_file");
+            expect(start).toBeGreaterThan(-1);
+            const end = meshchat.indexOf("async def page_nodes_delete_file", start);
+            const block = meshchat.slice(start, end);
+            expect(block).toContain("except ValueError as e:");
+            expect(block).toContain("except OSError as e:");
+            expect(block).toContain("Failed to write file:");
+        });
+    });
+
+    describe("rich html link policy", () => {
+        const surfaces = [
+            ["MicronEditorPage.vue", "meshchatx/src/frontend/components/micron-editor/MicronEditorPage.vue"],
+            ["NomadNetworkPage.vue", "meshchatx/src/frontend/components/nomadnetwork/NomadNetworkPage.vue"],
+            ["ArchivesPage.vue", "meshchatx/src/frontend/components/archives/ArchivesPage.vue"],
+            ["RNCPPage.vue", "meshchatx/src/frontend/components/rncp/RNCPPage.vue"],
+            ["ConversationViewer.vue", "meshchatx/src/frontend/components/messages/ConversationViewer.vue"],
+        ];
+
+        it.each(surfaces)("%s uses shared rich html link handler", (_, relativePath) => {
+            const src = readSource(relativePath);
+            expect(src).toContain("NomadRichHtmlLinks");
+            expect(src).toContain("handleRichHtmlLinkClick");
+        });
+
+        it("electron main attaches in-window navigation and popout guards", () => {
+            const main = readSource("electron/main.js");
+            expect(main).toContain("attachInWindowNavigationGuard");
+            expect(main).toContain("setWindowOpenHandler");
+        });
+
+        it("Android WebView opens external http(s) in the system browser", () => {
+            const src = readSource("android/app/src/main/java/com/meshchatx/MainActivity.java");
+            expect(src).toContain("openExternalBrowserUri");
+            expect(src).toContain("Intent.ACTION_VIEW");
+        });
     });
 });
 

@@ -32,6 +32,15 @@ function randText(len) {
     return s;
 }
 
+function assertNoDangerousHtmlPatterns(html) {
+    const lower = html.toLowerCase();
+    expect(lower).not.toContain("<script");
+    expect(lower).not.toContain("<iframe");
+    expect(lower).not.toContain("javascript:");
+    expect(lower).not.toMatch(/<[^>]*\bonerror\s*=/);
+    expect(lower).not.toMatch(/<[^>]*\bonload\s*=/);
+}
+
 describe("Archives page viewing-archive surface (security / fuzz)", () => {
     const nastyPaths = [
         "/page/article.mu`topic_id=40",
@@ -51,6 +60,18 @@ describe("Archives page viewing-archive surface (security / fuzz)", () => {
         "\x00".repeat(20),
     ];
 
+    it("renderFullContent sanitizes .html archives", () => {
+        const { wrapper } = mountArchives();
+        const out = wrapper.vm.renderFullContent({
+            page_path: "/page/evil.html",
+            content: '<body><img src=x onerror=alert(1)><a href="javascript:alert(1)">x</a></body>',
+            destination_hash: "a".repeat(64),
+            hash: "b".repeat(64),
+            id: 1,
+        });
+        assertNoDangerousHtmlPatterns(out);
+    });
+
     it("renderFullContent never throws; returns a string for fuzzed paths and bodies", () => {
         const { wrapper } = mountArchives();
         for (let i = 0; i < 90; i++) {
@@ -66,14 +87,29 @@ describe("Archives page viewing-archive surface (security / fuzz)", () => {
             expect(() => wrapper.vm.renderFullContent(archive)).not.toThrow();
             const out = wrapper.vm.renderFullContent(archive);
             expect(typeof out).toBe("string");
+            if ((archive.page_path || "").split("`")[0].toLowerCase().endsWith(".html")) {
+                assertNoDangerousHtmlPatterns(out);
+            }
         }
     });
 
-    it("archiveViewerClasses stays an array for adversarial page_path values", () => {
+    it("archiveViewerClasses picks safe viewer classes for adversarial page_path values", () => {
         const { wrapper } = mountArchives();
-        for (const page_path of nastyPaths) {
+        const cases = [
+            { page_path: "/page/article.mu`topic_id=40", expectRich: true },
+            { page_path: "/page/readme.html", expectRich: true, expectHtml: true },
+            { page_path: "javascript:alert(1)", expectRich: false },
+            { page_path: "../../../etc/passwd", expectRich: false },
+        ];
+        for (const { page_path, expectRich, expectHtml } of cases) {
             wrapper.vm.viewingArchive = { page_path };
-            expect(Array.isArray(wrapper.vm.archiveViewerClasses)).toBe(true);
+            const classes = wrapper.vm.archiveViewerClasses;
+            expect(Array.isArray(classes)).toBe(true);
+            expect(classes).toContain("wrap-break-word");
+            expect(classes.includes("nomad-page-rich")).toBe(expectRich);
+            if (expectHtml) {
+                expect(classes).toContain("nomad-page-html-host");
+            }
         }
         wrapper.vm.viewingArchive = null;
     });
@@ -105,28 +141,35 @@ describe("Archives page viewing-archive surface (security / fuzz)", () => {
         expect(base.includes("..")).toBe(false);
     });
 
-    it("onArchiveContentClick handles nomadnet links and fragment anchors without throwing", () => {
+    it("onArchiveContentClick routes nomadnet links and scrolls fragment anchors", () => {
         const { wrapper, routerPush } = mountArchives();
         const holder = document.createElement("div");
         holder.innerHTML =
-            '<a class="nomadnet-link" data-nomadnet-url="abc123:/p.mu`q=1">n</a>' + '<a href="#frag%20ment">f</a>';
+            '<a class="nomadnet-link" data-nomadnet-url="abc123:/p.mu`q=1">n</a>' +
+            '<div id="frag ment">target</div><a href="#frag%20ment">f</a>';
         document.body.appendChild(holder);
         try {
             const nomadA = holder.querySelector("a.nomadnet-link");
+            const fragTarget = holder.querySelector("#frag\\ ment");
+            fragTarget.scrollIntoView = vi.fn();
             const fragA = holder.querySelector('a[href^="#"]');
             const clickOn = (el) => {
-                const ev = new MouseEvent("click", { bubbles: true });
+                const ev = new MouseEvent("click", { bubbles: true, cancelable: true });
                 Object.defineProperty(ev, "target", { value: el });
                 wrapper.vm.onArchiveContentClick(ev);
+                return ev;
             };
-            clickOn(nomadA);
+            const nomadEv = clickOn(nomadA);
             expect(routerPush).toHaveBeenCalledWith({
                 name: "nomadnetwork",
                 params: { destinationHash: "abc123" },
                 query: { path: "/p.mu`q=1" },
             });
+            expect(nomadEv.defaultPrevented).toBe(true);
             routerPush.mockClear();
-            clickOn(fragA);
+            const fragEv = clickOn(fragA);
+            expect(fragEv.defaultPrevented).toBe(true);
+            expect(fragTarget.scrollIntoView).toHaveBeenCalled();
         } finally {
             document.body.removeChild(holder);
         }
@@ -134,5 +177,44 @@ describe("Archives page viewing-archive surface (security / fuzz)", () => {
         const noopEv = new MouseEvent("click");
         Object.defineProperty(noopEv, "target", { value: noop });
         expect(() => wrapper.vm.onArchiveContentClick(noopEv)).not.toThrow();
+    });
+
+    it("onArchiveContentClick opens http links externally", async () => {
+        const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
+        const { wrapper } = mountArchives();
+        const holder = document.createElement("div");
+        holder.innerHTML = '<a href="https://example.com/page">Example</a>';
+        document.body.appendChild(holder);
+        try {
+            const link = holder.querySelector("a");
+            const ev = new MouseEvent("click", { bubbles: true, cancelable: true });
+            Object.defineProperty(ev, "target", { value: link });
+            wrapper.vm.onArchiveContentClick(ev);
+            expect(openSpy).toHaveBeenCalledWith("https://example.com/page", "_blank", "noopener,noreferrer");
+            expect(ev.defaultPrevented).toBe(true);
+        } finally {
+            document.body.removeChild(holder);
+            openSpy.mockRestore();
+        }
+    });
+
+    it("onArchiveContentClick blocks javascript: anchors without opening a window", () => {
+        const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
+        const { wrapper, routerPush } = mountArchives();
+        const holder = document.createElement("div");
+        holder.innerHTML = '<a href="javascript:alert(1)">bad</a>';
+        document.body.appendChild(holder);
+        try {
+            const link = holder.querySelector("a");
+            const ev = new MouseEvent("click", { bubbles: true, cancelable: true });
+            Object.defineProperty(ev, "target", { value: link });
+            wrapper.vm.onArchiveContentClick(ev);
+            expect(ev.defaultPrevented).toBe(true);
+            expect(openSpy).not.toHaveBeenCalled();
+            expect(routerPush).not.toHaveBeenCalled();
+        } finally {
+            document.body.removeChild(holder);
+            openSpy.mockRestore();
+        }
     });
 });

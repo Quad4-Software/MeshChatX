@@ -136,6 +136,17 @@ public class MainActivity extends AppCompatActivity {
         return "127.0.0.1".equals(h) || "localhost".equals(h) || "[::1]".equals(h) || "::1".equals(h);
     }
 
+    private void openExternalBrowserUri(Uri uri) {
+        if (uri == null) {
+            return;
+        }
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, uri));
+        } catch (ActivityNotFoundException ignored) {
+            // no browser installed
+        }
+    }
+
     private final ActivityResultLauncher<Intent> filePickerLauncher = registerForActivityResult(
         new ActivityResultContracts.StartActivityForResult(),
         result -> {
@@ -198,15 +209,18 @@ public class MainActivity extends AppCompatActivity {
                 if (isAllowedWebViewNavigationUri(uri)) {
                     return false;
                 }
+                openExternalBrowserUri(uri);
                 return true;
             }
 
             @Override
             @SuppressWarnings("deprecation")
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
-                if (isAllowedWebViewNavigationUri(url != null ? Uri.parse(url) : null)) {
+                Uri uri = url != null ? Uri.parse(url) : null;
+                if (isAllowedWebViewNavigationUri(uri)) {
                     return false;
                 }
+                openExternalBrowserUri(uri);
                 return true;
             }
 

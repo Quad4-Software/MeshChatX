@@ -1781,7 +1781,7 @@ import ToastUtils from "../../js/ToastUtils";
 import PaperMessageModal from "./PaperMessageModal.vue";
 import GlobalState from "../../js/GlobalState";
 import MarkdownRenderer from "../../js/MarkdownRenderer";
-import LinkUtils from "../../js/LinkUtils";
+import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
 import { findMapUriInContent, mapLinkKindFromMessage, parseMeshchatMapUri } from "../../js/mapLinkUtils.js";
 import { LXMF_REACTION_EMOJIS, mergeLxmfReactionRowsIntoMessages } from "../../js/lxmfReactions";
 import { createOutboundQueue } from "../../js/outboundSendQueue";
@@ -2584,62 +2584,38 @@ export default {
         },
         async handleMessageClick(event) {
             const hex32 = /^[a-fA-F0-9]{32}$/;
-            const nomadnetLink = event.target.closest(".nomadnet-link");
-            if (nomadnetLink) {
-                event.preventDefault();
-                const url = nomadnetLink.getAttribute("data-nomadnet-url");
-                if (url) {
+            const routeName = this.$route.meta.isPopout ? "nomadnetwork-popout" : "nomadnetwork";
+            handleRichHtmlLinkClick(event, {
+                onNomadUrl: (url) => {
                     const [hash, ...pathParts] = url.split(":");
                     const path = pathParts.join(":");
                     if (!hex32.test(hash)) {
                         return;
                     }
-                    const routeName = this.$route.meta.isPopout ? "nomadnetwork-popout" : "nomadnetwork";
                     this.$router.push({
                         name: routeName,
                         params: { destinationHash: hash },
                         query: { path: path },
                     });
-                }
-                return;
-            }
-
-            const lxmfLink = event.target.closest(".lxmf-link");
-            if (lxmfLink) {
-                event.preventDefault();
-                const address = lxmfLink.getAttribute("data-lxmf-address");
-                if (address && hex32.test(address)) {
+                },
+                onLxmfAddress: (address) => {
                     this.$router.push({
                         name: "messages",
                         params: { destinationHash: address },
                     });
-                }
-                return;
-            }
-
-            const standardLink = event.target.closest("a[href]");
-            if (!standardLink) {
-                return;
-            }
-
-            const hrefRaw = String(standardLink.getAttribute("href") || "").trim();
-            const safeHttp = LinkUtils.httpUrlHrefOrNull(hrefRaw);
-            if (!safeHttp) {
-                event.preventDefault();
-                return;
-            }
-
-            event.preventDefault();
-            if (this.isStrangerPeer && this.warnOnStrangerLinksEnabled) {
-                const proceed = await DialogUtils.confirm(
-                    this.$t("messages.stranger_link_open_confirm", { url: safeHttp })
-                );
-                if (!proceed) {
-                    return;
-                }
-            }
-
-            window.open(safeHttp, "_blank", "noopener,noreferrer");
+                },
+                openExternalHttp: async (safeHttp) => {
+                    if (this.isStrangerPeer && this.warnOnStrangerLinksEnabled) {
+                        const proceed = await DialogUtils.confirm(
+                            this.$t("messages.stranger_link_open_confirm", { url: safeHttp })
+                        );
+                        if (!proceed) {
+                            return;
+                        }
+                    }
+                    window.open(safeHttp, "_blank", "noopener,noreferrer");
+                },
+            });
         },
         async updatePropagationNodeStatus() {
             try {

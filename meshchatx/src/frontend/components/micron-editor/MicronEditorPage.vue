@@ -178,6 +178,7 @@ import { micronStorage } from "../../js/MicronStorage";
 import { preloadNomadMicronWasm, isMicronWasmBundled } from "../../js/MicronWasmLoader";
 import DialogUtils from "../../js/DialogUtils";
 import LinkUtils from "../../js/LinkUtils.js";
+import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 
 const NOMAD_DESTINATION_HASH = /^[a-fA-F0-9]{32}$/;
@@ -264,68 +265,11 @@ export default {
             });
         },
         onPreviewClick(event) {
-            const nomadLink = event.target.closest("a.nomadnet-link[data-nomadnet-url]");
-            if (nomadLink) {
-                event.preventDefault();
-                event.stopPropagation();
-                const url = nomadLink.getAttribute("data-nomadnet-url");
-                if (url) {
-                    this.openNomadDestination(url);
-                }
-                return;
-            }
-
-            const externalAnchor = event.target.closest("a[href]");
-            if (externalAnchor && !externalAnchor.classList.contains("nomadnet-link")) {
-                const href = externalAnchor.getAttribute("href");
-                const httpHref = href ? LinkUtils.httpUrlHrefOrNull(href.trim()) : null;
-                if (httpHref) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    this.openExternalHttpUrl(httpHref);
-                    return;
-                }
-            }
-
-            const fragAnchor = event.target.closest("a[href]");
-            if (
-                fragAnchor &&
-                fragAnchor.getAttribute("href") &&
-                fragAnchor.getAttribute("href") !== "#" &&
-                fragAnchor.getAttribute("href").startsWith("#") &&
-                !fragAnchor.getAttribute("data-nomadnet-url")
-            ) {
-                event.preventDefault();
-                event.stopPropagation();
-                const raw = fragAnchor.getAttribute("href").slice(1);
-                const id = decodeURIComponent(raw);
-                const root = this.$refs.previewRef;
-                const el = root ? root.querySelector(`#${CSS.escape(id)}`) : document.getElementById(id);
-                if (el) {
-                    el.scrollIntoView({ behavior: "smooth", block: "nearest" });
-                }
-                return;
-            }
-
-            const nodeLink = event.target.closest('[data-action="openNode"]');
-            if (nodeLink) {
-                event.preventDefault();
-                event.stopPropagation();
-                const destination = nodeLink.getAttribute("data-destination");
-                if (destination) {
-                    this.openNomadDestination(destination);
-                }
-                return;
-            }
-
-            const anchor = event.target.closest("a[href]");
-            if (anchor) {
-                const href = (anchor.getAttribute("href") || "").trim();
-                if (href && href !== "#" && !href.startsWith("#")) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-            }
+            handleRichHtmlLinkClick(event, {
+                scrollRoot: this.$refs.previewRef,
+                onNomadUrl: (url) => this.openNomadDestination(url),
+                onOpenNode: (destination) => this.openNomadDestination(destination),
+            });
         },
         renderActiveTab() {
             if (this.tabs.length === 0 || !this.tabs[this.activeTabIndex]) {
