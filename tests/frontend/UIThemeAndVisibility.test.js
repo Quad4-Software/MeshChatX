@@ -402,14 +402,15 @@ describe("Visibility Checks", () => {
         });
 
         await wrapper.vm.$nextTick();
+        await wrapper.vm.getConfig();
         await wrapper.vm.$nextTick();
 
         wrapper.vm.config.banished_effect_enabled = true;
         await wrapper.vm.$nextTick();
 
-        const hasBanishedConfig =
-            wrapper.text().includes("app.banished") || wrapper.findAll('input[type="text"]').length > 0;
-        expect(hasBanishedConfig).toBe(true);
+        expect(wrapper.text()).toContain("app.banished_text_label");
+        expect(wrapper.text()).toContain("app.banished_color_label");
+        expect(wrapper.findAll('input[type="color"]').length).toBeGreaterThanOrEqual(1);
 
         delete window.api;
     });

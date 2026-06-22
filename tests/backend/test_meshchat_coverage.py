@@ -464,37 +464,6 @@ async def test_on_lxmf_sending_state_updated(mock_app):
         mock_run_async.assert_called_once()
 
 
-@pytest.mark.asyncio
-async def test_lxmf_messages_send_route(mock_app):
-    # Setup mocks for route handler
-    mock_app.send_message = MagicMock(return_value=asyncio.Future())
-    mock_msg = MagicMock()
-    mock_msg.hash = b"hash"
-    mock_app.send_message.return_value.set_result(mock_msg)
-
-    # Mock convert_lxmf_message_to_dict
-    with patch(
-        "meshchatx.meshchat.convert_lxmf_message_to_dict",
-        return_value={"hash": "hashhex"},
-    ):
-        # We need to find the route handler. It's normally set up in __init__.
-        # Let's mock a request
-        request = MagicMock()
-        request.json = MagicMock(return_value=asyncio.Future())
-        request.json.return_value.set_result(
-            {
-                "lxmf_message": {
-                    "destination_hash": "dest",
-                    "content": "hello",
-                    "fields": {},
-                },
-            },
-        )
-
-        # Since we can't easily get the handler from mock_app without full init,
-        # we can skip this or try to mock the internal method if it exists.
-
-
 def test_on_lxmf_sending_failed_no_propagation(mock_app):
     mock_msg = MagicMock()
     mock_msg.state = 0  # NOT FAILED

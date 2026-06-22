@@ -151,6 +151,7 @@ describe("RelayChatPage security and fuzz", () => {
             expect(() => wrapper.vm.onWebsocketMessage(event)).not.toThrow();
         }
         expect(wrapper.vm.messages.length).toBeGreaterThanOrEqual(before);
+        expect(wrapper.html().toLowerCase()).not.toContain("<script>");
     });
 
     it("does not append websocket messages for mismatched hub or room", async () => {

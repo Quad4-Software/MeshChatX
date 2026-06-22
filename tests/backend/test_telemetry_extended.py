@@ -40,6 +40,3 @@ def test_telemeter_unpack_location_robustness():
     # Test with invalid types
     assert Telemeter.unpack_location(["not_bytes"] * 7) is None
 
-
-def test_sideband_request_format_compatibility():
-    pass
