@@ -242,6 +242,7 @@ import {
     isMicronWasmBundled,
 } from "../../js/MicronWasmLoader.js";
 import { renderNomadPageByPath } from "../../js/NomadPageRenderer.js";
+import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
 import ArchiveSidebar from "./ArchiveSidebar.vue";
 
 export default {
@@ -531,40 +532,26 @@ export default {
             return Utils.formatTimeAgo(dateStr);
         },
         onArchiveContentClick(event) {
-            const nomadLink = event.target.closest("a.nomadnet-link[data-nomadnet-url]");
-            if (nomadLink) {
-                event.preventDefault();
-                event.stopPropagation();
-                const url = nomadLink.getAttribute("data-nomadnet-url");
-                if (!url) {
-                    return;
-                }
-                const [hash, ...pathParts] = url.split(":");
-                const path = pathParts.join(":");
-                this.$router.push({
-                    name: "nomadnetwork",
-                    params: { destinationHash: hash },
-                    query: { path: path },
-                });
-                return;
-            }
-            const fragAnchor = event.target.closest("a[href]");
-            if (
-                fragAnchor &&
-                fragAnchor.getAttribute("href") &&
-                fragAnchor.getAttribute("href") !== "#" &&
-                fragAnchor.getAttribute("href").startsWith("#") &&
-                !fragAnchor.getAttribute("data-nomadnet-url")
-            ) {
-                event.preventDefault();
-                event.stopPropagation();
-                const raw = fragAnchor.getAttribute("href").slice(1);
-                const id = decodeURIComponent(raw);
-                const el = document.getElementById(id);
-                if (el) {
-                    el.scrollIntoView({ behavior: "smooth", block: "nearest" });
-                }
-            }
+            handleRichHtmlLinkClick(event, {
+                onNomadUrl: (url) => {
+                    const [hash, ...pathParts] = url.split(":");
+                    const path = pathParts.join(":");
+                    this.$router.push({
+                        name: "nomadnetwork",
+                        params: { destinationHash: hash },
+                        query: { path: path },
+                    });
+                },
+                onOpenNode: (destination) => {
+                    const [hash, ...pathParts] = destination.split(":");
+                    const path = pathParts.join(":") || "/page/index.mu";
+                    this.$router.push({
+                        name: "nomadnetwork",
+                        params: { destinationHash: hash },
+                        query: { path: path },
+                    });
+                },
+            });
         },
         async downloadTextAsFile(content, filename) {
             const blob = new Blob([content ?? ""], { type: "text/plain;charset=utf-8" });

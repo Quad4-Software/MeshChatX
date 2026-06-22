@@ -574,6 +574,7 @@
 <script>
 import MicronParser from "../../js/MicronParser";
 import LinkUtils from "../../js/LinkUtils";
+import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
 import { renderNomadPageByPath, resolveNomadPageShellBackground } from "../../js/NomadPageRenderer";
 import DialogUtils from "../../js/DialogUtils";
 import WebSocketConnection from "../../js/WebSocketConnection";
@@ -1202,60 +1203,14 @@ export default {
             });
         },
         onElementClick(event) {
-            const nomadLink = event.target.closest("a.nomadnet-link[data-nomadnet-url]");
-            if (nomadLink) {
-                event.preventDefault();
-                event.stopPropagation();
-                const url = nomadLink.getAttribute("data-nomadnet-url");
-                if (url) {
+            handleRichHtmlLinkClick(event, {
+                onNomadUrl: (url) => {
                     this.onNodePageUrlClick(url, null, true, false, this.getLinkNavOptions(event));
-                }
-                return;
-            }
-
-            const externalAnchor = event.target.closest("a[href]");
-            if (externalAnchor && !externalAnchor.classList.contains("nomadnet-link")) {
-                const href = externalAnchor.getAttribute("href");
-                const httpHref = href ? LinkUtils.httpUrlHrefOrNull(href.trim()) : null;
-                if (httpHref) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    window.open(httpHref, "_blank", "noopener,noreferrer");
-                    return;
-                }
-            }
-
-            const fragAnchor = event.target.closest("a[href]");
-            if (
-                fragAnchor &&
-                fragAnchor.getAttribute("href") &&
-                fragAnchor.getAttribute("href") !== "#" &&
-                fragAnchor.getAttribute("href").startsWith("#") &&
-                !fragAnchor.getAttribute("data-nomadnet-url")
-            ) {
-                event.preventDefault();
-                event.stopPropagation();
-                const raw = fragAnchor.getAttribute("href").slice(1);
-                const id = decodeURIComponent(raw);
-                const el = document.getElementById(id);
-                if (el) {
-                    el.scrollIntoView({ behavior: "smooth", block: "nearest" });
-                }
-                return;
-            }
-
-            const element = event.target.closest('[data-action="openNode"]');
-            if (!element) {
-                return;
-            }
-
-            event.preventDefault();
-            event.stopPropagation();
-
-            const destination = element.getAttribute("data-destination");
-            const fields = element.getAttribute("data-fields");
-
-            this.onNodePageUrlClick(destination, fields, true, false, this.getLinkNavOptions(event));
+                },
+                onOpenNode: (destination, fields) => {
+                    this.onNodePageUrlClick(destination, fields, true, false, this.getLinkNavOptions(event));
+                },
+            });
         },
         async onWebsocketMessage(message) {
             const json = JSON.parse(message.data);

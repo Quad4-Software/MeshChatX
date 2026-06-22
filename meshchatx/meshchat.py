@@ -11066,13 +11066,38 @@ class ReticulumMeshChat:
             node = self.page_node_manager.get_node(node_id)
             if not node:
                 return web.json_response({"message": "Node not found"}, status=404)
-            reader = await request.multipart()
-            field = await reader.next()
+            try:
+                reader = await request.multipart()
+                field = await reader.next()
+            except Exception as e:
+                return web.json_response(
+                    {"message": f"Invalid upload request: {e}"},
+                    status=400,
+                )
             if field is None:
                 return web.json_response({"message": "No file uploaded"}, status=400)
             filename = field.filename or "upload"
-            file_data = await field.read()
-            saved_name = node.add_file(filename, file_data)
+            try:
+                file_data = await field.read()
+            except Exception as e:
+                return web.json_response(
+                    {"message": f"Failed to read upload: {e}"},
+                    status=400,
+                )
+            try:
+                saved_name = node.add_file(filename, file_data)
+            except ValueError as e:
+                return web.json_response({"message": str(e)}, status=400)
+            except OSError as e:
+                return web.json_response(
+                    {"message": f"Failed to write file: {e}"},
+                    status=500,
+                )
+            except Exception as e:
+                return web.json_response(
+                    {"message": f"Failed to save file: {e}"},
+                    status=500,
+                )
             return web.json_response({"name": saved_name, "message": "File uploaded"})
 
         @routes.delete("/api/v1/page-nodes/{node_id}/files/{file_name}")

@@ -451,6 +451,7 @@ import ElectronUtils from "../../js/ElectronUtils";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import MarkdownRenderer from "../../js/MarkdownRenderer";
+import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
 import ToastUtils from "../../js/ToastUtils";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 
@@ -832,11 +833,8 @@ export default {
         },
         handleMessageClick(event) {
             const hex32 = /^[a-fA-F0-9]{32}$/;
-            const nomadnetLink = event.target.closest(".nomadnet-link");
-            if (nomadnetLink) {
-                event.preventDefault();
-                const url = nomadnetLink.getAttribute("data-nomadnet-url");
-                if (url) {
+            handleRichHtmlLinkClick(event, {
+                onNomadUrl: (url) => {
                     const [hash, ...pathParts] = url.split(":");
                     const path = pathParts.join(":");
                     if (hex32.test(hash)) {
@@ -846,21 +844,14 @@ export default {
                             query: { path: path },
                         });
                     }
-                }
-                return;
-            }
-
-            const lxmfLink = event.target.closest(".lxmf-link");
-            if (lxmfLink) {
-                event.preventDefault();
-                const address = lxmfLink.getAttribute("data-lxmf-address");
-                if (address && hex32.test(address)) {
+                },
+                onLxmfAddress: (address) => {
                     this.$router.push({
                         name: "messages",
                         params: { destinationHash: address },
                     });
-                }
-            }
+                },
+            });
         },
     },
 };
