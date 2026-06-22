@@ -24,6 +24,8 @@ describe("interfaceDiscoveryUtils security-oriented inputs", () => {
         for (let i = 0; i < 300; i++) {
             const s = String.fromCodePoint(...Array.from({ length: 8 }, () => Math.floor(Math.random() * 0x10ffff)));
             expect(() => numOrNull(s)).not.toThrow();
+            const result = numOrNull(s);
+            expect(result === null || (typeof result === "number" && Number.isFinite(result))).toBe(true);
         }
     });
 });

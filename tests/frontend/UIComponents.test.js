@@ -453,10 +453,12 @@ describe("SettingsPage Component", () => {
         await wrapper.vm.$nextTick();
 
         const buttons = wrapper.findAll("button");
-        const hasCopyButtons = buttons.some(
-            (btn) => btn.text().includes("app.identity_hash") || btn.text().includes("app.lxmf_address")
-        );
-        expect(hasCopyButtons || buttons.length > 0).toBe(true);
+        const copyButtons = buttons.filter((btn) => btn.text().includes("app.copy"));
+        expect(copyButtons.length).toBeGreaterThanOrEqual(2);
+        expect(wrapper.text()).toContain("app.identity_hash");
+        expect(wrapper.text()).toContain("app.lxmf_address");
+        expect(wrapper.text()).toContain("abc123");
+        expect(wrapper.text()).toContain("def456");
     });
 
     it("handles toggle changes for banished effect", async () => {

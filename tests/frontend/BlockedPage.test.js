@@ -55,9 +55,9 @@ describe("BlockedPage UI", () => {
     it("renders blocked items when provided", async () => {
         global.api.get = vi.fn().mockImplementation((url, opts) => {
             if (url === "/api/v1/blocked-destinations")
-                return Promise.resolve({ data: { blocked_destinations: ["abc123"] } });
+                return Promise.resolve({ data: { blocked_destinations: [{ destination_hash: "abc123" }] } });
             if (url === "/api/v1/reticulum/blackhole") return Promise.resolve({ data: { blackholed_identities: {} } });
-            if (url === "/api/v1/announces" && opts?.params?.identity_hash === "abc123")
+            if (url === "/api/v1/announces" && opts?.params?.destination_hash === "abc123")
                 return Promise.resolve({
                     data: {
                         announces: [
@@ -75,7 +75,10 @@ describe("BlockedPage UI", () => {
         const wrapper = mountBlockedPage();
         await flushPromises();
         await wrapper.vm.$nextTick();
-        expect(wrapper.vm.allBlockedIdentities.length >= 0).toBe(true);
+        expect(wrapper.vm.allBlockedIdentities).toHaveLength(1);
+        expect(wrapper.vm.allBlockedIdentities[0].display_name).toBe("Blocked User");
+        expect(wrapper.text()).toContain("Blocked User");
+        expect(wrapper.text()).toContain("abc123");
     });
 
     it("search input binds to searchQuery", async () => {
