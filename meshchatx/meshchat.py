@@ -10999,7 +10999,13 @@ class ReticulumMeshChat:
             node = self.page_node_manager.get_node(node_id)
             if not node:
                 return web.json_response({"message": "Node not found"}, status=404)
-            data = await request.json()
+            try:
+                data = await request.json()
+            except Exception as e:
+                return web.json_response(
+                    {"message": f"Invalid request body: {e}"},
+                    status=400,
+                )
             name = data.get("name", "")
             content = data.get("content", "")
             if not name:
@@ -11011,6 +11017,16 @@ class ReticulumMeshChat:
                 saved_name = node.add_page(name, content)
             except ValueError as e:
                 return web.json_response({"message": str(e)}, status=400)
+            except OSError as e:
+                return web.json_response(
+                    {"message": f"Failed to write page: {e}"},
+                    status=500,
+                )
+            except Exception as e:
+                return web.json_response(
+                    {"message": f"Failed to save page: {e}"},
+                    status=500,
+                )
             return web.json_response({"name": saved_name, "message": "Page saved"})
 
         @routes.get("/api/v1/page-nodes/{node_id}/pages/{page_name}")

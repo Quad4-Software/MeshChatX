@@ -314,7 +314,12 @@ class PageNode:
         with open(page_path, "wb") as f:
             f.write(content)
         if self.running:
-            self._register_page_handler(name)
+            try:
+                self._register_page_handler(name)
+            except Exception as e:
+                raise RuntimeError(
+                    f"Page written but failed to register on mesh: {e}"
+                ) from e
         return name
 
     def remove_page(self, name):
