@@ -42,4 +42,13 @@ describe("electron/mainHelpers", () => {
         expect(shouldOpenInElectronWindow("https://example.com/#/popout/map")).toBe(false);
         expect(shouldOpenInElectronWindow("")).toBe(false);
     });
+
+    it("shouldAllowInWindowNavigation keeps local backend URLs in Electron", () => {
+        const { shouldAllowInWindowNavigation } = require("../../electron/mainHelpers.js");
+        expect(shouldAllowInWindowNavigation("https://127.0.0.1:9337/#/tools/micron-editor")).toBe(true);
+        expect(shouldAllowInWindowNavigation("http://localhost:9337/")).toBe(true);
+        expect(shouldAllowInWindowNavigation("blob:https://127.0.0.1:9337/print")).toBe(true);
+        expect(shouldAllowInWindowNavigation("https://example.com/")).toBe(false);
+        expect(shouldAllowInWindowNavigation("file:///etc/passwd")).toBe(false);
+    });
 });

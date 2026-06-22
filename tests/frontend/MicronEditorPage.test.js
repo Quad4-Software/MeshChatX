@@ -146,6 +146,25 @@ describe("MicronEditorPage.vue", () => {
         });
     });
 
+    it("pageBaseWithExtension preserves html tab extension when publishing", async () => {
+        const wrapper = mountMicronEditorPage();
+        await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
+        const tab = { name: "Landing.html", content: "<p>hi</p>" };
+        expect(wrapper.vm.pageBaseWithExtension("landing", tab)).toBe("landing.html");
+    });
+
+    it("onPreviewClick opens http links externally", async () => {
+        const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
+        const wrapper = mountMicronEditorPage();
+        await vi.waitFor(() => expect(wrapper.vm.tabs.length).toBeGreaterThan(0));
+        const preview = wrapper.find(".nodeContainer");
+        preview.element.innerHTML = '<a href="https://example.com/page.html">Example</a>';
+        const link = preview.find("a");
+        await link.trigger("click");
+        expect(openSpy).toHaveBeenCalledWith("https://example.com/page.html", "_blank", "noopener,noreferrer");
+        openSpy.mockRestore();
+    });
+
     it("resets all content", async () => {
         DialogUtils.confirm.mockResolvedValue(true);
         const wrapper = mountMicronEditorPage();

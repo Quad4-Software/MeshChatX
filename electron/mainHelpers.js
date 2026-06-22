@@ -69,9 +69,26 @@ function shouldOpenInElectronWindow(url) {
     return url.includes("#/popout/");
 }
 
+/**
+ * Whether the main frame may navigate to this URL inside Electron (local app shell).
+ * External http(s) links must open in the system browser instead.
+ * @param {unknown} url
+ * @returns {boolean}
+ */
+function shouldAllowInWindowNavigation(url) {
+    if (!url || typeof url !== "string") {
+        return false;
+    }
+    if (url.startsWith("blob:")) {
+        return true;
+    }
+    return isLocalBackendUrl(url);
+}
+
 module.exports = {
     getUserProvidedArguments,
     formatRenderProcessGoneDetails,
     isLocalBackendUrl,
     shouldOpenInElectronWindow,
+    shouldAllowInWindowNavigation,
 };

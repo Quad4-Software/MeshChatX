@@ -22,6 +22,7 @@ const {
     formatRenderProcessGoneDetails,
     isLocalBackendUrl,
     shouldOpenInElectronWindow,
+    shouldAllowInWindowNavigation,
 } = require("./mainHelpers");
 const { isAllowedShellPath } = require("./shellPathGuard");
 const { normalizeExternalUrlForOpen } = require("./safeExternalUrl");
@@ -370,6 +371,19 @@ function attachWindowOpenHandler(browserWindow) {
     browserWindow.webContents.setWindowOpenHandler(({ url }) => handleWindowOpenRequest(url));
 }
 
+function attachInWindowNavigationGuard(browserWindow) {
+    browserWindow.webContents.on("will-navigate", (event, url) => {
+        if (shouldAllowInWindowNavigation(url)) {
+            return;
+        }
+        event.preventDefault();
+        const safe = normalizeExternalUrlForOpen(url);
+        if (safe) {
+            shell.openExternal(safe);
+        }
+    });
+}
+
 function attachDevToolsF12Shortcut(browserWindow) {
     browserWindow.webContents.on("before-input-event", (event, input) => {
         if (input.type !== "keyDown" || input.key !== "F12") {
@@ -610,6 +624,7 @@ app.whenReady().then(async () => {
         attachDefaultContextMenu(browserWindow);
         attachDevToolsF12Shortcut(browserWindow);
         attachWindowOpenHandler(browserWindow);
+        attachInWindowNavigationGuard(browserWindow);
     });
 
     // Security: Enforce CSP for all requests as a shell-level fallback
