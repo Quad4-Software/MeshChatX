@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.7.2] - 2026-06-TBD
+
+### Fixed
+
+- **Micron editor**: Preview link clicks no longer navigate the main app window. **http(s)** links open in the system browser; Nomad mesh links route to the Nomad Network page; in-page **#anchor** links scroll within the preview. Fixes [#27](https://github.com/Quad4-Software/MeshChatX/issues/27) and [#34](https://github.com/Quad4-Software/MeshChatX/issues/34).
+- **Electron**: A **`will-navigate`** guard sends external **http(s)** URLs to the OS browser instead of replacing the MeshChatX window when a link is followed in-place (complements the 4.7.1 **`window.open`** handling).
+- **Micron editor / mesh servers**: Publishing preserves **`.html`**, **`.md`**, and **`.txt`** tab extensions instead of always saving as **`.mu`**.
+- **Page node API**: Publish failures return clear error messages for invalid JSON bodies, disk write errors, and mesh handler registration failures instead of unhandled **500** responses. Fixes [#25](https://github.com/Quad4-Software/MeshChatX/issues/25).
+
 ## [4.7.1] - 2026-06-21
 
 ### Fixed
