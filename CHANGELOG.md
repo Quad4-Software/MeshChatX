@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 - **Page node API**: Publish failures return clear error messages for invalid JSON bodies, disk write errors, and mesh handler registration failures instead of unhandled **500** responses. File uploads use the same error handling. Fixes [#25](https://github.com/Quad4-Software/MeshChatX/issues/25).
 - **Archives / RNCP / messages**: Rich HTML link clicks use a shared navigation policy so **http(s)** links open externally and mesh links stay in-app (same behavior as Nomad Network and the micron editor preview).
 - **Android**: External **http(s)** links open in the system browser instead of being silently blocked in the WebView.
+- **RNSh**: Session startup prefers **`python -m RNS.Utilities.rnsh.rnsh`** over the pip **`rnsh`** console-script wrapper so sessions work when the wrapper is not executable (common with **`pip install --user`**) or when Landlock denies executing paths outside allowed read roots (e.g. **`~/.local/bin/rnsh`**). Fixes [#36](https://github.com/Quad4-Software/MeshChatX/issues/36).
 
 ### Added
 
