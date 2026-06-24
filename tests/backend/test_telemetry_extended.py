@@ -39,4 +39,3 @@ def test_telemeter_unpack_location_robustness():
     assert Telemeter.unpack_location([b"lat", b"lon"]) is None
     # Test with invalid types
     assert Telemeter.unpack_location(["not_bytes"] * 7) is None
-

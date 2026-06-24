@@ -189,6 +189,64 @@ def test_rnsh_resize_updates_geometry_without_process():
     assert result["cols"] == 100
 
 
+def test_rnsh_prefers_module_launcher_when_rns_installed(monkeypatch):
+    from meshchatx.src.backend import rnsh_manager as rnsh_mod
+
+    monkeypatch.setattr(rnsh_mod.RNSHSession, "_rnsh_module_available", lambda: True)
+    monkeypatch.setattr(
+        rnsh_mod.shutil, "which", lambda _name: "/home/user/.local/bin/rnsh"
+    )
+
+    manager = MagicMock()
+    session = rnsh_mod.RNSHSession(
+        manager,
+        "s1",
+        {"mode": "connect", "destination": "deadbeef"},
+    )
+    command = session._build_command()
+    assert command[:3] == [rnsh_mod.sys.executable, "-m", rnsh_mod._RNSH_MODULE]
+    assert command[-1] == "deadbeef"
+
+
+def test_rnsh_falls_back_to_path_binary_when_module_missing(monkeypatch):
+    from meshchatx.src.backend import rnsh_manager as rnsh_mod
+
+    monkeypatch.setattr(rnsh_mod.RNSHSession, "_rnsh_module_available", lambda: False)
+    monkeypatch.setattr(rnsh_mod.shutil, "which", lambda _name: "/usr/bin/rnsh")
+    monkeypatch.setattr(rnsh_mod.os, "access", lambda _path, _mode: True)
+
+    manager = MagicMock()
+    session = rnsh_mod.RNSHSession(
+        manager,
+        "s1",
+        {"mode": "connect", "destination": "deadbeef"},
+    )
+    command = session._build_command()
+    assert command[0] == "/usr/bin/rnsh"
+    assert command[-1] == "deadbeef"
+
+
+def test_rnsh_non_executable_path_wrapper_raises_permission_error(monkeypatch):
+    from meshchatx.src.backend import rnsh_manager as rnsh_mod
+
+    monkeypatch.setattr(rnsh_mod.RNSHSession, "_rnsh_module_available", lambda: False)
+    monkeypatch.setattr(
+        rnsh_mod.shutil,
+        "which",
+        lambda _name: "/home/user/.local/bin/rnsh",
+    )
+    monkeypatch.setattr(rnsh_mod.os, "access", lambda _path, _mode: False)
+
+    manager = MagicMock()
+    session = rnsh_mod.RNSHSession(
+        manager,
+        "s1",
+        {"mode": "connect", "destination": "deadbeef"},
+    )
+    with pytest.raises(PermissionError, match="Permission denied"):
+        session._build_command()
+
+
 @pytest.mark.asyncio
 async def test_rnsh_session_not_found_returns_404(mock_app):
     mock_app.rnsh_manager = _DummyManager()
