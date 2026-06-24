@@ -9,6 +9,7 @@ while the app is active, and persists session definitions plus output history.
 from __future__ import annotations
 
 import contextlib
+import importlib.util
 import json
 import os
 import re
@@ -40,6 +41,8 @@ DEFAULT_TERMINAL_COLS = 120
 # Matches the listener address that rnsh logs on startup, e.g.
 # "rnsh listening for commands on <a1b2c3...>" or "Listening on : <...>".
 _LISTEN_ADDRESS_RE = re.compile(r"<([0-9a-fA-F]{16,})>")
+
+_RNSH_MODULE = "RNS.Utilities.rnsh.rnsh"
 
 
 class RNSHSession:
@@ -229,12 +232,35 @@ class RNSHSession:
         if match:
             self.listen_address = match.group(1).lower()
 
-    def _build_command(self):
+    @staticmethod
+    def _rnsh_module_available():
+        try:
+            return importlib.util.find_spec(_RNSH_MODULE) is not None
+        except (ImportError, ModuleNotFoundError, ValueError, AttributeError):
+            return False
+
+    @staticmethod
+    def _resolve_rnsh_launcher():
+        """Return argv prefix for launching rnsh.
+
+        Prefer the Python module entry point so sessions work when the PATH
+        console-script wrapper is not executable (common with pip --user
+        installs) or when Landlock denies executing paths outside allowed
+        read roots (for example ``~/.local/bin/rnsh``).
+        """
+        if RNSHSession._rnsh_module_available():
+            return [sys.executable, "-m", _RNSH_MODULE]
         executable = shutil.which("rnsh")
+        if executable and os.access(executable, os.X_OK):
+            return [executable]
         if executable:
-            command = [executable]
-        else:
-            command = [sys.executable, "-m", "RNS.Utilities.rnsh.rnsh"]
+            raise PermissionError(f"Permission denied: '{executable}'")
+        raise FileNotFoundError(
+            "rnsh is not available; install the rns package or ensure rnsh is on PATH",
+        )
+
+    def _build_command(self):
+        command = list(self._resolve_rnsh_launcher())
 
         # Attach rnsh to the same Reticulum config directory (and therefore the
         # same shared instance and rpc_key) as the MeshChatX app. Without this
