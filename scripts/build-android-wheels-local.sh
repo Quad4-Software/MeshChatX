@@ -747,13 +747,47 @@ fi
 
 if [[ -z "${ONLY_RECIPES}" ]]; then
     echo "Fetching bleak ${BLEAK_VERSION} pure-python wheel"
+    BLEAK_TMP_DIR="$(mktemp -d)"
+
     "${VENV_DIR}/bin/pip" download \
         --only-binary=:all: \
         --no-deps \
         "bleak==${BLEAK_VERSION}" \
-        --dest "${OUT_DIR}" \
+        --dest "${BLEAK_TMP_DIR}" \
         --index-url https://pypi.org/simple
-    if ! ls "${OUT_DIR}"/bleak-"${BLEAK_VERSION}"-py3-none-any.whl >/dev/null 2>&1; then
+
+    BLEAK_WHEEL="$(ls "${BLEAK_TMP_DIR}"/bleak-"${BLEAK_VERSION}"-py3-none-any.whl)"
+    PATCHED_BLEAK_WHEEL="${OUT_DIR}/bleak-${BLEAK_VERSION}-py3-none-any.whl"
+
+    # Android uses bleak's p4android backend (pyjnius). The platform-specific
+    # backend requirements (dbus-fast on Linux, pyobjc on macOS, winrt on
+    # Windows) are useless on Android and dbus-fast has no Android wheel, so
+    # strip them from the wheel metadata before bundling.
+    "${VENV_DIR}/bin/python" - <<PY
+import zipfile
+from pathlib import Path
+
+src = Path("${BLEAK_WHEEL}")
+dst = Path("${PATCHED_BLEAK_WHEEL}")
+
+def keep(line):
+    if not line.startswith("Requires-Dist:"):
+        return True
+    return "sys_platform ==" not in line
+
+with zipfile.ZipFile(src, "r") as zin, zipfile.ZipFile(dst, "w", compression=zipfile.ZIP_DEFLATED) as zout:
+    for item in zin.infolist():
+        data = zin.read(item.filename)
+        if item.filename.endswith(".dist-info/METADATA"):
+            text = data.decode("utf-8")
+            text = "\n".join(line for line in text.splitlines() if keep(line)) + "\n"
+            data = text.encode("utf-8")
+        zout.writestr(item, data)
+PY
+
+    rm -rf "${BLEAK_TMP_DIR}"
+
+    if ! ls "${PATCHED_BLEAK_WHEEL}" >/dev/null 2>&1; then
         echo "Expected bleak-${BLEAK_VERSION}-py3-none-any.whl in ${OUT_DIR}" >&2
         exit 1
     fi
