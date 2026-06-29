@@ -10,9 +10,10 @@ This script:
 2) Downloads a matching Chaquopy Python target toolchain
 3) Builds pycodec2 Android wheels with Chaquopy's build-wheel tool
 4) Optionally patches LXST wheel metadata for local Android constraints
-5) Builds every recipe under android/chaquopy-recipes/ for each requested
+5) Vendors the bleak pure-python wheel from PyPI
+6) Builds every recipe under android/chaquopy-recipes/ for each requested
    ABI (currently: cryptography, miniaudio)
-6) Copies outputs to android/vendor
+7) Copies outputs to android/vendor
 
 Usage:
   scripts/build-android-wheels-local.sh [options]
@@ -26,6 +27,7 @@ Options:
   --pycodec2-version V       pycodec2 version to build (default: 4.1.1)
   --numpy-version V          NumPy version used during pycodec2 build (default: 1.26.2)
   --lxst-version V           LXST wheel version for metadata patch (default: 0.4.7)
+  --bleak-version V          bleak pure-python wheel version to vendor (default: 3.0.2)
   --no-lxst-patch            Skip LXST metadata patch
   --only-recipes LIST        Comma-separated recipe directory names under
                              android/chaquopy-recipes to build. When set, the
@@ -53,6 +55,7 @@ PYCODEC2_VERSION="4.1.1"
 LIBCODEC2_VERSION="1.2.0"
 NUMPY_VERSION="1.26.2"
 LXST_VERSION="0.4.7"
+BLEAK_VERSION="3.0.2"
 PATCH_LXST="1"
 ONLY_RECIPES=""
 WORK_DIR="${ROOT_DIR}/.local/chaquopy-build-wheel"
@@ -90,6 +93,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --lxst-version)
             LXST_VERSION="${2:?missing value for --lxst-version}"
+            shift 2
+            ;;
+        --bleak-version)
+            BLEAK_VERSION="${2:?missing value for --bleak-version}"
             shift 2
             ;;
         --no-lxst-patch)
@@ -736,6 +743,20 @@ with zipfile.ZipFile(src, "r") as zin, zipfile.ZipFile(dst, "w", compression=zip
             data = text.encode("utf-8")
         zout.writestr(item, data)
 PY
+fi
+
+if [[ -z "${ONLY_RECIPES}" ]]; then
+    echo "Fetching bleak ${BLEAK_VERSION} pure-python wheel"
+    "${VENV_DIR}/bin/pip" download \
+        --only-binary=:all: \
+        --no-deps \
+        "bleak==${BLEAK_VERSION}" \
+        --dest "${OUT_DIR}" \
+        --index-url https://pypi.org/simple
+    if ! ls "${OUT_DIR}"/bleak-"${BLEAK_VERSION}"-py3-none-any.whl >/dev/null 2>&1; then
+        echo "Expected bleak-${BLEAK_VERSION}-py3-none-any.whl in ${OUT_DIR}" >&2
+        exit 1
+    fi
 fi
 
 fix_wheel_libpython_needed() {
