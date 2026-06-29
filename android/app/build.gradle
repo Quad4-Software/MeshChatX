@@ -10,6 +10,7 @@ def chaquopyBuildPython = System.getenv("CHAQUOPY_BUILD_PYTHON")
 def pythonTempDir = new File(buildDir, "python-tmp")
 def vendorWheelDir = new File(rootProject.projectDir, "vendor")
 def lxstPatchedWheel = new File(rootProject.projectDir, "vendor/lxst-0.4.7-py3-none-any.whl")
+def bleakPatchedWheel = new File(rootProject.projectDir, "vendor/bleak-3.0.2-py3-none-any.whl")
 def allAndroidAbis = ["arm64-v8a", "x86_64", "armeabi-v7a"]
 def selectedAndroidAbis = (
     project.findProperty("meshchatxAbis")
@@ -236,6 +237,10 @@ chaquopy {
                 throw new org.gradle.api.GradleException("Missing patched LXST wheel at ${lxstPatchedWheel}")
             }
             install lxstPatchedWheel.absolutePath
+            if (!bleakPatchedWheel.exists()) {
+                throw new org.gradle.api.GradleException("Missing patched bleak wheel at ${bleakPatchedWheel}")
+            }
+            install bleakPatchedWheel.absolutePath
             install "psutil>=7.2.2"
             install "websockets>=16.0"
             install "bcrypt==3.1.7"
