@@ -995,7 +995,10 @@ export default {
                 // update data
                 const interfaces = response.data.interface_stats?.interfaces ?? [];
                 for (const iface of interfaces) {
-                    this.interfaceStats[iface.short_name] = iface;
+                    const key = iface.interface_name ?? iface.short_name;
+                    if (key) {
+                        this.interfaceStats[key] = iface;
+                    }
                 }
             } catch {
                 // do nothing if failed to load interfaces
