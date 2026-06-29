@@ -18,21 +18,32 @@ def temp_dir():
 
 
 @pytest.fixture
-def mock_identity():
-    mock_id = MagicMock()
-    mock_id.hash = b"test_hash_32_bytes_long_01234567"
-    mock_id.hexhash = mock_id.hash.hex()
-    mock_id.get_private_key.return_value = b"test_private_key"
-    return mock_id
+def mock_rns_minimal():
+    with (
+        patch("RNS.Reticulum") as mock_rns,
+        patch("RNS.Transport"),
+        patch("LXMF.LXMRouter"),
+        patch("meshchatx.meshchat.get_file_path", return_value="/tmp/mock_path"),
+    ):
+        mock_rns_instance = mock_rns.return_value
+        mock_rns_instance.configpath = "/tmp/mock_config"
+        mock_rns_instance.is_connected_to_shared_instance = False
+        mock_rns_instance.transport_enabled.return_value = True
+
+        mock_id = MagicMock()
+        mock_id.hash = b"test_hash_32_bytes_long_01234567"
+        mock_id.hexhash = mock_id.hash.hex()
+        mock_id.get_private_key.return_value = b"test_private_key"
+        yield mock_id
 
 
 @pytest.mark.asyncio
 async def test_interface_stats_serializes_bytes_and_parent_hash_null(
-    mock_identity, temp_dir
+    mock_rns_minimal, temp_dir
 ):
     with patch("meshchatx.meshchat.generate_ssl_certificate"):
         app_instance = ReticulumMeshChat(
-            identity=mock_identity,
+            identity=mock_rns_minimal,
             storage_dir=temp_dir,
             reticulum_config_dir=temp_dir,
         )
