@@ -13,14 +13,18 @@ All notable changes to this project will be documented in this file.
 - **Archives / RNCP / messages**: Rich HTML link clicks use a shared navigation policy so **http(s)** links open externally and mesh links stay in-app (same behavior as Nomad Network and the micron editor preview).
 - **Android**: External **http(s)** links open in the system browser instead of being silently blocked in the WebView.
 - **RNSh**: Session startup prefers **`python -m RNS.Utilities.rnsh.rnsh`** over the pip **`rnsh`** console-script wrapper so sessions work when the wrapper is not executable (common with **`pip install --user`**) or when Landlock denies executing paths outside allowed read roots (e.g. **`~/.local/bin/rnsh`**). Fixes [#36](https://github.com/Quad4-Software/MeshChatX/issues/36).
+- **Interfaces**: The Interfaces page no longer shows all links as **Down** when Reticulum is running normally. **`/api/v1/interface-stats`** now serializes all byte fields (**`network_id`**, interface hashes, IFAC signatures, and related values) instead of failing on unconverted payloads; stats are merged on the frontend by **`interface_name`** as well as **`short_name`**. Fixes false **Down** status when MeshChatX owns its own Reticulum instance (embedded mode); attaching to an already-running **`rnsd`** shared instance was unaffected.
 
 ### Added
 
 - **Rich HTML links**: Shared **`NomadRichHtmlLinks`** click handler for **v-html** surfaces (Nomad browser, micron editor preview, archives, RNCP, conversation messages). Routes Nomad mesh and LXMF links in-app, opens **http(s)** externally, scrolls in-page anchors, and blocks unsafe **`javascript:`** navigation. Behavior contract tests guard wiring across frontend, Electron, and Android.
+- **Location / telemetry**: Settings include a **Disabled** location source so outbound telemetry replies are not sent until the operator opts in. New installs default to **Disabled** instead of browser geolocation.
+- **Docs**: **`scripts/sync-meshchatx-docs.js`** copies **`docs/*.md`** into the in-app **`meshchatx-docs`** bundle on **`predev`** and **`prebuild-frontend`**. Adds the **Meta Quest (SideQuest)** installation guide.
 
 ### Changed
 
-- **Tests**: Removed obsolete no-op backend tests; strengthened frontend security and UI coverage (**BlockedPage**, **SettingsPage** copy/banished visibility, TGS decode fuzz, **RelayChat** XSS fuzz, **interfaceDiscoveryUtils**, **ArchivesPage**, **NomadRichHtmlLinks**) with behavior assertions instead of always-true checks.
+- **Tests**: Removed obsolete no-op backend tests; strengthened frontend security and UI coverage (**BlockedPage**, **SettingsPage** copy/banished visibility, TGS decode fuzz, **RelayChat** XSS fuzz, **interfaceDiscoveryUtils**, **ArchivesPage**, **NomadRichHtmlLinks**) with behavior assertions instead of always-true checks. Added **`test_interface_stats_endpoint`** for **`/api/v1/interface-stats`** JSON serialization.
+- **Packaging**: Arch **`PKGBUILD`** installs Python dependencies with **`uv sync`** instead of a bare **`uv pip install`** step.
 
 ## [4.7.1] - 2026-06-21
 
