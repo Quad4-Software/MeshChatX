@@ -80,7 +80,7 @@ importers:
         specifier: ^1.11.21
         version: 1.11.21
       dompurify:
-        specifier: ^3.4.11
+        specifier: '>=3.4.11'
         version: 3.4.11
       electron-prompt:
         specifier: ^1.7.0
@@ -848,8 +848,8 @@ packages:
   '@types/json-schema@7.0.15':
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
 
-  '@types/ms@0.7.15-alpha':
-    resolution: {integrity: sha512-AHmjkgOl/Dav89+U7CyEVYhjkYLQ5phMQK1U8webzJ3/ic+DcRQ+Myfm7btBGtcLTM57zOjukVg8VNcLfSvwgg==}
+  '@types/ms@2.1.0':
+    resolution: {integrity: sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA==}
 
   '@types/node@0.0.0':
     resolution: {integrity: sha512-WTVTibPZsmWNm4thlkPnc0QPbT4+Vw+48e4otLxwdBVZduwrZ2pDvAH9dnpOe/fQnNl84PO4XOq3dHAyjaornA==}
@@ -3891,7 +3891,7 @@ snapshots:
   '@isaacs/cliui@8.0.2':
     dependencies:
       string-width: 5.1.2
-      string-width-cjs: string-width@4.2.0
+      string-width-cjs: string-width@4.2.3
       strip-ansi: 6.0.1
       strip-ansi-cjs: strip-ansi@6.0.1
       wrap-ansi: 8.1.0
@@ -4184,7 +4184,7 @@ snapshots:
 
   '@types/debug@4.1.13':
     dependencies:
-      '@types/ms': 0.7.15-alpha
+      '@types/ms': 2.1.0
 
   '@types/deep-eql@4.0.0': {}
 
@@ -4202,7 +4202,7 @@ snapshots:
 
   '@types/json-schema@7.0.15': {}
 
-  '@types/ms@0.7.15-alpha': {}
+  '@types/ms@2.1.0': {}
 
   '@types/node@0.0.0': {}
 
