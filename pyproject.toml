@@ -108,6 +108,9 @@ extend-ignore = [
     "D401",
 ]
 
+[tool.coverage.run]
+parallel = true
+
 [tool.mutmut]
 paths_to_mutate = ["meshchatx/src/backend/"]
 pytest_add_cli_args_test_selection = [
