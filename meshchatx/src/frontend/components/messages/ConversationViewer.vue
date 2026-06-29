@@ -3040,25 +3040,30 @@ export default {
         },
         async addStrangerAsContact() {
             if (!this.selectedPeer) return;
+            const displayName = this.selectedPeer.custom_display_name ?? this.selectedPeer.display_name ?? "Unknown";
+            const hash = this.selectedPeer.destination_hash;
             try {
-                const displayName =
-                    this.selectedPeer.custom_display_name ?? this.selectedPeer.display_name ?? "Unknown";
-                await fetch(`/api/v1/telephone/contacts`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        lxmf_address: this.selectedPeer.destination_hash,
-                        name: displayName,
-                    }),
+                const checkResponse = await window.api.get(`/api/v1/telephone/contacts/check/${hash}`);
+                if (checkResponse.data?.id) {
+                    this.isStrangerPeer = false;
+                    this.strangerBannerDismissed = true;
+                    return;
+                }
+
+                await window.api.post("/api/v1/telephone/contacts", {
+                    name: displayName,
+                    lxmf_address: hash,
                 });
                 this.isStrangerPeer = false;
                 this.strangerBannerDismissed = true;
                 GlobalEmitter.emit("contact-updated", {
-                    remote_identity_hash: this.selectedPeer.destination_hash,
+                    remote_identity_hash: hash,
                 });
                 this.$emit("reload-conversations");
+                ToastUtils.success(this.$t("contacts.contact_added"));
             } catch (e) {
                 console.error("Failed to add contact:", e);
+                ToastUtils.error(e.response?.data?.message || this.$t("messages.failed_add_contact"));
             }
         },
         loadDraft(destinationHash) {

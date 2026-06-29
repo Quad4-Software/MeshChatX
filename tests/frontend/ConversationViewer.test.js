@@ -308,6 +308,38 @@ describe("ConversationViewer.vue", () => {
         expect(window.open).toHaveBeenCalledWith("https://example.com/path", "_blank", "noopener,noreferrer");
     });
 
+    it("addStrangerAsContact uses window.api.post with CSRF-aware client", async () => {
+        const wrapper = mountConversationViewer({
+            selectedPeer: { destination_hash: "abc123", display_name: "Stranger" },
+        });
+        axiosMock.get.mockImplementation((url) => {
+            if (url.includes("/telephone/contacts/check/")) {
+                return Promise.resolve({ data: {} });
+            }
+            if (url.includes("/path")) return Promise.resolve({ data: { path: [] } });
+            if (url.includes("/stamp-info")) return Promise.resolve({ data: { stamp_info: {} } });
+            if (url.includes("/signal-metrics")) return Promise.resolve({ data: { signal_metrics: {} } });
+            return Promise.resolve({ data: {} });
+        });
+        axiosMock.post.mockClear();
+        vi.spyOn(ToastUtils, "success").mockImplementation(() => {});
+        const fetchSpy = vi.spyOn(globalThis, "fetch");
+
+        await wrapper.vm.addStrangerAsContact();
+
+        expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/telephone/contacts", {
+            name: "Stranger",
+            lxmf_address: "abc123",
+        });
+        expect(fetchSpy).not.toHaveBeenCalledWith(
+            "/api/v1/telephone/contacts",
+            expect.objectContaining({ method: "POST" })
+        );
+        expect(wrapper.vm.isStrangerPeer).toBe(false);
+        expect(wrapper.vm.strangerBannerDismissed).toBe(true);
+        fetchSpy.mockRestore();
+    });
+
     it("blocks non-http href payloads like data urls in message anchors", async () => {
         const wrapper = mountConversationViewer();
         wrapper.vm.isStrangerPeer = true;
