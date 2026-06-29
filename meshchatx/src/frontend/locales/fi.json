@@ -1344,6 +1344,7 @@
         "location_request_sent": "Location request sent",
         "failed_send_location_request": "Failed to send location request",
         "fetching_location": "Fetching location...",
+        "location_disabled": "Location sharing is disabled. Enable it in Settings > Location.",
         "location_sent": "Location shared successfully",
         "location_requested": "Location requested",
         "remove_image_confirm": "Are you sure you want to remove this image attachment?",

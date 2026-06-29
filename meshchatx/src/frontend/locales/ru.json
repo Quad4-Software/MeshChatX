@@ -1397,6 +1397,7 @@
         "location_request_sent": "Location request sent",
         "failed_send_location_request": "Не удалось отправить запрос местоположения",
         "fetching_location": "Получение местоположения...",
+        "location_disabled": "Передача местоположения отключена. Включите её в Настройки > Местоположение.",
         "location_sent": "Местоположение успешно отправлено",
         "location_requested": "Запрошено местоположение",
         "remove_image_confirm": "Are you sure you want to remove this image attachment?",

@@ -1344,6 +1344,7 @@
         "location_request_sent": "Locatieverzoek verzonden",
         "failed_send_location_request": "Kon locatieverzoek niet versturen",
         "fetching_location": "Ophalen van locatie...",
+        "location_disabled": "Locatie delen is uitgeschakeld. Schakel het in via Instellingen > Locatie.",
         "location_sent": "Locatie gedeeld met succes",
         "location_requested": "Locatie aangevraagd",
         "remove_image_confirm": "Weet u zeker dat u deze afbeeldingsbijlage wilt verwijderen?",
