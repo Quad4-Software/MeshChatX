@@ -1400,6 +1400,7 @@
         "location_request_sent": "Richiesta di posizione inviata",
         "failed_send_location_request": "Impossibile inviare la richiesta di posizione",
         "fetching_location": "Recupero della posizione...",
+        "location_disabled": "La condivisione della posizione è disattivata. Attivala in Impostazioni > Posizione.",
         "location_sent": "Posizione condivisa con successo",
         "location_requested": "Posizione richiesta",
         "remove_image_confirm": "Sei sicuro di voler rimuovere questo allegato immagine?",

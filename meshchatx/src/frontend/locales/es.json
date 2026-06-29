@@ -1344,6 +1344,7 @@
         "location_request_sent": "Solicitud de ubicación enviada",
         "failed_send_location_request": "Failed to send location request",
         "fetching_location": "Encontrar la ubicación...",
+        "location_disabled": "El uso compartido de ubicación está desactivado. Actívelo en Configuración > Ubicación.",
         "location_sent": "Ubicación compartida con éxito",
         "location_requested": "Ubicación solicitada",
         "remove_image_confirm": "¿Estás seguro de que quieres eliminar este apego a la imagen?",

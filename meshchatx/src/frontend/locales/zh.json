@@ -1344,6 +1344,7 @@
         "location_request_sent": "位置请求已发送",
         "failed_send_location_request": "发送位置请求失败",
         "fetching_location": "正在获取位置...",
+        "location_disabled": "位置分享已禁用。请在设置 > 位置中启用。",
         "location_sent": "位置分享成功",
         "location_requested": "位置已请求",
         "remove_image_confirm": "您确定要删除此图像附件吗？",

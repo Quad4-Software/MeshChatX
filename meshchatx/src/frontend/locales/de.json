@@ -1397,6 +1397,7 @@
         "location_request_sent": "Location request sent",
         "failed_send_location_request": "Senden der Standortanfrage fehlgeschlagen",
         "fetching_location": "Standort wird abgerufen...",
+        "location_disabled": "Standortfreigabe ist deaktiviert. Aktivieren Sie sie unter Einstellungen > Standort.",
         "location_sent": "Standort erfolgreich geteilt",
         "location_requested": "Standort angefordert",
         "remove_image_confirm": "Are you sure you want to remove this image attachment?",

@@ -1344,6 +1344,7 @@
         "location_request_sent": "Demande d'emplacement envoyée",
         "failed_send_location_request": "Échec de l'envoi de la demande de localisation",
         "fetching_location": "Localisation...",
+        "location_disabled": "Le partage de localisation est désactivé. Activez-le dans Paramètres > Localisation.",
         "location_sent": "Lieu partagé avec succès",
         "location_requested": "Emplacement demandé",
         "remove_image_confirm": "Voulez-vous vraiment supprimer cette image ?",
