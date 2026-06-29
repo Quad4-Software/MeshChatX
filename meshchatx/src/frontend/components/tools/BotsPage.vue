@@ -261,8 +261,7 @@
                                             </div>
                                             <pre
                                                 class="mt-1.5 m-0 whitespace-pre-wrap break-words font-mono text-[10px] leading-relaxed text-red-800/95 dark:text-red-100/90"
-                                                >{{ botLastError(bot) }}</pre
-                                            >
+                                                >{{ botLastError(bot) }}</pre>
                                         </div>
                                         <div class="text-[10px] text-gray-400 pt-0.5">
                                             {{ bot.template_id || bot.template }}
@@ -330,8 +329,7 @@
                     >
                         <pre
                             class="bots-process-log-text m-0 min-h-full w-max min-w-full p-2 sm:p-3 font-mono text-gray-800 dark:text-gray-200 whitespace-pre select-text"
-                            >{{ processLogDisplayText }}</pre
-                        >
+                            >{{ processLogDisplayText }}</pre>
                     </div>
                 </div>
             </div>
