@@ -2238,6 +2238,16 @@ class ReticulumMeshChat:
             interface_details.pop("bootstrap_only", None)
 
     @staticmethod
+    def _to_jsonable(obj):
+        if isinstance(obj, bytes):
+            return obj.hex()
+        if isinstance(obj, dict):
+            return {k: ReticulumMeshChat._to_jsonable(v) for k, v in obj.items()}
+        if isinstance(obj, list):
+            return [ReticulumMeshChat._to_jsonable(v) for v in obj]
+        return obj
+
+    @staticmethod
     def discovery_filter_candidates(interface):
         if not isinstance(interface, dict):
             return [str(interface)]
@@ -11718,50 +11728,18 @@ class ReticulumMeshChat:
         # get interface stats
         @routes.get("/api/v1/interface-stats")
         async def interface_stats(request):
-            # get interface stats
             interface_stats = {"interfaces": []}
             if hasattr(self, "reticulum") and self.reticulum:
                 try:
-                    interface_stats = self.reticulum.get_interface_stats()
-
-                    # ensure transport_id is hex as json_response can't serialize bytes
-                    if "transport_id" in interface_stats:
-                        interface_stats["transport_id"] = interface_stats[
-                            "transport_id"
-                        ].hex()
-
-                    # ensure probe_responder is hex as json_response can't serialize bytes
-                    if (
-                        "probe_responder" in interface_stats
-                        and interface_stats["probe_responder"] is not None
-                    ):
-                        interface_stats["probe_responder"] = interface_stats[
-                            "probe_responder"
-                        ].hex()
-
-                    # ensure ifac_signature is hex as json_response can't serialize bytes
-                    for interface in interface_stats["interfaces"]:
-                        if "short_name" in interface:
-                            interface["interface_name"] = interface["short_name"]
-
-                        if (
-                            "parent_interface_name" in interface
-                            and interface["parent_interface_name"] is not None
-                        ):
-                            interface["parent_interface_hash"] = interface[
-                                "parent_interface_hash"
-                            ].hex()
-
-                        if interface.get("ifac_signature"):
-                            interface["ifac_signature"] = interface[
-                                "ifac_signature"
-                            ].hex()
-
-                        try:
-                            if interface.get("hash"):
-                                interface["hash"] = interface["hash"].hex()
-                        except Exception:
-                            pass
+                    raw = self.reticulum.get_interface_stats()
+                    if isinstance(raw, dict):
+                        interface_stats = self._to_jsonable(raw)
+                        for interface in interface_stats.get("interfaces") or []:
+                            if (
+                                isinstance(interface, dict)
+                                and "short_name" in interface
+                            ):
+                                interface["interface_name"] = interface["short_name"]
                 except Exception:
                     pass
 
