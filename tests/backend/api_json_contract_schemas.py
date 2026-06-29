@@ -159,10 +159,25 @@ APP_INFO_BODY_SCHEMA: dict = {
     "additionalProperties": True,
 }
 
+_SERVER_BIND_STATUS_SCHEMA: dict = {
+    "listen_host": {"type": ["string", "null"]},
+    "listen_port": {"type": ["integer", "null"]},
+    "https_enabled": {"type": "boolean"},
+    "is_loopback_bind": {"type": "boolean"},
+    "landlock_kernel_supported": {"type": "boolean"},
+    "landlock_requested": {"type": "boolean"},
+    "landlock_auto_enabled": {"type": "boolean"},
+    "landlock_disabled_by_env": {"type": "boolean"},
+    "landlock_active": {"type": "boolean"},
+}
+
 API_V1_STATUS_SCHEMA: dict = {
     "type": "object",
     "required": ["status"],
-    "properties": {"status": {"type": "string", "const": "ok"}},
+    "properties": {
+        "status": {"type": "string", "const": "ok"},
+        **_SERVER_BIND_STATUS_SCHEMA,
+    },
     "additionalProperties": False,
 }
 

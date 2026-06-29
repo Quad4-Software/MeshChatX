@@ -398,8 +398,11 @@ class Database:
         self,
         zf: zipfile.ZipFile,
         db_basenames: set[str],
+        *,
+        exclude_paths: set[str] | None = None,
     ) -> list[str]:
         identity_dir = self._identity_storage_dir()
+        excluded = {os.path.abspath(path) for path in (exclude_paths or ())}
         included: list[str] = []
         for root, dirs, files in os.walk(identity_dir):
             dirs[:] = [d for d in dirs if d not in BACKUP_SKIP_DIR_NAMES]
@@ -407,6 +410,8 @@ class Database:
                 if name in db_basenames or name == BACKUP_MANIFEST_NAME:
                     continue
                 full_path = os.path.join(root, name)
+                if os.path.abspath(full_path) in excluded:
+                    continue
                 rel_path = os.path.relpath(full_path, identity_dir).replace("\\", "/")
                 if rel_path.startswith(".."):
                     continue
@@ -433,13 +438,18 @@ class Database:
 
         main_filename = os.path.basename(paths["main"])
         db_basenames = {os.path.basename(p) for p in paths.values()}
+        backup_abs = os.path.abspath(backup_path)
         with zipfile.ZipFile(backup_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
             zf.write(paths["main"], arcname=main_filename)
             if os.path.exists(paths["wal"]):
                 zf.write(paths["wal"], arcname=f"{main_filename}-wal")
             if os.path.exists(paths["shm"]):
                 zf.write(paths["shm"], arcname=f"{main_filename}-shm")
-            included = self._add_identity_storage_to_zip(zf, db_basenames)
+            included = self._add_identity_storage_to_zip(
+                zf,
+                db_basenames,
+                exclude_paths={backup_abs},
+            )
             manifest = {
                 "version": 1,
                 "created_at": datetime.now(UTC).isoformat(),
