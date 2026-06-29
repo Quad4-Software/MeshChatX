@@ -23,6 +23,27 @@ os.environ["MESHCHAT_SKIP_STORAGE_LOCK"] = "1"
 os.environ["MESHCHAT_DISABLE_CSRF"] = "1"
 
 
+def _ensure_coverage_data_dir() -> None:
+    cov_file = os.environ.get("COVERAGE_FILE")
+    if not cov_file:
+        return
+    parent = os.path.dirname(os.path.abspath(cov_file))
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+
+
+_ensure_coverage_data_dir()
+
+
+def pytest_configure(config):
+    _ensure_coverage_data_dir()
+    worker = os.environ.get("PYTEST_XDIST_WORKER")
+    cov_dir = os.environ.get("MESHCHAT_COVERAGE_DIR")
+    if worker and cov_dir:
+        os.makedirs(cov_dir, exist_ok=True)
+        os.environ["COVERAGE_FILE"] = os.path.join(cov_dir, f".coverage.{worker}")
+
+
 @pytest.fixture(scope="session")
 def loopback_available():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
