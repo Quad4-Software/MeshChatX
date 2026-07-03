@@ -323,6 +323,13 @@ import DialogUtils from "../../js/DialogUtils";
 import DownloadUtils from "../../js/DownloadUtils";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import ToastUtils from "../../js/ToastUtils";
+import {
+    attachStreamToVideo,
+    decodeQrFromVideo,
+    describeCameraError as describeQrCameraError,
+    isCameraSupported,
+    startCameraStream,
+} from "../../js/qrScannerUtils";
 import { lxmfConversationListPreview } from "../../js/lxmfConversationPreview";
 import { loadMessagePanes, saveMessagePanes } from "../../js/browserLayoutStore";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
@@ -472,11 +479,7 @@ export default {
             return this.messagesSidebarPosition === "right";
         },
         cameraSupported() {
-            return (
-                typeof window !== "undefined" &&
-                typeof window.BarcodeDetector !== "undefined" &&
-                navigator?.mediaDevices?.getUserMedia
-            );
+            return isCameraSupported();
         },
     },
     watch: {
@@ -1521,19 +1524,14 @@ export default {
                 return;
             }
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: "environment" },
-                    audio: false,
-                });
+                const stream = await startCameraStream();
                 this.ingestScannerStream = stream;
                 const video = this.$refs.ingestScannerVideo;
-                if (!video) {
+                if (!(await attachStreamToVideo(stream, video))) {
                     this.ingestScannerError = this.$t("messages.camera_failed");
                     this.stopIngestScanner();
                     return;
                 }
-                video.srcObject = stream;
-                await video.play();
                 this.detectIngestQrLoop();
             } catch (e) {
                 this.ingestScannerError = this.describeCameraError(e);
@@ -1542,15 +1540,11 @@ export default {
         detectIngestQrLoop() {
             if (!this.isIngestScannerModalOpen) return;
             const video = this.$refs.ingestScannerVideo;
-            if (!video || video.readyState < 2) {
-                this.ingestScannerAnimationFrame = requestAnimationFrame(() => this.detectIngestQrLoop());
-                return;
-            }
-            const detector = new window.BarcodeDetector({ formats: ["qr_code"] });
-            detector
-                .detect(video)
-                .then((barcodes) => {
-                    const qr = barcodes?.[0]?.rawValue?.trim();
+            decodeQrFromVideo(video)
+                .then((qr) => {
+                    if (!this.isIngestScannerModalOpen) {
+                        return;
+                    }
                     if (!qr) {
                         this.ingestScannerAnimationFrame = requestAnimationFrame(() => this.detectIngestQrLoop());
                         return;
@@ -1565,7 +1559,9 @@ export default {
                     this.ingestPaperMessage();
                 })
                 .catch(() => {
-                    this.ingestScannerAnimationFrame = requestAnimationFrame(() => this.detectIngestQrLoop());
+                    if (this.isIngestScannerModalOpen) {
+                        this.ingestScannerAnimationFrame = requestAnimationFrame(() => this.detectIngestQrLoop());
+                    }
                 });
         },
         stopIngestScanner() {
@@ -1579,14 +1575,11 @@ export default {
             }
         },
         describeCameraError(error) {
-            const name = error?.name || "";
-            if (name === "NotAllowedError" || name === "SecurityError") {
-                return this.$t("messages.camera_permission_denied");
-            }
-            if (name === "NotFoundError" || name === "DevicesNotFoundError") {
-                return this.$t("messages.camera_not_found");
-            }
-            return this.$t("messages.camera_failed");
+            return describeQrCameraError(error, {
+                permissionDenied: this.$t("messages.camera_permission_denied"),
+                notFound: this.$t("messages.camera_not_found"),
+                failed: this.$t("messages.camera_failed"),
+            });
         },
         async pasteFromClipboard() {
             try {

@@ -497,6 +497,7 @@ public class MainActivity extends AppCompatActivity {
     private void requestRuntimePermissionsIfNeeded() {
         List<String> missingPermissions = new ArrayList<>();
         addIfMissing(missingPermissions, Manifest.permission.RECORD_AUDIO);
+        addIfMissing(missingPermissions, Manifest.permission.CAMERA);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             addIfMissing(missingPermissions, Manifest.permission.BLUETOOTH_CONNECT);
             addIfMissing(missingPermissions, Manifest.permission.BLUETOOTH_SCAN);
