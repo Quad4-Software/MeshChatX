@@ -33,6 +33,14 @@ uv sync --group dev
 uv run python scripts/patch_lxst_pyogg_ogg_ctypes.py
 
 if [[ "$(uname -s)" == "Darwin" ]]; then
+    uv run python -c "
+import numpy
+from numpy._core._multiarray_umath import _add_newdoc_ufunc
+print('arm64 venv numpy', numpy.__version__, 'ok')
+"
+fi
+
+if [[ "$(uname -s)" == "Darwin" ]]; then
     if uv run python -c "import platform, sys; sys.exit(0 if platform.machine() == 'arm64' else 1)"; then
         _miniaudio_state="$(uv run python -c "
 import importlib.util

@@ -66,6 +66,16 @@ while IFS= read -r -d '' rel; do
 
     filetype=$(file --brief --no-pad "$arm64_file" 2>/dev/null || true)
     if [[ "$filetype" != Mach-O* ]]; then
+        pkg_dir="$(dirname "$rel")"
+        if find "$ARM64_DIR/$pkg_dir" "$X64_DIR/$pkg_dir" -maxdepth 1 \
+            \( -name '*.so' -o -name '*.dylib' -o -name '*.bundle' \) -print -quit 2>/dev/null | grep -q .; then
+            echo "unify-backend: ERROR: byte mismatch in a native Python package: $rel" >&2
+            echo "  arm64 and x64 cx_Freeze trees differ under ${pkg_dir}/, which also" >&2
+            echo "  contains native extensions. Copying one arch's .py over the other's" >&2
+            echo "  .so breaks imports (e.g. NumPy _add_newdoc_ufunc). Rebuild the x64" >&2
+            echo "  slice with scripts/ci/github-install-macos-x64-python-deps.sh." >&2
+            exit 1
+        fi
         cp "$arm64_file" "$x64_file"
         echo "  unified: $rel"
         unified=$((unified + 1))

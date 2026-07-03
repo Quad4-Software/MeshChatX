@@ -50,6 +50,8 @@ if [[ -f "$_arm_miniaudio" ]]; then
 fi
 if [[ -n "${PYTHON_CMD_X64:-}" ]]; then
     cross-env ARCH=x64 PYTHON_CMD="$PYTHON_CMD_X64" pnpm run build-backend
+elif [[ -x "$ROOT/.venv-x64/bin/python" ]]; then
+    cross-env ARCH=x64 PYTHON_CMD="$ROOT/.venv-x64/bin/python" pnpm run build-backend
 else
     cross-env ARCH=x64 pnpm run build-backend
 fi
