@@ -111,10 +111,6 @@ jobs:
                   architecture: x64
                   update-environment: false
 
-            - name: Export PYTHON_CMD_X64 for mac universal build
-              if: matrix.label == 'macos'
-              run: echo "PYTHON_CMD_X64=${{ steps.python_x64.outputs.python-path }}" >> "$GITHUB_ENV"
-
             - name: Install x86_64 codec2 for pycodec2 (universal slice)
               if: matrix.label == 'macos'
               run: |
@@ -129,26 +125,7 @@ jobs:
               if: matrix.label == 'macos'
               env:
                   PY_X64: ${{ steps.python_x64.outputs.python-path }}
-                  ARCHFLAGS: "-arch x86_64"
-                  CC: "clang -arch x86_64"
-                  CXX: "clang++ -arch x86_64"
-                  CFLAGS: "-arch x86_64"
-              run: |
-                  set -euo pipefail
-                  _codec2="$(arch -x86_64 /usr/local/bin/brew --prefix codec2)"
-                  arch -x86_64 /usr/local/bin/brew install openssl@3
-                  _openssl="$(arch -x86_64 /usr/local/bin/brew --prefix openssl@3)"
-                  export LDFLAGS="-L${_codec2}/lib -L${_openssl}/lib -arch x86_64"
-                  export CPPFLAGS="-I${_codec2}/include -I${_openssl}/include -arch x86_64"
-                  export PKG_CONFIG_PATH="${_codec2}/lib/pkgconfig:${_openssl}/lib/pkgconfig:/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig"
-                  export OPENSSL_DIR="${_openssl}"
-                  export OPENSSL_LIB_DIR="${_openssl}/lib"
-                  export OPENSSL_INCLUDE_DIR="${_openssl}/include"
-                  arch -x86_64 "$PY_X64" -m pip install -U pip setuptools wheel
-                  arch -x86_64 "$PY_X64" -m pip install --prefer-binary "cryptography==49.0.0"
-                  arch -x86_64 "$PY_X64" -m pip install "cx-freeze>=7.0.0"
-                  arch -x86_64 "$PY_X64" -m pip install -e .
-                  arch -x86_64 "$PY_X64" scripts/patch_lxst_pyogg_ogg_ctypes.py
+              run: bash scripts/ci/github-install-macos-x64-python-deps.sh
 
             - name: Download frontend artifact
               uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
