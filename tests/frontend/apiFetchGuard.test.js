@@ -37,7 +37,9 @@ describe("API client usage guard", () => {
             if (!src.includes("/api/v1") || !src.includes("fetch(")) {
                 continue;
             }
-            if (/fetch\s*\([\s\S]{0,400}?\/api\/v1[\s\S]{0,400}?method\s*:\s*["'](POST|PUT|PATCH|DELETE)["']/i.test(src)) {
+            if (
+                /fetch\s*\([\s\S]{0,400}?\/api\/v1[\s\S]{0,400}?method\s*:\s*["'](POST|PUT|PATCH|DELETE)["']/i.test(src)
+            ) {
                 offenders.push(relativePath(file));
             }
         }

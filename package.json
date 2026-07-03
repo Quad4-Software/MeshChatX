@@ -288,6 +288,7 @@
         "electron-prompt": "^1.7.0",
         "emoji-picker-element": "^1.29.1",
         "emoji-picker-element-data": "^1.8.0",
+        "jsqr": "^1.4.0",
         "jszip": "^3.10.1",
         "marked": "^18.0.5",
         "mitt": "^3.0.1",

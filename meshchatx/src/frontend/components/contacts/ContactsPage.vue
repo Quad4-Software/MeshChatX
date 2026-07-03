@@ -433,6 +433,13 @@ import WebSocketConnection from "../../js/WebSocketConnection";
 import ToastUtils from "../../js/ToastUtils";
 import DownloadUtils from "../../js/DownloadUtils";
 import DialogUtils from "../../js/DialogUtils";
+import {
+    attachStreamToVideo,
+    decodeQrFromVideo,
+    describeCameraError as describeQrCameraError,
+    isCameraSupported,
+    startCameraStream,
+} from "../../js/qrScannerUtils";
 
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 import ContextMenuDivider from "../contextmenu/ContextMenuDivider.vue";
@@ -488,11 +495,7 @@ export default {
     },
     computed: {
         cameraSupported() {
-            return (
-                typeof window !== "undefined" &&
-                typeof window.BarcodeDetector !== "undefined" &&
-                navigator?.mediaDevices?.getUserMedia
-            );
+            return isCameraSupported();
         },
         hasMoreContacts() {
             return this.contacts.length < this.totalContactsCount;
@@ -900,10 +903,7 @@ export default {
                 return;
             }
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: "environment" },
-                    audio: false,
-                });
+                const stream = await startCameraStream();
                 if (!stream.getVideoTracks().length) {
                     this.scannerError = this.$t("contacts.camera_not_found");
                     stream.getTracks().forEach((track) => track.stop());
@@ -911,9 +911,9 @@ export default {
                 }
                 this.scannerStream = stream;
                 const video = this.$refs.scannerVideo;
-                if (!video) return;
-                video.srcObject = stream;
-                await video.play();
+                if (!(await attachStreamToVideo(stream, video))) {
+                    return;
+                }
                 this.detectQrLoop();
             } catch (e) {
                 this.scannerError = this.describeCameraError(e);
@@ -922,25 +922,23 @@ export default {
         detectQrLoop() {
             if (!this.isScannerDialogOpen) return;
             const video = this.$refs.scannerVideo;
-            if (!video || video.readyState < 2) {
-                this.scannerAnimationFrame = requestAnimationFrame(() => this.detectQrLoop());
-                return;
-            }
-            const detector = new window.BarcodeDetector({ formats: ["qr_code"] });
-            detector
-                .detect(video)
-                .then((barcodes) => {
-                    const qr = barcodes?.[0]?.rawValue;
+            decodeQrFromVideo(video)
+                .then((qr) => {
+                    if (!this.isScannerDialogOpen) {
+                        return;
+                    }
                     if (qr) {
-                        this.newContactInput = qr.trim();
+                        this.newContactInput = qr;
                         this.closeScannerDialog();
                         ToastUtils.success(this.$t("contacts.qr_scanned"));
-                    } else {
-                        this.scannerAnimationFrame = requestAnimationFrame(() => this.detectQrLoop());
+                        return;
                     }
+                    this.scannerAnimationFrame = requestAnimationFrame(() => this.detectQrLoop());
                 })
                 .catch(() => {
-                    this.scannerAnimationFrame = requestAnimationFrame(() => this.detectQrLoop());
+                    if (this.isScannerDialogOpen) {
+                        this.scannerAnimationFrame = requestAnimationFrame(() => this.detectQrLoop());
+                    }
                 });
         },
         stopScanner() {
@@ -958,14 +956,11 @@ export default {
             this.stopScanner();
         },
         describeCameraError(error) {
-            const name = error?.name || "";
-            if (name === "NotAllowedError" || name === "SecurityError") {
-                return this.$t("contacts.camera_permission_denied");
-            }
-            if (name === "NotFoundError" || name === "DevicesNotFoundError") {
-                return this.$t("contacts.camera_not_found");
-            }
-            return this.$t("contacts.camera_failed");
+            return describeQrCameraError(error, {
+                permissionDenied: this.$t("contacts.camera_permission_denied"),
+                notFound: this.$t("contacts.camera_not_found"),
+                failed: this.$t("contacts.camera_failed"),
+            });
         },
     },
 };
