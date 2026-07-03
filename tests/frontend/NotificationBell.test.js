@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import NotificationBell from "../../meshchatx/src/frontend/components/NotificationBell.vue";
 
 let wsHandlers = {};
+let emitterHandlers = {};
 vi.mock("../../meshchatx/src/frontend/js/WebSocketConnection", () => ({
     default: {
         on: vi.fn((event, handler) => {
@@ -13,6 +14,23 @@ vi.mock("../../meshchatx/src/frontend/js/WebSocketConnection", () => ({
             if (wsHandlers[event]) {
                 wsHandlers[event] = wsHandlers[event].filter((h) => h !== handler);
             }
+        }),
+    },
+}));
+
+vi.mock("../../meshchatx/src/frontend/js/GlobalEmitter", () => ({
+    default: {
+        on: vi.fn((event, handler) => {
+            emitterHandlers[event] = emitterHandlers[event] || [];
+            emitterHandlers[event].push(handler);
+        }),
+        off: vi.fn((event, handler) => {
+            if (emitterHandlers[event]) {
+                emitterHandlers[event] = emitterHandlers[event].filter((h) => h !== handler);
+            }
+        }),
+        emit: vi.fn((event, payload) => {
+            (emitterHandlers[event] || []).forEach((h) => h(payload));
         }),
     },
 }));
@@ -66,6 +84,7 @@ describe("NotificationBell UI", () => {
 
     afterEach(() => {
         wsHandlers = {};
+        emitterHandlers = {};
     });
 
     it("renders bell button", () => {
@@ -158,6 +177,7 @@ describe("NotificationBell websocket reliability", () => {
 
     afterEach(() => {
         wsHandlers = {};
+        emitterHandlers = {};
     });
 
     it("reloads on lxmf.delivery websocket event", async () => {
@@ -298,6 +318,7 @@ describe("NotificationBell false-trigger suppression", () => {
 
     afterEach(() => {
         wsHandlers = {};
+        emitterHandlers = {};
     });
 
     function expectNoNotificationsReload(callsBefore) {
@@ -535,6 +556,7 @@ describe("NotificationBell badge accuracy", () => {
 
     afterEach(() => {
         wsHandlers = {};
+        emitterHandlers = {};
     });
 
     it("badge hidden when unread count is 0", async () => {
@@ -636,6 +658,7 @@ describe("NotificationBell mark-as-viewed", () => {
 
     afterEach(() => {
         wsHandlers = {};
+        emitterHandlers = {};
     });
 
     it("calls mark-as-viewed API when dropdown is opened", async () => {
@@ -681,6 +704,7 @@ describe("NotificationBell history", () => {
 
     afterEach(() => {
         wsHandlers = {};
+        emitterHandlers = {};
     });
 
     it("shows history control when dropdown is open", async () => {
@@ -751,6 +775,7 @@ describe("NotificationBell clear all", () => {
 
     afterEach(() => {
         wsHandlers = {};
+        emitterHandlers = {};
     });
 
     it("clears all notifications and marks conversations as read", async () => {
@@ -791,6 +816,124 @@ describe("NotificationBell clear all", () => {
         const readCalls = global.api.post.mock.calls.filter((c) => c[0]?.includes("/mark-as-read"));
         expect(readCalls.length).toBe(1);
         expect(readCalls[0][0]).toContain("conv1");
+
+        wrapper.unmount();
+    });
+});
+
+describe("NotificationBell live sync", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        wsHandlers = {};
+        emitterHandlers = {};
+        global.api.get = vi.fn().mockResolvedValue({ data: { notifications: [], unread_count: 0 } });
+        global.api.post = vi.fn().mockResolvedValue({ data: {} });
+    });
+
+    afterEach(() => {
+        wsHandlers = {};
+        emitterHandlers = {};
+    });
+
+    it("refreshes badge when conversations are marked read elsewhere", async () => {
+        let callCount = 0;
+        global.api.get = vi.fn().mockImplementation(() => {
+            callCount++;
+            if (callCount === 1) {
+                return Promise.resolve({ data: { notifications: [], unread_count: 3 } });
+            }
+            return Promise.resolve({ data: { notifications: [], unread_count: 0 } });
+        });
+
+        const wrapper = mountBell();
+        await wrapper.vm.$nextTick();
+        await new Promise((r) => setTimeout(r, 50));
+        expect(wrapper.vm.unreadCount).toBe(3);
+
+        (emitterHandlers["notifications-changed"] || []).forEach((h) => h());
+        await new Promise((r) => setTimeout(r, 50));
+
+        expect(wrapper.vm.unreadCount).toBe(0);
+        expect(global.api.get.mock.calls.length).toBeGreaterThanOrEqual(2);
+        wrapper.unmount();
+    });
+
+    it("subscribes to notifications-changed on mount and unsubscribes on destroy", () => {
+        const wrapper = mountBell();
+        expect(emitterHandlers["notifications-changed"]?.length).toBeGreaterThan(0);
+        const handler = emitterHandlers["notifications-changed"][0];
+        wrapper.unmount();
+        expect(emitterHandlers["notifications-changed"] || []).not.toContain(handler);
+    });
+
+    it("polls unread count every 5s while dropdown is closed", async () => {
+        vi.useFakeTimers();
+        let unread = 4;
+        global.api.get = vi.fn().mockImplementation(() =>
+            Promise.resolve({ data: { notifications: [], unread_count: unread } })
+        );
+
+        const wrapper = mountBell();
+        await vi.runOnlyPendingTimersAsync();
+        expect(wrapper.vm.unreadCount).toBe(4);
+
+        unread = 0;
+        await vi.advanceTimersByTimeAsync(5000);
+        await vi.runOnlyPendingTimersAsync();
+
+        expect(wrapper.vm.unreadCount).toBe(0);
+        expect(wrapper.vm.isDropdownOpen).toBe(false);
+        expect(global.api.get.mock.calls.length).toBeGreaterThanOrEqual(2);
+
+        vi.useRealTimers();
+        wrapper.unmount();
+    });
+
+    it("keeps badge visible until server confirms read (no optimistic clear)", async () => {
+        global.api.get = vi.fn().mockResolvedValue({
+            data: {
+                notifications: [
+                    { type: "lxmf_message", destination_hash: "d1", display_name: "A", latest_message_preview: "hi" },
+                ],
+                unread_count: 1,
+            },
+        });
+
+        const wrapper = mountBell();
+        await wrapper.vm.$nextTick();
+        await new Promise((r) => setTimeout(r, 50));
+        expect(wrapper.find("span.bg-red-500").exists()).toBe(true);
+
+        (emitterHandlers["notifications-changed"] || []).forEach((h) => h());
+        await new Promise((r) => setTimeout(r, 50));
+        expect(wrapper.find("span.bg-red-500").exists()).toBe(true);
+
+        global.api.get.mockResolvedValue({ data: { notifications: [], unread_count: 0 } });
+        (emitterHandlers["notifications-changed"] || []).forEach((h) => h());
+        await new Promise((r) => setTimeout(r, 50));
+        expect(wrapper.find("span.bg-red-500").exists()).toBe(false);
+
+        wrapper.unmount();
+    });
+
+    it("opening bell with already-read server state shows empty list and clears stale badge", async () => {
+        global.api.get = vi.fn().mockResolvedValue({
+            data: { notifications: [], unread_count: 0 },
+        });
+
+        const wrapper = mountBell({ attachTo: document.body });
+        wrapper.vm.unreadCount = 5;
+        await wrapper.vm.$nextTick();
+        expect(wrapper.find("span.bg-red-500").text()).toBe("5");
+
+        await wrapper.find("button").trigger("click");
+        await new Promise((r) => setTimeout(r, 80));
+
+        expect(wrapper.vm.unreadCount).toBe(0);
+        expect(wrapper.vm.notifications).toEqual([]);
+        expect(document.body.textContent).toContain("No new notifications");
+        const markCalls = global.api.post.mock.calls.filter((c) => c[0] === "/api/v1/notifications/mark-as-viewed");
+        expect(markCalls).toHaveLength(0);
 
         wrapper.unmount();
     });

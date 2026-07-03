@@ -6844,6 +6844,7 @@ export default {
             // mark conversation as read on server
             try {
                 await window.api.post(`/api/v1/lxmf/conversations/${conversation.destination_hash}/mark-as-read`);
+                GlobalEmitter.emit("notifications-changed");
             } catch (e) {
                 // do nothing if failed to mark as read
                 console.log(e);

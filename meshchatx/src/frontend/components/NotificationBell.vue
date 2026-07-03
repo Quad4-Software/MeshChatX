@@ -162,6 +162,7 @@ import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import Utils from "../js/Utils";
 import WebSocketConnection from "../js/WebSocketConnection";
 import GlobalState from "../js/GlobalState";
+import GlobalEmitter from "../js/GlobalEmitter";
 import { clampFloatingToViewport } from "../js/clampFloatingToViewport.js";
 
 export default {
@@ -214,14 +215,14 @@ export default {
             clearInterval(this.reloadInterval);
         }
         WebSocketConnection.off("message", this.onWebsocketMessage);
+        GlobalEmitter.off("notifications-changed", this.onNotificationsChanged);
     },
     mounted() {
         this.loadNotifications();
         WebSocketConnection.on("message", this.onWebsocketMessage);
+        GlobalEmitter.on("notifications-changed", this.onNotificationsChanged);
         this.reloadInterval = setInterval(() => {
-            if (this.isDropdownOpen) {
-                this.loadNotifications({ updateList: false });
-            }
+            this.loadNotifications({ updateList: this.isDropdownOpen });
         }, 5000);
     },
     methods: {
@@ -233,6 +234,12 @@ export default {
                 return true;
             }
             return GlobalState.authenticated;
+        },
+        onNotificationsChanged() {
+            if (!this.shouldFetchNotifications()) {
+                return;
+            }
+            this.loadNotifications({ updateList: this.isDropdownOpen });
         },
         async toggleDropdown(event) {
             this.isDropdownOpen = !this.isDropdownOpen;

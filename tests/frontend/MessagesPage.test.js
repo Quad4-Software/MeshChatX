@@ -1,6 +1,15 @@
 import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import MessagesPage from "@/components/messages/MessagesPage.vue";
+import GlobalEmitter from "@/js/GlobalEmitter";
+
+vi.mock("@/js/GlobalEmitter", () => ({
+    default: {
+        on: vi.fn(),
+        off: vi.fn(),
+        emit: vi.fn(),
+    },
+}));
 
 describe("MessagesPage.vue", () => {
     let axiosMock;
@@ -427,5 +436,33 @@ describe("MessagesPage.vue", () => {
 
         await wrapper.vm.onComposeNewMessage(destHash);
         expect(wrapper.vm.selectedPeer.display_name).toBe("Existing Peer");
+    });
+
+    it("onBulkMarkAsRead notifies notification bell after server confirms", async () => {
+        const wrapper = mountMessagesPage();
+        await wrapper.vm.$nextTick();
+        axiosMock.post.mockResolvedValue({ data: {} });
+        axiosMock.get.mockResolvedValue({ data: { conversations: [] } });
+        GlobalEmitter.emit.mockClear();
+
+        await wrapper.vm.onBulkMarkAsRead(["peer-a", "peer-b"]);
+        await wrapper.vm.$nextTick();
+
+        expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/lxmf/conversations/bulk-mark-as-read", {
+            destination_hashes: ["peer-a", "peer-b"],
+        });
+        expect(GlobalEmitter.emit).toHaveBeenCalledWith("notifications-changed");
+    });
+
+    it("onBulkMarkAsRead does not notify bell when server rejects", async () => {
+        const wrapper = mountMessagesPage();
+        await wrapper.vm.$nextTick();
+        axiosMock.post.mockRejectedValue(new Error("fail"));
+        GlobalEmitter.emit.mockClear();
+
+        await wrapper.vm.onBulkMarkAsRead(["peer-a"]);
+        await wrapper.vm.$nextTick();
+
+        expect(GlobalEmitter.emit).not.toHaveBeenCalledWith("notifications-changed");
     });
 });
