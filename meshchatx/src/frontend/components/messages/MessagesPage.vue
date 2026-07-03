@@ -986,6 +986,7 @@ export default {
                 await window.api.post("/api/v1/lxmf/conversations/bulk-mark-as-read", {
                     destination_hashes,
                 });
+                GlobalEmitter.emit("notifications-changed");
                 await this.getConversations();
                 ToastUtils.success(this.$t("messages.marked_read"));
             } catch {

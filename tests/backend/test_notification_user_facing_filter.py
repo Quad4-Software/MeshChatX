@@ -749,3 +749,143 @@ class TestNotificationsGetUserFacingFilter:
         body = await self._get(bell_app, unread="true", limit=10)
         assert body["unread_count"] == 0
         assert body["notifications"] == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("require_loopback_tcp")
+class TestNotificationsMarkReadSync:
+    """Reading a conversation must clear the bell without opening the dropdown."""
+
+    async def _get(self, app, **params):
+        aio_app = _build_aio_app(app)
+        async with TestClient(TestServer(aio_app)) as client:
+            resp = await client.get("/api/v1/notifications", params=params)
+            assert resp.status == 200
+            return await resp.json()
+
+    async def _post(self, app, path, payload=None):
+        aio_app = _build_aio_app(app)
+        async with TestClient(TestServer(aio_app)) as client:
+            resp = await client.post(path, json=payload or {})
+            assert resp.status == 200
+            return await resp.json()
+
+    async def test_mark_conversation_read_api_clears_bell(self, bell_app):
+        bell_app.database.messages.upsert_lxmf_message(
+            _mk_message(
+                msg_hash="m1",
+                peer_hash=PEER_HASH,
+                content="hello",
+                timestamp=1_700_000_000,
+            ),
+        )
+        before = await self._get(bell_app, unread="true", limit=10)
+        assert before["unread_count"] == 1
+        assert len(before["notifications"]) == 1
+
+        await self._post(
+            bell_app,
+            f"/api/v1/lxmf/conversations/{PEER_HASH}/mark-as-read",
+        )
+
+        after = await self._get(bell_app, unread="true", limit=10)
+        assert after["unread_count"] == 0
+        assert after["notifications"] == []
+
+    async def test_bulk_mark_read_api_clears_bell(self, bell_app):
+        bell_app.database.messages.upsert_lxmf_message(
+            _mk_message(
+                msg_hash="m1",
+                peer_hash=PEER_HASH,
+                content="one",
+                timestamp=1_700_000_000,
+            ),
+        )
+        bell_app.database.messages.upsert_lxmf_message(
+            _mk_message(
+                msg_hash="m2",
+                peer_hash=PEER_HASH_2,
+                content="two",
+                timestamp=1_700_000_100,
+            ),
+        )
+        before = await self._get(bell_app, unread="true", limit=10)
+        assert before["unread_count"] == 2
+
+        await self._post(
+            bell_app,
+            "/api/v1/lxmf/conversations/bulk-mark-as-read",
+            {"destination_hashes": [PEER_HASH, PEER_HASH_2]},
+        )
+
+        after = await self._get(bell_app, unread="true", limit=10)
+        assert after["unread_count"] == 0
+        assert after["notifications"] == []
+
+    async def test_conversation_list_and_bell_agree_after_mark_read(self, bell_app):
+        bell_app.database.messages.upsert_lxmf_message(
+            _mk_message(
+                msg_hash="m1",
+                peer_hash=PEER_HASH,
+                content="hello",
+                timestamp=1_700_000_000,
+            ),
+        )
+        aio_app = _build_aio_app(bell_app)
+        async with TestClient(TestServer(aio_app)) as client:
+            conv_before = await client.get(
+                "/api/v1/lxmf/conversations",
+                params={"filter_unread": "true"},
+            )
+            assert conv_before.status == 200
+            assert len((await conv_before.json())["conversations"]) == 1
+
+            await client.post(f"/api/v1/lxmf/conversations/{PEER_HASH}/mark-as-read")
+
+            conv_after = await client.get(
+                "/api/v1/lxmf/conversations",
+                params={"filter_unread": "true"},
+            )
+            bell_after = await client.get(
+                "/api/v1/notifications",
+                params={"unread": "true", "limit": 10},
+            )
+            assert conv_after.status == 200
+            assert bell_after.status == 200
+            conv_body = await conv_after.json()
+            bell_body = await bell_after.json()
+            assert conv_body["conversations"] == []
+            assert bell_body["unread_count"] == 0
+            assert bell_body["notifications"] == []
+
+    async def test_read_conversation_with_reaction_latest_stays_clear(self, bell_app):
+        bell_app.database.messages.upsert_lxmf_message(
+            _mk_message(
+                msg_hash="m1",
+                peer_hash=PEER_HASH,
+                content="hello",
+                timestamp=1_700_000_000,
+            ),
+        )
+        bell_app.database.messages.upsert_lxmf_message(
+            _mk_message(
+                msg_hash="r1",
+                peer_hash=PEER_HASH,
+                content="",
+                fields={
+                    "reaction": {"reaction_to": "m1", "reaction_content": "\U0001f44d"}
+                },
+                timestamp=1_700_001_000,
+            ),
+        )
+        before = await self._get(bell_app, unread="true", limit=10)
+        assert before["unread_count"] == 1
+
+        await self._post(
+            bell_app,
+            f"/api/v1/lxmf/conversations/{PEER_HASH}/mark-as-read",
+        )
+
+        after = await self._get(bell_app, unread="true", limit=10)
+        assert after["unread_count"] == 0
+        assert after["notifications"] == []

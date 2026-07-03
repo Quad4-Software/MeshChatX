@@ -7,10 +7,19 @@ import DialogUtils from "@/js/DialogUtils";
 import ToastUtils from "@/js/ToastUtils";
 import { MESSAGE_BODY_MAX_DISPLAY_CHARS } from "../../meshchatx/src/frontend/js/messageDisplayLimits.js";
 import DownloadUtils from "@/js/DownloadUtils";
+import GlobalEmitter from "@/js/GlobalEmitter";
 
 vi.mock("@/js/DialogUtils", () => ({
     default: {
         confirm: vi.fn(() => Promise.resolve(true)),
+    },
+}));
+
+vi.mock("@/js/GlobalEmitter", () => ({
+    default: {
+        on: vi.fn(),
+        off: vi.fn(),
+        emit: vi.fn(),
     },
 }));
 
@@ -117,6 +126,7 @@ describe("ConversationViewer.vue", () => {
         const wrapper = mountConversationViewer();
         await flushPromises();
         axiosMock.post.mockClear();
+        GlobalEmitter.emit.mockClear();
 
         const conversation = { destination_hash: "unread-hash", is_unread: true };
         await wrapper.vm.markConversationAsRead(conversation);
@@ -126,6 +136,25 @@ describe("ConversationViewer.vue", () => {
         const markCalls = axiosMock.post.mock.calls.filter((c) => String(c[0]).includes("/mark-as-read"));
         expect(markCalls).toHaveLength(1);
         expect(wrapper.emitted("reload-conversations")).toHaveLength(1);
+        expect(GlobalEmitter.emit).toHaveBeenCalledWith("notifications-changed");
+    });
+
+    it("markConversationAsRead does not notify bell when server mark-as-read fails", async () => {
+        const wrapper = mountConversationViewer();
+        await flushPromises();
+        axiosMock.post.mockImplementation((url) => {
+            if (String(url).includes("/mark-as-read")) {
+                return Promise.reject(new Error("offline"));
+            }
+            return Promise.resolve({ data: {} });
+        });
+        GlobalEmitter.emit.mockClear();
+
+        const conversation = { destination_hash: "unread-hash", is_unread: true };
+        await wrapper.vm.markConversationAsRead(conversation);
+        await flushPromises();
+
+        expect(GlobalEmitter.emit).not.toHaveBeenCalledWith("notifications-changed");
     });
 
     it("onMessagePaste adds images from clipboard and prevents default", async () => {
