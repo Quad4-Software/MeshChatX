@@ -1,5 +1,7 @@
 version: "3"
 
+output: prefixed
+
 vars:
     PYTHON:
         sh: echo "${PYTHON:-python}"
@@ -64,7 +66,7 @@ tasks:
 
     install:
         desc: Install all dependencies (frontend and backend)
-        deps: [deps:fe, deps:be]
+        deps: [deps:frontend, deps:backend]
 
     install:offline:
         desc: Install from offline bundle (air-gapped machine)
@@ -81,12 +83,14 @@ tasks:
         cmds:
             - ./scripts/setup_wine_env.sh
 
-    deps:fe:
+    deps:frontend:
+        aliases: [deps:fe]
         desc: Install Node.js dependencies
         cmds:
             - '{{.NPM}} install{{if ne .NPM_INSTALL_FLAGS ""}} {{.NPM_INSTALL_FLAGS}}{{end}}'
 
-    deps:be:
+    deps:backend:
+        aliases: [deps:be]
         desc: Install Python dependencies using UV
         cmds:
             - 'uv sync --group dev{{if ne .UV_SYNC_FLAGS ""}} {{.UV_SYNC_FLAGS}}{{end}}'
@@ -134,49 +138,52 @@ tasks:
 
     # --- Code Quality ---
 
+    format:
+        desc: Format all code (Prettier/ESLint, Ruff)
+        aliases: [fmt, fmt:all]
+        deps: [format:frontend, format:backend]
+
+    format:frontend:
+        aliases: [fmt:fe, format:fe]
+        desc: Format frontend code (Prettier/ESLint)
+        cmds:
+            - "{{.NPM}} run format"
+            - "{{.NPM}} run lint:fix"
+
+    format:backend:
+        aliases: [fmt:be, format:be]
+        desc: Format Python code (Ruff)
+        cmds:
+            - uv run ruff format ./ --exclude tests
+            - uv run ruff check --fix ./ --exclude tests
+
     lint:
         desc: Run all linters (ESLint, vue-tsc, knip, Ruff, basedpyright)
-        deps: [lint:fe, lint:be]
+        aliases: [lint:all]
+        deps: [lint:frontend, lint:backend]
 
-    lint:all:
-        desc: Run all linters
-        deps: [lint:fe, lint:be]
-
-    lint:be:
-        desc: Lint Python code (ruff + basedpyright)
-        cmds:
-            - uv run ruff check .
-            - uv run ruff format --check .
-            - uv run basedpyright -p pyrightconfig.json --level error
-
-    lint:fe:
+    lint:frontend:
+        aliases: [lint:fe]
         desc: Lint frontend code (ESLint, vue-tsc, knip)
         cmds:
             - "{{.NPM}} run lint"
             - "{{.NPM}} run typecheck"
             - "{{.NPM}} exec knip"
 
-    fmt:all:
-        desc: Format all code
-        deps: [fmt:fe, fmt:be]
-
-    fmt:be:
-        desc: Format Python code (ruff)
+    lint:backend:
+        aliases: [lint:be]
+        desc: Lint Python code (Ruff + basedpyright)
         cmds:
-            - uv run ruff format ./ --exclude tests
-            - uv run ruff check --fix ./ --exclude tests
-
-    fmt:fe:
-        desc: Format frontend code (Prettier/ESLint)
-        cmds:
-            - "{{.NPM}} run format"
-            - "{{.NPM}} run lint:fix"
+            - uv run ruff check .
+            - uv run ruff format --check .
+            - uv run basedpyright -p pyrightconfig.json --level error
 
     # --- Testing & Analysis ---
 
-    test:all:
+    test:
         desc: Run all tests
-        deps: [test:be, test:fe, test:lang]
+        aliases: [test:all]
+        deps: [test:backend, test:frontend, test:lang]
 
     test:e2e:
         desc: Playwright E2E (starts MeshChat backend + Vite; requires uv, curl, pnpm exec playwright install chromium)
@@ -220,7 +227,8 @@ tasks:
                 tests/frontend/ConversationViewer.test.js
                 -t "addStrangerAsContact"
 
-    test:be:
+    test:backend:
+        aliases: [test:be, test:be:full]
         desc: Run Python tests (pytest; includes perf/memory profiling — same as GitHub CI)
         cmds:
             - uv run pytest tests/backend -n auto --cov=meshchatx/src/backend
@@ -235,17 +243,13 @@ tasks:
         cmds:
             - uv run pytest tests/backend/test_performance_hotpaths.py tests/backend/test_performance_bottlenecks.py
 
-    test:be:full:
-        desc: Same as test:be (full backend suite)
-        cmds:
-            - uv run pytest tests/backend -n auto --cov=meshchatx/src/backend
-
     test:mutation:
         desc: Mutation testing (mutmut; slow; optional; default targets meshchat_utils)
         cmds:
             - uv run mutmut run "meshchatx.src.backend.meshchat_utils*"
 
-    test:fe:
+    test:frontend:
+        aliases: [test:fe]
         desc: Run frontend + Electron shell unit tests (vitest; excludes i18n — see test:lang; excludes LoadTimePerformance — use test:fe:loadtime locally)
         cmds:
             - "{{.NPM}} exec vitest run --exclude tests/frontend/LoadTimePerformance.test.js --exclude tests/frontend/i18n.test.js"
@@ -315,11 +319,11 @@ tasks:
             - uv run pytest tests/backend/test_memory_profiling.py
 
     check:
-        desc: Run formatting, linting, and testing sequentially
+        desc: Format, lint, and test sequentially (full pre-push gate)
         cmds:
-            - task: fmt:all
-            - task: lint:all
-            - task: test:all
+            - task: format
+            - task: lint
+            - task: test
 
     compile:
         desc: Compile Python to check for syntax errors
@@ -328,20 +332,16 @@ tasks:
 
     # --- Build & Packaging ---
 
-    build:all:
+    build:
         desc: Build frontend and prepare backend
+        aliases: [build:all]
         deps: [install]
         cmds:
             - "{{.NPM}} run build"
 
-    build:
-        desc: Alias for build:all
-        cmds:
-            - task: build:all
-
     build:fe:
         desc: Build frontend assets
-        deps: [deps:fe]
+        deps: [deps:frontend]
         cmds:
             - "{{.NPM}} run build-frontend"
 
