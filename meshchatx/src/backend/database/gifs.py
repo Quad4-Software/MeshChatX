@@ -194,6 +194,10 @@ class UserGifsDAO:
             usage = int(item.get("usage_count") or 0)
             usage = max(usage, 0)
             try:
+                if not isinstance(b64, (str, bytes)) or not b64:
+                    skipped_invalid += 1
+                    errors.append(f"decode_failed_at_{i}")
+                    continue
                 raw = base64.b64decode(b64, validate=False)
             except (ValueError, TypeError):
                 skipped_invalid += 1

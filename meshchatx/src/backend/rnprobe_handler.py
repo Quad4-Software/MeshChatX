@@ -107,7 +107,8 @@ class RNProbeHandler:
             try:
                 probe.pack()
             except OSError as e:
-                msg = f"Probe packet size of {len(probe.raw)} bytes exceeds MTU of {RNS.Reticulum.MTU} bytes"
+                raw = probe.raw or b""
+                msg = f"Probe packet size of {len(raw)} bytes exceeds MTU of {RNS.Reticulum.MTU} bytes"
                 raise ValueError(msg) from e
 
             receipt = probe.send()

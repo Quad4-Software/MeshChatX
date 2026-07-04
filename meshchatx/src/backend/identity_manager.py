@@ -19,7 +19,11 @@ class IdentityManager:
         self.identity_file_path = identity_file_path
 
     def get_identity_bytes(self, identity: RNS.Identity) -> bytes:
-        return identity.get_private_key()
+        private_key = identity.get_private_key()
+        if not private_key:
+            msg = "identity has no private key"
+            raise ValueError(msg)
+        return private_key
 
     def backup_identity(self, identity: RNS.Identity) -> dict:
         identity_bytes = self.get_identity_bytes(identity)

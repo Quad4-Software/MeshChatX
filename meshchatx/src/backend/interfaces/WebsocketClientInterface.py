@@ -17,7 +17,7 @@ class WebsocketClientInterface(Interface):
     def __str__(self):
         return f"WebsocketClientInterface[{self.name}/{self.target_url}]"
 
-    def __init__(self, owner, configuration, websocket: Connection = None):
+    def __init__(self, owner, configuration, websocket: Connection | None = None):
         super().__init__()
 
         self.owner = owner
@@ -113,8 +113,13 @@ class WebsocketClientInterface(Interface):
     def read_loop(self):
         self.online = True
 
+        websocket = self.websocket
+        if websocket is None:
+            self.online = False
+            return
+
         try:
-            for message in self.websocket:
+            for message in websocket:
                 self.process_incoming(message)
         except Exception as e:
             RNS.log(f"{self} read loop error: {e}", RNS.LOG_ERROR)

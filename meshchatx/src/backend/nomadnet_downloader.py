@@ -10,6 +10,7 @@ from collections.abc import Callable
 import RNS
 
 from meshchatx.src.backend import reticulum_pathfinding
+from meshchatx.src.backend.reticulum_pathfinding import ReticulumLike
 
 # Global cache for Nomad Network links (reuse instead of reconnecting per request).
 # Protected by _nomadnet_links_lock for callers that may touch Reticulum from multiple threads.
@@ -77,7 +78,7 @@ class NomadnetDownloader:
         timeout: int | None = None,
         *,
         on_phase: Callable[[str], None] | None = None,
-        reticulum: object | None = None,
+        reticulum: ReticulumLike | None = None,
     ):
         self.app_name = "nomadnetwork"
         self.aspects = "node"
@@ -257,7 +258,7 @@ class NomadnetPageDownloader(NomadnetDownloader):
         timeout: int | None = None,
         *,
         on_phase: Callable[[str], None] | None = None,
-        reticulum: object | None = None,
+        reticulum: ReticulumLike | None = None,
     ):
         self.on_page_download_success = on_page_download_success
         self.on_page_download_failure = on_page_download_failure
@@ -301,7 +302,7 @@ class NomadnetFileDownloader(NomadnetDownloader):
         timeout: int | None = None,
         *,
         on_phase: Callable[[str], None] | None = None,
-        reticulum: object | None = None,
+        reticulum: ReticulumLike | None = None,
     ):
         self.on_file_download_success = on_file_download_success
         self.on_file_download_failure = on_file_download_failure
@@ -323,16 +324,16 @@ class NomadnetFileDownloader(NomadnetDownloader):
         if isinstance(response, io.BufferedReader):
             file_name = "downloaded_file"
             metadata = request_receipt.metadata
-            if metadata is not None and "name" in metadata:
+            if isinstance(metadata, dict) and "name" in metadata:
                 try:
                     file_path = metadata["name"].decode("utf-8", errors="replace")
                     file_name = os.path.basename(file_path)
                 except (AttributeError, TypeError):
                     pass
 
-            file_data: bytes = response.read()
+            payload = response.read()
 
-            self.on_file_download_success(file_name, file_data)
+            self.on_file_download_success(file_name, payload)
             return
 
         if (
@@ -340,24 +341,24 @@ class NomadnetFileDownloader(NomadnetDownloader):
             and len(response) > 1
             and isinstance(response[1], dict)
         ):
-            file_data: bytes = response[0]
-            metadata: dict = response[1]
+            payload = response[0]
+            metadata = response[1]
 
             file_name = "downloaded_file"
-            if metadata is not None and "name" in metadata:
+            if "name" in metadata:
                 try:
                     file_path = metadata["name"].decode("utf-8", errors="replace")
                     file_name = os.path.basename(file_path)
                 except (AttributeError, TypeError):
                     pass
 
-            self.on_file_download_success(file_name, file_data)
+            self.on_file_download_success(file_name, payload)
             return
 
         try:
-            file_name: str = response[0]
-            file_data: bytes = response[1]
-            self.on_file_download_success(file_name, file_data)
+            file_name = str(response[0])
+            payload = response[1]
+            self.on_file_download_success(file_name, payload)
         except Exception:
             self.on_download_failure("unsupported_response")
 

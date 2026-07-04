@@ -356,15 +356,18 @@ class TelephoneManager:
 
             # FIXME: Remove telephony-destination pre-path lookup once LXST aligns
             # identity-hash and telephony-destination path handling.
-            call_destination_hash = destination_hash
+            call_destination_hash: bytes = destination_hash
             with contextlib.suppress(Exception):
-                call_destination_hash = RNS.Destination(
+                dest = RNS.Destination(
                     destination_identity,
                     RNS.Destination.OUT,
                     RNS.Destination.SINGLE,
                     "lxst",
                     "telephony",
-                ).hash
+                )
+                dest_hash = dest.hash
+                if isinstance(dest_hash, bytes):
+                    call_destination_hash = dest_hash
 
             if not RNS.Transport.has_path(call_destination_hash):
                 self._update_initiation_status("Requesting path...")

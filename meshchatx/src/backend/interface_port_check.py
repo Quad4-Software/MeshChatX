@@ -61,7 +61,7 @@ def is_port_in_use(host: str | None, port, *, kind: str = "tcp") -> bool:
     sock_kind = socket.SOCK_DGRAM if str(kind).lower() == "udp" else socket.SOCK_STREAM
 
     normalized = _normalize_host(host)
-    candidates: list[tuple[int, str]] = []
+    candidates: list[tuple[socket.AddressFamily, str]] = []
     if normalized == "":
         candidates.append((socket.AF_INET, "0.0.0.0"))  # noqa: S104
         candidates.append((socket.AF_INET6, "::"))
@@ -74,12 +74,12 @@ def is_port_in_use(host: str | None, port, *, kind: str = "tcp") -> bool:
             )
         except OSError:
             return False
-        seen: set[tuple[int, str]] = set()
+        seen: set[tuple[socket.AddressFamily, str]] = set()
         for info in infos:
             family = info[0]
             if family not in (socket.AF_INET, socket.AF_INET6):
                 continue
-            address = info[4][0]
+            address = str(info[4][0])
             key = (family, address)
             if key in seen:
                 continue

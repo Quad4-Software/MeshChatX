@@ -301,8 +301,12 @@ class Database:
             free_bytes = freelist_bytes
         else:
             try:
-                db_dir = os.path.dirname(os.path.abspath(self.provider.db_path))
-                free_bytes = shutil.disk_usage(db_dir).free if db_dir else 0
+                db_path = self.provider.db_path
+                if not db_path:
+                    free_bytes = 0
+                else:
+                    db_dir = os.path.dirname(os.path.abspath(db_path))
+                    free_bytes = shutil.disk_usage(db_dir).free if db_dir else 0
             except OSError:
                 free_bytes = 0
 
@@ -392,7 +396,11 @@ class Database:
             self.provider.close_all()
 
     def _identity_storage_dir(self) -> str:
-        return os.path.dirname(os.path.abspath(self.provider.db_path))
+        db_path = self.provider.db_path
+        if not db_path:
+            msg = "database path is not configured"
+            raise ValueError(msg)
+        return os.path.dirname(os.path.abspath(db_path))
 
     def _add_identity_storage_to_zip(
         self,

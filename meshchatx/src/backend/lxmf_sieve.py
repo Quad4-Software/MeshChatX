@@ -91,8 +91,11 @@ def normalize_lxmf_sieve_filters(filters: list) -> list[dict[str, Any]]:
 
         folder_id: int | None = None
         if action == "folder":
+            raw_folder_id = item.get("folder_id")
+            if raw_folder_id is None:
+                continue
             try:
-                folder_id = int(item.get("folder_id"))
+                folder_id = int(raw_folder_id)
             except (TypeError, ValueError):
                 continue
 

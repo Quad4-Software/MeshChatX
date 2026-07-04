@@ -101,9 +101,14 @@ class ForwardingManager:
             self.forwarding_destinations[alias_hash] = alias_destination
             self.forwarding_routers[alias_hash] = router
 
+            private_key = alias_identity.get_private_key()
+            if not private_key:
+                msg = "alias identity has no private key"
+                raise ValueError(msg)
+
             data = {
                 "alias_identity_private_key": base64.b64encode(
-                    alias_identity.get_private_key(),
+                    private_key,
                 ).decode(),
                 "alias_hash": alias_hash,
                 "original_sender_hash": source_hash,

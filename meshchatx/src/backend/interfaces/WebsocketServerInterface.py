@@ -34,26 +34,26 @@ class WebsocketServerInterface(Interface):
         self.mode = RNS.Interfaces.Interface.Interface.MODE_FULL
 
         self.server: Server | None = None
-        self.spawned_interfaces: [WebsocketClientInterface] = []
+        self.spawned_interfaces: list[WebsocketClientInterface] = []
 
         # parse config
         ifconf = Interface.get_config_obj(configuration)
         self.name = ifconf.get("name")
-        self.listen_ip = ifconf.get("listen_ip", None)
-        self.listen_port = ifconf.get("listen_port", None)
+        listen_ip = ifconf.get("listen_ip", None)
+        listen_port = ifconf.get("listen_port", None)
 
         # ensure listen ip is provided
-        if self.listen_ip is None:
+        if listen_ip is None:
             msg = f"listen_ip is required for interface '{self.name}'"
             raise SystemError(msg)
 
         # ensure listen port is provided
-        if self.listen_port is None:
+        if listen_port is None:
             msg = f"listen_port is required for interface '{self.name}'"
             raise SystemError(msg)
 
-        # convert listen port to int
-        self.listen_port = int(self.listen_port)
+        self.listen_ip = str(listen_ip)
+        self.listen_port = int(str(listen_port).strip())
 
         # run websocket server
         thread = threading.Thread(target=self.serve)

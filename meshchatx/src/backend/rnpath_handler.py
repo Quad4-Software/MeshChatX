@@ -4,7 +4,7 @@ import RNS
 
 
 class RNPathHandler:
-    def __init__(self, reticulum_instance: RNS.Reticulum):
+    def __init__(self, reticulum_instance: RNS.Reticulum | None):
         self.reticulum = reticulum_instance
 
     def get_path_table(
@@ -136,9 +136,11 @@ class RNPathHandler:
         return dropped
 
     def drop_all_via(self, transport_instance_hash: str) -> bool:
+        if self.reticulum is None:
+            return False
         try:
             ti_bytes = bytes.fromhex(transport_instance_hash)
-            return self.reticulum.drop_all_via(ti_bytes)
+            return bool(self.reticulum.drop_all_via(ti_bytes))
         except Exception:
             return False
 

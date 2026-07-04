@@ -69,6 +69,9 @@ class DatabaseProvider:
             return self._memory_connection
 
         if not hasattr(self._local, "connection"):
+            if self.db_path is None:
+                msg = "db_path is required for database connections"
+                raise ValueError(msg)
             # isolation_level=None enables autocommit mode, letting us manage transactions manually
             self._local.connection = sqlite3.connect(
                 self.db_path,

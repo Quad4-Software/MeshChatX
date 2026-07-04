@@ -223,7 +223,13 @@ class BotHandler:
                 identity = self._load_identity_for_bot(bot_id)
                 if identity:
                     with contextlib.suppress(Exception):
-                        destination = RNS.Destination(identity, "lxmf", "delivery")
+                        destination = RNS.Destination(
+                            identity,
+                            RNS.Destination.OUT,
+                            RNS.Destination.SINGLE,
+                            "lxmf",
+                            "delivery",
+                        )
                         address_full = self._normalize_lxmf_hash_hex(destination.hash)
                         if address_full:
                             address_pretty = RNS.prettyhexrep(
