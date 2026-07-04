@@ -412,7 +412,10 @@ class VoicemailManager:
             return
 
         try:
-            duration = int(time.time() - self.recording_start_time)
+            if self.recording_start_time is None:
+                duration = 0
+            else:
+                duration = int(time.time() - self.recording_start_time)
 
             if self.recording_pipeline:
                 self.recording_pipeline.stop()
@@ -424,7 +427,7 @@ class VoicemailManager:
             self.recording_pipeline = None
 
             # Save to database if long enough
-            if duration >= 1:
+            if duration >= 1 and self.recording_filename:
                 filepath = os.path.join(self.recordings_dir, self.recording_filename)
                 self._fix_recording(filepath)
 
@@ -461,9 +464,13 @@ class VoicemailManager:
                     )
             else:
                 # Delete short/empty recording
-                filepath = os.path.join(self.recordings_dir, self.recording_filename)
-                if os.path.exists(filepath):
-                    os.remove(filepath)
+                if self.recording_filename:
+                    filepath = os.path.join(
+                        self.recordings_dir,
+                        self.recording_filename,
+                    )
+                    if os.path.exists(filepath):
+                        os.remove(filepath)
 
             self.is_recording = False
             self.is_greeting_recording = False

@@ -323,6 +323,10 @@ class UserStickersDAO:
             src = item.get("source_message_hash")
             emoji = sticker_utils.sanitize_sticker_emoji(item.get("emoji"))
             try:
+                if not isinstance(b64, (str, bytes)) or not b64:
+                    skipped_invalid += 1
+                    errors.append(f"decode_failed_at_{i}")
+                    continue
                 raw = base64.b64decode(b64, validate=False)
             except (ValueError, TypeError):
                 skipped_invalid += 1

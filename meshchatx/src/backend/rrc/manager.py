@@ -901,6 +901,8 @@ class RRCHub:
         if not isinstance(env, dict):
             return
         t = env.get(proto.K_T)
+        if t is None:
+            return
 
         handler = self._PACKET_HANDLERS.get(t)
         if handler is not None:

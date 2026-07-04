@@ -169,8 +169,12 @@ def fresh_storage_at_target(target_path: str) -> None:
         raise ValueError("target not empty")
     os.makedirs(target_path, exist_ok=True)
     ident = RNS.Identity(create_keys=True)
+    private_key = ident.get_private_key()
+    if not private_key:
+        msg = "failed to create identity private key"
+        raise ValueError(msg)
     with open(os.path.join(target_path, "identity"), "wb") as f:
-        f.write(ident.get_private_key())
+        f.write(private_key)
 
 
 def assert_migration_context_paths(ctx: dict, legacy: str, target: str) -> None:

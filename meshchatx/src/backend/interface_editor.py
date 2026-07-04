@@ -90,6 +90,8 @@ def validate_rnode_txpower(value) -> str | None:
         power = normalize_rnode_txpower(value)
     except (TypeError, ValueError):
         return "TX power must be an integer dBm value"
+    if not isinstance(power, int):
+        return "TX power must be an integer dBm value"
     if power < RNODE_TXPOWER_MIN or power > RNODE_TXPOWER_MAX:
         return (
             f"TX power must be between {RNODE_TXPOWER_MIN} and {RNODE_TXPOWER_MAX} dBm "

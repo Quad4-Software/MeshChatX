@@ -56,8 +56,12 @@ class IdentityContext:
         # Identity backup
         identity_backup_file = os.path.join(self.storage_path, "identity")
         if not os.path.exists(identity_backup_file):
+            private_key = identity.get_private_key()
+            if not private_key:
+                msg = "identity has no private key"
+                raise ValueError(msg)
             with open(identity_backup_file, "wb") as f:
-                f.write(identity.get_private_key())
+                f.write(private_key)
 
         # Session ID for this specific context instance
         if not hasattr(app, "_identity_session_id_counter"):
@@ -326,8 +330,12 @@ class IdentityContext:
             print(f"Failed to restore bots: {exc}")
 
         # Initialize managers
+        identity = self.identity
+        if identity is None:
+            msg = "identity is required for manager setup"
+            raise RuntimeError(msg)
         self.telephone_manager = TelephoneManager(
-            self.identity,
+            identity,
             config_manager=self.config,
             storage_dir=self.storage_path,
             db=self.database,

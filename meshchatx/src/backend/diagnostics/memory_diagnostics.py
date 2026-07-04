@@ -454,7 +454,7 @@ class MemoryDiagnostics:
             },
         ]
 
-    def gc_garbage_types(self) -> list[dict[str, int]]:
+    def gc_garbage_types(self) -> list[dict[str, str | int]]:
         """Show types of objects in gc.garbage (uncollectable objects)."""
         counts: dict[str, int] = {}
         try:
