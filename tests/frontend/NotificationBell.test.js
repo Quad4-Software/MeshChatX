@@ -869,9 +869,9 @@ describe("NotificationBell live sync", () => {
     it("polls unread count every 5s while dropdown is closed", async () => {
         vi.useFakeTimers();
         let unread = 4;
-        global.api.get = vi.fn().mockImplementation(() =>
-            Promise.resolve({ data: { notifications: [], unread_count: unread } })
-        );
+        global.api.get = vi
+            .fn()
+            .mockImplementation(() => Promise.resolve({ data: { notifications: [], unread_count: unread } }));
 
         const wrapper = mountBell();
         await vi.runOnlyPendingTimersAsync();
