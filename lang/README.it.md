@@ -31,7 +31,7 @@ MeshChatX NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
 - Electron 41.x (runtime Node 24 incluso)
 - Wheel `.whl` con web server e asset frontend integrati per piu opzioni di deploy
 - i18n
-- PNPM e Poetry per le dipendenze
+- PNPM e UV per le dipendenze
 
 > [!WARNING]
 > MeshChatX non garantisce la compatibilita dei dati con le versioni precedenti di Reticulum MeshChat. Eseguire un backup prima della migrazione o dei test.
@@ -44,7 +44,7 @@ MeshChatX NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
 - Python `>=3.11` (da `pyproject.toml`)
 - Node.js `>=24` (da `package.json`, campo `engines`)
 - pnpm `11.1.2` (da `package.json`, campo `packageManager`)
-- Poetry (utilizzato in `Taskfile.yml` e nei workflow CI)
+- UV (utilizzato in `Taskfile.yml` e nei workflow CI)
 
 **Browser Versions Required:**
 
@@ -180,13 +180,13 @@ Note sui comandi di installazione:
 - `verify-store-integrity=true` e' impostato anche nel `pnpm-workspace.yaml` del progetto; la riga esplicita `pnpm config set` rafforza inoltre la configurazione utente.
 - Gli script di lifecycle (`preinstall`/`postinstall`) sono bloccati di default in pnpm v11+. Solo i pacchetti elencati in `allowBuilds` di `pnpm-workspace.yaml` possono eseguire script di installazione (attualmente `electron`, `electron-winstaller`, `esbuild`).
 - `uv lock --check` fallisce subito se `uv.lock` non e' allineato con `pyproject.toml`; `uv sync --group dev` risolve poi solo dal lockfile.
-- Per un'installazione Poetry strettamente basata sul lockfile (senza refresh implicito), fissa Poetry con `pip install "uv==0.11.15"`, in linea con la CI.
+- Per un'installazione UV strettamente basata sul lockfile (senza refresh implicito), fissa UV con `pip install "uv==0.11.15"`, in linea con la CI.
 
 Se vuoi aggiornare intenzionalmente le dipendenze, esegui `pnpm update` / `uv lock` in un commit dedicato e rivedi il diff del lockfile prima del push.
 
 ## Esecuzione in sandbox (Linux)
 
-Per eseguire il binario nativo `meshchatx` (alias: `meshchat`) con isolamento aggiuntivo del filesystem, puoi usare **Firejail** o **Bubblewrap** (`bwrap`) mantenendo l'accesso di rete normale per Reticulum e l'interfaccia web. Esempi completi (pip/pipx, Poetry, note sulla seriale USB) sono in:
+Per eseguire il binario nativo `meshchatx` (alias: `meshchat`) con isolamento aggiuntivo del filesystem, puoi usare **Firejail** o **Bubblewrap** (`bwrap`) mantenendo l'accesso di rete normale per Reticulum e l'interfaccia web. Esempi completi (pip/pipx, UV, note sulla seriale USB) sono in:
 
 - [`docs/meshchatx_linux_sandbox.md`](../docs/meshchatx_linux_sandbox.md)
 
@@ -234,7 +234,7 @@ task dist:fe:rpm
 
 ## Build container (wheel, AppImage, deb, rpm)
 
-`Dockerfile.build` esegue le stesse fasi usate in CI (Poetry, pnpm, `task`, dipendenze APT). Orientato a **linux/amd64** (tarball NodeSource amd64, Task amd64). Il target predefinito e completo; si puo sovrascrivere con un build-arg.
+`Dockerfile.build` esegue le stesse fasi usate in CI (uv, pnpm, `task`, dipendenze APT). Orientato a **linux/amd64** (tarball NodeSource amd64, Task amd64). Il target predefinito e completo; si puo sovrascrivere con un build-arg.
 
 Valori per `MESHCHATX_BUILD_TARGETS`: `all` (default), `wheel` o `electron` (AppImage + deb per x64 e arm64, RPM se possibile, senza wheel).
 
@@ -333,16 +333,16 @@ task test:all
 task build:all
 ```
 
-Scorciatoie `Makefile`:
+I target `Makefile` sono wrapper sottili che delegano a `task` (stessi comandi di sopra):
 
-| Comando        | Descrizione                               |
-| -------------- | ----------------------------------------- |
-| `make install` | Installa dipendenze pnpm e UV             |
-| `make run`     | Esegue MeshChatX tramite UV               |
-| `make build`   | Compila il frontend                       |
-| `make lint`    | Esegue eslint e ruff                      |
-| `make test`    | Test frontend e backend                   |
-| `make clean`   | Rimuove artefatti di build e node_modules |
+| Comando        | Delega a        | Descrizione                                           |
+| -------------- | --------------- | ----------------------------------------------------- |
+| `make install` | `task install`  | Installa dipendenze pnpm e UV                         |
+| `make run`     | `task run`      | Esegue MeshChatX tramite UV                           |
+| `make build`   | `task build`    | Compila artefatti frontend e backend                  |
+| `make lint`    | `task lint:all` | ESLint, vue-tsc, knip, Ruff e basedpyright            |
+| `make test`    | `task test:all` | Test frontend e backend                               |
+| `make clean`   | `task clean`    | Rimuove artefatti di build e node_modules             |
 
 ## Versionamento
 

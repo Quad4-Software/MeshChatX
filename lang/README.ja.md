@@ -31,7 +31,7 @@ MeshChatX NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
 - Electron 41.x（同梱 Node 24 ランタイム）
 - Web サーバーと同梱フロントエンドを含む `.whl` によりデプロイの選択肢を拡張
 - i18n
-- 依存関係管理に PNPM と Poetry
+- 依存関係管理に PNPM と UV
 
 > [!WARNING]
 > MeshChatX は旧バージョンの Reticulum MeshChat とのデータ互換性を保証しません。マイグレーションやテスト前にデータをバックアップしてください。
@@ -44,7 +44,7 @@ MeshChatX NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
 - Python `>=3.11`（`pyproject.toml` より）
 - Node.js `>=24`（`package.json` の `engines`）
 - pnpm `11.1.2`（`package.json` の `packageManager`）
-- Poetry（`Taskfile.yml` および CI ワークフローで使用）
+- UV（`Taskfile.yml` および CI ワークフローで使用）
 
 **Browser Versions Required:**
 
@@ -180,13 +180,13 @@ uv run python -m meshchatx.meshchat --headless --host 127.0.0.1
 - `verify-store-integrity=true` はプロジェクトの `pnpm-workspace.yaml` にも設定されています。上記の `pnpm config set` の行はユーザー設定側も明示的に固めるためのものです。
 - pnpm v11 以降、ライフサイクルスクリプト (`preinstall`/`postinstall`) はデフォルトでブロックされます。インストールスクリプトを実行できるのは `pnpm-workspace.yaml` の `allowBuilds` に列挙されたパッケージ（現在 `electron`、`electron-winstaller`、`esbuild`）だけです。
 - `uv lock --check` は `uv.lock` と `pyproject.toml` が同期していない場合に即時失敗します。その後の `uv sync --group dev` はロックファイルからのみ解決します。
-- 厳密にロックファイルだけで Poetry をインストールしたい場合は、CI と揃えるために `pip install "uv==0.11.15"` で Poetry バージョンを固定してください。
+- 厳密にロックファイルだけで UV をインストールしたい場合は、CI と揃えるために `pip install "uv==0.11.15"` で UV バージョンを固定してください。
 
 意図的に依存を更新する場合は、`pnpm update` / `uv lock` を専用コミットで実行し、push 前にロックファイルの diff を必ず確認してください。
 
 ## サンドボックスで実行（Linux）
 
-ネイティブの `meshchatx`（エイリアス: `meshchat`）をファイルシステムをより隔離した状態で動かすには、Reticulum と Web UI 向けの通常のネットワークアクセスを保ちつつ **Firejail** または **Bubblewrap**（`bwrap`）を使えます。詳しい例（pip/pipx、Poetry、USB シリアルの注意）は次を参照:
+ネイティブの `meshchatx`（エイリアス: `meshchat`）をファイルシステムをより隔離した状態で動かすには、Reticulum と Web UI 向けの通常のネットワークアクセスを保ちつつ **Firejail** または **Bubblewrap**（`bwrap`）を使えます。詳しい例（pip/pipx、UV、USB シリアルの注意）は次を参照:
 
 - [`docs/meshchatx_linux_sandbox.md`](../docs/meshchatx_linux_sandbox.md)
 
@@ -234,7 +234,7 @@ task dist:fe:rpm
 
 ## コンテナビルド（wheel、AppImage、deb、rpm）
 
-`Dockerfile.build` は CI と同じ手順（Poetry、pnpm、`task`、APT 依存）を実行します。**linux/amd64** 向け（NodeSource の amd64 tarball、Task の amd64 バイナリ）。デフォルトは全ターゲット。build-arg で上書き可能。
+`Dockerfile.build` は CI と同じ手順（uv、pnpm、`task`、APT 依存）を実行します。**linux/amd64** 向け（NodeSource の amd64 tarball、Task の amd64 バイナリ）。デフォルトは全ターゲット。build-arg で上書き可能。
 
 `MESHCHATX_BUILD_TARGETS` の値: `all`（既定）、`wheel`、または `electron`（x64 / arm64 の AppImage + deb、RPM はベストエフォート、wheel なし）。
 
@@ -333,16 +333,16 @@ task test:all
 task build:all
 ```
 
-`Makefile` のショートカット:
+`Makefile` のターゲットは `task` に委譲する薄いラッパーです（上記と同じコマンド）:
 
-| コマンド       | 説明                                 |
-| -------------- | ------------------------------------ |
-| `make install` | pnpm と UV の依存関係をインストール  |
-| `make run`     | UV 経由で MeshChatX を実行           |
-| `make build`   | フロントエンドをビルド               |
-| `make lint`    | eslint と ruff を実行                |
-| `make test`    | フロントエンドとバックエンドのテスト |
-| `make clean`   | ビルド成果物と node_modules を削除   |
+| コマンド       | 委譲先          | 説明                                                   |
+| -------------- | --------------- | ------------------------------------------------------ |
+| `make install` | `task install`  | pnpm と UV の依存関係をインストール                  |
+| `make run`     | `task run`      | UV 経由で MeshChatX を実行                           |
+| `make build`   | `task build`    | フロントエンドとバックエンドの成果物をビルド         |
+| `make lint`    | `task lint:all` | ESLint、vue-tsc、knip、Ruff、basedpyright            |
+| `make test`    | `task test:all` | フロントエンドとバックエンドのテスト                 |
+| `make clean`   | `task clean`    | ビルド成果物と node_modules を削除                   |
 
 ## バージョン管理
 

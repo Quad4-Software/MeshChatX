@@ -31,7 +31,7 @@ MeshChatX NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
 - 使用 Electron 41.x（内置 Node 24 运行时）
 - `.whl` 内置 Web 服务器与前端资源，便于多种部署方式
 - i18n
-- 使用 PNPM 与 Poetry 管理依赖
+- 使用 PNPM 与 UV 管理依赖
 
 > [!WARNING]
 > MeshChatX 不保证与旧版 Reticulum MeshChat 的数据兼容。迁移或测试前请备份数据。
@@ -44,7 +44,7 @@ MeshChatX NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
 - Python `>=3.11`（来自 `pyproject.toml`）
 - Node.js `>=24`（来自 `package.json` 的 `engines`）
 - pnpm `11.1.2`（来自 `package.json` 的 `packageManager`）
-- Poetry（用于 `Taskfile.yml` 与 CI 工作流）
+- UV（用于 `Taskfile.yml` 与 CI 工作流）
 
 **Browser Versions Required:**
 
@@ -180,13 +180,13 @@ uv run python -m meshchatx.meshchat --headless --host 127.0.0.1
 - `verify-store-integrity=true` 已在项目的 `pnpm-workspace.yaml` 中设置；显式的 `pnpm config set` 行同时加固用户级配置。
 - pnpm v11+ 默认禁用所有生命周期脚本（`preinstall`/`postinstall`）。仅 `pnpm-workspace.yaml` 中 `allowBuilds` 列出的包允许执行安装脚本（当前为 `electron`、`electron-winstaller`、`esbuild`）。
 - `uv lock --check` 会在 `uv.lock` 与 `pyproject.toml` 不同步时立即失败；随后的 `uv sync --group dev` 只会从 lock 文件解析依赖。
-- 若需严格按 lock 文件安装 Poetry 依赖（不进行隐式刷新），用 `pip install "uv==0.11.15"` 固定 Poetry 版本，与 CI 保持一致。
+- 若需严格按 lock 文件安装 UV（不进行隐式刷新），用 `pip install "uv==0.11.15"` 固定 UV 版本，与 CI 保持一致。
 
 如果确有意愿更新依赖，请在独立提交中运行 `pnpm update` / `uv lock`，并在推送前审查生成的 lock 文件 diff。
 
 ## 在沙盒中运行（Linux）
 
-若要在额外隔离文件系统的情况下运行原生 `meshchatx`（别名：`meshchat`），可使用 **Firejail** 或 **Bubblewrap**（`bwrap`），同时保留 Reticulum 与 Web 界面所需的网络访问。完整示例（pip/pipx、Poetry、USB 串口说明）见:
+若要在额外隔离文件系统的情况下运行原生 `meshchatx`（别名：`meshchat`），可使用 **Firejail** 或 **Bubblewrap**（`bwrap`），同时保留 Reticulum 与 Web 界面所需的网络访问。完整示例（pip/pipx、UV、USB 串口说明）见:
 
 - [`docs/meshchatx_linux_sandbox.md`](../docs/meshchatx_linux_sandbox.md)
 
@@ -234,7 +234,7 @@ task dist:fe:rpm
 
 ## 容器构建（wheel、AppImage、deb、rpm）
 
-`Dockerfile.build` 执行与 CI 相同的步骤（Poetry、pnpm、`task`、APT 等）。面向 **linux/amd64**（NodeSource amd64 压缩包、Task amd64 二进制）。默认目标为全部；可用 build 参数覆盖。
+`Dockerfile.build` 执行与 CI 相同的步骤（uv、pnpm、`task`、APT 等）。面向 **linux/amd64**（NodeSource amd64 压缩包、Task amd64 二进制）。默认目标为全部；可用 build 参数覆盖。
 
 `MESHCHATX_BUILD_TARGETS` 可选：`all`（默认）、`wheel` 或 `electron`（x64 与 arm64 的 AppImage + deb、尽力构建 RPM、不含 wheel）。
 
@@ -333,16 +333,16 @@ task test:all
 task build:all
 ```
 
-`Makefile` 快捷方式:
+`Makefile` 目标为委托给 `task` 的薄封装（与上文命令相同）:
 
-| 命令           | 说明                        |
-| -------------- | --------------------------- |
-| `make install` | 安装 pnpm 与 UV 依赖        |
-| `make run`     | 通过 UV 运行 MeshChatX      |
-| `make build`   | 构建前端                    |
-| `make lint`    | 运行 eslint 与 ruff         |
-| `make test`    | 运行前端与后端测试          |
-| `make clean`   | 移除构建产物与 node_modules |
+| 命令           | 委托至          | 说明                                      |
+| -------------- | --------------- | ----------------------------------------- |
+| `make install` | `task install`  | 安装 pnpm 与 UV 依赖                      |
+| `make run`     | `task run`      | 通过 UV 运行 MeshChatX                    |
+| `make build`   | `task build`    | 构建前端与后端产物                        |
+| `make lint`    | `task lint:all` | ESLint、vue-tsc、knip、Ruff 与 basedpyright |
+| `make test`    | `task test:all` | 运行前端与后端测试                        |
+| `make clean`   | `task clean`    | 移除构建产物与 node_modules               |
 
 ## 版本管理
 
