@@ -484,3 +484,27 @@ async def test_initiate_checks_path_for_lxst_telephony_destination(telephone_man
         )
 
     assert telephony_destination_hash in observed_hashes
+
+
+@patch("meshchatx.src.backend.telephone_manager.Telephone")
+def test_init_telephone_skips_when_disabled(mock_tel_class, tmp_path):
+    storage_dir = tmp_path / "tel"
+    storage_dir.mkdir()
+    cfg = MagicMock()
+    cfg.telephone_enabled.get.return_value = False
+    tm = TelephoneManager(MagicMock(), config_manager=cfg, storage_dir=str(storage_dir))
+    tm.init_telephone()
+    assert tm.telephone is None
+    mock_tel_class.assert_not_called()
+
+
+@patch("meshchatx.src.backend.telephone_manager.Telephone")
+def test_init_telephone_creates_when_enabled(mock_tel_class, tmp_path):
+    storage_dir = tmp_path / "tel"
+    storage_dir.mkdir()
+    cfg = MagicMock()
+    cfg.telephone_enabled.get.return_value = True
+    tm = TelephoneManager(MagicMock(), config_manager=cfg, storage_dir=str(storage_dir))
+    tm.init_telephone()
+    assert tm.telephone is not None
+    mock_tel_class.assert_called_once()

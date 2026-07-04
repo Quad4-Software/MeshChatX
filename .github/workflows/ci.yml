@@ -66,7 +66,7 @@ jobs:
                       timeout: 45
                     - name: Backend tests
                       id: backend-tests
-                      timeout: 120
+                      timeout: 60
                     - name: Localization tests
                       id: lang-tests
                       timeout: 20
@@ -221,3 +221,43 @@ jobs:
                   test -n "$(ls -A .artifacts/linux-build-check/meshchatx/public)"
                   test -n "$(ls -A .artifacts/linux-build-check/build/exe)"
                   echo "Linux build artifact download + content validation passed."
+
+    e2e:
+        name: E2E smoke
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
+        permissions:
+            contents: read
+        steps:
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+
+            - name: Set up Python
+              uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+
+            - name: Install UV (PyPI pin)
+              env:
+                  UV_VERSION: ${{ env.UV_VERSION }}
+              run: bash scripts/ci/github-install-uv.sh
+
+            - name: Cache UV downloads
+              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              with:
+                  path: ~/.cache/uv
+                  key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock') }}
+                  restore-keys: |
+                      ${{ runner.os }}-uv-
+
+            - name: Set up Node and pnpm
+              uses: ./.github/actions/setup-node-pnpm
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  pnpm-version: ${{ env.PNPM_VERSION }}
+
+            - name: Install dependencies
+              run: bash scripts/ci/github-install-deps.sh
+
+            - name: Run Playwright smoke E2E
+              run: bash scripts/ci/github-e2e.sh
