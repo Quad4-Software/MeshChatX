@@ -21,6 +21,7 @@ from packaging.utils import canonicalize_name
 _ROOT_DIST_CANDIDATES = ("reticulum-meshchatx", "reticulum_meshchatx")
 _DATA_SUBPATH = Path("meshchatx") / "src" / "backend" / "data"
 _FRONTEND_LICENSES_FILENAME = "licenses_frontend.json"
+_BACKEND_LICENSES_FILENAME = "licenses_backend.json"
 _THIRD_PARTY_NOTICES_FILENAME = "THIRD_PARTY_NOTICES.txt"
 
 
@@ -186,13 +187,37 @@ def _merge_bundled_lxmfy(
     return merged
 
 
-def collect_backend_licenses() -> list[dict[str, Any]]:
+def _collect_backend_licenses_live() -> list[dict[str, Any]]:
     repo = _repo_root()
     for root in _ROOT_DIST_CANDIDATES:
         if _dist_for_requirement_name(root) is not None:
             return _merge_bundled_lxmfy(repo, _collect_python_transitive((root,)))
     roots = _python_roots_from_pyproject(repo)
     return _merge_bundled_lxmfy(repo, _collect_python_transitive(roots))
+
+
+def _load_embedded_backend_licenses() -> list[dict[str, Any]] | None:
+    for path in _embedded_data_paths(_BACKEND_LICENSES_FILENAME):
+        if not path.is_file():
+            continue
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(raw, list):
+            continue
+        return [x for x in raw if isinstance(x, dict)]
+    return None
+
+
+def collect_backend_licenses() -> list[dict[str, Any]]:
+    embedded = _load_embedded_backend_licenses()
+    if getattr(sys, "frozen", False) and embedded:
+        return embedded
+    live = _collect_backend_licenses_live()
+    if live:
+        return live
+    return embedded or []
 
 
 def _license_from_package_json(data: dict[str, Any]) -> str:
@@ -497,11 +522,14 @@ def write_embedded_license_artifacts(repo_root: Path | None = None) -> dict[str,
     data_dir.mkdir(parents=True, exist_ok=True)
     payload = build_licenses_payload()
     frontend = payload.get("frontend", [])
+    backend = payload.get("backend", [])
     meta = payload.get("meta", {}) if isinstance(payload, dict) else {}
     frontend_source = str(meta.get("frontend_source", "unknown"))
     frontend_path = data_dir / _FRONTEND_LICENSES_FILENAME
+    backend_path = data_dir / _BACKEND_LICENSES_FILENAME
     notices_path = data_dir / _THIRD_PARTY_NOTICES_FILENAME
     frontend_rows = frontend if isinstance(frontend, list) else []
+    backend_rows = backend if isinstance(backend, list) else []
     should_write_frontend = (
         bool(frontend_rows)
         or not frontend_path.exists()
@@ -516,11 +544,17 @@ def write_embedded_license_artifacts(repo_root: Path | None = None) -> dict[str,
             json.dumps(frontend_rows, indent=2, ensure_ascii=False) + "\n",
             encoding="utf-8",
         )
+    backend_path.write_text(
+        json.dumps(backend_rows, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
     notices_path.write_text(render_third_party_notices(payload), encoding="utf-8")
     return {
         "frontend_path": str(frontend_path),
         "frontend_count": len(frontend_rows),
         "frontend_written": should_write_frontend,
+        "backend_path": str(backend_path),
+        "backend_count": len(backend_rows),
         "notices_path": str(notices_path),
     }
 

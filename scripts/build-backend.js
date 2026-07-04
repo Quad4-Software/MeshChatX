@@ -173,8 +173,13 @@ function shouldRefreshLicenseArtifacts(repoRoot) {
     const dataDir = path.join(repoRoot, "meshchatx", "src", "backend", "data");
     const noticesPath = path.join(dataDir, "THIRD_PARTY_NOTICES.txt");
     const frontendLicensesPath = path.join(dataDir, "licenses_frontend.json");
+    const backendLicensesPath = path.join(dataDir, "licenses_backend.json");
 
-    const outputTimes = [fileMtimeMs(noticesPath), fileMtimeMs(frontendLicensesPath)];
+    const outputTimes = [
+        fileMtimeMs(noticesPath),
+        fileMtimeMs(frontendLicensesPath),
+        fileMtimeMs(backendLicensesPath),
+    ];
     if (outputTimes.some((t) => t == null)) {
         return true;
     }

@@ -1,5 +1,5 @@
 Reticulum MeshChatX - Third-party notices
-Generated at: 2026-07-04T22:04:30.591013Z
+Generated at: 2026-07-04T22:50:15.826526Z
 Frontend source: pnpm
 
 Python dependencies
@@ -19,6 +19,9 @@ aiosignal 1.4.0
 attrs 26.1.0
   License: MIT
   Author: Hynek Schlawack <hs@ox.cx>
+audioop-lts 0.2.2
+  License: PSF-2.0
+  Author: —
 bcrypt 5.0.0
   License: Apache-2.0
   Author: The Python Cryptographic Authority developers <cryptography-dev@python.org>
@@ -79,9 +82,6 @@ reticulum-meshchatx 4.7.2
 rns 1.3.7
   License: Reticulum License
   Author: Mark Qvist
-typing_extensions 4.15.0
-  License: PSF-2.0
-  Author: "Guido van Rossum, Jukka Lehtosalo, Łukasz Langa, Michael Lee" <levkivskyi@gmail.com>
 websockets 16.0
   License: BSD-3-Clause
   Author: Aymeric Augustin <aymeric.augustin@m4x.org>
