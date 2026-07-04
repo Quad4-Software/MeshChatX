@@ -90,3 +90,30 @@ async def test_interface_stats_serializes_bytes_and_parent_hash_null(
         assert stats["interfaces"][0]["parent_interface_hash"] is None
         assert stats["interfaces"][0]["hash"] == ("01" * 16)
         assert stats["interfaces"][1]["short_name"] == "Main"
+
+
+@pytest.mark.asyncio
+async def test_get_interface_stats_payload_logs_on_failure(
+    mock_rns_minimal, temp_dir, caplog
+):
+    import logging
+
+    with patch("meshchatx.meshchat.generate_ssl_certificate"):
+        app_instance = ReticulumMeshChat(
+            identity=mock_rns_minimal,
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+        app_instance.reticulum = MagicMock()
+        app_instance.reticulum.get_interface_stats.side_effect = OSError(
+            "Landlock: access denied"
+        )
+
+        with caplog.at_level(logging.WARNING):
+            payload = app_instance._get_interface_stats_payload()
+
+        assert payload == {"interfaces": []}
+        assert any(
+            "Failed to get interface stats" in record.message
+            for record in caplog.records
+        )

@@ -75,3 +75,8 @@ def test_landlock_kernel_supported_on_linux():
     ll._landlock_support_cached = None
     supported = ll.landlock_kernel_supported()
     assert isinstance(supported, bool)
+
+
+def test_collect_read_roots_includes_proc_for_psutil():
+    roots = ll._collect_read_roots()
+    assert "/proc" in roots

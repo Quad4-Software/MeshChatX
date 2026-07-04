@@ -2247,6 +2247,24 @@ class ReticulumMeshChat:
             return [ReticulumMeshChat._to_jsonable(v) for v in obj]
         return obj
 
+    def _get_interface_stats_payload(self) -> dict:
+        empty: dict = {"interfaces": []}
+        reticulum = getattr(self, "reticulum", None)
+        if not reticulum:
+            return empty
+        try:
+            raw = reticulum.get_interface_stats()
+        except Exception as exc:
+            logger.warning("Failed to get interface stats: %s", exc)
+            return empty
+        if not isinstance(raw, dict):
+            return empty
+        payload = self._to_jsonable(raw)
+        for interface in payload.get("interfaces") or []:
+            if isinstance(interface, dict) and "short_name" in interface:
+                interface["interface_name"] = interface["short_name"]
+        return payload
+
     @staticmethod
     def discovery_filter_candidates(interface):
         if not isinstance(interface, dict):
@@ -7612,67 +7630,53 @@ class ReticulumMeshChat:
                 if len(interfaces) > max_disc:
                     interfaces = interfaces[:max_disc]
                 active = []
-                try:
-                    if hasattr(self, "reticulum") and self.reticulum:
-                        stats = self.reticulum.get_interface_stats().get(
-                            "interfaces",
-                            [],
-                        )
-                        active = []
-                        for s in stats:
-                            name = s.get("name") or ""
+                stats = self._get_interface_stats_payload().get("interfaces", [])
+                for s in stats:
+                    name = s.get("name") or ""
+                    parsed_host = None
+                    parsed_port = None
+                    if "/" in name:
+                        try:
+                            host_port = name.split("/")[-1].strip("[]")
+                            if ":" in host_port:
+                                parsed_host, parsed_port = host_port.rsplit(
+                                    ":",
+                                    1,
+                                )
+                                try:
+                                    parsed_port = int(parsed_port)
+                                except Exception:
+                                    parsed_port = None
+                            else:
+                                parsed_host = host_port
+                        except Exception:
                             parsed_host = None
                             parsed_port = None
-                            if "/" in name:
-                                try:
-                                    host_port = name.split("/")[-1].strip("[]")
-                                    if ":" in host_port:
-                                        parsed_host, parsed_port = host_port.rsplit(
-                                            ":",
-                                            1,
-                                        )
-                                        try:
-                                            parsed_port = int(parsed_port)
-                                        except Exception:
-                                            parsed_port = None
-                                    else:
-                                        parsed_host = host_port
-                                except Exception:
-                                    parsed_host = None
-                                    parsed_port = None
 
-                            host = (
-                                s.get("target_host") or s.get("remote") or parsed_host
-                            )
-                            port = (
-                                s.get("target_port")
-                                or s.get("listen_port")
-                                or parsed_port
-                            )
-                            transport_id = s.get("transport_id")
-                            if isinstance(transport_id, (bytes, bytearray)):
-                                transport_id = transport_id.hex()
+                    host = s.get("target_host") or s.get("remote") or parsed_host
+                    port = s.get("target_port") or s.get("listen_port") or parsed_port
+                    transport_id = s.get("transport_id")
+                    if isinstance(transport_id, (bytes, bytearray)):
+                        transport_id = transport_id.hex()
 
-                            active.append(
-                                {
-                                    "name": name,
-                                    "short_name": s.get("short_name"),
-                                    "type": s.get("type"),
-                                    "target_host": host,
-                                    "target_port": port,
-                                    "listen_ip": s.get("listen_ip"),
-                                    "connected": s.get("connected"),
-                                    "online": s.get("online"),
-                                    "status": s.get("status"),
-                                    "transport_id": transport_id,
-                                    "network_id": s.get("network_id"),
-                                    "autoconnect_source": s.get("autoconnect_source"),
-                                    "txb": s.get("txb"),
-                                    "rxb": s.get("rxb"),
-                                },
-                            )
-                except Exception as e:
-                    logger.debug(f"Failed to get interface stats: {e}")
+                    active.append(
+                        {
+                            "name": name,
+                            "short_name": s.get("short_name"),
+                            "type": s.get("type"),
+                            "target_host": host,
+                            "target_port": port,
+                            "listen_ip": s.get("listen_ip"),
+                            "connected": s.get("connected"),
+                            "online": s.get("online"),
+                            "status": s.get("status"),
+                            "transport_id": transport_id,
+                            "network_id": s.get("network_id"),
+                            "autoconnect_source": s.get("autoconnect_source"),
+                            "txb": s.get("txb"),
+                            "rxb": s.get("rxb"),
+                        },
+                    )
 
                 if len(active) > max_disc:
                     active = active[:max_disc]
@@ -11728,24 +11732,9 @@ class ReticulumMeshChat:
         # get interface stats
         @routes.get("/api/v1/interface-stats")
         async def interface_stats(request):
-            interface_stats = {"interfaces": []}
-            if hasattr(self, "reticulum") and self.reticulum:
-                try:
-                    raw = self.reticulum.get_interface_stats()
-                    if isinstance(raw, dict):
-                        interface_stats = self._to_jsonable(raw)
-                        for interface in interface_stats.get("interfaces") or []:
-                            if (
-                                isinstance(interface, dict)
-                                and "short_name" in interface
-                            ):
-                                interface["interface_name"] = interface["short_name"]
-                except Exception:
-                    pass
-
             return web.json_response(
                 {
-                    "interface_stats": interface_stats,
+                    "interface_stats": self._get_interface_stats_payload(),
                 },
             )
 
