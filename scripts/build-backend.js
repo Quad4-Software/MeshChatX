@@ -175,11 +175,7 @@ function shouldRefreshLicenseArtifacts(repoRoot) {
     const frontendLicensesPath = path.join(dataDir, "licenses_frontend.json");
     const backendLicensesPath = path.join(dataDir, "licenses_backend.json");
 
-    const outputTimes = [
-        fileMtimeMs(noticesPath),
-        fileMtimeMs(frontendLicensesPath),
-        fileMtimeMs(backendLicensesPath),
-    ];
+    const outputTimes = [fileMtimeMs(noticesPath), fileMtimeMs(frontendLicensesPath), fileMtimeMs(backendLicensesPath)];
     if (outputTimes.some((t) => t == null)) {
         return true;
     }
