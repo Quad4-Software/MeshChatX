@@ -459,6 +459,36 @@
                                     }}</span>
                                     <span class="font-mono text-xs font-bold">{{ environmentInfo.platform }}</span>
                                 </div>
+                                <div
+                                    v-if="isLinuxHost && appInfo.landlock_requested !== undefined"
+                                    class="flex flex-col gap-1"
+                                >
+                                    <div class="flex items-center justify-between gap-3">
+                                        <span class="text-[10px] font-black text-teal-500 uppercase tracking-wider">{{
+                                            $t("app.landlock_status")
+                                        }}</span>
+                                        <span
+                                            class="font-mono text-xs font-bold shrink-0"
+                                            :class="
+                                                appInfo.landlock_active
+                                                    ? 'text-green-600 dark:text-green-400'
+                                                    : 'text-amber-600 dark:text-amber-400'
+                                            "
+                                        >
+                                            {{
+                                                appInfo.landlock_active
+                                                    ? $t("app.landlock_active")
+                                                    : $t("app.landlock_inactive")
+                                            }}
+                                        </span>
+                                    </div>
+                                    <p
+                                        v-if="!appInfo.landlock_active && landlockInactiveReason"
+                                        class="text-[10px] leading-snug opacity-70"
+                                    >
+                                        {{ landlockInactiveReason }}
+                                    </p>
+                                </div>
                                 <div class="flex items-center justify-between">
                                     <span class="text-[10px] font-black text-amber-500 uppercase tracking-wider">{{
                                         $t("about.env_language")
@@ -1114,6 +1144,21 @@ export default {
             } catch {
                 return "";
             }
+        },
+        isLinuxHost() {
+            return this.appInfo && this.appInfo.host_platform === "linux";
+        },
+        landlockInactiveReason() {
+            if (!this.appInfo || this.appInfo.landlock_active) {
+                return null;
+            }
+            if (this.appInfo.landlock_kernel_supported === false) {
+                return this.$t("app.landlock_kernel_unsupported");
+            }
+            if (this.appInfo.landlock_disabled_by_env) {
+                return this.$t("app.landlock_disabled_by_env");
+            }
+            return this.$t("app.landlock_inactive");
         },
         environmentInfo() {
             const ua = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";

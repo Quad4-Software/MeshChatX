@@ -17,6 +17,7 @@ const fs = require("fs");
 const path = require("node:path");
 
 const { createBackendProcessManager } = require("./backendProcess");
+const { getCrashRecoveryInfo } = require("./offlineRecovery");
 const {
     getUserProvidedArguments,
     formatRenderProcessGoneDetails,
@@ -209,6 +210,56 @@ ipcMain.handle("open-backend-crash-report", async () => {
     return { ok: true };
 });
 
+ipcMain.handle("crash-recovery-info", () => {
+    const manager = getBackendManager();
+    const lastCrash = manager.getLastCrash() || {};
+    const logs = manager.getJoinedLogs();
+    return getCrashRecoveryInfo({
+        storageDir: getDefaultStorageDir(),
+        reticulumConfigDir: getDefaultReticulumConfigDir(),
+        platform: process.platform,
+        portableExecutableDir: process.env.PORTABLE_EXECUTABLE_DIR || null,
+        stderr: lastCrash.stderr || logs.stderr || "",
+        stdout: lastCrash.stdout || logs.stdout || "",
+        exitCode: lastCrash.code != null ? lastCrash.code : null,
+    });
+});
+
+ipcMain.handle("restore-database-backup", async (_event, backupPath) => {
+    if (!backupPath || typeof backupPath !== "string") {
+        return { ok: false, error: "No backup path provided." };
+    }
+    const ctx = {
+        app,
+        getDefaultStorageDir,
+        getDefaultReticulumConfigDir,
+        getUserProvidedArguments,
+    };
+    const { isAllowedShellPath } = require("./shellPathGuard");
+    if (!isAllowedShellPath(backupPath, ctx)) {
+        return { ok: false, error: "Backup path is not allowed." };
+    }
+    if (!fs.existsSync(backupPath)) {
+        return { ok: false, error: "Backup file was not found." };
+    }
+    return await getBackendManager().runMaintenanceTask(["--restore-db", backupPath], integrityStatus);
+});
+
+ipcMain.handle("pick-database-backup", async () => {
+    const win = getDialogParentWindow();
+    if (!win) {
+        return null;
+    }
+    const { canceled, filePaths } = await dialog.showOpenDialog(win, {
+        properties: ["openFile"],
+        filters: [{ name: "MeshChatX backup", extensions: ["zip"] }],
+    });
+    if (canceled || !filePaths || filePaths.length === 0) {
+        return null;
+    }
+    return filePaths[0];
+});
+
 // add support for showing an alert window via ipc
 ipcMain.handle("alert", async (event, message) => {
     return await dialog.showMessageBox(mainWindow, {
@@ -262,6 +313,18 @@ ipcMain.handle("relaunch", () => {
 ipcMain.handle("relaunch-emergency", () => {
     const relaunchOptions = {
         args: process.argv.slice(1).concat(["--emergency"]),
+    };
+    if (!process.defaultApp && process.platform === "linux" && process.env.APPIMAGE) {
+        relaunchOptions.execPath = process.env.APPIMAGE;
+    }
+    app.relaunch(relaunchOptions);
+    isQuiting = true;
+    quit();
+});
+
+ipcMain.handle("relaunch-auto-recover", () => {
+    const relaunchOptions = {
+        args: process.argv.slice(1).concat(["--auto-recover"]),
     };
     if (!process.defaultApp && process.platform === "linux" && process.env.APPIMAGE) {
         relaunchOptions.execPath = process.env.APPIMAGE;

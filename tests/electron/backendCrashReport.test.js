@@ -50,4 +50,10 @@ describe("electron/backendCrashReport", () => {
         const diagnosis = diagnoseBackendCrash("", "OSError: [Errno 98] Address already in use", 1);
         expect(diagnosis.category).toBe("port-conflict");
     });
+
+    it("diagnoseBackendCrash detects database corruption", () => {
+        const diagnosis = diagnoseBackendCrash("database disk image is malformed", "", 1);
+        expect(diagnosis.category).toBe("database");
+        expect(diagnosis.hints.some((hint) => hint.includes("Restore latest backup"))).toBe(true);
+    });
 });

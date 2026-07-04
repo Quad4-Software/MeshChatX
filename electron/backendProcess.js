@@ -223,15 +223,7 @@ function createBackendProcessManager(deps) {
             );
         }
 
-        const requiredArguments = ["--headless", "--port", "9337"];
-        if (!userProvidedArguments.includes("--reticulum-config-dir")) {
-            requiredArguments.push("--reticulum-config-dir", reticulumConfigDir());
-        }
-        if (!userProvidedArguments.includes("--storage-dir")) {
-            requiredArguments.push("--storage-dir", storageDir());
-        }
-
-        const proc = spawnFn(exePath, [...requiredArguments, ...userProvidedArguments], {
+        const proc = spawnFn(exePath, buildBackendArgs(), {
             env: buildSpawnEnv(),
             windowsHide: true,
         });
@@ -293,6 +285,74 @@ function createBackendProcessManager(deps) {
         }
     }
 
+    function buildBackendArgs(extraArgs = []) {
+        const requiredArguments = ["--headless", "--port", "9337"];
+        if (!userProvidedArguments.includes("--reticulum-config-dir")) {
+            requiredArguments.push("--reticulum-config-dir", reticulumConfigDir());
+        }
+        if (!userProvidedArguments.includes("--storage-dir")) {
+            requiredArguments.push("--storage-dir", storageDir());
+        }
+        return [...requiredArguments, ...userProvidedArguments, ...extraArgs];
+    }
+
+    async function runMaintenanceTask(extraArgs, integrityStatusRef) {
+        if (!resolvedExePath) {
+            return { ok: false, error: "Backend executable is not configured." };
+        }
+        if (isRunning()) {
+            killChild("SIGTERM");
+            await new Promise((resolve) => setTimeout(resolve, 400));
+        }
+
+        return await new Promise((resolve) => {
+            const stdoutChunks = [];
+            const stderrChunks = [];
+            const proc = spawnFn(resolvedExePath, buildBackendArgs(extraArgs), {
+                env: buildSpawnEnv(),
+                windowsHide: true,
+            });
+            if (!proc || !proc.pid) {
+                resolve({ ok: false, error: "Failed to start backend maintenance task." });
+                return;
+            }
+
+            proc.stdout?.on("data", (chunk) => {
+                stdoutChunks.push(String(chunk));
+            });
+            proc.stderr?.on("data", (chunk) => {
+                stderrChunks.push(String(chunk));
+            });
+            proc.on("error", (error) => {
+                resolve({
+                    ok: false,
+                    error: error && error.message ? error.message : String(error),
+                    stdout: stdoutChunks.join(""),
+                    stderr: stderrChunks.join(""),
+                });
+            });
+            proc.on("exit", (code) => {
+                const stdout = stdoutChunks.join("");
+                const stderr = stderrChunks.join("");
+                if (code === 0) {
+                    resolve({ ok: true, exitCode: code, stdout, stderr });
+                    return;
+                }
+                resolve({
+                    ok: false,
+                    exitCode: code,
+                    error: `Maintenance task exited with code ${code}`,
+                    stdout,
+                    stderr,
+                });
+            });
+        });
+    }
+
+    function getResolvedExecutablePath() {
+        return resolvedExePath;
+    }
+
     async function openCrashReport(showCrashPageFn) {
         if (!lastCrash) {
             return { ok: false, error: "No backend crash report is available." };
@@ -323,6 +383,8 @@ function createBackendProcessManager(deps) {
         isRunning,
         killChild,
         getJoinedLogs,
+        runMaintenanceTask,
+        getResolvedExecutablePath,
     };
 }
 
