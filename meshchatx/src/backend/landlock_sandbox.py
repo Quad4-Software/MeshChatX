@@ -221,6 +221,8 @@ def _collect_read_roots() -> list[str]:
         "/etc",
         "/bin",
         "/sbin",
+        # RNS get_interface_stats() uses psutil for rss; psutil reads /proc/self.
+        "/proc",
     }
     for path in sys.path:
         existing = _existing_dir(path)
