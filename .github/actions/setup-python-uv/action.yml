@@ -1,0 +1,36 @@
+# Pinned actions (bump tag and SHA together when upgrading):
+#   actions/setup-python@v6.2.0  a309ff8b426b58ec0e2a45f0f869d46889d02405
+#   actions/cache@v4.2.0         1bd1e32a3bdc45362d1e726936510720a7c30a57
+name: Set up Python and UV
+description: Python runtime, pinned UV installer, and UV download cache
+
+inputs:
+    python-version:
+        description: Python version
+        required: true
+    uv-version:
+        description: UV version installed from PyPI
+        required: false
+        default: "0.11.15"
+
+runs:
+    using: composite
+    steps:
+        - name: Set up Python
+          uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+          with:
+              python-version: ${{ inputs.python-version }}
+
+        - name: Install UV (PyPI pin)
+          shell: bash
+          env:
+              UV_VERSION: ${{ inputs.uv-version }}
+          run: bash scripts/ci/github-install-uv.sh
+
+        - name: Cache UV downloads
+          uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+          with:
+              path: ~/.cache/uv
+              key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock') }}
+              restore-keys: |
+                  ${{ runner.os }}-uv-

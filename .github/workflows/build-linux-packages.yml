@@ -1,13 +1,9 @@
 # Linux packaging build test: AppImage, deb, rpm, Flatpak (branches and PRs).
-# Tagged release assets run in .github/workflows/build-release.yml with draft.
+# Tagged release assets run in build-release.yml with draft.
 #
 # Pinned first-party actions (bump tag and SHA together when upgrading):
 #   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
-#   actions/setup-python@v6.2.0        a309ff8b426b58ec0e2a45f0f869d46889d02405
-#   actions/setup-node@v6.1.0          395ad3262231945c25e8478fd5baf05154b1d79f
 #   actions/upload-artifact@v5.0.0     330a01c490aca151604b8cf639adc76d48f6c5d4
-#   actions/download-artifact@v5.0.0   634f93cb2916e3fdff6788551b99b062d0335ce0
-#   actions/cache@v4.2.0               1bd1e32a3bdc45362d1e726936510720a7c30a57
 
 name: Build Linux packages
 
@@ -25,13 +21,14 @@ on:
             - ".github/workflows/build-linux-packages.yml"
             - ".github/workflows/build-release.yml"
             - ".github/workflows/frontend-build.yml"
+            - ".github/actions/**"
     workflow_dispatch:
 
 permissions:
     contents: read
 
 concurrency:
-    group: ${{ github.workflow }}-${{ github.ref }}
+    group: linux-packages-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
     cancel-in-progress: true
 
 env:
@@ -52,10 +49,18 @@ jobs:
             artifact_name: meshchatx-frontend-linux-pkg-${{ github.run_id }}-${{ github.run_attempt }}
             retention_days: 1
 
-    linux-test-x64:
-        name: Linux build test (x64)
+    linux-test:
+        name: Linux build test (${{ matrix.arch }})
         needs: frontend
-        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - arch: x64
+                      runner: ubuntu-latest
+                    - arch: arm64
+                      runner: ubuntu-24.04-arm
+        runs-on: ${{ matrix.runner }}
         timeout-minutes: 120
         permissions:
             contents: read
@@ -67,23 +72,11 @@ jobs:
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
 
-            - name: Set up Python
-              uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+            - name: Set up Python and UV
+              uses: ./.github/actions/setup-python-uv
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
-
-            - name: Install UV (PyPI pin)
-              env:
-                  UV_VERSION: ${{ env.UV_VERSION }}
-              run: bash scripts/ci/github-install-uv.sh
-
-            - name: Cache UV downloads
-              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
-              with:
-                  path: ~/.cache/uv
-                  key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock') }}
-                  restore-keys: |
-                      ${{ runner.os }}-uv-
+                  uv-version: ${{ env.UV_VERSION }}
 
             - name: Set up Node and pnpm
               uses: ./.github/actions/setup-node-pnpm
@@ -94,21 +87,13 @@ jobs:
             - name: Linux packaging APT dependencies
               run: bash scripts/ci/github-apt-linux-packaging.sh
 
-            - name: Install project dependencies
+            - name: Install dependencies
               run: bash scripts/ci/github-install-deps.sh
 
-            - name: Download frontend artifact
-              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+            - name: Fetch frontend artifact
+              uses: ./.github/actions/fetch-frontend-artifact
               with:
-                  name: ${{ env.FRONTEND_ARTIFACT_NAME }}
-                  path: meshchatx/public
-
-            - name: Verify frontend artifact contents
-              run: |
-                  set -euo pipefail
-                  test -f meshchatx/public/index.html
-                  test -d meshchatx/public/assets
-                  test -d meshchatx/public/reticulum-docs-bundled/current
+                  artifact-name: ${{ env.FRONTEND_ARTIFACT_NAME }}
 
             - name: Setup Task
               run: sh scripts/ci/setup-task.sh
@@ -116,82 +101,10 @@ jobs:
             - name: Build release-assets
               run: bash scripts/ci/github-build-linux-release-assets.sh
 
-            - name: Upload Linux build-test artifact (x64)
+            - name: Upload Linux build-test artifact (${{ matrix.arch }})
               uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
               with:
-                  name: meshchatx-linux-build-test-x64-${{ github.ref_name }}-${{ github.run_id }}
-                  path: release-assets/
-                  if-no-files-found: warn
-                  retention-days: 1
-
-    linux-test-arm64:
-        name: Linux build test (arm64)
-        needs: frontend
-        runs-on: ubuntu-24.04-arm
-        timeout-minutes: 120
-        permissions:
-            contents: read
-            actions: write
-        env:
-            FRONTEND_ARTIFACT_NAME: ${{ needs.frontend.outputs.artifact_name }}
-            MESHCHATX_FRONTEND_PREBUILT: "1"
-        steps:
-            - name: Checkout
-              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
-
-            - name: Set up Python
-              uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
-              with:
-                  python-version: ${{ env.PYTHON_VERSION }}
-
-            - name: Install UV (PyPI pin)
-              env:
-                  UV_VERSION: ${{ env.UV_VERSION }}
-              run: bash scripts/ci/github-install-uv.sh
-
-            - name: Cache UV downloads
-              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
-              with:
-                  path: ~/.cache/uv
-                  key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock') }}
-                  restore-keys: |
-                      ${{ runner.os }}-uv-
-
-            - name: Set up Node and pnpm
-              uses: ./.github/actions/setup-node-pnpm
-              with:
-                  node-version: ${{ env.NODE_VERSION }}
-                  pnpm-version: ${{ env.PNPM_VERSION }}
-
-            - name: Linux packaging APT dependencies
-              run: bash scripts/ci/github-apt-linux-packaging.sh
-
-            - name: Install project dependencies
-              run: bash scripts/ci/github-install-deps.sh
-
-            - name: Download frontend artifact
-              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
-              with:
-                  name: ${{ env.FRONTEND_ARTIFACT_NAME }}
-                  path: meshchatx/public
-
-            - name: Verify frontend artifact contents
-              run: |
-                  set -euo pipefail
-                  test -f meshchatx/public/index.html
-                  test -d meshchatx/public/assets
-                  test -d meshchatx/public/reticulum-docs-bundled/current
-
-            - name: Setup Task
-              run: sh scripts/ci/setup-task.sh
-
-            - name: Build release-assets
-              run: bash scripts/ci/github-build-linux-release-assets.sh
-
-            - name: Upload Linux build-test artifact (arm64)
-              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
-              with:
-                  name: meshchatx-linux-build-test-arm64-${{ github.ref_name }}-${{ github.run_id }}
+                  name: meshchatx-linux-build-test-${{ matrix.arch }}-${{ github.ref_name }}-${{ github.run_id }}
                   path: release-assets/
                   if-no-files-found: warn
                   retention-days: 1
@@ -231,45 +144,18 @@ jobs:
                       org.freedesktop.Sdk//25.08 \
                       org.electronjs.Electron2.BaseApp//25.08
 
-            - name: Set up Python
-              uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+            - name: Set up development environment
+              uses: ./.github/actions/setup-dev-environment
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
-
-            - name: Install UV (PyPI pin)
-              env:
-                  UV_VERSION: ${{ env.UV_VERSION }}
-              run: bash scripts/ci/github-install-uv.sh
-
-            - name: Cache UV downloads
-              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
-              with:
-                  path: ~/.cache/uv
-                  key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock') }}
-                  restore-keys: |
-                      ${{ runner.os }}-uv-
-
-            - name: Set up Node and pnpm
-              uses: ./.github/actions/setup-node-pnpm
-              with:
+                  uv-version: ${{ env.UV_VERSION }}
                   node-version: ${{ env.NODE_VERSION }}
                   pnpm-version: ${{ env.PNPM_VERSION }}
 
-            - name: Install dependencies
-              run: bash scripts/ci/github-install-deps.sh
-
-            - name: Download frontend artifact
-              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+            - name: Fetch frontend artifact
+              uses: ./.github/actions/fetch-frontend-artifact
               with:
-                  name: ${{ env.FRONTEND_ARTIFACT_NAME }}
-                  path: meshchatx/public
-
-            - name: Verify frontend artifact contents
-              run: |
-                  set -euo pipefail
-                  test -f meshchatx/public/index.html
-                  test -d meshchatx/public/assets
-                  test -d meshchatx/public/reticulum-docs-bundled/current
+                  artifact-name: ${{ env.FRONTEND_ARTIFACT_NAME }}
 
             - name: Build flatpak bundle
               run: bash scripts/ci/github-build-linux-flatpak.sh

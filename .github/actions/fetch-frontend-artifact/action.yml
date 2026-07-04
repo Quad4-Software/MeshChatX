@@ -1,0 +1,32 @@
+# Pinned actions (bump tag and SHA together when upgrading):
+#   actions/download-artifact@v5.0.0  634f93cb2916e3fdff6788551b99b062d0335ce0
+name: Fetch frontend artifact
+description: Download a prebuilt meshchatx/public artifact and verify required paths
+
+inputs:
+    artifact-name:
+        description: Artifact name from the reusable frontend-build workflow
+        required: true
+    path:
+        description: Destination directory for meshchatx/public contents
+        required: false
+        default: meshchatx/public
+
+runs:
+    using: composite
+    steps:
+        - name: Download frontend artifact
+          uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+          with:
+              name: ${{ inputs.artifact-name }}
+              path: ${{ inputs.path }}
+
+        - name: Verify frontend artifact contents
+          shell: bash
+          env:
+              FRONTEND_PATH: ${{ inputs.path }}
+          run: |
+              set -euo pipefail
+              test -f "${FRONTEND_PATH}/index.html"
+              test -d "${FRONTEND_PATH}/assets"
+              test -d "${FRONTEND_PATH}/reticulum-docs-bundled/current"
