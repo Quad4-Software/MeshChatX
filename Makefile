@@ -3,7 +3,7 @@ TASK ?= task
 
 .DEFAULT_GOAL := help
 
-.PHONY: install install-offline run dev dev-fe build lint test test-be-perf clean help dist-linux dist-linux-x64
+.PHONY: install install-offline run dev dev-fe build format lint test test-be-perf clean help dist-linux dist-linux-x64
 
 install:
 	@$(TASK) install
@@ -23,11 +23,14 @@ dev-fe:
 build:
 	@$(TASK) build
 
+format:
+	@$(TASK) format
+
 lint:
-	@$(TASK) lint:all
+	@$(TASK) lint
 
 test:
-	@$(TASK) test:all
+	@$(TASK) test
 
 test-be-perf:
 	@$(TASK) test:be:perf
