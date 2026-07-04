@@ -26,7 +26,7 @@ Options:
   --api-level N              Android API level for wheel tag (default: 24)
   --pycodec2-version V       pycodec2 version to build (default: 4.1.1)
   --numpy-version V          NumPy version used during pycodec2 build (default: 1.26.2)
-  --lxst-version V           LXST wheel version for metadata patch (default: 0.4.7)
+  --lxst-version V           LXST wheel version for metadata patch (default: 0.4.8)
   --bleak-version V          bleak pure-python wheel version to vendor (default: 3.0.2)
   --no-lxst-patch            Skip LXST metadata patch
   --only-recipes LIST        Comma-separated recipe directory names under
@@ -54,7 +54,7 @@ API_LEVEL="24"
 PYCODEC2_VERSION="4.1.1"
 LIBCODEC2_VERSION="1.2.0"
 NUMPY_VERSION="1.26.2"
-LXST_VERSION="0.4.7"
+LXST_VERSION="0.4.8"
 BLEAK_VERSION="3.0.2"
 PATCH_LXST="1"
 ONLY_RECIPES=""

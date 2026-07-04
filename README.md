@@ -415,16 +415,16 @@ task test:all
 task build:all
 ```
 
-`Makefile` shortcuts are also available:
+`Makefile` targets are thin shims that delegate to `task` (same commands as above):
 
-| Command        | Description                             |
-| -------------- | --------------------------------------- |
-| `make install` | Install pnpm and UV dependencies        |
-| `make run`     | Run MeshChatX via UV                    |
-| `make build`   | Build frontend                          |
-| `make lint`    | Run eslint and ruff                     |
-| `make test`    | Run frontend and backend tests          |
-| `make clean`   | Remove build artifacts and node_modules |
+| Command        | Delegates to    | Description                                   |
+| -------------- | --------------- | --------------------------------------------- |
+| `make install` | `task install`  | Install pnpm and UV dependencies              |
+| `make run`     | `task run`      | Run MeshChatX via UV                          |
+| `make build`   | `task build`    | Build frontend and backend artifacts          |
+| `make lint`    | `task lint:all` | ESLint, vue-tsc, knip, Ruff, and basedpyright |
+| `make test`    | `task test:all` | Run frontend and backend tests                |
+| `make clean`   | `task clean`    | Remove build artifacts and node_modules       |
 
 ## Versioning
 

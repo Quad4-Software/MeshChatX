@@ -108,10 +108,14 @@ tasks:
             - uv run python -m meshchatx.meshchat
 
     dev:
-        desc: Run in development mode (builds frontend first)
-        deps: [build:fe]
+        desc: Vite HMR + backend (http://localhost:5173)
         cmds:
-            - task: run
+            - bash scripts/dev-local.sh
+
+    dev-fe:
+        desc: Vite dev server only (pair with task run)
+        cmds:
+            - "{{.NPM}} run dev -- --host 127.0.0.1 --port 5173"
 
     start:
         desc: Run the application via Electron Forge
@@ -131,7 +135,7 @@ tasks:
     # --- Code Quality ---
 
     lint:
-        desc: Run all linters
+        desc: Run all linters (ESLint, vue-tsc, knip, Ruff, basedpyright)
         deps: [lint:fe, lint:be]
 
     lint:all:
@@ -139,15 +143,18 @@ tasks:
         deps: [lint:fe, lint:be]
 
     lint:be:
-        desc: Lint Python code (ruff)
+        desc: Lint Python code (ruff + basedpyright)
         cmds:
             - uv run ruff check .
             - uv run ruff format --check .
+            - uv run basedpyright -p pyrightconfig.json --level error
 
     lint:fe:
-        desc: Lint frontend code
+        desc: Lint frontend code (ESLint, vue-tsc, knip)
         cmds:
             - "{{.NPM}} run lint"
+            - "{{.NPM}} run typecheck"
+            - "{{.NPM}} exec knip"
 
     fmt:all:
         desc: Format all code
@@ -327,6 +334,11 @@ tasks:
         cmds:
             - "{{.NPM}} run build"
 
+    build:
+        desc: Alias for build:all
+        cmds:
+            - task: build:all
+
     build:fe:
         desc: Build frontend assets
         deps: [deps:fe]
@@ -389,6 +401,17 @@ tasks:
         deps: [build:fe]
         cmds:
             - "{{.NPM}} run dist:linux"
+
+    dist:linux:
+        desc: Alias for dist:fe:linux (AppImage + deb)
+        cmds:
+            - task: dist:fe:linux
+
+    dist:linux-x64:
+        desc: Build Linux x64 AppImage + deb
+        deps: [build:fe]
+        cmds:
+            - "{{.NPM}} run dist:linux-x64"
 
     dist:fe:rpm:
         desc: Build RPM package
