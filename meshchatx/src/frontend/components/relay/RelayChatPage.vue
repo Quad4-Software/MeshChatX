@@ -360,7 +360,11 @@
                                     <MaterialDesignIcon icon-name="chat-outline" class="size-10 opacity-40" />
                                     {{ $t("relay_chat.no_room_selected") }}
                                 </div>
-                                <div v-else class="relative min-w-0" :class="useVirtualMessageList ? '' : 'space-y-1.5'">
+                                <div
+                                    v-else
+                                    class="relative min-w-0"
+                                    :class="useVirtualMessageList ? '' : 'space-y-1.5'"
+                                >
                                     <button
                                         v-show="!isLoadingPrevious && hasMorePrevious"
                                         type="button"

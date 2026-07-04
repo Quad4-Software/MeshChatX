@@ -52,7 +52,7 @@ case "$targets" in
         install_electron_builder_libs
         bash scripts/ci/github-apt-linux-packaging.sh
         bash scripts/ci/github-install-deps.sh
-        task build:fe
+        task build:frontend
         export SKIP_WHEEL=1
         bash scripts/ci/github-build-linux-release-assets.sh
         ;;
@@ -60,7 +60,7 @@ case "$targets" in
         install_electron_builder_libs
         bash scripts/ci/github-apt-linux-packaging.sh
         bash scripts/ci/github-install-deps.sh
-        task build:fe
+        task build:frontend
         export SKIP_WHEEL=0
         export SKIP_ELECTRON=0
         bash scripts/ci/github-build-linux-release-assets.sh
