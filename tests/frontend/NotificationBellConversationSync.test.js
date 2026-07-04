@@ -138,9 +138,14 @@ function createNotificationsApiMock() {
         }
         return Promise.resolve({ data: {} });
     });
-    return { get, post, markRead: () => {
-        conversationRead = true;
-    }, isRead: () => conversationRead };
+    return {
+        get,
+        post,
+        markRead: () => {
+            conversationRead = true;
+        },
+        isRead: () => conversationRead,
+    };
 }
 
 describe("NotificationBell conversation read sync", () => {
