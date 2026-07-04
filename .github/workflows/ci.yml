@@ -1,16 +1,14 @@
-# Linux CI: lint, frontend/backend tests, localization, and a Linux build check.
+# Primary CI: lint, tests, localization, Linux build check, E2E, and native builds (dev).
 #
-# The frontend bundle is produced once by the reusable Frontend build workflow
-# and downloaded by the Linux build-check job (and by the platform build/release
-# workflows) instead of being rebuilt on every job.
+# The frontend bundle is built once via the reusable frontend-build workflow and
+# downloaded by downstream jobs instead of rebuilding on every runner.
 #
 # Pinned first-party actions (bump tag and SHA together when upgrading):
 #   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
 #   actions/setup-python@v6.2.0        a309ff8b426b58ec0e2a45f0f869d46889d02405
-#   actions/setup-node@v6.1.0          395ad3262231945c25e8478fd5baf05154b1d79f
 #   actions/upload-artifact@v5.0.0     330a01c490aca151604b8cf639adc76d48f6c5d4
 #   actions/download-artifact@v5.0.0   634f93cb2916e3fdff6788551b99b062d0335ce0
-#   actions/cache@v4.2.0               1bd1e32a3bdc45362d1e726936510720a7c30a57
+
 name: CI
 
 on:
@@ -27,7 +25,7 @@ permissions:
     contents: read
 
 concurrency:
-    group: ${{ github.workflow }}-${{ github.ref }}
+    group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
     cancel-in-progress: true
 
 env:
@@ -75,32 +73,13 @@ jobs:
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
 
-            - name: Set up Python
-              uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+            - name: Set up development environment
+              uses: ./.github/actions/setup-dev-environment
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
-
-            - name: Install UV (PyPI pin)
-              env:
-                  UV_VERSION: ${{ env.UV_VERSION }}
-              run: bash scripts/ci/github-install-uv.sh
-
-            - name: Cache UV downloads
-              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
-              with:
-                  path: ~/.cache/uv
-                  key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock') }}
-                  restore-keys: |
-                      ${{ runner.os }}-uv-
-
-            - name: Set up Node and pnpm
-              uses: ./.github/actions/setup-node-pnpm
-              with:
+                  uv-version: ${{ env.UV_VERSION }}
                   node-version: ${{ env.NODE_VERSION }}
                   pnpm-version: ${{ env.PNPM_VERSION }}
-
-            - name: Install dependencies
-              run: bash scripts/ci/github-install-deps.sh
 
             - name: Run matrix task
               run: |
@@ -143,45 +122,18 @@ jobs:
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
 
-            - name: Set up Python
-              uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+            - name: Set up development environment
+              uses: ./.github/actions/setup-dev-environment
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
-
-            - name: Install UV (PyPI pin)
-              env:
-                  UV_VERSION: ${{ env.UV_VERSION }}
-              run: bash scripts/ci/github-install-uv.sh
-
-            - name: Cache UV downloads
-              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
-              with:
-                  path: ~/.cache/uv
-                  key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock') }}
-                  restore-keys: |
-                      ${{ runner.os }}-uv-
-
-            - name: Set up Node and pnpm
-              uses: ./.github/actions/setup-node-pnpm
-              with:
+                  uv-version: ${{ env.UV_VERSION }}
                   node-version: ${{ env.NODE_VERSION }}
                   pnpm-version: ${{ env.PNPM_VERSION }}
 
-            - name: Install dependencies
-              run: bash scripts/ci/github-install-deps.sh
-
-            - name: Download frontend artifact
-              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+            - name: Fetch frontend artifact
+              uses: ./.github/actions/fetch-frontend-artifact
               with:
-                  name: ${{ env.FRONTEND_ARTIFACT_NAME }}
-                  path: meshchatx/public
-
-            - name: Verify frontend artifact contents
-              run: |
-                  set -euo pipefail
-                  test -f meshchatx/public/index.html
-                  test -d meshchatx/public/assets
-                  test -d meshchatx/public/reticulum-docs-bundled/current
+                  artifact-name: ${{ env.FRONTEND_ARTIFACT_NAME }}
 
             - name: Compile backend sources
               run: uv run python -m compileall meshchatx/
@@ -222,6 +174,94 @@ jobs:
                   test -n "$(ls -A .artifacts/linux-build-check/build/exe)"
                   echo "Linux build artifact download + content validation passed."
 
+    native-build:
+        name: Native build (${{ matrix.label }})
+        if: >-
+            github.ref == 'refs/heads/dev' ||
+            (github.event_name == 'pull_request' && github.base_ref == 'dev')
+        needs: frontend
+        permissions:
+            contents: read
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - os: windows-latest
+                      label: windows
+                      timeout: 120
+                      build_script: scripts/ci/github-build-windows.sh
+                    - os: macos-latest
+                      label: macos
+                      timeout: 180
+                      build_script: scripts/ci/github-build-macos.sh
+        runs-on: ${{ matrix.os }}
+        timeout-minutes: ${{ matrix.timeout }}
+        defaults:
+            run:
+                shell: bash
+        env:
+            FRONTEND_ARTIFACT_NAME: ${{ needs.frontend.outputs.artifact_name }}
+            MESHCHATX_FRONTEND_PREBUILT: "1"
+        steps:
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+
+            - name: Set up Python and UV
+              uses: ./.github/actions/setup-python-uv
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+                  uv-version: ${{ env.UV_VERSION }}
+
+            - name: Set up Node and pnpm
+              uses: ./.github/actions/setup-node-pnpm
+              with:
+                  node-version: ${{ env.NODE_VERSION }}
+                  pnpm-version: ${{ env.PNPM_VERSION }}
+
+            - name: Install dependencies
+              run: bash scripts/ci/github-install-deps.sh
+
+            - name: Install Rosetta (Apple Silicon)
+              if: matrix.label == 'macos'
+              run: /usr/sbin/softwareupdate --install-rosetta --agree-to-license || true
+
+            - name: Ensure x86_64 Homebrew (/usr/local) for universal slice
+              if: matrix.label == 'macos'
+              run: bash scripts/ci/github-ensure-macos-x86-64-homebrew.sh
+
+            - name: Set up Python x64 for cx_Freeze universal slice
+              id: python_x64
+              if: matrix.label == 'macos'
+              uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+                  architecture: x64
+                  update-environment: false
+
+            - name: Install x86_64 codec2 for pycodec2 (universal slice)
+              if: matrix.label == 'macos'
+              run: |
+                  set -euo pipefail
+                  arch -x86_64 /usr/local/bin/brew install codec2
+
+            - name: Install Rust x86_64-apple-darwin target (cbor2 x64 slice)
+              if: matrix.label == 'macos'
+              run: bash scripts/ci/github-macos-rust-x64-target.sh
+
+            - name: Install project deps into x64 Python (mac universal cx_Freeze)
+              if: matrix.label == 'macos'
+              env:
+                  PY_X64: ${{ steps.python_x64.outputs.python-path }}
+              run: bash scripts/ci/github-install-macos-x64-python-deps.sh
+
+            - name: Fetch frontend artifact
+              uses: ./.github/actions/fetch-frontend-artifact
+              with:
+                  artifact-name: ${{ env.FRONTEND_ARTIFACT_NAME }}
+
+            - name: Build distributables
+              run: bash "${{ matrix.build_script }}"
+
     e2e:
         name: E2E smoke
         runs-on: ubuntu-latest
@@ -232,32 +272,13 @@ jobs:
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
 
-            - name: Set up Python
-              uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+            - name: Set up development environment
+              uses: ./.github/actions/setup-dev-environment
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
-
-            - name: Install UV (PyPI pin)
-              env:
-                  UV_VERSION: ${{ env.UV_VERSION }}
-              run: bash scripts/ci/github-install-uv.sh
-
-            - name: Cache UV downloads
-              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
-              with:
-                  path: ~/.cache/uv
-                  key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock') }}
-                  restore-keys: |
-                      ${{ runner.os }}-uv-
-
-            - name: Set up Node and pnpm
-              uses: ./.github/actions/setup-node-pnpm
-              with:
+                  uv-version: ${{ env.UV_VERSION }}
                   node-version: ${{ env.NODE_VERSION }}
                   pnpm-version: ${{ env.PNPM_VERSION }}
-
-            - name: Install dependencies
-              run: bash scripts/ci/github-install-deps.sh
 
             - name: Run Playwright smoke E2E
               run: bash scripts/ci/github-e2e.sh

@@ -16,8 +16,9 @@
 #   actions/upload-artifact@v5.0.0     330a01c490aca151604b8cf639adc76d48f6c5d4
 #   actions/download-artifact@v5.0.0   634f93cb2916e3fdff6788551b99b062d0335ce0
 #
-# SLSA generator (must stay @vX.Y.Z semver per upstream):
+# SLSA generator (pinned to v2.1.0 commit):
 #   slsa-framework/slsa-github-generator/generator_generic_slsa3.yml@v2.1.0
+#                                      f7dd8c54c2067bafc12ca7a55595d5ee9b75204a
 #
 # Third-party pin (resolve before bumping release/v1):
 #   curl -sS "https://api.github.com/repos/pypa/gh-action-pypi-publish/commits/release/v1" | jq -r '.sha'
@@ -80,18 +81,10 @@ jobs:
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
 
-            - name: Download frontend artifact
-              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+            - name: Fetch frontend artifact
+              uses: ./.github/actions/fetch-frontend-artifact
               with:
-                  name: ${{ env.FRONTEND_ARTIFACT_NAME }}
-                  path: meshchatx/public
-
-            - name: Verify frontend bundle in tree
-              run: |
-                  set -euo pipefail
-                  test -f meshchatx/public/index.html
-                  test -d meshchatx/public/assets
-                  test -d meshchatx/public/reticulum-docs-bundled/current
+                  artifact-name: ${{ env.FRONTEND_ARTIFACT_NAME }}
 
             - name: Install build
               run: python -m pip install -U pip "build>=1.2.0"
@@ -173,7 +166,7 @@ jobs:
             id-token: write
             contents: write
             actions: read
-        uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
+        uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@f7dd8c54c2067bafc12ca7a55595d5ee9b75204a
         with:
             base64-subjects: ${{ needs.build.outputs.hashes }}
             upload-assets: false

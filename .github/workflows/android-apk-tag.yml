@@ -114,17 +114,9 @@ jobs:
                   python-version: ${{ env.PYTHON_VERSION }}
 
             - name: Download frontend artifact
-              uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+              uses: ./.github/actions/fetch-frontend-artifact
               with:
-                  name: ${{ env.FRONTEND_ARTIFACT_NAME }}
-                  path: meshchatx/public
-
-            - name: Verify frontend artifact contents
-              run: |
-                  set -euo pipefail
-                  test -f meshchatx/public/index.html
-                  test -d meshchatx/public/assets
-                  test -d meshchatx/public/reticulum-docs-bundled/current
+                  artifact-name: ${{ env.FRONTEND_ARTIFACT_NAME }}
 
             - name: Install Android wheel build dependencies
               run: |

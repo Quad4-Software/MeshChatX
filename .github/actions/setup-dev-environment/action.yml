@@ -1,0 +1,37 @@
+name: Set up development environment
+description: Python/UV, Node/pnpm, and full project dependencies for CI jobs
+
+inputs:
+    python-version:
+        description: Python version
+        required: true
+    uv-version:
+        description: UV version installed from PyPI
+        required: false
+        default: "0.11.15"
+    node-version:
+        description: Node.js version
+        required: true
+    pnpm-version:
+        description: pnpm version activated through corepack
+        required: false
+        default: "11.1.2"
+
+runs:
+    using: composite
+    steps:
+        - name: Set up Python and UV
+          uses: ./.github/actions/setup-python-uv
+          with:
+              python-version: ${{ inputs.python-version }}
+              uv-version: ${{ inputs.uv-version }}
+
+        - name: Set up Node and pnpm
+          uses: ./.github/actions/setup-node-pnpm
+          with:
+              node-version: ${{ inputs.node-version }}
+              pnpm-version: ${{ inputs.pnpm-version }}
+
+        - name: Install dependencies
+          shell: bash
+          run: bash scripts/ci/github-install-deps.sh

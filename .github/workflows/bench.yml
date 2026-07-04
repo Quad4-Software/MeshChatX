@@ -5,8 +5,6 @@
 #
 # Pinned first-party actions (bump tag and SHA together when upgrading):
 #   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
-#   actions/setup-python@v6.2.0        a309ff8b426b58ec0e2a45f0f869d46889d02405
-#   actions/setup-node@v6.1.0          395ad3262231945c25e8478fd5baf05154b1d79f
 #   actions/cache@v4.2.0               1bd1e32a3bdc45362d1e726936510720a7c30a57
 #   benchmark-action/github-action-benchmark@v1.22.0
 #                                      a60cea5bc7b49e15c1f58f411161f99e0df48372
@@ -21,7 +19,7 @@ on:
             - dev
 
 concurrency:
-    group: ${{ github.workflow }}-${{ github.ref }}
+    group: bench-${{ github.workflow }}-${{ github.ref }}
     cancel-in-progress: true
 
 permissions:
@@ -43,32 +41,13 @@ jobs:
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
 
-            - name: Set up Python
-              uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+            - name: Set up development environment
+              uses: ./.github/actions/setup-dev-environment
               with:
                   python-version: ${{ env.PYTHON_VERSION }}
-
-            - name: Install UV (PyPI pin)
-              env:
-                  UV_VERSION: ${{ env.UV_VERSION }}
-              run: bash scripts/ci/github-install-uv.sh
-
-            - name: Cache UV downloads
-              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
-              with:
-                  path: ~/.cache/uv
-                  key: ${{ runner.os }}-uv-${{ hashFiles('uv.lock') }}
-                  restore-keys: |
-                      ${{ runner.os }}-uv-
-
-            - name: Set up Node and pnpm
-              uses: ./.github/actions/setup-node-pnpm
-              with:
+                  uv-version: ${{ env.UV_VERSION }}
                   node-version: ${{ env.NODE_VERSION }}
                   pnpm-version: ${{ env.PNPM_VERSION }}
-
-            - name: Install dependencies
-              run: bash scripts/ci/github-install-deps.sh
 
             - name: Setup Task
               run: sh scripts/ci/setup-task.sh
@@ -100,10 +79,6 @@ jobs:
                   output-file-path: bench_results.json
                   external-data-json-path: ./cache/benchmark-data.json
                   github-token: ${{ secrets.GITHUB_TOKEN }}
-                  # GitHub shared runners have 20-40% variance even with identical
-                  # code. alert-threshold posts a comment; fail-threshold fails
-                  # the job. Sub-ms operations are especially noisy so we keep
-                  # the comment bar at 2x and the hard-fail bar at 3x.
                   alert-threshold: "200%"
                   fail-threshold: "300%"
                   fail-on-alert: true
