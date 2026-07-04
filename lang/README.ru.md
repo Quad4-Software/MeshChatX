@@ -52,9 +52,10 @@ Safari 16.4 или новее, Chrome 111 или новее, Firefox 128 или 
 
 ```bash
 task install
-task lint:all
-task test:all
-task build:all
+task format
+task lint
+task test
+task build
 ```
 
 ## Способы установки
@@ -328,21 +329,22 @@ cd android
 
 ```bash
 task install
-task lint:all
-task test:all
-task build:all
+task format
+task lint
+task test
+task build
 ```
 
 Цели `Makefile` — тонкие обёртки, делегирующие в `task` (те же команды, что выше):
 
-| Команда        | Делегирует в    | Описание                                              |
-| -------------- | --------------- | ----------------------------------------------------- |
-| `make install` | `task install`  | Установить зависимости pnpm и UV                      |
-| `make run`     | `task run`      | Запуск MeshChatX через UV                             |
-| `make build`   | `task build`    | Сборка артефактов фронтенда и бэкенда                 |
-| `make lint`    | `task lint:all` | ESLint, vue-tsc, knip, Ruff и basedpyright            |
-| `make test`    | `task test:all` | Тесты фронтенда и бэкенда                             |
-| `make clean`   | `task clean`    | Удалить артефакты сборки и node_modules               |
+| Команда        | Делегирует в   | Описание                                   |
+| -------------- | -------------- | ------------------------------------------ |
+| `make install` | `task install` | Установить зависимости pnpm и UV           |
+| `make run`     | `task run`     | Запуск MeshChatX через UV                  |
+| `make build`   | `task build`   | Сборка артефактов фронтенда и бэкенда      |
+| `make lint`    | `task lint`    | ESLint, vue-tsc, knip, Ruff и basedpyright |
+| `make test`    | `task test`    | Тесты фронтенда и бэкенда                  |
+| `make clean`   | `task clean`   | Удалить артефакты сборки и node_modules    |
 
 ## Версионирование
 

@@ -52,9 +52,10 @@ Safari 16.4 o successivo, Chrome 111 o successivo, Firefox 128 o successivo (int
 
 ```bash
 task install
-task lint:all
-task test:all
-task build:all
+task format
+task lint
+task test
+task build
 ```
 
 ## Metodi di installazione
@@ -328,21 +329,22 @@ Attivita comuni da `Taskfile.yml`:
 
 ```bash
 task install
-task lint:all
-task test:all
-task build:all
+task format
+task lint
+task test
+task build
 ```
 
 I target `Makefile` sono wrapper sottili che delegano a `task` (stessi comandi di sopra):
 
-| Comando        | Delega a        | Descrizione                                           |
-| -------------- | --------------- | ----------------------------------------------------- |
-| `make install` | `task install`  | Installa dipendenze pnpm e UV                         |
-| `make run`     | `task run`      | Esegue MeshChatX tramite UV                           |
-| `make build`   | `task build`    | Compila artefatti frontend e backend                  |
-| `make lint`    | `task lint:all` | ESLint, vue-tsc, knip, Ruff e basedpyright            |
-| `make test`    | `task test:all` | Test frontend e backend                               |
-| `make clean`   | `task clean`    | Rimuove artefatti di build e node_modules             |
+| Comando        | Delega a       | Descrizione                                |
+| -------------- | -------------- | ------------------------------------------ |
+| `make install` | `task install` | Installa dipendenze pnpm e UV              |
+| `make run`     | `task run`     | Esegue MeshChatX tramite UV                |
+| `make build`   | `task build`   | Compila artefatti frontend e backend       |
+| `make lint`    | `task lint`    | ESLint, vue-tsc, knip, Ruff e basedpyright |
+| `make test`    | `task test`    | Test frontend e backend                    |
+| `make clean`   | `task clean`   | Rimuove artefatti di build e node_modules  |
 
 ## Versionamento
 

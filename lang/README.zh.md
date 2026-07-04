@@ -52,9 +52,10 @@ Safari 16.4 或更高版本、Chrome 111 或更高版本、Firefox 128 或更高
 
 ```bash
 task install
-task lint:all
-task test:all
-task build:all
+task format
+task lint
+task test
+task build
 ```
 
 ## 安装方式
@@ -328,21 +329,22 @@ cd android
 
 ```bash
 task install
-task lint:all
-task test:all
-task build:all
+task format
+task lint
+task test
+task build
 ```
 
 `Makefile` 目标为委托给 `task` 的薄封装（与上文命令相同）:
 
-| 命令           | 委托至          | 说明                                      |
-| -------------- | --------------- | ----------------------------------------- |
-| `make install` | `task install`  | 安装 pnpm 与 UV 依赖                      |
-| `make run`     | `task run`      | 通过 UV 运行 MeshChatX                    |
-| `make build`   | `task build`    | 构建前端与后端产物                        |
-| `make lint`    | `task lint:all` | ESLint、vue-tsc、knip、Ruff 与 basedpyright |
-| `make test`    | `task test:all` | 运行前端与后端测试                        |
-| `make clean`   | `task clean`    | 移除构建产物与 node_modules               |
+| 命令           | 委托至         | 说明                                        |
+| -------------- | -------------- | ------------------------------------------- |
+| `make install` | `task install` | 安装 pnpm 与 UV 依赖                        |
+| `make run`     | `task run`     | 通过 UV 运行 MeshChatX                      |
+| `make build`   | `task build`   | 构建前端与后端产物                          |
+| `make lint`    | `task lint`    | ESLint、vue-tsc、knip、Ruff 与 basedpyright |
+| `make test`    | `task test`    | 运行前端与后端测试                          |
+| `make clean`   | `task clean`   | 移除构建产物与 node_modules                 |
 
 ## 版本管理
 
