@@ -52,9 +52,10 @@ Safari 16.4 oder neuer, Chrome 111 oder neuer, Firefox 128 oder neuer (Web-Oberf
 
 ```bash
 task install
-task lint:all
-task test:all
-task build:all
+task format
+task lint
+task test
+task build
 ```
 
 ## Installationsmethoden
@@ -328,21 +329,22 @@ Gaengige Aufgaben aus `Taskfile.yml`:
 
 ```bash
 task install
-task lint:all
-task test:all
-task build:all
+task format
+task lint
+task test
+task build
 ```
 
 `Makefile`-Ziele sind duenne Wrapper, die an `task` delegieren (gleiche Befehle wie oben):
 
-| Befehl         | Delegiert an    | Beschreibung                                              |
-| -------------- | --------------- | --------------------------------------------------------- |
-| `make install` | `task install`  | pnpm- und UV-Abhaengigkeiten installieren                 |
-| `make run`     | `task run`      | MeshChatX ueber UV starten                                |
-| `make build`   | `task build`    | Frontend- und Backend-Artefakte bauen                    |
-| `make lint`    | `task lint:all` | ESLint, vue-tsc, knip, Ruff und basedpyright              |
-| `make test`    | `task test:all` | Frontend- und Backend-Tests                               |
-| `make clean`   | `task clean`    | Build-Artefakte und node_modules entfernen                |
+| Befehl         | Delegiert an   | Beschreibung                                 |
+| -------------- | -------------- | -------------------------------------------- |
+| `make install` | `task install` | pnpm- und UV-Abhaengigkeiten installieren    |
+| `make run`     | `task run`     | MeshChatX ueber UV starten                   |
+| `make build`   | `task build`   | Frontend- und Backend-Artefakte bauen        |
+| `make lint`    | `task lint`    | ESLint, vue-tsc, knip, Ruff und basedpyright |
+| `make test`    | `task test`    | Frontend- und Backend-Tests                  |
+| `make clean`   | `task clean`   | Build-Artefakte und node_modules entfernen   |
 
 ## Versionierung
 

@@ -52,9 +52,10 @@ Safari 16.4 以降、Chrome 111 以降、Firefox 128 以降（同梱 Web UI）�
 
 ```bash
 task install
-task lint:all
-task test:all
-task build:all
+task format
+task lint
+task test
+task build
 ```
 
 ## インストール方法
@@ -328,21 +329,22 @@ cd android
 
 ```bash
 task install
-task lint:all
-task test:all
-task build:all
+task format
+task lint
+task test
+task build
 ```
 
 `Makefile` のターゲットは `task` に委譲する薄いラッパーです（上記と同じコマンド）:
 
-| コマンド       | 委譲先          | 説明                                                   |
-| -------------- | --------------- | ------------------------------------------------------ |
-| `make install` | `task install`  | pnpm と UV の依存関係をインストール                  |
-| `make run`     | `task run`      | UV 経由で MeshChatX を実行                           |
-| `make build`   | `task build`    | フロントエンドとバックエンドの成果物をビルド         |
-| `make lint`    | `task lint:all` | ESLint、vue-tsc、knip、Ruff、basedpyright            |
-| `make test`    | `task test:all` | フロントエンドとバックエンドのテスト                 |
-| `make clean`   | `task clean`    | ビルド成果物と node_modules を削除                   |
+| コマンド       | 委譲先         | 説明                                         |
+| -------------- | -------------- | -------------------------------------------- |
+| `make install` | `task install` | pnpm と UV の依存関係をインストール          |
+| `make run`     | `task run`     | UV 経由で MeshChatX を実行                   |
+| `make build`   | `task build`   | フロントエンドとバックエンドの成果物をビルド |
+| `make lint`    | `task lint`    | ESLint、vue-tsc、knip、Ruff、basedpyright    |
+| `make test`    | `task test`    | フロントエンドとバックエンドのテスト         |
+| `make clean`   | `task clean`   | ビルド成果物と node_modules を削除           |
 
 ## バージョン管理
 
