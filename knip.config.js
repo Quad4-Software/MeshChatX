@@ -2,8 +2,6 @@
 export default {
     entry: [
         "meshchatx/src/frontend/index.html",
-        "electron/main.js",
-        "electron/main-legacy.js",
         "electron/preload.js",
         "meshchatx/src/frontend/public/service-worker.js",
         "scripts/**/*.{js,mjs,cjs}",
@@ -16,8 +14,7 @@ export default {
         "tests/**/*.{js,cjs,mjs}",
     ],
     ignore: ["meshchatx/src/frontend/public/**", "electron/assets/**", "**/*.worklet.js"],
-    ignoreDependencies: ["@electron/fuses", "@tailwindcss/forms", "electron-builder-squirrel-windows"],
-    ignoreBinaries: ["python3"],
+    ignoreDependencies: ["@tailwindcss/forms"],
     ignoreIssues: {
         "meshchatx/src/frontend/js/reticulumPathfinding.js": ["unlisted"],
     },
