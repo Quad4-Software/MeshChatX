@@ -274,6 +274,7 @@ class RRCMessage:
         self.text = text
         self.ts = ts
         self.mention = False
+        self.seq = None
 
     def to_dict(self):
         """Return a JSON-serializable representation of the message."""
@@ -286,4 +287,5 @@ class RRCMessage:
             "text": self.text if isinstance(self.text, str) else "",
             "ts": int(self.ts) if isinstance(self.ts, int) else 0,
             "mention": bool(self.mention),
+            "seq": self.seq,
         }

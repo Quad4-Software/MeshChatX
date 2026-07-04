@@ -349,7 +349,9 @@
                         <div class="flex flex-1 min-w-0 flex-col min-h-0">
                             <div
                                 ref="messageList"
-                                class="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-1.5 sm:p-4"
+                                class="relative flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-4"
+                                style="overflow-anchor: none"
+                                @scroll="onMessagesScroll"
                             >
                                 <div
                                     v-if="!selectedRoom"
@@ -358,72 +360,29 @@
                                     <MaterialDesignIcon icon-name="chat-outline" class="size-10 opacity-40" />
                                     {{ $t("relay_chat.no_room_selected") }}
                                 </div>
-                                <template v-else>
-                                    <template v-for="entry in messageTimeline" :key="timelineEntryKey(entry)">
-                                        <div
-                                            v-if="entry.type === 'dateDivider'"
-                                            class="flex items-center justify-center gap-3 w-full my-3 shrink-0 px-2 select-none"
-                                            role="separator"
-                                            :aria-label="formatDateDividerLabel(entry.dayKey)"
-                                        >
-                                            <span class="h-px w-10 shrink-0 bg-sem-border sm:w-14" aria-hidden="true" />
-                                            <span
-                                                class="max-w-[min(100%,18rem)] text-center text-[11px] font-medium leading-snug tracking-wide text-sem-fg-muted"
-                                            >
-                                                {{ formatDateDividerLabel(entry.dayKey) }}
-                                            </span>
-                                            <span class="h-px w-10 shrink-0 bg-sem-border sm:w-14" aria-hidden="true" />
-                                        </div>
-                                        <template v-else-if="entry.msg">
-                                            <div
-                                                v-if="
-                                                    entry.msg.kind === 'system' ||
-                                                    entry.msg.kind === 'notice' ||
-                                                    entry.msg.kind === 'error'
-                                                "
-                                                class="py-0.5 text-center text-xs italic"
-                                                :class="
-                                                    entry.msg.kind === 'error' ? 'text-sem-danger' : 'text-sem-fg-muted'
-                                                "
-                                                :data-msg-key="messageKey(entry.msg)"
-                                            >
-                                                {{ entry.msg.text }}
-                                            </div>
-                                            <div
-                                                v-else-if="entry.msg.kind === 'action'"
-                                                class="rounded-lg px-2 py-1 text-sm italic"
-                                                :class="entry.msg.mention ? 'bg-sem-warning/15' : ''"
-                                                :data-msg-key="messageKey(entry.msg)"
-                                            >
-                                                <span class="mr-1 text-xs text-sem-fg-muted">{{
-                                                    formatTime(entry.msg.ts)
-                                                }}</span>
-                                                * {{ displayName(entry.msg) }} {{ entry.msg.text }}
-                                            </div>
-                                            <div
-                                                v-else
-                                                class="rounded-lg px-2 py-1 text-sm"
-                                                :class="
-                                                    entry.msg.mention
-                                                        ? 'bg-sem-warning/15'
-                                                        : 'hover:bg-sem-surface/40 dark:hover:bg-sem-surface/20'
-                                                "
-                                                :data-msg-key="messageKey(entry.msg)"
-                                                @contextmenu.prevent="openMessageContextMenu($event, entry.msg)"
-                                            >
-                                                <span class="mr-1.5 text-xs text-sem-fg-muted">{{
-                                                    formatTime(entry.msg.ts)
-                                                }}</span>
-                                                <span class="mr-1.5 font-semibold" :style="nameStyle(entry.msg)"
-                                                    >{{ displayName(entry.msg) }}:</span
-                                                >
-                                                <span class="whitespace-pre-wrap break-words">{{
-                                                    entry.msg.text
-                                                }}</span>
-                                            </div>
+                                <div v-else class="relative min-w-0" :class="useVirtualMessageList ? '' : 'space-y-1.5'">
+                                    <button
+                                        v-show="!isLoadingPrevious && hasMorePrevious"
+                                        type="button"
+                                        class="absolute top-0 left-1/2 z-20 -translate-x-1/2 flex items-center gap-1.5 rounded-full border border-sem-border bg-sem-canvas/95 px-3 py-1 text-xs font-medium text-sem-fg-secondary shadow-xs backdrop-blur-sm hover:bg-sem-surface/60"
+                                        @click="loadPreviousMessages"
+                                    >
+                                        <MaterialDesignIcon icon-name="arrow-up" class="size-3.5" />
+                                        {{ $t("relay_chat.load_previous") }}
+                                    </button>
+                                    <template v-if="!useVirtualMessageList">
+                                        <template v-for="entry in messageTimeline" :key="timelineEntryKey(entry)">
+                                            <RelayMessageEntry :entry="entry" :page="relayChatPageSelf" />
                                         </template>
                                     </template>
-                                </template>
+                                    <RelayMessageListVirtual
+                                        v-else
+                                        ref="messageListVirtual"
+                                        :entries="messageTimeline"
+                                        :get-scroll-element="getMessagesScrollElement"
+                                        :page="relayChatPageSelf"
+                                    />
+                                </div>
                             </div>
 
                             <form
@@ -1103,12 +1062,15 @@ import { DEFAULT_RRC_HUB_ICON, normalizeMdiIconName } from "../../js/mdiIconName
 import { countRelayMentions } from "../../js/relayMentionCount.js";
 import { filterRelayMembers, filterRelayMessages } from "../../js/relayMessageSearch.js";
 import { buildRelayMessageTimeline, relayMessageKey } from "../../js/relayMessageTimeline.js";
+import { MIN_VIRTUAL_RELAY_ENTRIES } from "./relayMessageListVirtual.js";
 import { loadRelayLayout, saveRelayLayout } from "../../js/relayLayoutStore.js";
 import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed } from "../../js/browserLayoutStore.js";
 import { RELAY_HOST_MODAL_OVERLAY, RELAY_HOST_MODAL_PANEL_COMPACT } from "../../js/relayHostModalClasses.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import MdiIconPickerModal from "../MdiIconPickerModal.vue";
 import RelayHostModerationPage from "./RelayHostModerationPage.vue";
+import RelayMessageEntry from "./RelayMessageEntry.vue";
+import RelayMessageListVirtual from "./RelayMessageListVirtual.vue";
 import ContextMenuPanel from "../contextmenu/ContextMenuPanel.vue";
 import ContextMenuItem from "../contextmenu/ContextMenuItem.vue";
 import ContextMenuDivider from "../contextmenu/ContextMenuDivider.vue";
@@ -1128,6 +1090,9 @@ const BTN_DANGER_SM =
     "inline-flex items-center justify-center rounded-lg border border-sem-border bg-sem-canvas p-1.5 text-sem-fg transition hover:border-sem-danger hover:text-sem-danger hover:bg-sem-danger/10";
 
 const NAME_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#14b8a6", "#3b82f6", "#8b5cf6", "#ec4899"];
+const RELAY_MESSAGES_INITIAL_PAGE_SIZE = 150;
+const RELAY_MESSAGES_PREVIOUS_PAGE_SIZE = 100;
+const LOAD_PREVIOUS_SCROLL_EDGE_PX = 200;
 
 export default {
     name: "RelayChatPage",
@@ -1135,6 +1100,8 @@ export default {
         MaterialDesignIcon,
         MdiIconPickerModal,
         RelayHostModerationPage,
+        RelayMessageEntry,
+        RelayMessageListVirtual,
         ContextMenuPanel,
         ContextMenuItem,
         ContextMenuDivider,
@@ -1205,6 +1172,10 @@ export default {
             },
             messages: [],
             members: [],
+            hasMorePrevious: false,
+            isLoadingPrevious: false,
+            loadPreviousInFlight: 0,
+            roomSelectSequence: 0,
             composer: "",
             sending: false,
             joinRoomName: "",
@@ -1268,6 +1239,27 @@ export default {
         },
         messageTimeline() {
             return buildRelayMessageTimeline(this.messages);
+        },
+        relayChatPageSelf() {
+            return this;
+        },
+        useVirtualMessageList() {
+            if (this.messageTimeline.length < MIN_VIRTUAL_RELAY_ENTRIES) {
+                return false;
+            }
+            return GlobalState?.config?.message_list_virtualization !== false;
+        },
+        oldestLoadedSeq() {
+            let minSeq = null;
+            for (const msg of this.messages) {
+                if (typeof msg.seq !== "number") {
+                    continue;
+                }
+                if (minSeq === null || msg.seq < minSeq) {
+                    minSeq = msg.seq;
+                }
+            }
+            return minSeq;
         },
         searchResults() {
             return filterRelayMessages(this.messages, this.messageSearch, (msg) => this.displayName(msg));
@@ -1829,6 +1821,10 @@ export default {
             }
             this.showSearch = false;
             const key = this.messageKey(msg);
+            if (this.useVirtualMessageList) {
+                nextTick(() => this.$refs.messageListVirtual?.scrollToMessageKey(key));
+                return;
+            }
             nextTick(() => {
                 const el = this.$refs.messageList?.querySelector(`[data-msg-key="${key}"]`);
                 el?.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -1898,21 +1894,88 @@ export default {
             this.selectedHubHash = hubHash;
             this.selectedRoom = room;
             this.expandedHubs[hubHash] = true;
+            this.hasMorePrevious = false;
+            const seq = ++this.roomSelectSequence;
             try {
                 const response = await window.api.get(
-                    `/api/v1/rrc/hubs/${hubHash}/rooms/${this.encodeRoom(room)}/messages`
+                    `/api/v1/rrc/hubs/${hubHash}/rooms/${this.encodeRoom(room)}/messages`,
+                    { params: { limit: RELAY_MESSAGES_INITIAL_PAGE_SIZE } }
                 );
+                if (seq !== this.roomSelectSequence) {
+                    return;
+                }
                 this.messages = response.data?.messages || [];
                 this.members = response.data?.members || [];
+                this.hasMorePrevious = Boolean(response.data?.has_more);
                 this.scrollToBottom();
                 if (!options.restore) {
                     await this.fetchHubs();
                 }
                 this.persistRelayLayout();
             } catch {
+                if (seq !== this.roomSelectSequence) {
+                    return;
+                }
                 this.messages = [];
                 this.members = [];
+                this.hasMorePrevious = false;
             }
+        },
+        async loadPreviousMessages() {
+            if (this.isLoadingPrevious || !this.hasMorePrevious || !this.selectedHubHash || !this.selectedRoom) {
+                return;
+            }
+            const beforeSeq = this.oldestLoadedSeq;
+            if (beforeSeq === null) {
+                this.hasMorePrevious = false;
+                return;
+            }
+            const seq = this.roomSelectSequence;
+            const hubHash = this.selectedHubHash;
+            const room = this.selectedRoom;
+            this.loadPreviousInFlight += 1;
+            this.isLoadingPrevious = true;
+            try {
+                const response = await window.api.get(
+                    `/api/v1/rrc/hubs/${hubHash}/rooms/${this.encodeRoom(room)}/messages`,
+                    { params: { limit: RELAY_MESSAGES_PREVIOUS_PAGE_SIZE, before_seq: beforeSeq } }
+                );
+                if (seq !== this.roomSelectSequence || hubHash !== this.selectedHubHash || room !== this.selectedRoom) {
+                    return;
+                }
+                const older = response.data?.messages || [];
+                this.hasMorePrevious = Boolean(response.data?.has_more);
+                if (older.length === 0) {
+                    return;
+                }
+                const scrollEl = this.useVirtualMessageList ? null : this.$refs.messageList;
+                const prevScrollHeight = scrollEl ? scrollEl.scrollHeight : 0;
+                const prevScrollTop = scrollEl ? scrollEl.scrollTop : 0;
+                this.messages = [...older, ...this.messages];
+                if (scrollEl) {
+                    nextTick(() => {
+                        const delta = scrollEl.scrollHeight - prevScrollHeight;
+                        scrollEl.scrollTop = prevScrollTop + delta;
+                    });
+                }
+            } catch {
+                this.hasMorePrevious = false;
+            } finally {
+                this.loadPreviousInFlight = Math.max(0, this.loadPreviousInFlight - 1);
+                this.isLoadingPrevious = this.loadPreviousInFlight > 0;
+            }
+        },
+        onMessagesScroll(event) {
+            const el = event.target;
+            if (!el || this.isLoadingPrevious || !this.hasMorePrevious) {
+                return;
+            }
+            if (el.scrollTop <= LOAD_PREVIOUS_SCROLL_EDGE_PX) {
+                this.loadPreviousMessages();
+            }
+        },
+        getMessagesScrollElement() {
+            return this.$refs.messageList ?? null;
         },
         async refreshMembers() {
             if (!this.selectedHubHash || !this.selectedRoom) {
@@ -1929,6 +1992,10 @@ export default {
         },
         scrollToBottom() {
             nextTick(() => {
+                if (this.useVirtualMessageList && this.$refs.messageListVirtual) {
+                    this.$refs.messageListVirtual.scrollToBottom();
+                    return;
+                }
                 const el = this.$refs.messageList;
                 if (el) {
                     el.scrollTop = el.scrollHeight;

@@ -87,6 +87,7 @@ def test_parse_room_list_notice():
 def test_message_to_dict():
     msg = proto.RRCMessage("msg", "lobby", b"\xaa\xbb", "bob", "hi", 123)
     msg.mention = True
+    msg.seq = 7
     assert msg.to_dict() == {
         "kind": "msg",
         "room": "lobby",
@@ -95,6 +96,7 @@ def test_message_to_dict():
         "text": "hi",
         "ts": 123,
         "mention": True,
+        "seq": 7,
     }
 
 

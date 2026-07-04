@@ -102,6 +102,12 @@ class RRCHub:
         self._silent_joins = set()
 
         self._history_write_failed = False
+        self._seq_counter = 0
+
+    def _next_seq(self):
+        with self._lock:
+            self._seq_counter += 1
+            return self._seq_counter
 
     def _log(self, msg, level=None):
         if level is None:
@@ -795,6 +801,7 @@ class RRCHub:
                     continue
                 if filter_msgs and m.kind in ("system", "notice"):
                     continue
+                m.seq = self._next_seq()
                 msgs.append(m)
             with self._lock:
                 self.messages[room] = msgs
@@ -824,6 +831,7 @@ class RRCHub:
     def _record_message(self, msg, local=False):
         cap = self._per_room_cap()
         with self._lock:
+            msg.seq = self._next_seq()
             buf = self.messages.setdefault(msg.room or "*", [])
             buf.append(msg)
             if cap is not None and len(buf) > cap:
@@ -846,6 +854,7 @@ class RRCHub:
         msg = proto.RRCMessage("system", room, None, None, text, proto.now_ms())
         cap = self._per_room_cap()
         with self._lock:
+            msg.seq = self._next_seq()
             buf = self.messages.setdefault(room, [])
             buf.append(msg)
             if cap is not None and len(buf) > cap:
@@ -863,6 +872,7 @@ class RRCHub:
 
         cap = self._per_room_cap()
         with self._lock:
+            msg.seq = self._next_seq()
             self.notices.append(msg)
             if len(self.notices) > 200:
                 del self.notices[: len(self.notices) - 200]
@@ -1342,9 +1352,22 @@ class RRCHub:
                 "max_msg_body_bytes": self.max_msg_body_bytes,
             }
 
-    def room_messages(self, room):
-        """Return serialized messages for a room."""
-        return [m.to_dict() for m in self.get_messages(proto.normalize_room(room))]
+    def room_messages(self, room, limit=None, before_seq=None):
+        """Return ``(messages, has_more)`` for a room, newest page last.
+
+        ``before_seq``, when given, restricts results to messages recorded
+        before that sequence number, letting callers page backwards through
+        history. ``limit`` caps how many of the most recent matching messages
+        are returned; ``has_more`` reports whether older messages remain.
+        """
+        msgs = self.get_messages(proto.normalize_room(room))
+        if before_seq is not None:
+            msgs = [m for m in msgs if (m.seq or 0) < before_seq]
+        has_more = False
+        if limit is not None and len(msgs) > limit:
+            has_more = True
+            msgs = msgs[-limit:]
+        return [m.to_dict() for m in msgs], has_more
 
     def members_dict(self, room):
         """Return serialized members for a room."""

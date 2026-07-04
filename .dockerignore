@@ -79,7 +79,9 @@ Thumbs.db
 # Docker files
 Dockerfile*
 docker-compose*.yml
+docker-compose.override.yml
 .dockerignore
+meshchat-config/
 
 # Local storage and runtime data
 storage/
@@ -99,10 +101,32 @@ telemetry_test_lxmf/
 .env.*.local
 
 .coverage
+coverage/
+coverage-electron/
+.pytest_cache/
+htmlcov/
+.mutmut-cache
+mutmut-stats/
 
 test-results/
 playwright-report/
 blob-report/
+
+# Local benchmark / CI artifact downloads
+bench_results.json
+bench_results.txt
+/cache/
+.artifacts/
+
+# Test suites and reports (not used in container image build)
+tests/
+
+# Desktop, CI, and packaging trees not used in Docker image
+electron/
+.github/
+packaging/
+scripts/private/
+scripts/ci/
 
 # Host-built micron WASM binaries (Docker/build fetch fresh copies)
 meshchatx/src/frontend/public/vendor/micron-parser-go/micron-parser-go.wasm
@@ -111,11 +135,6 @@ meshchatx/src/frontend/public/vendor/micron-parser-go/wasm_exec.js
 .hypothesis
 .hypothesis/
 
-# Arch Linux packaging artifacts
-/packaging/arch/src/
-/packaging/arch/pkg/
-/packaging/arch/*.pkg.tar.zst
-/packaging/arch/MeshChatX/
-/packaging/arch/reticulum-meshchatx/
+cosign.key
 
 *.exe
