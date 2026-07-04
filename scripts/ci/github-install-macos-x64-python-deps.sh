@@ -78,7 +78,10 @@ uv pip install --python "$_PY" \
     --python-platform x86_64-apple-darwin \
     "numpy==${_NUMPY_VERSION}"
 
-arch -x86_64 uv pip install --python "$_PY" \
+# Host uv is arm64 (cannot run under arch -x86_64). numpy is a wheel; pycodec2 is
+# built from sdist with --no-build-isolation so the x86_64 venv numpy is reused.
+uv pip install --python "$_PY" \
+    --python-platform x86_64-apple-darwin \
     --no-build-isolation \
     "pycodec2==${_PYCODEC2_VERSION}"
 
