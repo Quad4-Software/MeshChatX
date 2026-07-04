@@ -8121,7 +8121,9 @@ class ReticulumMeshChat:
                     before_seq = None
             try:
                 messages, has_more = hub.room_messages(
-                    room, limit=limit, before_seq=before_seq,
+                    room,
+                    limit=limit,
+                    before_seq=before_seq,
                 )
                 members = hub.members_dict(room)
             except ValueError as e:

@@ -33,8 +33,12 @@ _WS_BOOL = {"type": "boolean"}
 WS_MESSAGE_SCHEMAS: dict[str, dict] = {
     "ping": _ws_type("ping"),
     "pong": _ws_type("pong"),
-    "config.set": _ws_type("config.set", required=["config"], properties={"config": _WS_OBJECT}),
-    "config": _ws_type("config", required=["config"], properties={"config": _WS_OBJECT}),
+    "config.set": _ws_type(
+        "config.set", required=["config"], properties={"config": _WS_OBJECT}
+    ),
+    "config": _ws_type(
+        "config", required=["config"], properties={"config": _WS_OBJECT}
+    ),
     "announced": _ws_type("announced"),
     "blocked_destinations": _ws_type(
         "blocked_destinations",
@@ -127,7 +131,9 @@ WS_MESSAGE_SCHEMAS: dict[str, dict] = {
         required=["success"],
         properties={"success": _WS_BOOL},
     ),
-    "announce": _ws_type("announce", required=["announce"], properties={"announce": _WS_OBJECT}),
+    "announce": _ws_type(
+        "announce", required=["announce"], properties={"announce": _WS_OBJECT}
+    ),
     "lxmf.delivery": _ws_type("lxmf.delivery"),
     "lxmf_message_created": _ws_type(
         "lxmf_message_created",
@@ -153,7 +159,9 @@ WS_MESSAGE_SCHEMAS: dict[str, dict] = {
         required=["status"],
     ),
     "rrc.change": _ws_type("rrc.change"),
-    "rrc.message": _ws_type("rrc.message", required=["message"], properties={"message": _WS_OBJECT}),
+    "rrc.message": _ws_type(
+        "rrc.message", required=["message"], properties={"message": _WS_OBJECT}
+    ),
     "rrc.server.change": _ws_type("rrc.server.change"),
     "rnsh.session.change": _ws_type("rnsh.session.change"),
     "rnsh.output": _ws_type("rnsh.output"),
@@ -168,13 +176,22 @@ WS_MESSAGE_SAMPLES: dict[str, dict] = {
     "config.set": {"type": "config.set", "config": {"display_name": "Test"}},
     "config": {"type": "config", "config": {"display_name": "Test"}},
     "announced": {"type": "announced"},
-    "blocked_destinations": {"type": "blocked_destinations", "blocked_destinations": []},
+    "blocked_destinations": {
+        "type": "blocked_destinations",
+        "blocked_destinations": [],
+    },
     "keyboard_shortcuts.get": {"type": "keyboard_shortcuts.get"},
     "keyboard_shortcuts.set": {"type": "keyboard_shortcuts.set", "shortcuts": {}},
-    "keyboard_shortcuts.delete": {"type": "keyboard_shortcuts.delete", "id": "nav_messages"},
+    "keyboard_shortcuts.delete": {
+        "type": "keyboard_shortcuts.delete",
+        "id": "nav_messages",
+    },
     "keyboard_shortcuts": {"type": "keyboard_shortcuts", "shortcuts": {}},
     "nomadnet.download.cancel": {"type": "nomadnet.download.cancel", "download_id": 1},
-    "nomadnet.download.cancelled": {"type": "nomadnet.download.cancelled", "download_id": 1},
+    "nomadnet.download.cancelled": {
+        "type": "nomadnet.download.cancelled",
+        "download_id": 1,
+    },
     "nomadnet.page.archives.get": {
         "type": "nomadnet.page.archives.get",
         "destination_hash": "aa" * 16,
@@ -186,7 +203,10 @@ WS_MESSAGE_SAMPLES: dict[str, dict] = {
         "page_path": "/page/index.mu",
         "archives": [],
     },
-    "nomadnet.page.archive.load": {"type": "nomadnet.page.archive.load", "archive_id": 1},
+    "nomadnet.page.archive.load": {
+        "type": "nomadnet.page.archive.load",
+        "archive_id": 1,
+    },
     "nomadnet.page.archive.flush": {"type": "nomadnet.page.archive.flush"},
     "nomadnet.page.archive.add": {
         "type": "nomadnet.page.archive.add",
@@ -212,7 +232,10 @@ WS_MESSAGE_SAMPLES: dict[str, dict] = {
     "lxmf.forwarding.rules.get": {"type": "lxmf.forwarding.rules.get"},
     "lxmf.forwarding.rules": {"type": "lxmf.forwarding.rules", "rules": []},
     "lxmf.forwarding.rule.add": {"type": "lxmf.forwarding.rule.add", "rule": {"id": 1}},
-    "lxmf.forwarding.rule.delete": {"type": "lxmf.forwarding.rule.delete", "rule_id": 1},
+    "lxmf.forwarding.rule.delete": {
+        "type": "lxmf.forwarding.rule.delete",
+        "rule_id": 1,
+    },
     "lxmf.forwarding.rule.toggle": {
         "type": "lxmf.forwarding.rule.toggle",
         "rule_id": 1,
@@ -241,11 +264,17 @@ WS_MESSAGE_SAMPLES: dict[str, dict] = {
     "identity_switched": {"type": "identity_switched"},
     "reticulum_reload_status": {"type": "reticulum_reload_status", "status": "ok"},
     "new_voicemail": {"type": "new_voicemail", "id": 1},
-    "telephone_ringing": {"type": "telephone_ringing", "remote_identity_hash": "aa" * 16},
+    "telephone_ringing": {
+        "type": "telephone_ringing",
+        "remote_identity_hash": "aa" * 16,
+    },
     "telephone_call_established": {"type": "telephone_call_established"},
     "telephone_missed_call": {"type": "telephone_missed_call"},
     "telephone_call_ended": {"type": "telephone_call_ended"},
-    "telephone_initiation_status": {"type": "telephone_initiation_status", "status": "ringing"},
+    "telephone_initiation_status": {
+        "type": "telephone_initiation_status",
+        "status": "ringing",
+    },
     "rrc.change": {"type": "rrc.change"},
     "rrc.message": {"type": "rrc.message", "message": {"kind": "msg"}},
     "rrc.server.change": {"type": "rrc.server.change"},

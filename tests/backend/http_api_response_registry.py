@@ -127,20 +127,32 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
     HttpJsonContract("GET", "/api/v1/auth/csrf", CSRF_ENVELOPE_SCHEMA),
     HttpJsonContract("GET", "/api/v1/server/security", SERVER_SECURITY_SCHEMA),
     HttpJsonContract("GET", "/api/v1/config", CONFIG_ENVELOPE_SCHEMA),
-    HttpJsonContract("GET", "/api/v1/blocked-destinations", BLOCKED_DESTINATIONS_ENVELOPE_SCHEMA),
+    HttpJsonContract(
+        "GET", "/api/v1/blocked-destinations", BLOCKED_DESTINATIONS_ENVELOPE_SCHEMA
+    ),
     HttpJsonContract("GET", "/api/v1/comports", COMPORTS_ENVELOPE_SCHEMA),
-    HttpJsonContract("GET", "/api/v1/system/network-interfaces", SYSTEM_NETWORK_INTERFACES_SCHEMA),
+    HttpJsonContract(
+        "GET", "/api/v1/system/network-interfaces", SYSTEM_NETWORK_INTERFACES_SCHEMA
+    ),
     HttpJsonContract("GET", "/api/v1/reticulum/interfaces", INTERFACES_LIST_SCHEMA),
-    HttpJsonContract("GET", "/api/v1/community-interfaces", COMMUNITY_INTERFACES_SCHEMA),
+    HttpJsonContract(
+        "GET", "/api/v1/community-interfaces", COMMUNITY_INTERFACES_SCHEMA
+    ),
     HttpJsonContract("GET", "/api/v1/reticulum/discovery", DISCOVERY_CONFIG_SCHEMA),
-    HttpJsonContract("GET", "/api/v1/reticulum/discovered-interfaces", DISCOVERED_INTERFACES_SCHEMA),
-    HttpJsonContract("GET", "/api/v1/reticulum/config/raw", RETICULUM_CONFIG_RAW_SCHEMA),
+    HttpJsonContract(
+        "GET", "/api/v1/reticulum/discovered-interfaces", DISCOVERED_INTERFACES_SCHEMA
+    ),
+    HttpJsonContract(
+        "GET", "/api/v1/reticulum/config/raw", RETICULUM_CONFIG_RAW_SCHEMA
+    ),
     HttpJsonContract("GET", "/api/v1/reticulum/blackhole", BLACKHOLE_STATUS_SCHEMA),
     HttpJsonContract("GET", "/api/v1/interface-stats", INTERFACE_STATS_SCHEMA),
     HttpJsonContract("GET", "/api/v1/path-table", PATH_TABLE_SCHEMA),
     HttpJsonContract("GET", "/api/v1/licenses", LICENSES_ENVELOPE_SCHEMA),
     HttpJsonContract("GET", "/api/v1/docs/status", DOCS_STATUS_SCHEMA),
-    HttpJsonContract("GET", "/api/v1/docs/search", DOCS_SEARCH_SCHEMA, query={"q": "reticulum"}),
+    HttpJsonContract(
+        "GET", "/api/v1/docs/search", DOCS_SEARCH_SCHEMA, query={"q": "reticulum"}
+    ),
     HttpJsonContract("GET", "/api/v1/meshchatx-docs/list", MESHCHATX_DOCS_LIST_SCHEMA),
     HttpJsonContract(
         "GET",
@@ -168,12 +180,23 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
     HttpJsonContract("GET", "/api/v1/debug/logs", DEBUG_LOGS_SCHEMA),
     HttpJsonContract("GET", "/api/v1/debug/access-attempts", ACCESS_ATTEMPTS_SCHEMA),
     HttpJsonContract("GET", "/api/v1/diagnostics/memory", MEMORY_DIAGNOSTICS_SCHEMA),
-    HttpJsonContract("GET", "/api/v1/diagnostics/memory/heap", MEMORY_DIAGNOSTICS_SCHEMA),
+    HttpJsonContract(
+        "GET", "/api/v1/diagnostics/memory/heap", MEMORY_DIAGNOSTICS_SCHEMA
+    ),
     HttpJsonContract("GET", "/api/v1/diagnostics/memory/gc", MEMORY_DIAGNOSTICS_SCHEMA),
-    HttpJsonContract("GET", "/api/v1/diagnostics/memory/referrers", MEMORY_DIAGNOSTICS_SCHEMA),
+    HttpJsonContract(
+        "GET", "/api/v1/diagnostics/memory/referrers", MEMORY_DIAGNOSTICS_SCHEMA
+    ),
     HttpJsonContract("GET", "/api/v1/identities", IDENTITIES_LIST_SCHEMA),
-    HttpJsonContract("GET", "/api/v1/identity/backup/base32", IDENTITY_BACKUP_BASE32_SCHEMA),
-    HttpJsonContract("GET", "/api/v1/announce", ANNOUNCE_SINGLE_SCHEMA, query={"aspect": "lxmf.delivery"}),
+    HttpJsonContract(
+        "GET", "/api/v1/identity/backup/base32", IDENTITY_BACKUP_BASE32_SCHEMA
+    ),
+    HttpJsonContract(
+        "GET",
+        "/api/v1/announce",
+        ANNOUNCE_SINGLE_SCHEMA,
+        query={"aspect": "lxmf.delivery"},
+    ),
     HttpJsonContract("GET", "/api/v1/announces", ANNOUNCES_LIST_SCHEMA),
     HttpJsonContract(
         "GET",
@@ -229,11 +252,19 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
     ),
     HttpJsonContract("GET", "/api/v1/lxmf/conversations", LXMF_CONVERSATIONS_SCHEMA),
     HttpJsonContract("GET", "/api/v1/lxmf/folders", LXMF_FOLDERS_SCHEMA),
-    HttpJsonContract("GET", "/api/v1/lxmf/conversation-pins", LXMF_CONVERSATION_PINS_SCHEMA),
+    HttpJsonContract(
+        "GET", "/api/v1/lxmf/conversation-pins", LXMF_CONVERSATION_PINS_SCHEMA
+    ),
     HttpJsonContract("GET", "/api/v1/lxmf/sieve-filters", LXMF_SIEVE_FILTERS_SCHEMA),
-    HttpJsonContract("GET", "/api/v1/lxmf/message-blocklist", LXMF_MESSAGE_BLOCKLIST_SCHEMA),
-    HttpJsonContract("GET", "/api/v1/lxmf/propagation-nodes", LXMF_PROPAGATION_NODES_SCHEMA),
-    HttpJsonContract("GET", "/api/v1/lxmf/propagation-node/status", LXMF_PROPAGATION_STATUS_SCHEMA),
+    HttpJsonContract(
+        "GET", "/api/v1/lxmf/message-blocklist", LXMF_MESSAGE_BLOCKLIST_SCHEMA
+    ),
+    HttpJsonContract(
+        "GET", "/api/v1/lxmf/propagation-nodes", LXMF_PROPAGATION_NODES_SCHEMA
+    ),
+    HttpJsonContract(
+        "GET", "/api/v1/lxmf/propagation-node/status", LXMF_PROPAGATION_STATUS_SCHEMA
+    ),
     HttpJsonContract(
         "GET",
         "/api/v1/lxmf-messages/conversation/{destination_hash}",
@@ -260,7 +291,9 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
     HttpJsonContract("GET", "/api/v1/map/mbtiles", MAP_MBTILES_SCHEMA),
     HttpJsonContract("GET", "/api/v1/telemetry/peers", TELEMETRY_PEERS_SCHEMA),
     HttpJsonContract("GET", "/api/v1/telemetry/tracking", TELEMETRY_TRACKING_SCHEMA),
-    HttpJsonContract("GET", "/api/v1/telemetry/trusted-peers", TELEMETRY_TRUSTED_PEERS_SCHEMA),
+    HttpJsonContract(
+        "GET", "/api/v1/telemetry/trusted-peers", TELEMETRY_TRUSTED_PEERS_SCHEMA
+    ),
     HttpJsonContract(
         "GET",
         "/api/v1/telemetry/latest/{destination_hash}",
@@ -325,27 +358,43 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
     HttpJsonContract("GET", "/api/v1/bots/status", BOTS_STATUS_SCHEMA),
     HttpJsonContract("GET", "/api/v1/bots/subprocess-log", BOTS_SUBPROCESS_LOG_SCHEMA),
     HttpJsonContract("GET", "/api/v1/spam-keywords", SPAM_KEYWORDS_SCHEMA),
-    HttpJsonContract("GET", "/api/v1/translator/languages", TRANSLATOR_LANGUAGES_SCHEMA),
-    HttpJsonContract("GET", "/api/v1/tools/micron-parser-go-release", TOOLS_MICRON_PARSER_RELEASE_SCHEMA),
-    HttpJsonContract("GET", "/api/v1/tools/rnode/latest_release", TOOLS_RNODE_LATEST_RELEASE_SCHEMA),
+    HttpJsonContract(
+        "GET", "/api/v1/translator/languages", TRANSLATOR_LANGUAGES_SCHEMA
+    ),
+    HttpJsonContract(
+        "GET",
+        "/api/v1/tools/micron-parser-go-release",
+        TOOLS_MICRON_PARSER_RELEASE_SCHEMA,
+    ),
+    HttpJsonContract(
+        "GET", "/api/v1/tools/rnode/latest_release", TOOLS_RNODE_LATEST_RELEASE_SCHEMA
+    ),
     HttpJsonContract("GET", "/api/v1/telephone/status", TELEPHONE_STATUS_SCHEMA),
     HttpJsonContract("GET", "/api/v1/telephone/history", TELEPHONE_HISTORY_SCHEMA),
-    HttpJsonContract("GET", "/api/v1/telephone/recordings", TELEPHONE_RECORDINGS_SCHEMA),
-    HttpJsonContract("GET", "/api/v1/telephone/audio-profiles", TELEPHONE_AUDIO_PROFILES_SCHEMA),
+    HttpJsonContract(
+        "GET", "/api/v1/telephone/recordings", TELEPHONE_RECORDINGS_SCHEMA
+    ),
+    HttpJsonContract(
+        "GET", "/api/v1/telephone/audio-profiles", TELEPHONE_AUDIO_PROFILES_SCHEMA
+    ),
     HttpJsonContract(
         "GET",
         "/api/v1/telephone/call/{identity_hash}",
         TELEPHONE_CALL_SCHEMA,
         match_info={"identity_hash": _HEX32},
     ),
-    HttpJsonContract("GET", "/api/v1/telephone/voicemail/status", TELEPHONE_VOICEMAIL_STATUS_SCHEMA),
+    HttpJsonContract(
+        "GET", "/api/v1/telephone/voicemail/status", TELEPHONE_VOICEMAIL_STATUS_SCHEMA
+    ),
     HttpJsonContract(
         "GET",
         "/api/v1/telephone/voicemails",
         TELEPHONE_VOICEMAILS_ENVELOPE_SCHEMA,
         query={"limit": "50", "offset": "0"},
     ),
-    HttpJsonContract("GET", "/api/v1/telephone/ringtones", TELEPHONE_RINGTONES_LIST_SCHEMA),
+    HttpJsonContract(
+        "GET", "/api/v1/telephone/ringtones", TELEPHONE_RINGTONES_LIST_SCHEMA
+    ),
     HttpJsonContract(
         "GET",
         "/api/v1/telephone/ringtones/status",

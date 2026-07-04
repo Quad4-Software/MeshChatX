@@ -102,14 +102,20 @@ def _validate_body(contract: HttpJsonContract, status: int, body) -> None:
     HTTP_JSON_GET_CONTRACTS,
     ids=lambda c: f"{c.method} {c.path}",
 )
-async def test_get_json_response_matches_schema(contract_app, contract: HttpJsonContract):
+async def test_get_json_response_matches_schema(
+    contract_app, contract: HttpJsonContract
+):
     status, body = await invoke_json_contract(contract_app, contract)
     _validate_body(contract, status, body)
 
 
 def test_every_json_get_route_is_registered_or_excluded():
     routes = load_route_fixture(_FIXTURE)
-    get_api = [r["path"] for r in routes if r["method"] == "GET" and r["path"].startswith("/api/v1")]
+    get_api = [
+        r["path"]
+        for r in routes
+        if r["method"] == "GET" and r["path"].startswith("/api/v1")
+    ]
     registered = registered_get_paths()
     uncovered = []
     for path in get_api:
