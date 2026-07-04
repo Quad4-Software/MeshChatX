@@ -435,6 +435,56 @@ Current version in this repo is `4.7.2`.
 - **`meshchatx.__version__`** is read from **`meshchatx/src/version.py`** without importing **`meshchatx.src`**, so a plain `import meshchatx` stays lightweight.
 - **Changelog** entries stay manual when you cut a release.
 
+## Troubleshooting: database corruption and full data reset
+
+If MeshChatX fails to start with errors such as `database disk image is malformed`, `DatabaseError`, or corrupted ratchet data, the desktop crash screen now offers recovery actions:
+
+- **Restore latest backup** from `database-backups/` or `snapshots/` inside your MeshChatX storage folder
+- **Choose backup file** to restore a `.zip` you saved elsewhere
+- **Try auto-repair** to relaunch with `--auto-recover` (SQLite checkpoint / integrity pass)
+- **Emergency mode** to open the app without the database so you can export data from About when possible
+- **Copy reset instructions** with the exact folders to delete for a clean reinstall
+
+### Where MeshChatX stores data
+
+| Platform | MeshChatX storage | Reticulum network stack |
+| --- | --- | --- |
+| Linux / macOS | `~/.reticulum-meshchatx/` | `~/.reticulum/` |
+| Windows | `%USERPROFILE%\.reticulum-meshchatx\` | `%USERPROFILE%\.reticulum\` |
+| Windows portable | `<MeshChatX.exe folder>\.reticulum-meshchatx\` | `<MeshChatX.exe folder>\.reticulum\` |
+
+Legacy Reticulum MeshChat data may still exist at `~/.reticulum-meshchat/` (or the Windows equivalent).
+
+Automatic database backups are written to:
+
+`database-backups/` inside the MeshChatX storage folder when the app has run successfully before.
+
+### Complete removal (start fresh)
+
+Quit MeshChatX completely. On Windows, also end `ReticulumMeshChatX.exe` in Task Manager if it is still running. Then delete the MeshChatX storage folder and the Reticulum config folder for your install type (see table above). This removes your local identity, messages, contacts, path cache, and ratchet state. The next launch creates a new identity unless you restore from a backup first.
+
+**Linux / macOS example:**
+
+```bash
+rm -rf ~/.reticulum-meshchatx ~/.reticulum ~/.reticulum-meshchat
+```
+
+**Windows (PowerShell) example:**
+
+```powershell
+Remove-Item -Recurse -Force "$env:USERPROFILE\.reticulum-meshchatx", "$env:USERPROFILE\.reticulum", "$env:USERPROFILE\.reticulum-meshchat" -ErrorAction SilentlyContinue
+```
+
+Custom installs: if you pass `--storage-dir` or `--reticulum-config-dir`, remove those directories instead of the defaults.
+
+### Command-line restore (advanced)
+
+When the backend can start briefly or you run from source:
+
+```bash
+meshchatx --storage-dir /path/to/storage --restore-db /path/to/backup.zip
+```
+
 ## Security
 
 Security and integrity details:

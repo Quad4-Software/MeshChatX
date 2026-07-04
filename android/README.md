@@ -11,7 +11,7 @@ Native APK with embedded Python (`meshchatx/`) and a WebView UI.
 ## Lint and static analysis
 
 - **Android Lint** (Java, Kotlin, manifests, resources): from `android/`, run `./gradlew --no-daemon :app:lintDebug`. HTML report: `app/build/reports/lint-results-debug.html`. CI runs this in the Android workflow when tests run.
-- **SAST (GitHub CodeQL)**: the repository workflow includes a `java-kotlin` matrix entry (see `.github/workflows/codeql.yml`) for GitHub’s security analysis on default branches and PRs.
+- **SAST (GitHub CodeQL)**: the repository workflow includes a `java-kotlin` matrix entry (see `.github/workflows/security.yml`) for GitHub’s security analysis on default branches and PRs.
 
 ## Launcher shortcuts, language
 
