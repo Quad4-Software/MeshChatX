@@ -116,11 +116,11 @@ function buildDataCleanupGuide(ctx) {
     lines.push("  %USERPROFILE%\\.reticulum-meshchat\\ (legacy, if present)");
     lines.push("");
     lines.push(
-        "Removing these folders deletes your local identity, messages, contacts, and network path cache. You will get a new identity on the next launch unless you restore from a backup zip first.",
+        "Removing these folders deletes your local identity, messages, contacts, and network path cache. You will get a new identity on the next launch unless you restore from a backup zip first."
     );
     lines.push("");
     lines.push(
-        "Automatic database backups are kept under database-backups/ inside the MeshChatX storage folder when the app has run successfully before.",
+        "Automatic database backups are kept under database-backups/ inside the MeshChatX storage folder when the app has run successfully before."
     );
 
     return lines.join("\n");

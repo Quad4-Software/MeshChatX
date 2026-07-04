@@ -331,7 +331,12 @@ import {
     startCameraStream,
 } from "../../js/qrScannerUtils";
 import { lxmfConversationListPreview } from "../../js/lxmfConversationPreview";
-import { loadMessagePanes, saveMessagePanes, loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed } from "../../js/browserLayoutStore";
+import {
+    loadMessagePanes,
+    saveMessagePanes,
+    loadFeatureSidebarCollapsed,
+    saveFeatureSidebarCollapsed,
+} from "../../js/browserLayoutStore";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 
 export default {

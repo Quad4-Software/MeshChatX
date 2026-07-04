@@ -27,11 +27,7 @@ describe("electron/offlineRecovery", () => {
             fs.utimesSync(path.join(snapshotDir, "manual.zip"), now / 1000 - 30, now / 1000 - 30);
 
             const backups = listRecoveryBackups(storageDir);
-            expect(backups.map((entry) => entry.name)).toEqual([
-                "backup-new.zip",
-                "manual.zip",
-                "backup-old.zip",
-            ]);
+            expect(backups.map((entry) => entry.name)).toEqual(["backup-new.zip", "manual.zip", "backup-old.zip"]);
         } finally {
             fs.rmSync(storageDir, { recursive: true, force: true });
         }
