@@ -2905,6 +2905,7 @@
         "no_hubs": "Noch keine Hubs konfiguriert. Fügen Sie einen hinzu, um zu beginnen.",
         "no_rooms": "Keine Räume beigetreten. Treten Sie einem Raum bei, um zu chatten.",
         "no_room_selected": "Wählen Sie einen Raum, um Nachrichten anzuzeigen.",
+        "load_previous": "Frühere Nachrichten laden",
         "rooms": "Räume",
         "members": "Mitglieder",
         "join_room": "Raum beitreten",

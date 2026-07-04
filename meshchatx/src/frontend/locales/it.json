@@ -2905,6 +2905,7 @@
         "no_hubs": "Nessun hub configurato. Aggiungine uno per iniziare.",
         "no_rooms": "Nessuna stanza. Entra in una stanza per chattare.",
         "no_room_selected": "Seleziona una stanza per vedere i messaggi.",
+        "load_previous": "Carica messaggi precedenti",
         "rooms": "Stanze",
         "members": "Membri",
         "join_room": "Entra nella stanza",

@@ -2264,6 +2264,7 @@
         "no_hubs": "No hubs configured yet. Add one to get started.",
         "no_rooms": "No rooms joined. Join a room to start chatting.",
         "no_room_selected": "Select a room to view messages.",
+        "load_previous": "Load earlier messages",
         "rooms": "Rooms",
         "members": "Members",
         "join_room": "Join Room",

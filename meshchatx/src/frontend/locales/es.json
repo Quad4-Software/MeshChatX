@@ -2905,6 +2905,7 @@
         "no_hubs": "Aun no hay hubs configurados. Anade uno para empezar.",
         "no_rooms": "No te has unido a ninguna sala. Unete a una para chatear.",
         "no_room_selected": "Selecciona una sala para ver los mensajes.",
+        "load_previous": "Cargar mensajes anteriores",
         "rooms": "Salas",
         "members": "Miembros",
         "join_room": "Unirse a la sala",
