@@ -20,5 +20,5 @@ jobs:
         uses: sigstore/rekor-monitor/.github/workflows/reusable_monitoring.yml@01680ec70d6bfa0ee4487f9be605c2db13273963
         secrets: inherit
         with:
-            file_issue: false
+            file_issue: true
             artifact_retention_days: 30
