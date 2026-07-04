@@ -296,7 +296,7 @@ function createBackendProcessManager(deps) {
         return [...requiredArguments, ...userProvidedArguments, ...extraArgs];
     }
 
-    async function runMaintenanceTask(extraArgs, integrityStatusRef) {
+    async function runMaintenanceTask(extraArgs) {
         if (!resolvedExePath) {
             return { ok: false, error: "Backend executable is not configured." };
         }
