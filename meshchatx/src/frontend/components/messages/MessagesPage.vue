@@ -331,7 +331,7 @@ import {
     startCameraStream,
 } from "../../js/qrScannerUtils";
 import { lxmfConversationListPreview } from "../../js/lxmfConversationPreview";
-import { loadMessagePanes, saveMessagePanes } from "../../js/browserLayoutStore";
+import { loadMessagePanes, saveMessagePanes, loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed } from "../../js/browserLayoutStore";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 
 export default {
@@ -358,7 +358,7 @@ export default {
 
             config: snapshotGlobalConfig(),
             hasLoadedConversations: false,
-            messagesListSidebarCollapsed: false,
+            messagesListSidebarCollapsed: loadFeatureSidebarCollapsed("messages") ?? false,
             peers: {},
 
             panes: [{ id: 1, peer: null }],
@@ -483,6 +483,9 @@ export default {
         },
     },
     watch: {
+        messagesListSidebarCollapsed(collapsed) {
+            saveFeatureSidebarCollapsed("messages", collapsed);
+        },
         conversations() {
             // update global state
             GlobalState.unreadConversationsCount = this.conversations.filter((conversation) => {

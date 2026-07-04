@@ -766,6 +766,7 @@ import ElectronUtils from "../js/ElectronUtils";
 import { postRequestPath } from "../js/reticulumPathfinding.js";
 import ToneGenerator from "../js/ToneGenerator";
 import logoUrl from "../assets/images/logo.png";
+import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed } from "../js/browserLayoutStore";
 
 export default {
     name: "App",
@@ -941,6 +942,9 @@ export default {
             },
             deep: true,
         },
+        isSidebarCollapsed(collapsed) {
+            saveFeatureSidebarCollapsed("app", collapsed);
+        },
     },
     beforeUnmount() {
         if (typeof this._shellAuthWatchStop === "function") {
@@ -964,6 +968,10 @@ export default {
     },
     mounted() {
         try {
+            const savedSidebarCollapsed = loadFeatureSidebarCollapsed("app");
+            if (savedSidebarCollapsed !== null) {
+                this.isSidebarCollapsed = savedSidebarCollapsed;
+            }
             const v = localStorage.getItem("meshchatx_detailed_outbound_send_status");
             if (v === "true" || v === "false") {
                 GlobalState.detailedOutboundSendStatus = v === "true";

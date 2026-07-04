@@ -2,6 +2,13 @@ const NOMAD_TABS_KEY = "meshchatx.nomadnet.tabs";
 const MAP_TABS_KEY = "meshchatx.map.tabs";
 const MESSAGE_PANES_KEY = "meshchatx.messages.panes";
 const RNSH_LAYOUT_KEY = "meshchatx.rnsh.layout";
+const FEATURE_SIDEBAR_COLLAPSED_KEYS = {
+    app: "meshchatx.sidebar.app",
+    messages: "meshchatx.sidebar.messages",
+    nomadnetwork: "meshchatx.sidebar.nomadnetwork",
+    relayChat: "meshchatx.sidebar.relay-chat",
+};
+const LEGACY_RELAY_SIDEBAR_COLLAPSED_KEY = "relayChatSidebarCollapsed";
 
 /**
  * Safely read and parse a JSON value from localStorage.
@@ -127,4 +134,60 @@ export function loadRnshLayout() {
  */
 export function saveRnshLayout(state) {
     writeJson(RNSH_LAYOUT_KEY, state);
+}
+
+/**
+ * Load a persisted feature sidebar collapsed flag.
+ *
+ * @param {"app"|"messages"|"nomadnetwork"|"relayChat"} feature sidebar feature id
+ * @returns {boolean|null} saved value, or null when unset
+ */
+export function loadFeatureSidebarCollapsed(feature) {
+    const key = FEATURE_SIDEBAR_COLLAPSED_KEYS[feature];
+    if (!key) {
+        return null;
+    }
+    const saved = readJson(key);
+    if (saved === true || saved === false) {
+        return saved;
+    }
+    if (feature === "relayChat") {
+        try {
+            if (typeof window !== "undefined" && window.localStorage) {
+                const legacy = window.localStorage.getItem(LEGACY_RELAY_SIDEBAR_COLLAPSED_KEY);
+                if (legacy === "1") {
+                    return true;
+                }
+                if (legacy === "0") {
+                    return false;
+                }
+            }
+        } catch {
+            return null;
+        }
+    }
+    return null;
+}
+
+/**
+ * Persist a feature sidebar collapsed flag.
+ *
+ * @param {"app"|"messages"|"nomadnetwork"|"relayChat"} feature sidebar feature id
+ * @param {boolean} collapsed whether the sidebar is collapsed
+ */
+export function saveFeatureSidebarCollapsed(feature, collapsed) {
+    const key = FEATURE_SIDEBAR_COLLAPSED_KEYS[feature];
+    if (!key) {
+        return;
+    }
+    writeJson(key, collapsed === true);
+    if (feature === "relayChat") {
+        try {
+            if (typeof window !== "undefined" && window.localStorage) {
+                window.localStorage.setItem(LEGACY_RELAY_SIDEBAR_COLLAPSED_KEY, collapsed ? "1" : "0");
+            }
+        } catch {
+            // persistence is best-effort
+        }
+    }
 }
