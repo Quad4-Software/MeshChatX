@@ -242,7 +242,7 @@ ipcMain.handle("restore-database-backup", async (_event, backupPath) => {
     if (!fs.existsSync(backupPath)) {
         return { ok: false, error: "Backup file was not found." };
     }
-    return await getBackendManager().runMaintenanceTask(["--restore-db", backupPath], integrityStatus);
+    return await getBackendManager().runMaintenanceTask(["--restore-db", backupPath]);
 });
 
 ipcMain.handle("pick-database-backup", async () => {
