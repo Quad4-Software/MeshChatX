@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import json
 import os
 import shutil
 import subprocess
@@ -66,6 +65,9 @@ def test_docker_image_serves_status():
 def test_docker_status_json_shape():
     """Lightweight follow-up: status body matches minimal contract when smoke script left output."""
     sample = {"status": "ok", "listen_port": 8000, "https_enabled": True}
-    from tests.backend.api_json_contract_schemas import API_V1_STATUS_SCHEMA, assert_matches_schema
+    from tests.backend.api_json_contract_schemas import (
+        API_V1_STATUS_SCHEMA,
+        assert_matches_schema,
+    )
 
     assert_matches_schema(sample, API_V1_STATUS_SCHEMA)

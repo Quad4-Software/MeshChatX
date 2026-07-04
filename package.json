@@ -23,6 +23,8 @@
         "bundle:offline": "bash scripts/create-offline-bundle.sh",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
+        "typecheck": "vue-tsc --noEmit -p tsconfig.json",
+        "knip": "knip",
         "format": "prettier --write .",
         "test": "vitest run --exclude tests/frontend/LoadTimePerformance.test.js && vitest run --config vitest.electron.config.js",
         "test:coverage": "vitest run --coverage --exclude tests/frontend/LoadTimePerformance.test.js && vitest run --config vitest.electron.config.js --coverage",
@@ -83,14 +85,17 @@
         "fake-indexeddb": "^6.2.5",
         "globals": "^17.6.0",
         "jsdom": "^29.1.1",
+        "knip": "^6.24.0",
         "micron-parser": "github:RFnexus/micron-parser-js",
         "prettier": "^3.9.3",
         "tailwindcss": "^4.3.0",
         "terser": "^5.48.0",
+        "typescript": "^6.0.3",
         "vite": "^8.0.16",
         "vite-plugin-vuetify": "^2.1.3",
         "vitest": "^4.1.5",
-        "vue-eslint-parser": "^10.4.1"
+        "vue-eslint-parser": "^10.4.1",
+        "vue-tsc": "^3.3.6"
     },
     "build": {
         "appId": "com.quad4.meshchatx",

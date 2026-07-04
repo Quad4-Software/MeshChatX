@@ -81,5 +81,3 @@ export function renderTerminalOutput(raw) {
         })
         .join("\n");
 }
-
-export default renderTerminalOutput;

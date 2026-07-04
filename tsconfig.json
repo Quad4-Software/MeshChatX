@@ -1,0 +1,39 @@
+{
+    "compilerOptions": {
+        "target": "ES2022",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "lib": ["ES2022", "DOM", "DOM.Iterable"],
+        "jsx": "preserve",
+        "allowJs": true,
+        "checkJs": false,
+        "noEmit": true,
+        "strict": false,
+        "skipLibCheck": true,
+        "isolatedModules": true,
+        "resolveJsonModule": true,
+        "paths": {
+            "micron-parser": ["./node_modules/micron-parser/js/micron-parser.js"]
+        }
+    },
+    "include": [
+        "meshchatx/src/frontend/**/*.vue",
+        "meshchatx/src/frontend/**/*.js",
+        "electron/**/*.js",
+        "vite.config.js"
+    ],
+    "exclude": [
+        "node_modules",
+        "meshchatx/public",
+        "meshchatx/src/frontend/public",
+        "build",
+        "dist",
+        "vendor",
+        "android",
+        "tests"
+    ],
+    "vueCompilerOptions": {
+        "target": 3,
+        "strictTemplates": true
+    }
+}

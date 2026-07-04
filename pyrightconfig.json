@@ -1,0 +1,15 @@
+{
+    "include": ["meshchatx/src/backend", "meshchatx/src/env_utils.py"],
+    "exclude": ["**/vendor/**", "**/build/**", "**/node_modules/**", "**/__pycache__/**"],
+    "extraPaths": ["vendor/lxmfy"],
+    "pythonVersion": "3.11",
+    "typeCheckingMode": "basic",
+    "baselineFile": ".basedpyright/baseline.json",
+    "reportMissingTypeArgument": "none",
+    "reportUnknownArgumentType": "none",
+    "reportUnknownMemberType": "none",
+    "reportUnknownVariableType": "none",
+    "reportUnknownParameterType": "none",
+    "reportMissingTypeStubs": "none",
+    "reportPrivateImportUsage": "none"
+}
