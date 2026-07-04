@@ -16,6 +16,14 @@ inputs:
         description: pnpm version activated through corepack
         required: false
         default: "11.1.2"
+    task-version:
+        description: go-task version installed from GitHub releases
+        required: false
+        default: "3.49.1"
+    install-task:
+        description: Install go-task for Taskfile.yml targets
+        required: false
+        default: "true"
 
 runs:
     using: composite
@@ -35,3 +43,8 @@ runs:
         - name: Install dependencies
           shell: bash
           run: bash scripts/ci/github-install-deps.sh
+
+        - name: Setup Task
+          if: inputs.install-task == 'true'
+          shell: bash
+          run: sh scripts/ci/setup-task.sh "${{ inputs.task-version }}"

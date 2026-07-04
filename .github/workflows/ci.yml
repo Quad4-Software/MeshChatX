@@ -1,4 +1,5 @@
 # Primary CI: lint, tests, localization, Linux build check, E2E, and native builds (dev).
+# Verify matrix steps delegate to Taskfile.yml (task lint, test:frontend, test:lang).
 #
 # The frontend bundle is built once via the reusable frontend-build workflow and
 # downloaded by downstream jobs instead of rebuilding on every runner.
@@ -83,20 +84,13 @@ jobs:
                   set -euo pipefail
                   case "${{ matrix.task.id }}" in
                     lint)
-                      pnpm run lint
-                      pnpm run typecheck
-                      pnpm exec knip
-                      uv run ruff check .
-                      uv run ruff format --check .
-                      uv run basedpyright -p pyrightconfig.json --level error
+                      task lint
                       ;;
                     frontend-tests)
-                      pnpm exec vitest run --exclude tests/frontend/LoadTimePerformance.test.js --exclude tests/frontend/i18n.test.js
-                      pnpm exec vitest run --config vitest.electron.config.js
+                      task test:frontend
                       ;;
                     lang-tests)
-                      pnpm exec vitest run tests/frontend/i18n.test.js
-                      uv run python -m pytest tests/backend/test_translator_handler.py
+                      task test:lang
                       ;;
                     *)
                       echo "Unknown matrix task: ${{ matrix.task.id }}" >&2
@@ -127,9 +121,7 @@ jobs:
                   pnpm-version: ${{ env.PNPM_VERSION }}
 
             - name: Run backend tests
-              run: |
-                  MESHCHAT_SKIP_STORAGE_LOCK=1 uv run python -m pytest tests/backend \
-                    --cov=meshchatx/src/backend
+              run: task test:backend
 
     build-check:
         name: Linux build check
@@ -159,7 +151,7 @@ jobs:
                   artifact-name: ${{ env.FRONTEND_ARTIFACT_NAME }}
 
             - name: Compile backend sources
-              run: uv run python -m compileall meshchatx/
+              run: task compile
 
             - name: Build backend (cx_Freeze)
               run: pnpm run build-backend

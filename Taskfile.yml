@@ -328,7 +328,7 @@ tasks:
     compile:
         desc: Compile Python to check for syntax errors
         cmds:
-            - "{{.PYTHON}} -m compileall meshchatx/"
+            - uv run python -m compileall meshchatx/
 
     # --- Build & Packaging ---
 
@@ -339,7 +339,8 @@ tasks:
         cmds:
             - "{{.NPM}} run build"
 
-    build:fe:
+    build:frontend:
+        aliases: [build:fe]
         desc: Build frontend assets
         deps: [deps:frontend]
         cmds:
@@ -356,7 +357,7 @@ tasks:
 
     dist:linux:appimage:
         desc: Build Linux AppImage (x64 + arm64 only)
-        deps: [build:fe]
+        deps: [build:frontend]
         cmds:
             - "{{.NPM}} run electron-postinstall"
             - "PLATFORM=linux ARCH=x64 {{.NPM}} run build-backend"
@@ -366,7 +367,7 @@ tasks:
 
     dist:linux:arm64:
         desc: Build Linux arm64 AppImage
-        deps: [build:fe]
+        deps: [build:frontend]
         cmds:
             - "{{.NPM}} run electron-postinstall"
             - "PLATFORM=linux ARCH=arm64 {{.NPM}} run build-backend"
@@ -374,7 +375,7 @@ tasks:
 
     dist:win:exe:
         desc: Build Windows portable EXE
-        deps: [build:fe]
+        deps: [build:frontend]
         cmds:
             - "{{.NPM}} run electron-postinstall"
             - "PLATFORM=win32 {{.NPM}} run build-backend"
@@ -382,7 +383,7 @@ tasks:
 
     dist:win:arm64:
         desc: Build Windows arm64 portable EXE
-        deps: [build:fe]
+        deps: [build:frontend]
         cmds:
             - "{{.NPM}} run electron-postinstall"
             - "PLATFORM=win32 ARCH=arm64 {{.NPM}} run build-backend"
@@ -390,7 +391,7 @@ tasks:
 
     dist:win:wine:
         desc: Build Windows EXE/Installer via Wine
-        deps: [build:fe]
+        deps: [build:frontend]
         cmds:
             - "{{.NPM}} run electron-postinstall"
             - "PLATFORM=win32 PYTHON_CMD='{{.WINE_PYTHON}}' {{.NPM}} run build-backend"
@@ -398,7 +399,7 @@ tasks:
 
     dist:fe:linux:
         desc: Build Linux Electron app (prebuilt backend)
-        deps: [build:fe]
+        deps: [build:frontend]
         cmds:
             - "{{.NPM}} run dist:linux"
 
@@ -409,38 +410,38 @@ tasks:
 
     dist:linux-x64:
         desc: Build Linux x64 AppImage + deb
-        deps: [build:fe]
+        deps: [build:frontend]
         cmds:
             - "{{.NPM}} run dist:linux-x64"
 
     dist:fe:rpm:
         desc: Build RPM package
-        deps: [build:fe]
+        deps: [build:frontend]
         cmds:
             - "{{.NPM}} run dist:rpm"
 
     dist:fe:flatpak:
         desc: Build Flatpak package
-        deps: [build:fe]
+        deps: [build:frontend]
         cmds:
             - "{{.NPM}} run dist:flatpak"
 
     dist:fe:win:
         desc: Build Windows Electron apps
-        deps: [build:fe]
+        deps: [build:frontend]
         cmds:
             - "{{.NPM}} run dist:windows"
 
     dist:fe:zip:
         desc: Build Electron ZIP (Linux)
-        deps: [build:fe]
+        deps: [build:frontend]
         cmds:
             - "PLATFORM=linux {{.NPM}} run build-backend"
             - "{{.NPM}} run dist:zip"
 
     dist:all:
         desc: Build all Electron apps (Linux + Win)
-        deps: [build:fe]
+        deps: [build:frontend]
         cmds:
             - "{{.NPM}} run electron-postinstall"
             - "PLATFORM=linux {{.NPM}} run build-backend"
@@ -449,7 +450,7 @@ tasks:
 
     dist:all:wine:
         desc: Build all Electron apps (Linux + Win via Wine)
-        deps: [build:fe]
+        deps: [build:frontend]
         cmds:
             - "{{.NPM}} run electron-postinstall"
             - "PLATFORM=linux {{.NPM}} run build-backend"
