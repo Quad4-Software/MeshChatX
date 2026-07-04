@@ -5,8 +5,6 @@
 #   actions/download-artifact@v5.0.0              634f93cb2916e3fdff6788551b99b062d0335ce0
 #   github/codeql-action/init@v4.31.6             95e58e9a2cdfd71adc6e0353d5c52f41a045d225
 #   github/codeql-action/analyze@v4.31.6          95e58e9a2cdfd71adc6e0353d5c52f41a045d225
-#
-# FIXME: CVE-2026-3219 affects pip through 26.0.1; ignored until next pip release.
 
 name: Security
 
@@ -61,8 +59,8 @@ jobs:
 
             - name: pip-audit
               run: |
-                  uv run pip install --upgrade "pip>=26.0" pip-audit
-                  uv run pip-audit --ignore-vuln CVE-2026-3219
+                  uv run pip install --upgrade "pip>=26.1" pip-audit
+                  uv run pip-audit
 
             - name: Apt update (for Trivy .deb)
               run: sh scripts/ci/exec-priv.sh apt-get update -qq
