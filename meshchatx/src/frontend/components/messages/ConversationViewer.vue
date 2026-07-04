@@ -1309,7 +1309,15 @@
             @keydown.right.prevent="imageModalNavigate(1)"
             @keydown.escape.prevent="closeImageModal"
         >
-            <div class="relative max-w-7xl max-h-full" @click.stop>
+            <div class="relative max-w-7xl max-h-full group/image-modal" @click.stop>
+                <button
+                    type="button"
+                    class="absolute -top-12 left-0 inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white/10 dark:bg-zinc-900/10 hover:bg-white/20 dark:hover:bg-zinc-900/20 text-white transition-colors opacity-0 group-hover/image-modal:opacity-100 focus:opacity-100"
+                    :title="$t('messages.save_image_to_device')"
+                    @click="downloadImageModalCurrent"
+                >
+                    <MaterialDesignIcon icon-name="download" class="size-5" />
+                </button>
                 <button
                     type="button"
                     class="absolute -top-12 right-0 inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white/10 dark:bg-zinc-900/10 hover:bg-white/20 dark:hover:bg-zinc-900/20 text-white transition-colors"
@@ -1341,10 +1349,35 @@
                 >
                     {{ imageModalIndex + 1 }} / {{ imageModalGallery.length }}
                 </div>
-                <img :src="imageModalUrl" class="max-w-full max-h-[90vh] rounded-xl shadow-2xl" alt="Image preview" />
+                <img
+                    :src="imageModalUrl"
+                    class="max-w-full max-h-[90vh] rounded-xl shadow-2xl"
+                    alt="Image preview"
+                    @contextmenu.prevent.stop="onImageModalContextMenu"
+                />
             </div>
         </div>
     </Transition>
+
+    <Teleport to="body">
+        <ContextMenuPanel
+            v-click-outside="{
+                handler: () => {
+                    imageModalContextMenu.show = false;
+                },
+                capture: true,
+            }"
+            :show="imageModalContextMenu.show"
+            :x="imageModalContextMenu.x"
+            :y="imageModalContextMenu.y"
+            panel-class="z-200"
+        >
+            <ContextMenuItem @click="downloadImageModalCurrent">
+                <MaterialDesignIcon icon-name="download" class="size-4 text-blue-500" />
+                {{ $t("messages.save_image_to_device") }}
+            </ContextMenuItem>
+        </ContextMenuPanel>
+    </Teleport>
 
     <PaperMessageModal
         v-if="isPaperMessageModalOpen"
@@ -1882,7 +1915,14 @@ export default {
             expandedMessageInfo: null,
             imageModalUrl: null,
             imageModalGallery: null,
+            imageModalGalleryChatItems: null,
+            imageModalChatItem: null,
             imageModalIndex: 0,
+            imageModalContextMenu: {
+                show: false,
+                x: 0,
+                y: 0,
+            },
             isSelectedPeerBlocked: false,
             isStrangerPeer: false,
             strangerBannerDismissed: false,
@@ -3940,7 +3980,7 @@ export default {
             }
             const src = this.pendingOutboundImageSrc(chatItem);
             if (src) {
-                this.openImage(src);
+                this.openImage(src, null, [chatItem]);
             }
         },
         copyableMessagePlainText(chatItem) {
@@ -4270,17 +4310,23 @@ export default {
             }
             return "0 B";
         },
-        openImage: async function (url, galleryUrls) {
+        openImage: async function (url, galleryUrls, galleryChatItems = null) {
+            this.imageModalContextMenu.show = false;
             if (galleryUrls && galleryUrls.length > 1) {
                 this.imageModalGallery = galleryUrls.slice();
+                this.imageModalGalleryChatItems = Array.isArray(galleryChatItems) ? galleryChatItems.slice() : null;
+                this.imageModalChatItem = null;
                 let idx = galleryUrls.indexOf(url);
                 if (idx < 0) idx = 0;
                 this.imageModalIndex = idx;
                 this.imageModalUrl = galleryUrls[idx];
             } else {
                 this.imageModalGallery = null;
+                this.imageModalGalleryChatItems = null;
                 this.imageModalIndex = 0;
                 this.imageModalUrl = url;
+                this.imageModalChatItem =
+                    Array.isArray(galleryChatItems) && galleryChatItems.length > 0 ? galleryChatItems[0] : null;
             }
             this.$nextTick(() => {
                 this.$refs.imageModalOverlay?.focus?.();
@@ -4289,13 +4335,48 @@ export default {
         closeImageModal() {
             this.imageModalUrl = null;
             this.imageModalGallery = null;
+            this.imageModalGalleryChatItems = null;
+            this.imageModalChatItem = null;
             this.imageModalIndex = 0;
+            this.imageModalContextMenu.show = false;
+        },
+        imageModalActiveChatItem() {
+            if (this.imageModalGalleryChatItems && this.imageModalGalleryChatItems.length > 0) {
+                return this.imageModalGalleryChatItems[this.imageModalIndex] || null;
+            }
+            return this.imageModalChatItem;
+        },
+        onImageModalContextMenu(event) {
+            if (!this.imageModalActiveChatItem()) {
+                return;
+            }
+            this.imageModalContextMenu.show = true;
+            const menuWidth = 220;
+            const menuHeight = 48;
+            let x = event.clientX;
+            let y = event.clientY;
+            if (x + menuWidth > window.innerWidth) {
+                x = window.innerWidth - menuWidth - 10;
+            }
+            if (y + menuHeight > window.innerHeight) {
+                y = window.innerHeight - menuHeight - 10;
+            }
+            this.imageModalContextMenu.x = x;
+            this.imageModalContextMenu.y = y;
+        },
+        downloadImageModalCurrent() {
+            const chatItem = this.imageModalActiveChatItem();
+            this.imageModalContextMenu.show = false;
+            if (chatItem) {
+                this.downloadMessageImage(chatItem);
+            }
         },
         imageModalNavigate(delta) {
             if (!this.imageModalGallery || this.imageModalGallery.length < 2) return;
             const n = this.imageModalGallery.length;
             this.imageModalIndex = (this.imageModalIndex + delta + n) % n;
             this.imageModalUrl = this.imageModalGallery[this.imageModalIndex];
+            this.imageModalContextMenu.show = false;
         },
         canMergeImageIntoImageStrip(chatItem) {
             const m = chatItem.lxmf_message;

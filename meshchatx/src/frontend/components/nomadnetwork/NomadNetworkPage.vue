@@ -595,6 +595,7 @@ import {
     isMicronWasmBundled,
 } from "../../js/MicronWasmLoader";
 import { VTooltip } from "vuetify/components/VTooltip";
+import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed } from "../../js/browserLayoutStore";
 
 export default {
     name: "NomadNetworkPage",
@@ -635,7 +636,7 @@ export default {
             nodesListAbortController: null,
             nodeDetailAbortController: null,
 
-            nomadNetworkSidebarCollapsed: false,
+            nomadNetworkSidebarCollapsed: loadFeatureSidebarCollapsed("nomadnetwork") ?? false,
             nodes: {},
             totalNodesCount: 0,
             hasMoreNodes: true,
@@ -930,6 +931,9 @@ export default {
         },
     },
     watch: {
+        nomadNetworkSidebarCollapsed(collapsed) {
+            saveFeatureSidebarCollapsed("nomadnetwork", collapsed);
+        },
         renderedNodePageHtml(newVal, oldVal) {
             if (newVal !== oldVal) {
                 this.loadedPartialIds = {};

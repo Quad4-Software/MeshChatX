@@ -1104,6 +1104,7 @@ import { countRelayMentions } from "../../js/relayMentionCount.js";
 import { filterRelayMembers, filterRelayMessages } from "../../js/relayMessageSearch.js";
 import { buildRelayMessageTimeline, relayMessageKey } from "../../js/relayMessageTimeline.js";
 import { loadRelayLayout, saveRelayLayout } from "../../js/relayLayoutStore.js";
+import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed } from "../../js/browserLayoutStore.js";
 import { RELAY_HOST_MODAL_OVERLAY, RELAY_HOST_MODAL_PANEL_COMPACT } from "../../js/relayHostModalClasses.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import MdiIconPickerModal from "../MdiIconPickerModal.vue";
@@ -1179,7 +1180,7 @@ export default {
             selectedHubHash: null,
             selectedRoom: null,
             expandedHubs: {},
-            relaySidebarCollapsed: false,
+            relaySidebarCollapsed: loadFeatureSidebarCollapsed("relayChat") ?? false,
             smUp: false,
             smMq: null,
             showMembers: false,
@@ -1294,7 +1295,7 @@ export default {
     },
     watch: {
         relaySidebarCollapsed(collapsed) {
-            localStorage.setItem("relayChatSidebarCollapsed", collapsed ? "1" : "0");
+            saveFeatureSidebarCollapsed("relayChat", collapsed);
             this.persistRelayLayout();
         },
         selectedHubHash() {
@@ -1309,10 +1310,6 @@ export default {
     },
     mounted() {
         WebSocketConnection.on("message", this.onWebsocketMessage);
-        const saved = localStorage.getItem("relayChatSidebarCollapsed");
-        if (saved === "1") {
-            this.relaySidebarCollapsed = true;
-        }
         this.smMq = window.matchMedia("(min-width: 640px)");
         this.smUp = this.smMq.matches;
         this.smMq.addEventListener("change", this.onSmMqChange);

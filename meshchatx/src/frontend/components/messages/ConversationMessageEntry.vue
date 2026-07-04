@@ -34,20 +34,37 @@
                     v-if="cv.imageGroupSortedChron(entry.items).length === 2"
                     class="grid grid-cols-2 gap-0.5 bg-black/5 dark:bg-white/5"
                 >
-                    <button
+                    <div
                         v-for="imgItem in cv.imageGroupSortedChron(entry.items)"
                         :id="`message-${imgItem.lxmf_message.hash}`"
                         :key="imgItem.lxmf_message.hash"
-                        type="button"
-                        class="relative aspect-square min-h-[96px] max-h-[220px] min-w-0 overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-white/80"
+                        role="button"
+                        tabindex="0"
+                        class="relative aspect-square min-h-[96px] max-h-[220px] min-w-0 overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-white/80 group/img cursor-pointer"
                         @click.stop="
                             cv.openImage(
                                 cv.lxmfImageUrl(imgItem.lxmf_message.hash),
-                                cv.imageGroupGalleryUrls(entry.items)
+                                cv.imageGroupGalleryUrls(entry.items),
+                                cv.imageGroupSortedChron(entry.items)
+                            )
+                        "
+                        @keydown.enter.prevent.stop="
+                            cv.openImage(
+                                cv.lxmfImageUrl(imgItem.lxmf_message.hash),
+                                cv.imageGroupGalleryUrls(entry.items),
+                                cv.imageGroupSortedChron(entry.items)
                             )
                         "
                         @contextmenu.prevent.stop="cv.onMessageContextMenu($event, imgItem, true)"
                     >
+                        <button
+                            type="button"
+                            class="absolute top-1 left-1 z-10 p-1 rounded-lg opacity-0 group-hover/img:opacity-100 hover:opacity-100 transition-opacity text-white hover:bg-white/20"
+                            :title="$t('messages.save_image_to_device')"
+                            @click.stop="cv.downloadMessageImage(imgItem)"
+                        >
+                            <MaterialDesignIcon icon-name="download" class="size-4" />
+                        </button>
                         <InViewAnimatedImg
                             v-if="isAnimatedRasterType(imgItem.lxmf_message.fields?.image?.image_type)"
                             :src="cv.lxmfImageUrl(imgItem.lxmf_message.hash)"
@@ -62,26 +79,43 @@
                             class="h-full w-full object-cover object-center transition-transform hover:scale-[1.02]"
                             alt=""
                         />
-                    </button>
+                    </div>
                 </div>
                 <div
                     v-else-if="cv.imageGroupSortedChron(entry.items).length === 3"
                     class="grid grid-cols-2 gap-0.5 bg-black/5 dark:bg-white/5"
                 >
-                    <button
+                    <div
                         v-for="imgItem in cv.imageGroupSortedChron(entry.items).slice(0, 2)"
                         :id="`message-${imgItem.lxmf_message.hash}`"
                         :key="imgItem.lxmf_message.hash"
-                        type="button"
-                        class="relative aspect-square min-h-[96px] max-h-[220px] min-w-0 overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-white/80"
+                        role="button"
+                        tabindex="0"
+                        class="relative aspect-square min-h-[96px] max-h-[220px] min-w-0 overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-white/80 group/img cursor-pointer"
                         @click.stop="
                             cv.openImage(
                                 cv.lxmfImageUrl(imgItem.lxmf_message.hash),
-                                cv.imageGroupGalleryUrls(entry.items)
+                                cv.imageGroupGalleryUrls(entry.items),
+                                cv.imageGroupSortedChron(entry.items)
+                            )
+                        "
+                        @keydown.enter.prevent.stop="
+                            cv.openImage(
+                                cv.lxmfImageUrl(imgItem.lxmf_message.hash),
+                                cv.imageGroupGalleryUrls(entry.items),
+                                cv.imageGroupSortedChron(entry.items)
                             )
                         "
                         @contextmenu.prevent.stop="cv.onMessageContextMenu($event, imgItem, true)"
                     >
+                        <button
+                            type="button"
+                            class="absolute top-1 left-1 z-10 p-1 rounded-lg opacity-0 group-hover/img:opacity-100 hover:opacity-100 transition-opacity text-white hover:bg-white/20"
+                            :title="$t('messages.save_image_to_device')"
+                            @click.stop="cv.downloadMessageImage(imgItem)"
+                        >
+                            <MaterialDesignIcon icon-name="download" class="size-4" />
+                        </button>
                         <InViewAnimatedImg
                             v-if="isAnimatedRasterType(imgItem.lxmf_message.fields?.image?.image_type)"
                             :src="cv.lxmfImageUrl(imgItem.lxmf_message.hash)"
@@ -96,21 +130,38 @@
                             class="h-full w-full object-cover object-center transition-transform hover:scale-[1.02]"
                             alt=""
                         />
-                    </button>
-                    <button
+                    </div>
+                    <div
                         :id="`message-${cv.imageGroupSortedChron(entry.items)[2].lxmf_message.hash}`"
-                        type="button"
-                        class="relative col-span-2 aspect-2/1 max-h-52 min-h-[80px] w-full overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-white/80"
+                        role="button"
+                        tabindex="0"
+                        class="relative col-span-2 aspect-2/1 max-h-52 min-h-[80px] w-full overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-white/80 group/img cursor-pointer"
                         @click.stop="
                             cv.openImage(
                                 cv.lxmfImageUrl(cv.imageGroupSortedChron(entry.items)[2].lxmf_message.hash),
-                                cv.imageGroupGalleryUrls(entry.items)
+                                cv.imageGroupGalleryUrls(entry.items),
+                                cv.imageGroupSortedChron(entry.items)
+                            )
+                        "
+                        @keydown.enter.prevent.stop="
+                            cv.openImage(
+                                cv.lxmfImageUrl(cv.imageGroupSortedChron(entry.items)[2].lxmf_message.hash),
+                                cv.imageGroupGalleryUrls(entry.items),
+                                cv.imageGroupSortedChron(entry.items)
                             )
                         "
                         @contextmenu.prevent.stop="
                             cv.onMessageContextMenu($event, cv.imageGroupSortedChron(entry.items)[2], true)
                         "
                     >
+                        <button
+                            type="button"
+                            class="absolute top-1 left-1 z-10 p-1 rounded-lg opacity-0 group-hover/img:opacity-100 hover:opacity-100 transition-opacity text-white hover:bg-white/20"
+                            :title="$t('messages.save_image_to_device')"
+                            @click.stop="cv.downloadMessageImage(cv.imageGroupSortedChron(entry.items)[2])"
+                        >
+                            <MaterialDesignIcon icon-name="download" class="size-4" />
+                        </button>
                         <InViewAnimatedImg
                             v-if="
                                 isAnimatedRasterType(
@@ -129,20 +180,40 @@
                             class="h-full w-full object-cover object-center transition-transform hover:scale-[1.02]"
                             alt=""
                         />
-                    </button>
+                    </div>
                 </div>
                 <div v-else class="grid grid-cols-2 gap-0.5 bg-black/5 dark:bg-white/5">
-                    <button
+                    <div
                         v-for="(cell, idx) in cv.imageGroupSortedChron(entry.items).slice(0, 4)"
                         :id="`message-${cell.lxmf_message.hash}`"
                         :key="cell.lxmf_message.hash"
-                        type="button"
-                        class="relative aspect-square min-h-[96px] max-h-[220px] min-w-0 overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-white/80"
+                        role="button"
+                        tabindex="0"
+                        class="relative aspect-square min-h-[96px] max-h-[220px] min-w-0 overflow-hidden focus:outline-hidden focus-visible:ring-2 focus-visible:ring-white/80 group/img cursor-pointer"
                         @click.stop="
-                            cv.openImage(cv.lxmfImageUrl(cell.lxmf_message.hash), cv.imageGroupGalleryUrls(entry.items))
+                            cv.openImage(
+                                cv.lxmfImageUrl(cell.lxmf_message.hash),
+                                cv.imageGroupGalleryUrls(entry.items),
+                                cv.imageGroupSortedChron(entry.items)
+                            )
+                        "
+                        @keydown.enter.prevent.stop="
+                            cv.openImage(
+                                cv.lxmfImageUrl(cell.lxmf_message.hash),
+                                cv.imageGroupGalleryUrls(entry.items),
+                                cv.imageGroupSortedChron(entry.items)
+                            )
                         "
                         @contextmenu.prevent.stop="cv.onMessageContextMenu($event, cell, true)"
                     >
+                        <button
+                            type="button"
+                            class="absolute top-1 left-1 z-10 p-1 rounded-lg opacity-0 group-hover/img:opacity-100 hover:opacity-100 transition-opacity text-white hover:bg-white/20"
+                            :title="$t('messages.save_image_to_device')"
+                            @click.stop="cv.downloadMessageImage(cell)"
+                        >
+                            <MaterialDesignIcon icon-name="download" class="size-4" />
+                        </button>
                         <InViewAnimatedImg
                             v-if="isAnimatedRasterType(cell.lxmf_message.fields?.image?.image_type)"
                             :src="cv.lxmfImageUrl(cell.lxmf_message.hash)"
@@ -163,7 +234,7 @@
                         >
                             +{{ cv.imageGroupSortedChron(entry.items).length - 4 }}
                         </div>
-                    </button>
+                    </div>
                 </div>
                 <OutboundTransferProgressFooter
                     v-if="entry.items[0].is_outbound"
@@ -399,6 +470,14 @@
                     />
                 </template>
                 <template v-else>
+                    <button
+                        type="button"
+                        class="absolute top-1 left-1 z-10 p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity text-white hover:bg-white/20"
+                        :title="$t('messages.save_image_to_device')"
+                        @click.stop="cv.downloadMessageImage(chatItem)"
+                    >
+                        <MaterialDesignIcon icon-name="download" class="size-4" />
+                    </button>
                     <InViewAnimatedImg
                         v-if="isAnimatedRasterType(chatItem.lxmf_message.fields?.image?.image_type)"
                         :src="cv.pendingOutboundImageSrc(chatItem)"
