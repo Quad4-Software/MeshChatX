@@ -45,14 +45,63 @@ export CC="${CC:-clang -arch x86_64}"
 export CXX="${CXX:-clang++ -arch x86_64}"
 export CFLAGS="${CFLAGS:--arch x86_64}"
 
-# Host is arm64; without --python-platform uv still resolves macOS wheels for aarch64.
-uv sync --frozen --group dev --python "$PY_X64" --python-platform x86_64-apple-darwin
-arch -x86_64 "${UV_PROJECT_ENVIRONMENT}/bin/python" scripts/patch_lxst_pyogg_ogg_ctypes.py
+_PY="${UV_PROJECT_ENVIRONMENT}/bin/python"
 
-arch -x86_64 "${UV_PROJECT_ENVIRONMENT}/bin/python" -c "
+_lock_version() {
+    awk -v pkg="$1" '
+        $0 == "name = \"" pkg "\"" { found=1; next }
+        found && /^version = / {
+            sub(/^version = "/, "", $0)
+            sub(/"$/, "", $0)
+            print $0
+            exit
+        }
+    ' uv.lock
+}
+
+_NUMPY_VERSION="$(_lock_version numpy)"
+_PYCODEC2_VERSION="$(_lock_version pycodec2)"
+if [[ -z "$_NUMPY_VERSION" || -z "$_PYCODEC2_VERSION" ]]; then
+    echo "github-install-macos-x64-python-deps: failed to read numpy/pycodec2 versions from uv.lock" >&2
+    exit 1
+fi
+
+# Host is arm64; without --python-platform uv still resolves macOS wheels for aarch64.
+# pycodec2 has no cp314 macOS x86_64 wheel, so uv would build it from sdist and pull
+# numpy into an isolated cross build (meson: "Can not run test applications").
+uv sync --frozen --group dev \
+    --python "$PY_X64" \
+    --python-platform x86_64-apple-darwin \
+    --no-install-package pycodec2
+
+uv pip install --python "$_PY" \
+    --python-platform x86_64-apple-darwin \
+    "numpy==${_NUMPY_VERSION}"
+
+arch -x86_64 uv pip install --python "$_PY" \
+    --no-build-isolation \
+    "pycodec2==${_PYCODEC2_VERSION}"
+
+if [[ -n "${_codec2:-}" ]]; then
+    _pycodec2_dir="$(arch -x86_64 "$_PY" -c 'import pathlib, pycodec2; print(pathlib.Path(pycodec2.__file__).resolve().parent)')"
+    for _lib in "${_codec2}/lib/libcodec2.dylib" "${_codec2}/lib/libcodec2.so"; do
+        if [[ -f "$_lib" ]]; then
+            cp -f "$_lib" "${_pycodec2_dir}/libcodec2.so"
+            if [[ "$_lib" == *.dylib ]]; then
+                cp -f "$_lib" "${_pycodec2_dir}/libcodec2.dylib"
+            fi
+            break
+        fi
+    done
+fi
+
+arch -x86_64 "$_PY" scripts/patch_lxst_pyogg_ogg_ctypes.py
+
+arch -x86_64 "$_PY" -c "
 import numpy
+import pycodec2
 from numpy._core._multiarray_umath import _add_newdoc_ufunc
-print('x64 venv numpy', numpy.__version__, 'ok')
+print('x64 venv numpy', numpy.__version__, 'pycodec2', pycodec2.__version__, 'ok')
 "
 
 if [[ -n "${GITHUB_ENV:-}" ]]; then
