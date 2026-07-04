@@ -80,6 +80,84 @@
 
                         <p id="saved-log-path" class="break-all text-[10px] text-slate-600 dark:text-zinc-400 px-1"></p>
 
+                        <div
+                            id="recovery-panel"
+                            class="hidden rounded-xl border border-amber-200/80 bg-amber-50/70 p-4 space-y-3 dark:border-amber-900/50 dark:bg-amber-950/20"
+                        >
+                            <div>
+                                <div
+                                    class="text-[10px] font-semibold uppercase tracking-wider text-amber-800 dark:text-amber-300"
+                                >
+                                    Recovery
+                                </div>
+                                <p
+                                    id="recovery-summary"
+                                    class="mt-1 text-sm leading-relaxed text-amber-950 dark:text-amber-100"
+                                ></p>
+                                <ul
+                                    id="recovery-hints"
+                                    class="mt-2 list-disc space-y-1 pl-5 text-xs leading-relaxed text-amber-900 dark:text-amber-200"
+                                ></ul>
+                            </div>
+                            <div id="backup-list" class="space-y-2"></div>
+                            <div class="flex flex-wrap gap-2">
+                                <button
+                                    id="btn-restore-latest"
+                                    type="button"
+                                    class="rounded-lg bg-emerald-600 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
+                                >
+                                    Restore latest backup
+                                </button>
+                                <button
+                                    id="btn-restore-picked"
+                                    type="button"
+                                    class="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-[11px] font-semibold text-amber-900 hover:bg-amber-100 dark:border-amber-800 dark:bg-zinc-900 dark:text-amber-100 dark:hover:bg-zinc-800"
+                                >
+                                    Choose backup file
+                                </button>
+                                <button
+                                    id="btn-auto-repair"
+                                    type="button"
+                                    class="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-[11px] font-semibold text-amber-900 hover:bg-amber-100 dark:border-amber-800 dark:bg-zinc-900 dark:text-amber-100 dark:hover:bg-zinc-800"
+                                >
+                                    Try auto-repair
+                                </button>
+                                <button
+                                    id="btn-emergency-mode"
+                                    type="button"
+                                    class="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-[11px] font-semibold text-amber-900 hover:bg-amber-100 dark:border-amber-800 dark:bg-zinc-900 dark:text-amber-100 dark:hover:bg-zinc-800"
+                                >
+                                    Emergency mode
+                                </button>
+                                <button
+                                    id="btn-open-backups"
+                                    type="button"
+                                    class="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-[11px] font-semibold text-amber-900 hover:bg-amber-100 dark:border-amber-800 dark:bg-zinc-900 dark:text-amber-100 dark:hover:bg-zinc-800"
+                                >
+                                    Open backups folder
+                                </button>
+                                <button
+                                    id="btn-copy-reset-guide"
+                                    type="button"
+                                    class="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-[11px] font-semibold text-amber-900 hover:bg-amber-100 dark:border-amber-800 dark:bg-zinc-900 dark:text-amber-100 dark:hover:bg-zinc-800"
+                                >
+                                    Copy reset instructions
+                                </button>
+                            </div>
+                            <p id="recovery-status" class="text-xs text-amber-900 dark:text-amber-200"></p>
+                            <details class="rounded-lg border border-amber-200/70 bg-white/70 p-3 dark:border-amber-900/40 dark:bg-zinc-950/40">
+                                <summary
+                                    class="cursor-pointer text-xs font-semibold text-amber-900 dark:text-amber-100"
+                                >
+                                    Complete data removal guide
+                                </summary>
+                                <pre
+                                    id="cleanup-guide"
+                                    class="mt-2 max-h-48 overflow-auto whitespace-pre-wrap text-[10px] leading-relaxed text-slate-700 dark:text-zinc-300"
+                                ></pre>
+                            </details>
+                        </div>
+
                         <div class="space-y-3">
                             <div class="flex flex-col sm:flex-row items-center justify-between gap-2 px-1">
                                 <h3
@@ -214,8 +292,184 @@
                 document.documentElement.classList.toggle("dark", isDark);
             }
 
-            // Apply theme
+            function setRecoveryStatus(message, isError = false) {
+                const el = document.getElementById("recovery-status");
+                if (!el) {
+                    return;
+                }
+                el.textContent = message || "";
+                el.classList.toggle("text-red-700", isError);
+                el.classList.toggle("dark:text-red-300", isError);
+            }
+
+            function formatBytes(size) {
+                if (!Number.isFinite(size) || size <= 0) {
+                    return "0 B";
+                }
+                const units = ["B", "KB", "MB", "GB"];
+                let value = size;
+                let unit = 0;
+                while (value >= 1024 && unit < units.length - 1) {
+                    value /= 1024;
+                    unit += 1;
+                }
+                return `${value.toFixed(unit === 0 ? 0 : 1)} ${units[unit]}`;
+            }
+
+            function renderBackupList(backups) {
+                const list = document.getElementById("backup-list");
+                const restoreLatest = document.getElementById("btn-restore-latest");
+                if (!list || !restoreLatest) {
+                    return;
+                }
+                list.innerHTML = "";
+                if (!Array.isArray(backups) || backups.length === 0) {
+                    list.innerHTML =
+                        '<p class="text-xs text-amber-900 dark:text-amber-200">No automatic backups were found in database-backups/ or snapshots/.</p>';
+                    restoreLatest.disabled = true;
+                    return;
+                }
+                restoreLatest.disabled = false;
+                const preview = backups.slice(0, 5);
+                for (const entry of preview) {
+                    const row = document.createElement("div");
+                    row.className =
+                        "rounded-lg border border-amber-200/70 bg-white/80 px-3 py-2 text-[11px] text-amber-950 dark:border-amber-900/40 dark:bg-zinc-950/50 dark:text-amber-100";
+                    const label = entry.suspicious ? `${entry.name} (suspicious)` : entry.name;
+                    row.textContent = `${label} - ${formatBytes(entry.size)} - ${entry.kind}`;
+                    list.appendChild(row);
+                }
+            }
+
+            async function restoreBackupPath(backupPath) {
+                if (!window.electron?.restoreDatabaseBackup) {
+                    setRecoveryStatus("Restore is only available in the desktop app.", true);
+                    return;
+                }
+                setRecoveryStatus("Restoring database backup. This can take a minute...");
+                const result = await window.electron.restoreDatabaseBackup(backupPath);
+                if (!result?.ok) {
+                    const detail = result?.stderr || result?.error || "Restore failed.";
+                    setRecoveryStatus(detail, true);
+                    return;
+                }
+                setRecoveryStatus("Database restored. Relaunching...");
+                setTimeout(() => {
+                    window.electron.relaunch();
+                }, 800);
+            }
+
+            async function initRecoveryPanel() {
+                if (!window.electron?.getCrashRecoveryInfo) {
+                    return;
+                }
+                const info = await window.electron.getCrashRecoveryInfo();
+                if (!info) {
+                    return;
+                }
+
+                const panel = document.getElementById("recovery-panel");
+                const summary = document.getElementById("recovery-summary");
+                const hints = document.getElementById("recovery-hints");
+                const cleanupGuide = document.getElementById("cleanup-guide");
+                const restoreLatest = document.getElementById("btn-restore-latest");
+                const restorePicked = document.getElementById("btn-restore-picked");
+                const autoRepair = document.getElementById("btn-auto-repair");
+                const emergencyMode = document.getElementById("btn-emergency-mode");
+                const openBackups = document.getElementById("btn-open-backups");
+                const copyResetGuide = document.getElementById("btn-copy-reset-guide");
+
+                if (cleanupGuide && info.cleanupGuide) {
+                    cleanupGuide.textContent = info.cleanupGuide;
+                }
+
+                const diagnosis = info.diagnosis || {};
+                const showRecovery =
+                    diagnosis.category === "database" ||
+                    diagnosis.category === "python-crash" ||
+                    (Array.isArray(info.backups) && info.backups.length > 0);
+
+                if (!panel || !showRecovery) {
+                    return;
+                }
+
+                panel.classList.remove("hidden");
+                if (summary) {
+                    summary.textContent = diagnosis.summary || "The backend failed during startup.";
+                }
+                if (hints) {
+                    hints.innerHTML = "";
+                    for (const hint of diagnosis.hints || []) {
+                        const item = document.createElement("li");
+                        item.textContent = hint;
+                        hints.appendChild(item);
+                    }
+                }
+
+                renderBackupList(info.backups || []);
+                let preferredBackup = info.preferredBackup || null;
+
+                if (restoreLatest) {
+                    restoreLatest.addEventListener("click", async () => {
+                        if (!preferredBackup?.path) {
+                            setRecoveryStatus("No backup is available to restore.", true);
+                            return;
+                        }
+                        await restoreBackupPath(preferredBackup.path);
+                    });
+                }
+
+                if (restorePicked) {
+                    restorePicked.addEventListener("click", async () => {
+                        const picked = await window.electron.pickDatabaseBackup();
+                        if (!picked) {
+                            return;
+                        }
+                        await restoreBackupPath(picked);
+                    });
+                }
+
+                if (autoRepair) {
+                    autoRepair.addEventListener("click", async () => {
+                        if (!window.electron?.relaunchAutoRecover) {
+                            return;
+                        }
+                        setRecoveryStatus("Relaunching with auto-repair enabled...");
+                        await window.electron.relaunchAutoRecover();
+                    });
+                }
+
+                if (emergencyMode) {
+                    emergencyMode.addEventListener("click", async () => {
+                        if (!window.electron?.relaunchEmergency) {
+                            return;
+                        }
+                        setRecoveryStatus("Relaunching in emergency mode...");
+                        await window.electron.relaunchEmergency();
+                    });
+                }
+
+                if (openBackups && info.paths?.backupsDir) {
+                    openBackups.addEventListener("click", async () => {
+                        if (window.electron?.openPath) {
+                            await window.electron.openPath(info.paths.backupsDir);
+                        }
+                    });
+                }
+
+                if (copyResetGuide) {
+                    copyResetGuide.addEventListener("click", async () => {
+                        if (!info.cleanupGuide) {
+                            return;
+                        }
+                        await navigator.clipboard.writeText(info.cleanupGuide);
+                        setRecoveryStatus("Reset instructions copied to clipboard.");
+                    });
+                }
+            }
+
             applyTheme(detectPreferredTheme());
+            initRecoveryPanel();
         </script>
     </body>
 </html>

@@ -49,6 +49,22 @@ contextBridge.exposeInMainWorld("electron", {
         return await ipcRenderer.invoke("relaunch-emergency");
     },
 
+    relaunchAutoRecover: async function () {
+        return await ipcRenderer.invoke("relaunch-auto-recover");
+    },
+
+    getCrashRecoveryInfo: async function () {
+        return await ipcRenderer.invoke("crash-recovery-info");
+    },
+
+    restoreDatabaseBackup: async function (backupPath) {
+        return await ipcRenderer.invoke("restore-database-backup", backupPath);
+    },
+
+    pickDatabaseBackup: async function () {
+        return await ipcRenderer.invoke("pick-database-backup");
+    },
+
     // allow shutting down app in electron browser window
     shutdown: async function () {
         return await ipcRenderer.invoke("shutdown");

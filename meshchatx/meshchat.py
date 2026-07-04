@@ -6431,6 +6431,7 @@ class ReticulumMeshChat:
                         },
                         "reticulum_config_path": self._api_reticulum_config_path(),
                         "host_platform": sys.platform,
+                        **self._landlock_status_dict(),
                         "is_connected_to_shared_instance": is_connected_to_shared_instance,
                         "shared_instance_address": shared_instance_address,
                         "is_transport_enabled": (

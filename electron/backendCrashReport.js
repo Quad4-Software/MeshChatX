@@ -256,7 +256,10 @@ function diagnoseBackendCrash(stderr, stdout, exitCode) {
     }
 
     if (combined.includes("database") && (combined.includes("corrupt") || combined.includes("malformed"))) {
-        hints.push("Try Emergency Mode, or rename the storage folder after backing it up.");
+        hints.push("Use Restore latest backup on the crash screen if automatic backups are listed.");
+        hints.push("Try auto-repair on the crash screen to run SQLite recovery on the next launch.");
+        hints.push("Copy reset instructions from the crash screen to remove MeshChatX and Reticulum data folders and start fresh.");
+        hints.push("Emergency Mode can still open the app without the database so you can download backups from About.");
         return {
             category: "database",
             summary: "The local database may be corrupted.",

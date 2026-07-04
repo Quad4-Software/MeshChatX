@@ -155,6 +155,11 @@ APP_INFO_BODY_SCHEMA: dict = {
         },
         "tutorial_seen": {"type": "boolean"},
         "changelog_seen_version": {"type": "string"},
+        "landlock_kernel_supported": {"type": "boolean"},
+        "landlock_requested": {"type": "boolean"},
+        "landlock_auto_enabled": {"type": "boolean"},
+        "landlock_disabled_by_env": {"type": "boolean"},
+        "landlock_active": {"type": "boolean"},
     },
     "additionalProperties": True,
 }

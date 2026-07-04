@@ -423,4 +423,97 @@ describe("AboutPage.vue", () => {
         expect(wrapper.text()).toContain("about.database_path");
         expect(wrapper.text()).toContain("about.path_unknown");
     });
+
+    it("shows landlock status on Linux when active", async () => {
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/app/info")
+                return Promise.resolve({
+                    data: {
+                        app_info: {
+                            version: "1.0.0",
+                            host_platform: "linux",
+                            landlock_requested: true,
+                            landlock_active: true,
+                            landlock_kernel_supported: true,
+                            landlock_auto_enabled: true,
+                            landlock_disabled_by_env: false,
+                        },
+                    },
+                });
+            if (url === "/api/v1/config") return Promise.resolve({ data: { config: {} } });
+            if (url === "/api/v1/database/health") return Promise.resolve({ data: { database: {} } });
+            if (url === "/api/v1/database/snapshots") return Promise.resolve({ data: [] });
+            return Promise.reject(new Error("Not found"));
+        });
+
+        const wrapper = mountAboutPage();
+        await vi.runOnlyPendingTimers();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.text()).toContain("app.landlock_status");
+        expect(wrapper.text()).toContain("app.landlock_active");
+        expect(wrapper.text()).not.toContain("app.landlock_kernel_unsupported");
+    });
+
+    it("shows landlock inactive reason on Linux", async () => {
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/app/info")
+                return Promise.resolve({
+                    data: {
+                        app_info: {
+                            version: "1.0.0",
+                            host_platform: "linux",
+                            landlock_requested: false,
+                            landlock_active: false,
+                            landlock_kernel_supported: false,
+                            landlock_auto_enabled: false,
+                            landlock_disabled_by_env: false,
+                        },
+                    },
+                });
+            if (url === "/api/v1/config") return Promise.resolve({ data: { config: {} } });
+            if (url === "/api/v1/database/health") return Promise.resolve({ data: { database: {} } });
+            if (url === "/api/v1/database/snapshots") return Promise.resolve({ data: [] });
+            return Promise.reject(new Error("Not found"));
+        });
+
+        const wrapper = mountAboutPage();
+        await vi.runOnlyPendingTimers();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.text()).toContain("app.landlock_inactive");
+        expect(wrapper.text()).toContain("app.landlock_kernel_unsupported");
+    });
+
+    it("hides landlock status on non-Linux platforms", async () => {
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/app/info")
+                return Promise.resolve({
+                    data: {
+                        app_info: {
+                            version: "1.0.0",
+                            host_platform: "darwin",
+                            landlock_requested: false,
+                            landlock_active: false,
+                            landlock_kernel_supported: false,
+                            landlock_auto_enabled: false,
+                            landlock_disabled_by_env: false,
+                        },
+                    },
+                });
+            if (url === "/api/v1/config") return Promise.resolve({ data: { config: {} } });
+            if (url === "/api/v1/database/health") return Promise.resolve({ data: { database: {} } });
+            if (url === "/api/v1/database/snapshots") return Promise.resolve({ data: [] });
+            return Promise.reject(new Error("Not found"));
+        });
+
+        const wrapper = mountAboutPage();
+        await vi.runOnlyPendingTimers();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.text()).not.toContain("app.landlock_status");
+    });
 });
