@@ -176,6 +176,43 @@ tasks:
         cmds:
             - "{{.NPM}} run test:e2e"
 
+    test:quick:
+        desc: Fast dev loop — regression subset (set E2E=1 to include Playwright smoke)
+        cmds:
+            - task: test:quick:be
+            - task: test:quick:fe
+            - |
+                if [ "${E2E:-0}" = "1" ]; then
+                  {{.NPM}} exec playwright test tests/e2e/smoke.spec.js
+                fi
+
+    test:quick:be:
+        desc: Backend regression subset (interface-stats, CSRF, LXMF send, nomad downloads)
+        cmds:
+            - >-
+                uv run pytest
+                tests/backend/test_interface_stats_endpoint.py
+                tests/backend/test_http_auth_security.py
+                tests/backend/test_meshchat_coverage.py
+                tests/backend/test_nomadnet_downloader.py
+                -q
+
+    test:quick:fe:
+        desc: Frontend regression subset (links, micron preview, stranger banner, interface stats)
+        cmds:
+            - >-
+                {{.NPM}} exec vitest run
+                tests/frontend/NomadRichHtmlLinks.test.js
+                tests/frontend/InterfacesPage.stats.test.js
+            - >-
+                {{.NPM}} exec vitest run
+                tests/frontend/MicronEditorPage.test.js
+                -t "onPreviewClick opens http"
+            - >-
+                {{.NPM}} exec vitest run
+                tests/frontend/ConversationViewer.test.js
+                -t "addStrangerAsContact"
+
     test:be:
         desc: Run Python tests (pytest; includes perf/memory profiling — same as GitHub CI)
         cmds:

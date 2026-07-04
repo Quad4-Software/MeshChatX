@@ -1,34 +1,161 @@
 # SPDX-License-Identifier: 0BSD
 
-import unittest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
-from meshchatx.src.backend.nomadnet_downloader import NomadnetDownloader
+import pytest
+import RNS
+
+from meshchatx.src.backend.nomadnet_downloader import (
+    NomadnetDownloader,
+    NomadnetFileDownloader,
+    NomadnetPageDownloader,
+    _nomadnet_links_lock,
+    get_cached_active_link,
+    nomadnet_cached_links,
+)
 
 
-class TestNomadnetDownloader(unittest.TestCase):
-    def setUp(self):
-        self.dest_hash = b"123"
-        self.path = "/test"
-        self.on_success = MagicMock()
-        self.on_failure = MagicMock()
-        self.on_progress = MagicMock()
-        self.downloader = NomadnetDownloader(
-            self.dest_hash,
-            self.path,
-            None,
-            self.on_success,
-            self.on_failure,
-            self.on_progress,
+@pytest.fixture(autouse=True)
+def clear_nomadnet_link_cache():
+    with _nomadnet_links_lock:
+        nomadnet_cached_links.clear()
+    yield
+    with _nomadnet_links_lock:
+        nomadnet_cached_links.clear()
+
+
+@pytest.fixture
+def downloader():
+    return NomadnetDownloader(
+        b"dest",
+        "/path",
+        "data",
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+    )
+
+
+def test_cancel_sets_flag_and_cancels_resource():
+    on_failure = MagicMock()
+    d = NomadnetDownloader(b"123", "/test", None, MagicMock(), on_failure, MagicMock())
+    d.request_receipt = MagicMock()
+    d.request_receipt.resource = MagicMock()
+    d.cancel()
+    assert d.is_cancelled is True
+    d.request_receipt.resource.cancel.assert_called_once()
+
+
+def test_cancel_removes_link_from_cache():
+    mock_link = MagicMock()
+    mock_link.status = RNS.Link.ACTIVE
+    with _nomadnet_links_lock:
+        nomadnet_cached_links[b"x"] = mock_link
+
+    on_failure = MagicMock()
+    d = NomadnetDownloader(b"x", "/p", None, MagicMock(), on_failure, MagicMock())
+    d.link = mock_link
+    d.cancel()
+
+    assert get_cached_active_link(b"x") is None
+    mock_link.teardown.assert_called_once()
+
+
+def test_get_cached_active_link_evicts_stale():
+    dead = MagicMock()
+    dead.status = None
+    with _nomadnet_links_lock:
+        nomadnet_cached_links[b"z"] = dead
+
+    assert get_cached_active_link(b"z") is None
+    with _nomadnet_links_lock:
+        assert b"z" not in nomadnet_cached_links
+
+
+@pytest.mark.asyncio
+async def test_download_no_path(downloader):
+    with (
+        patch.object(RNS.Transport, "has_path", return_value=False),
+        patch.object(RNS.Transport, "request_path"),
+    ):
+        await downloader.download(path_lookup_timeout=0.1)
+        downloader._download_failure_callback.assert_called_with(
+            "Could not find path to destination.",
         )
 
-    def test_cancel(self):
-        self.downloader.request_receipt = MagicMock()
-        self.downloader.request_receipt.resource = MagicMock()
-        self.downloader.cancel()
-        self.assertTrue(self.downloader.is_cancelled)
-        self.downloader.request_receipt.resource.cancel.assert_called_once()
+
+@pytest.mark.asyncio
+async def test_download_cached_link(downloader):
+    mock_link = MagicMock()
+    mock_link.status = RNS.Link.ACTIVE
+    with _nomadnet_links_lock:
+        nomadnet_cached_links[b"dest"] = mock_link
+
+    with patch.object(downloader, "link_established") as mock_established:
+        await downloader.download()
+        mock_established.assert_called_with(mock_link)
 
 
-if __name__ == "__main__":
-    unittest.main()
+def test_page_downloader_invalid_utf8_replaced():
+    on_ok = MagicMock()
+    on_fail = MagicMock()
+    pd = NomadnetPageDownloader(
+        b"ab" * 8,
+        "/page.mu",
+        None,
+        on_ok,
+        on_fail,
+        MagicMock(),
+    )
+    rr = MagicMock()
+    rr.response = b"hello\xff\xfeinvalid"
+    pd.on_download_success(rr)
+    on_ok.assert_called_once()
+    assert "\ufffd" in on_ok.call_args[0][0]
+    on_fail.assert_not_called()
+
+
+def test_page_downloader_empty_response():
+    on_ok = MagicMock()
+    on_fail = MagicMock()
+    pd = NomadnetPageDownloader(
+        b"ab" * 8,
+        "/page.mu",
+        None,
+        on_ok,
+        on_fail,
+        MagicMock(),
+    )
+    rr = MagicMock()
+    rr.response = None
+    pd.on_download_success(rr)
+    on_fail.assert_called_once_with("empty_response")
+    on_ok.assert_not_called()
+
+
+def test_file_downloader_list_response_short_list_no_crash():
+    on_ok = MagicMock()
+    on_fail = MagicMock()
+    fd = NomadnetFileDownloader(
+        b"ab" * 8,
+        "/f.bin",
+        on_ok,
+        on_fail,
+        MagicMock(),
+    )
+    rr = MagicMock()
+    rr.response = [b"only"]
+    fd.on_download_success(rr)
+    on_fail.assert_called_once_with("unsupported_response")
+
+
+def test_file_downloader_passes_query_data_to_parent():
+    fd = NomadnetFileDownloader(
+        b"ab" * 8,
+        "/file/data.bin",
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        data="foo=bar",
+    )
+    assert fd.data == "foo=bar"
