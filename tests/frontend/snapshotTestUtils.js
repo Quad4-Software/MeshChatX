@@ -7,7 +7,7 @@ export const snapshotMaterialDesignIcon = {
 };
 
 export const snapshotTransitionGroup = {
-    template: "<div class=\"snapshot-transition-group\"><slot /></div>",
+    template: '<div class="snapshot-transition-group"><slot /></div>',
 };
 
 export function snapshotI18nMock() {
