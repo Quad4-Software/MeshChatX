@@ -2905,6 +2905,7 @@
         "no_hubs": "Aucun hub configure. Ajoutez-en un pour commencer.",
         "no_rooms": "Aucun salon rejoint. Rejoignez un salon pour discuter.",
         "no_room_selected": "Selectionnez un salon pour voir les messages.",
+        "load_previous": "Charger les messages precedents",
         "rooms": "Salons",
         "members": "Membres",
         "join_room": "Rejoindre le salon",
