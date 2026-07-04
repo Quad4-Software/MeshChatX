@@ -49,9 +49,6 @@ jobs:
                   node-version: ${{ env.NODE_VERSION }}
                   pnpm-version: ${{ env.PNPM_VERSION }}
 
-            - name: Setup Task
-              run: sh scripts/ci/setup-task.sh
-
             - name: Restore benchmark baseline cache
               uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
               with:
