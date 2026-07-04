@@ -447,10 +447,10 @@ If MeshChatX fails to start with errors such as `database disk image is malforme
 
 ### Where MeshChatX stores data
 
-| Platform | MeshChatX storage | Reticulum network stack |
-| --- | --- | --- |
-| Linux / macOS | `~/.reticulum-meshchatx/` | `~/.reticulum/` |
-| Windows | `%USERPROFILE%\.reticulum-meshchatx\` | `%USERPROFILE%\.reticulum\` |
+| Platform         | MeshChatX storage                              | Reticulum network stack              |
+| ---------------- | ---------------------------------------------- | ------------------------------------ |
+| Linux / macOS    | `~/.reticulum-meshchatx/`                      | `~/.reticulum/`                      |
+| Windows          | `%USERPROFILE%\.reticulum-meshchatx\`          | `%USERPROFILE%\.reticulum\`          |
 | Windows portable | `<MeshChatX.exe folder>\.reticulum-meshchatx\` | `<MeshChatX.exe folder>\.reticulum\` |
 
 Legacy Reticulum MeshChat data may still exist at `~/.reticulum-meshchat/` (or the Windows equivalent).

@@ -1,8 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import {
-    loadFeatureSidebarCollapsed,
-    saveFeatureSidebarCollapsed,
-} from "@/js/browserLayoutStore";
+import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed } from "@/js/browserLayoutStore";
 
 describe("browserLayoutStore sidebar collapse", () => {
     afterEach(() => {
