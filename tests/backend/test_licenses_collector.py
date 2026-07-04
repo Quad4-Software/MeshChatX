@@ -7,6 +7,7 @@ from meshchatx.src.backend.licenses_collector import (
     _filter_out_workspace_root_package,
     _flatten_pnpm_licenses_json,
     build_licenses_payload,
+    collect_backend_licenses,
     collect_frontend_from_node_modules,
     render_third_party_notices,
     write_embedded_license_artifacts,
@@ -131,10 +132,13 @@ def test_write_embedded_license_artifacts_writes_files(tmp_path):
         result = write_embedded_license_artifacts(repo_root=tmp_path)
 
     frontend_path = Path(result["frontend_path"])
+    backend_path = Path(result["backend_path"])
     notices_path = Path(result["notices_path"])
     assert frontend_path.exists()
+    assert backend_path.exists()
     assert notices_path.exists()
     assert '"name": "vue"' in frontend_path.read_text(encoding="utf-8")
+    assert '"name": "rns"' in backend_path.read_text(encoding="utf-8")
     assert "Reticulum MeshChatX - Third-party notices" in notices_path.read_text(
         encoding="utf-8"
     )
@@ -161,3 +165,40 @@ def test_write_embedded_license_artifacts_preserves_existing_frontend_when_empty
 
     assert result["frontend_written"] is False
     assert frontend_path.read_text(encoding="utf-8") == '[{"name":"kept"}]\n'
+
+
+def test_collect_backend_licenses_uses_embedded_when_frozen():
+    embedded = [{"name": "rns", "version": "1.0", "author": "a", "license": "MIT"}]
+    with (
+        patch("meshchatx.src.backend.licenses_collector._load_embedded_backend_licenses", return_value=embedded),
+        patch("meshchatx.src.backend.licenses_collector._collect_backend_licenses_live", return_value=[]),
+        patch("meshchatx.src.backend.licenses_collector.sys") as mock_sys,
+    ):
+        mock_sys.frozen = True
+        rows = collect_backend_licenses()
+    assert rows == embedded
+
+
+def test_collect_backend_licenses_prefers_live_over_embedded_when_not_frozen():
+    embedded = [{"name": "stale", "version": "0", "author": "a", "license": "MIT"}]
+    live = [{"name": "rns", "version": "2.0", "author": "b", "license": "MIT"}]
+    with (
+        patch("meshchatx.src.backend.licenses_collector._load_embedded_backend_licenses", return_value=embedded),
+        patch("meshchatx.src.backend.licenses_collector._collect_backend_licenses_live", return_value=live),
+        patch("meshchatx.src.backend.licenses_collector.sys") as mock_sys,
+    ):
+        mock_sys.frozen = False
+        rows = collect_backend_licenses()
+    assert rows == live
+
+
+def test_collect_backend_licenses_falls_back_to_embedded_when_live_empty():
+    embedded = [{"name": "rns", "version": "1.0", "author": "a", "license": "MIT"}]
+    with (
+        patch("meshchatx.src.backend.licenses_collector._load_embedded_backend_licenses", return_value=embedded),
+        patch("meshchatx.src.backend.licenses_collector._collect_backend_licenses_live", return_value=[]),
+        patch("meshchatx.src.backend.licenses_collector.sys") as mock_sys,
+    ):
+        mock_sys.frozen = False
+        rows = collect_backend_licenses()
+    assert rows == embedded

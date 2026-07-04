@@ -30,6 +30,12 @@ frontend_licenses_path = (
 if frontend_licenses_path.exists():
     include_files.append((str(frontend_licenses_path), "licenses_frontend.json"))
 
+backend_licenses_path = (
+    ROOT / "meshchatx" / "src" / "backend" / "data" / "licenses_backend.json"
+)
+if backend_licenses_path.exists():
+    include_files.append((str(backend_licenses_path), "licenses_backend.json"))
+
 third_party_notices_path = (
     ROOT / "meshchatx" / "src" / "backend" / "data" / "THIRD_PARTY_NOTICES.txt"
 )
