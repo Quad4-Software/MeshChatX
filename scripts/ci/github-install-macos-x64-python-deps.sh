@@ -45,7 +45,8 @@ export CC="${CC:-clang -arch x86_64}"
 export CXX="${CXX:-clang++ -arch x86_64}"
 export CFLAGS="${CFLAGS:--arch x86_64}"
 
-uv sync --frozen --group dev --python "$PY_X64"
+# Host is arm64; without --python-platform uv still resolves macOS wheels for aarch64.
+uv sync --frozen --group dev --python "$PY_X64" --python-platform x86_64-apple-darwin
 arch -x86_64 "${UV_PROJECT_ENVIRONMENT}/bin/python" scripts/patch_lxst_pyogg_ogg_ctypes.py
 
 arch -x86_64 "${UV_PROJECT_ENVIRONMENT}/bin/python" -c "
