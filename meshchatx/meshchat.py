@@ -7899,6 +7899,9 @@ class ReticulumMeshChat:
                 return web.json_response({"error": str(e)}, status=500)
 
         # Reticulum Relay Chat
+        RRC_ROOM_MESSAGES_DEFAULT_LIMIT = 200
+        RRC_ROOM_MESSAGES_MAX_LIMIT = 1000
+
         def _rrc_require_manager():
             manager = self.rrc_manager
             if manager is None:
@@ -8105,12 +8108,28 @@ class ReticulumMeshChat:
                 return error
             room = request.match_info.get("room", "")
             try:
-                messages = hub.room_messages(room)
+                limit = int(request.query.get("limit", RRC_ROOM_MESSAGES_DEFAULT_LIMIT))
+            except (TypeError, ValueError):
+                limit = RRC_ROOM_MESSAGES_DEFAULT_LIMIT
+            limit = max(1, min(limit, RRC_ROOM_MESSAGES_MAX_LIMIT))
+            before_seq_raw = request.query.get("before_seq")
+            before_seq = None
+            if before_seq_raw not in (None, ""):
+                try:
+                    before_seq = int(before_seq_raw)
+                except (TypeError, ValueError):
+                    before_seq = None
+            try:
+                messages, has_more = hub.room_messages(
+                    room, limit=limit, before_seq=before_seq,
+                )
                 members = hub.members_dict(room)
             except ValueError as e:
                 return web.json_response({"message": str(e)}, status=400)
             manager.set_active(hub, room)
-            return web.json_response({"messages": messages, "members": members})
+            return web.json_response(
+                {"messages": messages, "members": members, "has_more": has_more},
+            )
 
         @routes.post("/api/v1/rrc/hubs/{hub_hash}/rooms/{room}/messages")
         async def rrc_hub_send_message(request):

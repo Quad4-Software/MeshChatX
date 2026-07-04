@@ -106,14 +106,28 @@ cosign.key
 
 # Docker (local compose overrides)
 docker-compose.override.yml
+meshchat-config/
 
 .coverage
 coverage/
 coverage-electron/
+.pytest_cache/
+htmlcov/
+.mutmut-cache
+mutmut-stats/
 
 test-results/
 playwright-report/
 blob-report/
+
+# Local benchmark / CI artifact downloads
+bench_results.json
+bench_results.txt
+/cache/
+.artifacts/
+
+# Docker runtime smoke (optional local config dir)
+meshchatx-docker-smoke-config/
 
 meshchat-config/
 
