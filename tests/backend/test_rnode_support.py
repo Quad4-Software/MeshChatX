@@ -17,12 +17,38 @@ def test_guard_disables_rnode_when_usbserial4a_missing(tmp_path, monkeypatch):
     )
     monkeypatch.setattr(rnode_support, "_is_chaquopy_android", lambda: True)
     monkeypatch.setattr(rnode_support, "android_usbserial4a_available", lambda: False)
+    monkeypatch.setattr(rnode_support, "android_jnius_available", lambda: False)
 
     assert rnode_support.guard_rnode_interfaces_on_android(str(config_path)) is True
     assert "interface_enabled = false" in config_path.read_text(encoding="utf-8")
 
 
-def test_guard_keeps_rnode_when_usbserial4a_available(tmp_path, monkeypatch):
+def test_guard_disables_rnode_when_jnius_missing(tmp_path, monkeypatch):
+    """usbserial4a alone is not enough: RNS's Android RNodeInterface also needs jnius.
+
+    Chaquopy builds that bundle usbserial4a but not jnius still hit
+    RNS.panic() (os._exit) for any RNode port type (serial, tcp://, ble://),
+    since the jnius check runs before the transport is selected.
+    """
+    config_path = tmp_path / "config"
+    config_path.write_text(
+        """[interfaces]
+    [[RNode TCP]]
+    type = RNodeInterface
+    interface_enabled = True
+    port = tcp://192.0.2.1:4242
+""",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(rnode_support, "_is_chaquopy_android", lambda: True)
+    monkeypatch.setattr(rnode_support, "android_usbserial4a_available", lambda: True)
+    monkeypatch.setattr(rnode_support, "android_jnius_available", lambda: False)
+
+    assert rnode_support.guard_rnode_interfaces_on_android(str(config_path)) is True
+    assert "interface_enabled = false" in config_path.read_text(encoding="utf-8")
+
+
+def test_guard_keeps_rnode_when_usbserial4a_and_jnius_available(tmp_path, monkeypatch):
     config_path = tmp_path / "config"
     config_path.write_text(
         """[interfaces]
@@ -34,6 +60,7 @@ def test_guard_keeps_rnode_when_usbserial4a_available(tmp_path, monkeypatch):
     )
     monkeypatch.setattr(rnode_support, "_is_chaquopy_android", lambda: True)
     monkeypatch.setattr(rnode_support, "android_usbserial4a_available", lambda: True)
+    monkeypatch.setattr(rnode_support, "android_jnius_available", lambda: True)
 
     assert rnode_support.guard_rnode_interfaces_on_android(str(config_path)) is False
     assert "interface_enabled = True" in config_path.read_text(encoding="utf-8")
@@ -41,6 +68,21 @@ def test_guard_keeps_rnode_when_usbserial4a_available(tmp_path, monkeypatch):
 
 def test_rnode_serial_supported_on_desktop(monkeypatch):
     monkeypatch.setattr(rnode_support, "_is_chaquopy_android", lambda: False)
+    assert rnode_support.rnode_serial_supported() is True
+
+
+def test_rnode_serial_supported_on_android_requires_both_modules(monkeypatch):
+    monkeypatch.setattr(rnode_support, "_is_chaquopy_android", lambda: True)
+    monkeypatch.setattr(rnode_support, "android_usbserial4a_available", lambda: True)
+    monkeypatch.setattr(rnode_support, "android_jnius_available", lambda: False)
+    assert rnode_support.rnode_serial_supported() is False
+
+    monkeypatch.setattr(rnode_support, "android_usbserial4a_available", lambda: False)
+    monkeypatch.setattr(rnode_support, "android_jnius_available", lambda: True)
+    assert rnode_support.rnode_serial_supported() is False
+
+    monkeypatch.setattr(rnode_support, "android_usbserial4a_available", lambda: True)
+    monkeypatch.setattr(rnode_support, "android_jnius_available", lambda: True)
     assert rnode_support.rnode_serial_supported() is True
 
 
