@@ -482,9 +482,22 @@ class RRCHub:
     def set_auto_list(self, enabled, save=True):
         with self._lock:
             self.auto_list = bool(enabled)
+            should_list = self.auto_list and self.welcomed
         if save:
             self.manager.save()
         self.manager._notify_change(self)
+        if should_list:
+            self._request_room_list()
+
+    def _request_room_list(self):
+        try:
+            with self._lock:
+                self._silent_list_pending += 1
+            self.send_command("/list", room=None, record_local=False)
+        except Exception:
+            with self._lock:
+                if self._silent_list_pending > 0:
+                    self._silent_list_pending -= 1
 
     def set_auto_who(self, enabled, save=True):
         with self._lock:
@@ -950,14 +963,7 @@ class RRCHub:
             self._reconnect_attempts = 0
         self.manager._on_welcome(self)
         if self.auto_list:
-            try:
-                with self._lock:
-                    self._silent_list_pending += 1
-                self.send_command("/list", room=None, record_local=False)
-            except Exception:
-                with self._lock:
-                    if self._silent_list_pending > 0:
-                        self._silent_list_pending -= 1
+            self._request_room_list()
 
     def _apply_limits(self, limits):
         if proto.L_MAX_NICK_BYTES in limits:

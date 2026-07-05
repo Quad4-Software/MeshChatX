@@ -236,12 +236,45 @@
                                         </span>
                                     </li>
                                     <li
-                                        v-if="orderedRoomsFor(hub).length === 0"
+                                        v-if="orderedRoomsFor(hub).length === 0 && availableRoomsFor(hub).length === 0"
                                         class="px-2.5 py-1 text-xs text-sem-fg-muted"
                                     >
                                         {{ $t("relay_chat.no_rooms") }}
                                     </li>
                                 </ul>
+
+                                <div v-if="availableRoomsFor(hub).length > 0" class="space-y-0.5">
+                                    <div
+                                        class="px-2.5 pt-1 text-[10px] font-semibold uppercase tracking-wide text-sem-fg-muted"
+                                    >
+                                        {{ $t("relay_chat.available_rooms") }}
+                                    </div>
+                                    <ul class="space-y-0.5">
+                                        <li
+                                            v-for="availableRoom in availableRoomsFor(hub)"
+                                            :key="availableRoom.name"
+                                            :title="availableRoom.topic || ''"
+                                            class="flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-sm cursor-pointer text-sem-fg-muted transition-colors hover:bg-sem-surface/60 dark:hover:bg-sem-surface/30"
+                                            @click="joinAvailableRoom(hub, availableRoom.name)"
+                                        >
+                                            <span class="flex min-w-0 items-center gap-1.5">
+                                                <MaterialDesignIcon
+                                                    icon-name="pound"
+                                                    class="size-3.5 shrink-0 opacity-40"
+                                                />
+                                                <span class="truncate">{{ availableRoom.name }}</span>
+                                            </span>
+                                            <button
+                                                type="button"
+                                                :class="btnIconSm"
+                                                :title="$t('relay_chat.join')"
+                                                @click.stop="joinAvailableRoom(hub, availableRoom.name)"
+                                            >
+                                                <MaterialDesignIcon icon-name="plus" class="size-3.5" />
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </div>
 
                                 <form class="flex gap-1.5" @submit.prevent="joinRoom(hub)">
                                     <input
@@ -1388,6 +1421,16 @@ export default {
             }
             return hub.known_rooms;
         },
+        availableRoomsFor(hub) {
+            if (!hub || !hub.available_rooms || typeof hub.available_rooms !== "object") {
+                return [];
+            }
+            const known = new Set(this.orderedRoomsFor(hub));
+            return Object.entries(hub.available_rooms)
+                .filter(([name]) => !known.has(name))
+                .map(([name, topic]) => ({ name, topic }))
+                .sort((a, b) => a.name.localeCompare(b.name));
+        },
         onCollapsedHubClick(hub) {
             const rooms = this.orderedRoomsFor(hub);
             this.selectedHubHash = hub.hub_hash;
@@ -2032,13 +2075,23 @@ export default {
                 ToastUtils.warning(this.$t("relay_chat.room_required"));
                 return;
             }
+            const joined = await this.joinRoomByName(hub, room);
+            if (joined) {
+                this.joinRoomName = "";
+            }
+        },
+        async joinAvailableRoom(hub, room) {
+            await this.joinRoomByName(hub, room);
+        },
+        async joinRoomByName(hub, room) {
             try {
                 await window.api.post(`/api/v1/rrc/hubs/${hub.hub_hash}/rooms`, { room });
-                this.joinRoomName = "";
                 ToastUtils.success(this.$t("relay_chat.joined_room"));
                 await this.fetchHubs();
+                return true;
             } catch (e) {
                 ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.action_failed"));
+                return false;
             }
         },
         async leaveRoom() {
