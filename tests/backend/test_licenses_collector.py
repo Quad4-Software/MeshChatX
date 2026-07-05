@@ -170,8 +170,14 @@ def test_write_embedded_license_artifacts_preserves_existing_frontend_when_empty
 def test_collect_backend_licenses_uses_embedded_when_frozen():
     embedded = [{"name": "rns", "version": "1.0", "author": "a", "license": "MIT"}]
     with (
-        patch("meshchatx.src.backend.licenses_collector._load_embedded_backend_licenses", return_value=embedded),
-        patch("meshchatx.src.backend.licenses_collector._collect_backend_licenses_live", return_value=[]),
+        patch(
+            "meshchatx.src.backend.licenses_collector._load_embedded_backend_licenses",
+            return_value=embedded,
+        ),
+        patch(
+            "meshchatx.src.backend.licenses_collector._collect_backend_licenses_live",
+            return_value=[],
+        ),
         patch("meshchatx.src.backend.licenses_collector.sys") as mock_sys,
     ):
         mock_sys.frozen = True
@@ -183,8 +189,14 @@ def test_collect_backend_licenses_prefers_live_over_embedded_when_not_frozen():
     embedded = [{"name": "stale", "version": "0", "author": "a", "license": "MIT"}]
     live = [{"name": "rns", "version": "2.0", "author": "b", "license": "MIT"}]
     with (
-        patch("meshchatx.src.backend.licenses_collector._load_embedded_backend_licenses", return_value=embedded),
-        patch("meshchatx.src.backend.licenses_collector._collect_backend_licenses_live", return_value=live),
+        patch(
+            "meshchatx.src.backend.licenses_collector._load_embedded_backend_licenses",
+            return_value=embedded,
+        ),
+        patch(
+            "meshchatx.src.backend.licenses_collector._collect_backend_licenses_live",
+            return_value=live,
+        ),
         patch("meshchatx.src.backend.licenses_collector.sys") as mock_sys,
     ):
         mock_sys.frozen = False
@@ -195,8 +207,14 @@ def test_collect_backend_licenses_prefers_live_over_embedded_when_not_frozen():
 def test_collect_backend_licenses_falls_back_to_embedded_when_live_empty():
     embedded = [{"name": "rns", "version": "1.0", "author": "a", "license": "MIT"}]
     with (
-        patch("meshchatx.src.backend.licenses_collector._load_embedded_backend_licenses", return_value=embedded),
-        patch("meshchatx.src.backend.licenses_collector._collect_backend_licenses_live", return_value=[]),
+        patch(
+            "meshchatx.src.backend.licenses_collector._load_embedded_backend_licenses",
+            return_value=embedded,
+        ),
+        patch(
+            "meshchatx.src.backend.licenses_collector._collect_backend_licenses_live",
+            return_value=[],
+        ),
         patch("meshchatx.src.backend.licenses_collector.sys") as mock_sys,
     ):
         mock_sys.frozen = False
