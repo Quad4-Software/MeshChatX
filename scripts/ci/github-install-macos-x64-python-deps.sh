@@ -78,8 +78,16 @@ uv pip install --python "$_PY" \
     --python-platform x86_64-apple-darwin \
     "numpy==${_NUMPY_VERSION}"
 
-# Host uv is arm64 (cannot run under arch -x86_64). numpy is a wheel; pycodec2 is
-# built from sdist with --no-build-isolation so the x86_64 venv numpy is reused.
+# pycodec2's sdist imports Cython directly in setup.py but does not declare it
+# under build-system.requires, so --no-build-isolation needs it preinstalled
+# in the target venv or the build fails with "No module named 'Cython'".
+uv pip install --python "$_PY" \
+    --python-platform x86_64-apple-darwin \
+    "Cython>=3.1.4"
+
+# Host uv is arm64 (cannot run under arch -x86_64). numpy/Cython are wheels;
+# pycodec2 is built from sdist with --no-build-isolation so the x86_64 venv's
+# numpy and Cython are reused instead of resolving a fresh isolated build env.
 uv pip install --python "$_PY" \
     --python-platform x86_64-apple-darwin \
     --no-build-isolation \
