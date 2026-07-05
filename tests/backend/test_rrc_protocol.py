@@ -251,6 +251,42 @@ def test_hub_notice_updates_room_list(tmp_path):
     assert hub.available_rooms == {"lobby": "Main", "random": None}
 
 
+def test_welcome_sends_list_when_auto_list_enabled(tmp_path):
+    manager = make_manager(tmp_path)
+    hub = manager.add_hub(bytes(range(16)))
+    hub.auto_list = True
+    calls = []
+    hub.send_command = lambda text, room=None, record_local=True: calls.append(text)
+
+    hub._handle_welcome({})
+
+    assert calls == ["/list"]
+
+
+def test_set_auto_list_requests_list_immediately_when_already_connected(tmp_path):
+    """Enabling auto-list mid-session must not require a reconnect to take effect."""
+    manager = make_manager(tmp_path)
+    hub = manager.add_hub(bytes(range(16)))
+    hub.welcomed = True
+    calls = []
+    hub.send_command = lambda text, room=None, record_local=True: calls.append(text)
+
+    hub.set_auto_list(True)
+
+    assert calls == ["/list"]
+
+
+def test_set_auto_list_does_not_list_before_hub_is_connected(tmp_path):
+    manager = make_manager(tmp_path)
+    hub = manager.add_hub(bytes(range(16)))
+    calls = []
+    hub.send_command = lambda text, room=None, record_local=True: calls.append(text)
+
+    hub.set_auto_list(True)
+
+    assert calls == []
+
+
 def test_history_is_persisted_and_reloaded(tmp_path):
     manager = make_manager(tmp_path)
     hub = manager.add_hub(bytes(range(16)))

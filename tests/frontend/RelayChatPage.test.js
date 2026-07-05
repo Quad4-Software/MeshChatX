@@ -130,6 +130,52 @@ describe("RelayChatPage.vue", () => {
         expect(wrapper.vm.selectedHubHash).toBe(HUB_HASH);
     });
 
+    it("shows hub rooms discovered via auto-list that have not been joined yet", async () => {
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/rrc/hubs") {
+                return Promise.resolve({
+                    data: { hubs: [makeHub({ available_rooms: { lobby: "Main", random: null } })] },
+                });
+            }
+            if (url === "/api/v1/rrc/servers") {
+                return Promise.resolve({ data: { hubs: [makeHostedHub()] } });
+            }
+            if (url === "/api/v1/announces") {
+                return Promise.resolve({ data: { announces: [makeAnnounce()] } });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+
+        // "lobby" is already joined (known_rooms), so only "random" is unjoined.
+        expect(wrapper.vm.availableRoomsFor(wrapper.vm.hubs[0])).toEqual([{ name: "random", topic: null }]);
+        expect(wrapper.text()).toContain("random");
+    });
+
+    it("joins an unjoined available room via the API when clicked", async () => {
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/rrc/hubs") {
+                return Promise.resolve({
+                    data: { hubs: [makeHub({ available_rooms: { random: null } })] },
+                });
+            }
+            if (url === "/api/v1/rrc/servers") {
+                return Promise.resolve({ data: { hubs: [makeHostedHub()] } });
+            }
+            if (url === "/api/v1/announces") {
+                return Promise.resolve({ data: { announces: [makeAnnounce()] } });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+
+        await wrapper.vm.joinAvailableRoom(wrapper.vm.hubs[0], "random");
+
+        expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/rrc/hubs/${HUB_HASH}/rooms`, { room: "random" });
+    });
+
     it("loads messages and members when selecting a room", async () => {
         const wrapper = mountPage();
         await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));

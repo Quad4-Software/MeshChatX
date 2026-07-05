@@ -5157,7 +5157,8 @@ class ReticulumMeshChat:
                         {
                             "message": (
                                 "RNode serial and Bluetooth are not available on this device. "
-                                "On Android, the app must include usbserial4a (see MeshChatX issue #6)."
+                                "On Android, the app must include usbserial4a and jnius "
+                                "(see MeshChatX issue #6)."
                             ),
                         },
                         status=422,

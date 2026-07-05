@@ -2904,6 +2904,8 @@
         "dest_name": "Bestemmingsaspect (optioneel)",
         "no_hubs": "Nog geen hubs geconfigureerd. Voeg er een toe om te beginnen.",
         "no_rooms": "Geen kamers. Word lid van een kamer om te chatten.",
+        "available_rooms": "Beschikbare kamers",
+        "join": "Deelnemen",
         "no_room_selected": "Selecteer een kamer om berichten te bekijken.",
         "load_previous": "Eerdere berichten laden",
         "rooms": "Kamers",
