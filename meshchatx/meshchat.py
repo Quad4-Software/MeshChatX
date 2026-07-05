@@ -853,7 +853,7 @@ class ReticulumMeshChat:
             disable_rnode_interfaces_in_config,
         )
 
-        return disable_rnode_interfaces_in_config(config_path)
+        return disable_rnode_interfaces_in_config(config_path, is_android=True)
 
     def _ensure_reticulum_config(self, materialize: bool = True):
         """Normalize ``reticulum_config_dir`` and optionally ensure a ``config`` file exists.
@@ -899,8 +899,10 @@ class ReticulumMeshChat:
         from meshchatx.src.backend.rnode_support import (
             guard_invalid_rnode_txpower_in_config,
             guard_rnode_interfaces_on_android,
+            normalize_rnode_tcp_host_in_config,
         )
 
+        normalize_rnode_tcp_host_in_config(config_path)
         guard_rnode_interfaces_on_android(config_path)
         guard_invalid_rnode_txpower_in_config(config_path)
 
@@ -5145,20 +5147,41 @@ class ReticulumMeshChat:
             # update interface details
             interface_details["type"] = interface_type
 
-            if interface_type in (
-                "RNodeInterface",
-                "RNodeIPInterface",
-                "RNodeMultiInterface",
-            ):
-                from meshchatx.src.backend.rnode_support import rnode_serial_supported
-
-                if not rnode_serial_supported():
+            if interface_type == "RNodeMultiInterface":
+                # RNS has no Android-specific implementation of RNodeMultiInterface,
+                # so it always crashes on Android regardless of transport.
+                if _is_chaquopy_android():
                     return web.json_response(
                         {
                             "message": (
-                                "RNode serial and Bluetooth are not available on this device. "
-                                "On Android, the app must include usbserial4a and jnius "
-                                "(see MeshChatX issue #6)."
+                                "RNodeMultiInterface is not supported on Android "
+                                "(Reticulum has no Android-specific implementation of it)."
+                            ),
+                        },
+                        status=422,
+                    )
+
+            elif interface_type == "RNodeInterface":
+                # RNodeIPInterface always maps to an RNodeInterface with a tcp://
+                # port, which needs no native Android modules and always works.
+                from meshchatx.src.backend.rnode_support import (
+                    rnode_transport_supported,
+                )
+
+                probe_interface = {
+                    "port": data.get("port"),
+                    "allow_bluetooth": data.get("allow_bluetooth"),
+                }
+                if not rnode_transport_supported(
+                    probe_interface,
+                    is_android=_is_chaquopy_android(),
+                ):
+                    return web.json_response(
+                        {
+                            "message": (
+                                "This RNode connection type is not available on this device. "
+                                "On Android, USB serial and Bluetooth need usbserial4a and jnius "
+                                "(see MeshChatX issue #6); RNode over IP (TCP) is unaffected."
                             ),
                         },
                         status=422,
@@ -5548,6 +5571,7 @@ class ReticulumMeshChat:
                         status=422,
                     )
 
+                interface_tcp_host = None
                 if str(interface_port).strip().lower().startswith("tcp://"):
                     interface_port = InterfaceEditor.normalize_rnode_tcp_port(
                         str(interface_port),
@@ -5560,6 +5584,7 @@ class ReticulumMeshChat:
                             },
                             status=422,
                         )
+                    interface_tcp_host = host_part
 
                 # ensure frequency provided
                 interface_frequency = data.get("frequency")
@@ -5616,6 +5641,14 @@ class ReticulumMeshChat:
 
                 # set required RNodeInterface options
                 interface_details["port"] = interface_port
+                if interface_tcp_host is not None:
+                    # RNS's Android-specific RNodeInterface reads tcp_host as its
+                    # own config key instead of parsing it out of port like the
+                    # desktop implementation does, so both must be set for RNode
+                    # over IP to work on Android.
+                    interface_details["tcp_host"] = interface_tcp_host
+                else:
+                    interface_details.pop("tcp_host", None)
                 interface_details["frequency"] = (
                     InterfaceEditor.coerce_rnode_frequency_hz(
                         interface_frequency,

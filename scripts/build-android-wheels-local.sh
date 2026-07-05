@@ -11,9 +11,11 @@ This script:
 3) Builds pycodec2 Android wheels with Chaquopy's build-wheel tool
 4) Optionally patches LXST wheel metadata for local Android constraints
 5) Vendors the bleak pure-python wheel from PyPI
-6) Builds every recipe under android/chaquopy-recipes/ for each requested
+6) Patches the rns wheel so its Android RNodeInterface never calls
+   RNS.panic() (os._exit) when usbserial4a/jnius are missing
+7) Builds every recipe under android/chaquopy-recipes/ for each requested
    ABI (currently: cryptography, miniaudio)
-7) Copies outputs to android/vendor
+8) Copies outputs to android/vendor
 
 Usage:
   scripts/build-android-wheels-local.sh [options]
@@ -28,7 +30,9 @@ Options:
   --numpy-version V          NumPy version used during pycodec2 build (default: 1.26.2)
   --lxst-version V           LXST wheel version for metadata patch (default: 0.4.8)
   --bleak-version V          bleak pure-python wheel version to vendor (default: 3.0.2)
+  --rns-version V            rns wheel version to patch (default: 1.3.7)
   --no-lxst-patch            Skip LXST metadata patch
+  --no-rns-patch             Skip RNS Android RNodeInterface patch
   --only-recipes LIST        Comma-separated recipe directory names under
                              android/chaquopy-recipes to build. When set, the
                              NumPy, pycodec2/chaquopy-libcodec2 and LXST steps
@@ -56,7 +60,9 @@ LIBCODEC2_VERSION="1.2.0"
 NUMPY_VERSION="1.26.2"
 LXST_VERSION="0.4.8"
 BLEAK_VERSION="3.0.2"
+RNS_VERSION="1.3.7"
 PATCH_LXST="1"
+PATCH_RNS="1"
 ONLY_RECIPES=""
 WORK_DIR="${ROOT_DIR}/.local/chaquopy-build-wheel"
 OUT_DIR="${ROOT_DIR}/android/vendor"
@@ -99,8 +105,16 @@ while [[ $# -gt 0 ]]; do
             BLEAK_VERSION="${2:?missing value for --bleak-version}"
             shift 2
             ;;
+        --rns-version)
+            RNS_VERSION="${2:?missing value for --rns-version}"
+            shift 2
+            ;;
         --no-lxst-patch)
             PATCH_LXST="0"
+            shift
+            ;;
+        --no-rns-patch)
+            PATCH_RNS="0"
             shift
             ;;
         --only-recipes)
@@ -789,6 +803,105 @@ PY
 
     if ! ls "${PATCHED_BLEAK_WHEEL}" >/dev/null 2>&1; then
         echo "Expected bleak-${BLEAK_VERSION}-py3-none-any.whl in ${OUT_DIR}" >&2
+        exit 1
+    fi
+fi
+
+if [[ "${PATCH_RNS}" == "1" && -z "${ONLY_RECIPES}" ]]; then
+    echo "Fetching and patching rns ${RNS_VERSION} for Android"
+    RNS_TMP_DIR="$(mktemp -d)"
+
+    "${VENV_DIR}/bin/pip" download \
+        --only-binary=:all: \
+        --no-deps \
+        "rns==${RNS_VERSION}" \
+        --dest "${RNS_TMP_DIR}" \
+        --index-url https://pypi.org/simple
+
+    RNS_WHEEL="$(ls "${RNS_TMP_DIR}"/rns-"${RNS_VERSION}"-py3-none-any.whl)"
+    PATCHED_RNS_WHEEL="${OUT_DIR}/rns-${RNS_VERSION}-py3-none-any.whl"
+
+    # RNS's Android-specific RNodeInterface calls RNS.panic() (os._exit) when
+    # usbserial4a/jnius aren't importable, even for RNode over TCP, which
+    # needs neither. Since Reticulum.py also panics on any exception raised
+    # from an interface's __init__, the fix is to never raise/panic there:
+    # leave serial/bt_manager as None and let the transport-specific code
+    # (open_port/configure_device) fail into RNodeInterface's own existing
+    # reconnect-loop instead of crashing the whole app.
+    "${VENV_DIR}/bin/python" - <<PY
+import zipfile
+from pathlib import Path
+
+src = Path("${RNS_WHEEL}")
+dst = Path("${PATCHED_RNS_WHEEL}")
+
+start_marker = (
+    "        import importlib.util\n"
+    "        if RNS.vendor.platformutils.is_android():\n"
+)
+end_marker = (
+    '            raise SystemError("Android-specific interface was used on non-Android OS")\n'
+)
+
+new_block = '''        import importlib.util
+        serial = None
+        self.bt_manager = None
+        if RNS.vendor.platformutils.is_android():
+            self.on_android  = True
+            if importlib.util.find_spec('usbserial4a') != None:
+                if importlib.util.find_spec('jnius') == None:
+                    RNS.log("Could not load jnius API wrapper for Android. USB serial and classic Bluetooth are unavailable for "+str(name)+".", RNS.LOG_ERROR)
+                    RNS.log("This probably means you are trying to use an USB-based interface from within Termux or similar, or", RNS.LOG_ERROR)
+                    RNS.log("that the running app does not bundle jnius. RNode over TCP is not affected by this.", RNS.LOG_ERROR)
+
+                else:
+                    from usbserial4a import serial4a as serial
+                    self.parity = "N"
+
+                    self.bt_target_device_name = target_device_name
+                    self.bt_target_device_address = target_device_address
+                    if allow_bluetooth:
+                        try:
+                            self.bt_manager = AndroidBluetoothManager(
+                                owner = self,
+                                target_device_name = self.bt_target_device_name,
+                                target_device_address = self.bt_target_device_address
+                            )
+                        except Exception as e:
+                            RNS.log("Could not initialise classic Bluetooth support: "+str(e), RNS.LOG_ERROR)
+                            self.bt_manager = None
+
+            else:
+                RNS.log("Could not load USB serial module for Android. USB serial RNode transport is unavailable for "+str(name)+".", RNS.LOG_ERROR)
+                RNS.log("You can install this module by issuing: pip install usbserial4a", RNS.LOG_ERROR)
+        else:
+            raise SystemError("Android-specific interface was used on non-Android OS")
+'''
+
+def patch_rnode_interface(data):
+    text = data.decode("utf-8")
+    start_idx = text.index(start_marker)
+    end_idx = text.index(end_marker, start_idx) + len(end_marker)
+    return (text[:start_idx] + new_block + text[end_idx:]).encode("utf-8")
+
+patched_target = "RNS/Interfaces/Android/RNodeInterface.py"
+found = False
+with zipfile.ZipFile(src, "r") as zin, zipfile.ZipFile(dst, "w", compression=zipfile.ZIP_DEFLATED) as zout:
+    for item in zin.infolist():
+        data = zin.read(item.filename)
+        if item.filename == patched_target:
+            data = patch_rnode_interface(data)
+            found = True
+        zout.writestr(item, data)
+
+if not found:
+    raise SystemExit(f"Could not find {patched_target} in {src}")
+PY
+
+    rm -rf "${RNS_TMP_DIR}"
+
+    if ! ls "${PATCHED_RNS_WHEEL}" >/dev/null 2>&1; then
+        echo "Expected rns-${RNS_VERSION}-py3-none-any.whl in ${OUT_DIR}" >&2
         exit 1
     fi
 fi
