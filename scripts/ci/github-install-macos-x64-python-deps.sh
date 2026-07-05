@@ -144,10 +144,11 @@ fi
 arch -x86_64 "$_PY" scripts/patch_lxst_pyogg_ogg_ctypes.py
 
 arch -x86_64 "$_PY" -c "
+import importlib.metadata
 import numpy
 import pycodec2
 from numpy._core._multiarray_umath import _add_newdoc_ufunc
-print('x64 venv numpy', numpy.__version__, 'pycodec2', pycodec2.__version__, 'ok')
+print('x64 venv numpy', numpy.__version__, 'pycodec2', importlib.metadata.version('pycodec2'), 'ok')
 "
 
 if [[ -n "${GITHUB_ENV:-}" ]]; then
