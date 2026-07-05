@@ -541,7 +541,7 @@ jobs:
             provenance-name: meshchatx-android-flatpak-${{ github.ref_name }}.intoto.jsonl
 
     draft-github-release:
-        name: Draft GitHub release (all assets + SLSA)
+        name: ${{ startsWith(github.ref_name, 'preview-') && 'Preview GitHub release (all assets + SLSA)' || 'Draft GitHub release (all assets + SLSA)' }}
         needs:
             - linux-release
             - collect-linux-slsa-subjects
@@ -693,7 +693,9 @@ jobs:
               run: bash scripts/ci/github-draft-release-upload-assets.sh upload
 
             - name: Upload release assets to Bunny Storage
-              if: ${{ steps.release_track.outputs.track == 'master' || steps.release_track.outputs.track == 'dev' }}
+              if: >-
+                  !startsWith(github.ref_name, 'preview-') &&
+                  (steps.release_track.outputs.track == 'master' || steps.release_track.outputs.track == 'dev')
               env:
                   BUNNY_STORAGE_ACCESS_KEY: ${{ secrets.BUNNY_STORAGE_ACCESS_KEY }}
                   BUNNY_STORAGE_BASE_URL: ${{ vars.BUNNY_STORAGE_BASE_URL }}
