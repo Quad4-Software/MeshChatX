@@ -45,10 +45,15 @@ jobs:
 
                   skip_release=false
                   if [ "${{ github.event_name }}" = "schedule" ]; then
-                    last_preview_sha="$(gh release list --limit 50 --json tagName,isPrerelease,targetCommitish \
-                      --jq '[.[] | select(.isPrerelease) | select(.tagName | startswith("preview-dev-"))][0].targetCommitish // empty')"
+                    last_preview_tag="$(gh release list --limit 50 --json tagName,isPrerelease \
+                      --jq '[.[] | select(.isPrerelease) | select(.tagName | startswith("preview-dev-"))][0].tagName // empty')"
+                    last_preview_sha=""
+                    if [ -n "${last_preview_tag}" ]; then
+                      git fetch --tags --force origin
+                      last_preview_sha="$(git rev-parse "refs/tags/${last_preview_tag}^{commit}" 2>/dev/null || true)"
+                    fi
                     if [ -n "${last_preview_sha}" ] && [ "${last_preview_sha}" = "${full_sha}" ]; then
-                      echo "No new commits on dev since last preview-dev (${last_preview_sha}); skipping scheduled release."
+                      echo "No new commits on dev since last preview-dev (${last_preview_tag} @ ${last_preview_sha}); skipping scheduled release."
                       skip_release=true
                     fi
                   fi
