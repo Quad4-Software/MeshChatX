@@ -79,19 +79,54 @@ uv pip install --python "$_PY" \
     "numpy==${_NUMPY_VERSION}"
 
 # pycodec2's sdist imports Cython directly in setup.py but does not declare it
-# under build-system.requires, so --no-build-isolation needs it preinstalled
-# in the target venv or the build fails with "No module named 'Cython'".
+# under build-system.requires, so a build needs it preinstalled in the venv.
+# "wheel" registers the bdist_wheel setuptools command used below.
 uv pip install --python "$_PY" \
     --python-platform x86_64-apple-darwin \
-    "Cython>=3.1.4"
+    "Cython>=3.1.4" wheel
 
-# Host uv is arm64 (cannot run under arch -x86_64). numpy/Cython are wheels;
-# pycodec2 is built from sdist with --no-build-isolation so the x86_64 venv's
-# numpy and Cython are reused instead of resolving a fresh isolated build env.
+# Host uv is arm64, so "uv pip install --no-build-isolation" would spawn "$_PY"
+# (a universal2 binary) with uv's own (arm64) architecture preference. Cython's
+# native extension is installed as x86_64-only, so the arm64-loaded interpreter
+# fails to dlopen it ("incompatible architecture"). Building the wheel ourselves
+# lets us force x86_64 on the one interpreter invocation that runs native code
+# (via `arch -x86_64`), then hand uv a finished wheel to install, which is a
+# plain file copy where uv's own architecture no longer matters.
+_lock_sdist_url() {
+    awk -v pkg="$1" '
+        $0 == "name = \"" pkg "\"" { found=1; next }
+        found && /^sdist = / { print; exit }
+    ' uv.lock | sed -n 's/.*url = "\([^"]*\)".*/\1/p'
+}
+
+_PYCODEC2_SDIST_URL="$(_lock_sdist_url pycodec2)"
+if [[ -z "$_PYCODEC2_SDIST_URL" ]]; then
+    echo "github-install-macos-x64-python-deps: failed to read pycodec2 sdist url from uv.lock" >&2
+    exit 1
+fi
+
+_pycodec2_build_dir="$(mktemp -d)"
+trap 'rm -rf "$_pycodec2_build_dir"' EXIT
+
+curl -fsSL "$_PYCODEC2_SDIST_URL" -o "${_pycodec2_build_dir}/pycodec2.tar.gz"
+tar xzf "${_pycodec2_build_dir}/pycodec2.tar.gz" -C "$_pycodec2_build_dir"
+_pycodec2_src_dir="$(find "$_pycodec2_build_dir" -maxdepth 1 -type d -name 'pycodec2-*')"
+if [[ -z "$_pycodec2_src_dir" ]]; then
+    echo "github-install-macos-x64-python-deps: pycodec2 sdist did not extract as expected" >&2
+    exit 1
+fi
+
+(cd "$_pycodec2_src_dir" && arch -x86_64 "$_PY" setup.py bdist_wheel -d "${_pycodec2_build_dir}/dist")
+
+_pycodec2_wheel="$(find "${_pycodec2_build_dir}/dist" -maxdepth 1 -name 'pycodec2-*.whl')"
+if [[ -z "$_pycodec2_wheel" ]]; then
+    echo "github-install-macos-x64-python-deps: pycodec2 wheel build produced no output" >&2
+    exit 1
+fi
+
 uv pip install --python "$_PY" \
     --python-platform x86_64-apple-darwin \
-    --no-build-isolation \
-    "pycodec2==${_PYCODEC2_VERSION}"
+    "$_pycodec2_wheel"
 
 if [[ -n "${_codec2:-}" ]]; then
     _pycodec2_dir="$(arch -x86_64 "$_PY" -c 'import pathlib, pycodec2; print(pathlib.Path(pycodec2.__file__).resolve().parent)')"
