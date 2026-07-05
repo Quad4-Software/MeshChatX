@@ -1,18 +1,18 @@
-# Weekly preview builds from master: push a preview-* tag when master has new
-# commits since the last prerelease, which triggers build-release.yml.
+# Weekly preview builds from dev: push a preview-dev-* tag when dev has new
+# commits since the last dev prerelease, which triggers build-release.yml.
 #
 # Pinned first-party actions (bump tag and SHA together when upgrading):
 #   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
 #
-name: Preview Release
+name: Preview Dev Release
 
 on:
     schedule:
-        - cron: "0 6 * * 0"
+        - cron: "0 7 * * 0"
     workflow_dispatch:
 
 concurrency:
-    group: preview-release
+    group: preview-release-dev
     cancel-in-progress: false
 
 permissions:
@@ -20,7 +20,7 @@ permissions:
 
 jobs:
     metadata:
-        name: Prepare preview tag
+        name: Prepare preview-dev tag
         runs-on: ubuntu-latest
         outputs:
             tag_name: ${{ steps.meta.outputs.tag_name }}
@@ -30,10 +30,10 @@ jobs:
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
               with:
-                  ref: master
+                  ref: dev
                   fetch-depth: 0
 
-            - name: Compute preview tag
+            - name: Compute preview-dev tag
               id: meta
               env:
                   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -41,14 +41,14 @@ jobs:
                   set -euo pipefail
                   short_sha="$(git rev-parse --short=7 HEAD)"
                   full_sha="$(git rev-parse HEAD)"
-                  tag="preview-$(date -u +%Y.%m.%d)-${short_sha}"
+                  tag="preview-dev-$(date -u +%Y.%m.%d)-${short_sha}"
 
                   skip_release=false
                   if [ "${{ github.event_name }}" = "schedule" ]; then
                     last_preview_sha="$(gh release list --limit 50 --json tagName,isPrerelease,targetCommitish \
-                      --jq '[.[] | select(.isPrerelease) | select(.tagName | startswith("preview-")) | select(.tagName | startswith("preview-dev-") | not)][0].targetCommitish // empty')"
+                      --jq '[.[] | select(.isPrerelease) | select(.tagName | startswith("preview-dev-"))][0].targetCommitish // empty')"
                     if [ -n "${last_preview_sha}" ] && [ "${last_preview_sha}" = "${full_sha}" ]; then
-                      echo "No new commits on master since last preview (${last_preview_sha}); skipping scheduled release."
+                      echo "No new commits on dev since last preview-dev (${last_preview_sha}); skipping scheduled release."
                       skip_release=true
                     fi
                   fi
@@ -56,10 +56,10 @@ jobs:
                   echo "tag_name=${tag}" >> "$GITHUB_OUTPUT"
                   echo "commit_sha=${full_sha}" >> "$GITHUB_OUTPUT"
                   echo "skip_release=${skip_release}" >> "$GITHUB_OUTPUT"
-                  echo "Preview tag: ${tag} @ ${full_sha} (skip_release=${skip_release})"
+                  echo "Preview-dev tag: ${tag} @ ${full_sha} (skip_release=${skip_release})"
 
     tag:
-        name: Tag master and trigger build-release
+        name: Tag dev and trigger build-release
         needs: metadata
         if: needs.metadata.outputs.skip_release != 'true'
         runs-on: ubuntu-latest
@@ -69,10 +69,10 @@ jobs:
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
               with:
-                  ref: master
+                  ref: dev
                   fetch-depth: 0
 
-            - name: Create and push preview tag
+            - name: Create and push preview-dev tag
               env:
                   TAG: ${{ needs.metadata.outputs.tag_name }}
                   SHA: ${{ needs.metadata.outputs.commit_sha }}
@@ -84,5 +84,5 @@ jobs:
                   fi
                   git config user.name "github-actions[bot]"
                   git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-                  git tag -a "${TAG}" -m "Weekly preview build for ${SHA}" "${SHA}"
+                  git tag -a "${TAG}" -m "Weekly preview-dev build for ${SHA}" "${SHA}"
                   git push origin "${TAG}"
