@@ -36,8 +36,11 @@ copy_missing() {
             if [[ "$ft" == Mach-O* ]]; then
                 echo "unify-backend: dropping arch-only Mach-O for consistency: $rel" >&2
                 echo "  ($label); source reports: $ft" >&2
-                echo "  Hint: ensure libyaml is available for x86_64 (arch -x86_64 brew install libyaml)" >&2
-                echo "  so PyYAML's C extension compiles for darwin-x64 and both trees match." >&2
+                echo "  Hint: this native library/extension only exists in one arch's" >&2
+                echo "  cx_Freeze output. Check the corresponding per-OS dependency" >&2
+                echo "  install script builds/bundles it for both darwin-arm64 and" >&2
+                echo "  darwin-x64 (e.g. missing a Homebrew lib on one arch, or a" >&2
+                echo "  package that only ships a wheel for one arch)." >&2
                 rm -f "$src_file"
                 dropped=$((dropped + 1))
                 continue
@@ -66,6 +69,19 @@ while IFS= read -r -d '' rel; do
 
     filetype=$(file --brief --no-pad "$arm64_file" 2>/dev/null || true)
     if [[ "$filetype" != Mach-O* ]]; then
+        # .pyc is always portable CPython bytecode regardless of what else
+        # lives in the same package directory: differences here come from
+        # the embedded source mtime/size (PEP 552 header) or from hash-seed-
+        # dependent constant ordering (e.g. frozenset literals), never from
+        # the target architecture. Unlike a real native-extension conflict,
+        # unifying it can't break the .so/.dylib siblings, which are handled
+        # entirely separately below.
+        if [[ "$rel" == *.pyc ]]; then
+            cp "$arm64_file" "$x64_file"
+            echo "  unified (.pyc, source-independent of arch): $rel"
+            unified=$((unified + 1))
+            continue
+        fi
         pkg_dir="$(dirname "$rel")"
         if find "$ARM64_DIR/$pkg_dir" "$X64_DIR/$pkg_dir" -maxdepth 1 \
             \( -name '*.so' -o -name '*.dylib' -o -name '*.bundle' \) -print -quit 2>/dev/null | grep -q .; then

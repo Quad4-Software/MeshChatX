@@ -38,6 +38,12 @@ import numpy
 from numpy._core._multiarray_umath import _add_newdoc_ufunc
 print('arm64 venv numpy', numpy.__version__, 'ok')
 "
+    # The published macOS wheel bundles libcodec2 under pycodec2/.dylibs/. Flatten
+    # it to pycodec2/libcodec2.dylib so this tree's relative layout matches the
+    # darwin-x64 slice built in scripts/ci/github-install-macos-x64-python-deps.sh,
+    # which scripts/unify-backend-plain-files.sh requires to merge the two trees.
+    bash "$(dirname "$0")/macos-normalize-pycodec2-dylib.sh" "${ROOT}/.venv/bin/python" ||
+        echo "github-install-deps: pycodec2 dylib normalization failed, continuing (unify-backend may drop it later)" >&2
 fi
 
 if [[ "$(uname -s)" == "Darwin" ]]; then

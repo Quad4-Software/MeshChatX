@@ -128,18 +128,23 @@ uv pip install --python "$_PY" \
     --python-platform x86_64-apple-darwin \
     "$_pycodec2_wheel"
 
+# pycodec2's setup.py links with -lcodec2, so the extension records Homebrew's
+# absolute install name for libcodec2 (e.g. /usr/local/opt/codec2/lib/libcodec2.1.2.dylib).
+# That only resolves on this CI runner. Bundle the dylib next to the extension and
+# rewrite the load command to @loader_path/libcodec2.dylib so it is self-contained,
+# and matches the relative layout scripts/unify-backend-plain-files.sh expects when
+# reconciling this slice against the arm64 wheel's .dylibs/ bundle.
 if [[ -n "${_codec2:-}" ]]; then
     _pycodec2_dir="$(arch -x86_64 "$_PY" -c 'import pathlib, pycodec2; print(pathlib.Path(pycodec2.__file__).resolve().parent)')"
     for _lib in "${_codec2}/lib/libcodec2.dylib" "${_codec2}/lib/libcodec2.so"; do
         if [[ -f "$_lib" ]]; then
-            cp -f "$_lib" "${_pycodec2_dir}/libcodec2.so"
-            if [[ "$_lib" == *.dylib ]]; then
-                cp -f "$_lib" "${_pycodec2_dir}/libcodec2.dylib"
-            fi
+            cp -f "$_lib" "${_pycodec2_dir}/libcodec2.dylib"
             break
         fi
     done
 fi
+arch -x86_64 bash "$(dirname "$0")/macos-normalize-pycodec2-dylib.sh" "$_PY" ||
+    echo "github-install-macos-x64-python-deps: pycodec2 dylib normalization failed, continuing (unify-backend may drop it later)" >&2
 
 arch -x86_64 "$_PY" scripts/patch_lxst_pyogg_ogg_ctypes.py
 
