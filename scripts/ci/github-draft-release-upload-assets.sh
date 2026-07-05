@@ -86,8 +86,15 @@ done
 mapfile -t files < <(find "$STAGE" -type f)
 
 {
-    echo "Automated draft release. Review assets and provenance before publishing."
-    echo
+    if [[ "$TAG" == preview-* ]]; then
+        echo "**Preview release** — automated weekly snapshot from \`master\`. Not a stable release; use tagged production releases for daily use."
+        echo
+        echo "Commit: \`${GITHUB_SHA:-unknown}\`"
+        echo
+    else
+        echo "Automated draft release. Review assets and provenance before publishing."
+        echo
+    fi
     echo "## SHA256 Checksums"
     echo
     echo "| Asset | SHA256 |"
@@ -106,9 +113,17 @@ mapfile -t files < <(find "$STAGE" -type f)
 } > "$notes_file"
 
 if ! gh release view "$TAG" >/dev/null 2>&1; then
-    gh release create "$TAG" --draft --title "$TAG" --notes-file "$notes_file"
+    if [[ "$TAG" == preview-* ]]; then
+        gh release create "$TAG" --prerelease --title "$TAG" --notes-file "$notes_file"
+    else
+        gh release create "$TAG" --draft --title "$TAG" --notes-file "$notes_file"
+    fi
 else
-    gh release edit "$TAG" --notes-file "$notes_file"
+    if [[ "$TAG" == preview-* ]]; then
+        gh release edit "$TAG" --prerelease --title "$TAG" --notes-file "$notes_file"
+    else
+        gh release edit "$TAG" --notes-file "$notes_file"
+    fi
 fi
 
 for f in "${files[@]}"; do
