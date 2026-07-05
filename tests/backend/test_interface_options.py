@@ -489,6 +489,85 @@ async def test_rnode_tcp_over_ip_normalizes_to_host_only(temp_dir):
         body = json.loads(response.body)
         assert response.status == 200, body
         assert config["interfaces"]["RNodeWiFi"]["port"] == "tcp://192.168.4.1"
+        # RNS's Android-specific RNodeInterface reads tcp_host as its own
+        # config key instead of parsing it out of port like desktop does.
+        assert config["interfaces"]["RNodeWiFi"]["tcp_host"] == "192.168.4.1"
+
+
+@pytest.mark.asyncio
+async def test_rnode_over_ip_allowed_on_android_without_usbserial4a_or_jnius(temp_dir):
+    """RNode over TCP needs no native Android modules and must not be blocked."""
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    async with make_app(temp_dir, config) as handler:
+        with patch("meshchatx.meshchat._is_chaquopy_android", return_value=True):
+            payload = {
+                "name": "RNodeWiFi",
+                "type": "RNodeIPInterface",
+                "port": "tcp://192.168.4.1:7633",
+                "frequency": 868000000,
+                "bandwidth": 125000,
+                "txpower": 7,
+                "spreadingfactor": 8,
+                "codingrate": 5,
+            }
+            response = await handler(make_request(payload))
+            body = json.loads(response.body)
+            assert response.status == 200, body
+            assert config["interfaces"]["RNodeWiFi"]["tcp_host"] == "192.168.4.1"
+
+
+@pytest.mark.asyncio
+async def test_rnode_serial_blocked_on_android_without_usbserial4a_or_jnius(temp_dir):
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    async with make_app(temp_dir, config) as handler:
+        with patch("meshchatx.meshchat._is_chaquopy_android", return_value=True):
+            payload = {
+                "name": "Radio",
+                "type": "RNodeInterface",
+                "port": "/dev/ttyUSB0",
+                "frequency": 868000000,
+                "bandwidth": 125000,
+                "txpower": 7,
+                "spreadingfactor": 8,
+                "codingrate": 5,
+            }
+            response = await handler(make_request(payload))
+            body = json.loads(response.body)
+            assert response.status == 422, body
+            assert "RNode over IP" in body["message"]
+            assert "Radio" not in config["interfaces"]
+
+
+@pytest.mark.asyncio
+async def test_rnode_multi_interface_blocked_on_android(temp_dir):
+    """RNS has no Android-specific implementation of RNodeMultiInterface."""
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    async with make_app(temp_dir, config) as handler:
+        with patch("meshchatx.meshchat._is_chaquopy_android", return_value=True):
+            payload = {
+                "name": "MultiRadio",
+                "type": "RNodeMultiInterface",
+                "port": "/dev/ttyUSB0",
+                "sub_interfaces": [
+                    {
+                        "name": "vport0",
+                        "frequency": 868000000,
+                        "bandwidth": 125000,
+                        "txpower": 7,
+                        "spreadingfactor": 8,
+                        "codingrate": 5,
+                        "vport": 0,
+                    },
+                ],
+            }
+            response = await handler(make_request(payload))
+            body = json.loads(response.body)
+            assert response.status == 422, body
+            assert "not supported on Android" in body["message"]
+            assert "MultiRadio" not in config["interfaces"]
 
 
 @pytest.mark.asyncio
