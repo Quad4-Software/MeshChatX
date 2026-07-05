@@ -541,7 +541,7 @@ jobs:
             provenance-name: meshchatx-android-flatpak-${{ github.ref_name }}.intoto.jsonl
 
     draft-github-release:
-        name: ${{ startsWith(github.ref_name, 'preview-') && 'Preview GitHub release (all assets + SLSA)' || 'Draft GitHub release (all assets + SLSA)' }}
+        name: ${{ startsWith(github.ref_name, 'preview-dev-') && 'Preview dev GitHub release (all assets + SLSA)' || (startsWith(github.ref_name, 'preview-') && 'Preview GitHub release (all assets + SLSA)') || 'Draft GitHub release (all assets + SLSA)' }}
         needs:
             - linux-release
             - collect-linux-slsa-subjects

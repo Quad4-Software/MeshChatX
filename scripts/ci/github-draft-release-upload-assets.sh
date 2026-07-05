@@ -86,7 +86,12 @@ done
 mapfile -t files < <(find "$STAGE" -type f)
 
 {
-    if [[ "$TAG" == preview-* ]]; then
+    if [[ "$TAG" == preview-dev-* ]]; then
+        echo "**Preview release (dev)** — automated weekly snapshot from \`dev\`. Not a stable release; use tagged production releases for daily use."
+        echo
+        echo "Commit: \`${GITHUB_SHA:-unknown}\`"
+        echo
+    elif [[ "$TAG" == preview-* ]]; then
         echo "**Preview release** — automated weekly snapshot from \`master\`. Not a stable release; use tagged production releases for daily use."
         echo
         echo "Commit: \`${GITHUB_SHA:-unknown}\`"
