@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [4.7.2] - 2026-06-TBD
+## [4.7.2] - 2026-07-06
 
 ### Fixed
 
