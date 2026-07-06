@@ -2779,7 +2779,6 @@ import SettingsNav from "./SettingsNav.vue";
 import KeyboardShortcuts from "../../js/KeyboardShortcuts";
 import ElectronUtils from "../../js/ElectronUtils";
 import AndroidBridge from "../../js/rnode/AndroidBridge";
-import LxmfUserIcon from "../LxmfUserIcon.vue";
 import StickerPacksManager from "../stickers/StickerPacksManager.vue";
 import GlobalState from "../../js/GlobalState";
 import {
@@ -2812,7 +2811,6 @@ export default {
         MaterialDesignIcon,
         Toggle,
         ShortcutRecorder,
-        LxmfUserIcon,
         SettingsSectionBlock,
         SettingsNav,
         StickerPacksManager,
