@@ -92,10 +92,19 @@ while IFS= read -r -d '' rel; do
         # same set of modules; a differing member list would mean the two
         # Python environments actually resolved different dependencies.
         if [[ "$(basename "$rel")" == "library.zip" ]]; then
+            # Exclude *.dist-info provenance files that record *how* a package
+            # was installed rather than anything about the package itself:
+            # direct_url.json/INSTALLER only appear when pip/uv installs from
+            # a local wheel path (true for our manually-built pycodec2 wheel),
+            # and uv_build.json/uv_cache.json only appear when uv has to build
+            # a package from sdist (true for cbor2/cryptography, which don't
+            # publish a macOS x86_64 wheel for this Python version). None of
+            # these are ever read by the running app, only by pip/uv itself.
+            _dist_info_noise='\.dist-info/(direct_url\.json|INSTALLER|uv_build\.json|uv_cache\.json)$'
             arm64_members="$(mktemp)"
             x64_members="$(mktemp)"
-            zipinfo -1 "$arm64_file" 2>/dev/null | sort >"$arm64_members"
-            zipinfo -1 "$x64_file" 2>/dev/null | sort >"$x64_members"
+            zipinfo -1 "$arm64_file" 2>/dev/null | grep -vE "$_dist_info_noise" | sort >"$arm64_members"
+            zipinfo -1 "$x64_file" 2>/dev/null | grep -vE "$_dist_info_noise" | sort >"$x64_members"
             if cmp -s "$arm64_members" "$x64_members"; then
                 cp "$arm64_file" "$x64_file"
                 echo "  unified (library.zip, same bundled module set): $rel"
