@@ -9,7 +9,7 @@
             :collapsed="nomadNetworkSidebarCollapsed"
             :nodes="nodes"
             :favourites="favourites"
-            :selected-destination-hash="selectedNode?.destination_hash"
+            :selected-destination-hash="selectedNode?.destination_hash || ''"
             :nodes-search-term="nodesSearchTerm"
             :total-nodes-count="totalNodesCount"
             :is-loading-more-nodes="isLoadingMoreNodes"
@@ -52,13 +52,13 @@
 
                 <!-- header -->
                 <div
-                    class="flex items-center gap-1 p-2 border-b border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 min-w-0"
+                    class="flex min-w-0 items-center gap-1 border-b border-sem-border bg-sem-surface-muted/60 px-2 py-1.5 sm:px-3 sm:py-2"
                 >
                     <!-- favourite button -->
-                    <div class="my-auto shrink-0 mr-1">
+                    <div class="my-auto shrink-0">
                         <IconButton
                             v-if="isFavourite(selectedNode.destination_hash)"
-                            class="text-yellow-500 dark:text-yellow-300"
+                            class="nomad-icon-btn text-yellow-500 dark:text-yellow-300"
                             :title="$t('nomadnet.remove_favourite')"
                             @click="removeFavourite(selectedNode)"
                         >
@@ -66,7 +66,7 @@
                         </IconButton>
                         <IconButton
                             v-else
-                            class="text-gray-700 dark:text-gray-300"
+                            class="nomad-icon-btn text-sem-fg-muted"
                             :title="$t('nomadnet.add_favourite')"
                             @click="addFavourite(selectedNode)"
                         >
@@ -201,8 +201,8 @@
                     <!-- archive button -->
                     <div v-if="pageArchives.length > 0 || nodePageContent" class="my-auto shrink-0 relative">
                         <IconButton
-                            class="text-gray-700 dark:text-gray-300"
-                            :class="{ 'text-blue-500 dark:text-blue-400': pageArchives.length > 0 }"
+                            class="nomad-icon-btn text-sem-fg-muted"
+                            :class="{ 'text-sem-accent': pageArchives.length > 0 }"
                             :title="$t('app.archives')"
                             @click="toggleArchiveDropdown"
                         >
@@ -223,7 +223,7 @@
                                     class="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
                                     @click.stop="manualArchive"
                                 >
-                                    <MaterialDesignIcon icon-name="plus" class="size-4" />
+                                    <MaterialDesignIcon icon-name="plus" class="size-5" />
                                 </button>
                             </div>
                             <div class="max-h-64 overflow-y-auto">
@@ -252,40 +252,40 @@
                     </div>
 
                     <IconButton
-                        class="lg:hidden shrink-0 text-gray-700 dark:text-gray-300"
+                        class="nomad-icon-btn shrink-0 text-sem-fg-muted lg:hidden"
                         :title="$t('nomadnet.identify')"
                         @click="identify(selectedNode.destination_hash)"
                     >
                         <MaterialDesignIcon icon-name="fingerprint" class="size-5" />
                     </IconButton>
 
-                    <div class="hidden lg:flex items-center gap-1 shrink-0">
+                    <div class="hidden shrink-0 items-center gap-0 lg:flex">
                         <IconButton
-                            class="text-gray-700 dark:text-gray-300"
+                            class="nomad-icon-btn text-sem-fg-muted"
                             :title="$t('nomadnet.identify')"
                             @click="identify(selectedNode.destination_hash)"
                         >
                             <MaterialDesignIcon icon-name="fingerprint" class="size-5" />
                         </IconButton>
                         <IconButton
-                            class="text-gray-700 dark:text-gray-300"
+                            class="nomad-icon-btn text-sem-fg-muted"
                             :title="$t('nomadnet.pop_out_browser')"
                             @click="openNomadnetPopout"
                         >
                             <MaterialDesignIcon icon-name="open-in-new" class="size-5" />
                         </IconButton>
                         <IconButton
-                            class="text-gray-700 dark:text-gray-300"
+                            class="nomad-icon-btn text-sem-fg-muted"
                             :title="$t('common.cancel')"
                             @click="onCloseNodeViewer"
                         >
-                            <MaterialDesignIcon icon-name="close" class="w-5 h-5" />
+                            <MaterialDesignIcon icon-name="close" class="size-5" />
                         </IconButton>
                     </div>
 
-                    <DropDownMenu class="lg:hidden shrink-0">
+                    <DropDownMenu class="shrink-0 lg:hidden">
                         <template #button>
-                            <IconButton :title="$t('messages.more_actions')" class="text-gray-700 dark:text-gray-300">
+                            <IconButton :title="$t('messages.more_actions')" class="nomad-icon-btn text-sem-fg-muted">
                                 <MaterialDesignIcon icon-name="dots-horizontal" class="size-5" />
                             </IconButton>
                         </template>
@@ -312,30 +312,30 @@
                     </DropDownMenu>
 
                     <IconButton
-                        class="lg:hidden shrink-0 text-gray-700 dark:text-gray-300"
+                        class="nomad-icon-btn shrink-0 text-sem-fg-muted lg:hidden"
                         :title="$t('common.cancel')"
                         @click="onCloseNodeViewer"
                     >
-                        <MaterialDesignIcon icon-name="close" class="w-5 h-5" />
+                        <MaterialDesignIcon icon-name="close" class="size-5" />
                     </IconButton>
                 </div>
 
                 <!-- browser navigation -->
                 <div
-                    class="flex items-center w-full min-w-0 border-gray-300 dark:border-zinc-800 border-b p-2 gap-0.5 overflow-x-auto"
+                    class="nomad-browser-chrome flex w-full min-w-0 items-center gap-1 overflow-x-auto border-b border-sem-border bg-sem-surface-muted/60 px-2 py-1.5 sm:gap-1.5 sm:px-3"
                 >
                     <IconButton
-                        class="shrink-0"
+                        class="nomad-icon-btn shrink-0"
                         title="Home"
                         @click="loadNodePage(selectedNode.destination_hash, defaultNodePagePath)"
                     >
-                        <MaterialDesignIcon icon-name="home" class="w-5 h-5" />
+                        <MaterialDesignIcon icon-name="home" class="size-5" />
                     </IconButton>
-                    <IconButton class="shrink-0" :title="$t('common.refresh')" @click="reloadNodePage">
-                        <MaterialDesignIcon icon-name="refresh" class="w-5 h-5" />
+                    <IconButton class="nomad-icon-btn shrink-0" :title="$t('common.refresh')" @click="reloadNodePage">
+                        <MaterialDesignIcon icon-name="refresh" class="size-5" />
                     </IconButton>
                     <IconButton
-                        class="shrink-0"
+                        class="nomad-icon-btn shrink-0"
                         :title="$t('app.toggle_source')"
                         :class="{ 'bg-green-500/10 text-green-600 dark:text-green-400': isShowingNodePageSource }"
                         @click="toggleNodePageSource"
@@ -343,31 +343,35 @@
                         <MaterialDesignIcon icon-name="code-tags" class="size-5" />
                     </IconButton>
                     <IconButton
-                        class="shrink-0"
+                        class="nomad-icon-btn shrink-0"
                         title="Back"
                         :disabled="nodePagePathHistory.length === 0"
                         @click="loadPreviousNodePage"
                     >
-                        <MaterialDesignIcon icon-name="arrow-left" class="w-5 h-5" />
+                        <MaterialDesignIcon icon-name="arrow-left" class="size-5" />
                     </IconButton>
-                    <div class="my-auto mx-1 min-w-0 flex-1">
+                    <div class="my-auto min-w-0 flex-1 px-0.5 sm:px-1">
                         <input
                             v-model="nodePagePathUrlInput"
                             type="text"
                             :placeholder="$t('nomadnet.enter_nomadnet_url')"
-                            class="bg-gray-50 dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 text-gray-900 dark:text-gray-100 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full px-2.5 py-1.5 dark:placeholder-gray-400"
+                            class="nomad-url-input block w-full min-w-0"
                             @keyup.enter="onNodePageUrlClick(nodePagePathUrlInput)"
                         />
                     </div>
-                    <IconButton class="shrink-0" title="Go" @click="onNodePageUrlClick(nodePagePathUrlInput)">
-                        <MaterialDesignIcon icon-name="arrow-right" class="w-5 h-5" />
+                    <IconButton
+                        class="nomad-icon-btn shrink-0"
+                        title="Go"
+                        @click="onNodePageUrlClick(nodePagePathUrlInput)"
+                    >
+                        <MaterialDesignIcon icon-name="arrow-right" class="size-5" />
                     </IconButton>
 
                     <DropDownMenu v-if="hasPageLoadFailed" class="shrink-0">
                         <template #button>
                             <IconButton
                                 :title="$t('nomadnet.path_finder')"
-                                class="text-blue-600 dark:text-blue-400"
+                                class="nomad-icon-btn text-sem-accent"
                                 :disabled="pathfinderInProgress"
                             >
                                 <MaterialDesignIcon
@@ -422,7 +426,7 @@
                         ]"
                     >
                         <div class="flex items-center gap-2">
-                            <MaterialDesignIcon icon-name="clock" class="size-4" />
+                            <MaterialDesignIcon icon-name="clock" class="size-5" />
                             <span v-if="archivedAt" class="text-sm font-medium">{{
                                 $t("nomadnet.viewing_archived_version_from", { time: formatDate(archivedAt) })
                             }}</span>
@@ -483,7 +487,7 @@
                                 class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 transition"
                                 @click="toggleArchiveDropdown"
                             >
-                                <MaterialDesignIcon icon-name="archive" class="size-4" />
+                                <MaterialDesignIcon icon-name="archive" class="size-5" />
                                 {{ $t("nomadnet.view_archive") }}
                             </button>
                         </div>
@@ -2586,6 +2590,34 @@ export default {
 </script>
 
 <style>
+.nomad-icon-btn {
+    border-radius: 10px !important;
+    border: none !important;
+    background: transparent !important;
+}
+
+.nomad-icon-btn:hover {
+    background: color-mix(in srgb, var(--mc-surface-hover, #27272a) 65%, transparent) !important;
+}
+
+.nomad-url-input {
+    border-radius: 999px;
+    border: 1px solid var(--mc-border, #27272a);
+    background: color-mix(in srgb, var(--mc-surface-muted, #18181b) 85%, transparent);
+    padding: 0.45rem 0.85rem;
+    font-size: 0.8125rem;
+    color: var(--mc-text, #f3f4f6);
+    outline: none;
+    transition:
+        border-color 120ms ease,
+        box-shadow 120ms ease;
+}
+
+.nomad-url-input:focus {
+    border-color: var(--mc-accent, #60a5fa);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--mc-accent, #60a5fa) 25%, transparent);
+}
+
 .nodeContainer input.Mu-armed {
     outline: 1px dashed #fbbf24;
     outline-offset: 1px;

@@ -1,31 +1,38 @@
 <!-- SPDX-License-Identifier: 0BSD AND MIT -->
 
 <template>
-    <div class="flex flex-1 min-w-0 h-full flex-col overflow-hidden">
+    <div class="flex flex-1 min-w-0 h-full flex-col overflow-hidden bg-sem-canvas text-sem-fg">
         <div
             v-if="showTabStrip"
-            class="flex items-stretch h-9 shrink-0 border-b border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900 overflow-x-auto"
+            class="nomad-tab-strip flex h-9 shrink-0 flex-nowrap items-end overflow-x-auto overflow-y-hidden border-b border-sem-border bg-sem-surface-muted px-1.5"
             role="tablist"
         >
             <button
-                v-for="tab in tabs"
+                v-for="(tab, tabIndex) in tabs"
                 :key="tab.id"
                 type="button"
                 role="tab"
+                draggable="true"
                 :aria-selected="tab.id === activeTabId"
-                class="group flex items-center gap-1.5 min-w-[8rem] max-w-[14rem] px-3 border-r border-gray-200 dark:border-zinc-800 text-sm transition-colors"
-                :class="
+                class="group flex h-8 min-w-[7rem] max-w-[14rem] shrink-0 cursor-grab items-center gap-1.5 border border-transparent px-3 text-sm transition-[opacity,background-color,border-color] duration-150 rounded-t-[10px] active:cursor-grabbing"
+                :class="[
                     tab.id === activeTabId
-                        ? 'bg-white dark:bg-zinc-950 text-gray-900 dark:text-gray-100'
-                        : 'text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800'
-                "
+                        ? 'border-sem-border border-b-transparent bg-sem-canvas font-medium text-sem-fg'
+                        : 'text-sem-fg-muted hover:bg-sem-surface/50',
+                    dragTabIndex === tabIndex ? 'opacity-50' : '',
+                ]"
                 @click="selectTab(tab.id)"
+                @dragstart="onTabDragStart(tabIndex, $event)"
+                @dragover.prevent="onTabDragOver(tabIndex)"
+                @drop.prevent="onTabDrop(tabIndex)"
+                @dragend="onTabDragEnd"
             >
                 <MaterialDesignIcon icon-name="earth" class="size-4 shrink-0 opacity-70" />
-                <span class="truncate flex-1 text-left">{{ tabTitle(tab) }}</span>
+                <span class="min-w-0 flex-1 truncate text-left">{{ tabTitle(tab) }}</span>
                 <span
-                    class="shrink-0 rounded p-0.5 text-gray-400 hover:bg-gray-200 hover:text-gray-700 dark:hover:bg-zinc-700 dark:hover:text-gray-200"
+                    class="shrink-0 rounded p-0.5 text-sem-fg-muted hover:bg-sem-surface hover:text-sem-fg"
                     :title="$t('common.cancel')"
+                    draggable="false"
                     @click.stop="closeTab(tab.id)"
                 >
                     <MaterialDesignIcon icon-name="close" class="size-3.5" />
@@ -33,7 +40,7 @@
             </button>
             <button
                 type="button"
-                class="flex items-center justify-center w-9 shrink-0 text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                class="mb-0 flex h-8 w-9 shrink-0 items-center justify-center rounded-[10px] text-sem-fg-muted transition-colors hover:bg-sem-surface/80"
                 :title="$t('nomadnet.new_tab_shortcut')"
                 @click="addTab()"
             >
@@ -62,6 +69,7 @@
 import NomadNetworkPage from "./NomadNetworkPage.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import GlobalState from "../../js/GlobalState";
+import GlobalEmitter from "../../js/GlobalEmitter";
 import { loadNomadTabs, saveNomadTabs } from "../../js/browserLayoutStore";
 import LinkUtils from "../../js/LinkUtils";
 
@@ -87,6 +95,7 @@ export default {
             isWideViewport: false,
             mediaQuery: null,
             mediaQueryListener: null,
+            dragTabIndex: null,
         };
     },
     computed: {
@@ -118,12 +127,24 @@ export default {
 
         const initialHash = (this.destinationHash || this.$route?.params?.destinationHash || "").trim();
         const initialPath = this.$route?.query?.path || null;
+        const forceNewTab = this.$route?.query?.newTab === "1";
 
-        if (!this.restoreTabs(initialHash, initialPath)) {
+        if (!this.restoreTabs(initialHash, initialPath, forceNewTab)) {
             this.addTab(initialHash, initialPath);
+        }
+        if (forceNewTab) {
+            this.clearNewTabQuery();
+        }
+
+        GlobalEmitter.on("nomad-open-node", this.handleNomadOpenNode);
+    },
+    activated() {
+        if (this.$route?.query?.newTab === "1") {
+            this.consumeNewTabRouteQuery(this.$route);
         }
     },
     beforeUnmount() {
+        GlobalEmitter.off("nomad-open-node", this.handleNomadOpenNode);
         this.teardownViewportWatcher();
         window.removeEventListener("keydown", this.handleKeydown, true);
     },
@@ -266,7 +287,7 @@ export default {
                 this.selectTabByIndex(parseInt(key, 10) - 1);
             }
         },
-        restoreTabs(routeHash, routePath) {
+        restoreTabs(routeHash, routePath, forceNewTab = false) {
             const saved = loadNomadTabs();
             if (!saved || saved.tabs.length === 0) {
                 return false;
@@ -296,11 +317,15 @@ export default {
             this.activeTabId = this.tabs[activeIndex].id;
 
             if (routeHash) {
-                const existing = this.tabs.find((tab) => tab.destinationHash === routeHash);
-                if (existing) {
-                    this.activeTabId = existing.id;
-                } else {
+                if (forceNewTab) {
                     this.addTab(routeHash, routePath);
+                } else {
+                    const existing = this.tabs.find((tab) => tab.destinationHash === routeHash);
+                    if (existing) {
+                        this.activeTabId = existing.id;
+                    } else {
+                        this.addTab(routeHash, routePath);
+                    }
                 }
             }
 
@@ -336,6 +361,28 @@ export default {
             }
             this.activeTabId = tabId;
             this.syncRoute();
+        },
+        onTabDragStart(index, event) {
+            this.dragTabIndex = index;
+            if (event.dataTransfer) {
+                event.dataTransfer.effectAllowed = "move";
+                event.dataTransfer.setData("text/plain", String(index));
+            }
+        },
+        onTabDragOver(index) {
+            if (this.dragTabIndex === null || this.dragTabIndex === index) {
+                return;
+            }
+            const [moved] = this.tabs.splice(this.dragTabIndex, 1);
+            this.tabs.splice(index, 0, moved);
+            this.dragTabIndex = index;
+        },
+        onTabDrop() {
+            this.dragTabIndex = null;
+            this.persistTabs();
+        },
+        onTabDragEnd() {
+            this.dragTabIndex = null;
         },
         closeTab(tabId) {
             const index = this.tabs.findIndex((tab) => tab.id === tabId);
@@ -399,9 +446,75 @@ export default {
                 routeOptions.query = { ...this.$route.query };
                 delete routeOptions.query.path;
                 delete routeOptions.query.archive_id;
+                delete routeOptions.query.newTab;
             }
             this.$router.replace(routeOptions).catch(() => {});
+        },
+        handleNomadOpenNode(payload) {
+            const destinationHash = (payload?.destinationHash || "").trim();
+            if (!destinationHash) {
+                return;
+            }
+            if (this.$route?.name !== "nomadnetwork") {
+                this.$router
+                    .push({
+                        name: "nomadnetwork",
+                        params: { destinationHash },
+                        query: { newTab: "1" },
+                    })
+                    .catch(() => {});
+                return;
+            }
+            this.onOpenNode({
+                ...payload,
+                destinationHash,
+                forceNewTab: payload?.forceNewTab !== false,
+            });
+        },
+        consumeNewTabRouteQuery(route) {
+            if (route?.name !== "nomadnetwork" || route.query?.newTab !== "1") {
+                return;
+            }
+            const destinationHash = (route.params?.destinationHash || "").trim();
+            if (!destinationHash) {
+                return;
+            }
+            this.clearNewTabQuery();
+            this.onOpenNode({
+                destinationHash,
+                pagePath: route.query?.path || null,
+                forceNewTab: true,
+            });
+        },
+        clearNewTabQuery() {
+            if (this.$route?.query?.newTab !== "1") {
+                return;
+            }
+            const query = { ...this.$route.query };
+            delete query.newTab;
+            this.$router.replace({ ...this.$route, query }).catch(() => {});
         },
     },
 };
 </script>
+
+<style scoped>
+.nomad-tab-strip {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+}
+
+.nomad-tab-strip::-webkit-scrollbar {
+    height: 6px;
+}
+
+.nomad-tab-strip::-webkit-scrollbar:vertical {
+    display: none;
+    width: 0;
+}
+
+.nomad-tab-strip::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--mc-border, #27272a) 70%, transparent);
+}
+</style>

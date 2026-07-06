@@ -20,7 +20,7 @@
             :peers="peers"
             :folders="folders"
             :selected-folder-id="selectedFolderId"
-            :selected-destination-hash="selectedPeer?.destination_hash"
+            :selected-destination-hash="selectedPeer?.destination_hash || ''"
             :conversation-search-term="conversationSearchTerm"
             :filter-unread-only="filterUnreadOnly"
             :filter-failed-only="filterFailedOnly"

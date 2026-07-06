@@ -1349,9 +1349,8 @@ export default {
             if (typeof document !== "undefined") {
                 document.documentElement.classList.toggle("dark", mode === "dark");
             }
-            const themeName = this.vuetifyTheme?.global?.name;
-            if (themeName && typeof themeName === "object" && "value" in themeName) {
-                themeName.value = mode;
+            if (typeof this.vuetifyTheme?.change === "function") {
+                this.vuetifyTheme.change(mode);
             }
             this.applyShellAppearance();
         },

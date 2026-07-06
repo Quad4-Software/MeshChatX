@@ -988,11 +988,12 @@
                                             <div class="flex gap-2 shrink-0">
                                                 <button
                                                     type="button"
-                                                    class="primary-chip px-3! py-1! text-[10px]!"
+                                                    class="primary-chip p-1.5!"
+                                                    :aria-label="$t('about.snapshot_download')"
+                                                    :title="$t('about.snapshot_download')"
                                                     @click="downloadBackupFile(backup.name)"
                                                 >
-                                                    <v-icon icon="mdi-download" size="12" start></v-icon>
-                                                    {{ $t("about.snapshot_download") }}
+                                                    <v-icon icon="mdi-download" size="16"></v-icon>
                                                 </button>
                                                 <button
                                                     type="button"

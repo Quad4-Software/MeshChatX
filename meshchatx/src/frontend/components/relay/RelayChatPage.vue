@@ -111,17 +111,17 @@
                     >
                         <button
                             type="button"
-                            class="flex w-full items-center gap-2 rounded-xl border-2 border-dashed border-sem-border px-3 py-3 text-left text-sm text-sem-fg-muted transition-colors hover:border-sem-accent hover:bg-sem-surface/40 hover:text-sem-accent"
+                            class="flex w-full items-center gap-2 border-b border-sem-border/60 px-2 py-2.5 text-left text-sm text-sem-fg-muted transition-colors hover:bg-sem-surface/40 hover:text-sem-accent"
                             @click="openAddHub"
                         >
-                            <MaterialDesignIcon icon-name="plus-circle-outline" class="size-5 shrink-0" />
+                            <MaterialDesignIcon icon-name="plus" class="size-4 shrink-0" />
                             <span class="font-medium">{{ $t("relay_chat.add_hub_card") }}</span>
                         </button>
 
                         <div
                             v-for="(hub, hubIndex) in hubs"
                             :key="hub.hub_hash"
-                            class="overflow-hidden rounded-xl border border-sem-border bg-sem-canvas"
+                            class="border-b border-sem-border/60"
                             :class="{ 'opacity-60': dragHubIndex === hubIndex }"
                             draggable="true"
                             @dragstart="onHubDragStart(hubIndex, $event)"
@@ -163,7 +163,7 @@
 
                             <div
                                 v-show="isExpanded(hub.hub_hash)"
-                                class="border-t border-sem-border px-2.5 py-2.5 space-y-2.5"
+                                class="border-t border-sem-border/50 px-2 py-2 space-y-2"
                             >
                                 <div class="flex items-center gap-1.5">
                                     <button
@@ -202,11 +202,11 @@
                                     </button>
                                 </div>
 
-                                <ul class="space-y-0.5">
+                                <ul class="space-y-0">
                                     <li
                                         v-for="(roomName, roomIndex) in orderedRoomsFor(hub)"
                                         :key="roomName"
-                                        class="flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-sm cursor-pointer transition-colors hover:bg-sem-surface/60 dark:hover:bg-sem-surface/30"
+                                        class="flex items-center justify-between gap-2 px-2 py-1 text-sm cursor-pointer transition-colors hover:bg-sem-surface/60 dark:hover:bg-sem-surface/30"
                                         :class="{
                                             'bg-sem-action-primary/15 text-sem-accent font-medium':
                                                 hub.hub_hash === selectedHubHash && roomName === selectedRoom,
@@ -276,14 +276,18 @@
                                     </ul>
                                 </div>
 
-                                <form class="flex gap-1.5" @submit.prevent="joinRoom(hub)">
+                                <form class="flex gap-1" @submit.prevent="joinRoom(hub)">
                                     <input
                                         v-model="joinRoomName"
                                         type="text"
                                         :placeholder="$t('relay_chat.join_room_placeholder')"
-                                        class="input-field !py-1.5 !text-xs"
+                                        class="min-w-0 flex-1 border border-sem-border bg-sem-canvas px-2 py-1 text-xs text-sem-fg outline-none focus:border-sem-accent focus:ring-1 focus:ring-sem-accent/30"
                                     />
-                                    <button type="submit" :class="btnIconSm" :title="$t('relay_chat.join_room')">
+                                    <button
+                                        type="submit"
+                                        class="inline-flex size-7 shrink-0 items-center justify-center border border-sem-border bg-sem-canvas text-sem-fg transition hover:bg-sem-surface/60"
+                                        :title="$t('relay_chat.join_room')"
+                                    >
                                         <MaterialDesignIcon icon-name="plus" class="size-4" />
                                     </button>
                                 </form>
@@ -1227,7 +1231,7 @@ export default {
             settingsHubHash: null,
             settingsForm: {
                 auto_reconnect: true,
-                auto_list: false,
+                auto_list: true,
                 auto_who: false,
                 nick: "",
                 custom_name: "",
@@ -2305,7 +2309,7 @@ export default {
                     dest_name: "rrc.hub",
                     connect: true,
                 });
-                ToastUtils.success(this.$t("relay_chat.discovery_added"));
+                ToastUtils.success("relay_chat.discovery_added");
                 await this.fetchHubs();
                 const added = response.data?.hub;
                 if (added) {

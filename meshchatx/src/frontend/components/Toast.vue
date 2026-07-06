@@ -44,7 +44,7 @@
 
                 <!-- content -->
                 <div class="flex-1 mr-2 text-sm font-medium text-gray-900 dark:text-zinc-100">
-                    {{ $t(toast.message) }}
+                    {{ toastMessage(toast.message) }}
                 </div>
 
                 <!-- close button -->
@@ -96,6 +96,12 @@ export default {
         GlobalEmitter.off("toast-dismiss", this.dismissHandler);
     },
     methods: {
+        toastMessage(message) {
+            if (message && typeof this.$te === "function" && this.$te(message)) {
+                return this.$t(message);
+            }
+            return message;
+        },
         add(toast) {
             // Check if a toast with the same key already exists
             if (toast.key) {

@@ -718,7 +718,7 @@ export default {
         },
         selectedDestinationHash: {
             type: String,
-            required: true,
+            default: "",
         },
         nodesSearchTerm: {
             type: String,

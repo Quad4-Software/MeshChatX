@@ -64,15 +64,15 @@
             <div :class="[RELAY_HOST_PAGE_LIST, isNarrow && selectedRoom ? 'hidden' : 'flex flex-1 lg:flex-none']">
                 <div class="shrink-0 space-y-3 border-b border-sem-border p-3 sm:p-4">
                     <div class="relative">
+                        <MaterialDesignIcon
+                            icon-name="magnify"
+                            class="pointer-events-none absolute left-2.5 top-1/2 z-10 size-4 -translate-y-1/2 text-sem-fg-muted"
+                        />
                         <input
                             v-model="roomsSearch"
                             type="search"
                             :placeholder="$t('relay_chat.host_rooms_search')"
-                            class="input-field !py-2.5 pl-10 pr-3"
-                        />
-                        <MaterialDesignIcon
-                            icon-name="magnify"
-                            class="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-sem-fg-muted"
+                            class="input-field !py-2 !pl-9 !pr-3"
                         />
                     </div>
                     <button
@@ -216,15 +216,15 @@
             <div :class="[RELAY_HOST_PAGE_LIST, isNarrow && selectedMember ? 'hidden' : 'flex flex-1 lg:flex-none']">
                 <div class="shrink-0 border-b border-sem-border p-3 sm:p-4">
                     <div class="relative">
+                        <MaterialDesignIcon
+                            icon-name="magnify"
+                            class="pointer-events-none absolute left-2.5 top-1/2 z-10 size-4 -translate-y-1/2 text-sem-fg-muted"
+                        />
                         <input
                             v-model="membersSearch"
                             type="search"
                             :placeholder="$t('relay_chat.host_members_search')"
-                            class="input-field !py-2.5 pl-10 pr-3"
-                        />
-                        <MaterialDesignIcon
-                            icon-name="magnify"
-                            class="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-sem-fg-muted"
+                            class="input-field !py-2 !pl-9 !pr-3"
                         />
                     </div>
                 </div>
