@@ -16,9 +16,14 @@
 #   actions/upload-artifact@v5.0.0     330a01c490aca151604b8cf639adc76d48f6c5d4
 #   actions/download-artifact@v5.0.0   634f93cb2916e3fdff6788551b99b062d0335ce0
 #
-# SLSA generator (pinned to v2.1.0 commit):
+# SLSA generator: must be referenced by tag (@vX.Y.Z), not by commit SHA.
+# slsa-verifier can only confirm the reusable workflow ran from a trusted
+# release ref when called this way; a SHA pin makes the generator's own
+# builder-fetch step fail with "Invalid ref: <sha>. Expected ref of the
+# form refs/tags/vX.Y.Z". See slsa-github-generator README "Referencing
+# SLSA builders and generators".
 #   slsa-framework/slsa-github-generator/generator_generic_slsa3.yml@v2.1.0
-#                                      f7dd8c54c2067bafc12ca7a55595d5ee9b75204a
+#                                      (tag v2.1.0 = f7dd8c54c2067bafc12ca7a55595d5ee9b75204a)
 #
 # Third-party pin (resolve before bumping release/v1):
 #   curl -sS "https://api.github.com/repos/pypa/gh-action-pypi-publish/commits/release/v1" | jq -r '.sha'
@@ -166,7 +171,7 @@ jobs:
             id-token: write
             contents: write
             actions: read
-        uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@f7dd8c54c2067bafc12ca7a55595d5ee9b75204a
+        uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
         with:
             base64-subjects: ${{ needs.build.outputs.hashes }}
             upload-assets: false
