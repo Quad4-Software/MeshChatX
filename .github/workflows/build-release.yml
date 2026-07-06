@@ -12,9 +12,14 @@
 #   actions/cache@v4.2.0               1bd1e32a3bdc45362d1e726936510720a7c30a57
 #   actions/setup-java@v4.7.1          c5195efecf7bdfc987ee8bae7a71cb8b11521c00
 #
-# SLSA generator (pinned to v2.1.0 commit):
+# SLSA generator: must be referenced by tag (@vX.Y.Z), not by commit SHA.
+# slsa-verifier can only confirm the reusable workflow ran from a trusted
+# release ref when called this way; a SHA pin makes the generator's own
+# builder-fetch step fail with "Invalid ref: <sha>. Expected ref of the
+# form refs/tags/vX.Y.Z". See slsa-github-generator README "Referencing
+# SLSA builders and generators".
 #   slsa-framework/slsa-github-generator/generator_generic_slsa3.yml@v2.1.0
-#                                      f7dd8c54c2067bafc12ca7a55595d5ee9b75204a
+#                                      (tag v2.1.0 = f7dd8c54c2067bafc12ca7a55595d5ee9b75204a)
 
 name: Build release
 
@@ -464,7 +469,7 @@ jobs:
             id-token: write
             contents: write
             actions: read
-        uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@f7dd8c54c2067bafc12ca7a55595d5ee9b75204a
+        uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
         with:
             base64-subjects: ${{ needs.collect-linux-slsa-subjects.outputs.hashes }}
             upload-assets: false
@@ -482,7 +487,7 @@ jobs:
             id-token: write
             contents: write
             actions: read
-        uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@f7dd8c54c2067bafc12ca7a55595d5ee9b75204a
+        uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
         with:
             base64-subjects: ${{ needs.collect-desktop-slsa-subjects.outputs.hashes }}
             upload-assets: false
@@ -531,7 +536,7 @@ jobs:
             id-token: write
             contents: write
             actions: read
-        uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@f7dd8c54c2067bafc12ca7a55595d5ee9b75204a
+        uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
         with:
             base64-subjects: ${{ needs.collect-android-flatpak-slsa-subjects.outputs.hashes }}
             upload-assets: false
