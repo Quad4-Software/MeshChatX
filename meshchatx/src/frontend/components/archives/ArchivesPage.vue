@@ -2,11 +2,10 @@
 
 <template>
     <!-- eslint-disable vue/no-v-html -->
-    <div class="flex h-full overflow-hidden bg-white dark:bg-zinc-950">
-        <!-- Sidebar 1: Nodes -->
+    <div class="flex h-full overflow-hidden bg-sem-canvas text-sem-fg">
         <ArchiveSidebar
             v-if="!isSidebar1Hidden"
-            class="w-full sm:w-64 md:max-lg:w-56 lg:w-64 shrink-0 border-r border-gray-200 dark:border-zinc-800"
+            class="w-full shrink-0 sm:w-60 lg:w-64"
             :class="{ 'hidden sm:flex': selectedNodeHash }"
             :nodes="groupedArchives"
             :selected-node-hash="selectedNodeHash"
@@ -15,64 +14,73 @@
             @update:search-query="onSearchQueryChange"
         />
 
-        <!-- Sidebar 2: Snapshots -->
         <div
             v-if="selectedNode && !isSidebar2Hidden"
-            class="flex w-full shrink-0 flex-col border-r border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 sm:w-80 md:max-lg:w-64 md:max-lg:min-w-64 lg:w-80 lg:min-w-80"
+            class="flex w-full shrink-0 flex-col border-r border-sem-border bg-sem-canvas sm:w-72 lg:w-80"
             :class="{ 'hidden sm:flex': viewingArchive }"
         >
-            <div
-                class="flex flex-col gap-3 border-b border-gray-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950"
-            >
+            <div class="flex flex-col gap-2 border-b border-sem-border px-3 py-2.5">
                 <div class="flex items-center gap-2">
-                    <button class="sm:hidden p-1 -ml-1 text-gray-500" @click="selectedNodeHash = null">
-                        <MaterialDesignIcon icon-name="arrow-left" class="size-6" />
+                    <button
+                        type="button"
+                        class="rounded-lg p-1 text-sem-fg-muted hover:bg-sem-surface/60 sm:hidden"
+                        @click="selectedNodeHash = null"
+                    >
+                        <MaterialDesignIcon icon-name="arrow-left" class="size-5" />
                     </button>
-                    <h2
-                        class="font-bold text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate flex-1"
-                    >
-                        {{ selectedNode.node_name }}
-                    </h2>
-                    <div
-                        class="text-[10px] font-bold px-1.5 py-0.5 bg-gray-200 dark:bg-zinc-700 text-gray-600 dark:text-gray-400 rounded-sm"
-                    >
+                    <h2 class="min-w-0 flex-1 truncate text-sm font-semibold">{{ selectedNode.node_name }}</h2>
+                    <span class="rounded-full bg-sem-surface-muted px-2 py-0.5 text-xs text-sem-fg-muted">
                         {{ selectedNode.archives.length }}
-                    </div>
+                    </span>
                 </div>
 
-                <!-- Multi-select controls -->
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <label class="flex items-center gap-2 cursor-pointer group">
-                            <input
-                                type="checkbox"
-                                class="rounded-sm border-gray-300 dark:border-zinc-700 text-blue-500 focus:ring-blue-500/20 bg-white dark:bg-zinc-800"
-                                :checked="isAllSelected"
-                                @change="toggleSelectAll"
-                            />
-                            <span
-                                class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-zinc-500 group-hover:text-gray-600 dark:group-hover:text-zinc-400 transition-colors"
-                                >Select All</span
-                            >
-                        </label>
-                    </div>
+                <div class="flex items-center justify-between gap-2">
+                    <button
+                        v-if="!selectMode"
+                        type="button"
+                        class="rounded-lg px-2 py-1 text-xs font-medium text-sem-fg-muted transition-colors hover:bg-sem-surface/60 hover:text-sem-fg"
+                        @click="selectMode = true"
+                    >
+                        {{ $t("common.select") }}
+                    </button>
+                    <label v-else class="flex cursor-pointer items-center gap-2">
+                        <input
+                            type="checkbox"
+                            class="rounded border-sem-border text-sem-accent focus:ring-sem-accent/30"
+                            :checked="isAllSelected"
+                            @change="toggleSelectAll"
+                        />
+                        <span class="text-xs text-sem-fg-muted">{{ $t("archives.select_all") }}</span>
+                    </label>
 
-                    <button
-                        v-if="selectedArchives.length > 0"
-                        class="text-[10px] font-bold uppercase tracking-wider text-blue-500 hover:text-blue-600 transition-colors flex items-center gap-1 mr-2"
-                        @click="exportSelectedArchivesAsMu"
-                    >
-                        <MaterialDesignIcon icon-name="download" class="size-3.5" />
-                        {{ $t("archives.export_selected_mu", { count: selectedArchives.length }) }}
-                    </button>
-                    <button
-                        v-if="selectedArchives.length > 0"
-                        class="text-[10px] font-bold uppercase tracking-wider text-red-500 hover:text-red-600 transition-colors flex items-center gap-1"
-                        @click="deleteSelected"
-                    >
-                        <MaterialDesignIcon icon-name="trash-can-outline" class="size-3.5" />
-                        Delete ({{ selectedArchives.length }})
-                    </button>
+                    <div class="flex items-center gap-1">
+                        <template v-if="selectMode && selectedArchives.length > 0">
+                            <button
+                                type="button"
+                                class="rounded-lg p-1.5 text-sem-accent hover:bg-sem-surface/60"
+                                :title="$t('archives.export_selected_mu', { count: selectedArchives.length })"
+                                @click="exportSelectedArchivesAsMu"
+                            >
+                                <MaterialDesignIcon icon-name="download" class="size-4" />
+                            </button>
+                            <button
+                                type="button"
+                                class="rounded-lg p-1.5 text-red-500 hover:bg-sem-surface/60"
+                                :title="$t('archives.delete_selected', { count: selectedArchives.length })"
+                                @click="deleteSelected"
+                            >
+                                <MaterialDesignIcon icon-name="trash-can-outline" class="size-4" />
+                            </button>
+                        </template>
+                        <button
+                            v-if="selectMode"
+                            type="button"
+                            class="rounded-lg px-2 py-1 text-xs font-medium text-sem-fg-muted transition-colors hover:bg-sem-surface/60 hover:text-sem-fg"
+                            @click="exitSelectMode"
+                        >
+                            {{ $t("common.cancel") }}
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -80,46 +88,41 @@
                 <div
                     v-for="archive in selectedNode.archives"
                     :key="archive.id"
-                    class="w-full text-left border-b border-gray-100 dark:border-zinc-800/50 hover:bg-white dark:hover:bg-zinc-800 transition-colors flex items-stretch group relative"
+                    class="group relative flex items-stretch border-b border-sem-border/50 transition-colors hover:bg-sem-surface/40"
                     :class="{
-                        'bg-white dark:bg-zinc-800 ring-1 ring-inset ring-blue-500/50 z-10':
-                            viewingArchive?.id === archive.id,
-                        'bg-blue-50/50 dark:bg-blue-900/10': selectedArchives.includes(archive.id),
+                        'bg-sem-surface/60 ring-1 ring-inset ring-sem-accent/30': viewingArchive?.id === archive.id,
+                        'bg-sem-accent/5': selectedArchives.includes(archive.id),
                     }"
                 >
-                    <!-- Checkbox Area -->
-                    <div
-                        class="px-3 flex items-center justify-center border-r border-transparent group-hover:border-gray-100 dark:group-hover:border-zinc-800/50"
-                        @click.stop
-                    >
+                    <div v-if="selectMode" class="flex items-center px-2" @click.stop>
                         <input
                             v-model="selectedArchives"
                             type="checkbox"
-                            class="rounded-sm border-gray-300 dark:border-zinc-700 text-blue-500 focus:ring-blue-500/20 bg-white dark:bg-zinc-800"
+                            class="rounded border-sem-border text-sem-accent focus:ring-sem-accent/30"
                             :value="archive.id"
                         />
                     </div>
 
-                    <!-- Content Area -->
-                    <button class="flex-1 text-left p-4 pl-1" @click="viewArchive(archive)">
-                        <div class="text-sm font-bold text-gray-900 dark:text-white mb-1 truncate">
-                            {{ archive.page_path || "/" }}
-                        </div>
-                        <div
-                            class="flex items-center justify-between text-[10px] text-gray-500 dark:text-gray-400 font-medium"
-                        >
-                            <div class="flex items-center gap-1">
+                    <button
+                        type="button"
+                        class="min-w-0 flex-1 px-2 py-2.5 text-left"
+                        :class="selectMode ? '' : 'pl-3'"
+                        @click="viewArchive(archive)"
+                    >
+                        <div class="truncate text-sm font-medium">{{ archive.page_path || "/" }}</div>
+                        <div class="mt-1 flex items-center justify-between gap-2 text-xs text-sem-fg-muted">
+                            <span class="inline-flex items-center gap-1">
                                 <MaterialDesignIcon icon-name="clock-outline" class="size-3" />
-                                <span>{{ formatDate(archive.created_at) }}</span>
-                            </div>
-                            <div class="font-mono opacity-50">{{ archive.hash.substring(0, 8) }}</div>
+                                {{ formatDate(archive.created_at) }}
+                            </span>
+                            <span class="font-mono opacity-60">{{ archive.hash.substring(0, 8) }}</span>
                         </div>
                     </button>
 
-                    <!-- Individual Delete (visible on hover) -->
                     <button
-                        class="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
-                        title="Delete snapshot"
+                        type="button"
+                        class="self-center rounded-lg p-2 text-sem-fg-muted opacity-0 transition-opacity hover:text-red-500 group-hover:opacity-100"
+                        :title="$t('archives.delete_snapshot')"
                         @click.stop="deleteArchive(archive)"
                     >
                         <MaterialDesignIcon icon-name="trash-can-outline" class="size-4" />
@@ -128,77 +131,63 @@
             </div>
         </div>
 
-        <!-- Main Content: The Micron Render -->
         <div
-            class="flex-1 flex flex-col min-w-0 bg-black overflow-hidden"
+            class="flex min-w-0 flex-1 flex-col overflow-hidden bg-sem-canvas"
             :class="{ 'hidden sm:flex': !viewingArchive }"
         >
-            <!-- Content Header -->
-            <div
-                v-if="viewingArchive"
-                class="flex shrink-0 items-center gap-2 border-b border-gray-200 bg-white p-2 text-gray-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100"
-            >
-                <button class="p-1 text-gray-500 sm:hidden dark:text-zinc-500" @click="viewingArchive = null">
-                    <MaterialDesignIcon icon-name="arrow-left" class="size-6" />
+            <div v-if="viewingArchive" class="flex shrink-0 items-center gap-1 border-b border-sem-border px-2 py-2">
+                <button
+                    type="button"
+                    class="rounded-lg p-1 text-sem-fg-muted hover:bg-sem-surface/60 sm:hidden"
+                    @click="viewingArchive = null"
+                >
+                    <MaterialDesignIcon icon-name="arrow-left" class="size-5" />
                 </button>
 
-                <div class="min-w-0 flex-1 px-2">
-                    <div
-                        class="mb-0.5 text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-zinc-500"
-                    >
-                        Viewing Archive
-                    </div>
-                    <div class="truncate font-mono text-sm text-gray-900 dark:text-white">
-                        {{ viewingArchive.page_path || "/" }}
-                    </div>
+                <div class="min-w-0 flex-1 px-1">
+                    <div class="text-xs text-sem-fg-muted">{{ $t("archives.viewing_archive") }}</div>
+                    <div class="truncate font-mono text-sm">{{ viewingArchive.page_path || "/" }}</div>
                 </div>
 
-                <div class="flex items-center gap-1">
+                <div class="flex items-center gap-0.5">
                     <button
-                        class="hidden rounded-sm p-2 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800 sm:block"
-                        :class="{
-                            'text-blue-600 dark:text-blue-400': !isSidebar1Hidden,
-                            'text-gray-400 dark:text-zinc-500': isSidebar1Hidden,
-                        }"
-                        :title="isSidebar1Hidden ? 'Show Nodes' : 'Hide Nodes'"
+                        type="button"
+                        class="hidden rounded-lg p-2 hover:bg-sem-surface/60 sm:block"
+                        :class="isSidebar1Hidden ? 'text-sem-fg-muted' : 'text-sem-accent'"
+                        :title="isSidebar1Hidden ? $t('archives.show_nodes') : $t('archives.hide_nodes')"
                         @click="isSidebar1Hidden = !isSidebar1Hidden"
                     >
                         <MaterialDesignIcon icon-name="page-layout-sidebar-left" class="size-4" />
                     </button>
                     <button
-                        class="hidden rounded-sm p-2 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800 sm:block"
-                        :class="{
-                            'text-blue-600 dark:text-blue-400': !isSidebar2Hidden,
-                            'text-gray-400 dark:text-zinc-500': isSidebar2Hidden,
-                        }"
-                        :title="isSidebar2Hidden ? 'Show Snapshots' : 'Hide Snapshots'"
+                        type="button"
+                        class="hidden rounded-lg p-2 hover:bg-sem-surface/60 sm:block"
+                        :class="isSidebar2Hidden ? 'text-sem-fg-muted' : 'text-sem-accent'"
+                        :title="isSidebar2Hidden ? $t('archives.show_snapshots') : $t('archives.hide_snapshots')"
                         @click="isSidebar2Hidden = !isSidebar2Hidden"
                     >
                         <MaterialDesignIcon icon-name="view-list" class="size-4" />
                     </button>
-                    <div class="mx-1 hidden h-6 w-px bg-gray-200 dark:bg-zinc-800 sm:block"></div>
                     <button
-                        class="flex items-center gap-2 rounded-sm p-2 text-gray-700 transition-colors hover:bg-gray-100 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                        type="button"
+                        class="rounded-lg p-2 text-sem-fg hover:bg-sem-surface/60"
                         :title="$t('archives.export_mu')"
                         @click="exportArchiveAsMu(viewingArchive)"
                     >
                         <MaterialDesignIcon icon-name="download" class="size-4" />
-                        <span class="hidden text-xs font-bold uppercase tracking-wider xs:inline">{{
-                            $t("archives.export_mu")
-                        }}</span>
                     </button>
-                    <div class="mx-1 hidden h-6 w-px bg-gray-200 dark:bg-zinc-800 xs:block"></div>
                     <button
-                        class="flex items-center gap-2 rounded-sm p-2 text-blue-600 transition-colors hover:bg-gray-100 dark:text-blue-400 dark:hover:bg-zinc-800"
+                        type="button"
+                        class="rounded-lg p-2 text-sem-accent hover:bg-sem-surface/60"
+                        :title="$t('archives.open_live')"
                         @click="openInNomadnet(viewingArchive)"
                     >
                         <MaterialDesignIcon icon-name="open-in-new" class="size-4" />
-                        <span class="hidden text-xs font-bold uppercase tracking-wider xs:inline">Open Live</span>
                     </button>
-                    <div class="mx-1 hidden h-6 w-px bg-gray-200 dark:bg-zinc-800 xs:block"></div>
                     <button
-                        class="hidden rounded-sm p-2 transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800 sm:block"
-                        title="Close"
+                        type="button"
+                        class="hidden rounded-lg p-2 text-sem-fg-muted hover:bg-sem-surface/60 sm:block"
+                        :title="$t('common.cancel')"
                         @click="viewingArchive = null"
                     >
                         <MaterialDesignIcon icon-name="close" class="size-5" />
@@ -206,21 +195,20 @@
                 </div>
             </div>
 
-            <!-- Rendered Content -->
-            <div class="flex-1 overflow-y-auto p-4 nodeContainer overscroll-contain">
-                <div v-if="isLoading" class="flex items-center justify-center h-full text-zinc-500">
+            <div class="nodeContainer flex-1 overflow-y-auto overscroll-contain p-4">
+                <div v-if="isLoading" class="flex h-full items-center justify-center text-sem-fg-muted">
                     <MaterialDesignIcon icon-name="refresh" class="size-8 animate-spin-reverse" />
                 </div>
                 <div
                     v-else-if="!viewingArchive"
-                    class="flex flex-col items-center justify-center h-full text-zinc-600 gap-4"
+                    class="flex h-full flex-col items-center justify-center gap-3 text-sem-fg-muted"
                 >
-                    <MaterialDesignIcon icon-name="archive-clock-outline" class="size-16 opacity-20" />
-                    <div class="text-sm font-bold uppercase tracking-widest opacity-50">Select a snapshot to view</div>
+                    <MaterialDesignIcon icon-name="archive-clock-outline" class="size-14 opacity-30" />
+                    <div class="text-sm">{{ $t("archives.select_snapshot") }}</div>
                 </div>
                 <div
                     v-else
-                    class="h-full selection:bg-blue-500/30"
+                    class="h-full selection:bg-sem-accent/30"
                     :class="archiveViewerClasses"
                     @click.capture="onArchiveContentClick"
                     v-html="renderedContent"
@@ -262,6 +250,7 @@ export default {
             renderedContent: "",
             searchQuery: "",
             selectedArchives: [],
+            selectMode: false,
             pagination: {
                 page: 1,
                 limit: 500, // Reduced from 1000 to improve initial load
@@ -445,6 +434,7 @@ export default {
         onNodeSelect(node) {
             this.selectedNodeHash = node.destination_hash;
             this.selectedArchives = [];
+            this.selectMode = false;
             // On desktop, auto-select latest archive. On mobile, just show the list.
             if (window.innerWidth >= 640 && node.archives && node.archives.length > 0) {
                 this.viewingArchive = node.archives[0];
@@ -458,6 +448,10 @@ export default {
             } else if (this.selectedNode) {
                 this.selectedArchives = this.selectedNode.archives.map((a) => a.id);
             }
+        },
+        exitSelectMode() {
+            this.selectMode = false;
+            this.selectedArchives = [];
         },
         async deleteSelected() {
             if (this.selectedArchives.length === 0) return;

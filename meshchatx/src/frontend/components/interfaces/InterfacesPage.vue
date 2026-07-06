@@ -705,17 +705,17 @@
                 </div>
             </div>
         </div>
+
+        <RouterLink
+            :to="{ name: 'interfaces.add' }"
+            class="sm:hidden fixed bottom-5 right-4 z-60 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg ring-1 ring-blue-400/30 transition active:scale-95"
+            :title="$t('interfaces.add_interface')"
+        >
+            <MaterialDesignIcon icon-name="plus" class="w-7 h-7" />
+        </RouterLink>
+
+        <ImportInterfacesModal ref="import-interfaces-modal" @dismissed="onImportInterfacesModalDismissed" />
     </div>
-
-    <RouterLink
-        :to="{ name: 'interfaces.add' }"
-        class="sm:hidden fixed bottom-5 right-4 z-60 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg ring-1 ring-blue-400/30 transition active:scale-95"
-        :title="$t('interfaces.add_interface')"
-    >
-        <MaterialDesignIcon icon-name="plus" class="w-7 h-7" />
-    </RouterLink>
-
-    <ImportInterfacesModal ref="import-interfaces-modal" @dismissed="onImportInterfacesModalDismissed" />
 </template>
 
 <script>

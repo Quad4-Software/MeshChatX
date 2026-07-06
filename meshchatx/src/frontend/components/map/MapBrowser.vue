@@ -1,10 +1,10 @@
 <!-- SPDX-License-Identifier: 0BSD AND MIT -->
 
 <template>
-    <div class="flex flex-1 min-w-0 h-full flex-col overflow-hidden">
+    <div class="flex flex-1 min-w-0 h-full flex-col overflow-hidden bg-sem-canvas text-sem-fg">
         <div
             v-if="showTabStrip"
-            class="flex items-stretch h-9 shrink-0 border-b border-gray-200 dark:border-zinc-800 bg-gray-50 dark:bg-zinc-900 overflow-x-auto"
+            class="flex h-9 shrink-0 items-stretch overflow-x-auto border-b border-sem-border bg-sem-surface-muted"
             role="tablist"
         >
             <button
@@ -13,11 +13,11 @@
                 type="button"
                 role="tab"
                 :aria-selected="tab.id === activeTabId"
-                class="group flex items-center gap-1.5 min-w-[8rem] max-w-[14rem] px-3 border-r border-gray-200 dark:border-zinc-800 text-sm transition-colors"
+                class="group flex min-w-[7rem] max-w-[14rem] items-center gap-1.5 border-r border-sem-border px-3 text-sm transition-colors"
                 :class="
                     tab.id === activeTabId
-                        ? 'bg-white dark:bg-zinc-950 text-gray-900 dark:text-gray-100'
-                        : 'text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800'
+                        ? 'bg-sem-canvas font-medium text-sem-fg'
+                        : 'text-sem-fg-muted hover:bg-sem-surface/80'
                 "
                 @click="selectTab(tab.id)"
             >
@@ -27,7 +27,7 @@
                     ref="renameInput"
                     v-model="renameDraft"
                     type="text"
-                    class="flex-1 min-w-0 bg-transparent border-b border-blue-500 outline-none text-sm text-gray-900 dark:text-gray-100"
+                    class="min-w-0 flex-1 border-b border-sem-accent bg-transparent text-sm text-sem-fg outline-none"
                     :maxlength="64"
                     @click.stop
                     @keydown.enter.prevent="commitRename"
@@ -36,7 +36,7 @@
                 />
                 <span
                     v-else
-                    class="truncate flex-1 text-left"
+                    class="min-w-0 flex-1 truncate text-left"
                     :title="$t('map.tab_rename_hint')"
                     @dblclick.stop="startRename(tab.id)"
                     @touchend.stop="onTabLabelTouchEnd(tab, $event)"
@@ -44,7 +44,7 @@
                     {{ tabTitle(tab) }}
                 </span>
                 <span
-                    class="shrink-0 rounded p-0.5 text-gray-400 hover:bg-gray-200 hover:text-gray-700 dark:hover:bg-zinc-700 dark:hover:text-gray-200"
+                    class="shrink-0 rounded p-0.5 text-sem-fg-muted hover:bg-sem-surface hover:text-sem-fg"
                     :title="$t('common.cancel')"
                     @click.stop="closeTab(tab.id)"
                 >
@@ -53,7 +53,7 @@
             </button>
             <button
                 type="button"
-                class="flex items-center justify-center w-9 shrink-0 text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                class="flex w-9 shrink-0 items-center justify-center text-sem-fg-muted transition-colors hover:bg-sem-surface/80"
                 :title="$t('map.new_tab_shortcut')"
                 @click="addTab()"
             >

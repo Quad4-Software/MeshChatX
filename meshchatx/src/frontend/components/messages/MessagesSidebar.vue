@@ -842,7 +842,7 @@ export default {
         },
         selectedDestinationHash: {
             type: String,
-            required: true,
+            default: "",
         },
         conversationSearchTerm: {
             type: String,

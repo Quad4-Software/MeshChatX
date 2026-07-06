@@ -153,2667 +153,2609 @@
                     </button>
                 </div>
 
-                <!-- settings grid -->
-                <div
-                    v-show="hasSearchResults"
-                    class="columns-1 md:columns-2 xl:columns-2 2xl:columns-3 gap-x-8 gap-y-0"
-                >
-                    <SettingsSectionBlock
-                        v-show="matchesSearch(...sectionKeywords.strangerProtection)"
-                        eyebrow="Security"
-                        :title="$t('app.stranger_protection')"
-                        :description="$t('app.stranger_protection_description')"
-                        body-class="space-y-4"
-                    >
-                        <label class="setting-toggle">
-                            <Toggle
-                                id="block-attachments-from-strangers"
-                                v-model="config.block_attachments_from_strangers"
-                                @update:model-value="onStrangerAttachmentBlockChange"
-                            />
-                            <span class="setting-toggle__label">
-                                <span class="setting-toggle__title">{{ $t("app.block_stranger_attachments") }}</span>
-                                <span class="setting-toggle__description">{{
-                                    $t("app.block_stranger_attachments_description")
-                                }}</span>
-                            </span>
-                        </label>
-                        <label class="setting-toggle">
-                            <Toggle
-                                id="block-all-from-strangers"
-                                v-model="config.block_all_from_strangers"
-                                @update:model-value="onBlockAllFromStrangersChange"
-                            />
-                            <span class="setting-toggle__label">
-                                <span class="setting-toggle__title">{{ $t("app.block_all_from_strangers") }}</span>
-                                <span class="setting-toggle__description">{{
-                                    $t("app.block_all_from_strangers_description")
-                                }}</span>
-                            </span>
-                        </label>
-                        <label class="setting-toggle">
-                            <Toggle
-                                id="show-unknown-contact-banner"
-                                v-model="config.show_unknown_contact_banner"
-                                @update:model-value="onShowUnknownContactBannerChange"
-                            />
-                            <span class="setting-toggle__label">
-                                <span class="setting-toggle__title">{{ $t("app.show_unknown_contact_banner") }}</span>
-                                <span class="setting-toggle__description">{{
-                                    $t("app.show_unknown_contact_banner_description")
-                                }}</span>
-                            </span>
-                        </label>
-                        <label class="setting-toggle">
-                            <Toggle
-                                id="warn-on-stranger-links"
-                                v-model="config.warn_on_stranger_links"
-                                @update:model-value="onWarnOnStrangerLinksChange"
-                            />
-                            <span class="setting-toggle__label">
-                                <span class="setting-toggle__title">{{ $t("app.warn_on_stranger_links") }}</span>
-                                <span class="setting-toggle__description">{{
-                                    $t("app.warn_on_stranger_links_description")
-                                }}</span>
-                            </span>
-                        </label>
-                    </SettingsSectionBlock>
-
-                    <section
-                        v-show="matchesSearch(...sectionKeywords.banishment)"
-                        class="settings-section break-inside-avoid"
-                    >
-                        <header class="settings-section__header">
-                            <div>
-                                <div class="settings-section__eyebrow">Visuals</div>
-                                <h2>{{ $t("app.banishment") }}</h2>
-                                <p>{{ $t("app.banishment_description") }}</p>
-                            </div>
-                        </header>
-                        <div class="settings-section__body space-y-4">
+                <!-- settings panel -->
+                <div v-show="hasSearchResults" class="settings-panel">
+                    <SettingsNav
+                        v-if="!settingsSearchActive"
+                        :active-tab="activeSettingsTab"
+                        @select="selectSettingsTab"
+                    />
+                    <div class="settings-panel__content">
+                        <SettingsSectionBlock
+                            v-show="showSection('strangerProtection')"
+                            eyebrow="Security"
+                            :title="$t('app.stranger_protection')"
+                            :description="$t('app.stranger_protection_description')"
+                            body-class="space-y-4"
+                        >
                             <label class="setting-toggle">
                                 <Toggle
-                                    id="banished-effect-enabled"
-                                    v-model="config.banished_effect_enabled"
-                                    @update:model-value="onBanishedEffectEnabledChange"
+                                    id="block-attachments-from-strangers"
+                                    v-model="config.block_attachments_from_strangers"
+                                    @update:model-value="onStrangerAttachmentBlockChange"
                                 />
                                 <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">{{ $t("app.banished_effect_enabled") }}</span>
+                                    <span class="setting-toggle__title">{{
+                                        $t("app.block_stranger_attachments")
+                                    }}</span>
                                     <span class="setting-toggle__description">{{
-                                        $t("app.banished_effect_description")
+                                        $t("app.block_stranger_attachments_description")
                                     }}</span>
                                 </span>
                             </label>
+                            <label class="setting-toggle">
+                                <Toggle
+                                    id="block-all-from-strangers"
+                                    v-model="config.block_all_from_strangers"
+                                    @update:model-value="onBlockAllFromStrangersChange"
+                                />
+                                <span class="setting-toggle__label">
+                                    <span class="setting-toggle__title">{{ $t("app.block_all_from_strangers") }}</span>
+                                    <span class="setting-toggle__description">{{
+                                        $t("app.block_all_from_strangers_description")
+                                    }}</span>
+                                </span>
+                            </label>
+                            <label class="setting-toggle">
+                                <Toggle
+                                    id="show-unknown-contact-banner"
+                                    v-model="config.show_unknown_contact_banner"
+                                    @update:model-value="onShowUnknownContactBannerChange"
+                                />
+                                <span class="setting-toggle__label">
+                                    <span class="setting-toggle__title">{{
+                                        $t("app.show_unknown_contact_banner")
+                                    }}</span>
+                                    <span class="setting-toggle__description">{{
+                                        $t("app.show_unknown_contact_banner_description")
+                                    }}</span>
+                                </span>
+                            </label>
+                            <label class="setting-toggle">
+                                <Toggle
+                                    id="warn-on-stranger-links"
+                                    v-model="config.warn_on_stranger_links"
+                                    @update:model-value="onWarnOnStrangerLinksChange"
+                                />
+                                <span class="setting-toggle__label">
+                                    <span class="setting-toggle__title">{{ $t("app.warn_on_stranger_links") }}</span>
+                                    <span class="setting-toggle__description">{{
+                                        $t("app.warn_on_stranger_links_description")
+                                    }}</span>
+                                </span>
+                            </label>
+                        </SettingsSectionBlock>
 
-                            <div v-if="config.banished_effect_enabled" class="space-y-4">
-                                <div class="space-y-2">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                        {{ $t("app.banished_text_label") }}
-                                    </div>
-                                    <input
-                                        v-model="config.banished_text"
-                                        type="text"
-                                        class="input-field"
-                                        @input="onBanishedConfigChange"
-                                    />
-                                    <div class="text-xs text-gray-600 dark:text-gray-400">
-                                        {{ $t("app.banished_text_description") }}
-                                    </div>
+                        <section v-show="showSection('banishment')" class="settings-section break-inside-avoid">
+                            <header class="settings-section__header">
+                                <div>
+                                    <div class="settings-section__eyebrow">Visuals</div>
+                                    <h2>{{ $t("app.banishment") }}</h2>
+                                    <p>{{ $t("app.banishment_description") }}</p>
                                 </div>
+                            </header>
+                            <div class="settings-section__body space-y-4">
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="banished-effect-enabled"
+                                        v-model="config.banished_effect_enabled"
+                                        @update:model-value="onBanishedEffectEnabledChange"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{
+                                            $t("app.banished_effect_enabled")
+                                        }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("app.banished_effect_description")
+                                        }}</span>
+                                    </span>
+                                </label>
 
-                                <div class="space-y-2">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                        {{ $t("app.banished_color_label") }}
-                                    </div>
-                                    <div class="flex gap-2">
+                                <div v-if="config.banished_effect_enabled" class="space-y-4">
+                                    <div class="space-y-2">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            {{ $t("app.banished_text_label") }}
+                                        </div>
                                         <input
-                                            v-model="config.banished_color"
-                                            type="color"
-                                            class="w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 cursor-pointer"
-                                            @input="onBanishedConfigChange"
-                                        />
-                                        <input
-                                            v-model="config.banished_color"
+                                            v-model="config.banished_text"
                                             type="text"
-                                            class="input-field monospace-field"
+                                            class="input-field"
                                             @input="onBanishedConfigChange"
                                         />
-                                    </div>
-                                    <div class="text-xs text-gray-600 dark:text-gray-400">
-                                        {{ $t("app.banished_color_description") }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section
-                        v-show="matchesSearch(...sectionKeywords.stickers)"
-                        class="settings-section break-inside-avoid"
-                    >
-                        <header class="settings-section__header">
-                            <div>
-                                <div class="settings-section__eyebrow">Messages</div>
-                                <h2>{{ $t("stickers.settings_title") }}</h2>
-                                <p>{{ $t("stickers.settings_description") }}</p>
-                            </div>
-                        </header>
-                        <div class="settings-section__body space-y-4">
-                            <div class="text-sm text-gray-600 dark:text-gray-400">
-                                {{ $t("stickers.count", { count: stickerCount }) }}
-                            </div>
-                            <label
-                                class="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 cursor-pointer"
-                            >
-                                <input v-model="stickerImportReplaceDuplicates" type="checkbox" class="rounded-sm" />
-                                {{ $t("stickers.replace_duplicates") }}
-                            </label>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <button
-                                    type="button"
-                                    class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-amber-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-amber-500 transition group"
-                                    @click="exportStickers"
-                                >
-                                    <MaterialDesignIcon
-                                        icon-name="export"
-                                        class="size-6 text-amber-500 group-hover:scale-110 transition"
-                                    />
-                                    <div class="text-sm font-bold">{{ $t("stickers.export") }}</div>
-                                </button>
-                                <button
-                                    type="button"
-                                    class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-teal-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-teal-500 transition group"
-                                    @click="triggerStickerImport"
-                                >
-                                    <MaterialDesignIcon
-                                        icon-name="import"
-                                        class="size-6 text-teal-500 group-hover:scale-110 transition"
-                                    />
-                                    <div class="text-sm font-bold">{{ $t("stickers.import") }}</div>
-                                </button>
-                                <input
-                                    ref="stickerImportFile"
-                                    type="file"
-                                    accept=".json,application/json"
-                                    class="hidden"
-                                    @change="importStickers"
-                                />
-                            </div>
-                            <div class="border-t border-gray-200 dark:border-zinc-700 pt-4">
-                                <h3 class="text-sm font-semibold mb-2 text-gray-800 dark:text-zinc-100">
-                                    {{ $t("sticker_packs.section_title") }}
-                                </h3>
-                                <p class="text-xs text-gray-500 dark:text-zinc-400 mb-3">
-                                    {{ $t("sticker_packs.section_description") }}
-                                </p>
-                                <StickerPacksManager />
-                            </div>
-                        </div>
-                    </section>
-
-                    <section
-                        v-show="matchesSearch(...sectionKeywords.gifs)"
-                        class="settings-section break-inside-avoid"
-                    >
-                        <header class="settings-section__header">
-                            <div>
-                                <div class="settings-section__eyebrow">Messages</div>
-                                <h2>{{ $t("gifs.settings_title") }}</h2>
-                                <p>{{ $t("gifs.settings_description") }}</p>
-                            </div>
-                        </header>
-                        <div class="settings-section__body space-y-4">
-                            <div class="text-sm text-gray-600 dark:text-gray-400">
-                                {{ $t("gifs.count", { count: gifCount }) }}
-                            </div>
-                            <label
-                                class="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 cursor-pointer"
-                            >
-                                <input v-model="gifImportReplaceDuplicates" type="checkbox" class="rounded-sm" />
-                                {{ $t("gifs.replace_duplicates") }}
-                            </label>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <button
-                                    type="button"
-                                    class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-amber-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-amber-500 transition group"
-                                    @click="exportGifs"
-                                >
-                                    <MaterialDesignIcon
-                                        icon-name="export"
-                                        class="size-6 text-amber-500 group-hover:scale-110 transition"
-                                    />
-                                    <div class="text-sm font-bold">{{ $t("gifs.export") }}</div>
-                                </button>
-                                <button
-                                    type="button"
-                                    class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-teal-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-teal-500 transition group"
-                                    @click="triggerGifImport"
-                                >
-                                    <MaterialDesignIcon
-                                        icon-name="import"
-                                        class="size-6 text-teal-500 group-hover:scale-110 transition"
-                                    />
-                                    <div class="text-sm font-bold">{{ $t("gifs.import") }}</div>
-                                </button>
-                                <input
-                                    ref="gifImportFile"
-                                    type="file"
-                                    accept=".json,application/json"
-                                    class="hidden"
-                                    @change="importGifs"
-                                />
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- Maintenance & Data -->
-                    <section
-                        v-show="matchesSearch(...sectionKeywords.maintenance)"
-                        class="settings-section break-inside-avoid"
-                    >
-                        <header class="settings-section__header">
-                            <div>
-                                <div class="settings-section__eyebrow">Maintenance</div>
-                                <h2>{{ $t("maintenance.title") }}</h2>
-                                <p>{{ $t("maintenance.description") }}</p>
-                            </div>
-                        </header>
-                        <div class="settings-section__body space-y-4">
-                            <div class="grid grid-cols-1 gap-3">
-                                <button
-                                    type="button"
-                                    class="btn-maintenance border-red-200 dark:border-red-900/30 text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20"
-                                    @click="clearMessages"
-                                >
-                                    <div class="flex flex-col items-start text-left">
-                                        <div class="font-bold flex items-center gap-2">
-                                            <MaterialDesignIcon icon-name="forum-remove-outline" class="size-4" />
-                                            {{ $t("maintenance.clear_messages") }}
-                                        </div>
-                                        <div class="text-xs opacity-80">
-                                            {{ $t("maintenance.clear_messages_desc") }}
+                                        <div class="text-xs text-gray-600 dark:text-gray-400">
+                                            {{ $t("app.banished_text_description") }}
                                         </div>
                                     </div>
-                                </button>
 
-                                <button
-                                    type="button"
-                                    class="btn-maintenance border-orange-200 dark:border-orange-900/30 text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-900/10 hover:bg-orange-100 dark:hover:bg-orange-900/20"
-                                    @click="clearAnnounces"
-                                >
-                                    <div class="flex flex-col items-start text-left">
-                                        <div class="font-bold flex items-center gap-2">
-                                            <MaterialDesignIcon icon-name="broadcast-off" class="size-4" />
-                                            {{ $t("maintenance.clear_announces") }}
+                                    <div class="space-y-2">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            {{ $t("app.banished_color_label") }}
                                         </div>
-                                        <div class="text-xs opacity-80">
-                                            {{ $t("maintenance.clear_announces_desc") }}
+                                        <div class="flex gap-2">
+                                            <input
+                                                v-model="config.banished_color"
+                                                type="color"
+                                                class="w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 cursor-pointer"
+                                                @input="onBanishedConfigChange"
+                                            />
+                                            <input
+                                                v-model="config.banished_color"
+                                                type="text"
+                                                class="input-field monospace-field"
+                                                @input="onBanishedConfigChange"
+                                            />
                                         </div>
-                                    </div>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    class="btn-maintenance border-indigo-200 dark:border-indigo-900/30 text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/10 hover:bg-indigo-100 dark:hover:bg-indigo-900/20"
-                                    @click="clearNomadnetFavorites"
-                                >
-                                    <div class="flex flex-col items-start text-left">
-                                        <div class="font-bold flex items-center gap-2">
-                                            <MaterialDesignIcon icon-name="bookmark-remove" class="size-4" />
-                                            {{ $t("maintenance.clear_nomadnet_favs") }}
+                                        <div class="text-xs text-gray-600 dark:text-gray-400">
+                                            {{ $t("app.banished_color_description") }}
                                         </div>
-                                        <div class="text-xs opacity-80">
-                                            {{ $t("maintenance.clear_nomadnet_favs_desc") }}
-                                        </div>
-                                    </div>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    class="btn-maintenance border-emerald-200 dark:border-emerald-900/30 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/10 hover:bg-emerald-100 dark:hover:bg-emerald-900/20"
-                                    @click="clearLxmfIcons"
-                                >
-                                    <div class="flex flex-col items-start text-left">
-                                        <div class="font-bold flex items-center gap-2">
-                                            <MaterialDesignIcon icon-name="account-off" class="size-4" />
-                                            {{ $t("maintenance.clear_lxmf_icons") }}
-                                        </div>
-                                        <div class="text-xs opacity-80">
-                                            {{ $t("maintenance.clear_lxmf_icons_desc") }}
-                                        </div>
-                                    </div>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    class="btn-maintenance border-amber-200 dark:border-amber-900/30 text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/10 hover:bg-amber-100 dark:hover:bg-amber-900/20"
-                                    @click="clearStickers"
-                                >
-                                    <div class="flex flex-col items-start text-left">
-                                        <div class="font-bold flex items-center gap-2">
-                                            <MaterialDesignIcon icon-name="emoticon-outline" class="size-4" />
-                                            {{ $t("maintenance.clear_stickers") }}
-                                        </div>
-                                        <div class="text-xs opacity-80">
-                                            {{ $t("maintenance.clear_stickers_desc") }}
-                                        </div>
-                                    </div>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    class="btn-maintenance border-pink-200 dark:border-pink-900/30 text-pink-700 dark:text-pink-300 bg-pink-50 dark:bg-pink-900/10 hover:bg-pink-100 dark:hover:bg-pink-900/20"
-                                    @click="clearGifs"
-                                >
-                                    <div class="flex flex-col items-start text-left">
-                                        <div class="font-bold flex items-center gap-2">
-                                            <MaterialDesignIcon icon-name="file-gif-box" class="size-4" />
-                                            {{ $t("maintenance.clear_gifs") }}
-                                        </div>
-                                        <div class="text-xs opacity-80">
-                                            {{ $t("maintenance.clear_gifs_desc") }}
-                                        </div>
-                                    </div>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    class="btn-maintenance border-blue-200 dark:border-blue-900/30 text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/10 hover:bg-blue-100 dark:hover:bg-blue-900/20"
-                                    @click="clearArchives"
-                                >
-                                    <div class="flex flex-col items-start text-left">
-                                        <div class="font-bold flex items-center gap-2">
-                                            <MaterialDesignIcon icon-name="delete-sweep" class="size-4" />
-                                            {{ $t("maintenance.clear_archives") }}
-                                        </div>
-                                        <div class="text-xs opacity-80">
-                                            {{ $t("maintenance.clear_archives_desc") }}
-                                        </div>
-                                    </div>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    class="btn-maintenance border-orange-200 dark:border-orange-900/30 text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-900/10 hover:bg-orange-100 dark:hover:bg-orange-900/20"
-                                    @click="clearReticulumDocs"
-                                >
-                                    <div class="flex flex-col items-start text-left">
-                                        <div class="font-bold flex items-center gap-2">
-                                            <MaterialDesignIcon icon-name="book-remove" class="size-4" />
-                                            {{ $t("maintenance.clear_reticulum_docs") }}
-                                        </div>
-                                        <div class="text-xs opacity-80">
-                                            {{ $t("maintenance.clear_reticulum_docs_desc") }}
-                                        </div>
-                                    </div>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    class="btn-maintenance border-teal-200 dark:border-teal-900/30 text-teal-800 dark:text-teal-300 bg-teal-50 dark:bg-teal-900/10 hover:bg-teal-100 dark:hover:bg-teal-900/20"
-                                    @click="clearPathTable"
-                                >
-                                    <div class="flex flex-col items-start text-left">
-                                        <div class="font-bold flex items-center gap-2">
-                                            <MaterialDesignIcon icon-name="map-marker-remove" class="size-4" />
-                                            {{ $t("maintenance.clear_path_table") }}
-                                        </div>
-                                        <div class="text-xs opacity-80">
-                                            {{ $t("maintenance.clear_path_table_desc") }}
-                                        </div>
-                                    </div>
-                                </button>
-                            </div>
-
-                            <div class="space-y-2 pt-2 border-t border-gray-100 dark:border-zinc-800">
-                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    Automatic Backup Limit
-                                </div>
-                                <input
-                                    v-model.number="config.backup_max_count"
-                                    type="number"
-                                    min="1"
-                                    max="50"
-                                    class="input-field"
-                                    @input="onBackupConfigChange"
-                                />
-                                <div class="text-xs text-gray-600 dark:text-gray-400">
-                                    Number of automatic backups to keep.
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-3 mt-4">
-                                <button
-                                    type="button"
-                                    class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-blue-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-blue-500 transition group"
-                                    @click="exportMessages"
-                                >
-                                    <MaterialDesignIcon
-                                        icon-name="export"
-                                        class="size-6 text-blue-500 group-hover:scale-110 transition"
-                                    />
-                                    <div class="text-sm font-bold">{{ $t("maintenance.export_messages") }}</div>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-emerald-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-emerald-500 transition group"
-                                    @click="triggerImport"
-                                >
-                                    <MaterialDesignIcon
-                                        icon-name="import"
-                                        class="size-6 text-emerald-500 group-hover:scale-110 transition"
-                                    />
-                                    <div class="text-sm font-bold">{{ $t("maintenance.import_messages") }}</div>
-                                </button>
-                                <input
-                                    ref="importFile"
-                                    type="file"
-                                    accept=".json"
-                                    class="hidden"
-                                    @change="importMessages"
-                                />
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-3 mt-2 pt-4 border-t border-gray-100 dark:border-zinc-800">
-                                <button
-                                    type="button"
-                                    class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-purple-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-purple-500 transition group"
-                                    @click="exportFolders"
-                                >
-                                    <MaterialDesignIcon
-                                        icon-name="folder-download-outline"
-                                        class="size-6 text-purple-500 group-hover:scale-110 transition"
-                                    />
-                                    <div class="text-sm font-bold">Export Folders</div>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-indigo-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-indigo-500 transition group"
-                                    @click="triggerFolderImport"
-                                >
-                                    <MaterialDesignIcon
-                                        icon-name="folder-upload-outline"
-                                        class="size-6 text-indigo-500 group-hover:scale-110 transition"
-                                    />
-                                    <div class="text-sm font-bold">Import Folders</div>
-                                </button>
-                                <input
-                                    ref="importFolderFile"
-                                    type="file"
-                                    accept=".json"
-                                    class="hidden"
-                                    @change="importFolders"
-                                />
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-3 mt-2 pt-4 border-t border-gray-100 dark:border-zinc-800">
-                                <button
-                                    type="button"
-                                    class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-teal-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-teal-500 transition group"
-                                    @click="exportNomadnetFavouritesLayout"
-                                >
-                                    <MaterialDesignIcon
-                                        icon-name="file-export"
-                                        class="size-6 text-teal-500 group-hover:scale-110 transition"
-                                    />
-                                    <div class="text-sm font-bold">
-                                        {{ $t("maintenance.export_nomadnet_favourites") }}
-                                    </div>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-cyan-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-cyan-500 transition group"
-                                    @click="triggerNomadnetFavouritesImport"
-                                >
-                                    <MaterialDesignIcon
-                                        icon-name="import"
-                                        class="size-6 text-cyan-500 group-hover:scale-110 transition"
-                                    />
-                                    <div class="text-sm font-bold">
-                                        {{ $t("maintenance.import_nomadnet_favourites") }}
-                                    </div>
-                                </button>
-                                <input
-                                    ref="nomadnetFavouritesImportFile"
-                                    type="file"
-                                    accept=".json"
-                                    class="hidden"
-                                    @change="importNomadnetFavouritesLayoutFile"
-                                />
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- Telephony Settings -->
-                    <section
-                        v-show="matchesSearch(...sectionKeywords.telephony)"
-                        class="settings-section break-inside-avoid"
-                    >
-                        <header class="settings-section__header">
-                            <div>
-                                <div class="settings-section__eyebrow">Telephony</div>
-                                <h2>Telephone (LXST)</h2>
-                                <p>Enable or disable the integrated voice calling system.</p>
-                            </div>
-                        </header>
-                        <div class="settings-section__body space-y-4">
-                            <label class="setting-toggle">
-                                <Toggle
-                                    id="telephone-enabled-toggle"
-                                    v-model="config.telephone_enabled"
-                                    @update:model-value="onTelephoneEnabledChange"
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">Enable Telephone (LXST)</span>
-                                    <span class="setting-toggle__description">
-                                        Allow incoming and outgoing voice calls over the mesh network.
-                                    </span>
-                                    <span class="setting-toggle__hint">Disabling will end any active calls.</span>
-                                </span>
-                            </label>
-                        </div>
-                    </section>
-
-                    <!-- Desktop / Electron Settings -->
-                    <section
-                        v-if="ElectronUtils.isElectron()"
-                        v-show="matchesSearch(...sectionKeywords.desktop)"
-                        class="settings-section break-inside-avoid"
-                    >
-                        <header class="settings-section__header">
-                            <div>
-                                <div class="settings-section__eyebrow">Desktop</div>
-                                <h2>App Behaviour</h2>
-                                <p>Control how MeshChat behaves on your desktop.</p>
-                            </div>
-                        </header>
-                        <div class="settings-section__body space-y-4">
-                            <label class="setting-toggle opacity-50 cursor-not-allowed">
-                                <Toggle
-                                    id="desktop-open-calls-in-separate-window"
-                                    :model-value="false"
-                                    :disabled="true"
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">{{
-                                        $t("app.desktop_open_calls_in_separate_window")
-                                    }}</span>
-                                    <span class="setting-toggle__description">
-                                        {{ $t("app.desktop_open_calls_in_separate_window_description") }}
-                                        <span class="text-blue-500 font-bold block mt-1">(Phased out for now)</span>
-                                    </span>
-                                </span>
-                            </label>
-
-                            <label class="setting-toggle">
-                                <Toggle
-                                    id="desktop-hardware-acceleration-enabled"
-                                    v-model="config.desktop_hardware_acceleration_enabled"
-                                    @update:model-value="onDesktopHardwareAccelerationEnabledChange"
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">{{
-                                        $t("app.desktop_hardware_acceleration_enabled")
-                                    }}</span>
-                                    <span class="setting-toggle__description">{{
-                                        $t("app.desktop_hardware_acceleration_enabled_description")
-                                    }}</span>
-                                    <span class="setting-toggle__hint">{{ $t("app.requires_restart") }}</span>
-                                </span>
-                            </label>
-                        </div>
-                    </section>
-
-                    <section
-                        v-if="isMeshChatXAndroid"
-                        v-show="matchesSearch(...sectionKeywords.android)"
-                        class="settings-section break-inside-avoid"
-                    >
-                        <header class="settings-section__header">
-                            <div>
-                                <div class="settings-section__eyebrow">Android</div>
-                                <h2>{{ $t("settings.share_apk_heading") }}</h2>
-                                <p>{{ $t("settings.share_apk_desc") }}</p>
-                            </div>
-                        </header>
-                        <div class="settings-section__body space-y-4">
-                            <button
-                                type="button"
-                                class="btn-maintenance border-blue-200 dark:border-blue-900/30 text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/10 hover:bg-blue-100 dark:hover:bg-blue-900/20"
-                                @click="shareAndroidApk"
-                            >
-                                <div class="flex flex-col items-start text-left">
-                                    <div class="font-bold flex items-center gap-2">
-                                        <MaterialDesignIcon icon-name="share-variant" class="size-4" />
-                                        {{ $t("settings.share_apk") }}
-                                    </div>
-                                    <div class="text-xs opacity-80">
-                                        {{ $t("settings.share_apk_short_hint") }}
                                     </div>
                                 </div>
-                            </button>
-                        </div>
-                    </section>
-
-                    <!-- Page Archiver -->
-                    <section
-                        v-show="matchesSearch(...sectionKeywords.archiver)"
-                        class="settings-section break-inside-avoid"
-                    >
-                        <header class="settings-section__header">
-                            <div>
-                                <div class="settings-section__eyebrow">Browsing</div>
-                                <h2>Page Archiver</h2>
-                                <p>Automatically save copies of visited NomadNetwork pages.</p>
                             </div>
-                        </header>
-                        <div class="settings-section__body space-y-3">
-                            <label class="setting-toggle">
-                                <Toggle
-                                    id="page-archiver-enabled"
-                                    v-model="config.page_archiver_enabled"
-                                    @update:model-value="onPageArchiverEnabledChangeWrapper"
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">Enable Archiver</span>
-                                    <span class="setting-toggle__description"
-                                        >Automatically archive pages for offline viewing and fallback.</span
+                        </section>
+
+                        <section v-show="showSection('stickers')" class="settings-section break-inside-avoid">
+                            <header class="settings-section__header">
+                                <div>
+                                    <div class="settings-section__eyebrow">Messages</div>
+                                    <h2>{{ $t("stickers.settings_title") }}</h2>
+                                    <p>{{ $t("stickers.settings_description") }}</p>
+                                </div>
+                            </header>
+                            <div class="settings-section__body space-y-4">
+                                <div class="text-sm text-gray-600 dark:text-gray-400">
+                                    {{ $t("stickers.count", { count: stickerCount }) }}
+                                </div>
+                                <label
+                                    class="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 cursor-pointer"
+                                >
+                                    <input
+                                        v-model="stickerImportReplaceDuplicates"
+                                        type="checkbox"
+                                        class="rounded-sm"
+                                    />
+                                    {{ $t("stickers.replace_duplicates") }}
+                                </label>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <button
+                                        type="button"
+                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-amber-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-amber-500 transition group"
+                                        @click="exportStickers"
                                     >
-                                </span>
-                            </label>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div class="space-y-2">
+                                        <MaterialDesignIcon
+                                            icon-name="export"
+                                            class="size-6 text-amber-500 group-hover:scale-110 transition"
+                                        />
+                                        <div class="text-sm font-bold">{{ $t("stickers.export") }}</div>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-teal-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-teal-500 transition group"
+                                        @click="triggerStickerImport"
+                                    >
+                                        <MaterialDesignIcon
+                                            icon-name="import"
+                                            class="size-6 text-teal-500 group-hover:scale-110 transition"
+                                        />
+                                        <div class="text-sm font-bold">{{ $t("stickers.import") }}</div>
+                                    </button>
+                                    <input
+                                        ref="stickerImportFile"
+                                        type="file"
+                                        accept=".json,application/json"
+                                        class="hidden"
+                                        @change="importStickers"
+                                    />
+                                </div>
+                                <div class="border-t border-gray-200 dark:border-zinc-700 pt-4">
+                                    <h3 class="text-sm font-semibold mb-2 text-gray-800 dark:text-zinc-100">
+                                        {{ $t("sticker_packs.section_title") }}
+                                    </h3>
+                                    <p class="text-xs text-gray-500 dark:text-zinc-400 mb-3">
+                                        {{ $t("sticker_packs.section_description") }}
+                                    </p>
+                                    <StickerPacksManager />
+                                </div>
+                            </div>
+                        </section>
+
+                        <section v-show="showSection('gifs')" class="settings-section break-inside-avoid">
+                            <header class="settings-section__header">
+                                <div>
+                                    <div class="settings-section__eyebrow">Messages</div>
+                                    <h2>{{ $t("gifs.settings_title") }}</h2>
+                                    <p>{{ $t("gifs.settings_description") }}</p>
+                                </div>
+                            </header>
+                            <div class="settings-section__body space-y-4">
+                                <div class="text-sm text-gray-600 dark:text-gray-400">
+                                    {{ $t("gifs.count", { count: gifCount }) }}
+                                </div>
+                                <label
+                                    class="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 cursor-pointer"
+                                >
+                                    <input v-model="gifImportReplaceDuplicates" type="checkbox" class="rounded-sm" />
+                                    {{ $t("gifs.replace_duplicates") }}
+                                </label>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <button
+                                        type="button"
+                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-amber-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-amber-500 transition group"
+                                        @click="exportGifs"
+                                    >
+                                        <MaterialDesignIcon
+                                            icon-name="export"
+                                            class="size-6 text-amber-500 group-hover:scale-110 transition"
+                                        />
+                                        <div class="text-sm font-bold">{{ $t("gifs.export") }}</div>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-teal-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-teal-500 transition group"
+                                        @click="triggerGifImport"
+                                    >
+                                        <MaterialDesignIcon
+                                            icon-name="import"
+                                            class="size-6 text-teal-500 group-hover:scale-110 transition"
+                                        />
+                                        <div class="text-sm font-bold">{{ $t("gifs.import") }}</div>
+                                    </button>
+                                    <input
+                                        ref="gifImportFile"
+                                        type="file"
+                                        accept=".json,application/json"
+                                        class="hidden"
+                                        @change="importGifs"
+                                    />
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Maintenance & Data -->
+                        <section v-show="showSection('maintenance')" class="settings-section break-inside-avoid">
+                            <header class="settings-section__header">
+                                <div>
+                                    <div class="settings-section__eyebrow">Maintenance</div>
+                                    <h2>{{ $t("maintenance.title") }}</h2>
+                                    <p>{{ $t("maintenance.description") }}</p>
+                                </div>
+                            </header>
+                            <div class="settings-section__body space-y-4">
+                                <div class="grid grid-cols-1 gap-3">
+                                    <button
+                                        type="button"
+                                        class="btn-maintenance border-red-200 dark:border-red-900/30 text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20"
+                                        @click="clearMessages"
+                                    >
+                                        <div class="flex flex-col items-start text-left">
+                                            <div class="font-bold flex items-center gap-2">
+                                                <MaterialDesignIcon icon-name="forum-remove-outline" class="size-4" />
+                                                {{ $t("maintenance.clear_messages") }}
+                                            </div>
+                                            <div class="text-xs opacity-80">
+                                                {{ $t("maintenance.clear_messages_desc") }}
+                                            </div>
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="btn-maintenance border-orange-200 dark:border-orange-900/30 text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-900/10 hover:bg-orange-100 dark:hover:bg-orange-900/20"
+                                        @click="clearAnnounces"
+                                    >
+                                        <div class="flex flex-col items-start text-left">
+                                            <div class="font-bold flex items-center gap-2">
+                                                <MaterialDesignIcon icon-name="broadcast-off" class="size-4" />
+                                                {{ $t("maintenance.clear_announces") }}
+                                            </div>
+                                            <div class="text-xs opacity-80">
+                                                {{ $t("maintenance.clear_announces_desc") }}
+                                            </div>
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="btn-maintenance border-indigo-200 dark:border-indigo-900/30 text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/10 hover:bg-indigo-100 dark:hover:bg-indigo-900/20"
+                                        @click="clearNomadnetFavorites"
+                                    >
+                                        <div class="flex flex-col items-start text-left">
+                                            <div class="font-bold flex items-center gap-2">
+                                                <MaterialDesignIcon icon-name="bookmark-remove" class="size-4" />
+                                                {{ $t("maintenance.clear_nomadnet_favs") }}
+                                            </div>
+                                            <div class="text-xs opacity-80">
+                                                {{ $t("maintenance.clear_nomadnet_favs_desc") }}
+                                            </div>
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="btn-maintenance border-emerald-200 dark:border-emerald-900/30 text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/10 hover:bg-emerald-100 dark:hover:bg-emerald-900/20"
+                                        @click="clearLxmfIcons"
+                                    >
+                                        <div class="flex flex-col items-start text-left">
+                                            <div class="font-bold flex items-center gap-2">
+                                                <MaterialDesignIcon icon-name="account-off" class="size-4" />
+                                                {{ $t("maintenance.clear_lxmf_icons") }}
+                                            </div>
+                                            <div class="text-xs opacity-80">
+                                                {{ $t("maintenance.clear_lxmf_icons_desc") }}
+                                            </div>
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="btn-maintenance border-amber-200 dark:border-amber-900/30 text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/10 hover:bg-amber-100 dark:hover:bg-amber-900/20"
+                                        @click="clearStickers"
+                                    >
+                                        <div class="flex flex-col items-start text-left">
+                                            <div class="font-bold flex items-center gap-2">
+                                                <MaterialDesignIcon icon-name="emoticon-outline" class="size-4" />
+                                                {{ $t("maintenance.clear_stickers") }}
+                                            </div>
+                                            <div class="text-xs opacity-80">
+                                                {{ $t("maintenance.clear_stickers_desc") }}
+                                            </div>
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="btn-maintenance border-pink-200 dark:border-pink-900/30 text-pink-700 dark:text-pink-300 bg-pink-50 dark:bg-pink-900/10 hover:bg-pink-100 dark:hover:bg-pink-900/20"
+                                        @click="clearGifs"
+                                    >
+                                        <div class="flex flex-col items-start text-left">
+                                            <div class="font-bold flex items-center gap-2">
+                                                <MaterialDesignIcon icon-name="file-gif-box" class="size-4" />
+                                                {{ $t("maintenance.clear_gifs") }}
+                                            </div>
+                                            <div class="text-xs opacity-80">
+                                                {{ $t("maintenance.clear_gifs_desc") }}
+                                            </div>
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="btn-maintenance border-blue-200 dark:border-blue-900/30 text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/10 hover:bg-blue-100 dark:hover:bg-blue-900/20"
+                                        @click="clearArchives"
+                                    >
+                                        <div class="flex flex-col items-start text-left">
+                                            <div class="font-bold flex items-center gap-2">
+                                                <MaterialDesignIcon icon-name="delete-sweep" class="size-4" />
+                                                {{ $t("maintenance.clear_archives") }}
+                                            </div>
+                                            <div class="text-xs opacity-80">
+                                                {{ $t("maintenance.clear_archives_desc") }}
+                                            </div>
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="btn-maintenance border-orange-200 dark:border-orange-900/30 text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-900/10 hover:bg-orange-100 dark:hover:bg-orange-900/20"
+                                        @click="clearReticulumDocs"
+                                    >
+                                        <div class="flex flex-col items-start text-left">
+                                            <div class="font-bold flex items-center gap-2">
+                                                <MaterialDesignIcon icon-name="book-remove" class="size-4" />
+                                                {{ $t("maintenance.clear_reticulum_docs") }}
+                                            </div>
+                                            <div class="text-xs opacity-80">
+                                                {{ $t("maintenance.clear_reticulum_docs_desc") }}
+                                            </div>
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="btn-maintenance border-teal-200 dark:border-teal-900/30 text-teal-800 dark:text-teal-300 bg-teal-50 dark:bg-teal-900/10 hover:bg-teal-100 dark:hover:bg-teal-900/20"
+                                        @click="clearPathTable"
+                                    >
+                                        <div class="flex flex-col items-start text-left">
+                                            <div class="font-bold flex items-center gap-2">
+                                                <MaterialDesignIcon icon-name="map-marker-remove" class="size-4" />
+                                                {{ $t("maintenance.clear_path_table") }}
+                                            </div>
+                                            <div class="text-xs opacity-80">
+                                                {{ $t("maintenance.clear_path_table_desc") }}
+                                            </div>
+                                        </div>
+                                    </button>
+                                </div>
+
+                                <div class="space-y-2 pt-2 border-t border-gray-100 dark:border-zinc-800">
                                     <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                        Max Versions per Page
+                                        Automatic Backup Limit
                                     </div>
                                     <input
-                                        v-model.number="config.page_archiver_max_versions"
+                                        v-model.number="config.backup_max_count"
                                         type="number"
                                         min="1"
                                         max="50"
                                         class="input-field"
-                                        @input="onPageArchiverConfigChange"
+                                        @input="onBackupConfigChange"
                                     />
                                     <div class="text-xs text-gray-600 dark:text-gray-400">
-                                        How many versions of each page to keep.
+                                        Number of automatic backups to keep.
                                     </div>
                                 </div>
-                                <div class="space-y-2">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                        Max Total Storage (GB)
-                                    </div>
-                                    <input
-                                        v-model.number="config.archives_max_storage_gb"
-                                        type="number"
-                                        min="1"
-                                        class="input-field"
-                                        @input="onPageArchiverConfigChange"
-                                    />
-                                    <div class="text-xs text-gray-600 dark:text-gray-400">
-                                        Total storage for all archived pages.
-                                    </div>
-                                </div>
-                            </div>
-                            <button
-                                type="button"
-                                class="w-full flex items-center justify-center gap-2 rounded-xl border border-red-200 dark:border-red-900/30 bg-red-50 dark:bg-red-900/20 px-4 py-2 text-sm font-semibold text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40 transition"
-                                @click="flushArchivedPages"
-                            >
-                                <MaterialDesignIcon icon-name="delete-sweep" class="w-4 h-4" />
-                                Flush All Archived Pages
-                            </button>
-                        </div>
-                    </section>
 
-                    <!-- NomadNet browser renderer -->
-                    <section
-                        v-show="matchesSearch(...sectionKeywords.nomadRenderer)"
-                        class="settings-section break-inside-avoid"
-                    >
-                        <header class="settings-section__header">
-                            <div>
-                                <div class="settings-section__eyebrow">Browsing</div>
-                                <h2>NomadNet browser renderer</h2>
-                                <p>
-                                    Control how Micron, Markdown, HTML, and plain text pages are rendered in the Nomad
-                                    browser and archives. Set the default page path when opening a node without a path.
-                                </p>
+                                <div class="grid grid-cols-2 gap-3 mt-4">
+                                    <button
+                                        type="button"
+                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-blue-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-blue-500 transition group"
+                                        @click="exportMessages"
+                                    >
+                                        <MaterialDesignIcon
+                                            icon-name="export"
+                                            class="size-6 text-blue-500 group-hover:scale-110 transition"
+                                        />
+                                        <div class="text-sm font-bold">{{ $t("maintenance.export_messages") }}</div>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-emerald-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-emerald-500 transition group"
+                                        @click="triggerImport"
+                                    >
+                                        <MaterialDesignIcon
+                                            icon-name="import"
+                                            class="size-6 text-emerald-500 group-hover:scale-110 transition"
+                                        />
+                                        <div class="text-sm font-bold">{{ $t("maintenance.import_messages") }}</div>
+                                    </button>
+                                    <input
+                                        ref="importFile"
+                                        type="file"
+                                        accept=".json"
+                                        class="hidden"
+                                        @change="importMessages"
+                                    />
+                                </div>
+
+                                <div
+                                    class="grid grid-cols-2 gap-3 mt-2 pt-4 border-t border-gray-100 dark:border-zinc-800"
+                                >
+                                    <button
+                                        type="button"
+                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-purple-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-purple-500 transition group"
+                                        @click="exportFolders"
+                                    >
+                                        <MaterialDesignIcon
+                                            icon-name="folder-download-outline"
+                                            class="size-6 text-purple-500 group-hover:scale-110 transition"
+                                        />
+                                        <div class="text-sm font-bold">Export Folders</div>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-indigo-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-indigo-500 transition group"
+                                        @click="triggerFolderImport"
+                                    >
+                                        <MaterialDesignIcon
+                                            icon-name="folder-upload-outline"
+                                            class="size-6 text-indigo-500 group-hover:scale-110 transition"
+                                        />
+                                        <div class="text-sm font-bold">Import Folders</div>
+                                    </button>
+                                    <input
+                                        ref="importFolderFile"
+                                        type="file"
+                                        accept=".json"
+                                        class="hidden"
+                                        @change="importFolders"
+                                    />
+                                </div>
+
+                                <div
+                                    class="grid grid-cols-2 gap-3 mt-2 pt-4 border-t border-gray-100 dark:border-zinc-800"
+                                >
+                                    <button
+                                        type="button"
+                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-teal-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-teal-500 transition group"
+                                        @click="exportNomadnetFavouritesLayout"
+                                    >
+                                        <MaterialDesignIcon
+                                            icon-name="file-export"
+                                            class="size-6 text-teal-500 group-hover:scale-110 transition"
+                                        />
+                                        <div class="text-sm font-bold">
+                                            {{ $t("maintenance.export_nomadnet_favourites") }}
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-cyan-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-cyan-500 transition group"
+                                        @click="triggerNomadnetFavouritesImport"
+                                    >
+                                        <MaterialDesignIcon
+                                            icon-name="import"
+                                            class="size-6 text-cyan-500 group-hover:scale-110 transition"
+                                        />
+                                        <div class="text-sm font-bold">
+                                            {{ $t("maintenance.import_nomadnet_favourites") }}
+                                        </div>
+                                    </button>
+                                    <input
+                                        ref="nomadnetFavouritesImportFile"
+                                        type="file"
+                                        accept=".json"
+                                        class="hidden"
+                                        @change="importNomadnetFavouritesLayoutFile"
+                                    />
+                                </div>
                             </div>
-                        </header>
-                        <div class="settings-section__body space-y-3">
-                            <label class="setting-toggle">
-                                <Toggle
-                                    id="nomad-render-markdown"
-                                    v-model="config.nomad_render_markdown_enabled"
-                                    @update:model-value="onNomadRendererMarkdownToggle"
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">Render Markdown (.md) pages</span>
-                                    <span class="setting-toggle__description"
-                                        >When off, .md files are shown as escaped text instead of formatted
-                                        Markdown.</span
-                                    >
-                                </span>
-                            </label>
-                            <label class="setting-toggle">
-                                <Toggle
-                                    id="nomad-render-html"
-                                    v-model="config.nomad_render_html_enabled"
-                                    @update:model-value="onNomadRendererHtmlToggle"
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">Render HTML (.html) pages</span>
-                                    <span class="setting-toggle__description"
-                                        >When off, .html files are shown as escaped text instead of sanitized
-                                        HTML.</span
-                                    >
-                                </span>
-                            </label>
-                            <label class="setting-toggle">
-                                <Toggle
-                                    id="nomad-render-plaintext"
-                                    v-model="config.nomad_render_plaintext_enabled"
-                                    @update:model-value="onNomadRendererPlaintextToggle"
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">Render plain text (.txt) pages</span>
-                                    <span class="setting-toggle__description"
-                                        >When off, .txt files use a simpler escaped layout.</span
-                                    >
-                                </span>
-                            </label>
-                            <label v-if="micronWasmBundledInBuild" class="setting-toggle">
-                                <Toggle
-                                    id="nomad-micron-wasm"
-                                    v-model="config.nomad_micron_wasm_enabled"
-                                    @update:model-value="onNomadMicronWasmToggle"
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">{{
-                                        $t("settings.nomad_micron_wasm_title")
-                                    }}</span>
-                                    <span class="setting-toggle__description">
-                                        {{ $t("settings.nomad_micron_wasm_desc_before_link") }}
-                                        <a
-                                            class="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2"
-                                            href="https://github.com/Quad4-Software/micron-parser-go"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            >{{ $t("settings.nomad_micron_wasm_link_label") }}</a
-                                        >{{ $t("settings.nomad_micron_wasm_desc_after_link") }}
+                        </section>
+
+                        <!-- Telephony Settings -->
+                        <section v-show="showSection('telephony')" class="settings-section break-inside-avoid">
+                            <header class="settings-section__header">
+                                <div>
+                                    <div class="settings-section__eyebrow">Telephony</div>
+                                    <h2>Telephone (LXST)</h2>
+                                    <p>Enable or disable the integrated voice calling system.</p>
+                                </div>
+                            </header>
+                            <div class="settings-section__body space-y-4">
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="telephone-enabled-toggle"
+                                        v-model="config.telephone_enabled"
+                                        @update:model-value="onTelephoneEnabledChange"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">Enable Telephone (LXST)</span>
+                                        <span class="setting-toggle__description">
+                                            Allow incoming and outgoing voice calls over the mesh network.
+                                        </span>
+                                        <span class="setting-toggle__hint">Disabling will end any active calls.</span>
                                     </span>
-                                </span>
-                            </label>
-                            <div
-                                v-if="micronWasmBundledInBuild && config.nomad_micron_wasm_enabled"
-                                class="space-y-2 rounded-lg border border-gray-200 bg-gray-50/80 p-3 dark:border-zinc-700 dark:bg-zinc-900/50"
-                            >
-                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    {{ $t("settings.nomad_micron_default_engine_title") }}
-                                </div>
-                                <p class="text-xs text-gray-600 dark:text-gray-400">
-                                    {{ $t("settings.nomad_micron_default_engine_desc") }}
-                                </p>
-                                <select
-                                    :value="config.nomad_micron_default_engine === 'wasm' ? 'wasm' : 'js'"
-                                    class="input-field max-w-xl"
-                                    @change="onNomadMicronDefaultEngineSelect($event)"
-                                >
-                                    <option value="js">
-                                        {{ $t("settings.nomad_micron_default_engine_option_js") }}
-                                    </option>
-                                    <option value="wasm">
-                                        {{ $t("settings.nomad_micron_default_engine_option_wasm") }}
-                                    </option>
-                                </select>
+                                </label>
                             </div>
-                            <div v-if="micronWasmBundledInBuild" class="mt-2">
+                        </section>
+
+                        <!-- Desktop / Electron Settings -->
+                        <section
+                            v-if="ElectronUtils.isElectron()"
+                            v-show="showSection('desktop')"
+                            class="settings-section break-inside-avoid"
+                        >
+                            <header class="settings-section__header">
+                                <div>
+                                    <div class="settings-section__eyebrow">Desktop</div>
+                                    <h2>App Behaviour</h2>
+                                    <p>Control how MeshChat behaves on your desktop.</p>
+                                </div>
+                            </header>
+                            <div class="settings-section__body space-y-4">
+                                <label class="setting-toggle opacity-50 cursor-not-allowed">
+                                    <Toggle
+                                        id="desktop-open-calls-in-separate-window"
+                                        :model-value="false"
+                                        :disabled="true"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{
+                                            $t("app.desktop_open_calls_in_separate_window")
+                                        }}</span>
+                                        <span class="setting-toggle__description">
+                                            {{ $t("app.desktop_open_calls_in_separate_window_description") }}
+                                            <span class="text-blue-500 font-bold block mt-1">(Phased out for now)</span>
+                                        </span>
+                                    </span>
+                                </label>
+
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="desktop-hardware-acceleration-enabled"
+                                        v-model="config.desktop_hardware_acceleration_enabled"
+                                        @update:model-value="onDesktopHardwareAccelerationEnabledChange"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{
+                                            $t("app.desktop_hardware_acceleration_enabled")
+                                        }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("app.desktop_hardware_acceleration_enabled_description")
+                                        }}</span>
+                                        <span class="setting-toggle__hint">{{ $t("app.requires_restart") }}</span>
+                                    </span>
+                                </label>
+                            </div>
+                        </section>
+
+                        <section
+                            v-if="isMeshChatXAndroid"
+                            v-show="showSection('android')"
+                            class="settings-section break-inside-avoid"
+                        >
+                            <header class="settings-section__header">
+                                <div>
+                                    <div class="settings-section__eyebrow">Android</div>
+                                    <h2>{{ $t("settings.share_apk_heading") }}</h2>
+                                    <p>{{ $t("settings.share_apk_desc") }}</p>
+                                </div>
+                            </header>
+                            <div class="settings-section__body space-y-4">
                                 <button
                                     type="button"
-                                    class="primary-chip text-sm"
-                                    @click="micronWasmUpdateModalOpen = true"
+                                    class="btn-maintenance border-blue-200 dark:border-blue-900/30 text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/10 hover:bg-blue-100 dark:hover:bg-blue-900/20"
+                                    @click="shareAndroidApk"
                                 >
-                                    {{ $t("settings.micron_wasm_update_open_btn") }}
+                                    <div class="flex flex-col items-start text-left">
+                                        <div class="font-bold flex items-center gap-2">
+                                            <MaterialDesignIcon icon-name="share-variant" class="size-4" />
+                                            {{ $t("settings.share_apk") }}
+                                        </div>
+                                        <div class="text-xs opacity-80">
+                                            {{ $t("settings.share_apk_short_hint") }}
+                                        </div>
+                                    </div>
                                 </button>
                             </div>
-                            <div class="space-y-2">
-                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    Default page path (no URL path)
-                                </div>
-                                <select
-                                    v-model="config.nomad_default_page_path"
-                                    class="input-field max-w-xl"
-                                    @change="onNomadDefaultPagePathChange"
-                                >
-                                    <option value="/page/index.mu">/page/index.mu (Micron)</option>
-                                    <option value="/page/index.html">/page/index.html (HTML)</option>
-                                    <option value="/page/index.md">/page/index.md (Markdown)</option>
-                                    <option value="/page/index.txt">/page/index.txt (plain text)</option>
-                                </select>
-                                <div class="text-xs text-gray-600 dark:text-gray-400">
-                                    Used when opening a Nomad node without a path, for hash-only links, and for the
-                                    Smart Crawler homepage fetch.
-                                </div>
-                            </div>
-                        </div>
-                    </section>
+                        </section>
 
-                    <!-- Smart Crawler -->
-                    <section
-                        v-show="matchesSearch(...sectionKeywords.crawler)"
-                        class="settings-section break-inside-avoid"
-                    >
-                        <header class="settings-section__header">
-                            <div>
-                                <div class="settings-section__eyebrow">Discovery</div>
-                                <h2>Smart Crawler</h2>
-                                <p>Automatically archive node homepages when announced.</p>
-                            </div>
-                        </header>
-                        <div class="settings-section__body space-y-4">
-                            <label class="setting-toggle">
-                                <Toggle
-                                    id="crawler-enabled"
-                                    v-model="config.crawler_enabled"
-                                    @update:model-value="onCrawlerEnabledChange"
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">Enable Crawler</span>
-                                    <span class="setting-toggle__description"
-                                        >Archive index pages for every node discovered on the mesh.</span
-                                    >
-                                </span>
-                            </label>
-
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div class="space-y-2">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Max Retries</div>
-                                    <input
-                                        v-model.number="config.crawler_max_retries"
-                                        type="number"
-                                        min="1"
-                                        max="10"
-                                        class="input-field"
-                                        @input="onCrawlerConfigChange"
+                        <!-- Page Archiver -->
+                        <section v-show="showSection('archiver')" class="settings-section break-inside-avoid">
+                            <header class="settings-section__header">
+                                <div>
+                                    <div class="settings-section__eyebrow">Browsing</div>
+                                    <h2>Page Archiver</h2>
+                                    <p>Automatically save copies of visited NomadNetwork pages.</p>
+                                </div>
+                            </header>
+                            <div class="settings-section__body space-y-3">
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="page-archiver-enabled"
+                                        v-model="config.page_archiver_enabled"
+                                        @update:model-value="onPageArchiverEnabledChangeWrapper"
                                     />
-                                    <div class="text-xs text-gray-600 dark:text-gray-400">
-                                        Attempts before giving up.
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">Enable Archiver</span>
+                                        <span class="setting-toggle__description"
+                                            >Automatically archive pages for offline viewing and fallback.</span
+                                        >
+                                    </span>
+                                </label>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div class="space-y-2">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            Max Versions per Page
+                                        </div>
+                                        <input
+                                            v-model.number="config.page_archiver_max_versions"
+                                            type="number"
+                                            min="1"
+                                            max="50"
+                                            class="input-field"
+                                            @input="onPageArchiverConfigChange"
+                                        />
+                                        <div class="text-xs text-gray-600 dark:text-gray-400">
+                                            How many versions of each page to keep.
+                                        </div>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            Max Total Storage (GB)
+                                        </div>
+                                        <input
+                                            v-model.number="config.archives_max_storage_gb"
+                                            type="number"
+                                            min="1"
+                                            class="input-field"
+                                            @input="onPageArchiverConfigChange"
+                                        />
+                                        <div class="text-xs text-gray-600 dark:text-gray-400">
+                                            Total storage for all archived pages.
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="space-y-2">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                        Retry Delay (seconds)
-                                    </div>
-                                    <input
-                                        v-model.number="config.crawler_retry_delay_seconds"
-                                        type="number"
-                                        min="60"
-                                        class="input-field"
-                                        @input="onCrawlerConfigChange"
-                                    />
-                                    <div class="text-xs text-gray-600 dark:text-gray-400">
-                                        Wait time between attempts.
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="space-y-2">
-                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    Max Concurrent Crawls
-                                </div>
-                                <input
-                                    v-model.number="config.crawler_max_concurrent"
-                                    type="number"
-                                    min="1"
-                                    max="5"
-                                    class="input-field"
-                                    @input="onCrawlerConfigChange"
-                                />
-                                <div class="text-xs text-gray-600 dark:text-gray-400">
-                                    Limits background bandwidth usage.
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- Appearance -->
-                    <section
-                        v-show="matchesSearch(...sectionKeywords.appearance)"
-                        class="settings-section break-inside-avoid"
-                    >
-                        <header class="settings-section__header">
-                            <div>
-                                <div class="settings-section__eyebrow">Personalise</div>
-                                <h2>{{ $t("app.appearance") }}</h2>
-                                <p>{{ $t("app.appearance_description") }}</p>
-                            </div>
-                        </header>
-                        <div class="settings-section__body space-y-4">
-                            <div class="space-y-2">
-                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    {{ $t("app.theme") }}
-                                </div>
-                                <select v-model="config.theme" class="input-field" @change="onThemeChange">
-                                    <option value="light">{{ $t("app.light_theme") }}</option>
-                                    <option value="dark">{{ $t("app.dark_theme") }}</option>
-                                </select>
-                            </div>
-
-                            <div class="space-y-2">
-                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    {{ $t("app.messages_sidebar_position") }}
-                                </div>
-                                <select
-                                    v-model="config.messages_sidebar_position"
-                                    class="input-field"
-                                    @change="onMessagesSidebarPositionChange"
-                                >
-                                    <option value="left">{{ $t("app.messages_sidebar_position_left") }}</option>
-                                    <option value="right">{{ $t("app.messages_sidebar_position_right") }}</option>
-                                </select>
-                            </div>
-
-                            <div class="space-y-2">
-                                <div class="flex items-center justify-between">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                        Message Font Size
-                                    </div>
-                                    <div class="text-xs font-mono text-blue-500 dark:text-blue-400">
-                                        {{ config.message_font_size || 14 }}px
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-3">
-                                    <span class="text-xs text-gray-400">A</span>
-                                    <input
-                                        v-model.number="config.message_font_size"
-                                        type="range"
-                                        min="10"
-                                        max="32"
-                                        step="1"
-                                        class="flex-1 h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                                        @input="onMessageFontSizeChange"
-                                    />
-                                    <span class="text-lg text-gray-400">A</span>
-                                </div>
-                            </div>
-
-                            <div class="space-y-2">
-                                <div class="flex items-center justify-between">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Icon Size</div>
-                                    <div class="text-xs font-mono text-blue-500 dark:text-blue-400">
-                                        {{ config.message_icon_size || 28 }}px
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-3">
-                                    <MaterialDesignIcon icon-name="account-outline" class="text-gray-400" />
-                                    <input
-                                        v-model.number="config.message_icon_size"
-                                        type="range"
-                                        min="16"
-                                        max="64"
-                                        step="1"
-                                        class="flex-1 h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                                        @input="onMessageIconSizeChange"
-                                    />
-                                    <MaterialDesignIcon icon-name="account" class="text-gray-500 dark:text-gray-300" />
-                                </div>
-                            </div>
-
-                            <div class="space-y-2">
-                                <div class="flex items-center justify-between">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                        {{ $t("app.ui_transparency") }}
-                                    </div>
-                                    <div class="text-xs font-mono text-blue-500 dark:text-blue-400">
-                                        {{ Math.max(0, Math.min(100, Number(config.ui_transparency) || 0)) }}%
-                                    </div>
-                                </div>
-                                <div class="flex items-center gap-3">
-                                    <span class="text-xs text-gray-400">0</span>
-                                    <input
-                                        v-model.number="config.ui_transparency"
-                                        type="range"
-                                        min="0"
-                                        max="100"
-                                        step="1"
-                                        class="flex-1 h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
-                                        @input="onUiTransparencyChange"
-                                    />
-                                    <span class="text-xs text-gray-400">100</span>
-                                </div>
-                                <div class="text-xs text-gray-600 dark:text-gray-400">
-                                    {{ $t("app.ui_transparency_description") }}
-                                </div>
-                            </div>
-
-                            <label class="setting-toggle">
-                                <Toggle
-                                    id="ui-glass-enabled"
-                                    v-model="config.ui_glass_enabled"
-                                    @update:model-value="onUiGlassEnabledChange"
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">{{ $t("app.ui_glass_enabled") }}</span>
-                                    <span class="setting-toggle__description">{{
-                                        $t("app.ui_glass_enabled_description")
-                                    }}</span>
-                                </span>
-                            </label>
-
-                            <label class="setting-toggle">
-                                <Toggle
-                                    id="messages-multi-pane-enabled"
-                                    v-model="config.messages_multi_pane_enabled"
-                                    @update:model-value="onMessagesMultiPaneEnabledChange"
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">{{
-                                        $t("app.messages_multi_pane_enabled")
-                                    }}</span>
-                                    <span class="setting-toggle__description">{{
-                                        $t("app.messages_multi_pane_enabled_description")
-                                    }}</span>
-                                </span>
-                            </label>
-
-                            <label class="setting-toggle">
-                                <Toggle
-                                    id="nomad-tabs-enabled"
-                                    v-model="config.nomad_tabs_enabled"
-                                    @update:model-value="onNomadTabsEnabledChange"
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">{{ $t("app.nomad_tabs_enabled") }}</span>
-                                    <span class="setting-toggle__description">{{
-                                        $t("app.nomad_tabs_enabled_description")
-                                    }}</span>
-                                </span>
-                            </label>
-
-                            <label class="setting-toggle">
-                                <Toggle
-                                    id="rrc-enabled"
-                                    v-model="config.rrc_enabled"
-                                    @update:model-value="onRrcEnabledChange"
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">{{ $t("app.rrc_enabled") }}</span>
-                                    <span class="setting-toggle__description">{{
-                                        $t("app.rrc_enabled_description")
-                                    }}</span>
-                                </span>
-                            </label>
-
-                            <div class="pt-1">
                                 <button
                                     type="button"
-                                    class="p-0 border-0 bg-transparent text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
-                                    @click="resetAppearanceDefaults"
+                                    class="w-full flex items-center justify-center gap-2 rounded-xl border border-red-200 dark:border-red-900/30 bg-red-50 dark:bg-red-900/20 px-4 py-2 text-sm font-semibold text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40 transition"
+                                    @click="flushArchivedPages"
                                 >
-                                    {{ $t("app.reset_appearance_defaults") }}
+                                    <MaterialDesignIcon icon-name="delete-sweep" class="w-4 h-4" />
+                                    Flush All Archived Pages
                                 </button>
                             </div>
+                        </section>
 
-                            <div
-                                class="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300 border border-dashed border-gray-200 dark:border-zinc-800 rounded-2xl px-3 py-2"
-                            >
-                                <div
-                                    :style="messageIconPreviewStyle"
-                                    class="flex items-center justify-center shrink-0 rounded-full bg-gray-100 dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700"
-                                >
-                                    <LxmfUserIcon
-                                        :key="config.message_icon_size"
-                                        icon-name="account"
-                                        icon-class="w-full h-full"
-                                        icon-foreground-colour="#374151"
-                                        icon-background-colour="#e5e7eb"
-                                    />
+                        <!-- NomadNet browser renderer -->
+                        <section v-show="showSection('nomadRenderer')" class="settings-section break-inside-avoid">
+                            <header class="settings-section__header">
+                                <div>
+                                    <div class="settings-section__eyebrow">Browsing</div>
+                                    <h2>NomadNet browser renderer</h2>
+                                    <p>
+                                        Control how Micron, Markdown, HTML, and plain text pages are rendered in the
+                                        Nomad browser and archives. Set the default page path when opening a node
+                                        without a path.
+                                    </p>
                                 </div>
-                                <div class="flex-1 min-w-0 space-y-0.5">
-                                    <div
-                                        class="font-semibold text-gray-900 dark:text-gray-100"
-                                        :style="previewTextStyle"
+                            </header>
+                            <div class="settings-section__body space-y-3">
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="nomad-render-markdown"
+                                        v-model="config.nomad_render_markdown_enabled"
+                                        @update:model-value="onNomadRendererMarkdownToggle"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">Render Markdown (.md) pages</span>
+                                        <span class="setting-toggle__description"
+                                            >When off, .md files are shown as escaped text instead of formatted
+                                            Markdown.</span
+                                        >
+                                    </span>
+                                </label>
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="nomad-render-html"
+                                        v-model="config.nomad_render_html_enabled"
+                                        @update:model-value="onNomadRendererHtmlToggle"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">Render HTML (.html) pages</span>
+                                        <span class="setting-toggle__description"
+                                            >When off, .html files are shown as escaped text instead of sanitized
+                                            HTML.</span
+                                        >
+                                    </span>
+                                </label>
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="nomad-render-plaintext"
+                                        v-model="config.nomad_render_plaintext_enabled"
+                                        @update:model-value="onNomadRendererPlaintextToggle"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">Render plain text (.txt) pages</span>
+                                        <span class="setting-toggle__description"
+                                            >When off, .txt files use a simpler escaped layout.</span
+                                        >
+                                    </span>
+                                </label>
+                                <label v-if="micronWasmBundledInBuild" class="setting-toggle">
+                                    <Toggle
+                                        id="nomad-micron-wasm"
+                                        v-model="config.nomad_micron_wasm_enabled"
+                                        @update:model-value="onNomadMicronWasmToggle"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{
+                                            $t("settings.nomad_micron_wasm_title")
+                                        }}</span>
+                                        <span class="setting-toggle__description">
+                                            {{ $t("settings.nomad_micron_wasm_desc_before_link") }}
+                                            <a
+                                                class="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2"
+                                                href="https://github.com/Quad4-Software/micron-parser-go"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                >{{ $t("settings.nomad_micron_wasm_link_label") }}</a
+                                            >{{ $t("settings.nomad_micron_wasm_desc_after_link") }}
+                                        </span>
+                                    </span>
+                                </label>
+                                <div
+                                    v-if="micronWasmBundledInBuild && config.nomad_micron_wasm_enabled"
+                                    class="space-y-2 rounded-lg border border-gray-200 bg-gray-50/80 p-3 dark:border-zinc-700 dark:bg-zinc-900/50"
+                                >
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("settings.nomad_micron_default_engine_title") }}
+                                    </div>
+                                    <p class="text-xs text-gray-600 dark:text-gray-400">
+                                        {{ $t("settings.nomad_micron_default_engine_desc") }}
+                                    </p>
+                                    <select
+                                        :value="config.nomad_micron_default_engine === 'wasm' ? 'wasm' : 'js'"
+                                        class="input-field max-w-xl"
+                                        @change="onNomadMicronDefaultEngineSelect($event)"
                                     >
-                                        Preview Name
+                                        <option value="js">
+                                            {{ $t("settings.nomad_micron_default_engine_option_js") }}
+                                        </option>
+                                        <option value="wasm">
+                                            {{ $t("settings.nomad_micron_default_engine_option_wasm") }}
+                                        </option>
+                                    </select>
+                                </div>
+                                <div v-if="micronWasmBundledInBuild" class="mt-2">
+                                    <button
+                                        type="button"
+                                        class="primary-chip text-sm"
+                                        @click="micronWasmUpdateModalOpen = true"
+                                    >
+                                        {{ $t("settings.micron_wasm_update_open_btn") }}
+                                    </button>
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        Default page path (no URL path)
                                     </div>
-                                    <div class="text-gray-600 dark:text-gray-400 truncate" :style="previewTextStyle">
-                                        Hey there, this is how text and icons will look.
+                                    <select
+                                        v-model="config.nomad_default_page_path"
+                                        class="input-field max-w-xl"
+                                        @change="onNomadDefaultPagePathChange"
+                                    >
+                                        <option value="/page/index.mu">/page/index.mu (Micron)</option>
+                                        <option value="/page/index.html">/page/index.html (HTML)</option>
+                                        <option value="/page/index.md">/page/index.md (Markdown)</option>
+                                        <option value="/page/index.txt">/page/index.txt (plain text)</option>
+                                    </select>
+                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                        Used when opening a Nomad node without a path, for hash-only links, and for the
+                                        Smart Crawler homepage fetch.
                                     </div>
                                 </div>
-                                <span
-                                    class="inline-flex items-center gap-1 text-blue-500 dark:text-blue-300 text-xs font-semibold uppercase"
-                                >
-                                    <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                                    {{ $t("app.live_preview") }}
-                                </span>
                             </div>
+                        </section>
 
-                            <div class="space-y-4 pt-2">
-                                <div
-                                    class="text-sm font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider"
-                                >
-                                    Message Bubbles
+                        <!-- Smart Crawler -->
+                        <section v-show="showSection('crawler')" class="settings-section break-inside-avoid">
+                            <header class="settings-section__header">
+                                <div>
+                                    <div class="settings-section__eyebrow">Discovery</div>
+                                    <h2>Smart Crawler</h2>
+                                    <p>Automatically archive node homepages when announced.</p>
                                 </div>
-
-                                <div
-                                    class="flex items-start gap-3 rounded-xl border border-gray-200 dark:border-zinc-700 px-3 py-2.5"
-                                >
-                                    <input
-                                        id="detailed-outbound-send-status"
-                                        type="checkbox"
-                                        class="mt-1 rounded-sm border-gray-300 dark:border-zinc-600"
-                                        :checked="GlobalState.detailedOutboundSendStatus"
-                                        @change="onDetailedOutboundSendStatusChange"
+                            </header>
+                            <div class="settings-section__body space-y-4">
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="crawler-enabled"
+                                        v-model="config.crawler_enabled"
+                                        @update:model-value="onCrawlerEnabledChange"
                                     />
-                                    <label for="detailed-outbound-send-status" class="min-w-0 cursor-pointer">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                            {{ $t("app.detailed_outbound_send_status") }}
-                                        </div>
-                                        <div class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
-                                            {{ $t("app.detailed_outbound_send_status_description") }}
-                                        </div>
-                                    </label>
-                                </div>
-
-                                <div
-                                    class="flex items-start gap-3 rounded-xl border border-gray-200 dark:border-zinc-700 px-3 py-2.5"
-                                >
-                                    <input
-                                        id="outbound-transfer-progress-enabled"
-                                        type="checkbox"
-                                        class="mt-1 rounded-sm border-gray-300 dark:border-zinc-600"
-                                        :checked="GlobalState.outboundTransferProgressEnabled"
-                                        @change="onOutboundTransferProgressEnabledChange"
-                                    />
-                                    <label for="outbound-transfer-progress-enabled" class="min-w-0 cursor-pointer">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                            {{ $t("app.outbound_transfer_progress_enabled") }}
-                                        </div>
-                                        <div class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
-                                            {{ $t("app.outbound_transfer_progress_enabled_description") }}
-                                        </div>
-                                    </label>
-                                </div>
-
-                                <div
-                                    class="flex items-start gap-3 rounded-xl border border-gray-200 dark:border-zinc-700 px-3 py-2.5"
-                                >
-                                    <input
-                                        id="message-timestamp-grouping"
-                                        type="checkbox"
-                                        class="mt-1 rounded-sm border-gray-300 dark:border-zinc-600"
-                                        :checked="GlobalState.messageTimestampGroupingEnabled"
-                                        @change="onMessageTimestampGroupingChange"
-                                    />
-                                    <label for="message-timestamp-grouping" class="min-w-0 cursor-pointer">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                            {{ $t("app.message_timestamp_grouping") }}
-                                        </div>
-                                        <div class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
-                                            {{ $t("app.message_timestamp_grouping_description") }}
-                                        </div>
-                                    </label>
-                                </div>
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">Enable Crawler</span>
+                                        <span class="setting-toggle__description"
+                                            >Archive index pages for every node discovered on the mesh.</span
+                                        >
+                                    </span>
+                                </label>
 
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div class="space-y-2">
                                         <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                            Outbound Color
+                                            Max Retries
                                         </div>
-                                        <div class="flex gap-2">
-                                            <input
-                                                v-model="config.message_outbound_bubble_color"
-                                                type="color"
-                                                class="w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 cursor-pointer"
-                                                @input="onMessageBubbleColorChange('outbound')"
-                                            />
-                                            <input
-                                                v-model="config.message_outbound_bubble_color"
-                                                type="text"
-                                                class="input-field monospace-field flex-1"
-                                                @input="onMessageBubbleColorChange('outbound')"
-                                            />
+                                        <input
+                                            v-model.number="config.crawler_max_retries"
+                                            type="number"
+                                            min="1"
+                                            max="10"
+                                            class="input-field"
+                                            @input="onCrawlerConfigChange"
+                                        />
+                                        <div class="text-xs text-gray-600 dark:text-gray-400">
+                                            Attempts before giving up.
                                         </div>
                                     </div>
-
                                     <div class="space-y-2">
                                         <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                            Failed Color
+                                            Retry Delay (seconds)
                                         </div>
-                                        <div class="flex gap-2">
-                                            <input
-                                                v-model="config.message_failed_bubble_color"
-                                                type="color"
-                                                class="w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 cursor-pointer"
-                                                @input="onMessageBubbleColorChange('failed')"
-                                            />
-                                            <input
-                                                v-model="config.message_failed_bubble_color"
-                                                type="text"
-                                                class="input-field monospace-field flex-1"
-                                                @input="onMessageBubbleColorChange('failed')"
-                                            />
+                                        <input
+                                            v-model.number="config.crawler_retry_delay_seconds"
+                                            type="number"
+                                            min="60"
+                                            class="input-field"
+                                            @input="onCrawlerConfigChange"
+                                        />
+                                        <div class="text-xs text-gray-600 dark:text-gray-400">
+                                            Wait time between attempts.
                                         </div>
                                     </div>
+                                </div>
 
-                                    <div class="space-y-2">
+                                <div class="space-y-2">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        Max Concurrent Crawls
+                                    </div>
+                                    <input
+                                        v-model.number="config.crawler_max_concurrent"
+                                        type="number"
+                                        min="1"
+                                        max="5"
+                                        class="input-field"
+                                        @input="onCrawlerConfigChange"
+                                    />
+                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                        Limits background bandwidth usage.
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Appearance -->
+                        <section v-show="showSection('appearance')" class="settings-section break-inside-avoid">
+                            <header class="settings-section__header">
+                                <div>
+                                    <div class="settings-section__eyebrow">Personalise</div>
+                                    <h2>{{ $t("app.appearance") }}</h2>
+                                    <p>{{ $t("app.appearance_description") }}</p>
+                                </div>
+                            </header>
+                            <div class="settings-section__body space-y-4">
+                                <div class="space-y-2">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("app.theme") }}
+                                    </div>
+                                    <select v-model="config.theme" class="input-field" @change="onThemeChange">
+                                        <option value="light">{{ $t("app.light_theme") }}</option>
+                                        <option value="dark">{{ $t("app.dark_theme") }}</option>
+                                    </select>
+                                </div>
+
+                                <div class="space-y-2">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("app.messages_sidebar_position") }}
+                                    </div>
+                                    <select
+                                        v-model="config.messages_sidebar_position"
+                                        class="input-field"
+                                        @change="onMessagesSidebarPositionChange"
+                                    >
+                                        <option value="left">{{ $t("app.messages_sidebar_position_left") }}</option>
+                                        <option value="right">{{ $t("app.messages_sidebar_position_right") }}</option>
+                                    </select>
+                                </div>
+
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between">
                                         <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                            Waiting Color
+                                            Message Font Size
                                         </div>
-                                        <div class="flex gap-2">
-                                            <input
-                                                v-model="config.message_waiting_bubble_color"
-                                                type="color"
-                                                class="w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 cursor-pointer"
-                                                @input="onMessageBubbleColorChange('waiting')"
-                                            />
-                                            <input
-                                                v-model="config.message_waiting_bubble_color"
-                                                type="text"
-                                                class="input-field monospace-field flex-1"
-                                                @input="onMessageBubbleColorChange('waiting')"
-                                            />
+                                        <div class="text-xs font-mono text-blue-500 dark:text-blue-400">
+                                            {{ config.message_font_size || 14 }}px
                                         </div>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-xs text-gray-400">A</span>
+                                        <input
+                                            v-model.number="config.message_font_size"
+                                            type="range"
+                                            min="10"
+                                            max="32"
+                                            step="1"
+                                            class="flex-1 h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                                            @input="onMessageFontSizeChange"
+                                        />
+                                        <span class="text-lg text-gray-400">A</span>
                                     </div>
                                 </div>
 
                                 <div class="space-y-2">
                                     <div class="flex items-center justify-between">
                                         <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                            Inbound Color (Optional)
+                                            Icon Size
                                         </div>
-                                        <button
-                                            v-if="config.message_inbound_bubble_color"
-                                            type="button"
-                                            class="text-[10px] text-red-500 font-bold uppercase hover:underline"
-                                            @click="
-                                                config.message_inbound_bubble_color = null;
-                                                onMessageBubbleColorChange('inbound');
-                                            "
-                                        >
-                                            Reset to default
-                                        </button>
-                                    </div>
-                                    <div class="flex gap-2">
-                                        <input
-                                            v-if="config.message_inbound_bubble_color"
-                                            v-model="config.message_inbound_bubble_color"
-                                            type="color"
-                                            class="w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 cursor-pointer"
-                                            @input="onMessageBubbleColorChange('inbound')"
-                                        />
-                                        <div
-                                            v-if="!config.message_inbound_bubble_color"
-                                            class="flex-1 flex items-center px-3 text-xs text-gray-400 bg-gray-50 dark:bg-zinc-900 rounded-xl border border-dashed border-gray-200 dark:border-zinc-800 italic"
-                                        >
-                                            Using theme default. Click to customize ->
-                                            <button
-                                                class="ml-2 px-2 py-1 bg-blue-500 text-white rounded-lg not-italic font-bold"
-                                                @click="
-                                                    config.message_inbound_bubble_color = '#ffffff';
-                                                    onMessageBubbleColorChange('inbound');
-                                                "
-                                            >
-                                                Customize
-                                            </button>
+                                        <div class="text-xs font-mono text-blue-500 dark:text-blue-400">
+                                            {{ config.message_icon_size || 28 }}px
                                         </div>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <MaterialDesignIcon
+                                            icon-name="account-outline"
+                                            class="shrink-0 text-gray-400"
+                                            :style="{ width: '16px', height: '16px' }"
+                                        />
                                         <input
-                                            v-else
-                                            v-model="config.message_inbound_bubble_color"
-                                            type="text"
-                                            class="input-field monospace-field flex-1"
-                                            @input="onMessageBubbleColorChange('inbound')"
+                                            v-model.number="config.message_icon_size"
+                                            type="range"
+                                            min="16"
+                                            max="64"
+                                            step="1"
+                                            class="flex-1 h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                                            @input="onMessageIconSizeChange"
+                                        />
+                                        <MaterialDesignIcon
+                                            icon-name="account"
+                                            class="shrink-0 text-gray-500 dark:text-gray-300"
+                                            :style="messageIconPreviewStyle"
                                         />
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    </section>
 
-                    <!-- Network Visualiser -->
-                    <section
-                        v-show="matchesSearch(...sectionKeywords.visualiser)"
-                        class="settings-section break-inside-avoid"
-                    >
-                        <header class="settings-section__header">
-                            <div>
-                                <div class="settings-section__eyebrow">Visualiser</div>
-                                <h2>{{ $t("visualiser.title") }}</h2>
-                                <p>{{ $t("visualiser.description") }}</p>
-                            </div>
-                        </header>
-                        <div class="settings-section__body space-y-4">
-                            <label class="setting-toggle">
-                                <Toggle
-                                    id="settings-visualiser-offline"
-                                    v-model="visualiserShowDisabledInterfaces"
-                                    @update:model-value="onVisualiserShowDisabledChange"
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">{{
-                                        $t("visualiser.show_disabled_interfaces")
-                                    }}</span>
-                                </span>
-                            </label>
-                            <label class="setting-toggle">
-                                <Toggle
-                                    id="settings-visualiser-discovered"
-                                    v-model="visualiserShowDiscoveredInterfaces"
-                                    @update:model-value="onVisualiserShowDiscoveredChange"
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">{{
-                                        $t("visualiser.show_discovered_interfaces")
-                                    }}</span>
-                                </span>
-                            </label>
-                        </div>
-                    </section>
-
-                    <!-- Location (map & coordinates) -->
-                    <section
-                        v-show="matchesSearch(...sectionKeywords.location)"
-                        class="settings-section break-inside-avoid"
-                    >
-                        <header class="settings-section__header">
-                            <div>
-                                <div class="settings-section__eyebrow">{{ $t("app.settings_map_eyebrow") }}</div>
-                                <h2>{{ $t("app.location") }}</h2>
-                                <p>{{ $t("app.location_manage_desc") }}</p>
-                            </div>
-                        </header>
-                        <div class="settings-section__body space-y-4">
-                            <div class="space-y-2">
-                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    {{ $t("app.location_source") }}
-                                </div>
-                                <select
-                                    v-model="config.location_source"
-                                    class="input-field"
-                                    @change="
-                                        updateConfig({ location_source: config.location_source }, 'location_source')
-                                    "
-                                >
-                                    <option value="disabled">{{ $t("app.location_source_disabled") }}</option>
-                                    <option value="browser">{{ $t("app.location_source_browser") }}</option>
-                                    <option value="manual">{{ $t("app.location_source_manual") }}</option>
-                                </select>
-                                <div
-                                    v-if="config.location_source === 'disabled'"
-                                    class="text-xs text-gray-600 dark:text-gray-400"
-                                >
-                                    {{ $t("app.location_source_disabled_desc") }}
-                                </div>
-                                <div
-                                    v-if="config.location_source === 'browser'"
-                                    class="text-xs text-gray-600 dark:text-gray-400"
-                                >
-                                    {{ $t("app.location_source_browser_desc") }}
-                                </div>
-                                <div
-                                    v-if="config.location_source === 'manual'"
-                                    class="text-xs text-gray-600 dark:text-gray-400"
-                                >
-                                    {{ $t("app.location_source_manual_desc") }}
-                                </div>
-                            </div>
-
-                            <div
-                                v-if="config.location_source === 'manual'"
-                                class="grid grid-cols-1 sm:grid-cols-3 gap-4"
-                            >
                                 <div class="space-y-2">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                        {{ $t("app.location_manual_lat") }}
+                                    <div class="flex items-center justify-between">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            {{ $t("app.ui_transparency") }}
+                                        </div>
+                                        <div class="text-xs font-mono text-blue-500 dark:text-blue-400">
+                                            {{ Math.max(0, Math.min(100, Number(config.ui_transparency) || 0)) }}%
+                                        </div>
                                     </div>
-                                    <input
-                                        v-model="config.location_manual_lat"
-                                        type="text"
-                                        class="input-field"
-                                        placeholder="0.0"
-                                        @input="
-                                            updateConfig(
-                                                { location_manual_lat: config.location_manual_lat },
-                                                'location_manual_lat'
-                                            )
-                                        "
-                                    />
-                                </div>
-                                <div class="space-y-2">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                        {{ $t("app.location_manual_lon") }}
-                                    </div>
-                                    <input
-                                        v-model="config.location_manual_lon"
-                                        type="text"
-                                        class="input-field"
-                                        placeholder="0.0"
-                                        @input="
-                                            updateConfig(
-                                                { location_manual_lon: config.location_manual_lon },
-                                                'location_manual_lon'
-                                            )
-                                        "
-                                    />
-                                </div>
-                                <div class="space-y-2">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                        {{ $t("app.location_manual_alt") }}
-                                    </div>
-                                    <input
-                                        v-model="config.location_manual_alt"
-                                        type="text"
-                                        class="input-field"
-                                        placeholder="0.0"
-                                        @input="
-                                            updateConfig(
-                                                { location_manual_alt: config.location_manual_alt },
-                                                'location_manual_alt'
-                                            )
-                                        "
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- Language -->
-                    <section
-                        v-show="
-                            matchesSearch(
-                                'i18n',
-                                'app.language',
-                                'app.select_language',
-                                'English',
-                                'Deutsch',
-                                'Русский'
-                            )
-                        "
-                        class="settings-section break-inside-avoid"
-                    >
-                        <header class="settings-section__header">
-                            <div>
-                                <div class="settings-section__eyebrow">i18n</div>
-                                <h2>{{ $t("app.language") }}</h2>
-                                <p>{{ $t("app.select_language") }}</p>
-                            </div>
-                        </header>
-                        <div class="settings-section__body space-y-3">
-                            <select v-model="config.language" class="input-field" @change="onLanguageChange">
-                                <option value="en">English</option>
-                                <option value="de">Deutsch</option>
-                                <option value="ru">Русский</option>
-                                <option value="it">Italiano</option>
-                            </select>
-                        </div>
-                    </section>
-
-                    <!-- Network Security -->
-                    <section
-                        v-show="
-                            matchesSearch(
-                                'RNS Security',
-                                'Network Security',
-                                'app.blackhole_integration_enabled',
-                                'app.blackhole_integration_description',
-                                'app.announce_limits',
-                                'app.announce_store_heading',
-                                'app.announce_store_lxmf',
-                                'app.announce_store_lxst',
-                                'app.announce_store_nomad',
-                                'app.announce_store_prop'
-                            )
-                        "
-                        class="settings-section break-inside-avoid"
-                    >
-                        <header class="settings-section__header">
-                            <div>
-                                <div class="settings-section__eyebrow">RNS Security</div>
-                                <h2>Network Security</h2>
-                                <p>Manage mesh-level security features.</p>
-                            </div>
-                        </header>
-                        <div class="settings-section__body space-y-4">
-                            <div class="setting-toggle">
-                                <div class="setting-toggle__label">
-                                    <div class="setting-toggle__title">
-                                        {{ $t("app.blackhole_integration_enabled") }}
-                                    </div>
-                                    <div class="setting-toggle__description text-xs text-gray-500">
-                                        {{ $t("app.blackhole_integration_description") }}
-                                    </div>
-                                </div>
-                                <Toggle
-                                    v-model="config.blackhole_integration_enabled"
-                                    @update:model-value="
-                                        updateConfig(
-                                            {
-                                                blackhole_integration_enabled: config.blackhole_integration_enabled,
-                                            },
-                                            'blackhole_integration_enabled'
-                                        )
-                                    "
-                                />
-                            </div>
-                            <div class="space-y-4">
-                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    {{ $t("app.announce_limits") }}
-                                </div>
-                                <div class="text-xs text-gray-600 dark:text-gray-400">
-                                    {{ $t("app.announce_limits_description") }}
-                                </div>
-                                <div class="text-xs font-medium text-gray-800 dark:text-gray-200">
-                                    {{ $t("app.announce_store_heading") }}
-                                </div>
-                                <div class="text-xs text-gray-600 dark:text-gray-400">
-                                    {{ $t("app.announce_store_description") }}
-                                </div>
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                    <label class="setting-toggle">
-                                        <Toggle
-                                            :model-value="config.announce_store_lxmf_delivery"
-                                            @update:model-value="
-                                                (v) => onAnnounceStoreToggle('announce_store_lxmf_delivery', v)
-                                            "
-                                        />
-                                        <span class="setting-toggle__label">
-                                            <span class="setting-toggle__title">{{
-                                                $t("app.announce_store_lxmf")
-                                            }}</span>
-                                        </span>
-                                    </label>
-                                    <label class="setting-toggle">
-                                        <Toggle
-                                            :model-value="config.announce_store_lxst_telephony"
-                                            @update:model-value="
-                                                (v) => onAnnounceStoreToggle('announce_store_lxst_telephony', v)
-                                            "
-                                        />
-                                        <span class="setting-toggle__label">
-                                            <span class="setting-toggle__title">{{
-                                                $t("app.announce_store_lxst")
-                                            }}</span>
-                                        </span>
-                                    </label>
-                                    <label class="setting-toggle">
-                                        <Toggle
-                                            :model-value="config.announce_store_nomadnetwork_node"
-                                            @update:model-value="
-                                                (v) => onAnnounceStoreToggle('announce_store_nomadnetwork_node', v)
-                                            "
-                                        />
-                                        <span class="setting-toggle__label">
-                                            <span class="setting-toggle__title">{{
-                                                $t("app.announce_store_nomad")
-                                            }}</span>
-                                        </span>
-                                    </label>
-                                    <label class="setting-toggle">
-                                        <Toggle
-                                            :model-value="config.announce_store_lxmf_propagation"
-                                            @update:model-value="
-                                                (v) => onAnnounceStoreToggle('announce_store_lxmf_propagation', v)
-                                            "
-                                        />
-                                        <span class="setting-toggle__label">
-                                            <span class="setting-toggle__title">{{
-                                                $t("app.announce_store_prop")
-                                            }}</span>
-                                        </span>
-                                    </label>
-                                </div>
-                                <div
-                                    class="text-xs font-semibold text-gray-700 dark:text-zinc-300 uppercase tracking-wide"
-                                >
-                                    {{ $t("app.announce_max_stored_heading") }}
-                                </div>
-                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                    <div class="space-y-1">
-                                        <label class="text-xs font-medium">{{ $t("app.announce_limit_lxmf") }}</label>
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-xs text-gray-400">0</span>
                                         <input
-                                            v-model.number="config.announce_max_stored_lxmf_delivery"
-                                            type="number"
-                                            min="1"
-                                            class="input-field"
-                                            @change="onAnnounceLimitsChange"
+                                            v-model.number="config.ui_transparency"
+                                            type="range"
+                                            min="0"
+                                            max="100"
+                                            step="1"
+                                            class="flex-1 h-1.5 bg-gray-200 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                                            @input="onUiTransparencyChange"
                                         />
-                                    </div>
-                                    <div class="space-y-1">
-                                        <label class="text-xs font-medium">{{
-                                            $t("app.announce_limit_nomadnet")
-                                        }}</label>
-                                        <input
-                                            v-model.number="config.announce_max_stored_nomadnetwork_node"
-                                            type="number"
-                                            min="1"
-                                            class="input-field"
-                                            @change="onAnnounceLimitsChange"
-                                        />
-                                    </div>
-                                    <div class="space-y-1">
-                                        <label class="text-xs font-medium">{{ $t("app.announce_limit_prop") }}</label>
-                                        <input
-                                            v-model.number="config.announce_max_stored_lxmf_propagation"
-                                            type="number"
-                                            min="1"
-                                            class="input-field"
-                                            @change="onAnnounceLimitsChange"
-                                        />
-                                    </div>
-                                </div>
-                                <div
-                                    class="text-xs font-semibold text-gray-700 dark:text-zinc-300 uppercase tracking-wide"
-                                >
-                                    {{ $t("app.announce_fetch_limit_heading") }}
-                                </div>
-                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                    <div class="space-y-1">
-                                        <label class="text-xs font-medium">{{ $t("app.announce_limit_lxmf") }}</label>
-                                        <input
-                                            v-model.number="config.announce_fetch_limit_lxmf_delivery"
-                                            type="number"
-                                            min="1"
-                                            class="input-field"
-                                            @change="onAnnounceLimitsChange"
-                                        />
-                                    </div>
-                                    <div class="space-y-1">
-                                        <label class="text-xs font-medium">{{
-                                            $t("app.announce_limit_nomadnet")
-                                        }}</label>
-                                        <input
-                                            v-model.number="config.announce_fetch_limit_nomadnetwork_node"
-                                            type="number"
-                                            min="1"
-                                            class="input-field"
-                                            @change="onAnnounceLimitsChange"
-                                        />
-                                    </div>
-                                    <div class="space-y-1">
-                                        <label class="text-xs font-medium">{{ $t("app.announce_limit_prop") }}</label>
-                                        <input
-                                            v-model.number="config.announce_fetch_limit_lxmf_propagation"
-                                            type="number"
-                                            min="1"
-                                            class="input-field"
-                                            @change="onAnnounceLimitsChange"
-                                        />
-                                    </div>
-                                </div>
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <div class="space-y-1">
-                                        <label class="text-xs font-medium">{{
-                                            $t("app.announce_search_max_fetch")
-                                        }}</label>
-                                        <input
-                                            v-model.number="config.announce_search_max_fetch"
-                                            type="number"
-                                            min="100"
-                                            class="input-field"
-                                            @change="onAnnounceLimitsChange"
-                                        />
-                                        <p class="text-[10px] text-gray-500 dark:text-zinc-500">
-                                            {{ $t("app.announce_search_max_fetch_hint") }}
-                                        </p>
-                                    </div>
-                                    <div class="space-y-1">
-                                        <label class="text-xs font-medium">{{
-                                            $t("app.discovered_interfaces_max_return")
-                                        }}</label>
-                                        <input
-                                            v-model.number="config.discovered_interfaces_max_return"
-                                            type="number"
-                                            min="1"
-                                            class="input-field"
-                                            @change="onAnnounceLimitsChange"
-                                        />
-                                        <p class="text-[10px] text-gray-500 dark:text-zinc-500">
-                                            {{ $t("app.discovered_interfaces_max_return_hint") }}
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- Transport -->
-                    <section
-                        v-show="matchesSearch(...sectionKeywords.transport)"
-                        class="settings-section break-inside-avoid"
-                    >
-                        <header class="settings-section__header">
-                            <div>
-                                <div class="settings-section__eyebrow">Reticulum</div>
-                                <h2>{{ $t("app.transport_mode") }}</h2>
-                                <p>{{ $t("app.transport_description") }}</p>
-                            </div>
-                        </header>
-                        <div class="settings-section__body space-y-3">
-                            <label class="setting-toggle">
-                                <Toggle
-                                    id="transport-enabled"
-                                    v-model="config.is_transport_enabled"
-                                    @update:model-value="onIsTransportEnabledChangeWrapper"
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">{{ $t("app.enable_transport_mode") }}</span>
-                                    <span class="setting-toggle__description">{{
-                                        $t("app.transport_toggle_description")
-                                    }}</span>
-                                </span>
-                            </label>
-                        </div>
-                    </section>
-
-                    <!-- Interfaces -->
-                    <section
-                        v-show="matchesSearch(...sectionKeywords.interfaces)"
-                        class="settings-section break-inside-avoid"
-                    >
-                        <header class="settings-section__header">
-                            <div>
-                                <div class="settings-section__eyebrow">Adapters</div>
-                                <h2>{{ $t("app.interfaces") }}</h2>
-                                <p>Show curated community configs inside the interface wizard.</p>
-                            </div>
-                        </header>
-                        <div class="settings-section__body space-y-3">
-                            <label class="setting-toggle">
-                                <Toggle
-                                    id="show-community-interfaces"
-                                    v-model="config.show_suggested_community_interfaces"
-                                    @update:model-value="onShowSuggestedCommunityInterfacesChangeWrapper"
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">{{ $t("app.show_community_interfaces") }}</span>
-                                    <span class="setting-toggle__description">{{
-                                        $t("app.community_interfaces_description")
-                                    }}</span>
-                                </span>
-                            </label>
-                        </div>
-                    </section>
-
-                    <!-- Blocked -->
-                    <section
-                        v-show="matchesSearch(...sectionKeywords.blocked)"
-                        class="settings-section break-inside-avoid"
-                    >
-                        <header class="settings-section__header">
-                            <div>
-                                <div class="settings-section__eyebrow">Privacy</div>
-                                <h2>Banished</h2>
-                                <p>Manage Banished users and nodes</p>
-                            </div>
-                            <RouterLink :to="{ name: 'blocked' }" class="primary-chip"> Manage Banished </RouterLink>
-                        </header>
-                        <div class="settings-section__body">
-                            <p class="text-sm text-gray-600 dark:text-gray-400">
-                                Banished users and nodes will not be able to send you messages, and their announces will
-                                be ignored.
-                            </p>
-                        </div>
-                    </section>
-
-                    <SettingsSectionBlock
-                        v-show="matchesSearch(...sectionKeywords.privacyData)"
-                        :eyebrow="$t('app.privacy_eyebrow')"
-                        :title="$t('app.privacy_data_title')"
-                        :description="$t('app.privacy_data_description')"
-                        body-class="space-y-4"
-                    >
-                        <div class="space-y-3">
-                            <div
-                                class="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-400"
-                            >
-                                {{ $t("app.privacy_subsection_device") }}
-                            </div>
-                            <label class="setting-toggle">
-                                <Toggle
-                                    id="local-message-auto-delete"
-                                    v-model="config.local_message_auto_delete_enabled"
-                                    @update:model-value="onLocalMessageAutoDeleteEnabledChange"
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">{{
-                                        $t("app.local_message_auto_delete_title")
-                                    }}</span>
-                                    <span class="setting-toggle__description">{{
-                                        $t("app.local_message_auto_delete_description")
-                                    }}</span>
-                                </span>
-                            </label>
-                            <div
-                                v-if="config.local_message_auto_delete_enabled"
-                                class="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-0 sm:pl-1"
-                            >
-                                <div class="space-y-1">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                        {{ $t("app.local_message_auto_delete_age") }}
-                                    </div>
-                                    <div class="flex flex-wrap items-center gap-2">
-                                        <input
-                                            v-model.number="config.local_message_auto_delete_value"
-                                            type="number"
-                                            min="1"
-                                            :max="config.local_message_auto_delete_unit === 'months' ? 120 : 10000"
-                                            class="input-field w-24"
-                                            :aria-label="$t('app.local_message_auto_delete_age')"
-                                            @input="onLocalMessageAutoDeleteParamsChange"
-                                        />
-                                        <select
-                                            v-model="config.local_message_auto_delete_unit"
-                                            class="input-field min-w-[7rem]"
-                                            :aria-label="$t('app.local_message_auto_delete_unit_aria')"
-                                            @change="onLocalMessageAutoDeleteParamsChange"
-                                        >
-                                            <option value="days">
-                                                {{ $t("app.local_message_auto_delete_unit_days") }}
-                                            </option>
-                                            <option value="months">
-                                                {{ $t("app.local_message_auto_delete_unit_months") }}
-                                            </option>
-                                        </select>
+                                        <span class="text-xs text-gray-400">100</span>
                                     </div>
                                     <div class="text-xs text-gray-600 dark:text-gray-400">
-                                        {{ $t("app.local_message_auto_delete_month_note") }}
+                                        {{ $t("app.ui_transparency_description") }}
                                     </div>
                                 </div>
-                            </div>
-                        </div>
 
-                        <div class="border-t border-gray-200 dark:border-zinc-800 pt-4 space-y-3">
-                            <div
-                                class="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-400"
-                            >
-                                {{ $t("app.privacy_eyebrow") }}
-                            </div>
-                            <label class="setting-toggle">
-                                <Toggle
-                                    id="privacy-mode-enabled"
-                                    v-model="config.privacy_mode_enabled"
-                                    @update:model-value="onPrivacyModeChange"
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">{{ $t("app.privacy_mode_enabled") }}</span>
-                                    <span class="setting-toggle__description">{{
-                                        $t("app.privacy_mode_description")
-                                    }}</span>
-                                </span>
-                            </label>
-                        </div>
-
-                        <div class="border-t border-gray-200 dark:border-zinc-800 pt-4 space-y-4">
-                            <div
-                                class="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-400"
-                            >
-                                {{ $t("app.privacy_subsection_telemetry") }}
-                            </div>
-                            <label class="setting-toggle">
-                                <Toggle
-                                    id="telemetry-enabled"
-                                    v-model="config.telemetry_enabled"
-                                    @update:model-value="
-                                        updateConfig(
-                                            { telemetry_enabled: config.telemetry_enabled },
-                                            'telemetry_enabled'
-                                        )
-                                    "
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">{{ $t("app.telemetry_enabled") }}</span>
-                                    <span class="setting-toggle__description">{{
-                                        $t("app.telemetry_description")
-                                    }}</span>
-                                </span>
-                            </label>
-                            <div v-if="config.telemetry_enabled" class="space-y-4">
-                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    {{ $t("app.telemetry_trusted_peers") }}
-                                </div>
-                                <div v-if="trustedTelemetryPeers.length === 0" class="text-xs text-gray-500 italic">
-                                    {{ $t("app.telemetry_no_trusted_peers") }}
-                                </div>
-                                <div v-else class="space-y-2">
-                                    <div
-                                        v-for="peer in trustedTelemetryPeers"
-                                        :key="peer.id"
-                                        class="flex items-center justify-between p-2 rounded-xl bg-gray-50 dark:bg-zinc-800 border border-gray-100 dark:border-zinc-700"
-                                    >
-                                        <div class="flex items-center gap-3">
-                                            <div
-                                                class="size-8 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-500 flex items-center justify-center"
-                                            >
-                                                <MaterialDesignIcon icon-name="account" class="size-5" />
-                                            </div>
-                                            <div class="min-w-0">
-                                                <div class="text-sm font-bold text-gray-900 dark:text-white truncate">
-                                                    {{ peer.name }}
-                                                </div>
-                                                <div class="text-[10px] text-gray-500 font-mono truncate">
-                                                    {{ peer.remote_identity_hash }}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <button
-                                            class="p-2 text-gray-400 hover:text-red-500 transition-colors"
-                                            :title="$t('app.telemetry_revoke_trust')"
-                                            @click="revokeTelemetryTrust(peer)"
-                                        >
-                                            <MaterialDesignIcon icon-name="shield-off-outline" class="size-5" />
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </SettingsSectionBlock>
-
-                    <!-- Authentication -->
-                    <section
-                        v-show="matchesSearch(...sectionKeywords.auth)"
-                        class="settings-section break-inside-avoid"
-                    >
-                        <header class="settings-section__header">
-                            <div>
-                                <div class="settings-section__eyebrow">Security</div>
-                                <h2>Authentication</h2>
-                                <p>Require a password to access the web interface.</p>
-                            </div>
-                        </header>
-                        <div class="settings-section__body space-y-3">
-                            <label class="setting-toggle">
-                                <Toggle
-                                    id="auth-enabled"
-                                    v-model="config.auth_enabled"
-                                    @update:model-value="onAuthEnabledChange"
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">Enable Authentication</span>
-                                    <span class="setting-toggle__description"
-                                        >Protect your instance with a password.</span
-                                    >
-                                </span>
-                            </label>
-                            <div v-if="config.auth_enabled" class="info-callout">
-                                <p class="text-sm">
-                                    Authentication is currently enabled. You will be asked for your password when
-                                    accessing the web interface.
-                                </p>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section
-                        v-show="matchesSearch(...sectionKeywords.webExposure)"
-                        class="settings-section break-inside-avoid"
-                    >
-                        <header class="settings-section__header">
-                            <div>
-                                <div class="settings-section__eyebrow">Security</div>
-                                <h2>{{ $t("app.web_exposure_title") }}</h2>
-                                <p>{{ $t("app.web_exposure_description") }}</p>
-                            </div>
-                        </header>
-                        <div class="settings-section__body space-y-4">
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                                <div>
-                                    <div class="text-gray-500 dark:text-zinc-400">
-                                        {{ $t("app.web_listen_address") }}
-                                    </div>
-                                    <div class="font-mono text-gray-900 dark:text-gray-100">
-                                        {{ serverSecurity.listen_host || "—" }}:{{ serverSecurity.listen_port ?? "—" }}
-                                    </div>
-                                </div>
-                                <div>
-                                    <div class="text-gray-500 dark:text-zinc-400">{{ $t("app.web_listen_https") }}</div>
-                                    <div class="text-gray-900 dark:text-gray-100">
-                                        {{ serverSecurity.https_enabled ? $t("app.enabled") : $t("app.disabled") }}
-                                    </div>
-                                </div>
-                            </div>
-                            <div
-                                v-if="serverSecurity.landlock_requested !== undefined"
-                                class="text-xs text-gray-600 dark:text-gray-400"
-                            >
-                                {{ $t("app.landlock_status") }}:
-                                {{
-                                    serverSecurity.landlock_active
-                                        ? serverSecurity.landlock_auto_enabled
-                                            ? $t("app.landlock_auto_enabled")
-                                            : $t("app.landlock_active")
-                                        : serverSecurity.landlock_kernel_supported === false
-                                          ? $t("app.landlock_kernel_unsupported")
-                                          : serverSecurity.landlock_disabled_by_env
-                                            ? $t("app.landlock_disabled_by_env")
-                                            : $t("app.landlock_inactive")
-                                }}
-                            </div>
-                            <div
-                                v-if="serverSecurity.is_loopback_bind === false"
-                                class="rounded-md border border-amber-500/40 bg-amber-500/10 p-4 space-y-3"
-                            >
-                                <div class="text-sm font-semibold text-amber-900 dark:text-amber-200">
-                                    {{ $t("app.web_exposure_warning_title") }}
-                                </div>
-                                <p class="text-sm text-amber-950/90 dark:text-amber-100/90">
-                                    {{ $t("app.web_exposure_warning_body") }}
-                                </p>
-                                <ul class="space-y-2 text-sm">
-                                    <li class="flex items-start gap-2">
-                                        <MaterialDesignIcon
-                                            :icon-name="serverSecurity.auth_enabled ? 'check-circle' : 'alert-circle'"
-                                            class="size-4 mt-0.5 shrink-0"
-                                            :class="serverSecurity.auth_enabled ? 'text-green-600' : 'text-amber-600'"
-                                        />
-                                        <span>{{
-                                            serverSecurity.auth_enabled
-                                                ? $t("app.web_exposure_check_auth")
-                                                : $t("app.web_exposure_check_auth_off")
-                                        }}</span>
-                                    </li>
-                                    <li>
-                                        <label class="flex items-start gap-2 cursor-pointer">
-                                            <input
-                                                v-model="exposureAckFirewall"
-                                                type="checkbox"
-                                                class="rounded-sm mt-1"
-                                                @change="persistExposureAcknowledgements"
-                                            />
-                                            <span>{{ $t("app.web_exposure_check_firewall") }}</span>
-                                        </label>
-                                    </li>
-                                    <li>
-                                        <label class="flex items-start gap-2 cursor-pointer">
-                                            <input
-                                                v-model="exposureAckVpn"
-                                                type="checkbox"
-                                                class="rounded-sm mt-1"
-                                                @change="persistExposureAcknowledgements"
-                                            />
-                                            <span>{{ $t("app.web_exposure_check_vpn") }}</span>
-                                        </label>
-                                    </li>
-                                </ul>
-                            </div>
-                            <div class="space-y-2">
-                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    {{ $t("app.web_ui_ip_allowlist") }}
-                                </div>
-                                <input
-                                    v-model="serverSecurity.web_ui_ip_allowlist"
-                                    type="text"
-                                    class="input-field font-mono text-xs"
-                                    :placeholder="$t('app.web_ui_ip_allowlist_placeholder')"
-                                    @input="onWebUiAllowlistChange"
-                                />
-                                <div class="text-xs text-gray-600 dark:text-gray-400">
-                                    {{ $t("app.web_ui_ip_allowlist_description") }}
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- Sources & Infrastructure -->
-                    <section
-                        v-show="matchesSearch(...sectionKeywords.infrastructure)"
-                        class="settings-section break-inside-avoid"
-                    >
-                        <header class="settings-section__header">
-                            <div>
-                                <div class="settings-section__eyebrow">Infrastructure</div>
-                                <h2>Sources & Mirroring</h2>
-                                <p>Customize URLs for documentation and external resources.</p>
-                            </div>
-                        </header>
-                        <div class="settings-section__body space-y-4">
-                            <div class="space-y-2">
-                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Gitea Base URL</div>
-                                <input
-                                    v-model="config.gitea_base_url"
-                                    type="text"
-                                    placeholder="https://github.com/example-org"
-                                    class="input-field"
-                                    @input="onGiteaConfigChange"
-                                />
-                                <div class="text-xs text-gray-600 dark:text-gray-400">
-                                    The base URL for your preferred Gitea instance.
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- Content Security Policy (CSP) -->
-                    <section v-show="matchesSearch(...sectionKeywords.csp)" class="settings-section break-inside-avoid">
-                        <header class="settings-section__header">
-                            <div>
-                                <div class="settings-section__eyebrow">Security</div>
-                                <h2>{{ $t("app.csp_settings") }}</h2>
-                                <p>{{ $t("app.csp_description") }}</p>
-                            </div>
-                        </header>
-                        <div class="settings-section__body space-y-4">
-                            <div class="space-y-2">
-                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    {{ $t("app.csp_extra_connect_src") }}
-                                </div>
-                                <input
-                                    v-model="config.csp_extra_connect_src"
-                                    type="text"
-                                    class="input-field font-mono text-xs"
-                                    placeholder="https://api.example.com, wss://socket.example.com"
-                                    @input="onCspConfigChange"
-                                />
-                                <div class="text-xs text-gray-600 dark:text-gray-400">
-                                    {{ $t("app.csp_extra_connect_src_description") }}
-                                </div>
-                            </div>
-
-                            <div class="space-y-2">
-                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    {{ $t("app.csp_extra_img_src") }}
-                                </div>
-                                <input
-                                    v-model="config.csp_extra_img_src"
-                                    type="text"
-                                    class="input-field font-mono text-xs"
-                                    placeholder="https://tiles.example.com, https://cdn.example.com"
-                                    @input="onCspConfigChange"
-                                />
-                                <div class="text-xs text-gray-600 dark:text-gray-400">
-                                    {{ $t("app.csp_extra_img_src_description") }}
-                                </div>
-                            </div>
-
-                            <div class="space-y-2">
-                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    {{ $t("app.csp_extra_frame_src") }}
-                                </div>
-                                <input
-                                    v-model="config.csp_extra_frame_src"
-                                    type="text"
-                                    class="input-field font-mono text-xs"
-                                    placeholder="https://video.example.com"
-                                    @input="onCspConfigChange"
-                                />
-                                <div class="text-xs text-gray-600 dark:text-gray-400">
-                                    {{ $t("app.csp_extra_frame_src_description") }}
-                                </div>
-                            </div>
-
-                            <div class="space-y-2">
-                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    {{ $t("app.csp_extra_script_src") }}
-                                </div>
-                                <input
-                                    v-model="config.csp_extra_script_src"
-                                    type="text"
-                                    class="input-field font-mono text-xs"
-                                    placeholder="https://scripts.example.com"
-                                    @input="onCspConfigChange"
-                                />
-                                <div class="text-xs text-gray-600 dark:text-gray-400">
-                                    {{ $t("app.csp_extra_script_src_description") }}
-                                </div>
-                            </div>
-
-                            <div class="space-y-2">
-                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    {{ $t("app.csp_extra_style_src") }}
-                                </div>
-                                <input
-                                    v-model="config.csp_extra_style_src"
-                                    type="text"
-                                    class="input-field font-mono text-xs"
-                                    placeholder="https://fonts.example.com"
-                                    @input="onCspConfigChange"
-                                />
-                                <div class="text-xs text-gray-600 dark:text-gray-400">
-                                    {{ $t("app.csp_extra_style_src_description") }}
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- Messages (LXMF delivery, retries, inbound stamps) -->
-                    <section
-                        v-show="matchesSearch(...sectionKeywords.messages)"
-                        class="settings-section break-inside-avoid"
-                    >
-                        <header class="settings-section__header">
-                            <div>
-                                <div class="settings-section__eyebrow">{{ $t("app.lxmf_settings_eyebrow") }}</div>
-                                <h2>{{ $t("app.messages") }}</h2>
-                                <p>{{ $t("app.messages_description") }}</p>
-                            </div>
-                        </header>
-                        <div class="settings-section__body space-y-3">
-                            <label class="setting-toggle">
-                                <Toggle
-                                    id="auto-resend-failed"
-                                    v-model="config.auto_resend_failed_messages_when_announce_received"
-                                    @update:model-value="onAutoResendFailedMessagesWhenAnnounceReceivedChangeWrapper"
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">{{ $t("app.auto_resend_title") }}</span>
-                                    <span class="setting-toggle__description">{{
-                                        $t("app.auto_resend_description")
-                                    }}</span>
-                                </span>
-                            </label>
-                            <label class="setting-toggle">
-                                <Toggle
-                                    id="allow-retries-attachments"
-                                    v-model="config.allow_auto_resending_failed_messages_with_attachments"
-                                    @update:model-value="onAllowAutoResendingFailedMessagesWithAttachmentsChangeWrapper"
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">{{ $t("app.retry_attachments_title") }}</span>
-                                    <span class="setting-toggle__description">{{
-                                        $t("app.retry_attachments_description")
-                                    }}</span>
-                                </span>
-                            </label>
-                            <label class="setting-toggle">
-                                <Toggle
-                                    id="auto-fallback-propagation"
-                                    v-model="config.auto_send_failed_messages_to_propagation_node"
-                                    @update:model-value="onAutoSendFailedMessagesToPropagationNodeChangeWrapper"
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">{{ $t("app.auto_fallback_title") }}</span>
-                                    <span class="setting-toggle__description">{{
-                                        $t("app.auto_fallback_description")
-                                    }}</span>
-                                </span>
-                            </label>
-                            <label class="setting-toggle">
-                                <Toggle
-                                    id="inbound-stamps-required"
-                                    :model-value="inboundStampsEnabled"
-                                    @update:model-value="onInboundStampsEnabledChange"
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">{{
-                                        $t("app.inbound_stamps_required_title")
-                                    }}</span>
-                                    <span class="setting-toggle__description">{{
-                                        $t("app.inbound_stamps_required_description")
-                                    }}</span>
-                                </span>
-                            </label>
-                            <div v-show="inboundStampsEnabled" class="space-y-2">
-                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    {{ $t("app.inbound_stamp_cost") }}
-                                </div>
-                                <input
-                                    v-model.number="config.lxmf_inbound_stamp_cost"
-                                    type="number"
-                                    min="1"
-                                    max="254"
-                                    placeholder="8"
-                                    class="input-field"
-                                    @input="onLxmfInboundStampCostChange"
-                                />
-                                <div class="text-xs text-gray-600 dark:text-gray-400">
-                                    {{ $t("app.inbound_stamp_description") }}
-                                </div>
-                            </div>
-                            <hr class="border-gray-200 dark:border-gray-700" />
-                            <div>
-                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
-                                    {{ $t("app.flood_protection") }}
-                                </div>
-                                <div class="text-xs text-gray-600 dark:text-gray-400 mb-3">
-                                    {{ $t("app.flood_protection_description") }}
-                                </div>
                                 <label class="setting-toggle">
                                     <Toggle
-                                        id="lxmf-flood-protection"
-                                        v-model="config.lxmf_flood_protection_enabled"
-                                        @update:model-value="onLxmfFloodProtectionEnabledChange"
+                                        id="ui-glass-enabled"
+                                        v-model="config.ui_glass_enabled"
+                                        @update:model-value="onUiGlassEnabledChange"
                                     />
                                     <span class="setting-toggle__label">
-                                        <span class="setting-toggle__title">{{
-                                            $t("app.flood_protection_enabled")
+                                        <span class="setting-toggle__title">{{ $t("app.ui_glass_enabled") }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("app.ui_glass_enabled_description")
                                         }}</span>
                                     </span>
                                 </label>
-                                <div v-show="config.lxmf_flood_protection_enabled" class="space-y-3 mt-2">
-                                    <div class="space-y-2">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                            {{ $t("app.flood_threshold") }}
-                                        </div>
-                                        <input
-                                            v-model.number="config.lxmf_flood_threshold_per_minute"
-                                            type="number"
-                                            min="1"
-                                            max="1000"
-                                            placeholder="30"
-                                            class="input-field"
-                                            @input="onLxmfFloodThresholdChange"
-                                        />
-                                    </div>
-                                    <div class="space-y-2">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                            {{ $t("app.flood_max_stamp_cost") }}
-                                        </div>
-                                        <input
-                                            v-model.number="config.lxmf_flood_max_stamp_cost"
-                                            type="number"
-                                            min="1"
-                                            max="254"
-                                            placeholder="24"
-                                            class="input-field"
-                                            @input="onLxmfFloodMaxStampCostChange"
-                                        />
-                                    </div>
-                                    <div class="space-y-2">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                            {{ $t("app.flood_cooldown") }}
-                                        </div>
-                                        <input
-                                            v-model.number="config.lxmf_flood_cooldown_seconds"
-                                            type="number"
-                                            min="30"
-                                            max="3600"
-                                            placeholder="300"
-                                            class="input-field"
-                                            @input="onLxmfFloodCooldownChange"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
 
-                    <!-- Propagation nodes -->
-                    <section
-                        v-show="matchesSearch(...sectionKeywords.propagation)"
-                        class="settings-section break-inside-avoid"
-                    >
-                        <header class="settings-section__header">
-                            <div>
-                                <div class="settings-section__eyebrow">LXMF</div>
-                                <h2>{{ $t("app.propagation_nodes") }}</h2>
-                                <p>{{ $t("app.propagation_nodes_description") }}</p>
-                            </div>
-                            <RouterLink :to="{ name: 'propagation-nodes' }" class="primary-chip">
-                                {{ $t("app.browse_nodes") }}
-                            </RouterLink>
-                        </header>
-                        <div class="settings-section__body space-y-5">
-                            <div class="info-callout">
-                                <ul class="list-disc list-inside space-y-1 text-sm">
-                                    <li>{{ $t("app.nodes_info_1") }}</li>
-                                    <li>{{ $t("app.nodes_info_2") }}</li>
-                                    <li>{{ $t("app.nodes_info_3") }}</li>
-                                </ul>
-                            </div>
-                            <label class="setting-toggle">
-                                <Toggle
-                                    id="local-propagation-node"
-                                    v-model="config.lxmf_local_propagation_node_enabled"
-                                    @update:model-value="onLxmfLocalPropagationNodeEnabledChangeWrapper"
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">{{ $t("app.run_local_node") }}</span>
-                                    <span class="setting-toggle__description">{{
-                                        $t("app.run_local_node_description")
-                                    }}</span>
-                                    <span class="setting-toggle__hint monospace-field">{{
-                                        config.lxmf_local_propagation_node_address_hash || "—"
-                                    }}</span>
-                                </span>
-                            </label>
-                            <label class="setting-toggle">
-                                <Toggle
-                                    id="auto-select-propagation-node"
-                                    v-model="config.lxmf_preferred_propagation_node_auto_select"
-                                    @update:model-value="onLxmfPreferredPropagationNodeAutoSelectChange"
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">{{ $t("app.auto_select_node") }}</span>
-                                    <span class="setting-toggle__description">{{
-                                        $t("app.auto_select_node_description")
-                                    }}</span>
-                                    <span
-                                        v-if="config.lxmf_preferred_propagation_node_auto_select"
-                                        class="setting-toggle__hint block mt-1 text-xs text-gray-600 dark:text-gray-400"
-                                    >
-                                        <template v-if="config.lxmf_preferred_propagation_node_destination_hash">
-                                            <span class="block">{{ $t("app.auto_select_using_label") }}</span>
-                                            <span class="monospace-field break-all block mt-0.5">{{
-                                                config.lxmf_preferred_propagation_node_destination_hash
-                                            }}</span>
-                                        </template>
-                                        <template v-else>
-                                            {{ $t("app.auto_select_pending") }}
-                                        </template>
-                                    </span>
-                                </span>
-                            </label>
-                            <div class="space-y-2">
-                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    {{ $t("app.preferred_propagation_node") }}
-                                </div>
-                                <input
-                                    v-model="config.lxmf_preferred_propagation_node_destination_hash"
-                                    type="text"
-                                    :placeholder="$t('app.preferred_node_placeholder')"
-                                    class="input-field monospace-field"
-                                    @input="onLxmfPreferredPropagationNodeDestinationHashChange"
-                                />
-                                <div class="text-xs text-gray-600 dark:text-gray-400">
-                                    {{ $t("app.fallback_node_description") }}
-                                </div>
-                            </div>
-                            <div class="space-y-2">
-                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    {{ $t("app.auto_sync_interval") }}
-                                </div>
-                                <select
-                                    v-model="config.lxmf_preferred_propagation_node_auto_sync_interval_seconds"
-                                    class="input-field"
-                                    @change="onLxmfPreferredPropagationNodeAutoSyncIntervalSecondsChange"
-                                >
-                                    <option value="0">{{ $t("app.disabled") }}</option>
-                                    <option value="900">Every 15 Minutes</option>
-                                    <option value="1800">Every 30 Minutes</option>
-                                    <option value="3600">Every 1 Hour</option>
-                                    <option value="10800">Every 3 Hours</option>
-                                    <option value="21600">Every 6 Hours</option>
-                                    <option value="43200">Every 12 Hours</option>
-                                    <option value="86400">Every 24 Hours</option>
-                                </select>
-                                <div class="text-xs text-gray-600 dark:text-gray-400">
-                                    <span v-if="config.lxmf_preferred_propagation_node_last_synced_at">{{
-                                        $t("app.last_synced", {
-                                            time: formatSecondsAgoForI18n(
-                                                config.lxmf_preferred_propagation_node_last_synced_at
-                                            ),
-                                        })
-                                    }}</span>
-                                    <span v-else>{{ $t("app.last_synced_never") }}</span>
-                                </div>
-                            </div>
-                            <div class="space-y-2">
-                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    {{ $t("app.incoming_message_size") }}
-                                </div>
-                                <div class="text-xs text-gray-600 dark:text-gray-400">
-                                    {{ $t("app.incoming_message_size_description") }}
-                                </div>
-                                <select
-                                    v-model="lxmfIncomingDeliveryPreset"
-                                    class="input-field"
-                                    @change="onLxmfIncomingDeliveryPresetChange"
-                                >
-                                    <option value="1mb">{{ $t("app.incoming_message_size_1mb") }}</option>
-                                    <option value="10mb">{{ $t("app.incoming_message_size_10mb") }}</option>
-                                    <option value="25mb">{{ $t("app.incoming_message_size_25mb") }}</option>
-                                    <option value="50mb">{{ $t("app.incoming_message_size_50mb") }}</option>
-                                    <option value="1gb">{{ $t("app.incoming_message_size_1gb") }}</option>
-                                    <option value="custom">{{ $t("app.incoming_message_size_custom") }}</option>
-                                </select>
-                                <div
-                                    v-if="lxmfIncomingDeliveryPreset === 'custom'"
-                                    class="flex flex-wrap items-center gap-2"
-                                >
-                                    <input
-                                        v-model.number="lxmfIncomingDeliveryCustomAmount"
-                                        type="number"
-                                        min="0.001"
-                                        step="any"
-                                        class="input-field max-w-40"
-                                        @input="onLxmfIncomingDeliveryCustomChange"
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="messages-multi-pane-enabled"
+                                        v-model="config.messages_multi_pane_enabled"
+                                        @update:model-value="onMessagesMultiPaneEnabledChange"
                                     />
-                                    <select
-                                        v-model="lxmfIncomingDeliveryCustomUnit"
-                                        class="input-field max-w-32"
-                                        @change="onLxmfIncomingDeliveryCustomChange"
-                                    >
-                                        <option value="mb">{{ $t("app.incoming_message_size_unit_mb") }}</option>
-                                        <option value="gb">{{ $t("app.incoming_message_size_unit_gb") }}</option>
-                                    </select>
-                                </div>
-                                <div class="text-xs text-gray-600 dark:text-gray-400">
-                                    {{ formatByteSize(config.lxmf_delivery_transfer_limit_in_bytes) }}
-                                </div>
-                            </div>
-                            <div class="space-y-2">
-                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    Propagation transfer limit (MB)
-                                </div>
-                                <input
-                                    v-model.number="lxmfPropagationTransferLimitInputMb"
-                                    type="number"
-                                    min="0.001"
-                                    step="0.01"
-                                    class="input-field"
-                                    @input="onLxmfPropagationTransferLimitChange"
-                                />
-                                <div class="text-xs text-gray-600 dark:text-gray-400">
-                                    {{ formatByteSize(config.lxmf_propagation_transfer_limit_in_bytes) }}
-                                </div>
-                            </div>
-                            <div class="space-y-2">
-                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    Propagation sync limit (MB)
-                                </div>
-                                <input
-                                    v-model.number="lxmfPropagationSyncLimitInputMb"
-                                    type="number"
-                                    min="0.001"
-                                    step="0.01"
-                                    class="input-field"
-                                    @input="onLxmfPropagationSyncLimitChange"
-                                />
-                                <div class="text-xs text-gray-600 dark:text-gray-400">
-                                    {{ formatByteSize(config.lxmf_propagation_sync_limit_in_bytes) }}
-                                </div>
-                            </div>
-                            <div v-if="config.lxmf_local_propagation_node_enabled" class="space-y-2">
-                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    {{ $t("app.propagation_stamp_cost") }}
-                                </div>
-                                <input
-                                    v-model.number="config.lxmf_propagation_node_stamp_cost"
-                                    type="number"
-                                    min="13"
-                                    max="254"
-                                    placeholder="16"
-                                    class="input-field"
-                                    @input="onLxmfPropagationNodeStampCostChange"
-                                />
-                                <div class="text-xs text-gray-600 dark:text-gray-400">
-                                    {{ $t("app.propagation_stamp_description") }}
-                                </div>
-                            </div>
-                        </div>
-                    </section>
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{
+                                            $t("app.messages_multi_pane_enabled")
+                                        }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("app.messages_multi_pane_enabled_description")
+                                        }}</span>
+                                    </span>
+                                </label>
 
-                    <section class="settings-section break-inside-avoid">
-                        <header class="settings-section__header">
-                            <div>
-                                <div class="settings-section__eyebrow">{{ $t("app.system") }}</div>
-                                <h2>{{ $t("app.reticulum_stack") }}</h2>
-                                <p>{{ $t("app.reticulum_stack_description") }}</p>
-                            </div>
-                        </header>
-                        <div class="settings-section__body space-y-4">
-                            <div class="grid grid-cols-1 gap-3">
-                                <button
-                                    type="button"
-                                    class="btn-maintenance border-violet-200 dark:border-violet-900/30 text-violet-800 dark:text-violet-200 bg-violet-50 dark:bg-violet-900/10 hover:bg-violet-100 dark:hover:bg-violet-900/20 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-violet-50 dark:disabled:hover:bg-violet-900/10"
-                                    :disabled="reloadingRns"
-                                    @click="reloadRns"
-                                >
-                                    <div class="flex flex-col items-start text-left">
-                                        <div class="font-bold flex items-center gap-2">
-                                            <MaterialDesignIcon icon-name="restart" class="size-4" />
-                                            {{ $t("app.reload_rns") }}
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="nomad-tabs-enabled"
+                                        v-model="config.nomad_tabs_enabled"
+                                        @update:model-value="onNomadTabsEnabledChange"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{ $t("app.nomad_tabs_enabled") }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("app.nomad_tabs_enabled_description")
+                                        }}</span>
+                                    </span>
+                                </label>
+
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="rrc-enabled"
+                                        v-model="config.rrc_enabled"
+                                        @update:model-value="onRrcEnabledChange"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{ $t("app.rrc_enabled") }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("app.rrc_enabled_description")
+                                        }}</span>
+                                    </span>
+                                </label>
+
+                                <div class="pt-1">
+                                    <button
+                                        type="button"
+                                        class="p-0 border-0 bg-transparent text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                                        @click="resetAppearanceDefaults"
+                                    >
+                                        {{ $t("app.reset_appearance_defaults") }}
+                                    </button>
+                                </div>
+
+                                <div class="space-y-4 pt-2">
+                                    <div
+                                        class="text-sm font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-wider"
+                                    >
+                                        Message Bubbles
+                                    </div>
+
+                                    <div
+                                        class="flex items-start gap-3 rounded-xl border border-gray-200 dark:border-zinc-700 px-3 py-2.5"
+                                    >
+                                        <input
+                                            id="detailed-outbound-send-status"
+                                            type="checkbox"
+                                            class="mt-1 rounded-sm border-gray-300 dark:border-zinc-600"
+                                            :checked="GlobalState.detailedOutboundSendStatus"
+                                            @change="onDetailedOutboundSendStatusChange"
+                                        />
+                                        <label for="detailed-outbound-send-status" class="min-w-0 cursor-pointer">
+                                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                                {{ $t("app.detailed_outbound_send_status") }}
+                                            </div>
+                                            <div class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
+                                                {{ $t("app.detailed_outbound_send_status_description") }}
+                                            </div>
+                                        </label>
+                                    </div>
+
+                                    <div
+                                        class="flex items-start gap-3 rounded-xl border border-gray-200 dark:border-zinc-700 px-3 py-2.5"
+                                    >
+                                        <input
+                                            id="outbound-transfer-progress-enabled"
+                                            type="checkbox"
+                                            class="mt-1 rounded-sm border-gray-300 dark:border-zinc-600"
+                                            :checked="GlobalState.outboundTransferProgressEnabled"
+                                            @change="onOutboundTransferProgressEnabledChange"
+                                        />
+                                        <label for="outbound-transfer-progress-enabled" class="min-w-0 cursor-pointer">
+                                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                                {{ $t("app.outbound_transfer_progress_enabled") }}
+                                            </div>
+                                            <div class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
+                                                {{ $t("app.outbound_transfer_progress_enabled_description") }}
+                                            </div>
+                                        </label>
+                                    </div>
+
+                                    <div
+                                        class="flex items-start gap-3 rounded-xl border border-gray-200 dark:border-zinc-700 px-3 py-2.5"
+                                    >
+                                        <input
+                                            id="message-timestamp-grouping"
+                                            type="checkbox"
+                                            class="mt-1 rounded-sm border-gray-300 dark:border-zinc-600"
+                                            :checked="GlobalState.messageTimestampGroupingEnabled"
+                                            @change="onMessageTimestampGroupingChange"
+                                        />
+                                        <label for="message-timestamp-grouping" class="min-w-0 cursor-pointer">
+                                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                                {{ $t("app.message_timestamp_grouping") }}
+                                            </div>
+                                            <div class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
+                                                {{ $t("app.message_timestamp_grouping_description") }}
+                                            </div>
+                                        </label>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div class="space-y-2">
+                                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                                Outbound Color
+                                            </div>
+                                            <div class="flex gap-2">
+                                                <input
+                                                    v-model="config.message_outbound_bubble_color"
+                                                    type="color"
+                                                    class="w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 cursor-pointer"
+                                                    @input="onMessageBubbleColorChange('outbound')"
+                                                />
+                                                <input
+                                                    v-model="config.message_outbound_bubble_color"
+                                                    type="text"
+                                                    class="input-field monospace-field flex-1"
+                                                    @input="onMessageBubbleColorChange('outbound')"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div class="space-y-2">
+                                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                                Failed Color
+                                            </div>
+                                            <div class="flex gap-2">
+                                                <input
+                                                    v-model="config.message_failed_bubble_color"
+                                                    type="color"
+                                                    class="w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 cursor-pointer"
+                                                    @input="onMessageBubbleColorChange('failed')"
+                                                />
+                                                <input
+                                                    v-model="config.message_failed_bubble_color"
+                                                    type="text"
+                                                    class="input-field monospace-field flex-1"
+                                                    @input="onMessageBubbleColorChange('failed')"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div class="space-y-2">
+                                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                                Waiting Color
+                                            </div>
+                                            <div class="flex gap-2">
+                                                <input
+                                                    v-model="config.message_waiting_bubble_color"
+                                                    type="color"
+                                                    class="w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 cursor-pointer"
+                                                    @input="onMessageBubbleColorChange('waiting')"
+                                                />
+                                                <input
+                                                    v-model="config.message_waiting_bubble_color"
+                                                    type="text"
+                                                    class="input-field monospace-field flex-1"
+                                                    @input="onMessageBubbleColorChange('waiting')"
+                                                />
+                                            </div>
                                         </div>
                                     </div>
-                                </button>
-                                <p
-                                    v-if="reloadRnsStatusMessage"
-                                    class="text-xs"
-                                    :class="
-                                        reloadingRns
-                                            ? 'text-blue-600 dark:text-blue-400'
-                                            : 'text-gray-500 dark:text-gray-400'
-                                    "
+
+                                    <div class="space-y-2">
+                                        <div class="flex items-center justify-between">
+                                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                                Inbound Color (Optional)
+                                            </div>
+                                            <button
+                                                v-if="config.message_inbound_bubble_color"
+                                                type="button"
+                                                class="text-[10px] text-red-500 font-bold uppercase hover:underline"
+                                                @click="
+                                                    config.message_inbound_bubble_color = null;
+                                                    onMessageBubbleColorChange('inbound');
+                                                "
+                                            >
+                                                Reset to default
+                                            </button>
+                                        </div>
+                                        <div class="flex gap-2">
+                                            <input
+                                                v-if="config.message_inbound_bubble_color"
+                                                v-model="config.message_inbound_bubble_color"
+                                                type="color"
+                                                class="w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 cursor-pointer"
+                                                @input="onMessageBubbleColorChange('inbound')"
+                                            />
+                                            <div
+                                                v-if="!config.message_inbound_bubble_color"
+                                                class="flex-1 flex items-center px-3 text-xs text-gray-400 bg-gray-50 dark:bg-zinc-900 rounded-xl border border-dashed border-gray-200 dark:border-zinc-800 italic"
+                                            >
+                                                Using theme default. Click to customize ->
+                                                <button
+                                                    class="ml-2 px-2 py-1 bg-blue-500 text-white rounded-lg not-italic font-bold"
+                                                    @click="
+                                                        config.message_inbound_bubble_color = '#ffffff';
+                                                        onMessageBubbleColorChange('inbound');
+                                                    "
+                                                >
+                                                    Customize
+                                                </button>
+                                            </div>
+                                            <input
+                                                v-else
+                                                v-model="config.message_inbound_bubble_color"
+                                                type="text"
+                                                class="input-field monospace-field flex-1"
+                                                @input="onMessageBubbleColorChange('inbound')"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Network Visualiser -->
+                        <section v-show="showSection('visualiser')" class="settings-section break-inside-avoid">
+                            <header class="settings-section__header">
+                                <div>
+                                    <div class="settings-section__eyebrow">Visualiser</div>
+                                    <h2>{{ $t("visualiser.title") }}</h2>
+                                    <p>{{ $t("visualiser.description") }}</p>
+                                </div>
+                            </header>
+                            <div class="settings-section__body space-y-4">
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="settings-visualiser-offline"
+                                        v-model="visualiserShowDisabledInterfaces"
+                                        @update:model-value="onVisualiserShowDisabledChange"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{
+                                            $t("visualiser.show_disabled_interfaces")
+                                        }}</span>
+                                    </span>
+                                </label>
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="settings-visualiser-discovered"
+                                        v-model="visualiserShowDiscoveredInterfaces"
+                                        @update:model-value="onVisualiserShowDiscoveredChange"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{
+                                            $t("visualiser.show_discovered_interfaces")
+                                        }}</span>
+                                    </span>
+                                </label>
+                            </div>
+                        </section>
+
+                        <!-- Location (map & coordinates) -->
+                        <section v-show="showSection('location')" class="settings-section break-inside-avoid">
+                            <header class="settings-section__header">
+                                <div>
+                                    <div class="settings-section__eyebrow">{{ $t("app.settings_map_eyebrow") }}</div>
+                                    <h2>{{ $t("app.location") }}</h2>
+                                    <p>{{ $t("app.location_manage_desc") }}</p>
+                                </div>
+                            </header>
+                            <div class="settings-section__body space-y-4">
+                                <div class="space-y-2">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("app.location_source") }}
+                                    </div>
+                                    <select
+                                        v-model="config.location_source"
+                                        class="input-field"
+                                        @change="
+                                            updateConfig({ location_source: config.location_source }, 'location_source')
+                                        "
+                                    >
+                                        <option value="disabled">{{ $t("app.location_source_disabled") }}</option>
+                                        <option value="browser">{{ $t("app.location_source_browser") }}</option>
+                                        <option value="manual">{{ $t("app.location_source_manual") }}</option>
+                                    </select>
+                                    <div
+                                        v-if="config.location_source === 'disabled'"
+                                        class="text-xs text-gray-600 dark:text-gray-400"
+                                    >
+                                        {{ $t("app.location_source_disabled_desc") }}
+                                    </div>
+                                    <div
+                                        v-if="config.location_source === 'browser'"
+                                        class="text-xs text-gray-600 dark:text-gray-400"
+                                    >
+                                        {{ $t("app.location_source_browser_desc") }}
+                                    </div>
+                                    <div
+                                        v-if="config.location_source === 'manual'"
+                                        class="text-xs text-gray-600 dark:text-gray-400"
+                                    >
+                                        {{ $t("app.location_source_manual_desc") }}
+                                    </div>
+                                </div>
+
+                                <div
+                                    v-if="config.location_source === 'manual'"
+                                    class="grid grid-cols-1 sm:grid-cols-3 gap-4"
                                 >
-                                    {{ reloadRnsStatusMessage }}
+                                    <div class="space-y-2">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            {{ $t("app.location_manual_lat") }}
+                                        </div>
+                                        <input
+                                            v-model="config.location_manual_lat"
+                                            type="text"
+                                            class="input-field"
+                                            placeholder="0.0"
+                                            @input="
+                                                updateConfig(
+                                                    { location_manual_lat: config.location_manual_lat },
+                                                    'location_manual_lat'
+                                                )
+                                            "
+                                        />
+                                    </div>
+                                    <div class="space-y-2">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            {{ $t("app.location_manual_lon") }}
+                                        </div>
+                                        <input
+                                            v-model="config.location_manual_lon"
+                                            type="text"
+                                            class="input-field"
+                                            placeholder="0.0"
+                                            @input="
+                                                updateConfig(
+                                                    { location_manual_lon: config.location_manual_lon },
+                                                    'location_manual_lon'
+                                                )
+                                            "
+                                        />
+                                    </div>
+                                    <div class="space-y-2">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            {{ $t("app.location_manual_alt") }}
+                                        </div>
+                                        <input
+                                            v-model="config.location_manual_alt"
+                                            type="text"
+                                            class="input-field"
+                                            placeholder="0.0"
+                                            @input="
+                                                updateConfig(
+                                                    { location_manual_alt: config.location_manual_alt },
+                                                    'location_manual_alt'
+                                                )
+                                            "
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Language -->
+                        <section v-show="showSection('language')" class="settings-section break-inside-avoid">
+                            <header class="settings-section__header">
+                                <div>
+                                    <div class="settings-section__eyebrow">i18n</div>
+                                    <h2>{{ $t("app.language") }}</h2>
+                                    <p>{{ $t("app.select_language") }}</p>
+                                </div>
+                            </header>
+                            <div class="settings-section__body space-y-3">
+                                <select v-model="config.language" class="input-field" @change="onLanguageChange">
+                                    <option value="en">English</option>
+                                    <option value="de">Deutsch</option>
+                                    <option value="ru">Русский</option>
+                                    <option value="it">Italiano</option>
+                                </select>
+                            </div>
+                        </section>
+
+                        <!-- Network Security -->
+                        <section v-show="showSection('networkSecurity')" class="settings-section break-inside-avoid">
+                            <header class="settings-section__header">
+                                <div>
+                                    <div class="settings-section__eyebrow">RNS Security</div>
+                                    <h2>Network Security</h2>
+                                    <p>Manage mesh-level security features.</p>
+                                </div>
+                            </header>
+                            <div class="settings-section__body space-y-4">
+                                <div class="setting-toggle">
+                                    <div class="setting-toggle__label">
+                                        <div class="setting-toggle__title">
+                                            {{ $t("app.blackhole_integration_enabled") }}
+                                        </div>
+                                        <div class="setting-toggle__description text-xs text-gray-500">
+                                            {{ $t("app.blackhole_integration_description") }}
+                                        </div>
+                                    </div>
+                                    <Toggle
+                                        v-model="config.blackhole_integration_enabled"
+                                        @update:model-value="
+                                            updateConfig(
+                                                {
+                                                    blackhole_integration_enabled: config.blackhole_integration_enabled,
+                                                },
+                                                'blackhole_integration_enabled'
+                                            )
+                                        "
+                                    />
+                                </div>
+                                <div class="space-y-4">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("app.announce_limits") }}
+                                    </div>
+                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                        {{ $t("app.announce_limits_description") }}
+                                    </div>
+                                    <div class="text-xs font-medium text-gray-800 dark:text-gray-200">
+                                        {{ $t("app.announce_store_heading") }}
+                                    </div>
+                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                        {{ $t("app.announce_store_description") }}
+                                    </div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                        <label class="setting-toggle">
+                                            <Toggle
+                                                :model-value="config.announce_store_lxmf_delivery"
+                                                @update:model-value="
+                                                    (v) => onAnnounceStoreToggle('announce_store_lxmf_delivery', v)
+                                                "
+                                            />
+                                            <span class="setting-toggle__label">
+                                                <span class="setting-toggle__title">{{
+                                                    $t("app.announce_store_lxmf")
+                                                }}</span>
+                                            </span>
+                                        </label>
+                                        <label class="setting-toggle">
+                                            <Toggle
+                                                :model-value="config.announce_store_lxst_telephony"
+                                                @update:model-value="
+                                                    (v) => onAnnounceStoreToggle('announce_store_lxst_telephony', v)
+                                                "
+                                            />
+                                            <span class="setting-toggle__label">
+                                                <span class="setting-toggle__title">{{
+                                                    $t("app.announce_store_lxst")
+                                                }}</span>
+                                            </span>
+                                        </label>
+                                        <label class="setting-toggle">
+                                            <Toggle
+                                                :model-value="config.announce_store_nomadnetwork_node"
+                                                @update:model-value="
+                                                    (v) => onAnnounceStoreToggle('announce_store_nomadnetwork_node', v)
+                                                "
+                                            />
+                                            <span class="setting-toggle__label">
+                                                <span class="setting-toggle__title">{{
+                                                    $t("app.announce_store_nomad")
+                                                }}</span>
+                                            </span>
+                                        </label>
+                                        <label class="setting-toggle">
+                                            <Toggle
+                                                :model-value="config.announce_store_lxmf_propagation"
+                                                @update:model-value="
+                                                    (v) => onAnnounceStoreToggle('announce_store_lxmf_propagation', v)
+                                                "
+                                            />
+                                            <span class="setting-toggle__label">
+                                                <span class="setting-toggle__title">{{
+                                                    $t("app.announce_store_prop")
+                                                }}</span>
+                                            </span>
+                                        </label>
+                                    </div>
+                                    <div
+                                        class="text-xs font-semibold text-gray-700 dark:text-zinc-300 uppercase tracking-wide"
+                                    >
+                                        {{ $t("app.announce_max_stored_heading") }}
+                                    </div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                        <div class="space-y-1">
+                                            <label class="text-xs font-medium">{{
+                                                $t("app.announce_limit_lxmf")
+                                            }}</label>
+                                            <input
+                                                v-model.number="config.announce_max_stored_lxmf_delivery"
+                                                type="number"
+                                                min="1"
+                                                class="input-field"
+                                                @change="onAnnounceLimitsChange"
+                                            />
+                                        </div>
+                                        <div class="space-y-1">
+                                            <label class="text-xs font-medium">{{
+                                                $t("app.announce_limit_nomadnet")
+                                            }}</label>
+                                            <input
+                                                v-model.number="config.announce_max_stored_nomadnetwork_node"
+                                                type="number"
+                                                min="1"
+                                                class="input-field"
+                                                @change="onAnnounceLimitsChange"
+                                            />
+                                        </div>
+                                        <div class="space-y-1">
+                                            <label class="text-xs font-medium">{{
+                                                $t("app.announce_limit_prop")
+                                            }}</label>
+                                            <input
+                                                v-model.number="config.announce_max_stored_lxmf_propagation"
+                                                type="number"
+                                                min="1"
+                                                class="input-field"
+                                                @change="onAnnounceLimitsChange"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div
+                                        class="text-xs font-semibold text-gray-700 dark:text-zinc-300 uppercase tracking-wide"
+                                    >
+                                        {{ $t("app.announce_fetch_limit_heading") }}
+                                    </div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                        <div class="space-y-1">
+                                            <label class="text-xs font-medium">{{
+                                                $t("app.announce_limit_lxmf")
+                                            }}</label>
+                                            <input
+                                                v-model.number="config.announce_fetch_limit_lxmf_delivery"
+                                                type="number"
+                                                min="1"
+                                                class="input-field"
+                                                @change="onAnnounceLimitsChange"
+                                            />
+                                        </div>
+                                        <div class="space-y-1">
+                                            <label class="text-xs font-medium">{{
+                                                $t("app.announce_limit_nomadnet")
+                                            }}</label>
+                                            <input
+                                                v-model.number="config.announce_fetch_limit_nomadnetwork_node"
+                                                type="number"
+                                                min="1"
+                                                class="input-field"
+                                                @change="onAnnounceLimitsChange"
+                                            />
+                                        </div>
+                                        <div class="space-y-1">
+                                            <label class="text-xs font-medium">{{
+                                                $t("app.announce_limit_prop")
+                                            }}</label>
+                                            <input
+                                                v-model.number="config.announce_fetch_limit_lxmf_propagation"
+                                                type="number"
+                                                min="1"
+                                                class="input-field"
+                                                @change="onAnnounceLimitsChange"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div class="space-y-1">
+                                            <label class="text-xs font-medium">{{
+                                                $t("app.announce_search_max_fetch")
+                                            }}</label>
+                                            <input
+                                                v-model.number="config.announce_search_max_fetch"
+                                                type="number"
+                                                min="100"
+                                                class="input-field"
+                                                @change="onAnnounceLimitsChange"
+                                            />
+                                            <p class="text-[10px] text-gray-500 dark:text-zinc-500">
+                                                {{ $t("app.announce_search_max_fetch_hint") }}
+                                            </p>
+                                        </div>
+                                        <div class="space-y-1">
+                                            <label class="text-xs font-medium">{{
+                                                $t("app.discovered_interfaces_max_return")
+                                            }}</label>
+                                            <input
+                                                v-model.number="config.discovered_interfaces_max_return"
+                                                type="number"
+                                                min="1"
+                                                class="input-field"
+                                                @change="onAnnounceLimitsChange"
+                                            />
+                                            <p class="text-[10px] text-gray-500 dark:text-zinc-500">
+                                                {{ $t("app.discovered_interfaces_max_return_hint") }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Transport -->
+                        <section v-show="showSection('transport')" class="settings-section break-inside-avoid">
+                            <header class="settings-section__header">
+                                <div>
+                                    <div class="settings-section__eyebrow">Reticulum</div>
+                                    <h2>{{ $t("app.transport_mode") }}</h2>
+                                    <p>{{ $t("app.transport_description") }}</p>
+                                </div>
+                            </header>
+                            <div class="settings-section__body space-y-3">
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="transport-enabled"
+                                        v-model="config.is_transport_enabled"
+                                        @update:model-value="onIsTransportEnabledChangeWrapper"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{ $t("app.enable_transport_mode") }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("app.transport_toggle_description")
+                                        }}</span>
+                                    </span>
+                                </label>
+                            </div>
+                        </section>
+
+                        <!-- Interfaces -->
+                        <section v-show="showSection('interfaces')" class="settings-section break-inside-avoid">
+                            <header class="settings-section__header">
+                                <div>
+                                    <div class="settings-section__eyebrow">Adapters</div>
+                                    <h2>{{ $t("app.interfaces") }}</h2>
+                                    <p>Show curated community configs inside the interface wizard.</p>
+                                </div>
+                            </header>
+                            <div class="settings-section__body space-y-3">
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="show-community-interfaces"
+                                        v-model="config.show_suggested_community_interfaces"
+                                        @update:model-value="onShowSuggestedCommunityInterfacesChangeWrapper"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{
+                                            $t("app.show_community_interfaces")
+                                        }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("app.community_interfaces_description")
+                                        }}</span>
+                                    </span>
+                                </label>
+                            </div>
+                        </section>
+
+                        <!-- Blocked -->
+                        <section v-show="showSection('blocked')" class="settings-section break-inside-avoid">
+                            <header class="settings-section__header">
+                                <div>
+                                    <div class="settings-section__eyebrow">Privacy</div>
+                                    <h2>Banished</h2>
+                                    <p>Manage Banished users and nodes</p>
+                                </div>
+                                <RouterLink :to="{ name: 'blocked' }" class="primary-chip">
+                                    Manage Banished
+                                </RouterLink>
+                            </header>
+                            <div class="settings-section__body">
+                                <p class="text-sm text-gray-600 dark:text-gray-400">
+                                    Banished users and nodes will not be able to send you messages, and their announces
+                                    will be ignored.
                                 </p>
                             </div>
-                        </div>
-                    </section>
-                </div>
+                        </section>
 
-                <!-- Keyboard Shortcuts (Full width at bottom) -->
-                <div v-show="matchesSearch(...sectionKeywords.shortcuts)" class="mt-4">
-                    <section class="settings-section">
-                        <div class="settings-section__header">
-                            <div class="flex items-center gap-3">
+                        <SettingsSectionBlock
+                            v-show="showSection('privacyData')"
+                            :eyebrow="$t('app.privacy_eyebrow')"
+                            :title="$t('app.privacy_data_title')"
+                            :description="$t('app.privacy_data_description')"
+                            body-class="space-y-4"
+                        >
+                            <div class="space-y-3">
                                 <div
-                                    class="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl"
+                                    class="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-400"
                                 >
-                                    <MaterialDesignIcon icon-name="keyboard-outline" class="size-6" />
+                                    {{ $t("app.privacy_subsection_device") }}
                                 </div>
-                                <div>
-                                    <h2>Keyboard Shortcuts</h2>
-                                    <p>Customize your workflow with quick keyboard actions</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="settings-section__body">
-                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                <div
-                                    v-for="shortcut in KeyboardShortcuts.getDefaultShortcuts()"
-                                    :key="shortcut.action"
-                                    class="bg-gray-50/50 dark:bg-zinc-800/30 rounded-2xl p-5 border border-gray-100 dark:border-zinc-800"
-                                >
-                                    <div class="flex items-center justify-between mb-3">
-                                        <span
-                                            class="text-sm font-bold text-gray-900 dark:text-zinc-100 uppercase tracking-wide"
-                                        >
-                                            {{ shortcut.description }}
-                                        </span>
-                                    </div>
-                                    <ShortcutRecorder
-                                        :model-value="getShortcutKeys(shortcut.action)"
-                                        :action="shortcut.action"
-                                        @save="(keys) => saveShortcut(shortcut.action, keys)"
-                                        @delete="() => deleteShortcut(shortcut.action)"
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="local-message-auto-delete"
+                                        v-model="config.local_message_auto_delete_enabled"
+                                        @update:model-value="onLocalMessageAutoDeleteEnabledChange"
                                     />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{
+                                            $t("app.local_message_auto_delete_title")
+                                        }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("app.local_message_auto_delete_description")
+                                        }}</span>
+                                    </span>
+                                </label>
+                                <div
+                                    v-if="config.local_message_auto_delete_enabled"
+                                    class="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-0 sm:pl-1"
+                                >
+                                    <div class="space-y-1">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            {{ $t("app.local_message_auto_delete_age") }}
+                                        </div>
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <input
+                                                v-model.number="config.local_message_auto_delete_value"
+                                                type="number"
+                                                min="1"
+                                                :max="config.local_message_auto_delete_unit === 'months' ? 120 : 10000"
+                                                class="input-field w-24"
+                                                :aria-label="$t('app.local_message_auto_delete_age')"
+                                                @input="onLocalMessageAutoDeleteParamsChange"
+                                            />
+                                            <select
+                                                v-model="config.local_message_auto_delete_unit"
+                                                class="input-field min-w-[7rem]"
+                                                :aria-label="$t('app.local_message_auto_delete_unit_aria')"
+                                                @change="onLocalMessageAutoDeleteParamsChange"
+                                            >
+                                                <option value="days">
+                                                    {{ $t("app.local_message_auto_delete_unit_days") }}
+                                                </option>
+                                                <option value="months">
+                                                    {{ $t("app.local_message_auto_delete_unit_months") }}
+                                                </option>
+                                            </select>
+                                        </div>
+                                        <div class="text-xs text-gray-600 dark:text-gray-400">
+                                            {{ $t("app.local_message_auto_delete_month_note") }}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
+
+                            <div class="border-t border-gray-200 dark:border-zinc-800 pt-4 space-y-3">
+                                <div
+                                    class="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-400"
+                                >
+                                    {{ $t("app.privacy_eyebrow") }}
+                                </div>
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="privacy-mode-enabled"
+                                        v-model="config.privacy_mode_enabled"
+                                        @update:model-value="onPrivacyModeChange"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{ $t("app.privacy_mode_enabled") }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("app.privacy_mode_description")
+                                        }}</span>
+                                    </span>
+                                </label>
+                            </div>
+
+                            <div class="border-t border-gray-200 dark:border-zinc-800 pt-4 space-y-4">
+                                <div
+                                    class="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-400"
+                                >
+                                    {{ $t("app.privacy_subsection_telemetry") }}
+                                </div>
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="telemetry-enabled"
+                                        v-model="config.telemetry_enabled"
+                                        @update:model-value="
+                                            updateConfig(
+                                                { telemetry_enabled: config.telemetry_enabled },
+                                                'telemetry_enabled'
+                                            )
+                                        "
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{ $t("app.telemetry_enabled") }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("app.telemetry_description")
+                                        }}</span>
+                                    </span>
+                                </label>
+                                <div v-if="config.telemetry_enabled" class="space-y-4">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("app.telemetry_trusted_peers") }}
+                                    </div>
+                                    <div v-if="trustedTelemetryPeers.length === 0" class="text-xs text-gray-500 italic">
+                                        {{ $t("app.telemetry_no_trusted_peers") }}
+                                    </div>
+                                    <div v-else class="space-y-2">
+                                        <div
+                                            v-for="peer in trustedTelemetryPeers"
+                                            :key="peer.id"
+                                            class="flex items-center justify-between p-2 rounded-xl bg-gray-50 dark:bg-zinc-800 border border-gray-100 dark:border-zinc-700"
+                                        >
+                                            <div class="flex items-center gap-3">
+                                                <div
+                                                    class="size-8 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-500 flex items-center justify-center"
+                                                >
+                                                    <MaterialDesignIcon icon-name="account" class="size-5" />
+                                                </div>
+                                                <div class="min-w-0">
+                                                    <div
+                                                        class="text-sm font-bold text-gray-900 dark:text-white truncate"
+                                                    >
+                                                        {{ peer.name }}
+                                                    </div>
+                                                    <div class="text-[10px] text-gray-500 font-mono truncate">
+                                                        {{ peer.remote_identity_hash }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button
+                                                class="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                                                :title="$t('app.telemetry_revoke_trust')"
+                                                @click="revokeTelemetryTrust(peer)"
+                                            >
+                                                <MaterialDesignIcon icon-name="shield-off-outline" class="size-5" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </SettingsSectionBlock>
+
+                        <!-- Authentication -->
+                        <section v-show="showSection('auth')" class="settings-section break-inside-avoid">
+                            <header class="settings-section__header">
+                                <div>
+                                    <div class="settings-section__eyebrow">Security</div>
+                                    <h2>Authentication</h2>
+                                    <p>Require a password to access the web interface.</p>
+                                </div>
+                            </header>
+                            <div class="settings-section__body space-y-3">
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="auth-enabled"
+                                        v-model="config.auth_enabled"
+                                        @update:model-value="onAuthEnabledChange"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">Enable Authentication</span>
+                                        <span class="setting-toggle__description"
+                                            >Protect your instance with a password.</span
+                                        >
+                                    </span>
+                                </label>
+                                <div v-if="config.auth_enabled" class="info-callout">
+                                    <p class="text-sm">
+                                        Authentication is currently enabled. You will be asked for your password when
+                                        accessing the web interface.
+                                    </p>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section v-show="showSection('webExposure')" class="settings-section break-inside-avoid">
+                            <header class="settings-section__header">
+                                <div>
+                                    <div class="settings-section__eyebrow">Security</div>
+                                    <h2>{{ $t("app.web_exposure_title") }}</h2>
+                                    <p>{{ $t("app.web_exposure_description") }}</p>
+                                </div>
+                            </header>
+                            <div class="settings-section__body space-y-4">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                                    <div>
+                                        <div class="text-gray-500 dark:text-zinc-400">
+                                            {{ $t("app.web_listen_address") }}
+                                        </div>
+                                        <div class="font-mono text-gray-900 dark:text-gray-100">
+                                            {{ serverSecurity.listen_host || "—" }}:{{
+                                                serverSecurity.listen_port ?? "—"
+                                            }}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="text-gray-500 dark:text-zinc-400">
+                                            {{ $t("app.web_listen_https") }}
+                                        </div>
+                                        <div class="text-gray-900 dark:text-gray-100">
+                                            {{ serverSecurity.https_enabled ? $t("app.enabled") : $t("app.disabled") }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div
+                                    v-if="serverSecurity.landlock_requested !== undefined"
+                                    class="text-xs text-gray-600 dark:text-gray-400"
+                                >
+                                    {{ $t("app.landlock_status") }}:
+                                    {{
+                                        serverSecurity.landlock_active
+                                            ? serverSecurity.landlock_auto_enabled
+                                                ? $t("app.landlock_auto_enabled")
+                                                : $t("app.landlock_active")
+                                            : serverSecurity.landlock_kernel_supported === false
+                                              ? $t("app.landlock_kernel_unsupported")
+                                              : serverSecurity.landlock_disabled_by_env
+                                                ? $t("app.landlock_disabled_by_env")
+                                                : $t("app.landlock_inactive")
+                                    }}
+                                </div>
+                                <div
+                                    v-if="serverSecurity.is_loopback_bind === false"
+                                    class="rounded-md border border-amber-500/40 bg-amber-500/10 p-4 space-y-3"
+                                >
+                                    <div class="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                                        {{ $t("app.web_exposure_warning_title") }}
+                                    </div>
+                                    <p class="text-sm text-amber-950/90 dark:text-amber-100/90">
+                                        {{ $t("app.web_exposure_warning_body") }}
+                                    </p>
+                                    <ul class="space-y-2 text-sm">
+                                        <li class="flex items-start gap-2">
+                                            <MaterialDesignIcon
+                                                :icon-name="
+                                                    serverSecurity.auth_enabled ? 'check-circle' : 'alert-circle'
+                                                "
+                                                class="size-4 mt-0.5 shrink-0"
+                                                :class="
+                                                    serverSecurity.auth_enabled ? 'text-green-600' : 'text-amber-600'
+                                                "
+                                            />
+                                            <span>{{
+                                                serverSecurity.auth_enabled
+                                                    ? $t("app.web_exposure_check_auth")
+                                                    : $t("app.web_exposure_check_auth_off")
+                                            }}</span>
+                                        </li>
+                                        <li>
+                                            <label class="flex items-start gap-2 cursor-pointer">
+                                                <input
+                                                    v-model="exposureAckFirewall"
+                                                    type="checkbox"
+                                                    class="rounded-sm mt-1"
+                                                    @change="persistExposureAcknowledgements"
+                                                />
+                                                <span>{{ $t("app.web_exposure_check_firewall") }}</span>
+                                            </label>
+                                        </li>
+                                        <li>
+                                            <label class="flex items-start gap-2 cursor-pointer">
+                                                <input
+                                                    v-model="exposureAckVpn"
+                                                    type="checkbox"
+                                                    class="rounded-sm mt-1"
+                                                    @change="persistExposureAcknowledgements"
+                                                />
+                                                <span>{{ $t("app.web_exposure_check_vpn") }}</span>
+                                            </label>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("app.web_ui_ip_allowlist") }}
+                                    </div>
+                                    <input
+                                        v-model="serverSecurity.web_ui_ip_allowlist"
+                                        type="text"
+                                        class="input-field font-mono text-xs"
+                                        :placeholder="$t('app.web_ui_ip_allowlist_placeholder')"
+                                        @input="onWebUiAllowlistChange"
+                                    />
+                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                        {{ $t("app.web_ui_ip_allowlist_description") }}
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Sources & Infrastructure -->
+                        <section v-show="showSection('infrastructure')" class="settings-section break-inside-avoid">
+                            <header class="settings-section__header">
+                                <div>
+                                    <div class="settings-section__eyebrow">Infrastructure</div>
+                                    <h2>Sources & Mirroring</h2>
+                                    <p>Customize URLs for documentation and external resources.</p>
+                                </div>
+                            </header>
+                            <div class="settings-section__body space-y-4">
+                                <div class="space-y-2">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        Gitea Base URL
+                                    </div>
+                                    <input
+                                        v-model="config.gitea_base_url"
+                                        type="text"
+                                        placeholder="https://github.com/example-org"
+                                        class="input-field"
+                                        @input="onGiteaConfigChange"
+                                    />
+                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                        The base URL for your preferred Gitea instance.
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Content Security Policy (CSP) -->
+                        <section v-show="showSection('csp')" class="settings-section break-inside-avoid">
+                            <header class="settings-section__header">
+                                <div>
+                                    <div class="settings-section__eyebrow">Security</div>
+                                    <h2>{{ $t("app.csp_settings") }}</h2>
+                                    <p>{{ $t("app.csp_description") }}</p>
+                                </div>
+                            </header>
+                            <div class="settings-section__body space-y-4">
+                                <div class="space-y-2">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("app.csp_extra_connect_src") }}
+                                    </div>
+                                    <input
+                                        v-model="config.csp_extra_connect_src"
+                                        type="text"
+                                        class="input-field font-mono text-xs"
+                                        placeholder="https://api.example.com, wss://socket.example.com"
+                                        @input="onCspConfigChange"
+                                    />
+                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                        {{ $t("app.csp_extra_connect_src_description") }}
+                                    </div>
+                                </div>
+
+                                <div class="space-y-2">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("app.csp_extra_img_src") }}
+                                    </div>
+                                    <input
+                                        v-model="config.csp_extra_img_src"
+                                        type="text"
+                                        class="input-field font-mono text-xs"
+                                        placeholder="https://tiles.example.com, https://cdn.example.com"
+                                        @input="onCspConfigChange"
+                                    />
+                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                        {{ $t("app.csp_extra_img_src_description") }}
+                                    </div>
+                                </div>
+
+                                <div class="space-y-2">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("app.csp_extra_frame_src") }}
+                                    </div>
+                                    <input
+                                        v-model="config.csp_extra_frame_src"
+                                        type="text"
+                                        class="input-field font-mono text-xs"
+                                        placeholder="https://video.example.com"
+                                        @input="onCspConfigChange"
+                                    />
+                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                        {{ $t("app.csp_extra_frame_src_description") }}
+                                    </div>
+                                </div>
+
+                                <div class="space-y-2">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("app.csp_extra_script_src") }}
+                                    </div>
+                                    <input
+                                        v-model="config.csp_extra_script_src"
+                                        type="text"
+                                        class="input-field font-mono text-xs"
+                                        placeholder="https://scripts.example.com"
+                                        @input="onCspConfigChange"
+                                    />
+                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                        {{ $t("app.csp_extra_script_src_description") }}
+                                    </div>
+                                </div>
+
+                                <div class="space-y-2">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("app.csp_extra_style_src") }}
+                                    </div>
+                                    <input
+                                        v-model="config.csp_extra_style_src"
+                                        type="text"
+                                        class="input-field font-mono text-xs"
+                                        placeholder="https://fonts.example.com"
+                                        @input="onCspConfigChange"
+                                    />
+                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                        {{ $t("app.csp_extra_style_src_description") }}
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Messages (LXMF delivery, retries, inbound stamps) -->
+                        <section v-show="showSection('messages')" class="settings-section break-inside-avoid">
+                            <header class="settings-section__header">
+                                <div>
+                                    <div class="settings-section__eyebrow">{{ $t("app.lxmf_settings_eyebrow") }}</div>
+                                    <h2>{{ $t("app.messages") }}</h2>
+                                    <p>{{ $t("app.messages_description") }}</p>
+                                </div>
+                            </header>
+                            <div class="settings-section__body space-y-3">
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="auto-resend-failed"
+                                        v-model="config.auto_resend_failed_messages_when_announce_received"
+                                        @update:model-value="
+                                            onAutoResendFailedMessagesWhenAnnounceReceivedChangeWrapper
+                                        "
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{ $t("app.auto_resend_title") }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("app.auto_resend_description")
+                                        }}</span>
+                                    </span>
+                                </label>
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="allow-retries-attachments"
+                                        v-model="config.allow_auto_resending_failed_messages_with_attachments"
+                                        @update:model-value="
+                                            onAllowAutoResendingFailedMessagesWithAttachmentsChangeWrapper
+                                        "
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{
+                                            $t("app.retry_attachments_title")
+                                        }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("app.retry_attachments_description")
+                                        }}</span>
+                                    </span>
+                                </label>
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="auto-fallback-propagation"
+                                        v-model="config.auto_send_failed_messages_to_propagation_node"
+                                        @update:model-value="onAutoSendFailedMessagesToPropagationNodeChangeWrapper"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{ $t("app.auto_fallback_title") }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("app.auto_fallback_description")
+                                        }}</span>
+                                    </span>
+                                </label>
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="inbound-stamps-required"
+                                        :model-value="inboundStampsEnabled"
+                                        @update:model-value="onInboundStampsEnabledChange"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{
+                                            $t("app.inbound_stamps_required_title")
+                                        }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("app.inbound_stamps_required_description")
+                                        }}</span>
+                                    </span>
+                                </label>
+                                <div v-show="inboundStampsEnabled" class="space-y-2">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("app.inbound_stamp_cost") }}
+                                    </div>
+                                    <input
+                                        v-model.number="config.lxmf_inbound_stamp_cost"
+                                        type="number"
+                                        min="1"
+                                        max="254"
+                                        placeholder="8"
+                                        class="input-field"
+                                        @input="onLxmfInboundStampCostChange"
+                                    />
+                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                        {{ $t("app.inbound_stamp_description") }}
+                                    </div>
+                                </div>
+                                <hr class="border-gray-200 dark:border-gray-700" />
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
+                                        {{ $t("app.flood_protection") }}
+                                    </div>
+                                    <div class="text-xs text-gray-600 dark:text-gray-400 mb-3">
+                                        {{ $t("app.flood_protection_description") }}
+                                    </div>
+                                    <label class="setting-toggle">
+                                        <Toggle
+                                            id="lxmf-flood-protection"
+                                            v-model="config.lxmf_flood_protection_enabled"
+                                            @update:model-value="onLxmfFloodProtectionEnabledChange"
+                                        />
+                                        <span class="setting-toggle__label">
+                                            <span class="setting-toggle__title">{{
+                                                $t("app.flood_protection_enabled")
+                                            }}</span>
+                                        </span>
+                                    </label>
+                                    <div v-show="config.lxmf_flood_protection_enabled" class="space-y-3 mt-2">
+                                        <div class="space-y-2">
+                                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                                {{ $t("app.flood_threshold") }}
+                                            </div>
+                                            <input
+                                                v-model.number="config.lxmf_flood_threshold_per_minute"
+                                                type="number"
+                                                min="1"
+                                                max="1000"
+                                                placeholder="30"
+                                                class="input-field"
+                                                @input="onLxmfFloodThresholdChange"
+                                            />
+                                        </div>
+                                        <div class="space-y-2">
+                                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                                {{ $t("app.flood_max_stamp_cost") }}
+                                            </div>
+                                            <input
+                                                v-model.number="config.lxmf_flood_max_stamp_cost"
+                                                type="number"
+                                                min="1"
+                                                max="254"
+                                                placeholder="24"
+                                                class="input-field"
+                                                @input="onLxmfFloodMaxStampCostChange"
+                                            />
+                                        </div>
+                                        <div class="space-y-2">
+                                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                                {{ $t("app.flood_cooldown") }}
+                                            </div>
+                                            <input
+                                                v-model.number="config.lxmf_flood_cooldown_seconds"
+                                                type="number"
+                                                min="30"
+                                                max="3600"
+                                                placeholder="300"
+                                                class="input-field"
+                                                @input="onLxmfFloodCooldownChange"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Propagation nodes -->
+                        <section v-show="showSection('propagation')" class="settings-section break-inside-avoid">
+                            <header class="settings-section__header">
+                                <div>
+                                    <div class="settings-section__eyebrow">LXMF</div>
+                                    <h2>{{ $t("app.propagation_nodes") }}</h2>
+                                    <p>{{ $t("app.propagation_nodes_description") }}</p>
+                                </div>
+                                <RouterLink :to="{ name: 'propagation-nodes' }" class="primary-chip">
+                                    {{ $t("app.browse_nodes") }}
+                                </RouterLink>
+                            </header>
+                            <div class="settings-section__body space-y-5">
+                                <div class="info-callout">
+                                    <ul class="list-disc list-inside space-y-1 text-sm">
+                                        <li>{{ $t("app.nodes_info_1") }}</li>
+                                        <li>{{ $t("app.nodes_info_2") }}</li>
+                                        <li>{{ $t("app.nodes_info_3") }}</li>
+                                    </ul>
+                                </div>
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="local-propagation-node"
+                                        v-model="config.lxmf_local_propagation_node_enabled"
+                                        @update:model-value="onLxmfLocalPropagationNodeEnabledChangeWrapper"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{ $t("app.run_local_node") }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("app.run_local_node_description")
+                                        }}</span>
+                                        <span class="setting-toggle__hint monospace-field">{{
+                                            config.lxmf_local_propagation_node_address_hash || "—"
+                                        }}</span>
+                                    </span>
+                                </label>
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="auto-select-propagation-node"
+                                        v-model="config.lxmf_preferred_propagation_node_auto_select"
+                                        @update:model-value="onLxmfPreferredPropagationNodeAutoSelectChange"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{ $t("app.auto_select_node") }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("app.auto_select_node_description")
+                                        }}</span>
+                                        <span
+                                            v-if="config.lxmf_preferred_propagation_node_auto_select"
+                                            class="setting-toggle__hint block mt-1 text-xs text-gray-600 dark:text-gray-400"
+                                        >
+                                            <template v-if="config.lxmf_preferred_propagation_node_destination_hash">
+                                                <span class="block">{{ $t("app.auto_select_using_label") }}</span>
+                                                <span class="monospace-field break-all block mt-0.5">{{
+                                                    config.lxmf_preferred_propagation_node_destination_hash
+                                                }}</span>
+                                            </template>
+                                            <template v-else>
+                                                {{ $t("app.auto_select_pending") }}
+                                            </template>
+                                        </span>
+                                    </span>
+                                </label>
+                                <div class="space-y-2">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("app.preferred_propagation_node") }}
+                                    </div>
+                                    <input
+                                        v-model="config.lxmf_preferred_propagation_node_destination_hash"
+                                        type="text"
+                                        :placeholder="$t('app.preferred_node_placeholder')"
+                                        class="input-field monospace-field"
+                                        @input="onLxmfPreferredPropagationNodeDestinationHashChange"
+                                    />
+                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                        {{ $t("app.fallback_node_description") }}
+                                    </div>
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("app.auto_sync_interval") }}
+                                    </div>
+                                    <select
+                                        v-model="config.lxmf_preferred_propagation_node_auto_sync_interval_seconds"
+                                        class="input-field"
+                                        @change="onLxmfPreferredPropagationNodeAutoSyncIntervalSecondsChange"
+                                    >
+                                        <option value="0">{{ $t("app.disabled") }}</option>
+                                        <option value="900">Every 15 Minutes</option>
+                                        <option value="1800">Every 30 Minutes</option>
+                                        <option value="3600">Every 1 Hour</option>
+                                        <option value="10800">Every 3 Hours</option>
+                                        <option value="21600">Every 6 Hours</option>
+                                        <option value="43200">Every 12 Hours</option>
+                                        <option value="86400">Every 24 Hours</option>
+                                    </select>
+                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                        <span v-if="config.lxmf_preferred_propagation_node_last_synced_at">{{
+                                            $t("app.last_synced", {
+                                                time: formatSecondsAgoForI18n(
+                                                    config.lxmf_preferred_propagation_node_last_synced_at
+                                                ),
+                                            })
+                                        }}</span>
+                                        <span v-else>{{ $t("app.last_synced_never") }}</span>
+                                    </div>
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("app.incoming_message_size") }}
+                                    </div>
+                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                        {{ $t("app.incoming_message_size_description") }}
+                                    </div>
+                                    <select
+                                        v-model="lxmfIncomingDeliveryPreset"
+                                        class="input-field"
+                                        @change="onLxmfIncomingDeliveryPresetChange"
+                                    >
+                                        <option value="1mb">{{ $t("app.incoming_message_size_1mb") }}</option>
+                                        <option value="10mb">{{ $t("app.incoming_message_size_10mb") }}</option>
+                                        <option value="25mb">{{ $t("app.incoming_message_size_25mb") }}</option>
+                                        <option value="50mb">{{ $t("app.incoming_message_size_50mb") }}</option>
+                                        <option value="1gb">{{ $t("app.incoming_message_size_1gb") }}</option>
+                                        <option value="custom">{{ $t("app.incoming_message_size_custom") }}</option>
+                                    </select>
+                                    <div
+                                        v-if="lxmfIncomingDeliveryPreset === 'custom'"
+                                        class="flex flex-wrap items-center gap-2"
+                                    >
+                                        <input
+                                            v-model.number="lxmfIncomingDeliveryCustomAmount"
+                                            type="number"
+                                            min="0.001"
+                                            step="any"
+                                            class="input-field max-w-40"
+                                            @input="onLxmfIncomingDeliveryCustomChange"
+                                        />
+                                        <select
+                                            v-model="lxmfIncomingDeliveryCustomUnit"
+                                            class="input-field max-w-32"
+                                            @change="onLxmfIncomingDeliveryCustomChange"
+                                        >
+                                            <option value="mb">{{ $t("app.incoming_message_size_unit_mb") }}</option>
+                                            <option value="gb">{{ $t("app.incoming_message_size_unit_gb") }}</option>
+                                        </select>
+                                    </div>
+                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                        {{ formatByteSize(config.lxmf_delivery_transfer_limit_in_bytes) }}
+                                    </div>
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        Propagation transfer limit (MB)
+                                    </div>
+                                    <input
+                                        v-model.number="lxmfPropagationTransferLimitInputMb"
+                                        type="number"
+                                        min="0.001"
+                                        step="0.01"
+                                        class="input-field"
+                                        @input="onLxmfPropagationTransferLimitChange"
+                                    />
+                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                        {{ formatByteSize(config.lxmf_propagation_transfer_limit_in_bytes) }}
+                                    </div>
+                                </div>
+                                <div class="space-y-2">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        Propagation sync limit (MB)
+                                    </div>
+                                    <input
+                                        v-model.number="lxmfPropagationSyncLimitInputMb"
+                                        type="number"
+                                        min="0.001"
+                                        step="0.01"
+                                        class="input-field"
+                                        @input="onLxmfPropagationSyncLimitChange"
+                                    />
+                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                        {{ formatByteSize(config.lxmf_propagation_sync_limit_in_bytes) }}
+                                    </div>
+                                </div>
+                                <div v-if="config.lxmf_local_propagation_node_enabled" class="space-y-2">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("app.propagation_stamp_cost") }}
+                                    </div>
+                                    <input
+                                        v-model.number="config.lxmf_propagation_node_stamp_cost"
+                                        type="number"
+                                        min="13"
+                                        max="254"
+                                        placeholder="16"
+                                        class="input-field"
+                                        @input="onLxmfPropagationNodeStampCostChange"
+                                    />
+                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                        {{ $t("app.propagation_stamp_description") }}
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="settings-section break-inside-avoid">
+                            <header class="settings-section__header">
+                                <div>
+                                    <div class="settings-section__eyebrow">{{ $t("app.system") }}</div>
+                                    <h2>{{ $t("app.reticulum_stack") }}</h2>
+                                    <p>{{ $t("app.reticulum_stack_description") }}</p>
+                                </div>
+                            </header>
+                            <div class="settings-section__body space-y-4">
+                                <div class="grid grid-cols-1 gap-3">
+                                    <button
+                                        type="button"
+                                        class="btn-maintenance border-violet-200 dark:border-violet-900/30 text-violet-800 dark:text-violet-200 bg-violet-50 dark:bg-violet-900/10 hover:bg-violet-100 dark:hover:bg-violet-900/20 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:bg-violet-50 dark:disabled:hover:bg-violet-900/10"
+                                        :disabled="reloadingRns"
+                                        @click="reloadRns"
+                                    >
+                                        <div class="flex flex-col items-start text-left">
+                                            <div class="font-bold flex items-center gap-2">
+                                                <MaterialDesignIcon icon-name="restart" class="size-4" />
+                                                {{ $t("app.reload_rns") }}
+                                            </div>
+                                        </div>
+                                    </button>
+                                    <p
+                                        v-if="reloadRnsStatusMessage"
+                                        class="text-xs"
+                                        :class="
+                                            reloadingRns
+                                                ? 'text-blue-600 dark:text-blue-400'
+                                                : 'text-gray-500 dark:text-gray-400'
+                                        "
+                                    >
+                                        {{ reloadRnsStatusMessage }}
+                                    </p>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Keyboard Shortcuts -->
+                        <div v-show="showSection('shortcuts')">
+                            <section class="settings-section">
+                                <div class="settings-section__header">
+                                    <div class="flex items-center gap-3">
+                                        <div
+                                            class="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl"
+                                        >
+                                            <MaterialDesignIcon icon-name="keyboard-outline" class="size-6" />
+                                        </div>
+                                        <div>
+                                            <h2>Keyboard Shortcuts</h2>
+                                            <p>Customize your workflow with quick keyboard actions</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="settings-section__body">
+                                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                        <div
+                                            v-for="shortcut in KeyboardShortcuts.getDefaultShortcuts()"
+                                            :key="shortcut.action"
+                                            class="bg-gray-50/50 dark:bg-zinc-800/30 rounded-2xl p-5 border border-gray-100 dark:border-zinc-800"
+                                        >
+                                            <div class="flex items-center justify-between mb-3">
+                                                <span
+                                                    class="text-sm font-bold text-gray-900 dark:text-zinc-100 uppercase tracking-wide"
+                                                >
+                                                    {{ shortcut.description }}
+                                                </span>
+                                            </div>
+                                            <ShortcutRecorder
+                                                :model-value="getShortcutKeys(shortcut.action)"
+                                                :action="shortcut.action"
+                                                @save="(keys) => saveShortcut(shortcut.action, keys)"
+                                                @delete="() => deleteShortcut(shortcut.action)"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
                         </div>
-                    </section>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2833,6 +2775,7 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import Toggle from "../forms/Toggle.vue";
 import ShortcutRecorder from "./ShortcutRecorder.vue";
 import SettingsSectionBlock from "./SettingsSectionBlock.vue";
+import SettingsNav from "./SettingsNav.vue";
 import KeyboardShortcuts from "../../js/KeyboardShortcuts";
 import ElectronUtils from "../../js/ElectronUtils";
 import AndroidBridge from "../../js/rnode/AndroidBridge";
@@ -2859,6 +2802,7 @@ import {
 } from "../../js/settings/incomingDeliveryLimit";
 import { normalizeRetentionValue } from "../../js/localMessageRetention";
 import { matchesSettingSearch, normalizeSearchString } from "../../js/settingsSearchUtils";
+import { DEFAULT_SETTINGS_TAB, normalizeSettingsTabId, SETTINGS_TABS } from "../../js/settings/settingsTabs.js";
 import { isMicronWasmBundled } from "../../js/MicronWasmLoader.js";
 import MicronWasmUpdateModal from "./MicronWasmUpdateModal.vue";
 
@@ -2870,6 +2814,7 @@ export default {
         ShortcutRecorder,
         LxmfUserIcon,
         SettingsSectionBlock,
+        SettingsNav,
         StickerPacksManager,
         MicronWasmUpdateModal,
     },
@@ -2978,6 +2923,7 @@ export default {
             reloadingRns: false,
             reloadRnsStatusMessage: "",
             searchQuery: "",
+            activeSettingsTab: DEFAULT_SETTINGS_TAB,
             micronWasmUpdateModalOpen: false,
             trustedTelemetryPeers: [],
             stickerCount: 0,
@@ -3430,6 +3376,20 @@ export default {
         },
         matchesSearch(...texts) {
             return matchesSettingSearch(texts, (k) => this.$t(k), this.searchQuery);
+        },
+        showSection(sectionKey) {
+            if (this.settingsSearchActive) {
+                const keywords = this.sectionKeywords[sectionKey];
+                if (!keywords) {
+                    return false;
+                }
+                return this.matchesSearch(...keywords);
+            }
+            const tab = SETTINGS_TABS.find((entry) => entry.id === this.activeSettingsTab);
+            return Boolean(tab && tab.sections.includes(sectionKey));
+        },
+        selectSettingsTab(tabId) {
+            this.activeSettingsTab = normalizeSettingsTabId(tabId);
         },
         async onWebsocketMessage(message) {
             const json = JSON.parse(message.data);
@@ -4843,5 +4803,17 @@ export default {
 .fade-enter-from,
 .fade-leave-to {
     opacity: 0;
+}
+.settings-panel {
+    @apply flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-8;
+}
+.settings-panel__content {
+    @apply flex-1 min-w-0 flex flex-col;
+}
+.settings-panel__content :deep(.settings-section) {
+    @apply border-b border-gray-200/60 dark:border-zinc-800/60 py-6 sm:py-8 first:pt-0;
+}
+.settings-panel__content :deep(.settings-section:last-child) {
+    @apply border-b-0;
 }
 </style>

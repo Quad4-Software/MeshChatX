@@ -650,9 +650,9 @@ export default {
                         params: { destinationHash: announce.destination_hash },
                     });
                 } else if (announce.aspect === "nomadnetwork.node") {
-                    this.$router.push({
-                        name: "nomadnetwork",
-                        params: { destinationHash: announce.destination_hash },
+                    GlobalEmitter.emit("nomad-open-node", {
+                        destinationHash: announce.destination_hash,
+                        forceNewTab: true,
                     });
                 }
             });
