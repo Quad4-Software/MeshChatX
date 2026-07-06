@@ -82,6 +82,31 @@ while IFS= read -r -d '' rel; do
             unified=$((unified + 1))
             continue
         fi
+        # cx_Freeze bundles pure-Python modules into lib/library.zip; native
+        # extensions are always written to the filesystem separately (they
+        # can't be dlopen'd from inside a zip), so this archive's *contents*
+        # are pure CPython bytecode just like loose .pyc files. Its raw bytes
+        # almost always differ across two independent builds (each entry's
+        # own PEP 552 header + the zip's own per-entry timestamps), so only
+        # trust a blind copy once we've confirmed both slices bundled the
+        # same set of modules; a differing member list would mean the two
+        # Python environments actually resolved different dependencies.
+        if [[ "$(basename "$rel")" == "library.zip" ]]; then
+            if diff -q \
+                <(zipinfo -1 "$arm64_file" 2>/dev/null | sort) \
+                <(zipinfo -1 "$x64_file" 2>/dev/null | sort) >/dev/null 2>&1; then
+                cp "$arm64_file" "$x64_file"
+                echo "  unified (library.zip, same bundled module set): $rel"
+                unified=$((unified + 1))
+                continue
+            fi
+            echo "unify-backend: ERROR: $rel bundles a different set of modules on arm64 vs x64" >&2
+            echo "  cx_Freeze's module finder resolved different transitive imports for" >&2
+            echo "  .venv and .venv-x64. Check that both install the same locked" >&2
+            echo "  dependency set (uv.lock) via scripts/ci/github-install-deps.sh and" >&2
+            echo "  scripts/ci/github-install-macos-x64-python-deps.sh." >&2
+            exit 1
+        fi
         pkg_dir="$(dirname "$rel")"
         if find "$ARM64_DIR/$pkg_dir" "$X64_DIR/$pkg_dir" -maxdepth 1 \
             \( -name '*.so' -o -name '*.dylib' -o -name '*.bundle' \) -print -quit 2>/dev/null | grep -q .; then
