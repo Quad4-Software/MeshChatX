@@ -319,4 +319,19 @@ describe("NomadNetworkBrowser.vue", () => {
         await wrapper.vm.$nextTick();
         expect(wrapper.findComponent({ name: "NomadNetworkPage" }).props("tabsEnabled")).toBe(true);
     });
+
+    it("reorders tabs while dragging", () => {
+        const wrapper = mountBrowser();
+        wrapper.vm.addTab("a".repeat(32), null, "Tab A");
+        wrapper.vm.addTab("b".repeat(32), null, "Tab B");
+        const orderBefore = wrapper.vm.tabs.map((tab) => tab.title);
+
+        wrapper.vm.onTabDragStart(0, { dataTransfer: { effectAllowed: "", setData: vi.fn() } });
+        wrapper.vm.onTabDragOver(2);
+        wrapper.vm.onTabDrop(2);
+
+        expect(wrapper.vm.tabs.map((tab) => tab.title)).not.toEqual(orderBefore);
+        expect(wrapper.vm.tabs[2].title).toBe(orderBefore[0]);
+        expect(wrapper.vm.dragTabIndex).toBeNull();
+    });
 });
