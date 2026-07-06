@@ -406,6 +406,7 @@
         "open": "Open",
         "close": "Close",
         "cancel": "Cancel",
+        "select": "Select",
         "save": "Save",
         "block": "Banish",
         "delete": "Delete",
@@ -1439,6 +1440,20 @@
         "message_not_found_in_cache": "Message not found in cache"
     },
     "settings": {
+        "tabs": {
+            "general": "General",
+            "general_desc": "Language, appearance, and platform",
+            "messages": "Messages",
+            "messages_desc": "LXMF, stickers, and safety",
+            "network": "Network",
+            "network_desc": "Transport, interfaces, and discovery",
+            "nomad": "Nomad",
+            "nomad_desc": "Archiver and page rendering",
+            "privacy": "Privacy",
+            "privacy_desc": "Data, access, and security",
+            "maintenance": "Maintenance",
+            "maintenance_desc": "Cleanup, export, and import"
+        },
         "shortcut_saved": "Shortcut saved",
         "shortcut_deleted": "Shortcut deleted",
         "archived_pages_flushed": "Archived pages flushed.",
@@ -1577,7 +1592,16 @@
         "node": "Node",
         "blocked_destinations": "Blocked destinations",
         "banishment_lifted": "Banishment lifted successfully",
-        "failed_lift_banishment": "Failed to lift banishment"
+        "failed_lift_banishment": "Failed to lift banishment",
+        "lift_selected": "Lift banishment ({count})",
+        "lift_selected_confirm": "Lift banishment for {count} selected items?",
+        "lift_selected_success": "Lifted banishment for {count} items",
+        "filter_all_types": "All types",
+        "filter_rns": "RNS blackhole",
+        "sort_newest": "Newest first",
+        "sort_oldest": "Oldest first",
+        "sort_name": "Name A-Z",
+        "result_count": "{count} items"
     },
     "nomadnet": {
         "remove_favourite": "Remove Favourite",
@@ -1720,7 +1744,22 @@
         "showing_range": "Showing {start} to {end} of {total} archives",
         "page_of": "Page {page} of {total_pages}",
         "export_mu": "Export .mu",
-        "export_selected_mu": "Export .mu ({count})"
+        "export_selected_mu": "Export .mu ({count})",
+        "nodes_title": "Nodes",
+        "snapshots_title": "Snapshots",
+        "select_all": "Select all",
+        "delete_selected": "Delete ({count})",
+        "viewing_archive": "Viewing archive",
+        "select_snapshot": "Select a snapshot to view",
+        "open_live": "Open live",
+        "search_nodes_placeholder": "Search nodes or content...",
+        "no_results": "No results found",
+        "no_archives": "No archives yet",
+        "show_nodes": "Show nodes",
+        "hide_nodes": "Hide nodes",
+        "show_snapshots": "Show snapshots",
+        "hide_snapshots": "Hide snapshots",
+        "delete_snapshot": "Delete snapshot"
     },
     "docs": {
         "title": "Documentation",
