@@ -30,8 +30,20 @@ if (fs.existsSync(assetsDir)) {
 }
 
 const e2eBackendPort = process.env.E2E_BACKEND_PORT || "8000";
-const e2eBackendOrigin = `http://127.0.0.1:${e2eBackendPort}`;
-const e2eBackendWs = `ws://127.0.0.1:${e2eBackendPort}`;
+
+function envBool(value) {
+    if (value === undefined || value === null || value === "") {
+        return false;
+    }
+    return ["1", "true", "yes"].includes(String(value).toLowerCase());
+}
+
+const backendUsesHttps = !envBool(process.env.MESHCHAT_NO_HTTPS);
+const e2eBackendOrigin = backendUsesHttps
+    ? `https://127.0.0.1:${e2eBackendPort}`
+    : `http://127.0.0.1:${e2eBackendPort}`;
+const e2eBackendWs = backendUsesHttps ? `wss://127.0.0.1:${e2eBackendPort}` : `ws://127.0.0.1:${e2eBackendPort}`;
+const backendProxyTls = backendUsesHttps ? { secure: false } : {};
 
 const appBuildTimeIso = new Date().toISOString();
 
@@ -97,9 +109,9 @@ export default defineConfig({
     server: {
         port: 5173,
         proxy: {
-            "/api": { target: e2eBackendOrigin, changeOrigin: true },
-            "/ws": { target: e2eBackendWs, ws: true },
-            "/ws/telephone/audio": { target: e2eBackendWs, ws: true },
+            "/api": { target: e2eBackendOrigin, changeOrigin: true, ...backendProxyTls },
+            "/ws": { target: e2eBackendWs, ws: true, ...backendProxyTls },
+            "/ws/telephone/audio": { target: e2eBackendWs, ws: true, ...backendProxyTls },
         },
     },
 
