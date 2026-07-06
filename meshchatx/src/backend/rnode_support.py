@@ -55,11 +55,9 @@ def android_jnius_available() -> bool:
 
 def android_able_available() -> bool:
     """True when able can be imported (BLE GATT support for RNode ble:// on Android)."""
-    try:
-        import able  # noqa: F401
-    except ImportError:
-        return False
-    return True
+    import importlib.util
+
+    return importlib.util.find_spec("able") is not None
 
 
 def desktop_serial_stack_available() -> bool:
