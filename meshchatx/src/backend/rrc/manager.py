@@ -76,7 +76,7 @@ class RRCHub:
         self.custom_name = None
         self.hub_icon = None
         self.room_order = []
-        self.auto_list = False
+        self.auto_list = True
         self.auto_who = False
 
         self._lock = threading.RLock()
