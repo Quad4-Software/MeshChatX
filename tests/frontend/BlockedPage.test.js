@@ -88,4 +88,55 @@ describe("BlockedPage UI", () => {
         await input.setValue("test");
         expect(wrapper.vm.searchQuery).toBe("test");
     });
+
+    it("supports multi-select mode for bulk unban", async () => {
+        global.api.get = vi.fn().mockImplementation((url, opts) => {
+            if (url === "/api/v1/blocked-destinations")
+                return Promise.resolve({
+                    data: {
+                        blocked_destinations: [{ destination_hash: "abc123" }, { destination_hash: "def456" }],
+                    },
+                });
+            if (url === "/api/v1/reticulum/blackhole") return Promise.resolve({ data: { blackholed_identities: {} } });
+            if (url === "/api/v1/announces") {
+                const hash = opts?.params?.destination_hash;
+                return Promise.resolve({
+                    data: {
+                        announces: [
+                            {
+                                destination_hash: hash,
+                                display_name: hash === "abc123" ? "User A" : "User B",
+                                identity_hash: hash,
+                                is_node: false,
+                            },
+                        ],
+                    },
+                });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        global.api.delete = vi.fn().mockResolvedValue({});
+
+        const wrapper = mountBlockedPage();
+        await flushPromises();
+
+        expect(wrapper.findAll('input[type="checkbox"]').length).toBe(0);
+        await wrapper
+            .findAll("button")
+            .find((b) => b.text() === "common.select")
+            .trigger("click");
+        expect(wrapper.vm.selectMode).toBe(true);
+        expect(wrapper.findAll('input[type="checkbox"]').length).toBeGreaterThan(0);
+
+        wrapper.vm.selectedIdentities = ["abc123", "def456"];
+        await wrapper.vm.$nextTick();
+
+        const liftSelected = wrapper.findAll("button").find((b) => b.text().includes("banishment.lift_selected"));
+        expect(liftSelected).toBeTruthy();
+        await liftSelected.trigger("click");
+        await flushPromises();
+
+        expect(global.api.delete).toHaveBeenCalledTimes(2);
+        expect(wrapper.vm.selectMode).toBe(false);
+    });
 });

@@ -1,8 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
 
-import pytest
-
 from meshchatx.src.backend import rnode_support
 
 
