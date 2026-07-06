@@ -406,6 +406,7 @@
         "open": "Avaa",
         "close": "Sulje",
         "cancel": "Peru",
+        "select": "Valitse",
         "save": "Tallenna",
         "block": "Karkota",
         "delete": "Poista",
@@ -961,6 +962,7 @@
         "find_more_nodes": "Etsi lisää solmuja",
         "quick_import": "Pikatuonti",
         "quick_import_paste_hint": "Liitä raaka kokoonpano",
+        "quick_import_placeholder": "[Liittymän nimi]\ntype = TCPClientInterface\ntarget_host = 1.2.3.4",
         "quick_import_apply": "Käytä: {name}",
         "discovered_network_name": "Verkon nimi",
         "discovered_passphrase": "Salalause",
@@ -1438,6 +1440,20 @@
         "message_not_found_in_cache": "Viestiä ei löytynyt välimuistista"
     },
     "settings": {
+        "tabs": {
+            "general": "Yleinen",
+            "general_desc": "Kieli, ulkoasu ja alusta",
+            "messages": "Viestit",
+            "messages_desc": "LXMF, tarrat ja turvallisuus",
+            "network": "Verkko",
+            "network_desc": "Kuljetus, liittymät ja löytäminen",
+            "nomad": "Nomad",
+            "nomad_desc": "Arkistointi ja sivujen renderöinti",
+            "privacy": "Yksityisyys",
+            "privacy_desc": "Data, käyttöoikeudet ja turvallisuus",
+            "maintenance": "Ylläpito",
+            "maintenance_desc": "Siivous, vienti ja tuonti"
+        },
         "shortcut_saved": "Näppäinoikotie tallennettu",
         "shortcut_deleted": "Näppäinoikotie poistettu",
         "archived_pages_flushed": "Arkisto puhdistettu.",
@@ -1576,7 +1592,16 @@
         "node": "Solmu",
         "blocked_destinations": "Estetyt kohteet",
         "banishment_lifted": "Karkotus peruttu",
-        "failed_lift_banishment": "Karkotuksen peruminen epäonnistui"
+        "failed_lift_banishment": "Karkotuksen peruminen epäonnistui",
+        "lift_selected": "Peruuta karkotus ({count})",
+        "lift_selected_confirm": "Peruutetaanko karkotus {count} valitulta kohteelta?",
+        "lift_selected_success": "Karkotus peruttu {count} kohteelta",
+        "filter_all_types": "Kaikki tyypit",
+        "filter_rns": "RNS-blackhole",
+        "sort_newest": "Uusimmat ensin",
+        "sort_oldest": "Vanhimmat ensin",
+        "sort_name": "Nimi A-Ö",
+        "result_count": "{count} kohdetta"
     },
     "nomadnet": {
         "remove_favourite": "Poista suosikki",
@@ -1719,7 +1744,22 @@
         "showing_range": "Näytetään {start} - {end} / {total} arkistosivusta",
         "page_of": "Sivu {page} / {total_pages}",
         "export_mu": "Vie .mu",
-        "export_selected_mu": "Vie .mu ({count})"
+        "export_selected_mu": "Vie .mu ({count})",
+        "nodes_title": "Solmut",
+        "snapshots_title": "Tilannevedokset",
+        "select_all": "Valitse kaikki",
+        "delete_selected": "Poista ({count})",
+        "viewing_archive": "Katsellaan arkistoa",
+        "select_snapshot": "Valitse tilannevedos",
+        "open_live": "Avaa live",
+        "search_nodes_placeholder": "Hae solmuja tai sisältöä...",
+        "no_results": "Ei tuloksia",
+        "no_archives": "Ei arkistoja vielä",
+        "show_nodes": "Näytä solmut",
+        "hide_nodes": "Piilota solmut",
+        "show_snapshots": "Näytä tilannevedokset",
+        "hide_snapshots": "Piilota tilannevedokset",
+        "delete_snapshot": "Poista tilannevedos"
     },
     "docs": {
         "title": "Dokumentaatio",
