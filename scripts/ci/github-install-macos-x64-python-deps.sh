@@ -128,6 +128,16 @@ uv pip install --python "$_PY" \
     --python-platform x86_64-apple-darwin \
     "$_pycodec2_wheel"
 
+# Cython/wheel are build-time-only tools for the pycodec2 sdist compile above;
+# the finished wheel's .so no longer needs them at runtime. uv.lock does not
+# pin either, so leaving them installed would make this venv's site-packages
+# diverge from .venv's (arm64, which never builds pycodec2 from source and
+# never needs them) -- cx_Freeze's module finder bundles whatever is actually
+# importable, so an extra build tool sitting in site-packages here can end up
+# in lib/library.zip on one slice only, which unify-backend then rejects as a
+# genuine module-set mismatch between the two macOS trees.
+uv pip uninstall --python "$_PY" Cython wheel
+
 # pycodec2's setup.py links with -lcodec2, so the extension records Homebrew's
 # absolute install name for libcodec2 (e.g. /usr/local/opt/codec2/lib/libcodec2.1.2.dylib).
 # That only resolves on this CI runner. Bundle the dylib next to the extension and

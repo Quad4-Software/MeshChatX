@@ -92,12 +92,15 @@ while IFS= read -r -d '' rel; do
         # same set of modules; a differing member list would mean the two
         # Python environments actually resolved different dependencies.
         if [[ "$(basename "$rel")" == "library.zip" ]]; then
-            if diff -q \
-                <(zipinfo -1 "$arm64_file" 2>/dev/null | sort) \
-                <(zipinfo -1 "$x64_file" 2>/dev/null | sort) >/dev/null 2>&1; then
+            arm64_members="$(mktemp)"
+            x64_members="$(mktemp)"
+            zipinfo -1 "$arm64_file" 2>/dev/null | sort >"$arm64_members"
+            zipinfo -1 "$x64_file" 2>/dev/null | sort >"$x64_members"
+            if cmp -s "$arm64_members" "$x64_members"; then
                 cp "$arm64_file" "$x64_file"
                 echo "  unified (library.zip, same bundled module set): $rel"
                 unified=$((unified + 1))
+                rm -f "$arm64_members" "$x64_members"
                 continue
             fi
             echo "unify-backend: ERROR: $rel bundles a different set of modules on arm64 vs x64" >&2
@@ -105,6 +108,11 @@ while IFS= read -r -d '' rel; do
             echo "  .venv and .venv-x64. Check that both install the same locked" >&2
             echo "  dependency set (uv.lock) via scripts/ci/github-install-deps.sh and" >&2
             echo "  scripts/ci/github-install-macos-x64-python-deps.sh." >&2
+            echo "  Only present on arm64 (missing from x64):" >&2
+            comm -23 "$arm64_members" "$x64_members" | sed 's/^/    /' >&2
+            echo "  Only present on x64 (missing from arm64):" >&2
+            comm -13 "$arm64_members" "$x64_members" | sed 's/^/    /' >&2
+            rm -f "$arm64_members" "$x64_members"
             exit 1
         fi
         pkg_dir="$(dirname "$rel")"
