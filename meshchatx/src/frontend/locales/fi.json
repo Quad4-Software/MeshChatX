@@ -1751,7 +1751,11 @@
         "context_menu_action_failed": "Kontekstivalikon toiminto epäonnistui",
         "context_menu_favourite_failed": "Suosikkia ei voitu päivittää",
         "favourite_added": "Lisätty suosikkeihin",
-        "favourite_removed": "Poistettu suosikeista"
+        "favourite_removed": "Poistettu suosikeista",
+        "tab_switch_failed": "Välilehteen vaihto epäonnistui",
+        "tab_content_mismatch": "Tämä välilehti oli epäsynkassa ja ladataan uudelleen",
+        "tab_restore_failed": "Välilehden sivua ei voitu palauttaa",
+        "open_node_failed": "NomadNet-solmua ei voitu avata"
     },
     "forwarder": {
         "title": "LXMF-välittäjä",

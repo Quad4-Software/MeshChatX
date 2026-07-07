@@ -1639,7 +1639,11 @@
         "context_menu_action_failed": "Не удалось выполнить действие контекстного меню",
         "context_menu_favourite_failed": "Не удалось обновить избранное",
         "favourite_added": "Добавлено в избранное",
-        "favourite_removed": "Удалено из избранного"
+        "favourite_removed": "Удалено из избранного",
+        "tab_switch_failed": "Не удалось переключиться на эту вкладку",
+        "tab_content_mismatch": "Вкладка была не синхронизирована и перезагружается",
+        "tab_restore_failed": "Не удалось восстановить страницу вкладки",
+        "open_node_failed": "Не удалось открыть узел NomadNet"
     },
     "forwarder": {
         "title": "LXMF Форвардер",

@@ -4,14 +4,23 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("@/components/nomadnetwork/NomadNetworkPage.vue", () => ({
     default: {
         name: "NomadNetworkPage",
-        template: '<div class="nnp-stub" :data-hash="destinationHash"></div>',
+        template: '<div class="nnp-stub" :data-hash="destinationHash" :data-active="isActive ? \'1\' : \'0\'"></div>',
         props: {
             destinationHash: { type: String, default: "" },
             initialPath: { type: String, default: null },
             embedded: { type: Boolean, default: false },
             tabsEnabled: { type: Boolean, default: false },
+            isActive: { type: Boolean, default: true },
         },
         emits: ["navigate", "open-node", "close-tab"],
+        methods: {
+            getEmbeddedTabStateHash() {
+                return this._stateHash || "";
+            },
+            restoreEmbeddedTabState(hash) {
+                this._stateHash = hash;
+            },
+        },
     },
 }));
 
@@ -35,16 +44,18 @@ const MaterialDesignIconStub = {
 
 describe("NomadNetworkBrowser.vue", () => {
     let routerReplace;
+    let routerPush;
 
     const mountBrowser = (props = {}, route = { name: "nomadnetwork", params: {}, query: {} }) => {
         routerReplace = vi.fn(() => Promise.resolve());
+        routerPush = vi.fn(() => Promise.resolve());
         return mount(NomadNetworkBrowser, {
             props,
             global: {
                 mocks: {
                     $t: (key) => key,
                     $route: { name: "nomadnetwork", ...route },
-                    $router: { replace: routerReplace },
+                    $router: { replace: routerReplace, push: routerPush },
                 },
                 stubs: {
                     MaterialDesignIcon: MaterialDesignIconStub,
@@ -56,6 +67,7 @@ describe("NomadNetworkBrowser.vue", () => {
     beforeEach(() => {
         localStorage.clear();
         routerReplace = undefined;
+        routerPush = undefined;
         vi.clearAllMocks();
     });
 
@@ -329,6 +341,99 @@ describe("NomadNetworkBrowser.vue", () => {
         const wrapper = mountBrowser();
         await wrapper.vm.$nextTick();
         expect(wrapper.findComponent({ name: "NomadNetworkPage" }).props("tabsEnabled")).toBe(true);
+    });
+
+    it("marks only the active embedded page as isActive", async () => {
+        const wrapper = mountBrowser();
+        const hashA = "a".repeat(32);
+        const hashB = "b".repeat(32);
+        wrapper.vm.onTabNavigate(wrapper.vm.tabs[0].id, {
+            destinationHash: hashA,
+            pagePath: "/page/index.mu",
+            title: "Tab A",
+        });
+        const tabB = wrapper.vm.addTab(hashB, "/page/index.mu", "Tab B");
+        await wrapper.vm.$nextTick();
+
+        const pages = wrapper.findAllComponents({ name: "NomadNetworkPage" });
+        expect(pages).toHaveLength(2);
+        const activePage = pages.find((page) => page.props("isActive") === true);
+        const inactivePage = pages.find((page) => page.props("isActive") === false);
+        expect(activePage?.props("destinationHash")).toBe(hashB);
+        expect(inactivePage?.props("destinationHash")).toBe(hashA);
+
+        wrapper.vm.selectTab(wrapper.vm.tabs[0].id);
+        await wrapper.vm.$nextTick();
+
+        const pagesAfter = wrapper.findAllComponents({ name: "NomadNetworkPage" });
+        expect(pagesAfter[0].props("isActive")).toBe(true);
+        expect(pagesAfter[1].props("isActive")).toBe(false);
+        expect(pagesAfter[0].props("destinationHash")).toBe(hashA);
+    });
+
+    it("keeps first tab metadata when opening a visualizer node in a new tab", async () => {
+        const wrapper = mountBrowser();
+        const hashA = "c".repeat(32);
+        const hashB = "d".repeat(32);
+        const firstTabId = wrapper.vm.tabs[0].id;
+        wrapper.vm.onTabNavigate(firstTabId, {
+            destinationHash: hashA,
+            pagePath: "/page/index.mu",
+            title: "First",
+        });
+        wrapper.vm.onOpenNode({
+            destinationHash: hashB,
+            pagePath: "/page/other.mu",
+            title: "Visualizer Node",
+            forceNewTab: true,
+        });
+        wrapper.vm.selectTab(firstTabId);
+        await wrapper.vm.$nextTick();
+
+        const firstTab = wrapper.vm.tabs.find((tab) => tab.id === firstTabId);
+        expect(firstTab.destinationHash).toBe(hashA);
+        expect(wrapper.vm.activeTabId).toBe(firstTabId);
+    });
+
+    it("handleNomadOpenNode from another route opens a new tab after navigation", async () => {
+        const dest = "e".repeat(32);
+        const wrapper = mountBrowser({}, { name: "network-visualiser", params: {}, query: {} });
+        wrapper.vm.handleNomadOpenNode({ destinationHash: dest, forceNewTab: true });
+        expect(routerPush).toHaveBeenCalledWith({
+            name: "nomadnetwork",
+            params: { destinationHash: dest },
+            query: { newTab: "1" },
+        });
+        await routerPush.mock.results[0].value;
+        wrapper.vm.$route = {
+            name: "nomadnetwork",
+            params: { destinationHash: dest },
+            query: { newTab: "1" },
+        };
+        wrapper.vm.consumeNewTabRouteQuery(wrapper.vm.$route);
+        expect(wrapper.vm.tabs).toHaveLength(2);
+        expect(wrapper.vm.activeTab.destinationHash).toBe(dest);
+    });
+
+    it("verifyActiveTabPage restores mismatched embedded page state", async () => {
+        const wrapper = mountBrowser();
+        const hashA = "f".repeat(32);
+        const hashB = "0".repeat(32);
+        const tabId = wrapper.vm.tabs[0].id;
+        wrapper.vm.onTabNavigate(tabId, { destinationHash: hashA, pagePath: "/page/index.mu" });
+        wrapper.vm.pageRefs[tabId] = {
+            getEmbeddedTabStateHash: () => hashB,
+            restoreEmbeddedTabState: vi.fn(),
+        };
+        wrapper.vm.verifyActiveTabPage(wrapper.vm.tabs[0]);
+        expect(wrapper.vm.pageRefs[tabId].restoreEmbeddedTabState).toHaveBeenCalledWith(hashA, "/page/index.mu");
+        expect(ToastUtils.warning).toHaveBeenCalledWith("nomadnet.tab_content_mismatch");
+    });
+
+    it("selectTab warns when tab id is unknown", () => {
+        const wrapper = mountBrowser();
+        wrapper.vm.selectTab(99999);
+        expect(ToastUtils.warning).toHaveBeenCalledWith("nomadnet.tab_switch_failed");
     });
 
     it("reorders tabs while dragging", () => {

@@ -1751,7 +1751,11 @@
         "context_menu_action_failed": "Contextmenu-actie mislukt",
         "context_menu_favourite_failed": "Favoriet kon niet worden bijgewerkt",
         "favourite_added": "Toegevoegd aan favorieten",
-        "favourite_removed": "Verwijderd uit favorieten"
+        "favourite_removed": "Verwijderd uit favorieten",
+        "tab_switch_failed": "Kon niet naar dat tabblad wisselen",
+        "tab_content_mismatch": "Dit tabblad was niet gesynchroniseerd en wordt opnieuw geladen",
+        "tab_restore_failed": "Kon de pagina van dit tabblad niet herstellen",
+        "open_node_failed": "Kon het NomadNet-knooppunt niet openen"
     },
     "forwarder": {
         "title": "LXMF Forwarder",

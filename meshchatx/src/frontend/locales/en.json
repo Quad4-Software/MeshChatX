@@ -1751,7 +1751,11 @@
         "context_menu_action_failed": "Context menu action failed",
         "context_menu_favourite_failed": "Could not update favourite",
         "favourite_added": "Added to favourites",
-        "favourite_removed": "Removed from favourites"
+        "favourite_removed": "Removed from favourites",
+        "tab_switch_failed": "Could not switch to that tab",
+        "tab_content_mismatch": "This tab was out of sync and is being reloaded",
+        "tab_restore_failed": "Could not restore this tab's page",
+        "open_node_failed": "Could not open the NomadNet node"
     },
     "forwarder": {
         "title": "LXMF Forwarder",

@@ -1803,7 +1803,11 @@
         "context_menu_action_failed": "Azione del menu contestuale non riuscita",
         "context_menu_favourite_failed": "Impossibile aggiornare il preferito",
         "favourite_added": "Aggiunto ai preferiti",
-        "favourite_removed": "Rimosso dai preferiti"
+        "favourite_removed": "Rimosso dai preferiti",
+        "tab_switch_failed": "Impossibile passare a quella scheda",
+        "tab_content_mismatch": "Questa scheda non era sincronizzata e viene ricaricata",
+        "tab_restore_failed": "Impossibile ripristinare la pagina di questa scheda",
+        "open_node_failed": "Impossibile aprire il nodo NomadNet"
     },
     "forwarder": {
         "title": "Inoltro LXMF",

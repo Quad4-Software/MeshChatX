@@ -49,14 +49,16 @@
             </button>
         </div>
 
-        <div class="flex flex-1 min-h-0 min-w-0 overflow-hidden">
+        <div class="relative flex flex-1 min-h-0 min-w-0 overflow-hidden">
             <NomadNetworkPage
                 v-for="tab in tabs"
                 v-show="tab.id === activeTabId"
                 :key="tab.id"
                 :ref="(el) => setPageRef(tab.id, el)"
+                class="absolute inset-0 flex min-h-0 min-w-0"
                 embedded
                 :tabs-enabled="tabsEnabled"
+                :is-active="tab.id === activeTabId"
                 :destination-hash="tab.destinationHash"
                 :initial-path="tab.initialPath"
                 @navigate="onTabNavigate(tab.id, $event)"
@@ -436,8 +438,31 @@ export default {
             if (this.activeTabId === tabId) {
                 return;
             }
+            const tab = this.tabs.find((entry) => entry.id === tabId);
+            if (!tab) {
+                ToastUtils.warning(this.$t("nomadnet.tab_switch_failed"));
+                return;
+            }
             this.activeTabId = tabId;
             this.syncRoute();
+            this.$nextTick(() => {
+                this.verifyActiveTabPage(tab);
+            });
+        },
+        verifyActiveTabPage(tab) {
+            const page = this.pageRefs[tab.id];
+            if (!page || typeof page.getEmbeddedTabStateHash !== "function") {
+                return;
+            }
+            const expectedHash = (tab.destinationHash || "").trim();
+            const loadedHash = page.getEmbeddedTabStateHash();
+            if (!expectedHash || !loadedHash || expectedHash === loadedHash) {
+                return;
+            }
+            if (typeof page.restoreEmbeddedTabState === "function") {
+                page.restoreEmbeddedTabState(expectedHash, tab.path);
+            }
+            ToastUtils.warning(this.$t("nomadnet.tab_content_mismatch"));
         },
         onTabDragStart(index, event) {
             this.dragTabIndex = index;
@@ -532,21 +557,31 @@ export default {
             if (!destinationHash) {
                 return;
             }
-            if (this.$route?.name !== "nomadnetwork") {
-                this.$router
-                    .push({
-                        name: "nomadnetwork",
-                        params: { destinationHash },
-                        query: { newTab: "1" },
-                    })
-                    .catch(() => {});
-                return;
+            try {
+                if (this.$route?.name !== "nomadnetwork") {
+                    this.$router
+                        .push({
+                            name: "nomadnetwork",
+                            params: { destinationHash },
+                            query: { newTab: "1" },
+                        })
+                        .then(() => {
+                            this.consumeNewTabRouteQuery(this.$route);
+                        })
+                        .catch(() => {
+                            ToastUtils.error(this.$t("nomadnet.open_node_failed"));
+                        });
+                    return;
+                }
+                this.onOpenNode({
+                    ...payload,
+                    destinationHash,
+                    forceNewTab: payload?.forceNewTab !== false,
+                });
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error(this.$t("nomadnet.open_node_failed"));
             }
-            this.onOpenNode({
-                ...payload,
-                destinationHash,
-                forceNewTab: payload?.forceNewTab !== false,
-            });
         },
         consumeNewTabRouteQuery(route) {
             if (route?.name !== "nomadnetwork" || route.query?.newTab !== "1") {
