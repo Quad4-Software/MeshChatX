@@ -11,15 +11,8 @@ import RNS
 
 from tests.backend.support.test_temp_dir import (
     TEST_COVERAGE_DIR,
-    configure_test_temp_environment,
     ensure_test_temp_dirs,
 )
-
-configure_test_temp_environment()
-
-os.environ["MESHCHAT_SKIP_STORAGE_LOCK"] = "1"
-os.environ["MESHCHAT_DISABLE_CSRF"] = "1"
-
 from meshchatx.meshchat import ReticulumMeshChat
 from meshchatx.src.backend.config_manager import ConfigManager
 from meshchatx.src.backend.database import Database

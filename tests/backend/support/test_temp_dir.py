@@ -58,3 +58,12 @@ def subprocess_test_env(extra: dict[str, str] | None = None) -> dict[str, str]:
     if extra:
         env.update(extra)
     return env
+
+
+def _install_test_env() -> None:
+    os.environ.setdefault("MESHCHAT_SKIP_STORAGE_LOCK", "1")
+    os.environ.setdefault("MESHCHAT_DISABLE_CSRF", "1")
+    configure_test_temp_environment()
+
+
+_install_test_env()
