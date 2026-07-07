@@ -39,7 +39,9 @@ def pytest_configure(config):
     worker = os.environ.get("PYTEST_XDIST_WORKER")
     if worker:
         os.makedirs(TEST_COVERAGE_DIR, exist_ok=True)
-        os.environ["COVERAGE_FILE"] = os.path.join(str(TEST_COVERAGE_DIR), f".coverage.{worker}")
+        os.environ["COVERAGE_FILE"] = os.path.join(
+            str(TEST_COVERAGE_DIR), f".coverage.{worker}"
+        )
 
 
 @pytest.fixture(scope="session")
