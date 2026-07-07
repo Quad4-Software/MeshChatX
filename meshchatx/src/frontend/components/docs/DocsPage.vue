@@ -26,7 +26,7 @@
                         "
                         @click="activeTab = 'meshchatx'"
                     >
-                        MeshChatX
+                        {{ $t("docs.tab_meshchatx") }}
                     </button>
                     <button
                         class="px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all"
@@ -37,7 +37,7 @@
                         "
                         @click="activeTab = 'reticulum'"
                     >
-                        Reticulum
+                        {{ $t("docs.tab_reticulum") }}
                     </button>
                 </div>
 
@@ -50,7 +50,7 @@
                         v-model="searchQuery"
                         type="text"
                         class="block w-full pl-8 pr-8 py-1.5 border border-gray-200 dark:border-zinc-700 rounded-lg bg-gray-50 dark:bg-zinc-800 text-gray-900 dark:text-zinc-100 text-[11px] focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                        placeholder="Search documentation..."
+                        :placeholder="$t('docs.search_placeholder')"
                         @input="debounceSearch"
                     />
                     <div v-if="isSearching" class="absolute inset-y-0 right-0 pr-2.5 flex items-center">
@@ -84,7 +84,7 @@
                     >
                         <MaterialDesignIcon icon-name="history" class="w-4 h-4 md:w-5 md:h-5" />
                         <span class="hidden xl:inline text-[10px] font-bold uppercase">{{
-                            status.current_version || "Default"
+                            status.current_version || $t("docs.default_version")
                         }}</span>
                     </button>
                     <div
@@ -94,7 +94,9 @@
                         <div
                             class="p-2 border-b border-gray-100 dark:border-zinc-700 bg-gray-50/50 dark:bg-zinc-800/50"
                         >
-                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Versions</span>
+                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{{
+                                $t("docs.versions")
+                            }}</span>
                         </div>
                         <div class="max-h-64 overflow-y-auto py-1">
                             <button
@@ -130,7 +132,7 @@
                                 v-if="status.versions.length === 0"
                                 class="px-4 py-3 text-center text-gray-500 text-[10px]"
                             >
-                                No versions available
+                                {{ $t("docs.no_versions") }}
                             </div>
                         </div>
                         <div
@@ -140,7 +142,7 @@
                                 class="flex items-center justify-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg cursor-pointer transition-colors text-[10px] font-bold uppercase"
                             >
                                 <MaterialDesignIcon icon-name="upload" class="w-3.5 h-3.5" />
-                                <span>Upload ZIP</span>
+                                <span>{{ $t("docs.upload_zip") }}</span>
                                 <input type="file" accept=".zip" class="hidden" @change="handleZipUpload" />
                             </label>
                         </div>
@@ -216,7 +218,7 @@
                     class="hidden sm:flex items-center px-2.5 py-1.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg hover:opacity-90 transition-opacity font-bold text-[10px] shadow-xs"
                 >
                     <MaterialDesignIcon icon-name="open-in-new" class="w-3 h-3 mr-1.5" />
-                    Open
+                    {{ $t("docs.open_external") }}
                 </a>
             </div>
         </div>
@@ -238,7 +240,7 @@
                         "
                         @click="activeTab = 'meshchatx'"
                     >
-                        MeshChatX
+                        {{ $t("docs.tab_meshchatx") }}
                     </button>
                     <button
                         class="flex-1 md:flex-none px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all"
@@ -249,7 +251,7 @@
                         "
                         @click="activeTab = 'reticulum'"
                     >
-                        Reticulum
+                        {{ $t("docs.tab_reticulum") }}
                     </button>
                 </div>
 
@@ -262,7 +264,7 @@
                         v-model="searchQuery"
                         type="text"
                         class="block w-full pl-9 pr-9 py-2 border border-gray-200 dark:border-zinc-700 rounded-lg bg-gray-50 dark:bg-zinc-800 text-gray-900 dark:text-zinc-100 text-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                        placeholder="Search all documentation..."
+                        :placeholder="$t('docs.search_placeholder_mobile')"
                         @input="debounceSearch"
                     />
                     <div v-if="isSearching" class="absolute inset-y-0 right-0 pr-3 flex items-center">
@@ -300,10 +302,12 @@
             >
                 <div class="max-w-2xl mx-auto p-6 space-y-6">
                     <div class="flex items-center justify-between px-2">
-                        <h2 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Search Results</h2>
+                        <h2 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                            {{ $t("docs.search_results") }}
+                        </h2>
                         <span
                             class="text-[10px] font-bold text-blue-500 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 rounded-full"
-                            >{{ searchResults.length }} matches</span
+                            >{{ $t("docs.matches_count", { count: searchResults.length }) }}</span
                         >
                     </div>
                     <div class="space-y-2">
@@ -341,7 +345,7 @@
 
             <!-- No Results State -->
             <div
-                v-if="searchQuery && !isSearching && searchResults.length === 0"
+                v-if="searchQuery && !isSearching && searchResults.length === 0 && !searchError"
                 class="absolute inset-0 z-20 bg-white dark:bg-zinc-900 flex flex-col items-center justify-center p-8 text-center"
             >
                 <div
@@ -349,13 +353,30 @@
                 >
                     <MaterialDesignIcon icon-name="text-search" class="w-8 h-8 text-gray-300 dark:text-zinc-600" />
                 </div>
-                <h3 class="text-sm font-medium text-gray-900 dark:text-zinc-100">No results found</h3>
-                <p class="text-xs text-gray-500 dark:text-zinc-400 mt-1">Try different keywords or check spelling.</p>
+                <h3 class="text-sm font-medium text-gray-900 dark:text-zinc-100">{{ $t("docs.no_results") }}</h3>
+                <p class="text-xs text-gray-500 dark:text-zinc-400 mt-1">{{ $t("docs.no_results_hint") }}</p>
                 <button
                     class="mt-4 text-xs font-bold text-blue-500 hover:text-blue-600 transition-colors"
                     @click="clearSearch"
                 >
-                    Clear Search
+                    {{ $t("docs.clear_search") }}
+                </button>
+            </div>
+
+            <div
+                v-if="searchError && searchQuery"
+                class="absolute inset-0 z-20 bg-white dark:bg-zinc-900 flex flex-col items-center justify-center p-8 text-center"
+            >
+                <div class="w-16 h-16 bg-red-50 dark:bg-red-950/30 rounded-full flex items-center justify-center mb-4">
+                    <MaterialDesignIcon icon-name="alert-circle-outline" class="w-8 h-8 text-red-400" />
+                </div>
+                <h3 class="text-sm font-medium text-gray-900 dark:text-zinc-100">{{ $t("docs.search_failed") }}</h3>
+                <p class="text-xs text-gray-500 dark:text-zinc-400 mt-1 max-w-sm">{{ searchError }}</p>
+                <button
+                    class="mt-4 text-xs font-bold text-blue-500 hover:text-blue-600 transition-colors"
+                    @click="clearSearch"
+                >
+                    {{ $t("docs.clear_search") }}
                 </button>
             </div>
 
@@ -381,7 +402,7 @@
                             class="text-[10px] font-bold text-red-500/60 hover:text-red-500 uppercase tracking-widest transition-colors"
                             @click="dismissError"
                         >
-                            Dismiss
+                            {{ $t("docs.dismiss") }}
                         </button>
                     </div>
                 </div>
@@ -408,71 +429,166 @@
                 <h3 class="text-lg font-bold text-gray-900 dark:text-zinc-100 mb-1">
                     {{ $t("docs.status_extracting") }}
                 </h3>
-                <p class="text-sm text-gray-500 dark:text-zinc-400">{{ status.progress }}% Complete</p>
+                <p class="text-sm text-gray-500 dark:text-zinc-400">
+                    {{ $t("docs.complete_percent", { percent: status.progress }) }}
+                </p>
             </div>
 
             <!-- MeshChatX Docs View -->
             <div v-if="activeTab === 'meshchatx' && !searchQuery" class="flex h-full overflow-hidden">
-                <!-- Doc Sidebar (mobile hidden) -->
-                <div
-                    class="hidden md:flex flex-col w-64 border-r border-gray-200 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/50"
+                <!-- Section sidebar -->
+                <aside
+                    class="hidden lg:flex flex-col w-72 shrink-0 border-r border-sem-border bg-sem-canvas/80 dark:bg-zinc-950/80"
                 >
-                    <div class="p-4 border-b border-gray-200 dark:border-zinc-800">
-                        <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">MeshChatX Docs</h3>
-                    </div>
-                    <div class="flex-1 overflow-y-auto p-2 space-y-1">
-                        <button
-                            v-for="doc in meshchatxDocs"
-                            :key="doc.path"
-                            class="w-full text-left px-3 py-2 rounded-xl text-xs transition-all flex items-center space-x-3"
-                            :class="
-                                selectedDocPath === doc.path
-                                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold shadow-xs'
-                                    : 'text-gray-600 dark:text-zinc-400 hover:bg-white dark:hover:bg-zinc-800'
-                            "
-                            @click="selectDoc(doc.path)"
+                    <div class="p-4 border-b border-sem-border space-y-3">
+                        <h3 class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-widest">
+                            {{ $t("docs.sections_title") }}
+                        </h3>
+                        <p
+                            v-if="manifestWarning"
+                            class="text-[11px] leading-relaxed text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 rounded-lg px-2.5 py-2"
                         >
-                            <MaterialDesignIcon
-                                :icon-name="doc.type === 'markdown' ? 'language-markdown' : 'file-document-outline'"
-                                class="w-4 h-4"
-                            />
-                            <span class="truncate">{{ (doc.name || "").replace(/\.(md|txt)$/, "") }}</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Doc Content -->
-                <div class="flex-1 flex flex-col bg-white dark:bg-zinc-900 overflow-hidden relative">
-                    <!-- Mobile Selector -->
-                    <div class="md:hidden p-3 border-b border-gray-200 dark:border-zinc-800">
-                        <select
-                            v-model="selectedDocPath"
-                            class="w-full bg-gray-50 dark:bg-zinc-800 border-none rounded-lg text-xs font-bold p-2"
-                            @change="selectDoc(selectedDocPath)"
+                            {{ manifestWarning }}
+                        </p>
+                        <p
+                            v-if="meshchatxListError"
+                            class="text-[11px] leading-relaxed text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/40 rounded-lg px-2.5 py-2"
                         >
-                            <option v-for="doc in meshchatxDocs" :key="doc.path" :value="doc.path">
-                                {{ (doc.name || "").replace(/\.(md|txt)$/, "") }}
-                            </option>
-                        </select>
-                    </div>
-
-                    <div v-if="selectedDocContent" class="flex-1 overflow-y-auto p-6 md:p-10 scroll-smooth">
-                        <div class="max-w-3xl mx-auto">
-                            <div class="max-w-none wrap-break-word" v-html="selectedDocContent.html"></div>
+                            {{ meshchatxListError }}
+                        </p>
+                        <div v-if="docLanguages.length > 1" class="flex flex-wrap gap-1.5">
+                            <button
+                                v-for="lang in docLanguages"
+                                :key="lang.code"
+                                type="button"
+                                class="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide transition-colors"
+                                :class="
+                                    meshchatxDocsLang === lang.code
+                                        ? 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300'
+                                        : 'bg-sem-surface-muted text-sem-fg-muted hover:text-sem-fg'
+                                "
+                                @click="setMeshchatxDocsLang(lang.code)"
+                            >
+                                {{ lang.code }}
+                            </button>
                         </div>
                     </div>
-                    <div
-                        v-else-if="meshchatxDocs.length > 0"
-                        class="flex-1 flex flex-col items-center justify-center p-8 text-center opacity-50"
+                    <nav class="flex-1 overflow-y-auto p-3 space-y-5 custom-scroll">
+                        <div v-for="section in visibleDocSections" :key="section.id">
+                            <p class="px-2 mb-2 text-[10px] font-bold uppercase tracking-widest text-sem-fg-muted">
+                                {{ section.title }}
+                            </p>
+                            <div class="space-y-0.5">
+                                <button
+                                    v-for="item in section.items"
+                                    :key="item.path"
+                                    type="button"
+                                    class="w-full text-left px-3 py-2 rounded-xl text-xs transition-all flex items-center gap-2.5"
+                                    :class="
+                                        selectedDocPath === item.path
+                                            ? 'bg-cyan-50 dark:bg-cyan-950/40 text-cyan-700 dark:text-cyan-300 font-semibold shadow-xs ring-1 ring-cyan-200/80 dark:ring-cyan-800/60'
+                                            : 'text-sem-fg-muted hover:bg-sem-surface-muted hover:text-sem-fg'
+                                    "
+                                    @click="selectDoc(item.path)"
+                                >
+                                    <MaterialDesignIcon
+                                        :icon-name="
+                                            item.type === 'markdown' ? 'language-markdown' : 'file-document-outline'
+                                        "
+                                        class="w-4 h-4 shrink-0 opacity-70"
+                                    />
+                                    <span class="truncate">{{ item.title }}</span>
+                                </button>
+                            </div>
+                        </div>
+                    </nav>
+                </aside>
+
+                <!-- Doc content -->
+                <div class="flex-1 flex min-w-0 bg-sem-surface dark:bg-zinc-900 overflow-hidden">
+                    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+                        <div class="lg:hidden p-3 border-b border-sem-border bg-sem-surface space-y-2">
+                            <label class="text-[10px] font-bold uppercase tracking-widest text-sem-fg-muted">{{
+                                $t("docs.sections_title")
+                            }}</label>
+                            <select
+                                v-model="selectedDocPath"
+                                class="w-full bg-sem-surface-muted border border-sem-border rounded-xl text-xs font-medium p-2.5 text-sem-fg"
+                                @change="selectDoc(selectedDocPath)"
+                            >
+                                <optgroup
+                                    v-for="section in visibleDocSections"
+                                    :key="section.id"
+                                    :label="section.title"
+                                >
+                                    <option v-for="item in section.items" :key="item.path" :value="item.path">
+                                        {{ item.title }}
+                                    </option>
+                                </optgroup>
+                            </select>
+                        </div>
+
+                        <div
+                            v-if="selectedDocContent"
+                            ref="docContentScroller"
+                            class="flex-1 overflow-y-auto scroll-smooth custom-scroll"
+                        >
+                            <div class="max-w-3xl mx-auto px-5 py-8 md:px-10 md:py-12">
+                                <article
+                                    ref="docsProse"
+                                    class="docs-prose max-w-none wrap-break-word"
+                                    v-html="selectedDocContent.html"
+                                ></article>
+                            </div>
+                        </div>
+                        <div
+                            v-else-if="docLoadError"
+                            class="flex-1 flex flex-col items-center justify-center p-8 text-center"
+                        >
+                            <MaterialDesignIcon icon-name="alert-circle-outline" class="w-12 h-12 mb-4 text-red-400" />
+                            <h3 class="text-sm font-semibold text-sem-fg">{{ $t("docs.load_doc_failed") }}</h3>
+                            <p class="text-xs mt-2 max-w-sm text-sem-fg-muted">{{ docLoadError }}</p>
+                        </div>
+                        <div
+                            v-else-if="meshchatxDocs.length > 0"
+                            class="flex-1 flex flex-col items-center justify-center p-8 text-center text-sem-fg-muted"
+                        >
+                            <MaterialDesignIcon icon-name="book-open-outline" class="w-12 h-12 mb-4 opacity-40" />
+                            <h3 class="text-sm font-semibold text-sem-fg">{{ $t("docs.select_doc") }}</h3>
+                        </div>
+                        <div
+                            v-else
+                            class="flex-1 flex flex-col items-center justify-center p-8 text-center text-sem-fg-muted"
+                        >
+                            <MaterialDesignIcon icon-name="alert-circle-outline" class="w-12 h-12 mb-4 opacity-40" />
+                            <h3 class="text-sm font-semibold text-sem-fg">{{ $t("docs.no_docs_found") }}</h3>
+                            <p class="text-xs mt-1 max-w-xs">{{ $t("docs.no_docs_hint") }}</p>
+                        </div>
+                    </div>
+
+                    <!-- On-page table of contents -->
+                    <aside
+                        v-if="docToc.length > 0 && selectedDocContent"
+                        class="hidden xl:flex flex-col w-56 shrink-0 border-l border-sem-border bg-sem-canvas/50 dark:bg-zinc-950/50"
                     >
-                        <MaterialDesignIcon icon-name="book-open-outline" class="w-12 h-12 mb-4 text-gray-300" />
-                        <h3 class="text-sm font-bold">Select a document to read</h3>
-                    </div>
-                    <div v-else class="flex-1 flex flex-col items-center justify-center p-8 text-center opacity-50">
-                        <MaterialDesignIcon icon-name="alert-circle-outline" class="w-12 h-12 mb-4 text-gray-300" />
-                        <h3 class="text-sm font-bold">No MeshChatX docs found</h3>
-                        <p class="text-xs mt-1">Place .md or .txt files in your docs folder.</p>
-                    </div>
+                        <div class="p-4 border-b border-sem-border">
+                            <h3 class="text-[10px] font-bold text-sem-fg-muted uppercase tracking-widest">
+                                {{ $t("docs.on_this_page") }}
+                            </h3>
+                        </div>
+                        <nav class="flex-1 overflow-y-auto p-3 space-y-1 custom-scroll">
+                            <a
+                                v-for="entry in docToc"
+                                :key="entry.id"
+                                :href="`#${entry.id}`"
+                                class="block py-1 text-xs text-sem-fg-muted hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
+                                :class="entry.level === 3 ? 'pl-3' : ''"
+                                @click.prevent="scrollToHeading(entry.id)"
+                            >
+                                {{ entry.text }}
+                            </a>
+                        </nav>
+                    </aside>
                 </div>
             </div>
 
@@ -483,18 +599,22 @@
                 ref="docsFrame"
                 :src="localDocsUrl"
                 class="w-full h-full border-none opacity-0 transition-opacity duration-1000"
-                @load="$el.querySelector('iframe').style.opacity = '1'"
+                @load="onReticulumFrameLoad"
             ></iframe>
 
             <div
-                v-else-if="status.status !== 'extracting'"
+                v-else-if="
+                    activeTab === 'reticulum' && !status.has_docs && status.status !== 'extracting' && !searchQuery
+                "
                 class="h-full flex flex-col items-center justify-center p-8 text-center space-y-4"
             >
                 <div class="w-16 h-16 bg-gray-50 dark:bg-zinc-800/50 rounded-full flex items-center justify-center">
                     <MaterialDesignIcon icon-name="book-outline" class="w-8 h-8 text-gray-300 dark:text-zinc-600" />
                 </div>
                 <div>
-                    <h3 class="text-sm font-medium text-gray-900 dark:text-zinc-100">Reticulum Manual</h3>
+                    <h3 class="text-sm font-medium text-gray-900 dark:text-zinc-100">
+                        {{ $t("docs.reticulum_manual") }}
+                    </h3>
                     <p class="text-xs text-gray-500 dark:text-zinc-400 mt-1 max-w-[260px]">
                         {{ $t("docs.empty_state_hint") }}
                     </p>
@@ -543,6 +663,15 @@ export default {
             searchTimeout: null,
             activeTab: "meshchatx",
             meshchatxDocs: [],
+            docSections: [],
+            docLanguages: [],
+            defaultDocsLanguage: "en",
+            meshchatxDocsLang: "en",
+            docToc: [],
+            meshchatxListError: null,
+            docLoadError: null,
+            manifestWarning: null,
+            searchError: null,
             selectedDocPath: null,
             selectedDocContent: null,
             selectedReticulumPath: null,
@@ -583,6 +712,26 @@ export default {
         reticulumDocsQueryParam() {
             return this.$route?.query?.reticulum;
         },
+        visibleDocSections() {
+            const lang = this.meshchatxDocsLang;
+            const fallback = this.defaultDocsLanguage || "en";
+            return this.docSections
+                .map((section) => ({
+                    ...section,
+                    items: (section.items || []).filter(
+                        (item) => item.lang === lang || item.lang === fallback || lang === fallback
+                    ),
+                }))
+                .filter((section) => section.items.length > 0);
+        },
+        firstDocPath() {
+            for (const section of this.visibleDocSections) {
+                if (section.items?.length) {
+                    return section.items[0].path;
+                }
+            }
+            return this.meshchatxDocs[0]?.path || null;
+        },
     },
     watch: {
         reticulumDocsQueryParam() {
@@ -622,28 +771,109 @@ export default {
             this.status = { ...this.status, last_error: null };
         },
         async fetchMeshChatXDocs() {
+            this.meshchatxListError = null;
+            this.manifestWarning = null;
             try {
-                const response = await window.api.get("/api/v1/meshchatx-docs/list");
-                this.meshchatxDocs = response.data;
+                const response = await window.api.get("/api/v1/meshchatx-docs/list", {
+                    params: { lang: this.meshchatxDocsLang },
+                });
+                const data = response.data;
+                if (Array.isArray(data)) {
+                    this.meshchatxDocs = data;
+                    this.docSections = [];
+                    this.docLanguages = [{ code: "en", name: "English" }];
+                } else {
+                    this.meshchatxDocs = data.docs || [];
+                    this.docSections = data.sections || [];
+                    this.docLanguages = data.languages || [{ code: "en", name: "English" }];
+                    this.defaultDocsLanguage = data.default_language || "en";
+                    if (data.manifest_error) {
+                        this.manifestWarning = this.$t("docs.manifest_warning");
+                    }
+                }
+                if (!this.docLanguages.some((l) => l.code === this.meshchatxDocsLang)) {
+                    this.meshchatxDocsLang = this.defaultDocsLanguage || "en";
+                }
                 if (this.meshchatxDocs.length > 0 && !this.selectedDocPath) {
-                    this.selectDoc(this.meshchatxDocs[0].path);
+                    const start = this.firstDocPath;
+                    if (start) {
+                        this.selectDoc(start);
+                    }
                 }
             } catch (error) {
                 console.error("Failed to fetch MeshChatX docs list:", error);
+                this.meshchatxDocs = [];
+                this.docSections = [];
+                this.meshchatxListError = error.response?.data?.error || this.$t("docs.load_list_failed");
             }
         },
+        async setMeshchatxDocsLang(langCode) {
+            if (this.meshchatxDocsLang === langCode) {
+                return;
+            }
+            this.meshchatxDocsLang = langCode;
+            this.selectedDocPath = null;
+            this.selectedDocContent = null;
+            this.docToc = [];
+            await this.fetchMeshChatXDocs();
+        },
         async selectDoc(path) {
+            if (!path) {
+                return;
+            }
             this.selectedDocPath = path;
+            this.docLoadError = null;
             try {
                 const response = await window.api.get("/api/v1/meshchatx-docs/content", {
                     params: { path },
                 });
+                if (!response.data?.html && !response.data?.content) {
+                    throw new Error("Empty document response");
+                }
                 this.selectedDocContent = response.data;
+                this.docToc = this.extractDocToc(this.selectedDocContent?.html || "");
             } catch (error) {
                 console.error("Failed to fetch doc content:", error);
-                this.selectedDocContent = {
-                    html: '<div class="text-red-500 font-bold">Failed to load document.</div>',
-                };
+                this.docLoadError = error.response?.data?.error || this.$t("docs.load_doc_failed");
+                this.selectedDocContent = null;
+                this.docToc = [];
+            }
+        },
+        extractDocToc(htmlContent) {
+            if (!htmlContent) {
+                return [];
+            }
+            try {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlContent, "text/html");
+                return Array.from(doc.querySelectorAll("h2, h3"))
+                    .map((heading) => ({
+                        id: heading.id,
+                        text: heading.textContent?.trim() || "",
+                        level: heading.tagName === "H2" ? 2 : 3,
+                    }))
+                    .filter((entry) => entry.id && entry.text);
+            } catch {
+                return [];
+            }
+        },
+        scrollToHeading(id) {
+            const prose = this.$refs.docsProse;
+            if (!prose || typeof prose.querySelector !== "function") {
+                return;
+            }
+            if (!id || !/^[a-z0-9-]+$/.test(id)) {
+                return;
+            }
+            const target = prose.querySelector(`#${id}`);
+            if (target) {
+                target.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+        },
+        onReticulumFrameLoad() {
+            const frame = this.$refs.docsFrame;
+            if (frame && frame.style) {
+                frame.style.opacity = "1";
             }
         },
         async switchVersion(version) {
@@ -664,7 +894,7 @@ export default {
             }
         },
         async deleteVersion(version) {
-            if (!confirm(`Are you sure you want to delete version "${version}"?`)) {
+            if (!confirm(this.$t("docs.confirm_delete_version", { version }))) {
                 return;
             }
 
@@ -681,7 +911,7 @@ export default {
             const file = event.target.files[0];
             if (!file) return;
 
-            const version = prompt("Enter version name for this upload:", `upload-${Date.now()}`);
+            const version = prompt(this.$t("docs.prompt_version_name"), `upload-${Date.now()}`);
             if (!version) return;
 
             const formData = new FormData();
@@ -696,7 +926,8 @@ export default {
                 this.fetchStatus();
             } catch (error) {
                 console.error("Failed to upload docs zip:", error);
-                alert("Failed to upload docs zip: " + (error.response?.data?.error || error.message));
+                const message = error.response?.data?.error || error.message || "";
+                alert(this.$t("docs.failed_upload_alert", { message }));
             }
         },
         async exportDocs() {
@@ -745,6 +976,7 @@ export default {
         async performSearch() {
             if (!this.searchQuery) return;
             this.isSearching = true;
+            this.searchError = null;
             try {
                 const response = await window.api.get("/api/v1/docs/search", {
                     params: {
@@ -752,9 +984,11 @@ export default {
                         lang: this.currentLang,
                     },
                 });
-                this.searchResults = response.data.results;
+                this.searchResults = response.data?.results || [];
             } catch (error) {
                 console.error("Search failed:", error);
+                this.searchResults = [];
+                this.searchError = error.response?.data?.error || this.$t("docs.search_failed");
             } finally {
                 this.isSearching = false;
             }
@@ -762,6 +996,7 @@ export default {
         clearSearch() {
             this.searchQuery = "";
             this.searchResults = [];
+            this.searchError = null;
         },
         applyDocumentationRouteQuery() {
             const q = this.reticulumDocsQueryParam;
@@ -821,69 +1056,78 @@ export default {
 </script>
 
 <style scoped>
-/* Ensure the iframe fills the container and respects dark mode if possible */
 iframe {
     color-scheme: light dark;
 }
 
-/* Markdown styling for the rendered HTML */
-:deep(.max-w-none) pre {
-    color: #f4f4f5 !important; /* zinc-100 */
+:deep(.docs-prose) {
+    color: var(--mc-text-secondary);
+    font-size: 0.9375rem;
+    line-height: 1.7;
 }
 
-:deep(.max-w-none) pre code {
+:deep(.docs-prose h1) {
+    letter-spacing: -0.02em;
+}
+
+:deep(.docs-prose h2 a),
+:deep(.docs-prose h3 a) {
+    color: inherit;
+    text-decoration: none;
+}
+
+:deep(.docs-prose pre) {
+    color: #f4f4f5 !important;
+}
+
+:deep(.docs-prose pre code) {
     color: inherit !important;
 }
 
-:deep(.max-w-none) code {
+:deep(.docs-prose code) {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
-.dark :deep(.max-w-none) p {
-    color: #e4e4e7; /* zinc-200 */
+.dark :deep(.docs-prose p) {
+    color: #e4e4e7;
 }
 
-.dark :deep(.max-w-none) h1,
-.dark :deep(.max-w-none) h2,
-.dark :deep(.max-w-none) h3,
-.dark :deep(.max-w-none) h4 {
-    color: #f4f4f5; /* zinc-100 */
+.dark :deep(.docs-prose h1),
+.dark :deep(.docs-prose h2),
+.dark :deep(.docs-prose h3),
+.dark :deep(.docs-prose h4) {
+    color: #f4f4f5;
 }
 
-/* Markdown table styling */
-:deep(.max-w-none) table {
+:deep(.docs-prose table) {
     width: 100%;
     border-collapse: collapse;
-    margin: 1rem 0;
+    margin: 1.25rem 0;
     font-size: 0.875rem;
 }
 
-:deep(.max-w-none) th,
-:deep(.max-w-none) td {
-    border: 1px solid #d1d5db;
+:deep(.docs-prose th),
+:deep(.docs-prose td) {
+    border: 1px solid var(--mc-border);
     padding: 0.5rem 0.75rem;
     text-align: left;
 }
 
-:deep(.max-w-none) th {
-    background-color: #f3f4f6;
+:deep(.docs-prose th) {
+    background-color: var(--mc-surface-muted);
     font-weight: 700;
 }
 
-:deep(.max-w-none) tr:nth-child(even) {
-    background-color: #f9fafb;
+:deep(.docs-prose tr:nth-child(even)) {
+    background-color: color-mix(in srgb, var(--mc-surface-muted) 65%, transparent);
 }
 
-.dark :deep(.max-w-none) th,
-.dark :deep(.max-w-none) td {
-    border-color: #3f3f46;
+:deep(.docs-prose a) {
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
 }
 
-.dark :deep(.max-w-none) th {
-    background-color: #27272a;
-}
-
-.dark :deep(.max-w-none) tr:nth-child(even) {
-    background-color: #18181b;
+:deep(.docs-prose blockquote) {
+    border-left-color: color-mix(in srgb, var(--mc-accent) 55%, transparent);
 }
 </style>

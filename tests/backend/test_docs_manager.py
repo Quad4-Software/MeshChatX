@@ -338,8 +338,14 @@ def test_populate_meshchatx_docs_generates_index_html(tmp_path):
     public_dir.mkdir()
     docs_dir = tmp_path / "docs"
     docs_dir.mkdir()
-    (docs_dir / "README.md").write_text("# Hello\nWorld")
-    (docs_dir / "FAQ.md").write_text("# FAQ\nQ&A")
+    en_dir = docs_dir / "en"
+    en_dir.mkdir()
+    (en_dir / "intro.md").write_text("# Hello\nWorld")
+    (docs_dir / "manifest.json").write_text(
+        '{"version":1,"default_language":"en","languages":[{"code":"en","name":"English"}],'
+        '"sections":[{"id":"main","order":1,"title":{"en":"Main"},"items":'
+        '[{"path":"en/intro.md","lang":"en","title":{"en":"Intro"}}]}]}',
+    )
 
     config = MagicMock()
     dm = DocsManager(config, str(public_dir), project_root=str(tmp_path))
@@ -349,8 +355,32 @@ def test_populate_meshchatx_docs_generates_index_html(tmp_path):
     assert os.path.exists(index_path)
     content = open(index_path, encoding="utf-8").read()
     assert "MeshChatX Documentation" in content
-    assert "README.html" in content
-    assert "FAQ.html" in content
+    assert "en/intro.html" in content
+    assert "Intro" in content
+
+
+def test_get_meshchatx_docs_list_with_manifest(tmp_path):
+    public_dir = tmp_path / "public"
+    public_dir.mkdir()
+    mesh_docs = public_dir / "meshchatx-docs"
+    en_dir = mesh_docs / "en"
+    en_dir.mkdir(parents=True)
+    (en_dir / "intro.md").write_text("# Intro\n")
+    (mesh_docs / "manifest.json").write_text(
+        '{"version":1,"default_language":"en","languages":[{"code":"en","name":"English"}],'
+        '"sections":[{"id":"main","order":1,"title":{"en":"Overview"},"items":'
+        '[{"path":"en/intro.md","lang":"en","title":{"en":"Introduction"}}]}]}',
+    )
+
+    config = MagicMock()
+    dm = DocsManager(config, str(public_dir))
+    dm.meshchatx_docs_dir = str(mesh_docs)
+
+    listing = dm.get_meshchatx_docs_list("en")
+    assert listing["default_language"] == "en"
+    assert len(listing["docs"]) == 1
+    assert listing["sections"][0]["items"][0]["title"] == "Introduction"
+    assert dm.get_doc_content("en/intro.md")["type"] == "markdown"
 
 
 def test_get_doc_content_rejects_directory_path(tmp_path):
@@ -366,3 +396,126 @@ def test_get_doc_content_rejects_directory_path(tmp_path):
     assert dm.get_doc_content(".") is None
     assert dm.get_doc_content("..") is None
     assert dm.get_doc_content("") is None
+
+
+def test_is_safe_doc_path_rejects_unsafe_values():
+    assert DocsManager._is_safe_doc_path("en/guide.md") is True
+    assert DocsManager._is_safe_doc_path("../secret.md") is False
+    assert DocsManager._is_safe_doc_path("/etc/passwd") is False
+    assert DocsManager._is_safe_doc_path("en/../secret.md") is False
+    assert DocsManager._is_safe_doc_path("") is False
+    assert DocsManager._is_safe_doc_path("en/guide\0.md") is False
+
+
+def test_has_meshchatx_docs_finds_nested_files(tmp_path):
+    public_dir = tmp_path / "public"
+    public_dir.mkdir()
+    mesh_docs = public_dir / "meshchatx-docs" / "en"
+    mesh_docs.mkdir(parents=True)
+    (mesh_docs / "guide.md").write_text("# Guide\n")
+
+    config = MagicMock()
+    dm = DocsManager(config, str(public_dir))
+    dm.meshchatx_docs_dir = str(public_dir / "meshchatx-docs")
+
+    assert dm.has_meshchatx_docs() is True
+
+
+def test_get_doc_content_rejects_unsafe_paths(tmp_path):
+    public_dir = tmp_path / "public"
+    public_dir.mkdir()
+    config = MagicMock()
+    dm = DocsManager(config, str(public_dir))
+    os.makedirs(dm.meshchatx_docs_dir, exist_ok=True)
+
+    assert dm.get_doc_content("../outside.md") is None
+    assert dm.get_doc_content("/etc/passwd") is None
+
+
+def test_get_doc_content_nested_path(tmp_path):
+    public_dir = tmp_path / "public"
+    public_dir.mkdir()
+    en_dir = public_dir / "meshchatx-docs" / "en"
+    en_dir.mkdir(parents=True)
+    (en_dir / "guide.md").write_text("# Title\nBody")
+
+    config = MagicMock()
+    dm = DocsManager(config, str(public_dir))
+
+    content = dm.get_doc_content("en/guide.md")
+    assert content is not None
+    assert content["type"] == "markdown"
+    assert "Title" in content["html"]
+
+
+def test_invalid_manifest_returns_error_and_flat_fallback(tmp_path):
+    public_dir = tmp_path / "public"
+    public_dir.mkdir()
+    mesh_docs = public_dir / "meshchatx-docs" / "en"
+    mesh_docs.mkdir(parents=True)
+    (mesh_docs / "orphan.md").write_text("# Orphan\n")
+    (public_dir / "meshchatx-docs" / "manifest.json").write_text("{ not json")
+
+    config = MagicMock()
+    dm = DocsManager(config, str(public_dir))
+
+    listing = dm.get_meshchatx_docs_list("en")
+    assert listing["manifest_error"] == "Invalid manifest JSON"
+    assert len(listing["docs"]) == 1
+    assert listing["sections"][0]["id"] == "all"
+
+
+def test_manifest_skips_missing_files(tmp_path):
+    public_dir = tmp_path / "public"
+    public_dir.mkdir()
+    mesh_docs = public_dir / "meshchatx-docs"
+    en_dir = mesh_docs / "en"
+    en_dir.mkdir(parents=True)
+    (en_dir / "present.md").write_text("# Present\n")
+    (mesh_docs / "manifest.json").write_text(
+        '{"version":1,"default_language":"en","languages":[{"code":"en","name":"English"}],'
+        '"sections":[{"id":"main","order":1,"title":{"en":"Main"},"items":'
+        '[{"path":"en/missing.md","lang":"en","title":{"en":"Missing"}},'
+        '{"path":"en/present.md","lang":"en","title":{"en":"Present"}}]}]}',
+    )
+
+    config = MagicMock()
+    dm = DocsManager(config, str(public_dir))
+
+    listing = dm.get_meshchatx_docs_list("en")
+    assert len(listing["sections"]) == 1
+    assert len(listing["sections"][0]["items"]) == 1
+    assert listing["sections"][0]["items"][0]["path"] == "en/present.md"
+
+
+def test_search_finds_nested_meshchatx_docs(tmp_path):
+    public_dir = tmp_path / "public"
+    public_dir.mkdir()
+    en_dir = public_dir / "meshchatx-docs" / "en"
+    en_dir.mkdir(parents=True)
+    (en_dir / "guide.md").write_text("unique-nested-token-alpha\n")
+
+    config = MagicMock()
+    dm = DocsManager(config, str(public_dir))
+
+    results = dm.search("unique-nested-token-alpha", "en")
+    assert any(r["source"] == "MeshChatX" for r in results)
+    assert any("en/guide.md" in r["path"] for r in results)
+
+
+def test_get_doc_content_returns_none_on_read_error(tmp_path, monkeypatch):
+    public_dir = tmp_path / "public"
+    public_dir.mkdir()
+    en_dir = public_dir / "meshchatx-docs" / "en"
+    en_dir.mkdir(parents=True)
+    doc_path = en_dir / "guide.md"
+    doc_path.write_text("# Guide\n")
+
+    config = MagicMock()
+    dm = DocsManager(config, str(public_dir))
+
+    def fail_open(*_args, **_kwargs):
+        raise OSError("Permission denied")
+
+    monkeypatch.setattr("builtins.open", fail_open)
+    assert dm.get_doc_content("en/guide.md") is None

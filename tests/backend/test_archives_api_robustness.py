@@ -94,6 +94,31 @@ async def test_meshchatx_docs_content_requires_path(mock_app):
     assert response.status == 400
 
 
+@pytest.mark.asyncio
+async def test_meshchatx_docs_content_rejects_invalid_path(mock_app):
+    handler = _handler(mock_app, "GET", "/api/v1/meshchatx-docs/content")
+    assert handler is not None
+    request = MagicMock()
+    request.query = {"path": "../secret.md"}
+    response = await handler(request)
+    assert response.status == 400
+    body = json.loads(response.body)
+    assert body["error"] == "Invalid path"
+
+
+@pytest.mark.asyncio
+async def test_meshchatx_docs_list_accepts_lang_query(mock_app):
+    handler = _handler(mock_app, "GET", "/api/v1/meshchatx-docs/list")
+    assert handler is not None
+    request = MagicMock()
+    request.query = {"lang": "de"}
+    response = await handler(request)
+    assert response.status == 200
+    body = json.loads(response.body)
+    assert "docs" in body
+    assert "sections" in body
+
+
 @settings(
     max_examples=40,
     suppress_health_check=[HealthCheck.function_scoped_fixture],
@@ -107,7 +132,7 @@ async def test_meshchatx_docs_content_path_fuzz(mock_app, path):
     request = MagicMock()
     request.query = {"path": path}
     response = await handler(request)
-    assert response.status in (200, 404)
+    assert response.status in (200, 400, 404)
     json.loads(response.body)
 
 

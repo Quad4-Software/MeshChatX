@@ -28,10 +28,29 @@ def _safe_href(url):
 class MarkdownRenderer:
     """A simple Markdown to HTML renderer."""
 
+    _heading_ids: dict[str, int] = {}
+
+    @classmethod
+    def _reset_heading_ids(cls):
+        cls._heading_ids = {}
+
+    @classmethod
+    def _heading_id(cls, text, level):
+        slug_base = re.sub(r"[^\w\s-]", "", html.unescape(text)).strip().lower()
+        slug_base = re.sub(r"[-\s]+", "-", slug_base) or "section"
+        key = f"{level}:{slug_base}"
+        count = cls._heading_ids.get(key, 0)
+        cls._heading_ids[key] = count + 1
+        if count:
+            return f"{slug_base}-{count + 1}"
+        return slug_base
+
     @staticmethod
     def render(text):
         if not text:
             return ""
+
+        MarkdownRenderer._reset_heading_ids()
 
         # Escape HTML entities first to prevent XSS
         # Use a more limited escape if we want to allow some things,
@@ -58,6 +77,8 @@ class MarkdownRenderer:
             flags=re.DOTALL,
         )
 
+        text = MarkdownRenderer._render_tables(text)
+
         # Horizontal Rules
         text = re.sub(
             r"^---+$",
@@ -67,27 +88,49 @@ class MarkdownRenderer:
         )
 
         # Headers
+        def heading_repl(level, classes):
+            def repl(match):
+                title = match.group(1)
+                heading_id = MarkdownRenderer._heading_id(title, level)
+                return (
+                    f'<h{level} id="{heading_id}" class="{classes}">{title}</h{level}>'
+                )
+
+            return repl
+
         text = re.sub(
             r"^# (.*)$",
-            r'<h1 class="text-3xl font-bold mt-8 mb-4 text-gray-900 dark:text-zinc-100">\1</h1>',
+            heading_repl(
+                1,
+                "text-3xl font-bold mt-8 mb-4 text-gray-900 dark:text-zinc-100 scroll-mt-24",
+            ),
             text,
             flags=re.MULTILINE,
         )
         text = re.sub(
             r"^## (.*)$",
-            r'<h2 class="text-2xl font-bold mt-6 mb-3 text-gray-900 dark:text-zinc-100">\1</h2>',
+            heading_repl(
+                2,
+                "text-2xl font-bold mt-8 mb-3 text-gray-900 dark:text-zinc-100 scroll-mt-24 border-b border-gray-200 dark:border-zinc-800 pb-2",
+            ),
             text,
             flags=re.MULTILINE,
         )
         text = re.sub(
             r"^### (.*)$",
-            r'<h3 class="text-xl font-bold mt-4 mb-2 text-gray-900 dark:text-zinc-100">\1</h3>',
+            heading_repl(
+                3,
+                "text-xl font-semibold mt-6 mb-2 text-gray-900 dark:text-zinc-100 scroll-mt-24",
+            ),
             text,
             flags=re.MULTILINE,
         )
         text = re.sub(
             r"^#### (.*)$",
-            r'<h4 class="text-lg font-bold mt-3 mb-2 text-gray-900 dark:text-zinc-100">\1</h4>',
+            heading_repl(
+                4,
+                "text-lg font-semibold mt-4 mb-2 text-gray-900 dark:text-zinc-100 scroll-mt-24",
+            ),
             text,
             flags=re.MULTILINE,
         )
@@ -207,7 +250,7 @@ class MarkdownRenderer:
                 continue
 
             # If it already starts with a block tag, don't wrap in <p>
-            if re.match(r"^<(h\d|ul|ol|li|blockquote|hr|div)", part):
+            if re.match(r"^<(h\d|ul|ol|li|blockquote|hr|div|table)", part):
                 processed_parts.append(part)
             else:
                 # Replace single newlines with <br> for line breaks within paragraphs
@@ -223,3 +266,77 @@ class MarkdownRenderer:
             text = text.replace(f"[[CB{i}]]", code_html)
 
         return text
+
+    @staticmethod
+    def _is_table_row(line):
+        stripped = line.strip()
+        return (
+            stripped.startswith("|")
+            and stripped.endswith("|")
+            and stripped.count("|") >= 2
+        )
+
+    @staticmethod
+    def _split_table_cells(line):
+        return [cell.strip() for cell in line.strip().strip("|").split("|")]
+
+    @staticmethod
+    def _is_table_separator(line):
+        if not MarkdownRenderer._is_table_row(line):
+            return False
+        cells = MarkdownRenderer._split_table_cells(line)
+        if not cells:
+            return False
+        return all(re.fullmatch(r":?-{3,}:?", cell) for cell in cells)
+
+    @staticmethod
+    def _table_block_to_html(lines):
+        header_cells = MarkdownRenderer._split_table_cells(lines[0])
+        body_rows = [
+            MarkdownRenderer._split_table_cells(row)
+            for row in lines[2:]
+            if MarkdownRenderer._is_table_row(row)
+        ]
+        thead = "".join(
+            f'<th class="px-3 py-2 text-left font-bold">{cell}</th>'
+            for cell in header_cells
+        )
+        tbody_rows = []
+        for row in body_rows:
+            padded = row + [""] * (len(header_cells) - len(row))
+            cells = "".join(
+                f'<td class="px-3 py-2 align-top">{cell}</td>'
+                for cell in padded[: len(header_cells)]
+            )
+            tbody_rows.append(f"<tr>{cells}</tr>")
+        tbody = "".join(tbody_rows)
+        return (
+            '<div class="overflow-x-auto my-6">'
+            '<table class="w-full border-collapse text-sm">'
+            f"<thead><tr>{thead}</tr></thead>"
+            f"<tbody>{tbody}</tbody>"
+            "</table></div>"
+        )
+
+    @staticmethod
+    def _render_tables(text):
+        lines = text.split("\n")
+        out = []
+        i = 0
+        while i < len(lines):
+            line = lines[i]
+            if (
+                i + 1 < len(lines)
+                and MarkdownRenderer._is_table_row(line)
+                and MarkdownRenderer._is_table_separator(lines[i + 1])
+            ):
+                block = [line, lines[i + 1]]
+                i += 2
+                while i < len(lines) and MarkdownRenderer._is_table_row(lines[i]):
+                    block.append(lines[i])
+                    i += 1
+                out.append(MarkdownRenderer._table_block_to_html(block))
+            else:
+                out.append(line)
+                i += 1
+        return "\n".join(out)

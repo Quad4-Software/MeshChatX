@@ -1,0 +1,105 @@
+{
+    "version": 1,
+    "default_language": "en",
+    "languages": [{ "code": "en", "name": "English" }],
+    "sections": [
+        {
+            "id": "overview",
+            "order": 1,
+            "title": { "en": "Overview" },
+            "items": [
+                {
+                    "path": "en/getting-started.md",
+                    "lang": "en",
+                    "title": { "en": "Getting started" }
+                },
+                {
+                    "path": "en/installation.md",
+                    "lang": "en",
+                    "title": { "en": "Installation and setup" }
+                },
+                {
+                    "path": "en/architecture.md",
+                    "lang": "en",
+                    "title": { "en": "Architecture and design" }
+                }
+            ]
+        },
+        {
+            "id": "features",
+            "order": 2,
+            "title": { "en": "Features" },
+            "items": [
+                {
+                    "path": "en/messaging.md",
+                    "lang": "en",
+                    "title": { "en": "LXMF messaging" }
+                },
+                {
+                    "path": "en/audio-calls.md",
+                    "lang": "en",
+                    "title": { "en": "Audio calls (LXST)" }
+                },
+                {
+                    "path": "en/nomad-network.md",
+                    "lang": "en",
+                    "title": { "en": "Nomad Network and Mesh Server" }
+                },
+                {
+                    "path": "en/interfaces.md",
+                    "lang": "en",
+                    "title": { "en": "Reticulum interfaces" }
+                },
+                {
+                    "path": "en/tools.md",
+                    "lang": "en",
+                    "title": { "en": "Tools and utilities" }
+                },
+                {
+                    "path": "en/identity-and-security.md",
+                    "lang": "en",
+                    "title": { "en": "Identities, privacy, and security" }
+                }
+            ]
+        },
+        {
+            "id": "authoring",
+            "order": 3,
+            "title": { "en": "Authoring" },
+            "items": [
+                {
+                    "path": "en/nomadmesh-pages.md",
+                    "lang": "en",
+                    "title": { "en": "NomadNet page formats" }
+                }
+            ]
+        },
+        {
+            "id": "platforms",
+            "order": 4,
+            "title": { "en": "Platform guides" },
+            "items": [
+                {
+                    "path": "en/platform-guides/raspberry-pi.md",
+                    "lang": "en",
+                    "title": { "en": "Raspberry Pi" }
+                },
+                {
+                    "path": "en/platform-guides/android-termux.md",
+                    "lang": "en",
+                    "title": { "en": "Android (Termux)" }
+                },
+                {
+                    "path": "en/platform-guides/quest-sidequest.md",
+                    "lang": "en",
+                    "title": { "en": "Meta Quest (SideQuest)" }
+                },
+                {
+                    "path": "en/platform-guides/linux-sandbox.md",
+                    "lang": "en",
+                    "title": { "en": "Linux sandboxing" }
+                }
+            ]
+        }
+    ]
+}

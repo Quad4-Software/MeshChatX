@@ -1,4 +1,4 @@
-# MeshChatX on Android
+# Android with Termux
 
 It's possible to run MeshChatX on Android using [Termux](https://termux.dev/). Installation is now much simpler since the wheel package includes both the server and pre-built web assets.
 

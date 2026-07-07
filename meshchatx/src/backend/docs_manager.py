@@ -2,6 +2,7 @@
 
 import html
 import io
+import json
 import logging
 import os
 import re
@@ -11,6 +12,8 @@ import zipfile
 from meshchatx.src.backend.markdown_renderer import MarkdownRenderer
 
 BUNDLED_DOCS_SUBDIR = os.path.join("reticulum-docs-bundled", "current")
+MANIFEST_FILENAME = "manifest.json"
+DOC_FILE_SUFFIXES = (".md", ".txt")
 
 
 class DocsManager:
@@ -199,101 +202,168 @@ class DocsManager:
             logging.warning("MeshChatX docs source directory not found.")
             return
 
-        seen_basenames: set[str] = set()
-        sourced: list[tuple[str, str]] = []
+        src_docs = candidate_dirs[0]
         for base in candidate_dirs:
-            try:
-                names = sorted(os.listdir(base))
-            except OSError:
-                continue
-            for file in names:
-                if not file.endswith((".md", ".txt")):
-                    continue
-                if file in seen_basenames:
-                    continue
-                seen_basenames.add(file)
-                sourced.append((file, base))
+            if os.path.isfile(os.path.join(base, MANIFEST_FILENAME)):
+                src_docs = base
+                break
 
-        if not sourced:
-            logging.warning(
-                "No MeshChatX .md or .txt files found in docs search paths."
-            )
+        if not os.access(self.meshchatx_docs_dir, os.W_OK):
+            logging.warning("MeshChatX docs directory is not writable.")
             return
 
         try:
-            index_links: list[str] = []
-            for file, src_docs in sourced:
-                src_path = os.path.join(src_docs, file)
-                dest_path = os.path.join(self.meshchatx_docs_dir, file)
-
-                if os.path.abspath(src_path) != os.path.abspath(
-                    dest_path,
-                ) and os.access(self.meshchatx_docs_dir, os.W_OK):
-                    shutil.copy2(src_path, dest_path)
-
-                try:
-                    with open(src_path, encoding="utf-8") as f:
-                        content = f.read()
-
-                    html_content = MarkdownRenderer.render(content)
-                    full_html = f"""<!DOCTYPE html>
-<html class="dark">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{file}</title>
-    <script src="../assets/js/tailwindcss/tailwind-v3.4.3-forms-v0.5.7.js"></script>
-    <style>
-        body {{ background-color: #111827; color: #f3f4f6; }}
-    </style>
-</head>
-<body class="p-4 md:p-8 max-w-4xl mx-auto">
-    <div class="max-w-none break-words">
-        {html_content}
-    </div>
-</body>
-</html>"""
-                    html_file = os.path.splitext(file)[0] + ".html"
-                    with open(
-                        os.path.join(self.meshchatx_docs_dir, html_file),
-                        "w",
-                        encoding="utf-8",
-                    ) as f:
-                        f.write(full_html)
-                    index_links.append(
-                        f'<li class="mb-2"><a href="{html_file}" class="text-blue-400 hover:text-blue-300">{html_file}</a></li>'
-                    )
-                except Exception as e:
-                    logging.exception(f"Failed to render {file} to HTML: {e}")
-
-            # Generate an index.html so /meshchatx-docs/index.html resolves
-            if index_links and os.access(self.meshchatx_docs_dir, os.W_OK):
-                index_html = f"""<!DOCTYPE html>
-<html class="dark">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>MeshChatX Documentation</title>
-    <script src="../assets/js/tailwindcss/tailwind-v3.4.3-forms-v0.5.7.js"></script>
-    <style>
-        body {{ background-color: #111827; color: #f3f4f6; }}
-    </style>
-</head>
-<body class="p-4 md:p-8 max-w-4xl mx-auto">
-    <h1 class="text-2xl font-bold mb-4">MeshChatX Documentation</h1>
-    <ul class="list-disc pl-5">
-        {"".join(index_links)}
-    </ul>
-</body>
-</html>"""
-                with open(
-                    os.path.join(self.meshchatx_docs_dir, "index.html"),
-                    "w",
-                    encoding="utf-8",
-                ) as f:
-                    f.write(index_html)
+            self._sync_docs_tree(src_docs, self.meshchatx_docs_dir)
+            self._render_meshchatx_html_exports()
         except Exception as e:
             logging.exception(f"Failed to populate MeshChatX docs: {e}")
+
+    def _sync_docs_tree(self, src_docs, dest_dir):
+        """Copy manifest, markdown, and text files from src_docs into dest_dir."""
+        for root, _, files in os.walk(src_docs):
+            rel_root = os.path.relpath(root, src_docs)
+            target_root = (
+                dest_dir if rel_root == "." else os.path.join(dest_dir, rel_root)
+            )
+            os.makedirs(target_root, exist_ok=True)
+            for file in files:
+                if file == MANIFEST_FILENAME or file.endswith(DOC_FILE_SUFFIXES):
+                    src_path = os.path.join(root, file)
+                    dest_path = os.path.join(target_root, file)
+                    if os.path.abspath(src_path) != os.path.abspath(dest_path):
+                        shutil.copy2(src_path, dest_path)
+
+    def _render_meshchatx_html_exports(self):
+        index_links: list[str] = []
+        manifest, _manifest_error = self._read_manifest()
+        if manifest and manifest.get("sections"):
+            for section in sorted(
+                manifest["sections"], key=lambda s: s.get("order", 0)
+            ):
+                section_title = self._localized_text(
+                    section.get("title"),
+                    manifest.get("default_language", "en"),
+                )
+                if section_title:
+                    index_links.append(
+                        f'<li class="mb-1 text-sm font-bold text-zinc-300 mt-4">{html.escape(section_title)}</li>',
+                    )
+                for item in section.get("items", []):
+                    rel_path = item.get("path")
+                    if not rel_path or not rel_path.endswith(DOC_FILE_SUFFIXES):
+                        continue
+                    title = self._localized_text(
+                        item.get("title"),
+                        item.get("lang") or manifest.get("default_language", "en"),
+                    )
+                    html_file = self._doc_html_name(rel_path)
+                    if title:
+                        index_links.append(
+                            f'<li class="mb-2 ml-3"><a href="{html.escape(html_file)}" class="text-blue-400 hover:text-blue-300">{html.escape(title)}</a></li>',
+                        )
+                    self._write_doc_html_export(rel_path)
+        else:
+            for doc in self._collect_flat_docs():
+                rel_path = doc["path"]
+                html_file = self._write_doc_html_export(rel_path)
+                if html_file:
+                    label = os.path.basename(rel_path)
+                    index_links.append(
+                        f'<li class="mb-2"><a href="{html.escape(html_file)}" class="text-blue-400 hover:text-blue-300">{html.escape(label)}</a></li>',
+                    )
+
+        if index_links:
+            index_html = self._standalone_html_shell(
+                "MeshChatX Documentation",
+                f'<h1 class="text-2xl font-bold mb-4">MeshChatX Documentation</h1><ul class="list-none pl-0">{"".join(index_links)}</ul>',
+            )
+            with open(
+                os.path.join(self.meshchatx_docs_dir, "index.html"),
+                "w",
+                encoding="utf-8",
+            ) as f:
+                f.write(index_html)
+
+    def _write_doc_html_export(self, rel_path):
+        full_path = os.path.join(self.meshchatx_docs_dir, rel_path)
+        if not os.path.isfile(full_path):
+            return None
+        try:
+            with open(full_path, encoding="utf-8") as f:
+                content = f.read()
+            if rel_path.endswith(".md"):
+                body = MarkdownRenderer.render(content)
+            else:
+                body = f"<pre class='whitespace-pre-wrap font-mono'>{html.escape(content)}</pre>"
+            title = os.path.basename(rel_path)
+            html_file = self._doc_html_name(rel_path)
+            html_path = os.path.join(self.meshchatx_docs_dir, html_file)
+            os.makedirs(os.path.dirname(html_path), exist_ok=True)
+            doc_html = self._standalone_html_shell(
+                title, f'<div class="max-w-none break-words">{body}</div>'
+            )
+            with open(html_path, "w", encoding="utf-8") as f:
+                f.write(doc_html)
+            return html_file
+        except Exception as e:
+            logging.exception(f"Failed to render {rel_path} to HTML: {e}")
+            return None
+
+    @staticmethod
+    def _doc_html_name(rel_path):
+        base, _ext = os.path.splitext(rel_path)
+        return f"{base}.html"
+
+    @staticmethod
+    def _standalone_html_shell(title, body_html):
+        safe_title = html.escape(title)
+        return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <title>{safe_title}</title>
+    <script src="/assets/js/tailwindcss/tailwind-v3.4.3-forms-v0.5.7.js"></script>
+    <style>
+        :root {{
+            color-scheme: light dark;
+            --mc-bg: #f8fafc;
+            --mc-fg: #111827;
+            --mc-muted: #6b7280;
+            --mc-code-bg: #1e293b;
+            --mc-code-fg: #f1f5f9;
+            --mc-border: #e5e7eb;
+        }}
+        @media (prefers-color-scheme: dark) {{
+            :root {{
+                --mc-bg: #09090b;
+                --mc-fg: #f4f4f5;
+                --mc-muted: #a1a1aa;
+                --mc-code-bg: #18181b;
+                --mc-code-fg: #f4f4f5;
+                --mc-border: #3f3f46;
+            }}
+        }}
+        body {{
+            background-color: var(--mc-bg);
+            color: var(--mc-fg);
+        }}
+        a {{ color: #2563eb; }}
+        @media (prefers-color-scheme: dark) {{
+            a {{ color: #60a5fa; }}
+        }}
+        pre, code {{
+            background-color: var(--mc-code-bg);
+            color: var(--mc-code-fg);
+        }}
+        th, td {{ border-color: var(--mc-border); }}
+    </style>
+</head>
+<body class="p-4 md:p-8 max-w-4xl mx-auto">
+    {body_html}
+</body>
+</html>"""
 
     def get_status(self):
         return {
@@ -309,31 +379,160 @@ class DocsManager:
         }
 
     def has_meshchatx_docs(self):
-        return (
-            any(
-                f.endswith((".md", ".txt")) for f in os.listdir(self.meshchatx_docs_dir)
-            )
-            if os.path.exists(self.meshchatx_docs_dir)
-            else False
-        )
+        if not os.path.exists(self.meshchatx_docs_dir):
+            return False
+        return len(self._collect_flat_docs()) > 0
 
-    def get_meshchatx_docs_list(self):
+    def get_meshchatx_docs_list(self, lang="en"):
+        manifest, manifest_error = self._read_manifest()
+        flat_docs = self._collect_flat_docs()
+        languages = manifest.get("languages") if manifest else None
+        if not languages:
+            languages = [{"code": "en", "name": "English"}]
+        default_language = manifest.get("default_language", "en") if manifest else "en"
+        sections = self._build_sections(manifest, lang, default_language, flat_docs)
+        result = {
+            "docs": flat_docs,
+            "sections": sections,
+            "languages": languages,
+            "default_language": default_language,
+        }
+        if manifest_error:
+            result["manifest_error"] = manifest_error
+        return result
+
+    @staticmethod
+    def _is_safe_doc_path(path):
+        if not path or not isinstance(path, str):
+            return False
+        if "\0" in path:
+            return False
+        normalized = path.replace("\\", "/").strip()
+        if not normalized or normalized.startswith("/"):
+            return False
+        parts = [part for part in normalized.split("/") if part not in ("", ".")]
+        return ".." not in parts
+
+    def _read_manifest(self):
+        manifest_path = os.path.join(self.meshchatx_docs_dir, MANIFEST_FILENAME)
+        if not os.path.isfile(manifest_path):
+            return None, None
+        try:
+            with open(manifest_path, encoding="utf-8") as f:
+                data = json.load(f)
+            if not isinstance(data, dict):
+                return None, "Manifest must be a JSON object"
+            return data, None
+        except json.JSONDecodeError as e:
+            logging.exception(f"Failed to parse docs manifest: {e}")
+            return None, "Invalid manifest JSON"
+        except OSError as e:
+            logging.exception(f"Failed to read docs manifest: {e}")
+            return None, "Could not read manifest file"
+
+    def _collect_flat_docs(self):
         docs = []
         if not os.path.exists(self.meshchatx_docs_dir):
             return docs
 
-        docs.extend(
-            {
-                "name": file,
-                "path": file,
-                "type": "markdown" if file.endswith(".md") else "text",
-            }
-            for file in os.listdir(self.meshchatx_docs_dir)
-            if file.endswith((".md", ".txt"))
-        )
-        return sorted(docs, key=lambda x: x["name"])
+        for root, _, files in os.walk(self.meshchatx_docs_dir):
+            for file in files:
+                if not file.endswith(DOC_FILE_SUFFIXES):
+                    continue
+                file_path = os.path.join(root, file)
+                try:
+                    rel_path = os.path.relpath(file_path, self.meshchatx_docs_dir)
+                except ValueError:
+                    continue
+                rel_path = rel_path.replace("\\", "/")
+                docs.append(
+                    {
+                        "name": file,
+                        "path": rel_path,
+                        "type": "markdown" if file.endswith(".md") else "text",
+                    },
+                )
+        return sorted(docs, key=lambda x: x["path"])
+
+    def _build_sections(self, manifest, lang, default_language, flat_docs):
+        if not manifest or not manifest.get("sections"):
+            return [
+                {
+                    "id": "all",
+                    "title": self._localized_text(
+                        {"en": "Guides"}, lang, default_language
+                    ),
+                    "items": [
+                        {
+                            "path": doc["path"],
+                            "title": self._title_from_path(doc["path"]),
+                            "lang": default_language,
+                            "type": doc["type"],
+                        }
+                        for doc in flat_docs
+                    ],
+                },
+            ]
+
+        available = {doc["path"] for doc in flat_docs}
+        sections = []
+        for section in sorted(
+            manifest.get("sections", []), key=lambda s: s.get("order", 0)
+        ):
+            items = []
+            for item in section.get("items", []):
+                rel_path = item.get("path")
+                if not rel_path or rel_path not in available:
+                    continue
+                item_lang = item.get("lang") or default_language
+                doc_type = "markdown" if rel_path.endswith(".md") else "text"
+                items.append(
+                    {
+                        "path": rel_path,
+                        "title": self._localized_text(
+                            item.get("title"),
+                            lang,
+                            item_lang or default_language,
+                        )
+                        or self._title_from_path(rel_path),
+                        "lang": item_lang,
+                        "type": doc_type,
+                    },
+                )
+            if items:
+                sections.append(
+                    {
+                        "id": section.get("id") or section.get("title", "section"),
+                        "title": self._localized_text(
+                            section.get("title"),
+                            lang,
+                            default_language,
+                        ),
+                        "items": items,
+                    },
+                )
+        return sections
+
+    @staticmethod
+    def _localized_text(value, lang, fallback="en"):
+        if value is None:
+            return ""
+        if isinstance(value, str):
+            return value
+        if isinstance(value, dict):
+            return (
+                value.get(lang) or value.get(fallback) or next(iter(value.values()), "")
+            )
+        return str(value)
+
+    @staticmethod
+    def _title_from_path(rel_path):
+        base = os.path.basename(rel_path)
+        return os.path.splitext(base)[0].replace("-", " ").replace("_", " ")
 
     def get_doc_content(self, path):
+        if not self._is_safe_doc_path(path):
+            return None
         try:
             full_path = os.path.realpath(os.path.join(self.meshchatx_docs_dir, path))
             base = os.path.realpath(self.meshchatx_docs_dir)
@@ -344,20 +543,28 @@ class DocsManager:
         if not os.path.isfile(full_path):
             return None
 
-        with open(full_path, encoding="utf-8", errors="ignore") as f:
-            content = f.read()
+        try:
+            with open(full_path, encoding="utf-8", errors="ignore") as f:
+                content = f.read()
+        except OSError as e:
+            logging.exception(f"Failed to read MeshChatX doc {path}: {e}")
+            return None
 
-        if path.endswith(".md"):
+        try:
+            if path.endswith(".md"):
+                return {
+                    "content": content,
+                    "html": MarkdownRenderer.render(content),
+                    "type": "markdown",
+                }
             return {
                 "content": content,
-                "html": MarkdownRenderer.render(content),
-                "type": "markdown",
+                "html": f"<pre class='whitespace-pre-wrap font-mono'>{html.escape(content)}</pre>",
+                "type": "text",
             }
-        return {
-            "content": content,
-            "html": f"<pre class='whitespace-pre-wrap font-mono'>{html.escape(content)}</pre>",
-            "type": "text",
-        }
+        except Exception as e:
+            logging.exception(f"Failed to render MeshChatX doc {path}: {e}")
+            return None
 
     def export_docs(self):
         """Build a ZIP archive containing the active Reticulum docs and MeshChatX docs."""
@@ -424,9 +631,11 @@ class DocsManager:
         query = query.lower()
 
         if os.path.exists(self.meshchatx_docs_dir):
-            for file in os.listdir(self.meshchatx_docs_dir):
-                if file.endswith((".md", ".txt")):
-                    file_path = os.path.join(self.meshchatx_docs_dir, file)
+            for root, _, files in os.walk(self.meshchatx_docs_dir):
+                for file in files:
+                    if not file.endswith(DOC_FILE_SUFFIXES):
+                        continue
+                    file_path = os.path.join(root, file)
                     try:
                         with open(
                             file_path,
@@ -447,7 +656,7 @@ class DocsManager:
                                 results.append(
                                     {
                                         "title": file,
-                                        "path": f"/meshchatx-docs/{file}",
+                                        "path": f"/meshchatx-docs/{os.path.relpath(file_path, self.meshchatx_docs_dir).replace(os.sep, '/')}",
                                         "snippet": snippet,
                                         "source": "MeshChatX",
                                     },

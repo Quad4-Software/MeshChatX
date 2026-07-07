@@ -1,10 +1,8 @@
-# MeshChatX on Meta Quest (Quest 2 and newer)
+# Meta Quest with SideQuest
 
 The MeshChatX Android APK runs on Meta Quest 2, Quest 3, Quest 3S, and Quest Pro. Quest headsets run a modified Android runtime, so the same universal APK published for phones and tablets can be installed by sideloading.
 
 MeshChatX opens as a **2D panel** inside your VR environment. It is not a native VR application. You get the full MeshChatX web UI in a floating window while you remain in your Quest home space.
-
-![MeshChatX running on Meta Quest 2](../screenshots/vr/meshchatx-quest2.jpeg)
 
 ## What you need
 
