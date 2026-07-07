@@ -228,201 +228,29 @@
                             <!-- navigation -->
                             <div class="flex-1">
                                 <ul class="py-3 pr-2 space-y-1">
-                                    <!-- messages -->
-                                    <li>
-                                        <SidebarLink :to="{ name: 'messages' }" :is-collapsed="isSidebarCollapsed">
+                                    <li v-for="item in visibleNavItems" :key="item.id" v-if="isNavItemVisible(item)">
+                                        <SidebarLink :to="item.route" :is-collapsed="isSidebarCollapsed">
                                             <template #icon>
                                                 <MaterialDesignIcon
-                                                    icon-name="message-text"
+                                                    :icon-name="item.icon"
                                                     class="w-6 h-6 text-gray-700 dark:text-white"
                                                 />
                                             </template>
                                             <template #text>
-                                                <span>{{ $t("app.messages") }}</span>
-                                                <span v-if="unreadConversationsCount > 0" class="ml-auto mr-2">{{
-                                                    unreadConversationsCount
-                                                }}</span>
-                                            </template>
-                                        </SidebarLink>
-                                    </li>
-
-                                    <!-- telephone -->
-                                    <li>
-                                        <SidebarLink :to="{ name: 'call' }" :is-collapsed="isSidebarCollapsed">
-                                            <template #icon>
-                                                <MaterialDesignIcon
-                                                    icon-name="phone"
-                                                    class="w-6 h-6 text-gray-700 dark:text-gray-200"
-                                                />
-                                            </template>
-                                            <template #text>{{ $t("app.audio_calls") }}</template>
-                                        </SidebarLink>
-                                    </li>
-
-                                    <!-- contacts -->
-                                    <li>
-                                        <SidebarLink :to="{ name: 'contacts' }" :is-collapsed="isSidebarCollapsed">
-                                            <template #icon>
-                                                <MaterialDesignIcon
-                                                    icon-name="account-multiple"
-                                                    class="w-6 h-6 text-gray-700 dark:text-white"
-                                                />
-                                            </template>
-                                            <template #text>{{ $t("app.contacts") }}</template>
-                                        </SidebarLink>
-                                    </li>
-
-                                    <!-- relay chat -->
-                                    <li v-if="rrcEnabled">
-                                        <SidebarLink :to="{ name: 'relay-chat' }" :is-collapsed="isSidebarCollapsed">
-                                            <template #icon>
-                                                <MaterialDesignIcon
-                                                    icon-name="forum"
-                                                    class="w-6 h-6 text-gray-700 dark:text-gray-200"
-                                                />
-                                            </template>
-                                            <template #text>
-                                                <span>{{ $t("app.relay_chat") }}</span>
+                                                <span>{{ $t(item.labelKey) }}</span>
                                                 <span
-                                                    v-if="relayChatUnreadCount > 0"
+                                                    v-if="getNavBadgeCount(item) > 0 && !item.badge?.pill"
+                                                    class="ml-auto mr-2"
+                                                >
+                                                    {{ getNavBadgeCount(item) }}
+                                                </span>
+                                                <span
+                                                    v-else-if="getNavBadgeCount(item) > 0 && item.badge?.pill"
                                                     class="ml-auto mr-2 min-w-[1.25rem] rounded-full bg-red-500 px-1.5 py-0.5 text-center text-xs font-bold text-white"
                                                 >
-                                                    {{ relayChatUnreadCount >= 1000 ? "999+" : relayChatUnreadCount }}
+                                                    {{ formatNavBadgeCount(item) }}
                                                 </span>
                                             </template>
-                                        </SidebarLink>
-                                    </li>
-
-                                    <!-- nomad network -->
-                                    <li>
-                                        <SidebarLink :to="{ name: 'nomadnetwork' }" :is-collapsed="isSidebarCollapsed">
-                                            <template #icon>
-                                                <MaterialDesignIcon
-                                                    icon-name="earth"
-                                                    class="w-6 h-6 text-gray-700 dark:text-gray-200"
-                                                />
-                                            </template>
-                                            <template #text>{{ $t("app.nomad_network") }}</template>
-                                        </SidebarLink>
-                                    </li>
-
-                                    <!-- map -->
-                                    <li>
-                                        <SidebarLink :to="{ name: 'map' }" :is-collapsed="isSidebarCollapsed">
-                                            <template #icon>
-                                                <MaterialDesignIcon
-                                                    icon-name="map"
-                                                    class="w-6 h-6 text-gray-700 dark:text-gray-200"
-                                                />
-                                            </template>
-                                            <template #text>{{ $t("app.map") }}</template>
-                                        </SidebarLink>
-                                    </li>
-
-                                    <!-- archives -->
-                                    <li>
-                                        <SidebarLink :to="{ name: 'archives' }" :is-collapsed="isSidebarCollapsed">
-                                            <template #icon>
-                                                <MaterialDesignIcon
-                                                    icon-name="archive"
-                                                    class="w-6 h-6 text-gray-700 dark:text-gray-200"
-                                                />
-                                            </template>
-                                            <template #text>{{ $t("app.archives") }}</template>
-                                        </SidebarLink>
-                                    </li>
-
-                                    <!-- tools -->
-                                    <li>
-                                        <SidebarLink :to="{ name: 'tools' }" :is-collapsed="isSidebarCollapsed">
-                                            <template #icon>
-                                                <MaterialDesignIcon
-                                                    icon-name="wrench"
-                                                    class="size-6 text-gray-700 dark:text-gray-200"
-                                                />
-                                            </template>
-                                            <template #text>{{ $t("app.tools") }}</template>
-                                        </SidebarLink>
-                                    </li>
-
-                                    <!-- interfaces -->
-                                    <li>
-                                        <SidebarLink :to="{ name: 'interfaces' }" :is-collapsed="isSidebarCollapsed">
-                                            <template #icon>
-                                                <MaterialDesignIcon
-                                                    icon-name="router"
-                                                    class="w-6 h-6 text-gray-700 dark:text-gray-200"
-                                                />
-                                            </template>
-                                            <template #text>{{ $t("app.interfaces") }}</template>
-                                        </SidebarLink>
-                                    </li>
-
-                                    <!-- network visualiser -->
-                                    <li>
-                                        <SidebarLink
-                                            :to="{ name: 'network-visualiser' }"
-                                            :is-collapsed="isSidebarCollapsed"
-                                        >
-                                            <template #icon>
-                                                <MaterialDesignIcon
-                                                    icon-name="hub"
-                                                    class="w-6 h-6 text-gray-700 dark:text-gray-200"
-                                                />
-                                            </template>
-                                            <template #text>{{ $t("app.network_visualiser") }}</template>
-                                        </SidebarLink>
-                                    </li>
-
-                                    <!-- banished -->
-                                    <li>
-                                        <SidebarLink :to="{ name: 'blocked' }" :is-collapsed="isSidebarCollapsed">
-                                            <template #icon>
-                                                <MaterialDesignIcon
-                                                    icon-name="gavel"
-                                                    class="w-6 h-6 text-gray-700 dark:text-gray-200"
-                                                />
-                                            </template>
-                                            <template #text>{{ $t("banishment.title") }}</template>
-                                        </SidebarLink>
-                                    </li>
-
-                                    <!-- settings -->
-                                    <li>
-                                        <SidebarLink :to="{ name: 'settings' }" :is-collapsed="isSidebarCollapsed">
-                                            <template #icon>
-                                                <MaterialDesignIcon
-                                                    icon-name="cog"
-                                                    class="size-6 text-gray-700 dark:text-gray-200"
-                                                />
-                                            </template>
-                                            <template #text>{{ $t("app.settings") }}</template>
-                                        </SidebarLink>
-                                    </li>
-
-                                    <!-- identities -->
-                                    <li>
-                                        <SidebarLink :to="{ name: 'identities' }" :is-collapsed="isSidebarCollapsed">
-                                            <template #icon>
-                                                <MaterialDesignIcon
-                                                    icon-name="badge-account"
-                                                    class="size-6 text-gray-700 dark:text-gray-200"
-                                                />
-                                            </template>
-                                            <template #text>{{ $t("app.identities") }}</template>
-                                        </SidebarLink>
-                                    </li>
-
-                                    <!-- info -->
-                                    <li>
-                                        <SidebarLink :to="{ name: 'about' }" :is-collapsed="isSidebarCollapsed">
-                                            <template #icon>
-                                                <MaterialDesignIcon
-                                                    icon-name="information"
-                                                    class="size-6 text-gray-700 dark:text-gray-200"
-                                                />
-                                            </template>
-                                            <template #text>{{ $t("app.about") }}</template>
                                         </SidebarLink>
                                     </li>
                                 </ul>
@@ -765,6 +593,8 @@ import KeyboardShortcuts from "../js/KeyboardShortcuts";
 import ElectronUtils from "../js/ElectronUtils";
 import { postRequestPath } from "../js/reticulumPathfinding.js";
 import ToneGenerator from "../js/ToneGenerator";
+import { listNavItems } from "../js/registries/navRegistry.js";
+import { onWsEvent, offWsEvent } from "../js/registries/wsEventRegistry.js";
 import logoUrl from "../assets/images/logo.png";
 import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed } from "../js/browserLayoutStore";
 
@@ -847,6 +677,7 @@ export default {
 
             identitySwitchDedupeHash: null,
             identitySwitchDedupeAt: 0,
+            shellWsHandlerCleanups: [],
         };
     },
     computed: {
@@ -867,6 +698,9 @@ export default {
         },
         rrcEnabled() {
             return GlobalState.config?.rrc_enabled !== false;
+        },
+        visibleNavItems() {
+            return listNavItems();
         },
         isSyncingPropagationNode() {
             return [
@@ -1004,6 +838,32 @@ export default {
         window.addEventListener("keydown", this.onRingtoneUnlockGesture, true);
     },
     methods: {
+        isNavItemVisible(item) {
+            if (item.visibleWhen === "rrcEnabled") {
+                return this.rrcEnabled;
+            }
+            return true;
+        },
+        getNavBadgeCount(item) {
+            if (!item.badge?.source) {
+                return 0;
+            }
+            if (item.badge.source === "unreadConversationsCount") {
+                return this.unreadConversationsCount;
+            }
+            if (item.badge.source === "relayChatUnreadCount") {
+                return this.relayChatUnreadCount;
+            }
+            return 0;
+        },
+        formatNavBadgeCount(item) {
+            const count = this.getNavBadgeCount(item);
+            const cap = item.badge?.cap;
+            if (cap && count >= cap) {
+                return `${cap - 1}+`;
+            }
+            return count;
+        },
         onRingtoneUnlockGesture() {
             if (!this.ringtoneAutoplayBlocked) {
                 return;
@@ -1045,9 +905,9 @@ export default {
             }
             this.shellRunning = true;
             WebSocketConnection.connect();
-            WebSocketConnection.on("message", this.onWebsocketMessage);
             WebSocketConnection.on("disconnected", this.onWsShellDisconnected);
             WebSocketConnection.on("connected", this.onWsShellConnected);
+            this.registerShellWsHandlers();
             GlobalEmitter.on("identity-switching-start", this.onIdentitySwitchingStartShell);
             GlobalEmitter.on("identity-switched-apply", this.onIdentitySwitchedApplyShell);
             GlobalEmitter.on("sync-propagation-node", this.onSyncPropagationNodeShell);
@@ -1090,9 +950,9 @@ export default {
             this.appInfoInterval = null;
             clearInterval(this.unreadCountInterval);
             this.unreadCountInterval = null;
-            WebSocketConnection.off("message", this.onWebsocketMessage);
             WebSocketConnection.off("disconnected", this.onWsShellDisconnected);
             WebSocketConnection.off("connected", this.onWsShellConnected);
+            this.unregisterShellWsHandlers();
             GlobalEmitter.off("identity-switching-start", this.onIdentitySwitchingStartShell);
             GlobalEmitter.off("identity-switched-apply", this.onIdentitySwitchedApplyShell);
             GlobalEmitter.off("sync-propagation-node", this.onSyncPropagationNodeShell);
@@ -1366,51 +1226,59 @@ export default {
             const match = hash.match(/popout=([^&]+)/);
             return match ? decodeURIComponent(match[1]) : null;
         },
-        async onWebsocketMessage(message) {
-            const json = JSON.parse(message.data);
-            switch (json.type) {
-                case "config": {
+        registerShellWsHandlers() {
+            this.unregisterShellWsHandlers();
+            const handlers = this.getShellWsHandlers();
+            for (const [type, handler] of Object.entries(handlers)) {
+                const bound = (payload) => handler(payload);
+                onWsEvent(type, bound);
+                this.shellWsHandlerCleanups.push(() => offWsEvent(type, bound));
+            }
+        },
+        unregisterShellWsHandlers() {
+            for (const cleanup of this.shellWsHandlerCleanups) {
+                cleanup();
+            }
+            this.shellWsHandlerCleanups = [];
+        },
+        getShellWsHandlers() {
+            return {
+                config: (json) => {
                     const next = json?.config;
                     if (next && typeof next === "object") {
                         mergeGlobalConfig(next);
                         this.config = next;
                         this.displayName = next.display_name;
                     }
-                    break;
-                }
-                case "keyboard_shortcuts": {
+                },
+                keyboard_shortcuts: (json) => {
                     KeyboardShortcuts.setShortcuts(json.shortcuts);
-                    break;
-                }
-                case "announced": {
-                    // we just announced, update config so we can show the new last updated at
+                },
+                announced: () => {
                     this.getConfig();
-                    break;
-                }
-                case "telephone_ringing": {
+                },
+                telephone_ringing: (json) => {
                     if (this.config?.do_not_disturb_enabled) {
-                        break;
+                        return;
                     }
                     if (this.config?.telephone_allow_calls_from_contacts_only && !json.is_contact) {
-                        break;
+                        return;
                     }
                     if (this.initiationStatus) {
-                        break;
+                        return;
                     }
                     NotificationUtils.showIncomingCallNotification(
                         json.remote_identity_name || json.remote_identity_hash
                     );
                     this.updateTelephoneStatus();
                     this.playRingtone();
-                    break;
-                }
-                case "telephone_missed_call": {
+                },
+                telephone_missed_call: (json) => {
                     NotificationUtils.showMissedCallNotification(
                         json.remote_identity_name || json.remote_identity_hash
                     );
-                    break;
-                }
-                case "telephone_initiation_status": {
+                },
+                telephone_initiation_status: (json) => {
                     this.initiationStatus = json.status;
                     this.initiationTargetHash = json.target_hash;
                     this.initiationTargetName = json.target_name;
@@ -1423,24 +1291,21 @@ export default {
                     } else if (this.initiationStatus === null) {
                         this.toneGenerator.stop();
                     }
-                    break;
-                }
-                case "new_voicemail": {
+                },
+                new_voicemail: (json) => {
                     NotificationUtils.showNewVoicemailNotification(
                         json.remote_identity_name || json.remote_identity_hash
                     );
                     this.updateTelephoneStatus();
-                    break;
-                }
-                case "telephone_call_established": {
+                },
+                telephone_call_established: () => {
                     this.stopRingtone();
                     this.ringtonePlayer = null;
                     this.toneGenerator.stop();
                     NotificationUtils.cancelIncomingCallNotification();
                     this.updateTelephoneStatus();
-                    break;
-                }
-                case "telephone_call_ended": {
+                },
+                telephone_call_ended: () => {
                     this.stopRingtone();
                     NotificationUtils.cancelIncomingCallNotification();
                     this.ringtonePlayer = null;
@@ -1449,36 +1314,26 @@ export default {
                         this.toneGenerator.playBusyTone();
                     }
                     this.updateTelephoneStatus();
-                    break;
-                }
-                case "blocked_destinations": {
+                },
+                blocked_destinations: (json) => {
                     GlobalState.blockedDestinations = json.blocked_destinations || [];
-                    break;
-                }
-                case "rrc.message": {
+                },
+                "rrc.message": (json) => {
                     if (json.mention || json.message?.mention) {
                         this.updateRelayChatUnreadCount();
                     }
-                    break;
-                }
-                case "rrc.change": {
+                },
+                "rrc.change": () => {
                     this.updateRelayChatUnreadCount();
-                    break;
-                }
-                case "lxmf.delivery": {
+                },
+                "lxmf.delivery": (json) => {
                     if (this.config?.do_not_disturb_enabled) {
-                        break;
+                        return;
                     }
                     if (json.sieve_suppress_notifications) {
-                        break;
+                        return;
                     }
-
-                    // Update sidebar unread count so the badge appears
-                    // immediately even when not on the Messages page.
                     this.updateUnreadConversationsCount();
-
-                    // show notification for new messages if window is not focussed
-                    // only for incoming messages from people (with content)
                     if (
                         !document.hasFocus() &&
                         json.lxmf_message?.is_incoming === true &&
@@ -1489,9 +1344,8 @@ export default {
                             json.lxmf_message?.content
                         );
                     }
-                    break;
-                }
-                case "lxm.ingest_uri.result": {
+                },
+                "lxm.ingest_uri.result": async (json) => {
                     if (json.ingest_type === "map_view" && json.map_query) {
                         const mq = json.map_query;
                         const query = {
@@ -1511,7 +1365,7 @@ export default {
                         } else if (json.message) {
                             ToastUtils.info(json.message);
                         }
-                        break;
+                        return;
                     }
                     if (json.ingest_type === "docs_view") {
                         const dq = json.docs_query;
@@ -1529,7 +1383,7 @@ export default {
                         } else if (json.message) {
                             ToastUtils.info(json.message);
                         }
-                        break;
+                        return;
                     }
                     if (json.status === "success") {
                         ToastUtils.success(json.message);
@@ -1540,19 +1394,16 @@ export default {
                     } else {
                         ToastUtils.info(json.message);
                     }
-                    break;
-                }
-                case "database_health_warning": {
+                },
+                database_health_warning: (json) => {
                     if (json.issues && json.issues.length > 0) {
                         ToastUtils.warning(json.issues.join(" ") || "Database issue detected.", 8000);
                     }
-                    break;
-                }
-                case "identity_switched": {
+                },
+                identity_switched: async (json) => {
                     await this.applyIdentitySwitched(json);
-                    break;
-                }
-                case "rncp.receive.completed": {
+                },
+                "rncp.receive.completed": (json) => {
                     if (this.$route?.name !== "rncp") {
                         const detail =
                             json.status === "completed" && json.saved_path
@@ -1567,9 +1418,8 @@ export default {
                             ToastUtils.error(`${this.$t("rncp.receive_failed")}${detail ? ": " + detail : ""}`);
                         }
                     }
-                    break;
-                }
-            }
+                },
+            };
         },
         async getAppInfo() {
             try {

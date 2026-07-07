@@ -645,6 +645,32 @@
         "import_success": "Importé{imported}, dédoublé{skipped_duplicates}duplicata, invalide{skipped_invalid}",
         "import_failed": "Échec de l'importation des FPG"
     },
+    "plugins": {
+        "settings": {
+            "title": "Plugins",
+            "description": "Installer, activer et examiner les permissions des plugins MeshChatX.",
+            "enable": "Activer",
+            "disable": "Désactiver",
+            "remove": "Supprimer",
+            "permissions": "Permissions",
+            "install_zip": "Installer un plugin depuis une archive ZIP",
+            "enabled": "Plugin activé",
+            "disabled": "Plugin désactivé",
+            "removed": "Plugin supprimé",
+            "installed": "Plugin installé",
+            "auto_disabled": "Plugin désactivé automatiquement : {reason}",
+            "kill_switch": "Un plugin a été désactivé : {reason}"
+        },
+        "transport_node_monitor": {
+            "nav": "Nœuds de transport",
+            "title": "Moniteur de nœuds de transport",
+            "description": "Surveiller les destinations et le nombre de sauts de chemin des nœuds de transport.",
+            "watch_hash": "Hash de destination",
+            "watch_hash_placeholder": "Saisir un hash de destination à surveiller",
+            "add_watch": "Ajouter une surveillance",
+            "no_path": "Aucun chemin"
+        }
+    },
     "maintenance": {
         "title": "Maintenance et données",
         "description": "Gérer vos données locales, effacer les caches et les conversations de sauvegarde.",

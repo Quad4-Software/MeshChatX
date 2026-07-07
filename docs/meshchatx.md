@@ -150,11 +150,19 @@ Authoring rules, security constraints for HTML/CSS, and API behaviour are docume
 
 ## Extensibility Points
 
+MeshChatX supports a capability-based plugin system with separate frontend and backend runtimes:
+
+- **Contribution registries** under `meshchatx/src/frontend/js/registries/` for sidebar navigation, tools, command palette actions, settings sections, and typed WebSocket events.
+- **Frontend plugins** run in dedicated Workers (`meshchatx/src/frontend/js/plugins/PluginHost.js`) with declarative UI slots rendered by `PluginSlotRenderer.vue`.
+- **Backend plugins** run in wasmtime with fuel metering and capability-gated host functions (`meshchatx/src/backend/plugin_manager.py`).
+- **Generic plugin API** under `/api/v1/plugins/*` for install, enable/disable, invoke, and asset serving.
+
 The most practical extension points today are:
 
+- plugin manifests in `plugin.json` with `contributes` and `permissions` blocks,
 - new API routes in backend routing sections,
 - new manager modules under `meshchatx/src/backend`,
-- frontend page/component additions wired through existing router/state patterns,
+- frontend page/component additions wired through contribution registries,
 - new config surface through CLI flags + environment variables,
 - schema extension through the existing migration/versioning approach.
 
@@ -162,4 +170,5 @@ When adding features, prefer:
 
 - identity-scoped state over global mutable state,
 - explicit migration/version changes for DB schema updates,
-- endpoint-level tests plus focused manager unit tests.
+- endpoint-level tests plus focused manager unit tests,
+- plugin permissions that are declared in manifests and enforced by the host.

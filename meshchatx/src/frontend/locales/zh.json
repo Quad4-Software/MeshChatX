@@ -645,6 +645,32 @@
         "import_success": "已导入 {imported} 个，跳过 {skipped_duplicates} 个重复，{skipped_invalid} 个无效",
         "import_failed": "导入 GIF 失败"
     },
+    "plugins": {
+        "settings": {
+            "title": "插件",
+            "description": "安装、启用并查看 MeshChatX 插件权限。",
+            "enable": "启用",
+            "disable": "禁用",
+            "remove": "移除",
+            "permissions": "权限",
+            "install_zip": "从 ZIP 压缩包安装插件",
+            "enabled": "插件已启用",
+            "disabled": "插件已禁用",
+            "removed": "插件已移除",
+            "installed": "插件已安装",
+            "auto_disabled": "插件已自动禁用：{reason}",
+            "kill_switch": "插件已被禁用：{reason}"
+        },
+        "transport_node_monitor": {
+            "nav": "传输节点",
+            "title": "传输节点监视器",
+            "description": "监视传输节点目标地址和路径跳数。",
+            "watch_hash": "目标哈希",
+            "watch_hash_placeholder": "输入要监视的目标哈希",
+            "add_watch": "添加监视",
+            "no_path": "无路径"
+        }
+    },
     "maintenance": {
         "title": "数据维护",
         "description": "管理您的本地数据、清除缓存和备份对话。",

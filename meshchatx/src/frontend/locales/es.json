@@ -645,6 +645,32 @@
         "import_success": "{imported}importado, duplicados{skipped_duplicates}saltados, inválido{skipped_invalid}",
         "import_failed": "No importado GIF"
     },
+    "plugins": {
+        "settings": {
+            "title": "Plugins",
+            "description": "Instalar, habilitar y revisar permisos de plugins de MeshChatX.",
+            "enable": "Habilitar",
+            "disable": "Deshabilitar",
+            "remove": "Eliminar",
+            "permissions": "Permisos",
+            "install_zip": "Instalar plugin desde archivo ZIP",
+            "enabled": "Plugin habilitado",
+            "disabled": "Plugin deshabilitado",
+            "removed": "Plugin eliminado",
+            "installed": "Plugin instalado",
+            "auto_disabled": "Plugin deshabilitado automáticamente: {reason}",
+            "kill_switch": "Se deshabilitó un plugin: {reason}"
+        },
+        "transport_node_monitor": {
+            "nav": "Nodos de transporte",
+            "title": "Monitor de nodos de transporte",
+            "description": "Supervisar destinos de nodos de transporte y saltos de ruta.",
+            "watch_hash": "Hash de destino",
+            "watch_hash_placeholder": "Introduce un hash de destino para vigilar",
+            "add_watch": "Añadir vigilancia",
+            "no_path": "Sin ruta"
+        }
+    },
     "maintenance": {
         "title": "Datos de mantenimiento",
         "description": "Gestione sus datos locales, jaulas claras y conversaciones de respaldo.",

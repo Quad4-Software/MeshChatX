@@ -2,8 +2,10 @@ import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi } from "vitest";
 import ToolsPage from "@/components/tools/ToolsPage.vue";
 import { createRouter, createWebHistory } from "vue-router";
+import { registerCoreContributions } from "@/js/registries/registerCoreContributions.js";
 
 describe("ToolsPage.vue", () => {
+    registerCoreContributions();
     const router = createRouter({
         history: createWebHistory(),
         routes: [

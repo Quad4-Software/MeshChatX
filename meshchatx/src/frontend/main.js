@@ -14,7 +14,13 @@ import "./fonts/RobotoMonoNerdFont/font.css";
 import { startCodec2ScriptsBackgroundLoad } from "./js/Codec2Loader";
 import { createApiClient } from "./js/apiClient.js";
 import { fetchCsrfToken } from "./js/csrfToken.js";
+import { registerCoreContributions } from "./js/registries/registerCoreContributions.js";
+import { installWsEventBridge } from "./js/registries/wsEventBridge.js";
+import { pluginHost } from "./js/plugins/PluginHost.js";
 import "./js/HeapMonitor.js";
+
+registerCoreContributions();
+installWsEventBridge();
 
 import App from "./components/App.vue";
 import ChangelogModal from "./components/ChangelogModal.vue";
@@ -293,6 +299,12 @@ const router = createRouter({
             component: () => import("./components/call/CallPage.vue"),
         },
         {
+            name: "plugin-transport-node-monitor",
+            path: "/plugins/com.meshchatx.transport-node-monitor",
+            component: () => import("./components/plugins/PluginPage.vue"),
+            props: { pluginId: "com.meshchatx.transport-node-monitor" },
+        },
+        {
             name: "changelog",
             path: "/changelog",
             component: ChangelogModal,
@@ -399,6 +411,11 @@ function bootstrap() {
         splash.remove();
     }
     void startCodec2ScriptsBackgroundLoad();
+    if (GlobalState.authenticated || !GlobalState.authEnabled) {
+        void pluginHost.loadEnabledPlugins(window.api).catch((error) => {
+            console.debug("Plugin host bootstrap failed:", error);
+        });
+    }
 }
 
 bootstrap();

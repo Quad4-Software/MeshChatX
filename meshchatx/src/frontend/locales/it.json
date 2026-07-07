@@ -645,6 +645,32 @@
         "import_success": "Importate {imported}, saltate {skipped_duplicates} duplicate, non valide {skipped_invalid}",
         "import_failed": "Importazione GIF non riuscita"
     },
+    "plugins": {
+        "settings": {
+            "title": "Plugin",
+            "description": "Installa, abilita e rivedi i permessi dei plugin MeshChatX.",
+            "enable": "Abilita",
+            "disable": "Disabilita",
+            "remove": "Rimuovi",
+            "permissions": "Permessi",
+            "install_zip": "Installa plugin da archivio ZIP",
+            "enabled": "Plugin abilitato",
+            "disabled": "Plugin disabilitato",
+            "removed": "Plugin rimosso",
+            "installed": "Plugin installato",
+            "auto_disabled": "Plugin disabilitato automaticamente: {reason}",
+            "kill_switch": "Un plugin è stato disabilitato: {reason}"
+        },
+        "transport_node_monitor": {
+            "nav": "Nodi di trasporto",
+            "title": "Monitor nodi di trasporto",
+            "description": "Monitora le destinazioni dei nodi di trasporto e i salti di percorso.",
+            "watch_hash": "Hash destinazione",
+            "watch_hash_placeholder": "Inserisci un hash destinazione da monitorare",
+            "add_watch": "Aggiungi monitoraggio",
+            "no_path": "Nessun percorso"
+        }
+    },
     "maintenance": {
         "title": "Manutenzione e Dati",
         "description": "Gestisci i tuoi dati locali, svuota le cache e fai il backup delle conversazioni.",
