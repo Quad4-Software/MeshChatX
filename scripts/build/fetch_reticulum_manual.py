@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import argparse
 import io
+import json
 import logging
 import os
 import shutil
@@ -34,6 +35,7 @@ import sys
 import urllib.error
 import urllib.request
 import zipfile
+from datetime import UTC, datetime
 from pathlib import Path
 
 DEFAULT_SOURCES = (
@@ -47,6 +49,8 @@ DEFAULT_DEST = (
     / "reticulum-docs-bundled"
     / "current"
 )
+
+BUNDLE_MANIFEST_PATH = Path(__file__).resolve().parent / "reticulum_docs_bundle.json"
 
 EXTRA_BINARY_SUFFIXES = (".pdf", ".epub")
 """File suffixes for large alternate-format manuals that are excluded from the
@@ -124,6 +128,32 @@ def _extract(
     return extracted, skipped_binary
 
 
+def _write_bundle_manifest(
+    *,
+    source_url: str,
+    dest: Path,
+    extracted: int,
+    skipped_binary: int,
+) -> None:
+    repo_root = Path(__file__).resolve().parent.parent.parent
+    try:
+        dest_value = str(dest.resolve().relative_to(repo_root))
+    except ValueError:
+        dest_value = str(dest.resolve())
+    payload = {
+        "source_url": source_url,
+        "dest": dest_value,
+        "fetched_utc": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "html_files": extracted,
+        "skipped_binary_files": skipped_binary,
+    }
+    BUNDLE_MANIFEST_PATH.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    logging.info("Wrote bundle manifest to %s", BUNDLE_MANIFEST_PATH)
+
+
 def fetch_manual(
     sources: list[str],
     dest: Path,
@@ -142,10 +172,12 @@ def fetch_manual(
     last_error: Exception | None = None
     archive: zipfile.ZipFile | None = None
     docs_prefix: str | None = None
+    source_url: str | None = None
     for url in sources:
         try:
             data = _download(url, timeout)
             archive, docs_prefix = _resolve_docs_root(data)
+            source_url = url
             break
         except (urllib.error.URLError, OSError, ValueError, zipfile.BadZipFile) as exc:
             logging.warning("Failed to fetch %s: %s", url, exc)
@@ -182,6 +214,13 @@ def fetch_manual(
         )
 
     logging.info("Extracted %d files to %s", extracted, dest)
+    if source_url:
+        _write_bundle_manifest(
+            source_url=source_url,
+            dest=dest,
+            extracted=extracted,
+            skipped_binary=skipped_binary,
+        )
     return extracted
 
 
