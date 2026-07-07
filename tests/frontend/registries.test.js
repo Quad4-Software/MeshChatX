@@ -2,15 +2,27 @@
 
 import { describe, expect, it, beforeEach } from "vitest";
 import { createRegistry } from "../../meshchatx/src/frontend/js/registries/registryCore.js";
-import { navRegistry, registerNavItem, unregisterNavItem, listNavItems } from "../../meshchatx/src/frontend/js/registries/navRegistry.js";
+import {
+    navRegistry,
+    registerNavItem,
+    unregisterNavItem,
+    listNavItems,
+} from "../../meshchatx/src/frontend/js/registries/navRegistry.js";
 import { toolsRegistry, registerTool, listTools } from "../../meshchatx/src/frontend/js/registries/toolsRegistry.js";
-import { commandRegistry, registerCommand, listCommands } from "../../meshchatx/src/frontend/js/registries/commandRegistry.js";
+import {
+    commandRegistry,
+    registerCommand,
+    listCommands,
+} from "../../meshchatx/src/frontend/js/registries/commandRegistry.js";
 import {
     settingsSectionRegistry,
     registerSettingsSection,
     getAllSettingsSectionKeywords,
 } from "../../meshchatx/src/frontend/js/registries/settingsSectionRegistry.js";
-import { registerCoreContributions, resetCoreContributionsForTests } from "../../meshchatx/src/frontend/js/registries/registerCoreContributions.js";
+import {
+    registerCoreContributions,
+    resetCoreContributionsForTests,
+} from "../../meshchatx/src/frontend/js/registries/registerCoreContributions.js";
 import { CORE_NAV_ENTRIES } from "../../meshchatx/src/frontend/js/registries/coreNavEntries.js";
 import { CORE_TOOLS_ENTRIES } from "../../meshchatx/src/frontend/js/registries/coreToolsEntries.js";
 

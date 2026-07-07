@@ -13,22 +13,22 @@ export async function activate(api) {
                 {
                     type: "text",
                     variant: "title",
-                    value: api.t("plugins.transport_node_monitor.title"),
+                    value: api.t("title"),
                 },
                 {
                     type: "text",
-                    value: api.t("plugins.transport_node_monitor.description"),
+                    value: api.t("description"),
                 },
                 {
                     type: "input",
                     id: "watch-hash",
-                    label: api.t("plugins.transport_node_monitor.watch_hash"),
-                    placeholder: api.t("plugins.transport_node_monitor.watch_hash_placeholder"),
+                    label: api.t("watch_hash"),
+                    placeholder: api.t("watch_hash_placeholder"),
                 },
                 {
                     type: "button",
                     id: "add-watch",
-                    label: api.t("plugins.transport_node_monitor.add_watch"),
+                    label: api.t("add_watch"),
                 },
                 {
                     type: "list",
@@ -40,7 +40,7 @@ export async function activate(api) {
                                 type: "text",
                                 value:
                                     paths.find((entry) => entry.destination_hash === hash)?.hops?.toString() ??
-                                    api.t("plugins.transport_node_monitor.no_path"),
+                                    api.t("no_path"),
                             },
                         ],
                     })),

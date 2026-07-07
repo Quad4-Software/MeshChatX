@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: 0BSD
 
 import { describe, expect, it } from "vitest";
-import { validatePluginManifest, manifestPermissionSummary } from "../../meshchatx/src/frontend/js/plugins/pluginManifest.js";
+import {
+    validatePluginManifest,
+    manifestPermissionSummary,
+} from "../../meshchatx/src/frontend/js/plugins/pluginManifest.js";
 
 describe("pluginManifest", () => {
     it("validates a minimal manifest", () => {

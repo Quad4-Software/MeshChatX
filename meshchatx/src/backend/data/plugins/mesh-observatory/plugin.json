@@ -1,0 +1,41 @@
+{
+  "id": "com.meshchatx.mesh-observatory",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "name": "Mesh Observatory",
+  "description": "Live announce feed and searchable path table for your mesh.",
+  "frontend": {
+    "entry": "frontend/main.js",
+    "type": "js"
+  },
+  "i18n": {
+    "directory": "locales",
+    "defaultLocale": "en"
+  },
+  "contributes": {
+    "navItems": [
+      {
+        "id": "mesh-observatory",
+        "route": { "name": "plugin-mesh-observatory" },
+        "icon": "chart-line",
+        "labelKey": "nav"
+      }
+    ],
+    "toolsPageEntries": [
+      {
+        "name": "mesh-observatory",
+        "route": { "name": "plugin-mesh-observatory" },
+        "icon": "chart-line",
+        "iconBg": "tool-card__icon bg-violet-50 text-violet-600 dark:bg-violet-900/30 dark:text-violet-200",
+        "titleKey": "title",
+        "descriptionKey": "description"
+      }
+    ]
+  },
+  "permissions": {
+    "hooks": ["announce.received"],
+    "managers": ["destinationPath.read"],
+    "storage": "isolated",
+    "network": "none"
+  }
+}

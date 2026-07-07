@@ -659,16 +659,17 @@
             "removed": "Plugin eliminado",
             "installed": "Plugin instalado",
             "auto_disabled": "Plugin deshabilitado automáticamente: {reason}",
-            "kill_switch": "Se deshabilitó un plugin: {reason}"
-        },
-        "transport_node_monitor": {
-            "nav": "Nodos de transporte",
-            "title": "Monitor de nodos de transporte",
-            "description": "Supervisar destinos de nodos de transporte y saltos de ruta.",
-            "watch_hash": "Hash de destino",
-            "watch_hash_placeholder": "Introduce un hash de destino para vigilar",
-            "add_watch": "Añadir vigilancia",
-            "no_path": "Sin ruta"
+            "kill_switch": "Se deshabilitó un plugin: {reason}",
+            "empty_state": "Aún no hay plugins instalados. Suba un ZIP de plugin para empezar.",
+            "drag_drop": "Arrastre un ZIP de plugin aquí",
+            "choose_file": "Elegir archivo ZIP",
+            "confirm_remove": "¿Eliminar el plugin \"{name}\"? Se borrarán sus archivos y datos.",
+            "badge_enabled": "Activo",
+            "badge_disabled": "Inactivo",
+            "badge_frontend": "UI",
+            "badge_wasm": "WASM",
+            "install_failed": "Error al instalar el plugin: {reason}",
+            "installing": "Instalando plugin..."
         }
     },
     "maintenance": {

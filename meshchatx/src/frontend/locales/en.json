@@ -659,16 +659,17 @@
             "removed": "Plugin removed",
             "installed": "Plugin installed",
             "auto_disabled": "Plugin auto-disabled: {reason}",
-            "kill_switch": "A plugin was disabled: {reason}"
-        },
-        "transport_node_monitor": {
-            "nav": "Transport Nodes",
-            "title": "Transport Node Monitor",
-            "description": "Watch transport node destinations and path hop counts.",
-            "watch_hash": "Destination hash",
-            "watch_hash_placeholder": "Enter a destination hash to watch",
-            "add_watch": "Add watch",
-            "no_path": "No path"
+            "kill_switch": "A plugin was disabled: {reason}",
+            "empty_state": "No plugins installed yet. Upload a plugin ZIP archive to get started.",
+            "drag_drop": "Drag and drop a plugin ZIP here",
+            "choose_file": "Choose ZIP file",
+            "confirm_remove": "Remove plugin \"{name}\"? This deletes its files and stored data.",
+            "badge_enabled": "Enabled",
+            "badge_disabled": "Disabled",
+            "badge_frontend": "UI",
+            "badge_wasm": "WASM",
+            "install_failed": "Plugin install failed: {reason}",
+            "installing": "Installing plugin..."
         }
     },
     "maintenance": {
@@ -2390,7 +2391,7 @@
         "host_rooms": "rooms",
         "host_private": "private",
         "host_delete_room": "Delete room",
-        "host_no_rooms": "No rooms yet. Create a room below.",
+        "host_no_rooms": "No rooms yet.",
         "host_room_name": "room name",
         "host_room_topic": "topic (optional)",
         "host_add_room": "Add Room",
@@ -2409,7 +2410,6 @@
         "host_members_search": "Search members...",
         "host_rooms_search": "Search rooms...",
         "host_rooms_search_empty": "No rooms match your search.",
-        "host_no_rooms": "No rooms yet.",
         "host_moderation_uptime": "{time} uptime",
         "host_moderation_members": "{count} members",
         "host_members_select": "Select a member to view messages and moderate",

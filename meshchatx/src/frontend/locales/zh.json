@@ -659,16 +659,17 @@
             "removed": "插件已移除",
             "installed": "插件已安装",
             "auto_disabled": "插件已自动禁用：{reason}",
-            "kill_switch": "插件已被禁用：{reason}"
-        },
-        "transport_node_monitor": {
-            "nav": "传输节点",
-            "title": "传输节点监视器",
-            "description": "监视传输节点目标地址和路径跳数。",
-            "watch_hash": "目标哈希",
-            "watch_hash_placeholder": "输入要监视的目标哈希",
-            "add_watch": "添加监视",
-            "no_path": "无路径"
+            "kill_switch": "插件已被禁用：{reason}",
+            "empty_state": "尚未安装插件。上传插件 ZIP 压缩包即可开始。",
+            "drag_drop": "将插件 ZIP 拖放到此处",
+            "choose_file": "选择 ZIP 文件",
+            "confirm_remove": "移除插件“{name}”？将删除其文件和存储数据。",
+            "badge_enabled": "已启用",
+            "badge_disabled": "已禁用",
+            "badge_frontend": "界面",
+            "badge_wasm": "WASM",
+            "install_failed": "插件安装失败：{reason}",
+            "installing": "正在安装插件..."
         }
     },
     "maintenance": {

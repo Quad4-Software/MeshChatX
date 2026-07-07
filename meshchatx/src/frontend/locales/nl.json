@@ -659,16 +659,17 @@
             "removed": "Plugin verwijderd",
             "installed": "Plugin geïnstalleerd",
             "auto_disabled": "Plugin automatisch uitgeschakeld: {reason}",
-            "kill_switch": "Een plugin is uitgeschakeld: {reason}"
-        },
-        "transport_node_monitor": {
-            "nav": "Transportnodes",
-            "title": "Transportnode-monitor",
-            "description": "Bewaak transportnode-bestemmingen en aantal routehops.",
-            "watch_hash": "Bestemmingshash",
-            "watch_hash_placeholder": "Voer een bestemmingshash in om te volgen",
-            "add_watch": "Volgen toevoegen",
-            "no_path": "Geen pad"
+            "kill_switch": "Een plugin is uitgeschakeld: {reason}",
+            "empty_state": "Nog geen plugins geïnstalleerd. Upload een plugin-ZIP om te beginnen.",
+            "drag_drop": "Sleep een plugin-ZIP hierheen",
+            "choose_file": "ZIP-bestand kiezen",
+            "confirm_remove": "Plugin \"{name}\" verwijderen? Bestanden en opgeslagen gegevens worden gewist.",
+            "badge_enabled": "Ingeschakeld",
+            "badge_disabled": "Uitgeschakeld",
+            "badge_frontend": "UI",
+            "badge_wasm": "WASM",
+            "install_failed": "Plugin-installatie mislukt: {reason}",
+            "installing": "Plugin installeren..."
         }
     },
     "maintenance": {

@@ -149,6 +149,7 @@ from meshchatx.src.backend.nomadnet_utils import (
 )
 from meshchatx.src.backend.page_node_manager import PageNodeManager
 from meshchatx.src.backend.plugin_manager import PluginManager
+from meshchatx.src.backend.plugin_guard import PluginSecurityError
 from meshchatx.src.backend.persistent_log_handler import PersistentLogHandler
 from meshchatx.src.backend.app_security_settings import (
     get_web_ui_ip_allowlist,
@@ -11053,6 +11054,25 @@ class ReticulumMeshChat:
             except KeyError:
                 return web.json_response({"message": "Plugin not found"}, status=404)
 
+        @routes.post("/api/v1/plugins/{plugin_id}/report-failure")
+        async def plugins_report_failure(request):
+            plugin_id = request.match_info["plugin_id"]
+            try:
+                data = await request.json()
+            except Exception:
+                data = {}
+            reason = data.get("reason") or "Unknown plugin failure"
+            source = data.get("source") or "frontend"
+            try:
+                plugin = await asyncio.to_thread(
+                    self.plugin_manager.report_failure, plugin_id, reason, source
+                )
+                if plugin is None:
+                    return web.json_response({"message": "Plugin not found"}, status=404)
+                return web.json_response(plugin)
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=400)
+
         @routes.post("/api/v1/plugins/{plugin_id}/invoke")
         async def plugins_invoke(request):
             plugin_id = request.match_info["plugin_id"]
@@ -11086,6 +11106,8 @@ class ReticulumMeshChat:
                 return web.json_response({"message": "Plugin not found"}, status=404)
             except FileNotFoundError:
                 return web.json_response({"message": "Asset not found"}, status=404)
+            except PluginSecurityError as e:
+                return web.json_response({"message": str(e)}, status=400)
             except ValueError as e:
                 return web.json_response({"message": str(e)}, status=400)
             return web.FileResponse(path)

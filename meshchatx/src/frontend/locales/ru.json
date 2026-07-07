@@ -659,16 +659,17 @@
             "removed": "Плагин удалён",
             "installed": "Плагин установлен",
             "auto_disabled": "Плагин автоматически отключён: {reason}",
-            "kill_switch": "Плагин был отключён: {reason}"
-        },
-        "transport_node_monitor": {
-            "nav": "Транспортные узлы",
-            "title": "Монитор транспортных узлов",
-            "description": "Отслеживание назначений транспортных узлов и числа хопов маршрута.",
-            "watch_hash": "Хеш назначения",
-            "watch_hash_placeholder": "Введите хеш назначения для отслеживания",
-            "add_watch": "Добавить отслеживание",
-            "no_path": "Нет маршрута"
+            "kill_switch": "Плагин был отключён: {reason}",
+            "empty_state": "Плагины не установлены. Загрузите ZIP-архив плагина, чтобы начать.",
+            "drag_drop": "Перетащите ZIP плагина сюда",
+            "choose_file": "Выбрать ZIP-файл",
+            "confirm_remove": "Удалить плагин «{name}»? Будут удалены его файлы и сохранённые данные.",
+            "badge_enabled": "Включён",
+            "badge_disabled": "Отключён",
+            "badge_frontend": "UI",
+            "badge_wasm": "WASM",
+            "install_failed": "Не удалось установить плагин: {reason}",
+            "installing": "Установка плагина..."
         }
     },
     "maintenance": {

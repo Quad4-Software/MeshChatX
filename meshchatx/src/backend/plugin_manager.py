@@ -8,9 +8,20 @@ import re
 import shutil
 import sqlite3
 import threading
-import zipfile
+import time
 from dataclasses import dataclass, field
 from typing import Any
+
+from meshchatx.src.backend.plugin_guard import (
+    PLUGIN_ERROR_BUDGET,
+    PLUGIN_ERROR_WINDOW_SECONDS,
+    PluginSecurityError,
+    normalize_asset_path,
+    safe_extract_zip,
+    validate_invoke_payload,
+    validate_wasm_file,
+    validate_zip_bytes,
+)
 
 SUPPORTED_API_VERSION = 1
 PLUGIN_ID_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$")
@@ -38,6 +49,8 @@ class PluginRecord:
     install_path: str
     auto_disabled_reason: str | None = None
     announce_handlers: list[Any] = field(default_factory=list)
+    error_count: int = 0
+    last_error_at: float = 0.0
 
 
 class PluginManager:
@@ -218,30 +231,24 @@ class PluginManager:
     def install_from_zip_bytes(self, payload: bytes) -> dict[str, Any]:
         import tempfile
 
+        validate_zip_bytes(payload)
         with tempfile.TemporaryDirectory() as tmp:
             zip_path = os.path.join(tmp, "plugin.zip")
             with open(zip_path, "wb") as handle:
                 handle.write(payload)
             extract_dir = os.path.join(tmp, "extract")
             os.makedirs(extract_dir, exist_ok=True)
-            with zipfile.ZipFile(zip_path) as archive:
-                archive.extractall(extract_dir)
-            plugin_root = extract_dir
-            if not os.path.isfile(os.path.join(plugin_root, "plugin.json")):
-                children = [
-                    name
-                    for name in os.listdir(extract_dir)
-                    if os.path.isdir(os.path.join(extract_dir, name))
-                ]
-                if len(children) == 1:
-                    plugin_root = os.path.join(extract_dir, children[0])
+            plugin_root = safe_extract_zip(zip_path, extract_dir)
             return self.install_from_directory(plugin_root)
 
     def enable(self, plugin_id: str) -> dict[str, Any]:
         with self._lock:
             record = self._require_plugin(plugin_id)
+            self._validate_plugin_runtime(record)
             record.enabled = True
             record.auto_disabled_reason = None
+            record.error_count = 0
+            record.last_error_at = 0.0
             self._write_plugin_state(plugin_id, True, None)
             self._register_plugin_hooks(record)
             return self._public_plugin_view(record)
@@ -279,13 +286,48 @@ class PluginManager:
 
     def asset_path(self, plugin_id: str, asset_name: str) -> str:
         record = self._require_plugin(plugin_id)
-        normalized = os.path.normpath(asset_name).replace("\\", "/")
-        if normalized.startswith("..") or normalized.startswith("/"):
-            raise ValueError("invalid asset path")
+        normalized = normalize_asset_path(asset_name)
         path = os.path.join(record.install_path, normalized)
         if not os.path.isfile(path):
             raise FileNotFoundError(asset_name)
         return path
+
+    def locale_path(self, plugin_id: str, locale: str) -> str | None:
+        record = self._require_plugin(plugin_id)
+        i18n = record.manifest.get("i18n") or {}
+        directory = i18n.get("directory") or "locales"
+        default_locale = i18n.get("defaultLocale") or "en"
+        candidates = []
+        for code in (locale, default_locale, "en"):
+            if code and code not in candidates:
+                candidates.append(code)
+        for code in candidates:
+            relative = os.path.join(directory, f"{code}.json").replace("\\", "/")
+            path = os.path.join(record.install_path, relative)
+            if os.path.isfile(path):
+                return path
+        return None
+
+    def load_locale_messages(self, plugin_id: str, locale: str) -> dict[str, Any]:
+        path = self.locale_path(plugin_id, locale)
+        if not path:
+            return {}
+        with open(path, encoding="utf-8") as handle:
+            data = json.load(handle)
+        if not isinstance(data, dict):
+            raise ValueError("plugin locale file must be an object")
+        return data
+
+    def report_failure(
+        self, plugin_id: str, reason: str, source: str = "frontend"
+    ) -> dict[str, Any] | None:
+        with self._lock:
+            record = self._plugins.get(plugin_id)
+            if not record:
+                return None
+            return self._record_plugin_failure(
+                record, f"{source}: {reason}", auto_disable=True
+            )
 
     def _require_plugin(self, plugin_id: str) -> PluginRecord:
         record = self._plugins.get(plugin_id)
@@ -337,7 +379,32 @@ class PluginManager:
 
     def _destination_path_read(self, args: dict[str, Any]) -> dict[str, Any]:
         if not self.app or not getattr(self.app, "reticulum", None):
-            return {"paths": []}
+            return {"paths": [], "total": 0, "responsive": 0, "unresponsive": 0}
+        search = args.get("search")
+        limit = int(args.get("limit") or 200)
+        handler = getattr(self.app, "rnpath_handler", None)
+        if handler:
+            result = handler.get_path_table(
+                search=str(search).strip() if search else None,
+                limit=limit,
+            )
+            paths = [
+                {
+                    "destination_hash": entry["hash"],
+                    "hops": entry["hops"],
+                    "via": entry.get("via"),
+                    "interface": entry.get("interface"),
+                    "state": entry.get("state"),
+                    "timestamp": entry.get("timestamp"),
+                }
+                for entry in result.get("table", [])
+            ]
+            return {
+                "paths": paths,
+                "total": result.get("total", len(paths)),
+                "responsive": result.get("responsive", 0),
+                "unresponsive": result.get("unresponsive", 0),
+            }
         destination_hash = args.get("destination_hash")
         paths: list[dict[str, Any]] = []
         reticulum = self.app.reticulum
@@ -367,7 +434,12 @@ class PluginManager:
                 paths.append({"destination_hash": item, "hops": hops})
             except Exception:
                 paths.append({"destination_hash": item, "hops": None})
-        return {"paths": paths}
+        return {
+            "paths": paths,
+            "total": len(paths),
+            "responsive": 0,
+            "unresponsive": 0,
+        }
 
     def invoke(
         self, plugin_id: str, method: str, args: dict[str, Any] | None = None
@@ -376,32 +448,52 @@ class PluginManager:
         if not record.enabled:
             raise PermissionError("plugin is disabled")
         args = args or {}
-        if method == "callManager":
-            return self.call_manager(
-                plugin_id, args.get("capability"), args.get("args") or {}
-            )
-        if method == "getState":
-            watched = self.storage_get(plugin_id, "watched_nodes")
-            return {"watched_nodes": json.loads(watched) if watched else []}
-        if method == "setWatchedNodes":
-            nodes = args.get("nodes") or []
-            self.storage_set(plugin_id, "watched_nodes", json.dumps(nodes))
-            return {"ok": True}
-        if method == "readPaths":
-            return self.call_manager(plugin_id, "destinationPath.read", args)
-        backend = record.manifest.get("backend")
-        if not backend:
-            raise ValueError(f"unknown method: {method}")
-        return self._invoke_wasm(record, method, args or {})
+        try:
+            if method == "callManager":
+                return self.call_manager(
+                    plugin_id, args.get("capability"), args.get("args") or {}
+                )
+            if method == "getState":
+                watched = self.storage_get(plugin_id, "watched_nodes")
+                return {"watched_nodes": json.loads(watched) if watched else []}
+            if method == "setWatchedNodes":
+                nodes = args.get("nodes") or []
+                self.storage_set(plugin_id, "watched_nodes", json.dumps(nodes))
+                return {"ok": True}
+            if method == "readPaths":
+                return self.call_manager(plugin_id, "destinationPath.read", args)
+            backend = record.manifest.get("backend")
+            if not backend:
+                raise ValueError(f"unknown method: {method}")
+            return self._invoke_wasm(record, method, args or {})
+        except Exception as exc:
+            self._record_plugin_failure(record, exc, auto_disable=True)
+            raise
+
+    def _resolve_backend_wasm_path(self, record: PluginRecord) -> str:
+        backend = record.manifest["backend"]
+        wasm_path = os.path.join(record.install_path, backend["entry"])
+        if not os.path.isfile(wasm_path):
+            return self._ensure_minimal_wasm(record)
+        try:
+            validate_wasm_file(wasm_path)
+            with open(wasm_path, "rb") as handle:
+                if handle.read(4) != b"\x00asm":
+                    raise PluginSecurityError("invalid wasm module")
+        except (PluginSecurityError, OSError, ValueError):
+            parent = os.path.dirname(wasm_path)
+            if parent:
+                os.makedirs(parent, exist_ok=True)
+            if os.path.isfile(wasm_path):
+                os.remove(wasm_path)
+            return self._ensure_minimal_wasm(record)
+        return wasm_path
 
     def _invoke_wasm(
         self, record: PluginRecord, method: str, args: dict[str, Any]
     ) -> Any:
         wasmtime = self._load_wasmtime()
-        backend = record.manifest["backend"]
-        wasm_path = os.path.join(record.install_path, backend["entry"])
-        if not os.path.isfile(wasm_path):
-            wasm_path = self._ensure_minimal_wasm(record)
+        wasm_path = self._resolve_backend_wasm_path(record)
         engine = wasmtime.Engine()
         module = wasmtime.Module.from_file(engine, wasm_path)
         store = wasmtime.Store(engine)
@@ -424,6 +516,7 @@ class PluginManager:
         )
         instance = linker.instantiate(store, module)
         payload = json.dumps({"method": method, "args": args}).encode("utf-8")
+        validate_invoke_payload(payload)
         memory = instance.exports(store)["memory"]
         alloc = instance.exports(store).get("alloc")
         if alloc:
@@ -453,12 +546,12 @@ class PluginManager:
 
     def _ensure_minimal_wasm(self, record: PluginRecord) -> str:
         wasmtime = self._load_wasmtime()
-        engine = wasmtime.Engine()
-        module = wasmtime.Module(engine, MINIMAL_PLUGIN_WAT)
-        wasm_path = os.path.join(record.install_path, "backend", "plugin.wasm")
+        wasm_bytes = wasmtime.wat2wasm(MINIMAL_PLUGIN_WAT)
+        backend = record.manifest["backend"]
+        wasm_path = os.path.join(record.install_path, backend["entry"])
         os.makedirs(os.path.dirname(wasm_path), exist_ok=True)
         with open(wasm_path, "wb") as handle:
-            handle.write(module.serialize())
+            handle.write(wasm_bytes)
         return wasm_path
 
     def dispatch_hook(self, plugin_id: str, hook: str, payload: dict[str, Any]) -> None:
@@ -468,10 +561,59 @@ class PluginManager:
         if not self._hook_allowed(record, hook):
             return
         try:
-            self._invoke_wasm(record, "on_hook", {"hook": hook, "payload": payload})
+            if record.manifest.get("backend"):
+                self._invoke_wasm(record, "on_hook", {"hook": hook, "payload": payload})
             self._broadcast_plugin_event(plugin_id, hook, payload)
         except Exception as exc:
-            self.disable(plugin_id, reason=str(exc))
+            self._record_plugin_failure(record, exc, auto_disable=True)
+
+    def _validate_plugin_runtime(self, record: PluginRecord) -> None:
+        manifest = record.manifest
+        frontend = manifest.get("frontend")
+        if frontend:
+            entry = frontend.get("entry")
+            if not isinstance(entry, str) or not entry.strip():
+                raise ValueError("plugin frontend entry is missing")
+            frontend_path = self.asset_path(record.id, entry)
+            if os.path.getsize(frontend_path) <= 0:
+                raise ValueError("plugin frontend entry is empty")
+        backend = manifest.get("backend")
+        if not backend:
+            return
+        entry = backend.get("entry")
+        if not isinstance(entry, str) or not entry.strip():
+            raise ValueError("plugin backend entry is missing")
+        wasm_path = self._resolve_backend_wasm_path(record)
+        wasmtime = self._load_wasmtime()
+        engine = wasmtime.Engine()
+        try:
+            wasmtime.Module.from_file(engine, wasm_path)
+        except Exception as exc:
+            raise ValueError(f"invalid backend wasm module: {exc}") from exc
+
+    def _record_plugin_failure(
+        self,
+        record: PluginRecord,
+        exc: Exception | str,
+        *,
+        auto_disable: bool,
+    ) -> dict[str, Any] | None:
+        should_disable = False
+        disable_reason = str(exc)
+        with self._lock:
+            now = time.time()
+            if now - record.last_error_at > PLUGIN_ERROR_WINDOW_SECONDS:
+                record.error_count = 0
+            record.error_count += 1
+            record.last_error_at = now
+            if auto_disable and record.error_count >= PLUGIN_ERROR_BUDGET:
+                should_disable = True
+                disable_reason = (
+                    f"Auto-disabled after {record.error_count} errors: {disable_reason}"
+                )
+        if should_disable:
+            return self.disable(record.id, reason=disable_reason)
+        return None
 
     def on_announce_received(
         self,

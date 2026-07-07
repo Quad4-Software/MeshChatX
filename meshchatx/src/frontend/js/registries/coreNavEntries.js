@@ -8,6 +8,7 @@
  * @property {{ name: string }} route
  * @property {string} icon
  * @property {string} labelKey
+ * @property {string} [label]
  * @property {{ source: NavBadgeSource, pill?: boolean, cap?: number } | null} [badge]
  * @property {'rrcEnabled' | null} [visibleWhen]
  * @property {string | null} [pluginId]
