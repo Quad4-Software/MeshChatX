@@ -595,6 +595,7 @@ import { postRequestPath } from "../js/reticulumPathfinding.js";
 import ToneGenerator from "../js/ToneGenerator";
 import { listNavItems } from "../js/registries/navRegistry.js";
 import { onWsEvent, offWsEvent } from "../js/registries/wsEventRegistry.js";
+import { handleLxmIngestUriResult } from "../js/ingestUriResultNavigation.js";
 import logoUrl from "../assets/images/logo.png";
 import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed } from "../js/browserLayoutStore";
 
@@ -1349,43 +1350,11 @@ export default {
                     }
                 },
                 "lxm.ingest_uri.result": async (json) => {
-                    if (json.ingest_type === "map_view" && json.map_query) {
-                        const mq = json.map_query;
-                        const query = {
-                            lat: String(mq.lat),
-                            lon: String(mq.lon),
-                            zoom: String(mq.zoom),
-                        };
-                        if (mq.layers) {
-                            query.layers = mq.layers;
-                        }
-                        if (mq.label) {
-                            query.label = mq.label;
-                        }
-                        await this.$router.push({ name: "map", query });
-                        if (json.status === "error") {
-                            ToastUtils.error(json.message);
-                        } else if (json.message) {
-                            ToastUtils.info(json.message);
-                        }
-                        return;
-                    }
-                    if (json.ingest_type === "docs_view") {
-                        const dq = json.docs_query;
-                        const rel = dq && typeof dq.reticulum === "string" ? dq.reticulum.trim() : "";
-                        if (rel) {
-                            await this.$router.push({
-                                name: "documentation",
-                                query: { reticulum: encodeURIComponent(rel) },
-                            });
-                        } else {
-                            await this.$router.push({ name: "documentation" });
-                        }
-                        if (json.status === "error") {
-                            ToastUtils.error(json.message);
-                        } else if (json.message) {
-                            ToastUtils.info(json.message);
-                        }
+                    const handled = await handleLxmIngestUriResult(json, {
+                        router: this.$router,
+                        toast: ToastUtils,
+                    });
+                    if (handled) {
                         return;
                     }
                     if (json.status === "success") {

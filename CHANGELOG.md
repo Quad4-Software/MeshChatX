@@ -4,15 +4,39 @@ All notable changes to this project will be documented in this file.
 
 ## [4.8.0] - 2026-07-TBD
 
-### Fixed
-
-- **RNode / Android**: Hardened `rnode_support` startup guards — desktop TCP RNode no longer incorrectly requires pyserial; desktop BLE now checks for bleak instead of pyserial; whitespace-only Bluetooth ports classify correctly; invalid `tcp:///` hosts are no longer backfilled; `RNodeIPInterface` entries get `tcp_host` backfill on Android; RNodeMulti sibling sub-interfaces with invalid TX power are detected and disabled; txpower guard honors both `enabled` and `interface_enabled` keys.
-- **Settings**: Tabbed settings navigation with section-to-tab mapping, search across tabs, and `SettingsNav` component.
-
 ### Added
 
+- **Plugins**: JS/WASM plugin system with capability-based permissions, Worker-sandboxed frontend runtime, wasmtime-backed backend runtime, generic `/api/v1/plugins/*` API, and plugin management under **Settings → Maintenance** (drag-and-drop ZIP install, enable/disable, remove with confirmation, UI/WASM badges, empty state).
+- **Plugins**: Contribution-point registries for sidebar navigation, tools catalog, command palette, settings sections, and typed WebSocket event dispatch — core UI surfaces are data-driven instead of hardcoded per component.
+- **Plugins**: **Bundled i18n** — plugins ship `locales/{locale}.json` in the package; the host loads labels from plugin assets so third-party plugins do not need changes to MeshChatX main locale files.
+- **Plugins**: Declarative UI slot vocabulary in `PluginSlotRenderer` / `PluginSlotNode` — sections, action button rows, badges, card lists, grid rows, and text variants for plugin tool pages.
+- **Plugins**: Bundled **Mesh Observatory** example plugin — live announce feed, searchable path table with hop/interface/state columns, and announce-driven refresh.
+- **Plugins**: Security guardrails in `plugin_guard.py` — ZIP size/magic validation, zip-slip protection, asset path normalization, WASM size/magic checks, invoke payload limits, and an error budget that auto-disables misbehaving plugins after repeated failures.
+- **Plugins**: `POST /api/v1/plugins/{id}/report-failure` for frontend worker crash reporting; kill-switch broadcasts over WebSocket when a plugin is auto-disabled.
+- **Dependencies**: Added **wasmtime** for backend WASM plugin execution.
+- **Plugins**: `--disable-plugins` CLI flag and `MESHCHAT_DISABLE_PLUGINS` environment variable to disable the plugin system entirely at runtime.
+
+### Fixed
+
+- **Plugins**: Plugin worker `postRequest` Promise wrapper, plugin locale loading at boot, cached UI on page open, and slot renderer recursion for nested column/list/row children.
+- **Plugins**: Mesh Observatory layout — spaced action buttons, section cards, truncated interface names, and state badges instead of squashed single-line rows.
+- **RNode / Android**: Hardened `rnode_support` startup guards — desktop TCP RNode no longer incorrectly requires pyserial; desktop BLE now checks for bleak instead of pyserial; whitespace-only Bluetooth ports classify correctly; invalid `tcp:///` hosts are no longer backfilled; `RNodeIPInterface` entries get `tcp_host` backfill on Android; RNodeMulti sibling sub-interfaces with invalid TX power are detected and disabled; txpower guard honors both `enabled` and `interface_enabled` keys.
+- **Reticulum config**: Startup repair helpers validate required sections and parseability before applying default config (`reticulum_config_guard.py`).
+- **WebSocket / security**: Config mutators over WebSocket are restricted — sensitive settings (e.g. `auth_enabled`, `auth_password_hash`) must use CSRF-protected HTTP endpoints (`websocket_config_guard.py`).
+- **Settings**: Tabbed settings navigation with section-to-tab mapping, search across tabs, and `SettingsNav` component.
+- **Settings**: Plugin settings search no longer treats `index.mu` / `index.html` literals as missing i18n keys.
+
+### Changed
+
+- **Settings**: Settings section search keywords moved into `settingsSectionRegistry` for reuse by plugins and core sections.
+- **App shell**: WebSocket handling in `App.vue` migrated to typed per-event handlers via `wsEventRegistry`.
+- **Locales**: Main app locale files retain only **Settings → Plugins** UI strings; per-plugin copy lives in each plugin bundle.
+
+### Tests
+
+- **Plugins**: Registry, manifest, plugin labels, WebSocket event router, `PluginManager`, and `plugin_guard` unit tests (including zip-slip rejection and fuzzed invalid install payloads); HTTP API contract updated for plugin routes.
 - **Tests**: Expanded `rnode_support` coverage (67 tests, including hypothesis fuzzing and full startup repair sequence); settings tabs contract tests, i18n key validation, and `SettingsNav` component tests.
-- **Locales**: Finnish (`fi`) translation updates for settings tabs, archives, banishment, and common UI strings.
+- **Security**: `test_websocket_config_security.py` and `test_reticulum_config_guard.py` for WebSocket config denylist and Reticulum config repair behavior.
 
 ## [4.7.2] - 2026-07-06
 

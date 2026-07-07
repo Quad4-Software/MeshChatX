@@ -3,12 +3,22 @@
 import asyncio
 import os
 import socket
-import tempfile
 from contextlib import ExitStack
 from unittest.mock import MagicMock, patch
 
 import pytest
 import RNS
+
+from tests.backend.support.test_temp_dir import (
+    TEST_COVERAGE_DIR,
+    configure_test_temp_environment,
+    ensure_test_temp_dirs,
+)
+
+configure_test_temp_environment()
+
+os.environ["MESHCHAT_SKIP_STORAGE_LOCK"] = "1"
+os.environ["MESHCHAT_DISABLE_CSRF"] = "1"
 
 from meshchatx.meshchat import ReticulumMeshChat
 from meshchatx.src.backend.config_manager import ConfigManager
@@ -16,14 +26,9 @@ from meshchatx.src.backend.database import Database
 from meshchatx.src.backend.database.provider import DatabaseProvider
 from meshchatx.src.backend.database.schema import DatabaseSchema
 
-# Set log dir to a temporary directory for tests to avoid permission issues
-# in restricted environments like sandboxes.
-os.environ["MESHCHAT_LOG_DIR"] = tempfile.mkdtemp()
-os.environ["MESHCHAT_SKIP_STORAGE_LOCK"] = "1"
-os.environ["MESHCHAT_DISABLE_CSRF"] = "1"
-
 
 def _ensure_coverage_data_dir() -> None:
+    ensure_test_temp_dirs()
     cov_file = os.environ.get("COVERAGE_FILE")
     if not cov_file:
         return
@@ -36,12 +41,12 @@ _ensure_coverage_data_dir()
 
 
 def pytest_configure(config):
+    ensure_test_temp_dirs()
     _ensure_coverage_data_dir()
     worker = os.environ.get("PYTEST_XDIST_WORKER")
-    cov_dir = os.environ.get("MESHCHAT_COVERAGE_DIR")
-    if worker and cov_dir:
-        os.makedirs(cov_dir, exist_ok=True)
-        os.environ["COVERAGE_FILE"] = os.path.join(cov_dir, f".coverage.{worker}")
+    if worker:
+        os.makedirs(TEST_COVERAGE_DIR, exist_ok=True)
+        os.environ["COVERAGE_FILE"] = os.path.join(str(TEST_COVERAGE_DIR), f".coverage.{worker}")
 
 
 @pytest.fixture(scope="session")

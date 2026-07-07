@@ -5,6 +5,7 @@ const globalState = reactive({
     authSessionResolved: true,
     authEnabled: false,
     authenticated: false,
+    pluginsEnabled: true,
     detailedOutboundSendStatus: false,
     outboundTransferProgressEnabled: true,
     messageTimestampGroupingEnabled: true,

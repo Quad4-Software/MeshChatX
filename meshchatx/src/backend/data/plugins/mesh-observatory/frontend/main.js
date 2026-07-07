@@ -20,6 +20,20 @@ function shortHash(hash) {
     return `${hash.slice(0, 10)}…${hash.slice(-6)}`;
 }
 
+function shortInterface(name) {
+    if (!name || typeof name !== "string") {
+        return "—";
+    }
+    const match = name.match(/\[([^\]]+)\]/);
+    if (match) {
+        return match[1];
+    }
+    if (name.length > 36) {
+        return `${name.slice(0, 18)}…${name.slice(-10)}`;
+    }
+    return name;
+}
+
 function hopLabel(api, hops) {
     if (hops == null) {
         return formatLabel(api, "hops_unknown");
@@ -30,6 +44,19 @@ function hopLabel(api, hops) {
     return formatLabel(api, "hops_many", { count: hops });
 }
 
+function stateNode(api, state) {
+    let label = formatLabel(api, "state_unknown");
+    let variant = "muted";
+    if (state === 1) {
+        label = formatLabel(api, "state_responsive");
+        variant = "success";
+    } else if (state === 2) {
+        label = formatLabel(api, "state_unresponsive");
+        variant = "danger";
+    }
+    return { type: "badge", label, variant };
+}
+
 /**
  * @param {{ t: (key: string) => string, invoke: Function, setUi: Function, onAction: Function, onEvent: Function, onRefresh: Function, getInputValue: Function }} api
  */
@@ -38,16 +65,6 @@ export async function activate(api) {
     let announces = [];
     /** @type {{ paths: Array<Record<string, unknown>>, total: number, responsive: number, unresponsive: number }} */
     let pathData = { paths: [], total: 0, responsive: 0, unresponsive: 0 };
-
-    function stateLabel(state) {
-        if (state === 1) {
-            return formatLabel(api, "state_responsive");
-        }
-        if (state === 2) {
-            return formatLabel(api, "state_unresponsive");
-        }
-        return formatLabel(api, "state_unknown");
-    }
 
     async function refreshPaths() {
         const search = (api.getInputValue("path-search") || "").trim();
@@ -63,7 +80,8 @@ export async function activate(api) {
             if (!announceFilter) {
                 return true;
             }
-            const haystack = `${entry.aspect || ""} ${entry.destination_hash || ""} ${entry.app_data || ""}`.toLowerCase();
+            const haystack =
+                `${entry.aspect || ""} ${entry.destination_hash || ""} ${entry.app_data || ""}`.toLowerCase();
             return haystack.includes(announceFilter);
         });
 
@@ -77,87 +95,104 @@ export async function activate(api) {
                 },
                 {
                     type: "text",
+                    variant: "body",
                     value: formatLabel(api, "description"),
                 },
                 {
-                    type: "text",
-                    variant: "title",
-                    value: formatLabel(api, "announces_section"),
+                    type: "actions",
+                    items: [
+                        {
+                            type: "button",
+                            id: "refresh",
+                            label: formatLabel(api, "refresh"),
+                        },
+                    ],
                 },
                 {
-                    type: "text",
-                    value: formatLabel(api, "announce_stats", {
+                    type: "section",
+                    title: formatLabel(api, "announces_section"),
+                    description: formatLabel(api, "announce_stats", {
                         shown: Math.min(filteredAnnounces.length, 40),
                         total: announces.length,
                     }),
+                    children: [
+                        {
+                            type: "input",
+                            id: "announce-filter",
+                            label: formatLabel(api, "filter"),
+                            placeholder: formatLabel(api, "filter_placeholder"),
+                        },
+                        {
+                            type: "actions",
+                            items: [
+                                {
+                                    type: "button",
+                                    id: "clear-announces",
+                                    variant: "secondary",
+                                    label: formatLabel(api, "clear_feed"),
+                                },
+                            ],
+                        },
+                        {
+                            type: "list",
+                            variant: "cards",
+                            emptyText: formatLabel(api, "no_announces"),
+                            items: filteredAnnounces.slice(0, 40).map((entry) => ({
+                                type: "row",
+                                variant: "announce-card",
+                                children: [
+                                    { type: "text", variant: "mono", value: entry.receivedAt || "—" },
+                                    { type: "text", variant: "stat", value: entry.aspect || "—" },
+                                    { type: "text", variant: "mono", value: shortHash(entry.destination_hash) },
+                                    {
+                                        type: "text",
+                                        variant: "caption",
+                                        value: (entry.app_data || "").slice(0, 72) || "—",
+                                    },
+                                ],
+                            })),
+                        },
+                    ],
                 },
                 {
-                    type: "input",
-                    id: "announce-filter",
-                    label: formatLabel(api, "filter"),
-                    placeholder: formatLabel(api, "filter_placeholder"),
-                },
-                {
-                    type: "button",
-                    id: "refresh",
-                    label: formatLabel(api, "refresh"),
-                },
-                {
-                    type: "button",
-                    id: "clear-announces",
-                    label: formatLabel(api, "clear_feed"),
-                },
-                {
-                    type: "list",
-                    emptyText: formatLabel(api, "no_announces"),
-                    items: filteredAnnounces.slice(0, 40).map((entry) => ({
-                        type: "row",
-                        children: [
-                            { type: "text", variant: "mono", value: entry.receivedAt || "—" },
-                            { type: "text", value: entry.aspect || "—" },
-                            { type: "text", variant: "mono", value: shortHash(entry.destination_hash) },
-                            {
-                                type: "text",
-                                value: (entry.app_data || "").slice(0, 56) || "—",
-                            },
-                        ],
-                    })),
-                },
-                {
-                    type: "text",
-                    variant: "title",
-                    value: formatLabel(api, "paths_section"),
-                },
-                {
-                    type: "text",
-                    value: formatLabel(api, "path_stats", {
+                    type: "section",
+                    title: formatLabel(api, "paths_section"),
+                    description: formatLabel(api, "path_stats", {
                         total: pathData.total || 0,
                         responsive: pathData.responsive || 0,
                         unresponsive: pathData.unresponsive || 0,
                     }),
-                },
-                {
-                    type: "input",
-                    id: "path-search",
-                    label: formatLabel(api, "path_search"),
-                    placeholder: formatLabel(api, "path_search_placeholder"),
-                },
-                {
-                    type: "list",
-                    emptyText: formatLabel(api, "no_paths"),
-                    items: (pathData.paths || []).map((entry) => ({
-                        type: "row",
-                        children: [
-                            {
-                                type: "text",
-                                variant: "mono",
-                                value: shortHash(entry.destination_hash),
-                            },
-                            { type: "text", value: hopLabel(api, entry.hops) },
-                            { type: "text", value: entry.interface || "—" },
-                            { type: "text", value: stateLabel(entry.state) },
-                        ],
-                    })),
+                    children: [
+                        {
+                            type: "input",
+                            id: "path-search",
+                            label: formatLabel(api, "path_search"),
+                            placeholder: formatLabel(api, "path_search_placeholder"),
+                        },
+                        {
+                            type: "list",
+                            variant: "cards",
+                            emptyText: formatLabel(api, "no_paths"),
+                            items: (pathData.paths || []).map((entry) => ({
+                                type: "row",
+                                variant: "card",
+                                children: [
+                                    {
+                                        type: "text",
+                                        variant: "mono",
+                                        value: shortHash(entry.destination_hash),
+                                    },
+                                    { type: "text", variant: "stat", value: hopLabel(api, entry.hops) },
+                                    {
+                                        type: "text",
+                                        variant: "caption",
+                                        value: shortInterface(entry.interface),
+                                    },
+                                    stateNode(api, entry.state),
+                                ],
+                            })),
+                        },
+                    ],
                 },
             ],
         });

@@ -128,7 +128,14 @@ class TestPluginGuard:
         with pytest.raises(FileNotFoundError):
             manager.enable("com.example.broken")
 
-    @pytest.mark.parametrize("payload", [os.urandom(32), b"not-a-zip", b"\x00\x01\x02"])
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            b"\x91\x0c\xb0\xd9\xe8>\x1eZ \x00\x94\xbe\x9aJ\xf8\xed(u\xa6\xbf\xa9\x05\x8b\x80\xbe\x07\xf7>\x06b\xed",
+            b"not-a-zip",
+            b"\x00\x01\x02",
+        ],
+    )
     def test_fuzz_random_install_payloads_are_rejected(self, tmp_path, payload):
         manager = _make_manager(tmp_path)
         with pytest.raises(Exception):

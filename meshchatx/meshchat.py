@@ -381,8 +381,10 @@ class ReticulumMeshChat:
         rns_loglevel: str | None = None,
         migration_context: dict | None = None,
         memory_diag_enabled: bool = False,
+        plugins_enabled: bool = True,
     ):
         self.running = True
+        self.plugins_enabled = plugins_enabled
         self._memory_diag_enabled = memory_diag_enabled
         self._mem_diag = None
         self.migration_context = (
@@ -949,7 +951,8 @@ class ReticulumMeshChat:
             self.page_node_manager.load_nodes()
             self.page_node_manager.start_all()
             self.plugin_manager.set_app(self)
-            self.plugin_manager.install_bundled_examples()
+            if self.plugins_enabled:
+                self.plugin_manager.install_bundled_examples()
 
         # Create new context
         context = IdentityContext(identity, self)
@@ -4370,6 +4373,7 @@ class ReticulumMeshChat:
                     "listen_port": self.listen_port,
                     "https_enabled": self.use_https,
                     "is_loopback_bind": _is_loopback_bind_host(self.listen_host),
+                    "plugins_enabled": self.plugins_enabled,
                     **self._landlock_status_dict(),
                 },
             )
@@ -10994,10 +10998,19 @@ class ReticulumMeshChat:
 
         @routes.get("/api/v1/plugins")
         async def plugins_list(request):
-            return web.json_response({"plugins": self.plugin_manager.list_plugins()})
+            return web.json_response(
+                {
+                    "plugins": self.plugin_manager.list_plugins(),
+                    "plugins_enabled": self.plugins_enabled,
+                }
+            )
 
         @routes.post("/api/v1/plugins/install")
         async def plugins_install(request):
+            if not self.plugins_enabled:
+                return web.json_response(
+                    {"message": "Plugins are disabled"}, status=403
+                )
             try:
                 if request.content_type and "multipart" in request.content_type:
                     reader = await request.multipart()
@@ -11025,6 +11038,10 @@ class ReticulumMeshChat:
 
         @routes.post("/api/v1/plugins/{plugin_id}/enable")
         async def plugins_enable(request):
+            if not self.plugins_enabled:
+                return web.json_response(
+                    {"message": "Plugins are disabled"}, status=403
+                )
             plugin_id = request.match_info["plugin_id"]
             try:
                 plugin = await asyncio.to_thread(self.plugin_manager.enable, plugin_id)
@@ -11068,13 +11085,19 @@ class ReticulumMeshChat:
                     self.plugin_manager.report_failure, plugin_id, reason, source
                 )
                 if plugin is None:
-                    return web.json_response({"message": "Plugin not found"}, status=404)
+                    return web.json_response(
+                        {"message": "Plugin not found"}, status=404
+                    )
                 return web.json_response(plugin)
             except Exception as e:
                 return web.json_response({"message": str(e)}, status=400)
 
         @routes.post("/api/v1/plugins/{plugin_id}/invoke")
         async def plugins_invoke(request):
+            if not self.plugins_enabled:
+                return web.json_response(
+                    {"message": "Plugins are disabled"}, status=403
+                )
             plugin_id = request.match_info["plugin_id"]
             try:
                 data = await request.json()
@@ -11098,6 +11121,10 @@ class ReticulumMeshChat:
 
         @routes.get("/api/v1/plugins/{plugin_id}/asset/{asset_path:.*}")
         async def plugins_asset(request):
+            if not self.plugins_enabled:
+                return web.json_response(
+                    {"message": "Plugins are disabled"}, status=403
+                )
             plugin_id = request.match_info["plugin_id"]
             asset_path = request.match_info["asset_path"]
             try:
@@ -19687,6 +19714,13 @@ def main():
         help="Enable tracemalloc-based memory diagnostics. Can also be set via MESHCHAT_MEMORY_DIAG environment variable.",
     )
 
+    parser.add_argument(
+        "--disable-plugins",
+        action="store_true",
+        default=env_bool("MESHCHAT_DISABLE_PLUGINS", False),
+        help="Disable the plugin system entirely. Can also be set via MESHCHAT_DISABLE_PLUGINS environment variable.",
+    )
+
     args = parser.parse_args()
 
     ssl_cert = (args.ssl_cert or "").strip() or None
@@ -19834,6 +19868,7 @@ def main():
         rns_loglevel=rns_log_cli,
         migration_context=migration_context,
         memory_diag_enabled=args.memory_diag,
+        plugins_enabled=not args.disable_plugins,
     )
 
     # store recovery on app for wiring with identity context

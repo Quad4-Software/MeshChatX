@@ -3063,6 +3063,9 @@ export default {
             return matchesSettingSearch(texts, (k) => this.$t(k), this.searchQuery);
         },
         showSection(sectionKey) {
+            if (sectionKey === "plugins" && GlobalState.pluginsEnabled === false) {
+                return false;
+            }
             if (this.settingsSearchActive) {
                 const keywords = this.sectionKeywords[sectionKey];
                 if (!keywords) {
