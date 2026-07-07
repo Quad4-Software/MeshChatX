@@ -34,7 +34,13 @@ def reset_test_temp_root() -> None:
 
 
 def ensure_test_temp_dirs() -> Path:
-    for path in (TEST_TEMP_ROOT, TEST_WORK_DIR, TEST_LOG_DIR, TEST_COVERAGE_DIR, PYTEST_BASE_TEMP):
+    for path in (
+        TEST_TEMP_ROOT,
+        TEST_WORK_DIR,
+        TEST_LOG_DIR,
+        TEST_COVERAGE_DIR,
+        PYTEST_BASE_TEMP,
+    ):
         path.mkdir(parents=True, exist_ok=True)
 
     work_dir = str(TEST_WORK_DIR)
