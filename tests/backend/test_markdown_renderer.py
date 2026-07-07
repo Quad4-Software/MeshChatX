@@ -14,6 +14,25 @@ class TestMarkdownRenderer(unittest.TestCase):
         self.assertIn("<strong>Bold</strong>", MarkdownRenderer.render("**Bold**"))
         self.assertIn("<em>Italic</em>", MarkdownRenderer.render("*Italic*"))
 
+    def test_headings_receive_stable_ids(self):
+        rendered = MarkdownRenderer.render("## First section\n\n### Sub section")
+        self.assertIn('id="first-section"', rendered)
+        self.assertIn('id="sub-section"', rendered)
+
+    def test_tables_render_as_html(self):
+        md = (
+            "| Area | Route |\n"
+            "| ---- | ----- |\n"
+            "| Messages | /messages |\n"
+            "| Map | /map |\n"
+        )
+        rendered = MarkdownRenderer.render(md)
+        self.assertIn("<table", rendered)
+        self.assertIn("<th", rendered)
+        self.assertIn("Messages", rendered)
+        self.assertIn("/messages", rendered)
+        self.assertNotIn("| Messages |", rendered)
+
     def test_links(self):
         rendered = MarkdownRenderer.render("[Google](https://google.com)")
         self.assertIn('href="https://google.com"', rendered)

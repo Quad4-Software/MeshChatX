@@ -158,7 +158,7 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
         "GET",
         "/api/v1/meshchatx-docs/content",
         MESHCHATX_DOCS_CONTENT_SCHEMA,
-        query={"path": "meshchatx.md"},
+        query={"path": "en/getting-started.md"},
     ),
     HttpJsonContract(
         "GET",

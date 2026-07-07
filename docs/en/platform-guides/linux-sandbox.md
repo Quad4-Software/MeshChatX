@@ -1,4 +1,4 @@
-# MeshChatX on Linux: Firejail and Bubblewrap
+# Linux sandboxing with Firejail and Bubblewrap
 
 This page shows how to run **`meshchatx`** under **Firejail** or **Bubblewrap** (`bwrap`) on Linux. The legacy CLI name **`meshchat`** installs the same entry point and can be substituted in these examples. Use this when you install MeshChatX natively (wheel, package, or Poetry) and want an extra layer of filesystem and process isolation compared to running the binary directly.
 

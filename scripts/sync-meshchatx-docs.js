@@ -1,5 +1,5 @@
 /**
- * Copy docs/*.md into meshchatx/src/frontend/public/meshchatx-docs/ for in-app serving.
+ * Copy docs/ tree into meshchatx/src/frontend/public/meshchatx-docs/ for in-app serving.
  * Source of truth: docs/ at repo root.
  */
 
@@ -10,6 +10,23 @@ const root = path.resolve(__dirname, "..");
 const srcDir = path.join(root, "docs");
 const destDir = path.join(root, "meshchatx", "src", "frontend", "public", "meshchatx-docs");
 
+const COPY_EXTENSIONS = new Set([".md", ".txt", ".json"]);
+
+function walkSync(dir, callback) {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+            walkSync(fullPath, callback);
+        } else {
+            callback(fullPath);
+        }
+    }
+}
+
+function relativeFromDocs(filePath) {
+    return path.relative(srcDir, filePath);
+}
+
 if (!fs.existsSync(srcDir)) {
     console.error(`Missing docs directory: ${srcDir}`);
     process.exit(1);
@@ -17,28 +34,44 @@ if (!fs.existsSync(srcDir)) {
 
 fs.mkdirSync(destDir, { recursive: true });
 
-const sourceFiles = fs
-    .readdirSync(srcDir)
-    .filter((name) => name.endsWith(".md"))
-    .sort();
+const sourceRelPaths = new Set();
 
-for (const file of sourceFiles) {
-    const src = path.join(srcDir, file);
-    const dest = path.join(destDir, file);
-    const content = fs.readFileSync(src);
+walkSync(srcDir, (filePath) => {
+    const ext = path.extname(filePath);
+    const base = path.basename(filePath);
+    if (base !== "manifest.json" && !COPY_EXTENSIONS.has(ext)) {
+        return;
+    }
+    const rel = relativeFromDocs(filePath);
+    sourceRelPaths.add(rel);
+    const dest = path.join(destDir, rel);
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    const content = fs.readFileSync(filePath);
     const prev = fs.existsSync(dest) ? fs.readFileSync(dest) : null;
     if (!prev || !prev.equals(content)) {
         fs.writeFileSync(dest, content);
-        console.log(`Synced meshchatx-docs/${file}`);
+        console.log(`Synced meshchatx-docs/${rel.replace(/\\/g, "/")}`);
+    }
+});
+
+function walkDest(dir, relBase = "") {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const rel = relBase ? path.join(relBase, entry.name) : entry.name;
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+            walkDest(full, rel);
+            continue;
+        }
+        const ext = path.extname(entry.name);
+        const base = entry.name;
+        if (base !== "manifest.json" && !COPY_EXTENSIONS.has(ext)) {
+            continue;
+        }
+        if (!sourceRelPaths.has(rel)) {
+            fs.unlinkSync(full);
+            console.log(`Removed stale meshchatx-docs/${rel.replace(/\\/g, "/")}`);
+        }
     }
 }
 
-for (const file of fs.readdirSync(destDir)) {
-    if (!file.endsWith(".md")) {
-        continue;
-    }
-    if (!sourceFiles.includes(file)) {
-        fs.unlinkSync(path.join(destDir, file));
-        console.log(`Removed stale meshchatx-docs/${file}`);
-    }
-}
+walkDest(destDir);

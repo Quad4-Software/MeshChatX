@@ -1,4 +1,4 @@
-# MeshChatX on Raspberry Pi
+# Raspberry Pi headless setup
 
 This guide shows a simple headless setup for running MeshChatX on a Raspberry Pi 4
 with a web UI you can access from another device on your network.

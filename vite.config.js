@@ -112,6 +112,8 @@ export default defineConfig({
             "/api": { target: e2eBackendOrigin, changeOrigin: true, ...backendProxyTls },
             "/ws": { target: e2eBackendWs, ws: true, ...backendProxyTls },
             "/ws/telephone/audio": { target: e2eBackendWs, ws: true, ...backendProxyTls },
+            "/reticulum-docs": { target: e2eBackendOrigin, changeOrigin: true, ...backendProxyTls },
+            "/meshchatx-docs": { target: e2eBackendOrigin, changeOrigin: true, ...backendProxyTls },
         },
     },
 

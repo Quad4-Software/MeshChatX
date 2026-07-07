@@ -3793,7 +3793,14 @@ class ReticulumMeshChat:
             if not path.startswith("/api/"):
                 if (
                     path == "/"
-                    or path.startswith(("/assets/", "/favicons/"))
+                    or path.startswith(
+                        (
+                            "/assets/",
+                            "/favicons/",
+                            "/reticulum-docs/",
+                            "/meshchatx-docs/",
+                        ),
+                    )
                     or path in ("/manifest.json", "/service-worker.js")
                     or path.endswith(
                         (
@@ -3834,11 +3841,15 @@ class ReticulumMeshChat:
 
             # check if path is public
             is_public = any(path.startswith(public) for public in public_paths)
+            if path.startswith(("/reticulum-docs/", "/meshchatx-docs/")):
+                is_public = True
 
             # check if requesting setup page (index.html will show setup if needed)
             if (
                 path == "/"
-                or path.startswith(("/assets/", "/favicons/"))
+                or path.startswith(
+                    ("/assets/", "/favicons/", "/reticulum-docs/", "/meshchatx-docs/"),
+                )
                 or path.endswith(
                     (
                         ".js",
@@ -6745,7 +6756,8 @@ class ReticulumMeshChat:
         # get meshchatx docs list
         @routes.get("/api/v1/meshchatx-docs/list")
         async def meshchatx_docs_list(request):
-            return web.json_response(self.docs_manager.get_meshchatx_docs_list())
+            lang = request.query.get("lang", "en")
+            return web.json_response(self.docs_manager.get_meshchatx_docs_list(lang))
 
         # get meshchatx doc content
         @routes.get("/api/v1/meshchatx-docs/content")
@@ -6753,6 +6765,8 @@ class ReticulumMeshChat:
             path = request.query.get("path")
             if not path:
                 return web.json_response({"error": "No path provided"}, status=400)
+            if not self.docs_manager._is_safe_doc_path(path):
+                return web.json_response({"error": "Invalid path"}, status=400)
 
             content = self.docs_manager.get_doc_content(path)
             if not content:
@@ -14621,37 +14635,42 @@ class ReticulumMeshChat:
         # Serve Reticulum docs from user-uploaded storage with a fallback to the
         # bundled offline copy shipped under <public>/reticulum-docs-bundled/current.
         # No remote network fallback exists; users supply replacements via upload.
-        if self.current_context and hasattr(self.current_context, "docs_manager"):
-            dm = self.current_context.docs_manager
-
-            async def reticulum_docs_handler(request):
-                path = request.match_info.get("filename", "manual/index.html")
-                if not path:
-                    path = "manual/index.html"
-                if path.endswith("/"):
-                    path += "index.html"
-
-                resolved = dm.find_docs_file(path)
-                if resolved is None:
-                    return web.json_response(
-                        {"error": "Documentation not found"},
-                        status=404,
-                    )
-                return web.FileResponse(resolved)
-
-            app.router.add_get("/reticulum-docs/{filename:.*}", reticulum_docs_handler)
-
-            if (
-                dm.meshchatx_docs_dir
-                and os.path.exists(dm.meshchatx_docs_dir)
-                and not dm.meshchatx_docs_dir.startswith(public_dir)
-            ):
-                app.router.add_static(
-                    "/meshchatx-docs/",
-                    dm.meshchatx_docs_dir,
-                    name="meshchatx_docs_storage",
-                    follow_symlinks=True,
+        async def reticulum_docs_handler(request):
+            dm = self.docs_manager
+            if dm is None:
+                return web.json_response(
+                    {"error": "Documentation unavailable"},
+                    status=503,
                 )
+            path = request.match_info.get("filename", "manual/index.html")
+            if not path:
+                path = "manual/index.html"
+            if path.endswith("/"):
+                path += "index.html"
+
+            resolved = dm.find_docs_file(path)
+            if resolved is None:
+                return web.json_response(
+                    {"error": "Documentation not found"},
+                    status=404,
+                )
+            return web.FileResponse(resolved)
+
+        app.router.add_get("/reticulum-docs/{filename:.*}", reticulum_docs_handler)
+
+        dm = self.docs_manager
+        if (
+            dm
+            and dm.meshchatx_docs_dir
+            and os.path.exists(dm.meshchatx_docs_dir)
+            and not dm.meshchatx_docs_dir.startswith(public_dir)
+        ):
+            app.router.add_static(
+                "/meshchatx-docs/",
+                dm.meshchatx_docs_dir,
+                name="meshchatx_docs_storage",
+                follow_symlinks=True,
+            )
 
         if os.path.exists(public_dir):
             app.router.add_static("/", public_dir, name="static", follow_symlinks=True)
