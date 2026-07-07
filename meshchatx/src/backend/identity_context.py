@@ -18,7 +18,6 @@ from meshchatx.src.backend.database import Database
 from meshchatx.src.backend.docs_manager import DocsManager
 from meshchatx.src.backend.repository_server_manager import RepositoryServerManager
 from meshchatx.src.backend.forwarding_manager import ForwardingManager
-from meshchatx.src.backend.async_utils import AsyncUtils
 from meshchatx.src.backend.integrity_manager import (
     CriticalIntegrityError,
     IntegrityManager,

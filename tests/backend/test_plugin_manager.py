@@ -2,7 +2,6 @@
 
 import json
 import os
-import tempfile
 
 import pytest
 
@@ -51,7 +50,9 @@ class TestPluginManagerInstall:
         manager = _make_manager(tmp_path)
         plugin_dir = os.path.join(tmp_path, "bad-plugin")
         os.makedirs(plugin_dir, exist_ok=True)
-        with open(os.path.join(plugin_dir, "plugin.json"), "w", encoding="utf-8") as handle:
+        with open(
+            os.path.join(plugin_dir, "plugin.json"), "w", encoding="utf-8"
+        ) as handle:
             json.dump({"id": "bad id", "version": "1.0.0", "apiVersion": 1}, handle)
         with pytest.raises(ValueError):
             manager.install_from_directory(plugin_dir)
