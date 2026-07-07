@@ -13,11 +13,20 @@ current build, so only the genuinely unsupported ones get disabled.
 
 from __future__ import annotations
 
+import importlib.util
 import logging
 
 logger = logging.getLogger(__name__)
 
 _TRUE_STRINGS = ("true", "yes", "1", "on")
+
+
+def _optional_module_available(module_name: str) -> bool:
+    """Return True when *module_name* can be resolved without importing it."""
+    try:
+        return importlib.util.find_spec(module_name) is not None
+    except (ImportError, ModuleNotFoundError, ValueError):
+        return False
 
 
 def _is_chaquopy_android() -> bool:
@@ -31,11 +40,7 @@ def _is_chaquopy_android() -> bool:
 
 def android_usbserial4a_available() -> bool:
     """True when usbserial4a can be imported (RNode serial/Bluetooth-classic on Android)."""
-    try:
-        import usbserial4a  # noqa: F401
-    except ImportError:
-        return False
-    return True
+    return _optional_module_available("usbserial4a")
 
 
 def android_jnius_available() -> bool:
@@ -46,26 +51,24 @@ def android_jnius_available() -> bool:
     the importable name "jnius" unless bundled explicitly (e.g. via a
     compatibility shim), so this is normally unavailable.
     """
-    try:
-        import jnius  # noqa: F401
-    except ImportError:
-        return False
-    return True
+    return _optional_module_available("jnius")
 
 
 def android_able_available() -> bool:
     """True when able can be imported (BLE GATT support for RNode ble:// on Android)."""
-    import importlib.util
-
-    return importlib.util.find_spec("able") is not None
+    return _optional_module_available("able")
 
 
 def desktop_serial_stack_available() -> bool:
-    try:
-        from serial.tools import list_ports  # noqa: F401
-    except ImportError:
-        return False
-    return True
+    return _optional_module_available("serial.tools.list_ports")
+
+
+def desktop_ble_stack_available() -> bool:
+    return _optional_module_available("bleak")
+
+
+def _is_rnode_tcp_config_type(iface_type: object) -> bool:
+    return iface_type in ("RNodeInterface", "RNodeIPInterface")
 
 
 def rnode_serial_supported() -> bool:
@@ -94,6 +97,19 @@ def rnode_port_is_ble(port: object) -> bool:
     return str(port or "").strip().lower().startswith("ble://")
 
 
+def _tcp_host_from_port(port: object) -> str | None:
+    if not rnode_port_is_tcp(port):
+        return None
+    host_part = str(port).strip()[len("tcp://") :].strip().strip(":")
+    if not host_part or set(host_part) <= {"/"}:
+        return None
+    return host_part
+
+
+def _port_is_blank(port: object) -> bool:
+    return not str(port or "").strip()
+
+
 def _rnode_iface_transport(iface: dict) -> str:
     """Classify an RNodeInterface config entry's transport.
 
@@ -105,7 +121,7 @@ def _rnode_iface_transport(iface: dict) -> str:
     if rnode_port_is_ble(port):
         return "ble"
     allow_bluetooth = str(iface.get("allow_bluetooth", "")).lower() in _TRUE_STRINGS
-    if not port and allow_bluetooth:
+    if _port_is_blank(port) and allow_bluetooth:
         return "bluetooth_classic"
     return "serial"
 
@@ -115,22 +131,24 @@ def rnode_transport_supported(iface: dict, *, is_android: bool | None = None) ->
 
     RNode over TCP always works. Serial and classic-Bluetooth need
     usbserial4a + jnius on Android. BLE needs able on Android. On desktop,
-    every transport relies on the regular pyserial/bleak stack.
+    serial and classic-Bluetooth rely on pyserial; BLE relies on bleak.
 
     ``is_android`` lets a caller that already determined the platform pass
     that result through explicitly, instead of re-detecting it here.
     """
     if is_android is None:
         is_android = _is_chaquopy_android()
-    if not is_android:
-        return desktop_serial_stack_available()
 
     transport = _rnode_iface_transport(iface)
     if transport == "tcp":
         return True
+    if is_android:
+        if transport == "ble":
+            return android_able_available()
+        return android_usbserial4a_available() and android_jnius_available()
     if transport == "ble":
-        return android_able_available()
-    return android_usbserial4a_available() and android_jnius_available()
+        return desktop_ble_stack_available()
+    return desktop_serial_stack_available()
 
 
 def normalize_rnode_tcp_host_in_config(config_path: str) -> bool:
@@ -164,13 +182,13 @@ def normalize_rnode_tcp_host_in_config(config_path: str) -> bool:
     for _iface_name, iface in interfaces.items():
         if not isinstance(iface, dict):
             continue
-        if iface.get("type") != "RNodeInterface":
+        if not _is_rnode_tcp_config_type(iface.get("type")):
             continue
         port = iface.get("port")
         if not rnode_port_is_tcp(port):
             continue
-        host_part = str(port).strip()[len("tcp://") :].strip().strip(":")
-        if not host_part:
+        host_part = _tcp_host_from_port(port)
+        if host_part is None:
             continue
         if str(iface.get("tcp_host", "")).strip() != host_part:
             iface["tcp_host"] = host_part
@@ -240,20 +258,47 @@ def disable_rnode_interfaces_in_config(
     return modified
 
 
-def _rnode_interface_has_invalid_txpower(iface: dict) -> bool:
+def _find_invalid_rnode_txpower(
+    iface_name: str,
+    iface: dict,
+    interfaces: dict,
+) -> object | None:
     from meshchatx.src.backend.interface_editor import validate_rnode_txpower
 
     iface_type = iface.get("type", "")
     if not isinstance(iface_type, str):
-        return False
+        return None
     if iface_type in ("RNodeInterface", "RNodeIPInterface"):
-        return validate_rnode_txpower(iface.get("txpower")) is not None
-    if iface_type == "RNodeMultiInterface":
-        for value in iface.values():
-            if isinstance(value, dict) and "txpower" in value:
-                if validate_rnode_txpower(value.get("txpower")) is not None:
-                    return True
-    return False
+        txpower = iface.get("txpower")
+        if validate_rnode_txpower(txpower) is not None:
+            return txpower
+        return None
+    if iface_type != "RNodeMultiInterface":
+        return None
+
+    for value in iface.values():
+        if isinstance(value, dict) and "txpower" in value:
+            txpower = value.get("txpower")
+            if validate_rnode_txpower(txpower) is not None:
+                return txpower
+    prefix = f"{iface_name}."
+    for sub_name, sub_iface in interfaces.items():
+        if not sub_name.startswith(prefix):
+            continue
+        if not isinstance(sub_iface, dict):
+            continue
+        txpower = sub_iface.get("txpower")
+        if validate_rnode_txpower(txpower) is not None:
+            return txpower
+    return None
+
+
+def _rnode_interface_has_invalid_txpower(
+    iface_name: str,
+    iface: dict,
+    interfaces: dict,
+) -> bool:
+    return _find_invalid_rnode_txpower(iface_name, iface, interfaces) is not None
 
 
 def guard_invalid_rnode_txpower_in_config(config_path: str) -> bool:
@@ -278,18 +323,13 @@ def guard_invalid_rnode_txpower_in_config(config_path: str) -> bool:
     for iface_name, iface in interfaces.items():
         if not isinstance(iface, dict):
             continue
-        if not _rnode_interface_has_invalid_txpower(iface):
+        if not _rnode_interface_has_invalid_txpower(iface_name, iface, interfaces):
             continue
-        if str(iface.get("interface_enabled", "")).lower() not in _TRUE_STRINGS:
+        if not _is_enabled(iface):
             continue
         iface["interface_enabled"] = "false"
         modified = True
-        txpower = iface.get("txpower")
-        if txpower is None:
-            for value in iface.values():
-                if isinstance(value, dict) and "txpower" in value:
-                    txpower = value.get("txpower")
-                    break
+        txpower = _find_invalid_rnode_txpower(iface_name, iface, interfaces)
         detail = validate_rnode_txpower(txpower) or "invalid TX power"
         logger.warning(
             'Disabled RNode interface "%s" before startup: %s',
