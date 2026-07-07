@@ -148,6 +148,7 @@ from meshchatx.src.backend.nomadnet_utils import (
     convert_nomadnet_string_data_to_map,
 )
 from meshchatx.src.backend.page_node_manager import PageNodeManager
+from meshchatx.src.backend.plugin_manager import PluginManager
 from meshchatx.src.backend.persistent_log_handler import PersistentLogHandler
 from meshchatx.src.backend.app_security_settings import (
     get_web_ui_ip_allowlist,
@@ -160,6 +161,11 @@ from meshchatx.src.backend.csrf import (
     validate_csrf_header,
 )
 from meshchatx.src.backend.ip_allowlist import client_ip_allowed
+from meshchatx.src.backend.reticulum_config_guard import (
+    repair_unparseable_reticulum_config,
+    reticulum_config_has_required_sections,
+)
+from meshchatx.src.backend.websocket_config_guard import sanitize_websocket_config_update
 from meshchatx.src.backend.landlock_sandbox import (
     apply_landlock_sandbox,
     landlock_auto_enabled,
@@ -432,6 +438,7 @@ class ReticulumMeshChat:
 
         self.identity_manager = IdentityManager(self.storage_dir, identity_file_path)
         self.page_node_manager = PageNodeManager(self.storage_dir)
+        self.plugin_manager = PluginManager(self.storage_dir, app=self)
 
         # Multi-identity support
         self.contexts: dict[str, IdentityContext] = {}
@@ -872,21 +879,17 @@ class ReticulumMeshChat:
             self._repair_reticulum_instance_name_corruption()
             self._reticulum_instance_name_startup_repair_done = True
         config_path = os.path.join(config_dir, "config")
-        needs_default = True
-        if os.path.isfile(config_path):
-            try:
-                with open(config_path) as f:
-                    content = f.read()
-                if "[reticulum]" in content and "[interfaces]" in content:
-                    needs_default = False
-            except OSError:
-                pass
+        needs_default = not reticulum_config_has_required_sections(config_path)
+        if not needs_default:
+            repair_unparseable_reticulum_config(
+                config_path,
+                write_default=self._write_rns_reticulum_default_config_file,
+            )
+            needs_default = not reticulum_config_has_required_sections(config_path)
         if needs_default:
             if not os.path.isdir(config_dir):
                 os.makedirs(config_dir, exist_ok=True)
             self._write_rns_reticulum_default_config_file(config_path)
-        # Scrub stale default_bootstrap_only from Reticulum config so it never
-        # affects discovered/auto-connected interfaces.
         try:
             from RNS.vendor.configobj import ConfigObj
 
@@ -894,8 +897,12 @@ class ReticulumMeshChat:
             if "default_bootstrap_only" in cfg.get("reticulum", {}):
                 cfg["reticulum"].pop("default_bootstrap_only", None)
                 cfg.write()
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning(
+                "Failed to scrub default_bootstrap_only from %s: %s",
+                config_path,
+                exc,
+            )
         from meshchatx.src.backend.rnode_support import (
             guard_invalid_rnode_txpower_in_config,
             guard_rnode_interfaces_on_android,
@@ -936,6 +943,8 @@ class ReticulumMeshChat:
             _restore_rns_console_logging_after_reticulum_init(self)
             self.page_node_manager.load_nodes()
             self.page_node_manager.start_all()
+            self.plugin_manager.set_app(self)
+            self.plugin_manager.install_bundled_examples()
 
         # Create new context
         context = IdentityContext(identity, self)
@@ -6183,7 +6192,10 @@ class ReticulumMeshChat:
                     print(f"ws connection error {websocket_response.exception()}")
 
             # websocket closed
-            self.websocket_clients.remove(websocket_response)
+            try:
+                self.websocket_clients.remove(websocket_response)
+            except ValueError:
+                pass
 
             return websocket_response
 
@@ -10973,6 +10985,99 @@ class ReticulumMeshChat:
             except Exception as e:
                 return web.json_response({"message": str(e)}, status=500)
 
+        # --- Plugin API ---
+
+        @routes.get("/api/v1/plugins")
+        async def plugins_list(request):
+            return web.json_response({"plugins": self.plugin_manager.list_plugins()})
+
+        @routes.post("/api/v1/plugins/install")
+        async def plugins_install(request):
+            try:
+                if request.content_type and "multipart" in request.content_type:
+                    reader = await request.multipart()
+                    field = await reader.next()
+                    if field is None:
+                        return web.json_response({"message": "No plugin archive provided"}, status=400)
+                    payload = await field.read()
+                    plugin = await asyncio.to_thread(
+                        self.plugin_manager.install_from_zip_bytes, payload
+                    )
+                    return web.json_response(plugin)
+                data = await request.read()
+                if not data:
+                    return web.json_response({"message": "No plugin archive provided"}, status=400)
+                plugin = await asyncio.to_thread(self.plugin_manager.install_from_zip_bytes, data)
+                return web.json_response(plugin)
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=400)
+
+        @routes.post("/api/v1/plugins/{plugin_id}/enable")
+        async def plugins_enable(request):
+            plugin_id = request.match_info["plugin_id"]
+            try:
+                plugin = await asyncio.to_thread(self.plugin_manager.enable, plugin_id)
+                return web.json_response(plugin)
+            except KeyError:
+                return web.json_response({"message": "Plugin not found"}, status=404)
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=400)
+
+        @routes.post("/api/v1/plugins/{plugin_id}/disable")
+        async def plugins_disable(request):
+            plugin_id = request.match_info["plugin_id"]
+            try:
+                plugin = await asyncio.to_thread(self.plugin_manager.disable, plugin_id)
+                return web.json_response(plugin)
+            except KeyError:
+                return web.json_response({"message": "Plugin not found"}, status=404)
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=400)
+
+        @routes.delete("/api/v1/plugins/{plugin_id}")
+        async def plugins_remove(request):
+            plugin_id = request.match_info["plugin_id"]
+            try:
+                await asyncio.to_thread(self.plugin_manager.remove, plugin_id)
+                return web.json_response({"message": "Plugin removed"})
+            except KeyError:
+                return web.json_response({"message": "Plugin not found"}, status=404)
+
+        @routes.post("/api/v1/plugins/{plugin_id}/invoke")
+        async def plugins_invoke(request):
+            plugin_id = request.match_info["plugin_id"]
+            try:
+                data = await request.json()
+            except Exception:
+                data = {}
+            method = data.get("method")
+            args = data.get("args") or {}
+            if not method:
+                return web.json_response({"message": "method is required"}, status=400)
+            try:
+                result = await asyncio.to_thread(self.plugin_manager.invoke, plugin_id, method, args)
+                return web.json_response({"result": result})
+            except KeyError:
+                return web.json_response({"message": "Plugin not found"}, status=404)
+            except PermissionError as e:
+                return web.json_response({"message": str(e)}, status=403)
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=400)
+
+        @routes.get("/api/v1/plugins/{plugin_id}/asset/{asset_path:.*}")
+        async def plugins_asset(request):
+            plugin_id = request.match_info["plugin_id"]
+            asset_path = request.match_info["asset_path"]
+            try:
+                path = self.plugin_manager.asset_path(plugin_id, asset_path)
+            except KeyError:
+                return web.json_response({"message": "Plugin not found"}, status=404)
+            except FileNotFoundError:
+                return web.json_response({"message": "Asset not found"}, status=404)
+            except ValueError as e:
+                return web.json_response({"message": str(e)}, status=400)
+            return web.FileResponse(path)
+
         # --- Page Node API ---
 
         @routes.get("/api/v1/page-nodes")
@@ -15535,8 +15640,7 @@ class ReticulumMeshChat:
 
         # handle updating config
         elif _type == "config.set":
-            # get config from websocket
-            config = data["config"]
+            config = sanitize_websocket_config_update(data.get("config"))
 
             try:
                 await self.update_config(config)
@@ -17617,6 +17721,13 @@ class ReticulumMeshChat:
         """Handle inbound LXMF delivery from Reticulum (synchronous callback)."""
         ctx = context or self.current_context
         if not ctx or not ctx.running or not ctx.database:
+            logger.warning(
+                "Dropping inbound LXMF delivery: context not ready "
+                "(ctx=%s running=%s database=%s)",
+                ctx is not None,
+                getattr(ctx, "running", None) if ctx else None,
+                ctx.database is not None if ctx else None,
+            )
             return
 
         try:
@@ -18297,7 +18408,17 @@ class ReticulumMeshChat:
         else:
             lxmf_message_dict["peer_hash"] = lxmf_message_dict["source_hash"]
 
-        ctx.database.messages.upsert_lxmf_message(lxmf_message_dict)
+        try:
+            ctx.database.messages.upsert_lxmf_message(lxmf_message_dict)
+        except Exception:
+            message_hash = getattr(lxmf_message, "hash", None)
+            hash_label = message_hash.hex() if message_hash is not None else "unknown"
+            logger.exception(
+                "Failed to persist inbound LXMF message %s from %s",
+                hash_label,
+                lxmf_message_dict.get("source_hash", "unknown"),
+            )
+            raise
 
     def _lxmf_path_wait_seconds(self):
         return reticulum_pathfinding.lxmf_path_wait_cap_seconds()
