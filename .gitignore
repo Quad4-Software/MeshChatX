@@ -114,8 +114,14 @@ coverage/
 coverage-electron/
 .pytest_cache/
 htmlcov/
-.mutmut-cache
+
+# Mutation testing artifacts
+.mutmut-cache/
+mutants/
 mutmut-stats/
+mutmut-cicd-stats.json
+reports/mutation/
+.stryker-tmp/
 
 test-results/
 playwright-report/

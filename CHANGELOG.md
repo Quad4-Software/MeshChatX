@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 - **Dependencies**: Added **wasmtime** for backend WASM plugin execution.
 - **Plugins**: `--disable-plugins` CLI flag and `MESHCHAT_DISABLE_PLUGINS` environment variable to disable the plugin system entirely at runtime.
 - **Vendored LXMFy**: Refreshed `vendor/lxmfy` to upstream **1.6.5** (`d92cfe0`) — Landlock LSM sandbox for bot processes and external cogs, propagation-node init fix, cog permission fix, and dependency alignment with RNS 1.3.5+ / LXMF 1.0.1+.
+- **Mutation testing**: Backend uses **mutmut** (`task test:mutation:backend`); frontend uses in-repo **MeshMut** (`task test:mutation:frontend`) with regex-based mutators and Vitest for pure JS modules. Optional `mutation.yml` workflow for manual or scheduled runs.
 
 ### Fixed
 

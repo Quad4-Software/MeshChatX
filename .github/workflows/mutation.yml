@@ -1,0 +1,81 @@
+# Optional mutation testing (manual or weekly). Not part of primary CI.
+#
+# Pinned first-party actions (bump tag and SHA together when upgrading):
+#   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
+
+name: Mutation testing
+
+on:
+    workflow_dispatch:
+        inputs:
+            backend:
+                description: Run backend mutmut
+                type: boolean
+                default: true
+            frontend:
+                description: Run frontend MeshMut
+                type: boolean
+                default: true
+            min_score:
+                description: Minimum mutation score percentage (0 to skip gate)
+                type: string
+                default: "50"
+    schedule:
+        - cron: "0 6 * * 0"
+
+permissions:
+    contents: read
+
+concurrency:
+    group: mutation-${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+env:
+    FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    PYTHON_VERSION: "3.14"
+    NODE_VERSION: "24"
+    UV_VERSION: "0.11.15"
+    PNPM_VERSION: "11.1.2"
+
+jobs:
+    mutation:
+        runs-on: ubuntu-latest
+        timeout-minutes: 120
+        steps:
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+
+            - name: Set up development environment
+              uses: ./.github/actions/setup-dev-environment
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+                  uv-version: ${{ env.UV_VERSION }}
+                  node-version: ${{ env.NODE_VERSION }}
+                  pnpm-version: ${{ env.PNPM_VERSION }}
+
+            - name: Backend mutation (mutmut)
+              if: ${{ github.event_name == 'schedule' || inputs.backend != false }}
+              env:
+                  MUTMUT_TARGET: meshchatx.src.backend.meshchat_utils*
+                  MUTMUT_MIN_SCORE: ${{ github.event_name == 'schedule' && '50' || github.event.inputs.min_score }}
+              run: bash scripts/ci/mutation-backend.sh
+
+            - name: Frontend mutation (MeshMut sample)
+              if: ${{ github.event_name == 'schedule' || inputs.frontend != false }}
+              run: |
+                  set -euo pipefail
+                  node scripts/mutation/run.mjs \
+                    --source meshchatx/src/frontend/js/rnode/Capabilities.js \
+                    --source meshchatx/src/frontend/js/mapLinkUtils.js \
+                    --max-per-file 30 \
+                    --min-score ${{ github.event_name == 'schedule' && '50' || github.event.inputs.min_score }}
+
+            - name: Upload mutation reports
+              if: always()
+              uses: actions/upload-artifact@v5.0.0
+              with:
+                  name: mutation-reports
+                  path: |
+                      reports/mutation/
+                      mutmut-cicd-stats.json
+                  if-no-files-found: ignore

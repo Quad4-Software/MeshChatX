@@ -244,9 +244,25 @@ tasks:
             - uv run pytest tests/backend/test_performance_hotpaths.py tests/backend/test_performance_bottlenecks.py
 
     test:mutation:
-        desc: Mutation testing (mutmut; slow; optional; default targets meshchat_utils)
+        desc: Mutation testing (backend mutmut + frontend MeshMut; slow; optional)
         cmds:
-            - uv run mutmut run "meshchatx.src.backend.meshchat_utils*"
+            - task test:mutation:backend
+            - task test:mutation:frontend
+
+    test:mutation:backend:
+        desc: Backend mutation testing with mutmut (default meshchat_utils)
+        cmds:
+            - bash scripts/ci/mutation-backend.sh
+
+    test:mutation:frontend:
+        desc: Frontend mutation testing with in-repo MeshMut
+        cmds:
+            - bash scripts/ci/mutation-frontend.sh
+
+    test:mutation:frontend:sample:
+        desc: Quick MeshMut sample on Capabilities.js (capped mutants)
+        cmds:
+            - node scripts/mutation/run.mjs --source meshchatx/src/frontend/js/rnode/Capabilities.js --max-per-file 20
 
     test:frontend:
         aliases: [test:fe]
