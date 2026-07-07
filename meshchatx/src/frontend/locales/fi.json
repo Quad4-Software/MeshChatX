@@ -645,6 +645,32 @@
         "import_success": "Tuotiin {imported}, ohitettiin {skipped_duplicates} kaksoiskappaletta, kelvottomia {skipped_invalid}",
         "import_failed": "GIFien tuonti epäonnistui"
     },
+    "plugins": {
+        "settings": {
+            "title": "Liitännäiset",
+            "description": "Asenna, ota käyttöön ja tarkista MeshChatX-liitännäisten oikeudet.",
+            "enable": "Ota käyttöön",
+            "disable": "Poista käytöstä",
+            "remove": "Poista",
+            "permissions": "Oikeudet",
+            "install_zip": "Asenna liitännäinen ZIP-arkistosta",
+            "enabled": "Liitännäinen otettu käyttöön",
+            "disabled": "Liitännäinen poistettu käytöstä",
+            "removed": "Liitännäinen poistettu",
+            "installed": "Liitännäinen asennettu",
+            "auto_disabled": "Liitännäinen poistettiin käytöstä automaattisesti: {reason}",
+            "kill_switch": "Liitännäinen poistettiin käytöstä: {reason}"
+        },
+        "transport_node_monitor": {
+            "nav": "Kuljetussolmut",
+            "title": "Kuljetussolmujen valvonta",
+            "description": "Seuraa kuljetussolmujen kohteita ja reitin hyppyjen määrää.",
+            "watch_hash": "Kohdehash",
+            "watch_hash_placeholder": "Syötä seurattava kohdehash",
+            "add_watch": "Lisää seuranta",
+            "no_path": "Ei reittiä"
+        }
+    },
     "maintenance": {
         "title": "Ylläpito ja tiedot",
         "description": "Hallinnoi paikallista dataa, pyyhi välimuisti ja varmuuskopioi keskustelut.",

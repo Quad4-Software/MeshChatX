@@ -18,6 +18,7 @@ const KNOWN_SECTIONS_FROM_SETTINGS_PAGE = [
     "stickers",
     "gifs",
     "maintenance",
+    "plugins",
     "telephony",
     "desktop",
     "android",

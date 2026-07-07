@@ -645,6 +645,32 @@
         "import_success": "Geïmporteerd{imported}, overgeslagen{skipped_duplicates}duplicaten, ongeldig{skipped_invalid}",
         "import_failed": "Kon GIF's niet importeren"
     },
+    "plugins": {
+        "settings": {
+            "title": "Plugins",
+            "description": "Installeer, schakel in en controleer rechten voor MeshChatX-plugins.",
+            "enable": "Inschakelen",
+            "disable": "Uitschakelen",
+            "remove": "Verwijderen",
+            "permissions": "Rechten",
+            "install_zip": "Plugin installeren vanuit ZIP-archief",
+            "enabled": "Plugin ingeschakeld",
+            "disabled": "Plugin uitgeschakeld",
+            "removed": "Plugin verwijderd",
+            "installed": "Plugin geïnstalleerd",
+            "auto_disabled": "Plugin automatisch uitgeschakeld: {reason}",
+            "kill_switch": "Een plugin is uitgeschakeld: {reason}"
+        },
+        "transport_node_monitor": {
+            "nav": "Transportnodes",
+            "title": "Transportnode-monitor",
+            "description": "Bewaak transportnode-bestemmingen en aantal routehops.",
+            "watch_hash": "Bestemmingshash",
+            "watch_hash_placeholder": "Voer een bestemmingshash in om te volgen",
+            "add_watch": "Volgen toevoegen",
+            "no_path": "Geen pad"
+        }
+    },
     "maintenance": {
         "title": "Onderhoud & gegevens",
         "description": "Beheer uw lokale gegevens, duidelijke caches en back-upgesprekken.",

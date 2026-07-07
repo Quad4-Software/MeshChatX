@@ -645,6 +645,32 @@
         "import_success": "Importiert {imported}, übersprungen {skipped_duplicates} Duplikate, ungültig {skipped_invalid}",
         "import_failed": "GIF-Import fehlgeschlagen"
     },
+    "plugins": {
+        "settings": {
+            "title": "Plugins",
+            "description": "MeshChatX-Plugins installieren, aktivieren und Berechtigungen prüfen.",
+            "enable": "Aktivieren",
+            "disable": "Deaktivieren",
+            "remove": "Entfernen",
+            "permissions": "Berechtigungen",
+            "install_zip": "Plugin aus ZIP-Archiv installieren",
+            "enabled": "Plugin aktiviert",
+            "disabled": "Plugin deaktiviert",
+            "removed": "Plugin entfernt",
+            "installed": "Plugin installiert",
+            "auto_disabled": "Plugin automatisch deaktiviert: {reason}",
+            "kill_switch": "Ein Plugin wurde deaktiviert: {reason}"
+        },
+        "transport_node_monitor": {
+            "nav": "Transportknoten",
+            "title": "Transportknoten-Monitor",
+            "description": "Beobachtete Transportknoten-Ziele und Pfad-Hop-Anzahl verfolgen.",
+            "watch_hash": "Ziel-Hash",
+            "watch_hash_placeholder": "Ziel-Hash zum Beobachten eingeben",
+            "add_watch": "Beobachtung hinzufügen",
+            "no_path": "Kein Pfad"
+        }
+    },
     "maintenance": {
         "title": "Wartung & Daten",
         "description": "Verwalten Sie Ihre lokalen Daten, löschen Sie Caches und sichern Sie Konversationen.",

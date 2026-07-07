@@ -1,0 +1,47 @@
+{
+  "id": "com.meshchatx.transport-node-monitor",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "name": "Transport Node Monitor",
+  "description": "Track watched transport nodes, path hops, and announce activity.",
+  "frontend": {
+    "entry": "frontend/main.js",
+    "type": "js"
+  },
+  "backend": {
+    "entry": "backend/plugin.wasm",
+    "type": "wasm"
+  },
+  "contributes": {
+    "navItems": [
+      {
+        "id": "transport-node-monitor",
+        "route": { "name": "plugin-transport-node-monitor" },
+        "icon": "router-wireless",
+        "labelKey": "plugins.transport_node_monitor.nav"
+      }
+    ],
+    "toolsPageEntries": [
+      {
+        "name": "transport-node-monitor",
+        "route": { "name": "plugin-transport-node-monitor" },
+        "icon": "router-wireless",
+        "iconBg": "tool-card__icon bg-sky-50 text-sky-600 dark:bg-sky-900/30 dark:text-sky-200",
+        "titleKey": "plugins.transport_node_monitor.title",
+        "descriptionKey": "plugins.transport_node_monitor.description"
+      }
+    ],
+    "settingsSections": [
+      {
+        "id": "plugins",
+        "tab": "maintenance"
+      }
+    ]
+  },
+  "permissions": {
+    "hooks": ["announce.received"],
+    "managers": ["destinationPath.read"],
+    "storage": "isolated",
+    "network": "none"
+  }
+}

@@ -645,6 +645,32 @@
         "import_success": "Imported {imported}, skipped {skipped_duplicates} duplicates, invalid {skipped_invalid}",
         "import_failed": "Failed to import GIFs"
     },
+    "plugins": {
+        "settings": {
+            "title": "Plugins",
+            "description": "Install, enable, and review permissions for MeshChatX plugins.",
+            "enable": "Enable",
+            "disable": "Disable",
+            "remove": "Remove",
+            "permissions": "Permissions",
+            "install_zip": "Install plugin from ZIP archive",
+            "enabled": "Plugin enabled",
+            "disabled": "Plugin disabled",
+            "removed": "Plugin removed",
+            "installed": "Plugin installed",
+            "auto_disabled": "Plugin auto-disabled: {reason}",
+            "kill_switch": "A plugin was disabled: {reason}"
+        },
+        "transport_node_monitor": {
+            "nav": "Transport Nodes",
+            "title": "Transport Node Monitor",
+            "description": "Watch transport node destinations and path hop counts.",
+            "watch_hash": "Destination hash",
+            "watch_hash_placeholder": "Enter a destination hash to watch",
+            "add_watch": "Add watch",
+            "no_path": "No path"
+        }
+    },
     "maintenance": {
         "title": "Maintenance & Data",
         "description": "Manage your local data, clear caches, and backup conversations.",
