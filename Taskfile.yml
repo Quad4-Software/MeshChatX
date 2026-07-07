@@ -154,8 +154,8 @@ tasks:
         aliases: [fmt:be, format:be]
         desc: Format Python code (Ruff)
         cmds:
-            - uv run ruff format ./ --exclude tests
-            - uv run ruff check --fix ./ --exclude tests
+            - uv run ruff format .
+            - uv run ruff check --fix .
 
     lint:
         desc: Run all linters (ESLint, vue-tsc, knip, Ruff, basedpyright)
