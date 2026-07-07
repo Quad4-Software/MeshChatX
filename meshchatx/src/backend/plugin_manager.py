@@ -10,7 +10,7 @@ import sqlite3
 import threading
 import time
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast
 
 from meshchatx.src.backend.plugin_guard import (
     PLUGIN_ERROR_BUDGET,
@@ -173,7 +173,13 @@ class PluginManager:
         if not isinstance(version, str) or not version.strip():
             raise ValueError("plugin version is required")
         api_version = manifest.get("apiVersion")
-        if int(api_version) != SUPPORTED_API_VERSION:
+        if api_version is None:
+            raise ValueError("plugin apiVersion is required")
+        try:
+            parsed_api_version = int(api_version)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("plugin apiVersion is invalid") from exc
+        if parsed_api_version != SUPPORTED_API_VERSION:
             raise ValueError(
                 f"unsupported apiVersion (expected {SUPPORTED_API_VERSION})"
             )
@@ -465,9 +471,10 @@ class PluginManager:
         args = args or {}
         try:
             if method == "callManager":
-                return self.call_manager(
-                    plugin_id, args.get("capability"), args.get("args") or {}
-                )
+                capability = args.get("capability")
+                if not isinstance(capability, str) or not capability:
+                    raise ValueError("capability is required")
+                return self.call_manager(plugin_id, capability, args.get("args") or {})
             if method == "readPaths":
                 return self.call_manager(plugin_id, "destinationPath.read", args)
             backend = record.manifest.get("backend")
@@ -525,8 +532,9 @@ class PluginManager:
         instance = linker.instantiate(store, module)
         payload = json.dumps({"method": method, "args": args}).encode("utf-8")
         validate_invoke_payload(payload)
-        memory = instance.exports(store)["memory"]
-        alloc = instance.exports(store).get("alloc")
+        exports = cast(Any, instance.exports(store))
+        memory = exports["memory"]
+        alloc = exports.get("alloc")
         if alloc:
             ptr = alloc(store, len(payload))
         else:
@@ -538,7 +546,7 @@ class PluginManager:
                 )
             data = memory.data_ptr(store)
             data[ptr : ptr + len(payload)] = payload
-        invoke = instance.exports(store)["invoke"]
+        invoke = exports["invoke"]
         invoke(store, ptr, len(payload), 0)
         return {"ok": True, "logs": logs}
 
