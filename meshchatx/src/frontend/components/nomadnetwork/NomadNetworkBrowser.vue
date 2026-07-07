@@ -181,7 +181,9 @@ export default {
         },
         contextMenuCanDownloadPage() {
             const page = this.contextPageRef;
-            return Boolean(page?.nodePageContent && page?.nodePagePath && !page?.isFailedPageContent?.(page.nodePageContent));
+            return Boolean(
+                page?.nodePageContent && page?.nodePagePath && !page?.isFailedPageContent?.(page.nodePageContent)
+            );
         },
         contextMenuCanCloseTabsRight() {
             return this.contextTabIndex >= 0 && this.contextTabIndex < this.tabs.length - 1;
