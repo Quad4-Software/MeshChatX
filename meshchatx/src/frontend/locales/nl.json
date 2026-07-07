@@ -1737,7 +1737,21 @@
         "bulk_add_to_favourites": "Toevoegen aan favorieten",
         "bulk_add_favourites_done": "{count} nodes toegevoegd aan favorieten",
         "bulk_block_nodes": "Verbannen",
-        "bulk_nothing_to_add_favourites": "Niets toe te voegen (al favoriet of geen selectie)"
+        "bulk_nothing_to_add_favourites": "Niets toe te voegen (al favoriet of geen selectie)",
+        "context_tabs": "Tabbladen",
+        "close_tabs_to_right": "Tabbladen rechts sluiten",
+        "close_other_tabs": "Andere tabbladen sluiten",
+        "close_all_tabs": "Alle tabbladen sluiten",
+        "download_page": "Pagina downloaden",
+        "download_page_started": "Paginadownload gestart",
+        "download_page_unavailable": "Geen pagina-inhoud beschikbaar om te downloaden",
+        "download_page_failed": "Pagina kon niet worden gedownload",
+        "view_source_unavailable": "Geen pagina geladen om broncode te bekijken",
+        "context_menu_page_unavailable": "Geen actieve pagina voor dit tabblad",
+        "context_menu_action_failed": "Contextmenu-actie mislukt",
+        "context_menu_favourite_failed": "Favoriet kon niet worden bijgewerkt",
+        "favourite_added": "Toegevoegd aan favorieten",
+        "favourite_removed": "Verwijderd uit favorieten"
     },
     "forwarder": {
         "title": "LXMF Forwarder",

@@ -1737,7 +1737,21 @@
         "bulk_add_to_favourites": "Lisää suosikiksi",
         "bulk_add_favourites_done": "Lisättiin {count} solmua suosikkeihin",
         "bulk_block_nodes": "Karkota",
-        "bulk_nothing_to_add_favourites": "Ei lisättävää (solmut jo suosikeissa tai mitään ei ole valittu)"
+        "bulk_nothing_to_add_favourites": "Ei lisättävää (solmut jo suosikeissa tai mitään ei ole valittu)",
+        "context_tabs": "Välilehdet",
+        "close_tabs_to_right": "Sulje välilehdet oikealta",
+        "close_other_tabs": "Sulje muut välilehdet",
+        "close_all_tabs": "Sulje kaikki välilehdet",
+        "download_page": "Lataa sivu",
+        "download_page_started": "Sivun lataus aloitettu",
+        "download_page_unavailable": "Ei sivun sisältöä ladattavaksi",
+        "download_page_failed": "Sivua ei voitu ladata",
+        "view_source_unavailable": "Ei ladattua sivua lähteen katsomiseen",
+        "context_menu_page_unavailable": "Ei aktiivista sivua tälle välilehdelle",
+        "context_menu_action_failed": "Kontekstivalikon toiminto epäonnistui",
+        "context_menu_favourite_failed": "Suosikkia ei voitu päivittää",
+        "favourite_added": "Lisätty suosikkeihin",
+        "favourite_removed": "Poistettu suosikeista"
     },
     "forwarder": {
         "title": "LXMF-välittäjä",

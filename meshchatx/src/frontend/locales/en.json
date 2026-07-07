@@ -1744,7 +1744,14 @@
         "close_all_tabs": "Close all tabs",
         "download_page": "Download page",
         "download_page_started": "Page download started",
-        "download_page_unavailable": "No page content available to download"
+        "download_page_unavailable": "No page content available to download",
+        "download_page_failed": "Could not download page",
+        "view_source_unavailable": "No page loaded to view source",
+        "context_menu_page_unavailable": "No active page for this tab",
+        "context_menu_action_failed": "Context menu action failed",
+        "context_menu_favourite_failed": "Could not update favourite",
+        "favourite_added": "Added to favourites",
+        "favourite_removed": "Removed from favourites"
     },
     "forwarder": {
         "title": "LXMF Forwarder",

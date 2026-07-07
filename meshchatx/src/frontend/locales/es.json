@@ -1737,7 +1737,21 @@
         "bulk_add_to_favourites": "Añadir a favoritos",
         "bulk_add_favourites_done": "Se añadieron {count} nodos a favoritos",
         "bulk_block_nodes": "Desterrar",
-        "bulk_nothing_to_add_favourites": "Nada que añadir (ya son favoritos o no hay selección)"
+        "bulk_nothing_to_add_favourites": "Nada que añadir (ya son favoritos o no hay selección)",
+        "context_tabs": "Pestañas",
+        "close_tabs_to_right": "Cerrar pestañas a la derecha",
+        "close_other_tabs": "Cerrar otras pestañas",
+        "close_all_tabs": "Cerrar todas las pestañas",
+        "download_page": "Descargar página",
+        "download_page_started": "Descarga de página iniciada",
+        "download_page_unavailable": "No hay contenido de página disponible para descargar",
+        "download_page_failed": "No se pudo descargar la página",
+        "view_source_unavailable": "No hay página cargada para ver el código fuente",
+        "context_menu_page_unavailable": "No hay página activa para esta pestaña",
+        "context_menu_action_failed": "Error en la acción del menú contextual",
+        "context_menu_favourite_failed": "No se pudo actualizar el favorito",
+        "favourite_added": "Añadido a favoritos",
+        "favourite_removed": "Eliminado de favoritos"
     },
     "forwarder": {
         "title": "LXMF Forwarder",
