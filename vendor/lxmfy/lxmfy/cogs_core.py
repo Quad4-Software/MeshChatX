@@ -9,12 +9,43 @@ import os
 import shutil
 import subprocess
 import sys
+from collections.abc import Callable
+from dataclasses import dataclass
 
 import RNS
 
 
-def _get_sandbox_command(bot, script_path):
-    """Determines the sandbox command to use for external cogs."""
+@dataclass
+class SandboxSetup:
+    """Sandbox configuration for an external cog subprocess."""
+
+    cmd_prefix: list[str] | None = None
+    preexec_fn: Callable[[], None] | None = None
+
+
+def _landlock_available(bot) -> bool:
+    from .landlock_sandbox import landlock_requested
+
+    return landlock_requested(bot.config.landlock_enabled)
+
+
+def _make_cog_landlock_preexec(bot, script_path: str) -> Callable[[], None]:
+    from .landlock_sandbox import apply_landlock_sandbox
+
+    script_dir = os.path.dirname(os.path.abspath(script_path))
+
+    def _preexec() -> None:
+        apply_landlock_sandbox(
+            extra_read_paths=[script_dir, script_path],
+            temp_only=True,
+            config_enabled=bot.config.landlock_enabled,
+        )
+
+    return _preexec
+
+
+def _get_sandbox_setup(bot, script_path: str) -> SandboxSetup | None:
+    """Determine sandbox settings for an external cog subprocess."""
     if not bot.config.external_cogs_sandbox_enabled:
         return None
 
@@ -23,13 +54,20 @@ def _get_sandbox_command(bot, script_path):
 
     sandbox_type = bot.config.external_cogs_sandbox_type.lower()
 
-    # Detect available tools
+    if sandbox_type == "none":
+        return None
+
+    if sandbox_type == "landlock" or (
+        sandbox_type == "auto" and _landlock_available(bot)
+    ):
+        if _landlock_available(bot):
+            return SandboxSetup(preexec_fn=_make_cog_landlock_preexec(bot, script_path))
+
     bwrap_path = shutil.which("bwrap")
     firejail_path = shutil.which("firejail")
 
     if sandbox_type == "bwrap" or (sandbox_type == "auto" and bwrap_path):
         if bwrap_path:
-            # Minimal bwrap sandbox
             cmd = [
                 bwrap_path,
                 "--unshare-all",
@@ -45,29 +83,40 @@ def _get_sandbox_command(bot, script_path):
                 "/usr",
             ]
 
-            # Handle merged-usr systems by creating symlinks if they are symlinks on host
             for path in ["/bin", "/lib", "/lib64", "/sbin"]:
                 if os.path.islink(path):
                     target = os.readlink(path)
-                    # If target is relative, we keep it relative, but bwrap --symlink takes (target, dest)
                     cmd.extend(["--symlink", target, path])
                 elif os.path.exists(path):
                     cmd.extend(["--ro-bind", path, path])
 
-            # Add /etc/alternatives for things like python/ruby symlinks
             if os.path.exists("/etc/alternatives"):
                 cmd.extend(["--ro-bind", "/etc/alternatives", "/etc/alternatives"])
 
-            # Bind the script itself
             cmd.extend(["--ro-bind", script_path, script_path])
-
-            return cmd
+            return SandboxSetup(cmd_prefix=cmd)
 
     if sandbox_type == "firejail" or (sandbox_type == "auto" and firejail_path):
         if firejail_path:
-            return [firejail_path, "--quiet", "--private", "--net=none", "--noprofile"]
+            return SandboxSetup(
+                cmd_prefix=[
+                    firejail_path,
+                    "--quiet",
+                    "--private",
+                    "--net=none",
+                    "--noprofile",
+                ],
+            )
 
     return None
+
+
+def _get_sandbox_command(bot, script_path):
+    """Determines the sandbox command prefix to use for external cogs."""
+    setup = _get_sandbox_setup(bot, script_path)
+    if setup is None:
+        return None
+    return setup.cmd_prefix
 
 
 def load_cogs_from_directory(bot, directory="cogs"):
@@ -125,25 +174,34 @@ def load_cogs_from_directory(bot, directory="cogs"):
                             if hasattr(msg, "args") and msg.args:
                                 script_args.extend([str(a) for a in msg.args])
 
-                            # Apply sandbox if enabled and available
-                            sandbox_cmd = _get_sandbox_command(bot, script_path)
-                            if sandbox_cmd:
-                                full_cmd = sandbox_cmd + [script_path] + script_args
-                            else:
-                                full_cmd = [script_path] + script_args
-
-                            # Determine timeout (0 or None means no timeout)
                             timeout = bot.config.external_cogs_timeout
                             if timeout <= 0:
                                 timeout = None
 
+                            # Apply sandbox if enabled and available
+                            sandbox_setup = _get_sandbox_setup(bot, script_path)
+                            if sandbox_setup and sandbox_setup.cmd_prefix:
+                                full_cmd = (
+                                    sandbox_setup.cmd_prefix
+                                    + [script_path]
+                                    + script_args
+                                )
+                            else:
+                                full_cmd = [script_path] + script_args
+
+                            run_kwargs: dict = {
+                                "capture_output": True,
+                                "text": True,
+                                "env": env,
+                                "check": True,
+                                "timeout": timeout,
+                            }
+                            if sandbox_setup and sandbox_setup.preexec_fn:
+                                run_kwargs["preexec_fn"] = sandbox_setup.preexec_fn
+
                             result = subprocess.run(  # noqa: S603
                                 full_cmd,
-                                capture_output=True,
-                                text=True,
-                                env=env,
-                                check=True,
-                                timeout=timeout,
+                                **run_kwargs,
                             )
                             if result.stdout.strip():
                                 msg.reply(result.stdout.strip())

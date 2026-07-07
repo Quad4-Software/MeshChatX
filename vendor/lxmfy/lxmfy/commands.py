@@ -4,9 +4,9 @@ This module provides the core command handling functionality for LXMFy bots,
 including command registration, method decoration, and cog support.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
-from .permissions import BasePermission, DefaultPerms
+from .permissions import DefaultPerms
 
 
 @dataclass
@@ -16,9 +16,9 @@ class CommandHelp:
     name: str
     description: str
     usage: str | None = None
-    examples: list[str] = None
+    examples: list[str] = field(default_factory=list)
     category: str | None = None
-    aliases: list[str] = None
+    aliases: list[str] = field(default_factory=list)
 
 
 class Command:
@@ -40,7 +40,7 @@ class Command:
         name,
         description="No description provided",
         admin_only=False,
-        permissions: BasePermission | None = None,
+        permissions: DefaultPerms | None = None,
         usage=None,
         examples=None,
         category=None,
@@ -102,6 +102,8 @@ class Command:
         """
         if obj is None:
             return self
+        if self.callback is None:
+            return self
         new_cmd = self.__class__(
             name=self.name,
             description=self.description,
@@ -156,7 +158,4 @@ class Cog:
 
     def has_permission(self, user: str, permission: DefaultPerms) -> bool:
         """Check if user has specific permission"""
-        if not self.enabled:  # If permissions are disabled, allow everything
-            return True
-        user_perms = self.get_user_permissions(user)
-        return bool(user_perms & permission)
+        return self.bot.permissions.has_permission(user, permission)

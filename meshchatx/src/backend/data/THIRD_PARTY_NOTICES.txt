@@ -43,7 +43,7 @@ idna 3.18
 lxmf 1.0.1
   License: Reticulum License
   Author: Mark Qvist
-lxmfy 1.6.2
+lxmfy 1.6.5
   License: BSD-0-Clause
   Author: Quad4 <team@quad4.io>
 lxst 0.4.8

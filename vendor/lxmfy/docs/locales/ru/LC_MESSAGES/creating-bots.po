@@ -1,18 +1,13 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) 2025, Ivan
-# This file is distributed under the same license as the LXMFy package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: LXMFy \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-11-20 17:21-0600\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
-"Language: \n"
+"POT-Creation-Date: 2026-07-04 17:25-0500\n"
+"PO-Revision-Date: 2026-07-04\n"
+"Last-Translator: \n"
+"Language-Team: Russian\n"
+"Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -60,17 +55,17 @@ msgstr ""
 #: ../../source/creating-bots.rst:78
 msgid ""
 "Running these commands creates a Python file (e.g., :code:`my_echo_bot.py`) "
-"that imports and runs the chosen template. You can then modify the generated "
-"file or the template code itself (:code:`lxmfy/templates/...`)."
+"that imports and runs the chosen template. You can then modify the generated"
+" file or the template code itself (:code:`lxmfy/templates/...`)."
 msgstr ""
-"Выполнение этих команд создает файл Python "
-"(например, :code:`my_echo_bot.py`), который импортирует и запускает "
-"выбранный шаблон. Затем вы можете изменить сгенерированный файл или сам код "
-"шаблона (:code:`lxmfy/templates/...`)."
+"Выполнение этих команд создает файл Python (например, "
+":code:`my_echo_bot.py`), который импортирует и запускает выбранный шаблон. "
+"Затем вы можете изменить сгенерированный файл или сам код шаблона "
+"(:code:`lxmfy/templates/...`)."
 
 #: ../../source/creating-bots.rst:80
-msgid "**Example generated file (:code:`my_meme_bot.py`):**"
-msgstr "**Пример сгенерированного файла (:code:`my_meme_bot.py`):**"
+msgid "**Example generated file (:code:`my_cog_test_bot.py`):**"
+msgstr "**Пример сгенерированного файла (:code:`my_cog_test_bot.py`):**"
 
 #: ../../source/creating-bots.rst:93
 msgid "Bot Configuration"
@@ -95,14 +90,14 @@ msgstr "Установка иконки бота (поле LXMF)"
 
 #: ../../source/creating-bots.rst:124
 msgid ""
-"You can give your bot a custom icon that appears in compatible LXMF clients. "
-"This uses the :code:`LXMF.FIELD_ICON_APPEARANCE` and can be set when sending "
-"messages."
+"You can give your bot a custom icon that appears in compatible LXMF clients."
+" This uses the :code:`LXMF.FIELD_ICON_APPEARANCE` and can be set when "
+"sending messages."
 msgstr ""
 "Вы можете присвоить своему боту пользовательскую иконку, которая будет "
-"отображаться в совместимых клиентах LXMF. Для этого "
-"используется :code:`LXMF.FIELD_ICON_APPEARANCE`, и ее можно установить при "
-"отправке сообщений."
+"отображаться в совместимых клиентах LXMF. Для этого используется "
+":code:`LXMF.FIELD_ICON_APPEARANCE`, и ее можно установить при отправке "
+"сообщений."
 
 #: ../../source/creating-bots.rst:126
 msgid "First, ensure you have the necessary imports:"
@@ -121,10 +116,75 @@ msgstr ""
 "использовать повторно для всех сообщений, отправляемых ботом."
 
 #: ../../source/creating-bots.rst:152
+msgid "Structured Commands via LXMF Fields"
+msgstr "Структурированные команды через поля LXMF"
+
+#: ../../source/creating-bots.rst:154
+msgid ""
+"In addition to text-based commands, LXMFy supports commands sent through "
+"LXMF message fields using ``FIELD_COMMANDS`` (``0x09``). This is useful for "
+"structured request/response workflows between LXMF clients and bots."
+msgstr ""
+"Помимо текстовых команд, LXMFy поддерживает команды, отправляемые через поля"
+" сообщений LXMF с использованием ``FIELD_COMMANDS`` (``0x09``). Это полезно "
+"для структурированных рабочих процессов запрос/ответ между клиентами LXMF и "
+"ботами."
+
+#: ../../source/creating-bots.rst:156
+msgid ""
+"When a message contains ``FIELD_COMMANDS``, the bot extracts the command "
+"name and arguments, routes them through the same command registry as text "
+"commands, and automatically includes ``FIELD_RESULTS`` (``0x0A``) in the "
+"reply."
+msgstr ""
+"Когда сообщение содержит ``FIELD_COMMANDS``, бот извлекает имя команды и "
+"аргументы, направляет их через тот же реестр команд, что и текстовые "
+"команды, и автоматически включает ``FIELD_RESULTS`` (``0x0A``) в ответ."
+
+#: ../../source/creating-bots.rst:158
+msgid "**Receiving structured commands**"
+msgstr "**Приём структурированных команд**"
+
+#: ../../source/creating-bots.rst:177
+msgid "The ``ctx`` object in field command callbacks includes:"
+msgstr "Объект ``ctx`` в обратных вызовах команд полей включает:"
+
+#: ../../source/creating-bots.rst:179
+msgid ""
+":code:`ctx.fields` — the raw LXMF fields dict from the incoming message"
+msgstr ""
+":code:`ctx.fields` — словарь необработанных полей LXMF из входящего "
+"сообщения"
+
+#: ../../source/creating-bots.rst:180
+msgid ""
+":code:`ctx.request_id` — the ``request_id`` from the incoming "
+"``FIELD_COMMANDS`` (if any)"
+msgstr ""
+":code:`ctx.request_id` — ``request_id`` из входящего ``FIELD_COMMANDS`` "
+"(если есть)"
+
+#: ../../source/creating-bots.rst:182
+msgid "**Sending a structured command from an LXMF client**"
+msgstr "**Отправка структурированной команды из клиента LXMF**"
+
+#: ../../source/creating-bots.rst:202
+msgid "**Disabling field commands**"
+msgstr "**Отключение команд полей**"
+
+#: ../../source/creating-bots.rst:204
+msgid ""
+"If you want the bot to ignore ``FIELD_COMMANDS`` and only process text "
+"commands, set:"
+msgstr ""
+"Если вы хотите, чтобы бот игнорировал ``FIELD_COMMANDS`` и обрабатывал "
+"только текстовые команды, установите:"
+
+#: ../../source/creating-bots.rst:214
 msgid "Using Cogs (Extensions)"
 msgstr "Использование модулей (расширений)"
 
-#: ../../source/creating-bots.rst:154
+#: ../../source/creating-bots.rst:216
 msgid ""
 "Cogs allow you to organize your commands and event listeners into separate "
 "files (modules), keeping your main bot file cleaner."
@@ -132,23 +192,23 @@ msgstr ""
 "Модули позволяют вам организовывать команды и прослушиватели событий в "
 "отдельные файлы (модули), сохраняя основной файл вашего бота в чистоте."
 
-#: ../../source/creating-bots.rst:156
+#: ../../source/creating-bots.rst:218
 msgid ""
-"**Create a :code:`cogs` directory** (or whatever you set :code:`cogs_dir` to "
-"in :code:`BotConfig`)."
+"**Create a :code:`cogs` directory** (or whatever you set :code:`cogs_dir` to"
+" in :code:`BotConfig`)."
 msgstr ""
 "**Создайте каталог :code:`cogs`** (или любое другое имя, которое вы указали "
 "для :code:`cogs_dir` в :code:`BotConfig`)."
 
-#: ../../source/creating-bots.rst:157
+#: ../../source/creating-bots.rst:219
 msgid ""
-"**Create Python files** inside the :code:`cogs` directory "
-"(e.g., :code:`utility.py`)."
+"**Create Python files** inside the :code:`cogs` directory (e.g., "
+":code:`utility.py`)."
 msgstr ""
-"**Создайте файлы Python** внутри каталога :code:`cogs` "
-"(например, :code:`utility.py`)."
+"**Создайте файлы Python** внутри каталога :code:`cogs` (например, "
+":code:`utility.py`)."
 
-#: ../../source/creating-bots.rst:158
+#: ../../source/creating-bots.rst:220
 msgid ""
 "**Define a class** that inherits from :code:`lxmfy.Cog` (optional but good "
 "practice) or is just a standard class."
@@ -156,15 +216,15 @@ msgstr ""
 "**Определите класс**, который наследуется от :code:`lxmfy.Cog` "
 "(необязательно, но рекомендуется) или является просто стандартным классом."
 
-#: ../../source/creating-bots.rst:159
+#: ../../source/creating-bots.rst:221
 msgid ""
 "**Define commands** as methods within the class using the :code:`@Command` "
 "decorator."
 msgstr ""
-"**Определите команды** как методы внутри класса с помощью "
-"декоратора :code:`@Command`."
+"**Определите команды** как методы внутри класса с помощью декоратора "
+":code:`@Command`."
 
-#: ../../source/creating-bots.rst:160
+#: ../../source/creating-bots.rst:222
 msgid ""
 "**Create a :code:`setup(bot)` function** in the cog file, which LXMFy will "
 "call to register the cog."
@@ -172,92 +232,357 @@ msgstr ""
 "**Создайте функцию :code:`setup(bot)`** в файле модуля, которую LXMFy "
 "вызовет для регистрации модуля."
 
-#: ../../source/creating-bots.rst:162
+#: ../../source/creating-bots.rst:224
 msgid "**Example (:code:`cogs/utility.py`):**"
 msgstr "**Пример (:code:`cogs/utility.py`):**"
 
-#: ../../source/creating-bots.rst:200
+#: ../../source/creating-bots.rst:263
 msgid "**Main Bot File (:code:`my_bot.py`):**"
 msgstr "**Основной файл бота (:code:`my_bot.py`):**"
 
-#: ../../source/creating-bots.rst:217
+#: ../../source/creating-bots.rst:280
 msgid ""
-"When the bot starts, it will automatically find :code:`utility.py`, call "
-"its :code:`setup` function, which creates an instance of :code:`UtilityCog` "
-"and registers it using :code:`bot.add_cog()`. The commands defined in the "
-"cog (:code:`uptime`, :code:`info`) will then be available."
+"When the bot starts, it will automatically find :code:`utility.py`, call its"
+" :code:`setup` function, which creates an instance of :code:`UtilityCog` and"
+" registers it using :code:`bot.add_cog()`. The commands defined in the cog "
+"(:code:`uptime`, :code:`info`) will then be available."
 msgstr ""
 "Когда бот запустится, он автоматически найдет :code:`utility.py`, вызовет "
 "его функцию :code:`setup`, которая создаст экземпляр :code:`UtilityCog` и "
 "зарегистрирует его с помощью :code:`bot.add_cog()`. После этого станут "
 "доступны команды, определенные в модуле (:code:`uptime`, :code:`info`)."
 
-#: ../../source/creating-bots.rst:220
-#, fuzzy
-msgid "Handling Messages"
-msgstr "Обработка событий"
-
-#: ../../source/creating-bots.rst:222
-msgid ""
-"LXMFy provides several ways to handle incoming messages at different stages "
-"of processing."
-msgstr "LXMFy предоставляет несколько способов обработки входящих сообщений на разных этапах."
-
-#: ../../source/creating-bots.rst:225
-msgid "First Message Handler"
-msgstr "Обработчик первого сообщения"
-
-#: ../../source/creating-bots.rst:227
-msgid ""
-"Handle the first message from each new user (useful for welcome messages):"
-msgstr "Обработка первого сообщения от каждого нового пользователя (полезно для приветственных сообщений):"
-
-#: ../../source/creating-bots.rst:252
-msgid "General Message Handler"
-msgstr "Общий обработчик сообщений"
-
-#: ../../source/creating-bots.rst:254
-msgid "Handle all incoming messages before command processing:"
-msgstr "Обработка всех входящих сообщений перед обработкой команд:"
-
 #: ../../source/creating-bots.rst:283
-msgid "Message Handler Processing Order:"
-msgstr "Порядок обработки обработчиков сообщений:"
+msgid "External Script Cogs (Multi-Language Support)"
+msgstr "Внешние скриптовые модули (поддержка нескольких языков)"
 
 #: ../../source/creating-bots.rst:285
 msgid ""
-"**First Message Handler** (if :code:`first_message_enabled=True` and this is "
-"first message from sender)"
-msgstr "**Обработчик первого сообщения** (если :code:`first_message_enabled=True` и это первое сообщение от отправителя)"
-
-#: ../../source/creating-bots.rst:286
-msgid ""
-"**General Message Handlers** (registered with :code:`@bot.on_message()`)"
-msgstr "**Общие обработчики сообщений** (зарегистрированные с помощью :code:`@bot.on_message()`)"
+"You can also write bot extensions in languages other than Python (e.g., "
+"Bash, Ruby, Perl, Go, C) using External Script Cogs."
+msgstr ""
+"Вы также можете писать расширения бота на языках, отличных от Python "
+"(например, Bash, Ruby, Perl, Go, C), используя внешние скриптовые модули."
 
 #: ../../source/creating-bots.rst:287
-msgid "**Command Processing** (if message matches a registered command)"
-msgstr "**Обработка команд** (если сообщение соответствует зарегистрированной команде)"
+msgid "**Create an executable script** in your :code:`cogs` directory."
+msgstr "**Создайте исполняемый скрипт** в каталоге :code:`cogs`."
+
+#: ../../source/creating-bots.rst:288
+msgid ""
+"**Add a shebang** at the top of the script (e.g., :code:`#!/bin/bash`)."
+msgstr ""
+"**Добавьте shebang** в начало скрипта (например, :code:`#!/bin/bash`)."
 
 #: ../../source/creating-bots.rst:289
-msgid ""
-"Handlers can return :code:`True` to stop further processing or :code:`False` "
-"to continue to the next stage."
-msgstr "Обработчики могут возвращать :code:`True` для прекращения дальнейшей обработки или :code:`False` для перехода к следующему этапу."
+msgid "**Ensure the script is executable** (:code:`chmod +x your_script`)."
+msgstr "**Убедитесь, что скрипт исполняемый** (:code:`chmod +x your_script`)."
 
-#: ../../source/creating-bots.rst:292
+#: ../../source/creating-bots.rst:291
+msgid ""
+"When the bot starts, it will automatically register any executable file in "
+"the :code:`cogs` directory (that doesn't end in :code:`.py`) as a bot "
+"command."
+msgstr ""
+"При запуске бот автоматически зарегистрирует любой исполняемый файл в "
+"каталоге :code:`cogs` (не заканчивающийся на :code:`.py`) как команду бота."
+
+#: ../../source/creating-bots.rst:293
+msgid "**Argument Protocol:**"
+msgstr "**Протокол аргументов:**"
+
+#: ../../source/creating-bots.rst:295
+msgid ":code:`$1`: Sender's LXMF hash."
+msgstr ":code:`$1`: хэш LXMF отправителя."
+
+#: ../../source/creating-bots.rst:296
+msgid ":code:`$2`: Full message content."
+msgstr ":code:`$2`: полное содержимое сообщения."
+
+#: ../../source/creating-bots.rst:297
+msgid ":code:`$3`, :code:`$4`, ...: Individual command arguments."
+msgstr ":code:`$3`, :code:`$4`, ...: отдельные аргументы команды."
+
+#: ../../source/creating-bots.rst:299
+msgid "**Environment Variables:**"
+msgstr "**Переменные окружения:**"
+
+#: ../../source/creating-bots.rst:301
+msgid ":code:`LXMFY_SENDER`: The sender's identity hash."
+msgstr ":code:`LXMFY_SENDER`: хэш идентификатора отправителя."
+
+#: ../../source/creating-bots.rst:302
+msgid ":code:`LXMFY_CONTENT`: The full message content."
+msgstr ":code:`LXMFY_CONTENT`: полное содержимое сообщения."
+
+#: ../../source/creating-bots.rst:303
+msgid ""
+":code:`LXMFY_HAS_ADMIN`: :code:`true` or :code:`false` depending on the "
+"sender's admin status."
+msgstr ""
+":code:`LXMFY_HAS_ADMIN`: :code:`true` или :code:`false` в зависимости от "
+"статуса администратора отправителя."
+
+#: ../../source/creating-bots.rst:305
+msgid "**Example Bash Cog (:code:`cogs/greet.sh`):**"
+msgstr "**Пример Bash-модуля (:code:`cogs/greet.sh`):**"
+
+#: ../../source/creating-bots.rst:312
+msgid ""
+"When a user sends :code:`/greet hello`, the bot will execute this script and"
+" reply with its stdout: :code:`Hello from Bash! You sent: /greet hello`."
+msgstr ""
+"Когда пользователь отправляет :code:`/greet hello`, бот выполнит этот скрипт"
+" и ответит его stdout: :code:`Hello from Bash! You sent: /greet hello`."
+
+#: ../../source/creating-bots.rst:315
+msgid "Sovereign NLP (Local Intent Classification)"
+msgstr "Sovereign NLP (локальная классификация намерений)"
+
+#: ../../source/creating-bots.rst:317
+msgid ""
+"LXMFy includes a built-in, lightweight NLP engine for intent classification."
+" This allows your bot to understand the \"intent\" of a message even if it "
+"doesn't match a command exactly."
+msgstr ""
+"LXMFy включает встроенный лёгкий NLP-движок для классификации намерений. Это"
+" позволяет боту понимать «намерение» сообщения, даже если оно не совпадает с"
+" командой точно."
+
+#: ../../source/creating-bots.rst:319
+msgid "**Enable NLP** in your bot configuration: :code:`nlp_enabled=True`."
+msgstr "**Включите NLP** в конфигурации бота: :code:`nlp_enabled=True`."
+
+#: ../../source/creating-bots.rst:320
+msgid "**Define intents** using the :code:`@bot.intent` decorator."
+msgstr "**Определите намерения** с помощью декоратора :code:`@bot.intent`."
+
+#: ../../source/creating-bots.rst:328
+msgid ""
+"The NLP engine uses mathematical vector similarity (TF-IDF and Cosine "
+"Similarity) to match incoming text against your example phrases. This "
+"processing happens entirely locally on your machine, ensuring full privacy."
+msgstr ""
+"NLP-движок использует математическое векторное сходство (TF-IDF и косинусное"
+" сходство) для сопоставления входящего текста с вашими примерами фраз. Эта "
+"обработка выполняется полностью локально на вашей машине, обеспечивая полную"
+" конфиденциальность."
+
+#: ../../source/creating-bots.rst:330
+msgid "**Persistence and Extensibility:**"
+msgstr "**Сохранение и расширяемость:**"
+
+#: ../../source/creating-bots.rst:332
+msgid ""
+"For larger bots, you can export and import the trained intent model to avoid"
+" retraining on every startup:"
+msgstr ""
+"Для крупных ботов вы можете экспортировать и импортировать обученную модель "
+"намерений, чтобы избежать переобучения при каждом запуске:"
+
+#: ../../source/creating-bots.rst:344
+msgid "RNS Link Support"
+msgstr "Поддержка RNS Link"
+
+#: ../../source/creating-bots.rst:346
+msgid ""
+"Bots can now establish and respond to direct RNS Links. This is useful for "
+"stateful, streaming, or high-bandwidth communication that goes beyond simple"
+" message packets."
+msgstr ""
+"Боты теперь могут устанавливать и отвечать на прямые RNS Link. Это полезно "
+"для состоятельной, потоковой или высокопропускной связи, выходящей за рамки "
+"простых пакетов сообщений."
+
+#: ../../source/creating-bots.rst:348
+msgid ""
+"**Enable Link Support** in configuration: :code:`link_support_enabled=True`."
+msgstr ""
+"**Включите поддержку Link** в конфигурации: "
+":code:`link_support_enabled=True`."
+
+#: ../../source/creating-bots.rst:349
+msgid ""
+"**Request a link**: :code:`bot.request_link(destination_hash)`. You can also"
+" specify a custom app name and aspects: :code:`bot.request_link(dest, "
+"callback, \"my_app\", \"aspect1\")`."
+msgstr ""
+"**Запросите link**: :code:`bot.request_link(destination_hash)`. Вы также "
+"можете указать пользовательское имя приложения и аспекты: "
+":code:`bot.request_link(dest, callback, \"my_app\", \"aspect1\")`."
+
+#: ../../source/creating-bots.rst:350
+msgid ""
+"**Handle incoming links**: Register a callback with "
+":code:`bot.on_link(handler)`."
+msgstr ""
+"**Обрабатывайте входящие link**: зарегистрируйте обратный вызов с помощью "
+":code:`bot.on_link(handler)`."
+
+#: ../../source/creating-bots.rst:360
+msgid "**Safety & Sandboxing:**"
+msgstr "**Безопасность и песочница:**"
+
+#: ../../source/creating-bots.rst:362
+msgid ""
+"**Timeouts:** External cogs have a default timeout (30s) to prevent hanging."
+" This is configurable via :code:`external_cogs_timeout`."
+msgstr ""
+"**Таймауты:** внешние модули имеют таймаут по умолчанию (30 с) для "
+"предотвращения зависания. Настраивается через :code:`external_cogs_timeout`."
+
+#: ../../source/creating-bots.rst:363
+msgid ""
+"**Threading:** All external cogs run in separate threads and do not block "
+"the bot."
+msgstr ""
+"**Многопоточность:** все внешние модули выполняются в отдельных потоках и не"
+" блокируют бота."
+
+#: ../../source/creating-bots.rst:364
+msgid ""
+"**Bot process sandbox (Linux only):** When :code:`landlock_enabled=True` "
+"(default) and the kernel supports Landlock LSM (5.13+), the bot applies a "
+"filesystem sandbox to its own process after startup. Writable paths are "
+"limited to storage, config, cogs, Reticulum config, and temp directories. "
+"Override with the environment variable :code:`LXMFY_LANDLOCK=0` to disable "
+"or :code:`LXMFY_LANDLOCK=1` to force an attempt."
+msgstr ""
+"**Песочница процесса бота (только Linux):** при "
+":code:`landlock_enabled=True` (по умолчанию) и поддержке Landlock LSM ядром "
+"(5.13+) бот применяет файловую песочницу к своему процессу после запуска. "
+"Записываемые пути ограничены каталогами storage, config, cogs, конфигурации "
+"Reticulum и временными каталогами. Переопределите переменной окружения "
+":code:`LXMFY_LANDLOCK=0` для отключения или :code:`LXMFY_LANDLOCK=1` для "
+"принудительной попытки."
+
+#: ../../source/creating-bots.rst:365
+msgid ""
+"**External cog sandbox (Linux only):** When "
+":code:`external_cogs_sandbox_enabled=True` (default), executable script cogs"
+" run inside a restricted environment. Set :code:`external_cogs_sandbox_type`"
+" to one of:"
+msgstr ""
+"**Песочница внешних модулей (только Linux):** при "
+":code:`external_cogs_sandbox_enabled=True` (по умолчанию) исполняемые "
+"скриптовые модули выполняются в ограниченной среде. Установите "
+":code:`external_cogs_sandbox_type` в одно из значений:"
+
+#: ../../source/creating-bots.rst:367
+msgid ""
+":code:`auto` (default): prefer Landlock when supported, otherwise "
+":code:`bubblewrap` (:code:`bwrap`), otherwise :code:`firejail`"
+msgstr ""
+":code:`auto` (по умолчанию): предпочитать Landlock при поддержке, иначе "
+":code:`bubblewrap` (:code:`bwrap`), иначе :code:`firejail`"
+
+#: ../../source/creating-bots.rst:368
+msgid ""
+":code:`landlock`: Landlock-only sandbox via :code:`preexec_fn` (narrower "
+"rules than the bot process sandbox)"
+msgstr ""
+":code:`landlock`: песочница только на Landlock через :code:`preexec_fn` "
+"(более узкие правила, чем у песочницы процесса бота)"
+
+#: ../../source/creating-bots.rst:369
+msgid ":code:`bwrap`: bubblewrap read-only bind sandbox"
+msgstr ":code:`bwrap`: песочница bubblewrap с привязкой только для чтения"
+
+#: ../../source/creating-bots.rst:370
+msgid ":code:`firejail`: firejail private profile with no network"
+msgstr ":code:`firejail`: приватный профиль firejail без сети"
+
+#: ../../source/creating-bots.rst:371
+msgid ":code:`none`: no subprocess sandbox"
+msgstr ":code:`none`: без песочницы подпроцессов"
+
+#: ../../source/creating-bots.rst:373
+msgid ""
+"**Status:** Call :code:`bot.get_landlock_status()` to inspect kernel "
+"support, whether Landlock was requested, and whether the bot process sandbox"
+" is active."
+msgstr ""
+"**Статус:** вызовите :code:`bot.get_landlock_status()` для проверки "
+"поддержки ядром, был ли запрошен Landlock и активна ли песочница процесса "
+"бота."
+
+#: ../../source/creating-bots.rst:376
+msgid "Handling Messages"
+msgstr "Обработка сообщений"
+
+#: ../../source/creating-bots.rst:378
+msgid ""
+"LXMFy provides several ways to handle incoming messages at different stages "
+"of processing."
+msgstr ""
+"LXMFy предоставляет несколько способов обработки входящих сообщений на "
+"разных этапах."
+
+#: ../../source/creating-bots.rst:381
+msgid "First Message Handler"
+msgstr "Обработчик первого сообщения"
+
+#: ../../source/creating-bots.rst:383
+msgid ""
+"Handle the first message from each new user (useful for welcome messages):"
+msgstr ""
+"Обработка первого сообщения от каждого нового пользователя (полезно для "
+"приветственных сообщений):"
+
+#: ../../source/creating-bots.rst:408
+msgid "General Message Handler"
+msgstr "Общий обработчик сообщений"
+
+#: ../../source/creating-bots.rst:410
+msgid "Handle all incoming messages before command processing:"
+msgstr "Обработка всех входящих сообщений перед обработкой команд:"
+
+#: ../../source/creating-bots.rst:439
+msgid "Message Handler Processing Order:"
+msgstr "Порядок обработки обработчиков сообщений:"
+
+#: ../../source/creating-bots.rst:441
+msgid ""
+"**First Message Handler** (if :code:`first_message_enabled=True` and this is"
+" first message from sender)"
+msgstr ""
+"**Обработчик первого сообщения** (если :code:`first_message_enabled=True` и "
+"это первое сообщение от отправителя)"
+
+#: ../../source/creating-bots.rst:442
+msgid ""
+"**General Message Handlers** (registered with :code:`@bot.on_message()`)"
+msgstr ""
+"**Общие обработчики сообщений** (зарегистрированные с помощью "
+":code:`@bot.on_message()`)"
+
+#: ../../source/creating-bots.rst:443
+msgid "**Command Processing** (if message matches a registered command)"
+msgstr ""
+"**Обработка команд** (если сообщение соответствует зарегистрированной "
+"команде)"
+
+#: ../../source/creating-bots.rst:445
+msgid ""
+"Handlers can return :code:`True` to stop further processing or :code:`False`"
+" to continue to the next stage."
+msgstr ""
+"Обработчики могут возвращать :code:`True` для прекращения дальнейшей "
+"обработки или :code:`False` для перехода к следующему этапу."
+
+#: ../../source/creating-bots.rst:448
 msgid "Handling Events"
 msgstr "Обработка событий"
 
-#: ../../source/creating-bots.rst:294
+#: ../../source/creating-bots.rst:450
 msgid ""
-"You can register handlers for various bot events using "
-"the :code:`@bot.events.on()` decorator."
+"You can register handlers for various bot events using the "
+":code:`@bot.events.on()` decorator."
 msgstr ""
 "Вы можете регистрировать обработчики для различных событий бота с помощью "
 "декоратора :code:`@bot.events.on()`."
 
-#: ../../source/creating-bots.rst:337
+#: ../../source/creating-bots.rst:493
 msgid ""
 "See :code:`lxmfy/events.py` for more details on the :code:`Event` structure "
 "and priorities."
@@ -265,273 +590,266 @@ msgstr ""
 "См. :code:`lxmfy/events.py` для получения дополнительной информации о "
 "структуре и приоритетах :code:`Event`."
 
-#: ../../source/creating-bots.rst:340
+#: ../../source/creating-bots.rst:496
 msgid "Storage"
 msgstr "Хранилище"
 
-#: ../../source/creating-bots.rst:342
-msgid "LXMFy provides JSON and SQLite storage backends."
-msgstr ""
-"LXMFy предоставляет бэкенды для хранения данных в форматах JSON и SQLite."
+#: ../../source/creating-bots.rst:498
+msgid "LXMFy provides JSON, SQLite, and In-Memory storage backends."
+msgstr "LXMFy предоставляет бэкенды хранения JSON, SQLite и In-Memory."
 
-#: ../../source/creating-bots.rst:344
+#: ../../source/creating-bots.rst:500
 msgid ""
-"**JSON:** Simple, human-readable. Good for small datasets. Configure "
-"with :code:`storage_type=\"json\"` "
-"and :code:`storage_path=\"your_data_dir\"`."
+"**JSON:** Simple, human-readable. Good for small datasets. Configure with "
+":code:`storage_type=\"json\"` and :code:`storage_path=\"your_data_dir\"`."
 msgstr ""
 "**JSON:** Простой, человекочитаемый формат. Подходит для небольших наборов "
-"данных. Настраивается с помощью :code:`storage_type=\"json\"` "
-"и :code:`storage_path=\"your_data_dir\"`."
+"данных. Настраивается с помощью :code:`storage_type=\"json\"` и "
+":code:`storage_path=\"your_data_dir\"`."
 
-#: ../../source/creating-bots.rst:345
+#: ../../source/creating-bots.rst:501
 msgid ""
-"**SQLite:** More efficient for larger datasets or frequent writes. Configure "
-"with :code:`storage_type=\"sqlite\"` "
-"and :code:`storage_path=\"your_db_file.db\"`."
+"**SQLite:** More efficient for larger datasets or frequent writes. Configure"
+" with :code:`storage_type=\"sqlite\"` and "
+":code:`storage_path=\"your_db_file.db\"`."
 msgstr ""
 "**SQLite:** Более эффективен для больших наборов данных или частых записей. "
-"Настраивается с помощью :code:`storage_type=\"sqlite\"` "
-"и :code:`storage_path=\"your_db_file.db\"`."
+"Настраивается с помощью :code:`storage_type=\"sqlite\"` и "
+":code:`storage_path=\"your_db_file.db\"`."
 
-#: ../../source/creating-bots.rst:347
+#: ../../source/creating-bots.rst:502
+msgid ""
+"**Memory:** Entirely in-RAM storage. State is lost on shutdown. Configure "
+"with :code:`storage_type=\"memory\"`."
+msgstr ""
+"**Memory:** полностью в оперативной памяти. Состояние теряется при "
+"завершении работы. Настраивается с помощью :code:`storage_type=\"memory\"`."
+
+#: ../../source/creating-bots.rst:504
 msgid "You can access the storage interface via :code:`bot.storage`:"
 msgstr ""
 "Вы можете получить доступ к интерфейсу хранилища через :code:`bot.storage`:"
 
-#: ../../source/creating-bots.rst:371
+#: ../../source/creating-bots.rst:528
 msgid "See :code:`lxmfy/storage.py` and the API reference for more details."
 msgstr ""
 "См. :code:`lxmfy/storage.py` и справочник по API для получения "
 "дополнительной информации."
 
-#: ../../source/creating-bots.rst:374
+#: ../../source/creating-bots.rst:531
 msgid "Permissions"
 msgstr "Разрешения"
 
-#: ../../source/creating-bots.rst:376
+#: ../../source/creating-bots.rst:533
 msgid ""
-"LXMFy includes an optional role-based permission system. Enable it "
-"with :code:`permissions_enabled=True` during :code:`LXMFBot` initialization."
+"LXMFy includes an optional role-based permission system. Enable it with "
+":code:`permissions_enabled=True` during :code:`LXMFBot` initialization."
 msgstr ""
 "LXMFy включает дополнительную систему разрешений на основе ролей. Включите "
-"ее с помощью :code:`permissions_enabled=True` во время "
-"инициализации :code:`LXMFBot`."
+"ее с помощью :code:`permissions_enabled=True` во время инициализации "
+":code:`LXMFBot`."
 
-#: ../../source/creating-bots.rst:378
+#: ../../source/creating-bots.rst:535
 msgid ""
-"**Roles:** Define roles with specific permissions "
-"(e.g., :code:`DefaultPerms.MANAGE_USERS`)."
+"**Roles:** Define roles with specific permissions (e.g., "
+":code:`DefaultPerms.MANAGE_USERS`)."
 msgstr ""
-"**Роли:** Определите роли с определенными разрешениями "
-"(например, :code:`DefaultPerms.MANAGE_USERS`)."
+"**Роли:** Определите роли с определенными разрешениями (например, "
+":code:`DefaultPerms.MANAGE_USERS`)."
 
-#: ../../source/creating-bots.rst:379
+#: ../../source/creating-bots.rst:536
 msgid ""
-"**Permissions:** Granular flags defined in :code:`DefaultPerms` "
-"(e.g., :code:`USE_COMMANDS`, :code:`BYPASS_SPAM`)."
+"**Permissions:** Granular flags defined in :code:`DefaultPerms` (e.g., "
+":code:`USE_COMMANDS`, :code:`BYPASS_SPAM`)."
 msgstr ""
 "**Разрешения:** Детальные флаги, определенные в :code:`DefaultPerms` "
 "(например, :code:`USE_COMMANDS`, :code:`BYPASS_SPAM`)."
 
-#: ../../source/creating-bots.rst:380
+#: ../../source/creating-bots.rst:537
 msgid "**Assignment:** Assign roles to user hashes."
 msgstr "**Назначение:** Назначьте роли хэшам пользователей."
 
-#: ../../source/creating-bots.rst:382
+#: ../../source/creating-bots.rst:539
 msgid ""
-"See :code:`lxmfy/permissions.py`, the API reference, and potentially example "
-"cogs (if any are created) for usage details."
+"See :code:`lxmfy/permissions.py`, the API reference, and potentially example"
+" cogs (if any are created) for usage details."
 msgstr ""
-"Подробности использования см. в :code:`lxmfy/permissions.py`, справочнике по "
-"API и, возможно, в примерах модулей (если они есть)."
+"Подробности использования см. в :code:`lxmfy/permissions.py`, справочнике по"
+" API и, возможно, в примерах модулей (если они есть)."
 
-#: ../../source/creating-bots.rst:385
+#: ../../source/creating-bots.rst:542
 msgid "Signature Verification"
 msgstr "Проверка подписи"
 
-#: ../../source/creating-bots.rst:387
+#: ../../source/creating-bots.rst:544
 msgid ""
 "LXMFy provides configuration for LXMF's built-in cryptographic message "
 "signing and verification. All LXMF messages are automatically signed by the "
 "LXMF/RNS stack - LXMFy simply allows you to enforce signature verification "
 "policies."
 msgstr ""
+"LXMFy предоставляет конфигурацию для встроенной в LXMF криптографической "
+"подписи и проверки сообщений. Все сообщения LXMF автоматически подписываются"
+" стеком LXMF/RNS — LXMFy позволяет применять политики проверки подписи."
 
-#: ../../source/creating-bots.rst:389
-#, fuzzy
+#: ../../source/creating-bots.rst:546
 msgid "**Configuration:**"
 msgstr "**Конфигурация:**"
 
-#: ../../source/creating-bots.rst:391
+#: ../../source/creating-bots.rst:548
 msgid "Enable signature verification in your bot configuration:"
 msgstr "Включите проверку подписи в конфигурации вашего бота:"
 
-#: ../../source/creating-bots.rst:401
+#: ../../source/creating-bots.rst:558
 msgid "**How It Works:**"
 msgstr "**Как это работает:**"
 
-#: ../../source/creating-bots.rst:403
+#: ../../source/creating-bots.rst:560
 msgid "LXMF automatically handles all cryptographic operations:"
-msgstr ""
+msgstr "LXMF автоматически обрабатывает все криптографические операции:"
 
-#: ../../source/creating-bots.rst:405
-#, fuzzy
+#: ../../source/creating-bots.rst:562
 msgid ""
 "**Outgoing Messages:** LXMF automatically signs all messages using the "
 "sender's RNS identity during message packing."
 msgstr ""
-"**Входящие сообщения:** Бот проверяет подписи на входящих сообщениях, "
-"используя идентификатор RNS отправителя."
+"**Исходящие сообщения:** LXMF автоматически подписывает все сообщения, "
+"используя идентификатор RNS отправителя при упаковке сообщения."
 
-#: ../../source/creating-bots.rst:407
-#, fuzzy
+#: ../../source/creating-bots.rst:564
 msgid ""
 "**Incoming Messages:** LXMF automatically validates signatures using the "
 "sender's RNS identity and provides validation results."
 msgstr ""
-"**Входящие сообщения:** Бот проверяет подписи на входящих сообщениях, "
-"используя идентификатор RNS отправителя."
+"**Входящие сообщения:** LXMF автоматически проверяет подписи, используя "
+"идентификатор RNS отправителя, и предоставляет результаты проверки."
 
-#: ../../source/creating-bots.rst:409
+#: ../../source/creating-bots.rst:566
 msgid ""
 "**LXMFy's Role:** LXMFy checks LXMF's validation results and enforces your "
 "policy:"
-msgstr "**Роль LXMFy:** LXMFy проверяет результаты проверки LXMF и применяет вашу политику:"
+msgstr ""
+"**Роль LXMFy:** LXMFy проверяет результаты проверки LXMF и применяет вашу "
+"политику:"
 
-#: ../../source/creating-bots.rst:411
+#: ../../source/creating-bots.rst:568
 msgid ""
 "If :code:`signature_verification_enabled=False`: All messages are accepted "
 "(default)"
-msgstr "Если :code:`signature_verification_enabled=False`: все сообщения принимаются (по умолчанию)"
+msgstr ""
+"Если :code:`signature_verification_enabled=False`: все сообщения принимаются"
+" (по умолчанию)"
 
-#: ../../source/creating-bots.rst:412
+#: ../../source/creating-bots.rst:569
 msgid ""
-"If :code:`signature_verification_enabled=True` "
-"and :code:`require_message_signatures=False`: Messages are accepted but "
+"If :code:`signature_verification_enabled=True` and "
+":code:`require_message_signatures=False`: Messages are accepted but "
 "unsigned/invalid signatures are logged"
-msgstr "Если :code:`signature_verification_enabled=True` и :code:`require_message_signatures=False`: сообщения принимаются, но неподписанные/недействительные подписи регистрируются"
+msgstr ""
+"Если :code:`signature_verification_enabled=True` и "
+":code:`require_message_signatures=False`: сообщения принимаются, но "
+"неподписанные/недействительные подписи регистрируются"
 
-#: ../../source/creating-bots.rst:413
+#: ../../source/creating-bots.rst:570
 msgid ""
-"If :code:`signature_verification_enabled=True` "
-"and :code:`require_message_signatures=True`: Unsigned or invalid messages "
-"are rejected"
-msgstr "Если :code:`signature_verification_enabled=True` и :code:`require_message_signatures=True`: неподписанные или недействительные сообщения отклоняются"
+"If :code:`signature_verification_enabled=True` and "
+":code:`require_message_signatures=True`: Unsigned or invalid messages are "
+"rejected"
+msgstr ""
+"Если :code:`signature_verification_enabled=True` и "
+":code:`require_message_signatures=True`: неподписанные или недействительные "
+"сообщения отклоняются"
 
-#: ../../source/creating-bots.rst:415
-#, fuzzy
+#: ../../source/creating-bots.rst:572
 msgid ""
 "**Permission Integration:** Users with :code:`BYPASS_SPAM` permission can "
 "bypass signature verification requirements."
-msgstr "**Интеграция с разрешениями:** Пользователи с разрешением :code:`BYPASS_SPAM` могут обходить требования проверки подписи."
+msgstr ""
+"**Интеграция с разрешениями:** Пользователи с разрешением "
+":code:`BYPASS_SPAM` могут обходить требования проверки подписи."
 
-#: ../../source/creating-bots.rst:417
+#: ../../source/creating-bots.rst:574
 msgid "**CLI Management:**"
 msgstr "**Управление через CLI:**"
 
-#: ../../source/creating-bots.rst:419
+#: ../../source/creating-bots.rst:576
 msgid "You can manage signature verification settings using the CLI:"
 msgstr "Вы можете управлять настройками проверки подписи с помощью CLI:"
 
-#: ../../source/creating-bots.rst:432
+#: ../../source/creating-bots.rst:589
 msgid "**Technical Details:**"
 msgstr "**Технические детали:**"
 
-#: ../../source/creating-bots.rst:434
+#: ../../source/creating-bots.rst:591
 msgid ""
 "LXMF uses Ed25519 signatures provided by the RNS cryptography system. Every "
 "LXMF message includes the sender's signature, which is validated against "
-"their known RNS identity. LXMFy simply reads "
-"LXMF's :code:`message.signature_validated` property "
-"and :code:`message.unverified_reason` to enforce your bot's security policy."
-msgstr "LXMF использует подписи Ed25519, предоставляемые криптографической системой RNS. Каждое сообщение LXMF включает подпись отправителя, которая проверяется по его известному идентификатору RNS. LXMFy просто считывает свойства LXMF :code:`message.signature_validated` и :code:`message.unverified_reason` для применения политики безопасности вашего бота."
+"their known RNS identity. LXMFy simply reads LXMF's "
+":code:`message.signature_validated` property and "
+":code:`message.unverified_reason` to enforce your bot's security policy."
+msgstr ""
+"LXMF использует подписи Ed25519, предоставляемые криптографической системой "
+"RNS. Каждое сообщение LXMF включает подпись отправителя, которая проверяется"
+" по его известному идентификатору RNS. LXMFy просто считывает свойства LXMF "
+":code:`message.signature_validated` и :code:`message.unverified_reason` для "
+"применения политики безопасности вашего бота."
 
-#: ../../source/creating-bots.rst:437
+#: ../../source/creating-bots.rst:594
 msgid "Advanced Message Delivery"
 msgstr "Расширенная доставка сообщений"
 
-#: ../../source/creating-bots.rst:439
+#: ../../source/creating-bots.rst:596
 msgid ""
 "LXMFy supports advanced message delivery options for improved reliability."
-msgstr "LXMFy поддерживает расширенные параметры доставки сообщений для повышения надежности."
+msgstr ""
+"LXMFy поддерживает расширенные параметры доставки сообщений для повышения "
+"надежности."
 
-#: ../../source/creating-bots.rst:442
+#: ../../source/creating-bots.rst:599
 msgid "Using Propagation Nodes"
 msgstr "Использование узлов распространения"
 
-#: ../../source/creating-bots.rst:444
+#: ../../source/creating-bots.rst:601
 msgid "Send messages through specific LXMF propagation nodes:"
 msgstr "Отправляйте сообщения через определенные узлы распространения LXMF:"
 
-#: ../../source/creating-bots.rst:461
+#: ../../source/creating-bots.rst:620
 msgid ""
 "Propagation nodes are useful when direct delivery is not possible or when "
 "you want to ensure message delivery through the Reticulum mesh network."
-msgstr "Узлы распространения полезны, когда прямая доставка невозможна или когда вы хотите обеспечить доставку сообщений через ячеистую сеть Reticulum."
+msgstr ""
+"Узлы распространения полезны, когда прямая доставка невозможна или когда вы "
+"хотите обеспечить доставку сообщений через ячеистую сеть Reticulum."
 
-#: ../../source/creating-bots.rst:464
+#: ../../source/creating-bots.rst:623
 msgid "Configuring Retries"
 msgstr "Настройка повторных попыток"
 
-#: ../../source/creating-bots.rst:466
-msgid "Configure automatic retry attempts for failed message deliveries:"
-msgstr "Настройте автоматические повторные попытки для неудачных доставок сообщений:"
+#: ../../source/creating-bots.rst:625
+msgid ""
+"Configure automatic retry attempts for failed message deliveries via bot "
+"config:"
+msgstr ""
+"Настройте автоматические повторные попытки для неудачных доставок сообщений "
+"через конфигурацию бота:"
 
-#: ../../source/creating-bots.rst:488
+#: ../../source/creating-bots.rst:648
 msgid "The retry system:"
 msgstr "Система повторных попыток:"
 
-#: ../../source/creating-bots.rst:490
+#: ../../source/creating-bots.rst:650
 msgid "Automatically tracks delivery attempts per destination"
 msgstr "Автоматически отслеживает попытки доставки для каждого получателя"
 
-#: ../../source/creating-bots.rst:491
-msgid "Retries failed deliveries up to the specified :code:`max_retries`"
-msgstr "Повторяет неудачные доставки до указанного :code:`max_retries`"
+#: ../../source/creating-bots.rst:651
+msgid "Retries failed direct deliveries up to :code:`direct_delivery_retries`"
+msgstr ""
+"Повторяет неудачные прямые доставки до :code:`direct_delivery_retries`"
 
-#: ../../source/creating-bots.rst:492
+#: ../../source/creating-bots.rst:652
 msgid "Resets the retry counter on successful delivery"
 msgstr "Сбрасывает счетчик повторных попыток при успешной доставке"
 
-#: ../../source/creating-bots.rst:493
+#: ../../source/creating-bots.rst:653
 msgid "Logs retry attempts and failures for debugging"
 msgstr "Регистрирует попытки повтора и сбои для отладки"
-
-#~ msgid ""
-#~ "LXMFy supports cryptographic message signing and verification for "
-#~ "enhanced security. When enabled, the bot will verify that incoming "
-#~ "messages are signed with valid RNS identities."
-#~ msgstr ""
-#~ "LXMFy поддерживает криптографическую подпись и проверку сообщений для "
-#~ "повышения безопасности. Когда эта функция включена, бот будет проверять, "
-#~ "что входящие сообщения подписаны действительными идентификаторами RNS."
-
-#~ msgid ""
-#~ "**Outgoing Messages:** When signature verification is enabled, all "
-#~ "outgoing messages are automatically signed using the bot's RNS identity."
-#~ msgstr ""
-#~ "**Исходящие сообщения:** Когда проверка подписи включена, все исходящие "
-#~ "сообщения автоматически подписываются с использованием идентификатора RNS "
-#~ "бота."
-
-#~ msgid ""
-#~ "**Unsigned Messages:** If :code:`require_message_signatures=True`, "
-#~ "unsigned messages are rejected. Otherwise, they're accepted but logged."
-#~ msgstr ""
-#~ "**Неподписанные сообщения:** Если "
-#~ "установлено :code:`require_message_signatures=True`, неподписанные "
-#~ "сообщения отклоняются. В противном случае они принимаются, но "
-#~ "регистрируются."
-
-#~ msgid "**Signature Fields:**"
-#~ msgstr "**Поля подписи:**"
-
-#~ msgid ""
-#~ "Signatures are stored in LXMF field :code:`0xFA`. The message "
-#~ "canonicalization process ensures consistent signing by ordering message "
-#~ "components deterministically."
-#~ msgstr ""
-#~ "Подписи хранятся в поле LXMF :code:`0xFA`. Процесс канонизации сообщения "
-#~ "обеспечивает последовательную подпись путем детерминированного "
-#~ "упорядочивания компонентов сообщения."

@@ -392,7 +392,7 @@ if __name__ == "__main__":
         raise RuntimeError(f"Failed to create bot from template: {e!s}") from e
 
 
-def is_safe_path(path: str, base_path: str = None) -> bool:
+def is_safe_path(path: str, base_path: str | None = None) -> bool:
     """Checks if a path is safe and within the allowed directory.
 
     Args:

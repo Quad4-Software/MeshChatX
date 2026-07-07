@@ -361,7 +361,16 @@ Bots can now establish and respond to direct RNS Links. This is useful for state
 
 -   **Timeouts:** External cogs have a default timeout (30s) to prevent hanging. This is configurable via :code:`external_cogs_timeout`.
 -   **Threading:** All external cogs run in separate threads and do not block the bot.
--   **Sandboxing (Linux only):** If :code:`bubblewrap` (:code:`bwrap`) or :code:`firejail` is installed, the bot can automatically run scripts in a restricted, read-only sandbox. This is enabled by default via :code:`external_cogs_sandbox_enabled`.
+-   **Bot process sandbox (Linux only):** When :code:`landlock_enabled=True` (default) and the kernel supports Landlock LSM (5.13+), the bot applies a filesystem sandbox to its own process after startup. Writable paths are limited to storage, config, cogs, Reticulum config, and temp directories. Override with the environment variable :code:`LXMFY_LANDLOCK=0` to disable or :code:`LXMFY_LANDLOCK=1` to force an attempt.
+-   **External cog sandbox (Linux only):** When :code:`external_cogs_sandbox_enabled=True` (default), executable script cogs run inside a restricted environment. Set :code:`external_cogs_sandbox_type` to one of:
+    
+    -   :code:`auto` (default): prefer Landlock when supported, otherwise :code:`bubblewrap` (:code:`bwrap`), otherwise :code:`firejail`
+    -   :code:`landlock`: Landlock-only sandbox via :code:`preexec_fn` (narrower rules than the bot process sandbox)
+    -   :code:`bwrap`: bubblewrap read-only bind sandbox
+    -   :code:`firejail`: firejail private profile with no network
+    -   :code:`none`: no subprocess sandbox
+
+-   **Status:** Call :code:`bot.get_landlock_status()` to inspect kernel support, whether Landlock was requested, and whether the bot process sandbox is active.
 
 Handling Messages
 -----------------

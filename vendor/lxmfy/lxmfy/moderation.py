@@ -72,7 +72,7 @@ class SpamProtection:
         self.storage.set("spam:banned_users", list(self.banned_users))
         self.storage.set("spam:warning_times", dict(self.warning_times))
 
-    def check_spam(self, sender) -> tuple[bool, str]:
+    def check_spam(self, sender) -> tuple[bool, str | None]:
         """Check if a message from the sender should be allowed.
 
         Args:

@@ -41,7 +41,13 @@ def serialize_value(obj: Any) -> Any:
             "destination_hash": RNS.hexrep(obj.destination_hash, delimit=False),
             "content": base64.b64encode(obj.content).decode() if obj.content else None,
             "title": obj.title,
-            "timestamp": obj.timestamp.isoformat() if obj.timestamp else None,
+            "timestamp": (
+                obj.timestamp.isoformat()
+                if isinstance(obj.timestamp, datetime)
+                else str(obj.timestamp)
+                if obj.timestamp is not None
+                else None
+            ),
         }
 
         if hasattr(obj, "fields") and obj.fields:

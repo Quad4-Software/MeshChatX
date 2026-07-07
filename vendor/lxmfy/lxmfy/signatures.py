@@ -66,7 +66,7 @@ class SignatureManager:
         message,
         signature: bytes,
         sender_hash: str,
-        sender_identity: RNS.Identity = None,
+        sender_identity: RNS.Identity | None = None,
     ) -> bool:
         """Verify a message signature against a sender identity.
 
@@ -96,6 +96,8 @@ class SignatureManager:
                 pin_key = f"pin:{sender_hash}"
                 pinned_pub_key = self.bot.storage.get(pin_key)
                 current_pub_key = identity_to_use.get_public_key()
+                if current_pub_key is None:
+                    return False
 
                 is_mock = False
                 try:

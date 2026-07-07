@@ -72,7 +72,7 @@ class MiddlewareManager:
         self.message_tracker = MessageTracker()
         self.logger = logging.getLogger(__name__)
 
-    def register(self, middleware_type: MiddlewareType, func: Callable = None):
+    def register(self, middleware_type: MiddlewareType, func: Callable | None = None):
         """Register a middleware function"""
         if func is None:
             # Decorator usage: @middleware.register(MiddlewareType.PRE_COMMAND)
