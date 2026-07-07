@@ -106,6 +106,15 @@ export default {
         NomadBrowserContextMenu,
         MaterialDesignIcon,
     },
+    provide() {
+        return {
+            nomadBrowserTabActions: {
+                openContextMenu: this.openPageContextMenu,
+                closeContextMenu: this.closeContextMenu,
+                getContextTabId: () => this.contextMenu.tabId ?? this.activeTabId,
+            },
+        };
+    },
     props: {
         destinationHash: {
             type: String,
@@ -130,15 +139,6 @@ export default {
                 x: 0,
                 y: 0,
                 tabId: null,
-            },
-        };
-    },
-    provide() {
-        return {
-            nomadBrowserTabActions: {
-                openContextMenu: this.openPageContextMenu,
-                closeContextMenu: this.closeContextMenu,
-                getContextTabId: () => this.contextMenu.tabId ?? this.activeTabId,
             },
         };
     },

@@ -632,6 +632,11 @@ export default {
         DropDownMenuItem,
         VTooltip,
     },
+    inject: {
+        nomadBrowserTabActions: {
+            default: null,
+        },
+    },
     props: {
         destinationHash: {
             type: String,
@@ -653,11 +658,6 @@ export default {
         },
     },
     emits: ["navigate", "open-node", "close-tab"],
-    inject: {
-        nomadBrowserTabActions: {
-            default: null,
-        },
-    },
     data() {
         return {
             GlobalState,
