@@ -11002,7 +11002,9 @@ class ReticulumMeshChat:
                     reader = await request.multipart()
                     field = await reader.next()
                     if field is None:
-                        return web.json_response({"message": "No plugin archive provided"}, status=400)
+                        return web.json_response(
+                            {"message": "No plugin archive provided"}, status=400
+                        )
                     payload = await field.read()
                     plugin = await asyncio.to_thread(
                         self.plugin_manager.install_from_zip_bytes, payload
@@ -11010,8 +11012,12 @@ class ReticulumMeshChat:
                     return web.json_response(plugin)
                 data = await request.read()
                 if not data:
-                    return web.json_response({"message": "No plugin archive provided"}, status=400)
-                plugin = await asyncio.to_thread(self.plugin_manager.install_from_zip_bytes, data)
+                    return web.json_response(
+                        {"message": "No plugin archive provided"}, status=400
+                    )
+                plugin = await asyncio.to_thread(
+                    self.plugin_manager.install_from_zip_bytes, data
+                )
                 return web.json_response(plugin)
             except Exception as e:
                 return web.json_response({"message": str(e)}, status=400)
@@ -11059,7 +11065,9 @@ class ReticulumMeshChat:
             if not method:
                 return web.json_response({"message": "method is required"}, status=400)
             try:
-                result = await asyncio.to_thread(self.plugin_manager.invoke, plugin_id, method, args)
+                result = await asyncio.to_thread(
+                    self.plugin_manager.invoke, plugin_id, method, args
+                )
                 return web.json_response({"result": result})
             except KeyError:
                 return web.json_response({"message": "Plugin not found"}, status=404)

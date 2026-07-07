@@ -29,7 +29,9 @@ def _reset_async_utils():
         AsyncUtils._pending_futures.clear()
         AsyncUtils._pending_coroutines.clear()
     if AsyncUtils._background_loop and AsyncUtils._background_loop.is_running():
-        AsyncUtils._background_loop.call_soon_threadsafe(AsyncUtils._background_loop.stop)
+        AsyncUtils._background_loop.call_soon_threadsafe(
+            AsyncUtils._background_loop.stop
+        )
     AsyncUtils._background_loop = None
     AsyncUtils._background_thread = None
     AsyncUtils._background_ready.clear()

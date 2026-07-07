@@ -5,8 +5,6 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from meshchatx.meshchat import ReticulumMeshChat
-
 
 @pytest.fixture
 def flood_app(mock_app):

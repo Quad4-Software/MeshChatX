@@ -45,10 +45,13 @@ def test_repair_unparseable_reticulum_config_rewrites_file(tmp_path):
         with open(path, "w", encoding="utf-8") as handle:
             handle.write("[reticulum]\n[interfaces]\nfixed = true\n")
 
-    assert guard.repair_unparseable_reticulum_config(
-        str(config_path),
-        write_default=write_default,
-    ) is True
+    assert (
+        guard.repair_unparseable_reticulum_config(
+            str(config_path),
+            write_default=write_default,
+        )
+        is True
+    )
     assert written == [str(config_path)]
     assert "fixed = true" in config_path.read_text(encoding="utf-8")
 
@@ -64,7 +67,12 @@ share_instance = False
         encoding="utf-8",
     )
 
-    assert guard.repair_unparseable_reticulum_config(
-        str(config_path),
-        write_default=lambda _path: (_ for _ in ()).throw(AssertionError("should not write")),
-    ) is False
+    assert (
+        guard.repair_unparseable_reticulum_config(
+            str(config_path),
+            write_default=lambda _path: (_ for _ in ()).throw(
+                AssertionError("should not write")
+            ),
+        )
+        is False
+    )
