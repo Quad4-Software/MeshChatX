@@ -1,9 +1,7 @@
 {
     "version": 1,
     "default_language": "en",
-    "languages": [
-        { "code": "en", "name": "English" }
-    ],
+    "languages": [{ "code": "en", "name": "English" }],
     "sections": [
         {
             "id": "overview",
