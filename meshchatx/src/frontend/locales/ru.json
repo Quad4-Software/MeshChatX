@@ -1625,7 +1625,21 @@
         "bulk_add_to_favourites": "В избранное",
         "bulk_add_favourites_done": "Добавлено узлов в избранное: {count}",
         "bulk_block_nodes": "Изгнать",
-        "bulk_nothing_to_add_favourites": "Нечего добавлять (уже в избранном или нет выбора)"
+        "bulk_nothing_to_add_favourites": "Нечего добавлять (уже в избранном или нет выбора)",
+        "context_tabs": "Вкладки",
+        "close_tabs_to_right": "Закрыть вкладки справа",
+        "close_other_tabs": "Закрыть другие вкладки",
+        "close_all_tabs": "Закрыть все вкладки",
+        "download_page": "Скачать страницу",
+        "download_page_started": "Загрузка страницы начата",
+        "download_page_unavailable": "Нет содержимого страницы для загрузки",
+        "download_page_failed": "Не удалось скачать страницу",
+        "view_source_unavailable": "Нет загруженной страницы для просмотра исходника",
+        "context_menu_page_unavailable": "Нет активной страницы для этой вкладки",
+        "context_menu_action_failed": "Не удалось выполнить действие контекстного меню",
+        "context_menu_favourite_failed": "Не удалось обновить избранное",
+        "favourite_added": "Добавлено в избранное",
+        "favourite_removed": "Удалено из избранного"
     },
     "forwarder": {
         "title": "LXMF Форвардер",

@@ -16,6 +16,16 @@ vi.mock("@/components/nomadnetwork/NomadNetworkPage.vue", () => ({
 }));
 
 import NomadNetworkBrowser from "@/components/nomadnetwork/NomadNetworkBrowser.vue";
+import ToastUtils from "@/js/ToastUtils";
+
+vi.mock("@/js/ToastUtils", () => ({
+    default: {
+        success: vi.fn(),
+        error: vi.fn(),
+        warning: vi.fn(),
+        info: vi.fn(),
+    },
+}));
 
 const MaterialDesignIconStub = {
     name: "MaterialDesignIcon",
@@ -46,6 +56,7 @@ describe("NomadNetworkBrowser.vue", () => {
     beforeEach(() => {
         localStorage.clear();
         routerReplace = undefined;
+        vi.clearAllMocks();
     });
 
     it("creates a single tab on mount", () => {
@@ -363,5 +374,50 @@ describe("NomadNetworkBrowser.vue", () => {
         wrapper.vm.closeAllTabs();
         expect(wrapper.vm.tabs).toHaveLength(1);
         expect(wrapper.vm.tabs[0].destinationHash).toBe("");
+    });
+
+    describe("context menu", () => {
+        it("openTabContextMenu selects tab and shows menu", () => {
+            const wrapper = mountBrowser();
+            wrapper.vm.addTab("a".repeat(32), null, "Tab A");
+            const tab = wrapper.vm.tabs[1];
+            wrapper.vm.openTabContextMenu({ clientX: 12, clientY: 34 }, tab);
+            expect(wrapper.vm.activeTabId).toBe(tab.id);
+            expect(wrapper.vm.contextMenu.show).toBe(true);
+            expect(wrapper.vm.contextMenu.tabId).toBe(tab.id);
+            expect(wrapper.vm.contextMenu.x).toBe(12);
+            expect(wrapper.vm.contextMenu.y).toBe(34);
+        });
+
+        it("runContextPageAction warns when page ref is missing", async () => {
+            const wrapper = mountBrowser();
+            wrapper.vm.contextMenu.show = true;
+            await wrapper.vm.runContextPageAction(() => Promise.resolve());
+            expect(ToastUtils.warning).toHaveBeenCalledWith("nomadnet.context_menu_page_unavailable");
+            expect(wrapper.vm.contextMenu.show).toBe(false);
+        });
+
+        it("runContextPageAction surfaces unexpected errors", async () => {
+            const wrapper = mountBrowser();
+            const tabId = wrapper.vm.tabs[0].id;
+            wrapper.vm.pageRefs[tabId] = {
+                reloadNodePage: vi.fn().mockRejectedValue(new Error("boom")),
+            };
+            wrapper.vm.contextMenu.tabId = tabId;
+            await wrapper.vm.runContextPageAction((page) => page.reloadNodePage());
+            expect(ToastUtils.error).toHaveBeenCalledWith("nomadnet.context_menu_action_failed");
+            expect(wrapper.vm.contextMenu.show).toBe(false);
+        });
+
+        it("onContextFavorite delegates to page toggleFavouriteFromContext", async () => {
+            const wrapper = mountBrowser();
+            const tabId = wrapper.vm.tabs[0].id;
+            const toggleFavouriteFromContext = vi.fn().mockResolvedValue(true);
+            wrapper.vm.pageRefs[tabId] = { toggleFavouriteFromContext };
+            wrapper.vm.contextMenu.tabId = tabId;
+            await wrapper.vm.onContextFavorite();
+            expect(toggleFavouriteFromContext).toHaveBeenCalledOnce();
+            expect(wrapper.vm.contextMenu.show).toBe(false);
+        });
     });
 });

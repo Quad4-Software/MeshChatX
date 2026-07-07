@@ -11,6 +11,16 @@ vi.mock("vuetify/components/VTooltip", () => ({
 }));
 
 import NomadNetworkPage from "@/components/nomadnetwork/NomadNetworkPage.vue";
+import ToastUtils from "@/js/ToastUtils";
+
+vi.mock("@/js/ToastUtils", () => ({
+    default: {
+        success: vi.fn(),
+        error: vi.fn(),
+        warning: vi.fn(),
+        info: vi.fn(),
+    },
+}));
 
 vi.mock("@/js/WebSocketConnection", () => ({
     default: {
@@ -30,6 +40,7 @@ describe("NomadNetworkPage.vue", () => {
             delete: vi.fn(),
         };
         window.api = axiosMock;
+        vi.clearAllMocks();
 
         axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/favourites") return Promise.resolve({ data: { favourites: [] } });
@@ -511,8 +522,14 @@ describe("NomadNetworkPage.vue", () => {
             wrapper.vm.selectedNode = { destination_hash: "a".repeat(32), display_name: "Node" };
             wrapper.vm.nodePagePath = `${"a".repeat(32)}:/page/index.mu`;
             wrapper.vm.isShowingNodePageSource = false;
-            wrapper.vm.showPageSource();
+            expect(wrapper.vm.showPageSource()).toBe(true);
             expect(wrapper.vm.isShowingNodePageSource).toBe(true);
+        });
+
+        it("showPageSource warns when no page path is loaded", () => {
+            const wrapper = mountNomadNetworkPage();
+            expect(wrapper.vm.showPageSource()).toBe(false);
+            expect(ToastUtils.warning).toHaveBeenCalledWith("nomadnet.view_source_unavailable");
         });
 
         it("downloadPageToDisk saves current page content", async () => {
@@ -522,9 +539,73 @@ describe("NomadNetworkPage.vue", () => {
             wrapper.vm.selectedNode = { destination_hash: "a".repeat(32), display_name: "Node" };
             wrapper.vm.nodePagePath = `${"a".repeat(32)}:/page/index.mu`;
             wrapper.vm.nodePageContent = "Hello Nomad";
-            await wrapper.vm.downloadPageToDisk();
+            expect(await wrapper.vm.downloadPageToDisk()).toBe(true);
             expect(downloadFile).toHaveBeenCalledWith("index.mu", expect.any(Blob));
+            expect(ToastUtils.success).toHaveBeenCalledWith("nomadnet.download_page_started");
             downloadFile.mockRestore();
+        });
+
+        it("downloadPageToDisk warns when page content is unavailable", async () => {
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.nodePagePath = `${"a".repeat(32)}:/page/index.mu`;
+            wrapper.vm.nodePageContent = null;
+            expect(await wrapper.vm.downloadPageToDisk()).toBe(false);
+            expect(ToastUtils.warning).toHaveBeenCalledWith("nomadnet.download_page_unavailable");
+        });
+
+        it("downloadPageToDisk reports download failures", async () => {
+            const DownloadUtils = (await import("@/js/DownloadUtils")).default;
+            const downloadFile = vi.spyOn(DownloadUtils, "downloadFile").mockRejectedValue(new Error("disk full"));
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.nodePagePath = `${"a".repeat(32)}:/page/index.mu`;
+            wrapper.vm.nodePageContent = "Hello Nomad";
+            expect(await wrapper.vm.downloadPageToDisk()).toBe(false);
+            expect(ToastUtils.error).toHaveBeenCalledWith("nomadnet.download_page_failed");
+            downloadFile.mockRestore();
+        });
+
+        it("toggleFavouriteFromContext adds favourite and toasts success", async () => {
+            axiosMock.post.mockResolvedValueOnce({ data: {} });
+            axiosMock.get.mockResolvedValueOnce({ data: { favourites: [] } });
+            const wrapper = mountNomadNetworkPage();
+            const node = { destination_hash: "a".repeat(32), display_name: "Node" };
+            wrapper.vm.selectedNode = node;
+            wrapper.vm.favourites = [];
+            expect(await wrapper.vm.toggleFavouriteFromContext()).toBe(true);
+            expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/favourites/add", {
+                destination_hash: node.destination_hash,
+                display_name: node.display_name,
+                aspect: "nomadnetwork.node",
+            });
+            expect(ToastUtils.success).toHaveBeenCalledWith("nomadnet.favourite_added");
+        });
+
+        it("toggleFavouriteFromContext reports API failures", async () => {
+            axiosMock.post.mockRejectedValueOnce(new Error("network"));
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.selectedNode = { destination_hash: "a".repeat(32), display_name: "Node" };
+            wrapper.vm.favourites = [];
+            expect(await wrapper.vm.toggleFavouriteFromContext()).toBe(false);
+            expect(ToastUtils.error).toHaveBeenCalledWith("nomadnet.context_menu_favourite_failed");
+        });
+
+        it("onPageContextMenu delegates to browser tab actions when embedded", () => {
+            const openContextMenu = vi.fn();
+            const wrapper = mountNomadNetworkPage({ destinationHash: "", embedded: true });
+            wrapper.vm.nomadBrowserTabActions = { openContextMenu };
+            const event = { clientX: 4, clientY: 8 };
+            wrapper.vm.onPageContextMenu(event);
+            expect(openContextMenu).toHaveBeenCalledWith(event);
+        });
+
+        it("runStandaloneContextAction closes menu after failures", async () => {
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.standaloneContextMenu.show = true;
+            await wrapper.vm.runStandaloneContextAction(() => {
+                throw new Error("boom");
+            });
+            expect(ToastUtils.error).toHaveBeenCalledWith("nomadnet.context_menu_action_failed");
+            expect(wrapper.vm.standaloneContextMenu.show).toBe(false);
         });
     });
 });

@@ -1520,30 +1520,28 @@ export default {
             );
         },
         async addFavourite(node) {
-            // add to favourites
             try {
                 await window.api.post("/api/v1/favourites/add", {
                     destination_hash: node.destination_hash,
                     display_name: node.display_name,
                     aspect: "nomadnetwork.node",
                 });
+                await this.getFavourites();
+                return true;
             } catch (e) {
                 console.log(e);
+                return false;
             }
-
-            // update favourites
-            this.getFavourites();
         },
         async removeFavourite(node) {
-            // remove from favourites
             try {
                 await window.api.delete(`/api/v1/favourites/${node.destination_hash}`);
+                await this.getFavourites();
+                return true;
             } catch (e) {
                 console.log(e);
+                return false;
             }
-
-            // update favourites
-            this.getFavourites();
         },
         async onBulkRemoveFavourites(hashes) {
             if (!Array.isArray(hashes) || hashes.length === 0) {
@@ -1987,32 +1985,49 @@ export default {
         },
         showPageSource() {
             if (!this.nodePagePath) {
-                return;
+                ToastUtils.warning(this.$t("nomadnet.view_source_unavailable"));
+                return false;
             }
             this.isShowingNodePageSource = true;
+            return true;
         },
         async toggleFavouriteFromContext() {
             if (!this.selectedNode?.destination_hash) {
-                return;
+                ToastUtils.warning(this.$t("nomadnet.context_menu_page_unavailable"));
+                return false;
             }
-            if (this.isFavourite(this.selectedNode.destination_hash)) {
-                await this.removeFavourite(this.selectedNode);
-                return;
+            const wasFavourite = this.isFavourite(this.selectedNode.destination_hash);
+            const ok = wasFavourite
+                ? await this.removeFavourite(this.selectedNode)
+                : await this.addFavourite(this.selectedNode);
+            if (!ok) {
+                ToastUtils.error(this.$t("nomadnet.context_menu_favourite_failed"));
+                return false;
             }
-            await this.addFavourite(this.selectedNode);
+            ToastUtils.success(
+                wasFavourite ? this.$t("nomadnet.favourite_removed") : this.$t("nomadnet.favourite_added")
+            );
+            return true;
         },
         async downloadPageToDisk() {
             if (!this.nodePageContent || !this.nodePagePath || this.isFailedPageContent(this.nodePageContent)) {
                 ToastUtils.warning(this.$t("nomadnet.download_page_unavailable"));
-                return;
+                return false;
             }
             const parsed = this.parseNomadnetworkUrl(this.nodePagePath);
             const pathPart = parsed?.pagePath || this.nodePagePath;
             const segments = String(pathPart).split("/").filter(Boolean);
             const filename = segments.length > 0 ? segments[segments.length - 1] : "nomad-page.txt";
-            const blob = new Blob([this.nodePageContent], { type: "text/plain;charset=utf-8" });
-            await DownloadUtils.downloadFile(filename, blob);
-            ToastUtils.success(this.$t("nomadnet.download_page_started"));
+            try {
+                const blob = new Blob([this.nodePageContent], { type: "text/plain;charset=utf-8" });
+                await DownloadUtils.downloadFile(filename, blob);
+                ToastUtils.success(this.$t("nomadnet.download_page_started"));
+                return true;
+            } catch (error) {
+                console.error("nomad page download failed", error);
+                ToastUtils.error(this.$t("nomadnet.download_page_failed"));
+                return false;
+            }
         },
         onPageContextMenu(event) {
             if (this.embedded && this.nomadBrowserTabActions) {
@@ -2035,21 +2050,27 @@ export default {
         closeStandaloneContextMenu() {
             this.standaloneContextMenu.show = false;
         },
+        async runStandaloneContextAction(actionFn) {
+            try {
+                await actionFn();
+            } catch (error) {
+                console.error("nomad page context menu action failed", error);
+                ToastUtils.error(this.$t("nomadnet.context_menu_action_failed"));
+            } finally {
+                this.closeStandaloneContextMenu();
+            }
+        },
         onStandaloneContextViewSource() {
-            this.showPageSource();
-            this.closeStandaloneContextMenu();
+            this.runStandaloneContextAction(() => this.showPageSource());
         },
-        async onStandaloneContextReload() {
-            await this.reloadNodePage();
-            this.closeStandaloneContextMenu();
+        onStandaloneContextReload() {
+            this.runStandaloneContextAction(() => this.reloadNodePage());
         },
-        async onStandaloneContextFavorite() {
-            await this.toggleFavouriteFromContext();
-            this.closeStandaloneContextMenu();
+        onStandaloneContextFavorite() {
+            this.runStandaloneContextAction(() => this.toggleFavouriteFromContext());
         },
-        async onStandaloneContextDownloadPage() {
-            await this.downloadPageToDisk();
-            this.closeStandaloneContextMenu();
+        onStandaloneContextDownloadPage() {
+            this.runStandaloneContextAction(() => this.downloadPageToDisk());
         },
         async reloadNodePage() {
             // reload current node page without adding to history and without using cache

@@ -1737,7 +1737,21 @@
         "bulk_add_to_favourites": "加入收藏",
         "bulk_add_favourites_done": "已将 {count} 个节点加入收藏",
         "bulk_block_nodes": "移出",
-        "bulk_nothing_to_add_favourites": "无需添加（已在收藏或未选择）"
+        "bulk_nothing_to_add_favourites": "无需添加（已在收藏或未选择）",
+        "context_tabs": "标签页",
+        "close_tabs_to_right": "关闭右侧标签页",
+        "close_other_tabs": "关闭其他标签页",
+        "close_all_tabs": "关闭所有标签页",
+        "download_page": "下载页面",
+        "download_page_started": "已开始下载页面",
+        "download_page_unavailable": "没有可下载的页面内容",
+        "download_page_failed": "无法下载页面",
+        "view_source_unavailable": "未加载页面，无法查看源代码",
+        "context_menu_page_unavailable": "此标签页没有活动页面",
+        "context_menu_action_failed": "上下文菜单操作失败",
+        "context_menu_favourite_failed": "无法更新收藏",
+        "favourite_added": "已添加到收藏",
+        "favourite_removed": "已从收藏中移除"
     },
     "forwarder": {
         "title": "LXMF 转发器",

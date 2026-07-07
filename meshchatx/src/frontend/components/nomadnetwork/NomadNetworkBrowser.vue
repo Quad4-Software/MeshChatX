@@ -98,6 +98,7 @@ import GlobalState from "../../js/GlobalState";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import { loadNomadTabs, saveNomadTabs } from "../../js/browserLayoutStore";
 import LinkUtils from "../../js/LinkUtils";
+import ToastUtils from "../../js/ToastUtils";
 
 export default {
     name: "NomadNetworkBrowser",
@@ -605,21 +606,33 @@ export default {
         closeContextMenu() {
             this.contextMenu.show = false;
         },
+        async runContextPageAction(actionFn) {
+            const page = this.contextPageRef;
+            if (!page) {
+                ToastUtils.warning(this.$t("nomadnet.context_menu_page_unavailable"));
+                this.closeContextMenu();
+                return;
+            }
+            try {
+                await actionFn(page);
+            } catch (error) {
+                console.error("nomad browser context menu action failed", error);
+                ToastUtils.error(this.$t("nomadnet.context_menu_action_failed"));
+            } finally {
+                this.closeContextMenu();
+            }
+        },
         onContextViewSource() {
-            this.contextPageRef?.showPageSource?.();
-            this.closeContextMenu();
+            this.runContextPageAction((page) => page.showPageSource());
         },
-        async onContextReload() {
-            await this.contextPageRef?.reloadNodePage?.();
-            this.closeContextMenu();
+        onContextReload() {
+            this.runContextPageAction((page) => page.reloadNodePage());
         },
-        async onContextFavorite() {
-            await this.contextPageRef?.toggleFavouriteFromContext?.();
-            this.closeContextMenu();
+        onContextFavorite() {
+            this.runContextPageAction((page) => page.toggleFavouriteFromContext());
         },
-        async onContextDownloadPage() {
-            await this.contextPageRef?.downloadPageToDisk?.();
-            this.closeContextMenu();
+        onContextDownloadPage() {
+            this.runContextPageAction((page) => page.downloadPageToDisk());
         },
         onContextCloseTabsRight() {
             const tabId = this.contextMenu.tabId ?? this.activeTabId;

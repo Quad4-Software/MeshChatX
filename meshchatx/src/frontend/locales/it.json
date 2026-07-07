@@ -1789,7 +1789,21 @@
         "bulk_add_to_favourites": "Aggiungi ai preferiti",
         "bulk_add_favourites_done": "Aggiunti {count} nodi ai preferiti",
         "bulk_block_nodes": "Bandisci",
-        "bulk_nothing_to_add_favourites": "Niente da aggiungere (già preferiti o nessuna selezione)"
+        "bulk_nothing_to_add_favourites": "Niente da aggiungere (già preferiti o nessuna selezione)",
+        "context_tabs": "Schede",
+        "close_tabs_to_right": "Chiudi schede a destra",
+        "close_other_tabs": "Chiudi altre schede",
+        "close_all_tabs": "Chiudi tutte le schede",
+        "download_page": "Scarica pagina",
+        "download_page_started": "Download della pagina avviato",
+        "download_page_unavailable": "Nessun contenuto di pagina disponibile per il download",
+        "download_page_failed": "Impossibile scaricare la pagina",
+        "view_source_unavailable": "Nessuna pagina caricata per visualizzare il sorgente",
+        "context_menu_page_unavailable": "Nessuna pagina attiva per questa scheda",
+        "context_menu_action_failed": "Azione del menu contestuale non riuscita",
+        "context_menu_favourite_failed": "Impossibile aggiornare il preferito",
+        "favourite_added": "Aggiunto ai preferiti",
+        "favourite_removed": "Rimosso dai preferiti"
     },
     "forwarder": {
         "title": "Inoltro LXMF",
