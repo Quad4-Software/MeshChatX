@@ -36,6 +36,8 @@
         "test:e2e": "playwright test",
         "test:e2e:ui": "playwright test --ui",
         "test:e2e:install": "playwright install chromium",
+        "test:mutation:frontend": "node scripts/mutation/run.mjs",
+        "test:mutation:frontend:sample": "node scripts/mutation/run.mjs --source meshchatx/src/frontend/js/rnode/Capabilities.js --max-per-file 20",
         "electron-postinstall": "electron-builder install-app-deps && node scripts/ensure-micron-parser-package.js && node scripts/patch-electron-builder-fs.cjs && node scripts/patch-electron-installer-common.cjs",
         "electron": "pnpm run electron-postinstall && pnpm run build && electron .",
         "dist": "pnpm run electron-postinstall && pnpm run build && electron-builder --publish=never",
