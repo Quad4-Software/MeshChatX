@@ -32,12 +32,14 @@ export default {
         };
     },
     mounted() {
+        this.descriptor = pluginHost.getLastDescriptor(this.pluginId);
         this.uiListener = (event) => {
             if (event.detail?.pluginId === this.pluginId) {
                 this.descriptor = event.detail.descriptor;
             }
         };
         window.addEventListener("meshchatx-plugin-ui", this.uiListener);
+        pluginHost.requestUiRefresh(this.pluginId);
     },
     beforeUnmount() {
         window.removeEventListener("meshchatx-plugin-ui", this.uiListener);

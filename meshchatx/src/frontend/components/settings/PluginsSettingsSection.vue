@@ -106,7 +106,7 @@ export default {
         },
         async enablePlugin(pluginId) {
             await window.api.post(`/api/v1/plugins/${encodeURIComponent(pluginId)}/enable`);
-            await pluginHost.loadEnabledPlugins(window.api, this.$i18n?.messages?.[this.$i18n.locale]?.plugins || {});
+            await pluginHost.loadEnabledPlugins(window.api, (key) => this.$t(key));
             await this.refresh();
             ToastUtils.success(this.$t("plugins.settings.enabled"));
         },

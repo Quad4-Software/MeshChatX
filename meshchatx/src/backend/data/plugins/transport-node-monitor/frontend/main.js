@@ -67,5 +67,7 @@ export async function activate(api) {
         await refresh();
     });
 
+    api.onRefresh(refresh);
+
     await refresh();
 }

@@ -49,6 +49,9 @@ export function tokenizeSettingsQuery(normalizedTrimmed) {
 function resolveSnippet(text, translateFn) {
     if (!text) return "";
     const s = String(text);
+    if (s.startsWith("=")) {
+        return foldForSearch(s.slice(1));
+    }
     const content = s.includes(".") ? translateFn(s) : s;
     return foldForSearch(content);
 }

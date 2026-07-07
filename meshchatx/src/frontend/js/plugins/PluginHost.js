@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
 import { validatePluginManifest } from "./pluginManifest.js";
+import { buildPluginLabelMap } from "./pluginLabels.js";
 import { registerNavItem, unregisterNavItem } from "../registries/navRegistry.js";
 import { registerTool, unregisterTool } from "../registries/toolsRegistry.js";
 import { onWsEvent, offWsEvent } from "../registries/wsEventRegistry.js";
@@ -9,13 +10,17 @@ import { onWsEvent, offWsEvent } from "../registries/wsEventRegistry.js";
 
 export class PluginHost {
     constructor() {
-        /** @type {Map<string, { worker: Worker, cleanup: Array<() => void>, manifest: PluginManifest }>} */
+        /** @type {Map<string, { worker: Worker, cleanup: Array<() => void>, manifest: PluginManifest, lastDescriptor: object | null }>} */
         this.instances = new Map();
     }
 
-    async loadEnabledPlugins(apiClient, labels = {}) {
+    /**
+     * @param {(key: string) => string} [translate]
+     */
+    async loadEnabledPlugins(apiClient, translate) {
         const response = await apiClient.get("/api/v1/plugins");
         const plugins = response.data?.plugins || [];
+        const labels = typeof translate === "function" ? buildPluginLabelMap(translate) : {};
         for (const plugin of plugins) {
             if (!plugin.enabled) {
                 continue;
@@ -105,7 +110,19 @@ export class PluginHost {
             void requestHandler(event.data);
         });
 
-        this.instances.set(pluginId, { worker, cleanup, manifest });
+        this.instances.set(pluginId, { worker, cleanup, manifest, lastDescriptor: null });
+    }
+
+    getLastDescriptor(pluginId) {
+        return this.instances.get(pluginId)?.lastDescriptor ?? null;
+    }
+
+    requestUiRefresh(pluginId) {
+        const instance = this.instances.get(pluginId);
+        if (!instance) {
+            return;
+        }
+        instance.worker.postMessage({ type: "refresh-ui" });
     }
 
     /**
@@ -135,6 +152,10 @@ export class PluginHost {
             return;
         }
         if (message.type === "ui") {
+            const instance = this.instances.get(pluginId);
+            if (instance) {
+                instance.lastDescriptor = message.descriptor;
+            }
             window.dispatchEvent(
                 new CustomEvent("meshchatx-plugin-ui", {
                     detail: { pluginId, descriptor: message.descriptor },

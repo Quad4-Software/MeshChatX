@@ -412,7 +412,7 @@ function bootstrap() {
     }
     void startCodec2ScriptsBackgroundLoad();
     if (GlobalState.authenticated || !GlobalState.authEnabled) {
-        void pluginHost.loadEnabledPlugins(window.api).catch((error) => {
+        void pluginHost.loadEnabledPlugins(window.api, (key) => i18n.global.t(key)).catch((error) => {
             console.debug("Plugin host bootstrap failed:", error);
         });
     }
