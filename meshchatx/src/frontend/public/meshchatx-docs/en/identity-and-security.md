@@ -18,13 +18,13 @@ Shared resources include the Reticulum process and interface configuration in `~
 
 MeshChatX tracks announces for aspects such as:
 
-| Aspect | Meaning |
-| ------ | ------- |
-| `lxmf.delivery` | Peer accepts LXMF messages |
-| `lxst.telephony` | Peer accepts LXST calls |
-| `lxmf.propagation` | Propagation node |
-| `nomadnetwork.node` | NomadNet page server |
-| `rrc.hub` | Relay chat hub (when RRC enabled) |
+| Aspect              | Meaning                           |
+| ------------------- | --------------------------------- |
+| `lxmf.delivery`     | Peer accepts LXMF messages        |
+| `lxst.telephony`    | Peer accepts LXST calls           |
+| `lxmf.propagation`  | Propagation node                  |
+| `nomadnetwork.node` | NomadNet page server              |
+| `rrc.hub`           | Relay chat hub (when RRC enabled) |
 
 Announce records store signal metadata and parsed app data for display names and icons.
 
