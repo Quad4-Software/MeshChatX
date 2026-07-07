@@ -5,6 +5,8 @@
  * Writes: meshchatx/__init__.py (__version__), meshchatx/src/version.py, pyproject.toml [project].version,
  * meshchatx/src/backend/data/THIRD_PARTY_NOTICES.txt (reticulum-meshchatx line only),
  * README + lang README "current version" lines, docs/meshchatx_on_raspberry_pi.md,
+ * meshchatx/src/frontend/public/meshchatx-docs/meshchatx_on_raspberry_pi.md,
+ * meshchatx/src/backend/data/licenses_backend.json (reticulum-meshchatx entry),
  * android/app/build.gradle,
  * pipx example, packaging/arch/PKGBUILD pkgver / printf fallback.
  *
@@ -99,6 +101,18 @@ function patchRaspberryPiDoc(c) {
 }
 
 patchFile("docs/meshchatx_on_raspberry_pi.md", patchRaspberryPiDoc);
+patchFile("meshchatx/src/frontend/public/meshchatx-docs/meshchatx_on_raspberry_pi.md", patchRaspberryPiDoc);
+
+const licensesBackendPath = path.join(root, "meshchatx", "src", "backend", "data", "licenses_backend.json");
+if (fs.existsSync(licensesBackendPath)) {
+    const licensesBackend = JSON.parse(fs.readFileSync(licensesBackendPath, "utf8"));
+    const meshchatEntry = licensesBackend.find((entry) => entry.name === "reticulum-meshchatx");
+    if (meshchatEntry && meshchatEntry.version !== version) {
+        meshchatEntry.version = version;
+        fs.writeFileSync(licensesBackendPath, `${JSON.stringify(licensesBackend, null, 4)}\n`, "utf8");
+        console.log(`Updated ${path.relative(root, licensesBackendPath)}`);
+    }
+}
 
 const versionParts = version.split(".").map((n) => Number.parseInt(n, 10));
 if (versionParts.length === 3 && versionParts.every((n) => Number.isFinite(n))) {
@@ -115,5 +129,9 @@ patchFile("packaging/arch/PKGBUILD", (c) => {
     x = x.replace(/printf "\d+\.\d+\.\d+\.r%s\.%s"/, `printf "${version}.r%s.%s"`);
     return x;
 });
+
+patchFile("packaging/arch/.SRCINFO", (c) =>
+    c.replace(/^(\tpkgver = )\d+\.\d+\.\d+(\.r\d+\.g[0-9a-f]+)$/m, `$1${version}$2`)
+);
 
 console.log(`Synced version ${version} from package.json`);

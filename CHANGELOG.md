@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.8.0] - 2026-07-TBD
+
+### Fixed
+
+- **RNode / Android**: Hardened `rnode_support` startup guards — desktop TCP RNode no longer incorrectly requires pyserial; desktop BLE now checks for bleak instead of pyserial; whitespace-only Bluetooth ports classify correctly; invalid `tcp:///` hosts are no longer backfilled; `RNodeIPInterface` entries get `tcp_host` backfill on Android; RNodeMulti sibling sub-interfaces with invalid TX power are detected and disabled; txpower guard honors both `enabled` and `interface_enabled` keys.
+- **Settings**: Tabbed settings navigation with section-to-tab mapping, search across tabs, and `SettingsNav` component.
+
+### Added
+
+- **Tests**: Expanded `rnode_support` coverage (67 tests, including hypothesis fuzzing and full startup repair sequence); settings tabs contract tests, i18n key validation, and `SettingsNav` component tests.
+- **Locales**: Finnish (`fi`) translation updates for settings tabs, archives, banishment, and common UI strings.
+
 ## [4.7.2] - 2026-07-06
 
 ### Fixed
