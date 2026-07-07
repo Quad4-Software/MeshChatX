@@ -49,4 +49,9 @@ describe("settingsSearchUtils", () => {
     it("matchesSettingSearch: resolves i18n keys with dots", () => {
         expect(matchesSettingSearch(["app.theme"], t, "Theme")).toBe(true);
     });
+
+    it("matchesSettingSearch: treats = prefix as literal text", () => {
+        expect(matchesSettingSearch(["=index.mu"], t, "index.mu")).toBe(true);
+        expect(matchesSettingSearch(["=index.html"], t, "html")).toBe(true);
+    });
 });

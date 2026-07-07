@@ -14,15 +14,17 @@ function handleWorkerMessage(event, post) {
         const state = {
             pluginId: message.pluginId,
             permissions: message.permissions || {},
+            labels: message.labels || {},
             ui: null,
             inputValues: {},
             actionHandler: null,
             eventHandlers: new Map(),
+            refreshHandler: null,
         };
 
         const api = {
             t(key) {
-                return message.labels?.[key] || key;
+                return state.labels[key] || key;
             },
             async invoke(method, args = {}) {
                 if (method === "readPaths") {
@@ -45,6 +47,9 @@ function handleWorkerMessage(event, post) {
             },
             getInputValue(id) {
                 return state.inputValues[id] ?? "";
+            },
+            onRefresh(handler) {
+                state.refreshHandler = handler;
             },
         };
 
@@ -97,6 +102,12 @@ function handleWorkerMessage(event, post) {
             }
             if (next.type === "input") {
                 state.inputValues[next.id] = next.value;
+                return;
+            }
+            if (next.type === "refresh-ui") {
+                if (typeof state.refreshHandler === "function") {
+                    void state.refreshHandler();
+                }
                 return;
             }
             if (next.type === "event") {
