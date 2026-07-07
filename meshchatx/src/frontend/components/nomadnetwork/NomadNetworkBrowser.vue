@@ -26,6 +26,7 @@
                 @dragover.prevent="onTabDragOver(tabIndex)"
                 @drop.prevent="onTabDrop(tabIndex)"
                 @dragend="onTabDragEnd"
+                @contextmenu.prevent="openTabContextMenu($event, tab)"
             >
                 <MaterialDesignIcon icon-name="earth" class="size-4 shrink-0 opacity-70" />
                 <span class="min-w-0 flex-1 truncate text-left">{{ tabTitle(tab) }}</span>
@@ -53,6 +54,7 @@
                 v-for="tab in tabs"
                 v-show="tab.id === activeTabId"
                 :key="tab.id"
+                :ref="(el) => setPageRef(tab.id, el)"
                 embedded
                 :tabs-enabled="tabsEnabled"
                 :destination-hash="tab.destinationHash"
@@ -62,11 +64,35 @@
                 @close-tab="closeTab(tab.id)"
             />
         </div>
+
+        <NomadBrowserContextMenu
+            :show="contextMenu.show"
+            :x="contextMenu.x"
+            :y="contextMenu.y"
+            :just-opened="contextMenu.justOpened"
+            :has-active-page="contextMenuHasActivePage"
+            :can-favourite="contextMenuCanFavourite"
+            :is-favourite="contextMenuIsFavourite"
+            :can-download-page="contextMenuCanDownloadPage"
+            :show-tab-actions="showTabStrip"
+            :can-close-tabs-right="contextMenuCanCloseTabsRight"
+            :can-close-other-tabs="contextMenuCanCloseOtherTabs"
+            :can-close-all-tabs="tabs.length > 1"
+            @close="closeContextMenu"
+            @view-source="onContextViewSource"
+            @reload="onContextReload"
+            @favorite="onContextFavorite"
+            @download-page="onContextDownloadPage"
+            @close-tabs-right="onContextCloseTabsRight"
+            @close-other-tabs="onContextCloseOtherTabs"
+            @close-all-tabs="onContextCloseAllTabs"
+        />
     </div>
 </template>
 
 <script>
 import NomadNetworkPage from "./NomadNetworkPage.vue";
+import NomadBrowserContextMenu from "./NomadBrowserContextMenu.vue";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import GlobalState from "../../js/GlobalState";
 import GlobalEmitter from "../../js/GlobalEmitter";
@@ -77,6 +103,7 @@ export default {
     name: "NomadNetworkBrowser",
     components: {
         NomadNetworkPage,
+        NomadBrowserContextMenu,
         MaterialDesignIcon,
     },
     props: {
@@ -96,6 +123,23 @@ export default {
             mediaQuery: null,
             mediaQueryListener: null,
             dragTabIndex: null,
+            pageRefs: {},
+            contextMenu: {
+                show: false,
+                justOpened: false,
+                x: 0,
+                y: 0,
+                tabId: null,
+            },
+        };
+    },
+    provide() {
+        return {
+            nomadBrowserTabActions: {
+                openContextMenu: this.openPageContextMenu,
+                closeContextMenu: this.closeContextMenu,
+                getContextTabId: () => this.contextMenu.tabId ?? this.activeTabId,
+            },
         };
     },
     computed: {
@@ -114,6 +158,36 @@ export default {
                 .join("\u241f");
             const activeIndex = this.tabs.findIndex((tab) => tab.id === this.activeTabId);
             return `${activeIndex}\u241e${tabs}`;
+        },
+        contextTabIndex() {
+            const tabId = this.contextMenu.tabId ?? this.activeTabId;
+            return this.tabs.findIndex((tab) => tab.id === tabId);
+        },
+        contextPageRef() {
+            const tabId = this.contextMenu.tabId ?? this.activeTabId;
+            return tabId != null ? this.pageRefs[tabId] || null : null;
+        },
+        contextMenuHasActivePage() {
+            const page = this.contextPageRef;
+            return Boolean(page?.selectedNode && page?.nodePagePath);
+        },
+        contextMenuCanFavourite() {
+            return Boolean(this.contextPageRef?.selectedNode?.destination_hash);
+        },
+        contextMenuIsFavourite() {
+            const page = this.contextPageRef;
+            const hash = page?.selectedNode?.destination_hash;
+            return hash ? page.isFavourite(hash) : false;
+        },
+        contextMenuCanDownloadPage() {
+            const page = this.contextPageRef;
+            return Boolean(page?.nodePageContent && page?.nodePagePath && !page?.isFailedPageContent?.(page.nodePageContent));
+        },
+        contextMenuCanCloseTabsRight() {
+            return this.contextTabIndex >= 0 && this.contextTabIndex < this.tabs.length - 1;
+        },
+        contextMenuCanCloseOtherTabs() {
+            return this.tabs.length > 1 && this.contextTabIndex >= 0;
         },
     },
     watch: {
@@ -493,6 +567,90 @@ export default {
             const query = { ...this.$route.query };
             delete query.newTab;
             this.$router.replace({ ...this.$route, query }).catch(() => {});
+        },
+        setPageRef(tabId, el) {
+            if (el) {
+                this.pageRefs[tabId] = el;
+                return;
+            }
+            delete this.pageRefs[tabId];
+        },
+        openTabContextMenu(event, tab) {
+            this.selectTab(tab.id);
+            this.contextMenu = {
+                show: true,
+                justOpened: true,
+                x: event.clientX,
+                y: event.clientY,
+                tabId: tab.id,
+            };
+            setTimeout(() => {
+                this.contextMenu.justOpened = false;
+            }, 50);
+        },
+        openPageContextMenu(event) {
+            this.contextMenu = {
+                show: true,
+                justOpened: true,
+                x: event.clientX,
+                y: event.clientY,
+                tabId: this.activeTabId,
+            };
+            setTimeout(() => {
+                this.contextMenu.justOpened = false;
+            }, 50);
+        },
+        closeContextMenu() {
+            this.contextMenu.show = false;
+        },
+        onContextViewSource() {
+            this.contextPageRef?.showPageSource?.();
+            this.closeContextMenu();
+        },
+        async onContextReload() {
+            await this.contextPageRef?.reloadNodePage?.();
+            this.closeContextMenu();
+        },
+        async onContextFavorite() {
+            await this.contextPageRef?.toggleFavouriteFromContext?.();
+            this.closeContextMenu();
+        },
+        async onContextDownloadPage() {
+            await this.contextPageRef?.downloadPageToDisk?.();
+            this.closeContextMenu();
+        },
+        onContextCloseTabsRight() {
+            const tabId = this.contextMenu.tabId ?? this.activeTabId;
+            this.closeTabsToRight(tabId);
+            this.closeContextMenu();
+        },
+        onContextCloseOtherTabs() {
+            const tabId = this.contextMenu.tabId ?? this.activeTabId;
+            this.closeOtherTabs(tabId);
+            this.closeContextMenu();
+        },
+        onContextCloseAllTabs() {
+            this.closeAllTabs();
+            this.closeContextMenu();
+        },
+        closeTabsToRight(tabId) {
+            const index = this.tabs.findIndex((tab) => tab.id === tabId);
+            if (index === -1) {
+                return;
+            }
+            const removeIds = this.tabs.slice(index + 1).map((tab) => tab.id);
+            removeIds.forEach((id) => this.closeTab(id));
+        },
+        closeOtherTabs(tabId) {
+            const keepId = tabId;
+            const removeIds = this.tabs.filter((tab) => tab.id !== keepId).map((tab) => tab.id);
+            removeIds.forEach((id) => this.closeTab(id));
+            this.selectTab(keepId);
+        },
+        closeAllTabs() {
+            this.tabs = [];
+            this.pageRefs = {};
+            this.addTab();
         },
     },
 };

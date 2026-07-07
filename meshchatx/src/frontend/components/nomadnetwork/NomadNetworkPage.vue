@@ -416,6 +416,7 @@
                     :style="nodeContainerShellStyle"
                     @click.capture="onElementClick"
                     @auxclick.capture="onElementClick"
+                    @contextmenu.prevent="onPageContextMenu"
                 >
                     <!-- archived version notice -->
                     <div
@@ -572,6 +573,24 @@
                 </div>
             </div>
         </div>
+
+        <NomadBrowserContextMenu
+            v-if="!embedded"
+            :show="standaloneContextMenu.show"
+            :x="standaloneContextMenu.x"
+            :y="standaloneContextMenu.y"
+            :just-opened="standaloneContextMenu.justOpened"
+            :has-active-page="standaloneContextHasActivePage"
+            :can-favourite="Boolean(selectedNode?.destination_hash)"
+            :is-favourite="selectedNode ? isFavourite(selectedNode.destination_hash) : false"
+            :can-download-page="standaloneContextCanDownloadPage"
+            :show-tab-actions="false"
+            @close="closeStandaloneContextMenu"
+            @view-source="onStandaloneContextViewSource"
+            @reload="onStandaloneContextReload"
+            @favorite="onStandaloneContextFavorite"
+            @download-page="onStandaloneContextDownloadPage"
+        />
     </div>
 </template>
 
@@ -583,6 +602,7 @@ import { renderNomadPageByPath, resolveNomadPageShellBackground } from "../../js
 import DialogUtils from "../../js/DialogUtils";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import NomadNetworkSidebar from "./NomadNetworkSidebar.vue";
+import NomadBrowserContextMenu from "./NomadBrowserContextMenu.vue";
 import Utils from "../../js/Utils";
 import DownloadUtils from "../../js/DownloadUtils";
 import ToastUtils from "../../js/ToastUtils";
@@ -605,6 +625,7 @@ export default {
     name: "NomadNetworkPage",
     components: {
         NomadNetworkSidebar,
+        NomadBrowserContextMenu,
         MaterialDesignIcon,
         IconButton,
         DropDownMenu,
@@ -632,6 +653,11 @@ export default {
         },
     },
     emits: ["navigate", "open-node", "close-tab"],
+    inject: {
+        nomadBrowserTabActions: {
+            default: null,
+        },
+    },
     data() {
         return {
             GlobalState,
@@ -703,12 +729,26 @@ export default {
             nomadMicronWasmReady: false,
             wasmBundled: isMicronWasmBundled(),
             pageShellBackground: null,
+            standaloneContextMenu: {
+                show: false,
+                justOpened: false,
+                x: 0,
+                y: 0,
+            },
         };
     },
     computed: {
         defaultNodePagePath() {
             const p = GlobalState.config?.nomad_default_page_path;
             return typeof p === "string" && p.startsWith("/page/") ? p : "/page/index.mu";
+        },
+        standaloneContextHasActivePage() {
+            return Boolean(this.selectedNode && this.nodePagePath);
+        },
+        standaloneContextCanDownloadPage() {
+            return Boolean(
+                this.nodePageContent && this.nodePagePath && !this.isFailedPageContent(this.nodePageContent)
+            );
         },
         nomadMicronWasmFeatureEffective() {
             return isMicronWasmBundled() && (GlobalState.config || {}).nomad_micron_wasm_enabled === true;
@@ -1944,6 +1984,72 @@ export default {
         },
         toggleNodePageSource() {
             this.isShowingNodePageSource = !this.isShowingNodePageSource;
+        },
+        showPageSource() {
+            if (!this.nodePagePath) {
+                return;
+            }
+            this.isShowingNodePageSource = true;
+        },
+        async toggleFavouriteFromContext() {
+            if (!this.selectedNode?.destination_hash) {
+                return;
+            }
+            if (this.isFavourite(this.selectedNode.destination_hash)) {
+                await this.removeFavourite(this.selectedNode);
+                return;
+            }
+            await this.addFavourite(this.selectedNode);
+        },
+        async downloadPageToDisk() {
+            if (!this.nodePageContent || !this.nodePagePath || this.isFailedPageContent(this.nodePageContent)) {
+                ToastUtils.warning(this.$t("nomadnet.download_page_unavailable"));
+                return;
+            }
+            const parsed = this.parseNomadnetworkUrl(this.nodePagePath);
+            const pathPart = parsed?.pagePath || this.nodePagePath;
+            const segments = String(pathPart).split("/").filter(Boolean);
+            const filename = segments.length > 0 ? segments[segments.length - 1] : "nomad-page.txt";
+            const blob = new Blob([this.nodePageContent], { type: "text/plain;charset=utf-8" });
+            await DownloadUtils.downloadFile(filename, blob);
+            ToastUtils.success(this.$t("nomadnet.download_page_started"));
+        },
+        onPageContextMenu(event) {
+            if (this.embedded && this.nomadBrowserTabActions) {
+                this.nomadBrowserTabActions.openContextMenu(event);
+                return;
+            }
+            this.openStandaloneContextMenu(event);
+        },
+        openStandaloneContextMenu(event) {
+            this.standaloneContextMenu = {
+                show: true,
+                justOpened: true,
+                x: event.clientX,
+                y: event.clientY,
+            };
+            setTimeout(() => {
+                this.standaloneContextMenu.justOpened = false;
+            }, 50);
+        },
+        closeStandaloneContextMenu() {
+            this.standaloneContextMenu.show = false;
+        },
+        onStandaloneContextViewSource() {
+            this.showPageSource();
+            this.closeStandaloneContextMenu();
+        },
+        async onStandaloneContextReload() {
+            await this.reloadNodePage();
+            this.closeStandaloneContextMenu();
+        },
+        async onStandaloneContextFavorite() {
+            await this.toggleFavouriteFromContext();
+            this.closeStandaloneContextMenu();
+        },
+        async onStandaloneContextDownloadPage() {
+            await this.downloadPageToDisk();
+            this.closeStandaloneContextMenu();
         },
         async reloadNodePage() {
             // reload current node page without adding to history and without using cache

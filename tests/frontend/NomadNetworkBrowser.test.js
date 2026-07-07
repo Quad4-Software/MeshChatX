@@ -334,4 +334,34 @@ describe("NomadNetworkBrowser.vue", () => {
         expect(wrapper.vm.tabs[2].title).toBe(orderBefore[0]);
         expect(wrapper.vm.dragTabIndex).toBeNull();
     });
+
+    it("closeTabsToRight removes tabs after the target tab", () => {
+        const wrapper = mountBrowser();
+        wrapper.vm.addTab("a".repeat(32), null, "A");
+        wrapper.vm.addTab("b".repeat(32), null, "B");
+        const first = wrapper.vm.tabs[0].id;
+        expect(wrapper.vm.tabs).toHaveLength(3);
+        wrapper.vm.closeTabsToRight(first);
+        expect(wrapper.vm.tabs).toHaveLength(1);
+        expect(wrapper.vm.tabs[0].id).toBe(first);
+    });
+
+    it("closeOtherTabs keeps only the target tab", () => {
+        const wrapper = mountBrowser();
+        wrapper.vm.addTab("a".repeat(32), null, "A");
+        const middle = wrapper.vm.tabs[0].id;
+        wrapper.vm.addTab("b".repeat(32), null, "B");
+        wrapper.vm.closeOtherTabs(middle);
+        expect(wrapper.vm.tabs).toHaveLength(1);
+        expect(wrapper.vm.tabs[0].id).toBe(middle);
+    });
+
+    it("closeAllTabs resets to a single new tab", () => {
+        const wrapper = mountBrowser();
+        wrapper.vm.addTab("a".repeat(32), null, "A");
+        wrapper.vm.addTab("b".repeat(32), null, "B");
+        wrapper.vm.closeAllTabs();
+        expect(wrapper.vm.tabs).toHaveLength(1);
+        expect(wrapper.vm.tabs[0].destinationHash).toBe("");
+    });
 });
