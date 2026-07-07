@@ -165,7 +165,10 @@ from meshchatx.src.backend.reticulum_config_guard import (
     repair_unparseable_reticulum_config,
     reticulum_config_has_required_sections,
 )
-from meshchatx.src.backend.websocket_config_guard import sanitize_websocket_config_update
+from meshchatx.src.backend.websocket_config_guard import (
+    sanitize_websocket_config_update,
+    websocket_type_requires_auth,
+)
 from meshchatx.src.backend.landlock_sandbox import (
     apply_landlock_sandbox,
     landlock_auto_enabled,
@@ -445,6 +448,7 @@ class ReticulumMeshChat:
         self.current_context: IdentityContext | None = None
         self._propagation_sync_metrics: dict[str, dict] = {}
 
+        AsyncUtils.ensure_background_loop()
         self.setup_identity(identity)
         self.web_audio_bridge = WebAudioBridge(None, None)
 
@@ -15616,6 +15620,23 @@ class ReticulumMeshChat:
     def flush_all_archived_pages(self):
         return self.nomadnet_manager.flush_all_archived_pages()
 
+    async def _websocket_session_authorized(self, client) -> bool:
+        if not self.auth_enabled:
+            return True
+        request = getattr(client, "request", None)
+        if request is None:
+            return False
+        try:
+            session = await get_session(request)
+        except Exception:
+            return False
+        identity_hash = self.identity.hash.hex() if self.identity else None
+        return bool(
+            session.get("authenticated", False)
+            and identity_hash
+            and session.get("identity_hash") == identity_hash
+        )
+
     # handle data received from websocket client
     async def on_websocket_data_received(self, client, data):
         # get type from client data
@@ -15625,6 +15646,21 @@ class ReticulumMeshChat:
         _type = data.get("type")
         if not _type:
             return
+
+        if websocket_type_requires_auth(_type):
+            if not await self._websocket_session_authorized(client):
+                logger.warning("Rejected unauthorized WebSocket mutator: %s", _type)
+                AsyncUtils.run_async(
+                    client.send_str(
+                        json.dumps(
+                            {
+                                "type": "error",
+                                "message": "Authentication required",
+                            },
+                        ),
+                    ),
+                )
+                return
 
         # handle ping
         if _type == "ping":

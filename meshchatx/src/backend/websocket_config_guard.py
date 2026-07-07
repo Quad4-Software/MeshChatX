@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""WebSocket config update guards.
+"""WebSocket guards for config updates and authenticated mutators.
 
 Settings that change the HTTP security boundary must go through CSRF-protected
 HTTP endpoints, not the unauthenticated ``config.set`` WebSocket message.
@@ -18,6 +18,47 @@ WEBSOCKET_CONFIG_DENYLIST = frozenset(
         "auth_password_hash",
     },
 )
+
+WEBSOCKET_PUBLIC_TYPES = frozenset(
+    {
+        "ping",
+    },
+)
+
+WEBSOCKET_READ_TYPES = frozenset(
+    {
+        "nomadnet.page.archives.get",
+        "nomadnet.page.archive.load",
+        "lxmf.forwarding.rules.get",
+        "keyboard_shortcuts.get",
+    },
+)
+
+WEBSOCKET_MUTATOR_TYPES = frozenset(
+    {
+        "config.set",
+        "keyboard_shortcuts.delete",
+        "keyboard_shortcuts.set",
+        "lxm.generate_paper_uri",
+        "lxm.ingest_uri",
+        "lxmf.forwarding.rule.add",
+        "lxmf.forwarding.rule.delete",
+        "lxmf.forwarding.rule.toggle",
+        "nomadnet.download.cancel",
+        "nomadnet.file.download",
+        "nomadnet.page.archive.add",
+        "nomadnet.page.archive.flush",
+        "nomadnet.page.download",
+    },
+)
+
+
+def websocket_type_requires_auth(msg_type: str) -> bool:
+    if msg_type in WEBSOCKET_PUBLIC_TYPES or msg_type in WEBSOCKET_READ_TYPES:
+        return False
+    if msg_type in WEBSOCKET_MUTATOR_TYPES:
+        return True
+    return False
 
 
 def sanitize_websocket_config_update(config: object) -> dict:
