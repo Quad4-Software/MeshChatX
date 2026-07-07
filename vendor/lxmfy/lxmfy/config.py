@@ -51,7 +51,7 @@ class BotConfig:
     name: str = "LXMFBot"
     announce: int = 600
     announce_immediately: bool = True
-    admins: set = None
+    admins: set[str] | None = None
     hot_reloading: bool = False
     rate_limit: int = 5
     cooldown: int = 60
@@ -72,25 +72,28 @@ class BotConfig:
     require_message_signatures: bool = False
     require_stamps: bool = False
     request_unknown_identities: bool = False
-    stamp_cost: int = None
+    stamp_cost: int | None = None
     direct_delivery_retries: int = 3
     propagation_fallback_enabled: bool = True
-    propagation_node: str = None
+    propagation_node: str | None = None
     autopeer_propagation: bool = False
     autopeer_maxdepth: int = 4
     enable_propagation_node: bool = False
     message_storage_limit_mb: float = 500.0
-    config_path: str = None
-    reticulum_config_dir: str = None
-    announce_display_name_file: str = None
+    config_path: str | None = None
+    reticulum_config_dir: str | None = None
+    announce_display_name_file: str | None = None
     test_mode: bool = False
     identity_pinning_enabled: bool = False
     message_persistence_enabled: bool = False
     dynamic_cogs_enabled: bool = True
     external_cogs_enabled: bool = True
     external_cogs_sandbox_enabled: bool = True
-    external_cogs_sandbox_type: str = "auto"  # 'auto', 'bwrap', 'firejail', 'none'
+    external_cogs_sandbox_type: str = (
+        "auto"  # 'auto', 'landlock', 'bwrap', 'firejail', 'none'
+    )
     external_cogs_timeout: int = 30
+    landlock_enabled: bool = True
     nlp_enabled: bool = False
     nlp_threshold: float = 0.5
     link_support_enabled: bool = False

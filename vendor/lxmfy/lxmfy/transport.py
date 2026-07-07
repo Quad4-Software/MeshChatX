@@ -206,6 +206,28 @@ class Transport:
             self.logger.error("Error creating link: %s", str(e))
             raise
 
+    def request_page(
+        self,
+        destination_hash: bytes,
+        page_path: str,
+        field_data: dict | None = None,
+    ) -> dict:
+        """Request a page from a destination.
+
+        Args:
+            destination_hash: The destination hash bytes.
+            page_path: The path to the page.
+            field_data: Optional field data to send with the request.
+
+        Returns:
+            The response from the destination.
+
+        Raises:
+            NotImplementedError: Page requests are not yet implemented.
+
+        """
+        raise NotImplementedError("Page requests are not yet implemented")
+
     def cleanup(self):
         """Clean up inactive links."""
         for link in list(self.cached_links.values()):

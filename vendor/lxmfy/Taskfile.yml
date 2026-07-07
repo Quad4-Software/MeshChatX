@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
 version: '3'
 
 vars:
@@ -60,6 +61,11 @@ tasks:
     cmds:
       - poetry run ruff format .
 
+  typecheck:
+    desc: Run static type checking (pyright)
+    cmds:
+      - poetry run pyright lxmfy
+
   check:
     desc: Run safety check
     cmds:
@@ -84,19 +90,19 @@ tasks:
     desc: Bump patch version
     cmds:
       - poetry version patch
-      - task update-version
+      - task: update-version
 
   bump-minor:
     desc: Bump minor version
     cmds:
       - poetry version minor
-      - task update-version
+      - task: update-version
 
   bump-major:
     desc: Bump major version
     cmds:
       - poetry version major
-      - task update-version
+      - task: update-version
 
   update-version:
     internal: true
@@ -123,8 +129,8 @@ tasks:
       - |
         docker run -d \
           --name {{.DOCKER_IMAGE}}-bot \
-          -v $(pwd)/config:/bot/config \
-          -v $(pwd)/.reticulum:/root/.reticulum \
+          -v {{.ROOT_DIR}}/config:/bot/config \
+          -v {{.ROOT_DIR}}/.reticulum:/root/.reticulum \
           --restart unless-stopped \
           {{.DOCKER_IMAGE}}
 
@@ -135,8 +141,8 @@ tasks:
         docker run -d \
           --name {{.DOCKER_IMAGE}}-bot \
           --network host \
-          -v $(pwd)/config:/bot/config \
-          -v $(pwd)/.reticulum:/root/.reticulum \
+          -v {{.ROOT_DIR}}/config:/bot/config \
+          -v {{.ROOT_DIR}}/.reticulum:/root/.reticulum \
           --restart unless-stopped \
           {{.DOCKER_IMAGE}}
 
@@ -148,7 +154,7 @@ tasks:
   docker-wheel-extract:
     desc: Extract wheels from builder container
     cmds:
-      - docker run --rm -v "$(pwd)/dist_output:/output" {{.WHEEL_BUILDER_IMAGE}}
+      - docker run --rm -v "{{.ROOT_DIR}}/dist_output:/output" {{.WHEEL_BUILDER_IMAGE}}
 
   docker-compose-build:
     desc: Build using docker-compose
@@ -201,18 +207,19 @@ tasks:
     deps: [publish-gitea, publish-pypi]
 
   all:
-    desc: Run clean, lint, test, and build
+    desc: Run clean, lint, typecheck, test, and build
     deps:
       - clean
       - lint
+      - typecheck
       - test
       - build
 
   ci:
-    desc: Run CI checks (lint, check, test, build)
+    desc: Run CI checks (lint, typecheck, check, test, build)
     deps:
       - lint
+      - typecheck
       - check
       - test
       - build
-

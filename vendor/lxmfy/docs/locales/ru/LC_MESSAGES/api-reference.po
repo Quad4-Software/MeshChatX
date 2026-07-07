@@ -1,18 +1,13 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) 2025, Ivan
-# This file is distributed under the same license as the LXMFy package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: LXMFy \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-11-20 17:21-0600\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
-"Language: \n"
+"POT-Creation-Date: 2026-07-04 17:25-0500\n"
+"PO-Revision-Date: 2026-07-04\n"
+"Last-Translator: \n"
+"Language-Team: Russian\n"
+"Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -27,109 +22,245 @@ msgstr "LXMFBot"
 
 #: ../../source/api-reference.rst:7
 msgid ""
-"The main bot class that handles message routing, command processing, and bot "
-"lifecycle management."
+"The main bot class that handles message routing, command processing, and bot"
+" lifecycle management."
 msgstr ""
-"Основной класс бота, который обрабатывает маршрутизацию сообщений, обработку "
-"команд и управление жизненным циклом бота."
+"Основной класс бота, который обрабатывает маршрутизацию сообщений, обработку"
+" команд и управление жизненным циклом бота."
 
-#: ../../source/api-reference.rst:39
+#: ../../source/api-reference.rst:51
 msgid "Key Methods"
 msgstr "Ключевые методы"
 
-#: ../../source/api-reference.rst:41
+#: ../../source/api-reference.rst:53
+msgid ""
+":code:`get_landlock_status()`: Return Landlock LSM sandbox availability and "
+"activation state for the bot process"
+msgstr ""
+":code:`get_landlock_status()`: возвращает доступность песочницы Landlock LSM"
+" и состояние активации для процесса бота"
+
+#: ../../source/api-reference.rst:54
 msgid ":code:`run(delay=10)`: Start the bot's main loop"
 msgstr ":code:`run(delay=10)`: Запустить основной цикл бота"
 
-#: ../../source/api-reference.rst:42
-#, fuzzy
+#: ../../source/api-reference.rst:55
 msgid ""
 ":code:`send(destination, message, title=\"Reply\", lxmf_fields=None, "
-"propagation_node=None, max_retries=3)`: Send a message to a destination, "
-"optionally with custom LXMF fields, specific propagation node, and retry "
-"configuration."
+"stamp_cost=None, opportunistic=None)`: Send a message to a destination, "
+"optionally with custom LXMF fields, stamp cost override, and opportunistic "
+"sending (tries direct, falls back to propagation immediately if configured)."
 msgstr ""
-":code:`send(destination, message, title=\"Reply\", lxmf_fields=None)`: "
-"Отправить сообщение получателю, опционально с пользовательскими полями LXMF."
+":code:`send(destination, message, title=\"Reply\", lxmf_fields=None, "
+"stamp_cost=None, opportunistic=None)`: отправить сообщение получателю, "
+"опционально с пользовательскими полями LXMF, переопределением стоимости "
+"штампа и оппортунистической отправкой (пробует прямую доставку, при "
+"настройке сразу переходит к распространению)."
 
-#: ../../source/api-reference.rst:43
+#: ../../source/api-reference.rst:56
 msgid ""
 ":code:`send_with_attachment(destination, message, attachment, "
-"title=\"Reply\")`: Send a message with an attachment"
+"title=\"Reply\", stamp_cost=None, opportunistic=None)`: Send a message with "
+"an attachment"
 msgstr ""
 ":code:`send_with_attachment(destination, message, attachment, "
-"title=\"Reply\")`: Отправить сообщение с вложением"
+"title=\"Reply\", stamp_cost=None, opportunistic=None)`: отправить сообщение "
+"с вложением"
 
-#: ../../source/api-reference.rst:44
+#: ../../source/api-reference.rst:57
 msgid ""
 ":code:`command(name, description=\"No description provided\", "
-"admin_only=False, threaded=False)`: Decorator for registering commands. "
-"Set :code:`threaded=True` to run the command's callback in a separate thread."
+"admin_only=False, threaded=False)`: Decorator for registering commands. Set "
+":code:`threaded=True` to run the command's callback in a separate thread. "
+"Commands support type-hinted arguments for automatic conversion."
 msgstr ""
 ":code:`command(name, description=\"No description provided\", "
-"admin_only=False, threaded=False)`: Декоратор для регистрации команд. "
+"admin_only=False, threaded=False)`: декоратор для регистрации команд. "
 "Установите :code:`threaded=True` для запуска обратного вызова команды в "
-"отдельном потоке."
+"отдельном потоке. Команды поддерживают аргументы с аннотациями типов для "
+"автоматического преобразования."
 
-#: ../../source/api-reference.rst:45
+#: ../../source/api-reference.rst:58
+msgid ""
+":code:`intent(name, examples)`: Decorator for registering NLP intent "
+"handlers."
+msgstr ""
+":code:`intent(name, examples)`: декоратор для регистрации обработчиков NLP-"
+"намерений."
+
+#: ../../source/api-reference.rst:59
+msgid ":code:`nlp.export_model()`: Export trained NLP model data."
+msgstr ""
+":code:`nlp.export_model()`: экспортировать данные обученной NLP-модели."
+
+#: ../../source/api-reference.rst:60
+msgid ""
+":code:`nlp.import_model(model_data)`: Import previously exported NLP model "
+"data."
+msgstr ""
+":code:`nlp.import_model(model_data)`: импортировать ранее экспортированные "
+"данные NLP-модели."
+
+#: ../../source/api-reference.rst:61
+msgid ""
+":code:`request_link(destination_hash, callback=None, app_name=\"lxmf\", "
+"*aspects)`: Request an RNS link to a destination. Allows custom "
+":code:`app_name` and :code:`aspects` (defaults to \"lxmf\" and "
+"\"delivery\")."
+msgstr ""
+":code:`request_link(destination_hash, callback=None, app_name=\"lxmf\", "
+"*aspects)`: запросить RNS link к получателю. Позволяет указать "
+"пользовательские :code:`app_name` и :code:`aspects` (по умолчанию «lxmf» и "
+"«delivery»)."
+
+#: ../../source/api-reference.rst:62
+msgid ":code:`on_link(callback)`: Register a handler for incoming RNS links."
+msgstr ""
+":code:`on_link(callback)`: зарегистрировать обработчик входящих RNS link."
+
+#: ../../source/api-reference.rst:63
+msgid ""
+":code:`load_extension(name)`: Load a cog extension module by name (e.g., "
+"\"cogs.utility\")."
+msgstr ""
+":code:`load_extension(name)`: загрузить модуль расширения по имени "
+"(например, «cogs.utility»)."
+
+#: ../../source/api-reference.rst:64
+msgid ":code:`reload_extension(name)`: Reload a cog extension module."
+msgstr ":code:`reload_extension(name)`: перезагрузить модуль расширения."
+
+#: ../../source/api-reference.rst:65
+msgid ":code:`add_cog(cog_instance)`: Add a cog class instance to the bot."
+msgstr ""
+":code:`add_cog(cog_instance)`: добавить экземпляр класса модуля в бота."
+
+#: ../../source/api-reference.rst:66
+msgid ""
+":code:`remove_cog(cog_name)`: Remove a cog from the bot by its class name."
+msgstr ""
+":code:`remove_cog(cog_name)`: удалить модуль из бота по имени его класса."
+
+#: ../../source/api-reference.rst:67
 msgid ""
 ":code:`on_first_message()`: Decorator for handling first messages from users"
 msgstr ""
 ":code:`on_first_message()`: Декоратор для обработки первых сообщений от "
 "пользователей"
 
-#: ../../source/api-reference.rst:46
-#, fuzzy
+#: ../../source/api-reference.rst:68
 msgid ""
 ":code:`on_message()`: Decorator for handling all messages (called before "
 "command processing)"
 msgstr ""
-":code:`on_first_message()`: Декоратор для обработки первых сообщений от "
-"пользователей"
+":code:`on_message()`: декоратор для обработки всех сообщений (вызывается "
+"перед обработкой команд)"
 
-#: ../../source/api-reference.rst:47
+#: ../../source/api-reference.rst:69
 msgid ":code:`validate()`: Run validation checks on the bot configuration"
 msgstr ":code:`validate()`: Запустить проверочные тесты конфигурации бота"
 
-#: ../../source/api-reference.rst:50
+#: ../../source/api-reference.rst:72
+msgid "Structured Commands via LXMF Fields"
+msgstr "Структурированные команды через поля LXMF"
+
+#: ../../source/api-reference.rst:74
+msgid ""
+"Bots can receive commands sent via LXMF ``FIELD_COMMANDS`` (``0x09``) and "
+"automatically reply with ``FIELD_RESULTS`` (``0x0A``). This enables "
+"structured request/response workflows alongside normal text commands."
+msgstr ""
+"Боты могут получать команды, отправленные через LXMF ``FIELD_COMMANDS`` "
+"(``0x09``), и автоматически отвечать с ``FIELD_RESULTS`` (``0x0A``). Это "
+"обеспечивает структурированные рабочие процессы запрос/ответ наряду с "
+"обычными текстовыми командами."
+
+#: ../../source/api-reference.rst:76
+msgid ""
+"Incoming ``FIELD_COMMANDS`` are parsed and routed through the same command "
+"registry as text commands, sharing permission checks, type-hinted argument "
+"parsing, threading, and middleware."
+msgstr ""
+"Входящие ``FIELD_COMMANDS`` разбираются и направляются через тот же реестр "
+"команд, что и текстовые, с общими проверками разрешений, разбором аргументов"
+" с аннотациями типов, многопоточностью и промежуточным ПО."
+
+#: ../../source/api-reference.rst:96
+msgid ""
+"To disable field command processing, set ``lxmf_commands_enabled=False`` in "
+":code:`BotConfig`."
+msgstr ""
+"Чтобы отключить обработку команд полей, установите "
+"``lxmf_commands_enabled=False`` в :code:`BotConfig`."
+
+#: ../../source/api-reference.rst:99
 msgid "Storage"
 msgstr "Хранилище"
 
-#: ../../source/api-reference.rst:52
-msgid "The framework provides two storage backends:"
-msgstr "Фреймворк предоставляет два бэкенда для хранения данных:"
+#: ../../source/api-reference.rst:101
+msgid "The framework provides three storage backends:"
+msgstr "Фреймворк предоставляет три бэкенда хранения:"
 
-#: ../../source/api-reference.rst:55
+#: ../../source/api-reference.rst:104
 msgid "JSONStorage"
 msgstr "JSONStorage"
 
-#: ../../source/api-reference.rst:64
+#: ../../source/api-reference.rst:113
 msgid "SQLiteStorage"
 msgstr "SQLiteStorage"
 
-#: ../../source/api-reference.rst:73
+#: ../../source/api-reference.rst:122
+msgid "MemoryStorage"
+msgstr "MemoryStorage"
+
+#: ../../source/api-reference.rst:131
 msgid "Commands"
 msgstr "Команды"
 
-#: ../../source/api-reference.rst:75
+#: ../../source/api-reference.rst:133
 msgid "Command registration and handling:"
 msgstr "Регистрация и обработка команд:"
 
-#: ../../source/api-reference.rst:84
+#: ../../source/api-reference.rst:142
+msgid "Type-Hinted Arguments"
+msgstr "Аргументы с аннотациями типов"
+
+#: ../../source/api-reference.rst:144
+msgid ""
+"Commands automatically parse and convert arguments based on type hints in "
+"the callback function."
+msgstr ""
+"Команды автоматически разбирают и преобразуют аргументы на основе аннотаций "
+"типов в функции обратного вызова."
+
+#: ../../source/api-reference.rst:154
+msgid "Help System"
+msgstr "Система справки"
+
+#: ../../source/api-reference.rst:156
+msgid ""
+"The framework includes an interactive help generator that provides "
+"beautiful, categorized help menus based on Cog and Command metadata."
+msgstr ""
+"Фреймворк включает интерактивный генератор справки, который предоставляет "
+"наглядные категоризированные меню справки на основе метаданных модулей и "
+"команд."
+
+#: ../../source/api-reference.rst:164
 msgid "Threaded Commands"
 msgstr "Многопоточные команды"
 
-#: ../../source/api-reference.rst:86
+#: ../../source/api-reference.rst:166
 msgid ""
 "For long-running or blocking operations that do not interact with the "
 "Reticulum Network Stack directly, you can run commands in a separate thread "
 "to keep the bot responsive."
 msgstr ""
-"Для длительных или блокирующих операций, которые не взаимодействуют напрямую "
-"с сетевым стеком Reticulum, вы можете запускать команды в отдельном потоке, "
-"чтобы бот оставался отзывчивым."
+"Для длительных или блокирующих операций, которые не взаимодействуют напрямую"
+" с сетевым стеком Reticulum, вы можете запускать команды в отдельном потоке,"
+" чтобы бот оставался отзывчивым."
 
-#: ../../source/api-reference.rst:98
+#: ../../source/api-reference.rst:178
 msgid ""
 "**Important:** Functions marked as :code:`threaded=True` **must not** "
 "directly interact with the Reticulum Network Stack (RNS) or any components "
@@ -143,393 +274,448 @@ msgstr ""
 "как правило, не являются потокобезопасными. Используйте :code:`ctx.reply()` "
 "для отправки сообщений пользователю из многопоточной команды."
 
-#: ../../source/api-reference.rst:101
+#: ../../source/api-reference.rst:181
 msgid "Events"
 msgstr "События"
 
-#: ../../source/api-reference.rst:103
+#: ../../source/api-reference.rst:183
 msgid "Event system for handling various bot events:"
 msgstr "Система событий для обработки различных событий бота:"
 
-#: ../../source/api-reference.rst:113
+#: ../../source/api-reference.rst:193
+msgid "Testing"
+msgstr "Тестирование"
+
+#: ../../source/api-reference.rst:195
+msgid ""
+"Project tests include reliability and stress scenarios in the repository "
+"test suite. Use the repository's test runner to execute them."
+msgstr ""
+"Тесты проекта включают сценарии надёжности и нагрузочного тестирования в "
+"наборе тестов репозитория. Используйте средство запуска тестов репозитория "
+"для их выполнения."
+
+#: ../../source/api-reference.rst:199
+msgid "Advanced Reliability Suite"
+msgstr "Расширенный набор тестов надёжности"
+
+#: ../../source/api-reference.rst:201
+msgid ""
+"The framework includes an extensive suite of automated tests for harsh "
+"environments:"
+msgstr ""
+"Фреймворк включает обширный набор автоматизированных тестов для суровых "
+"условий:"
+
+#: ../../source/api-reference.rst:203
+msgid ""
+"**Manifold Testing**: Validates the mathematical topology of NLP intent "
+"vector space."
+msgstr ""
+"**Manifold Testing**: проверяет математическую топологию векторного "
+"пространства NLP-намерений."
+
+#: ../../source/api-reference.rst:204
+msgid ""
+"**Chaos Engineering**: Simulates bit-rot, SD card failure, and storage "
+"corruption."
+msgstr ""
+"**Chaos Engineering**: имитирует деградацию битов, отказ SD-карты и "
+"повреждение хранилища."
+
+#: ../../source/api-reference.rst:205
+msgid ""
+"**Temporal Drift**: Verifies resilience against system clock jumps (±1 "
+"year)."
+msgstr ""
+"**Temporal Drift**: проверяет устойчивость к скачкам системных часов (±1 "
+"год)."
+
+#: ../../source/api-reference.rst:206
+msgid ""
+"**Leak Detection**: Long-term tracking of memory, file descriptors, and "
+"threads."
+msgstr ""
+"**Leak Detection**: долгосрочное отслеживание памяти, файловых дескрипторов "
+"и потоков."
+
+#: ../../source/api-reference.rst:209
 msgid "Permissions"
 msgstr "Разрешения"
 
-#: ../../source/api-reference.rst:115
+#: ../../source/api-reference.rst:211
 msgid "Permission system for controlling access to bot features:"
 msgstr "Система разрешений для контроля доступа к функциям бота:"
 
-#: ../../source/api-reference.rst:127
+#: ../../source/api-reference.rst:223
 msgid "Middleware"
 msgstr "Промежуточное ПО"
 
-#: ../../source/api-reference.rst:129
+#: ../../source/api-reference.rst:225
 msgid "Middleware system for processing messages and events:"
 msgstr "Система промежуточного ПО для обработки сообщений и событий:"
 
-#: ../../source/api-reference.rst:139
+#: ../../source/api-reference.rst:235
 msgid "Attachments"
 msgstr "Вложения"
 
-#: ../../source/api-reference.rst:141
+#: ../../source/api-reference.rst:237
 msgid "Support for sending files, images, and audio:"
 msgstr "Поддержка отправки файлов, изображений и аудио:"
 
-#: ../../source/api-reference.rst:156
+#: ../../source/api-reference.rst:252
 msgid "Icon Appearance (LXMF Field)"
 msgstr "Внешний вид иконки (поле LXMF)"
 
-#: ../../source/api-reference.rst:158
+#: ../../source/api-reference.rst:254
 msgid ""
 "You can set a custom icon for your bot that compliant LXMF clients can "
 "display. This uses the :code:`LXMF.FIELD_ICON_APPEARANCE`."
 msgstr ""
-"Вы можете установить пользовательскую иконку для своего бота, которую смогут "
-"отображать совместимые клиенты LXMF. Для этого "
-"используется :code:`LXMF.FIELD_ICON_APPEARANCE`."
+"Вы можете установить пользовательскую иконку для своего бота, которую смогут"
+" отображать совместимые клиенты LXMF. Для этого используется "
+":code:`LXMF.FIELD_ICON_APPEARANCE`."
 
-#: ../../source/api-reference.rst:189
+#: ../../source/api-reference.rst:285
 msgid "Scheduler"
 msgstr "Планировщик"
 
-#: ../../source/api-reference.rst:191
+#: ../../source/api-reference.rst:287
 msgid "Task scheduling system:"
 msgstr "Система планирования задач:"
 
-#: ../../source/api-reference.rst:201
+#: ../../source/api-reference.rst:297
 msgid "Signatures"
 msgstr "Подписи"
 
-#: ../../source/api-reference.rst:203
+#: ../../source/api-reference.rst:299
 msgid ""
 "LXMFy provides configuration options for LXMF's built-in cryptographic "
 "message signing and verification:"
-msgstr "LXMFy предоставляет параметры конфигурации для встроенной в LXMF криптографической подписи и проверки сообщений:"
+msgstr ""
+"LXMFy предоставляет параметры конфигурации для встроенной в LXMF "
+"криптографической подписи и проверки сообщений:"
 
-#: ../../source/api-reference.rst:215
+#: ../../source/api-reference.rst:311
 msgid ""
 "**Important:** LXMF automatically handles all cryptographic signing and "
 "verification using RNS identities. LXMFy's :code:`SignatureManager` is a "
 "configuration layer that:"
-msgstr "**Важно:** LXMF автоматически обрабатывает все криптографические подписи и проверку с использованием идентификаторов RNS. :code:`SignatureManager` в LXMFy - это слой конфигурации, который:"
+msgstr ""
+"**Важно:** LXMF автоматически обрабатывает все криптографические подписи и "
+"проверку с использованием идентификаторов RNS. :code:`SignatureManager` в "
+"LXMFy - это слой конфигурации, который:"
 
-#: ../../source/api-reference.rst:217
+#: ../../source/api-reference.rst:313
 msgid "Controls whether to enforce signature verification"
 msgstr "Контролирует, следует ли применять проверку подписи"
 
-#: ../../source/api-reference.rst:218
+#: ../../source/api-reference.rst:314
 msgid "Determines policy for unsigned messages (accept or reject)"
-msgstr "Определяет политику для неподписанных сообщений (принять или отклонить)"
+msgstr ""
+"Определяет политику для неподписанных сообщений (принять или отклонить)"
 
-#: ../../source/api-reference.rst:219
+#: ../../source/api-reference.rst:315
 msgid ""
-"Integrates with the permission system (e.g., bypass verification for trusted "
-"users)"
-msgstr "Интегрируется с системой разрешений (например, обход проверки для доверенных пользователей)"
+"Integrates with the permission system (e.g., bypass verification for trusted"
+" users)"
+msgstr ""
+"Интегрируется с системой разрешений (например, обход проверки для доверенных"
+" пользователей)"
 
-#: ../../source/api-reference.rst:221
+#: ../../source/api-reference.rst:317
 msgid ""
 "The actual cryptographic operations are performed by LXMF/RNS, not by LXMFy."
-msgstr "Фактические криптографические операции выполняются LXMF/RNS, а не LXMFy."
+msgstr ""
+"Фактические криптографические операции выполняются LXMF/RNS, а не LXMFy."
 
-#: ../../source/api-reference.rst:224
-#, fuzzy
+#: ../../source/api-reference.rst:320
+msgid "Landlock LSM Sandbox"
+msgstr "Песочница Landlock LSM"
+
+#: ../../source/api-reference.rst:322
+msgid ""
+"On Linux kernels with Landlock support (5.13+), LXMFy can restrict "
+"filesystem access for the bot process and for external script cogs."
+msgstr ""
+"В ядрах Linux с поддержкой Landlock (5.13+) LXMFy может ограничить доступ к "
+"файловой системе для процесса бота и внешних скриптовых модулей."
+
+#: ../../source/api-reference.rst:324
+msgid "**Bot process sandbox**"
+msgstr "**Песочница процесса бота**"
+
+#: ../../source/api-reference.rst:326
+msgid ""
+"When :code:`landlock_enabled=True` (default) and not running in "
+":code:`test_mode`, the bot calls :code:`apply_landlock_sandbox()` during "
+"initialization. System directories are read-only; bot storage, config, cogs,"
+" Reticulum config, and temp paths remain writable."
+msgstr ""
+"При :code:`landlock_enabled=True` (по умолчанию) и отсутствии "
+":code:`test_mode` бот вызывает :code:`apply_landlock_sandbox()` при "
+"инициализации. Системные каталоги доступны только для чтения; хранилище "
+"бота, config, cogs, конфигурация Reticulum и временные пути остаются "
+"доступными для записи."
+
+#: ../../source/api-reference.rst:339
+msgid "**Environment override**"
+msgstr "**Переопределение через окружение**"
+
+#: ../../source/api-reference.rst:341
+msgid ":code:`LXMFY_LANDLOCK=0`: disable Landlock even on supported kernels"
+msgstr ""
+":code:`LXMFY_LANDLOCK=0`: отключить Landlock даже на поддерживаемых ядрах"
+
+#: ../../source/api-reference.rst:342
+msgid ""
+":code:`LXMFY_LANDLOCK=1`: attempt Landlock on Linux regardless of auto-"
+"detection"
+msgstr ""
+":code:`LXMFY_LANDLOCK=1`: попытаться использовать Landlock в Linux "
+"независимо от автоопределения"
+
+#: ../../source/api-reference.rst:343
+msgid "unset: follow :code:`landlock_enabled` and kernel auto-detection"
+msgstr "не задано: следовать :code:`landlock_enabled` и автоопределению ядра"
+
+#: ../../source/api-reference.rst:345
+msgid "**External cog sandbox**"
+msgstr "**Песочница внешних модулей**"
+
+#: ../../source/api-reference.rst:347
+msgid ""
+"Script cogs use :code:`external_cogs_sandbox_type`. In :code:`auto` mode, "
+"Landlock is preferred when available because it requires no external tools. "
+"See the `Creating Bots <creating-bots.html>`_ guide for the full sandbox "
+"option list."
+msgstr ""
+"Скриптовые модули используют :code:`external_cogs_sandbox_type`. В режиме "
+":code:`auto` предпочитается Landlock при доступности, так как он не требует "
+"внешних инструментов. Полный список вариантов песочницы см. в руководстве "
+"`Создание ботов <creating-bots.html>`_."
+
+#: ../../source/api-reference.rst:350
+msgid "Identity Pinning"
+msgstr "Закрепление идентификатора"
+
+#: ../../source/api-reference.rst:352
+msgid ""
+"LXMFy supports optional identity pinning to prevent impersonation if an "
+"identity is rotated or compromised. When enabled, the bot \"pins\" an LXMF "
+"address to its first-seen public key."
+msgstr ""
+"LXMFy поддерживает опциональное закрепление идентификатора для "
+"предотвращения подмены при ротации или компрометации идентификатора. При "
+"включении бот «закрепляет» адрес LXMF за первым увиденным открытым ключом."
+
+#: ../../source/api-reference.rst:361
 msgid "SignatureManager Methods"
 msgstr "Методы SignatureManager"
 
-#: ../../source/api-reference.rst:226
+#: ../../source/api-reference.rst:363
 msgid ""
 "The :code:`SignatureManager` is available as :code:`bot.signature_manager` "
 "when :code:`signature_verification_enabled=True`:"
-msgstr ":code:`SignatureManager` доступен как :code:`bot.signature_manager`, когда :code:`signature_verification_enabled=True`:"
+msgstr ""
+":code:`SignatureManager` доступен как :code:`bot.signature_manager`, когда "
+":code:`signature_verification_enabled=True`:"
 
-#: ../../source/api-reference.rst:228
+#: ../../source/api-reference.rst:365
 msgid ""
-":code:`should_verify_message(sender)`: Determine if a message from the given "
-"sender should be verified"
+":code:`should_verify_message(sender)`: Determine if a message from the given"
+" sender should be verified"
 msgstr ""
 ":code:`should_verify_message(sender)`: Определить, следует ли проверять "
 "сообщение от данного отправителя"
 
-#: ../../source/api-reference.rst:229
-#, fuzzy
+#: ../../source/api-reference.rst:366
 msgid ""
 ":code:`handle_unsigned_message(sender, message_hash)`: Handle messages that "
 "lack valid signatures based on policy"
 msgstr ""
-":code:`handle_unsigned_message(sender, message_hash)`: Обрабатывать сообщения, "
-"у которых отсутствуют действительные подписи, в соответствии с политикой"
+":code:`handle_unsigned_message(sender, message_hash)`: Обрабатывать "
+"сообщения, у которых отсутствуют действительные подписи, в соответствии с "
+"политикой"
 
-#: ../../source/api-reference.rst:232
+#: ../../source/api-reference.rst:369
 msgid "How LXMF Signatures Work"
 msgstr "Как работают подписи LXMF"
 
-#: ../../source/api-reference.rst:234
+#: ../../source/api-reference.rst:371
 msgid ""
 "LXMF automatically signs all outgoing messages using the sender's RNS "
 "identity during the :code:`pack()` operation. When messages are received, "
 "LXMF validates signatures and provides:"
-msgstr "LXMF автоматически подписывает все исходящие сообщения, используя идентификатор RNS отправителя во время операции :code:`pack()`. При получении сообщений LXMF проверяет подписи и предоставляет:"
+msgstr ""
+"LXMF автоматически подписывает все исходящие сообщения, используя "
+"идентификатор RNS отправителя во время операции :code:`pack()`. При "
+"получении сообщений LXMF проверяет подписи и предоставляет:"
 
-#: ../../source/api-reference.rst:236
+#: ../../source/api-reference.rst:373
 msgid ""
 ":code:`message.signature_validated`: Boolean indicating if the signature is "
 "valid"
-msgstr ":code:`message.signature_validated`: логическое значение, указывающее, действительна ли подпись"
+msgstr ""
+":code:`message.signature_validated`: логическое значение, указывающее, "
+"действительна ли подпись"
 
-#: ../../source/api-reference.rst:237
+#: ../../source/api-reference.rst:374
 msgid ""
-":code:`message.unverified_reason`: Reason code if validation failed "
-"(e.g., :code:`SIGNATURE_INVALID`, :code:`SOURCE_UNKNOWN`)"
-msgstr ":code:`message.unverified_reason`: код причины, если проверка не удалась (например, :code:`SIGNATURE_INVALID`, :code:`SOURCE_UNKNOWN`)"
+":code:`message.unverified_reason`: Reason code if validation failed (e.g., "
+":code:`SIGNATURE_INVALID`, :code:`SOURCE_UNKNOWN`)"
+msgstr ""
+":code:`message.unverified_reason`: код причины, если проверка не удалась "
+"(например, :code:`SIGNATURE_INVALID`, :code:`SOURCE_UNKNOWN`)"
 
-#: ../../source/api-reference.rst:239
+#: ../../source/api-reference.rst:376
 msgid ""
 "LXMFy uses these built-in LXMF properties to enforce your bot's signature "
 "policy."
-msgstr "LXMFy использует эти встроенные свойства LXMF для применения политики подписи вашего бота."
+msgstr ""
+"LXMFy использует эти встроенные свойства LXMF для применения политики "
+"подписи вашего бота."
 
-#: ../../source/api-reference.rst:242
+#: ../../source/api-reference.rst:379
 msgid "Message Delivery"
 msgstr "Доставка сообщений"
 
-#: ../../source/api-reference.rst:244
+#: ../../source/api-reference.rst:381
 msgid ""
 "LXMFy provides advanced message delivery features including propagation "
 "nodes and automatic retries:"
-msgstr "LXMFy предоставляет расширенные функции доставки сообщений, включая узлы распространения и автоматические повторы:"
+msgstr ""
+"LXMFy предоставляет расширенные функции доставки сообщений, включая узлы "
+"распространения и автоматические повторы:"
 
-#: ../../source/api-reference.rst:247
+#: ../../source/api-reference.rst:384
 msgid "Propagation Nodes"
 msgstr "Узлы распространения"
 
-#: ../../source/api-reference.rst:249
+#: ../../source/api-reference.rst:386
 msgid ""
-"Send messages through specific propagation nodes for improved reliability on "
-"the Reticulum network:"
-msgstr "Отправляйте сообщения через определенные узлы распространения для повышения надежности в сети Reticulum:"
+"Send messages through specific propagation nodes for improved reliability on"
+" the Reticulum network:"
+msgstr ""
+"Отправляйте сообщения через определенные узлы распространения для повышения "
+"надежности в сети Reticulum:"
 
-#: ../../source/api-reference.rst:264
+#: ../../source/api-reference.rst:403
 msgid "Automatic Retries"
 msgstr "Автоматические повторы"
 
-#: ../../source/api-reference.rst:266
-msgid "Configure automatic retry attempts for failed message deliveries:"
-msgstr "Настройте автоматические повторные попытки для неудачных доставок сообщений:"
+#: ../../source/api-reference.rst:405
+msgid "Configure automatic retry attempts for failed direct deliveries:"
+msgstr ""
+"Настройте автоматические повторные попытки для неудачных прямых доставок:"
 
-#: ../../source/api-reference.rst:280
+#: ../../source/api-reference.rst:420
 msgid ""
 "The retry system tracks delivery attempts per destination and automatically "
-"retries failed deliveries. Successful deliveries reset the retry counter for "
-"that destination."
-msgstr "Система повторных попыток отслеживает попытки доставки для каждого получателя и автоматически повторяет неудачные доставки. Успешные доставки сбрасывают счетчик повторных попыток для этого получателя."
+"retries failed deliveries. Successful deliveries reset the retry counter for"
+" that destination."
+msgstr ""
+"Система повторных попыток отслеживает попытки доставки для каждого "
+"получателя и автоматически повторяет неудачные доставки. Успешные доставки "
+"сбрасывают счетчик повторных попыток для этого получателя."
 
-#: ../../source/api-reference.rst:283
+#: ../../source/api-reference.rst:423
+msgid "Message Persistence"
+msgstr "Сохранение сообщений"
+
+#: ../../source/api-reference.rst:425
+msgid ""
+"Outgoing messages can be persisted to disk to ensure they are delivered even"
+" after a bot restart."
+msgstr ""
+"Исходящие сообщения могут сохраняться на диск, чтобы обеспечить доставку "
+"даже после перезапуска бота."
+
+#: ../../source/api-reference.rst:434
 msgid "Message Handlers"
 msgstr "Обработчики сообщений"
 
-#: ../../source/api-reference.rst:285
+#: ../../source/api-reference.rst:436
 msgid ""
 "LXMFy provides decorators for handling different types of incoming messages:"
-msgstr "LXMFy предоставляет декораторы для обработки различных типов входящих сообщений:"
+msgstr ""
+"LXMFy предоставляет декораторы для обработки различных типов входящих "
+"сообщений:"
 
-#: ../../source/api-reference.rst:288
+#: ../../source/api-reference.rst:439
 msgid "First Message Handler"
 msgstr "Обработчик первого сообщения"
 
-#: ../../source/api-reference.rst:290
+#: ../../source/api-reference.rst:441
 msgid "Handle the first message from each user:"
 msgstr "Обработка первого сообщения от каждого пользователя:"
 
-#: ../../source/api-reference.rst:301
+#: ../../source/api-reference.rst:452
 msgid "General Message Handler"
 msgstr "Общий обработчик сообщений"
 
-#: ../../source/api-reference.rst:303
+#: ../../source/api-reference.rst:454
 msgid "Handle all incoming messages before command processing:"
 msgstr "Обработка всех входящих сообщений перед обработкой команд:"
 
-#: ../../source/api-reference.rst:318
+#: ../../source/api-reference.rst:469
 msgid ""
-"Message handlers are called in this order: 1. First message handler (if this "
-"is the first message from this sender) 2. General message handlers "
+"Message handlers are called in this order: 1. First message handler (if this"
+" is the first message from this sender) 2. General message handlers "
 "(registered with :code:`on_message()`) 3. Command processing (if message "
 "starts with command prefix)"
-msgstr "Обработчики сообщений вызываются в следующем порядке: 1. Обработчик первого сообщения (если это первое сообщение от этого отправителя) 2. Общие обработчики сообщений (зарегистрированные с помощью :code:`on_message()`) 3. Обработка команд (если сообщение начинается с префикса команды)"
+msgstr ""
+"Обработчики сообщений вызываются в следующем порядке: 1. Обработчик первого "
+"сообщения (если это первое сообщение от этого отправителя) 2. Общие "
+"обработчики сообщений (зарегистрированные с помощью :code:`on_message()`) 3."
+" Обработка команд (если сообщение начинается с префикса команды)"
 
-#: ../../source/api-reference.rst:324
+#: ../../source/api-reference.rst:475
 msgid "Templates"
 msgstr "Шаблоны"
 
-#: ../../source/api-reference.rst:326
+#: ../../source/api-reference.rst:477
 msgid "The framework includes several ready-to-use bot templates:"
 msgstr ""
 "Фреймворк включает в себя несколько готовых к использованию шаблонов ботов:"
 
-#: ../../source/api-reference.rst:329
+#: ../../source/api-reference.rst:480
 msgid "EchoBot"
 msgstr "EchoBot"
 
-#: ../../source/api-reference.rst:331
+#: ../../source/api-reference.rst:482
 msgid "Simple echo bot that repeats messages:"
 msgstr "Простой эхо-бот, который повторяет сообщения:"
 
-#: ../../source/api-reference.rst:341
-msgid "MemeBot"
-msgstr "MemeBot"
-
-#: ../../source/api-reference.rst:343
-msgid "Bot for sending random memes:"
-msgstr "Бот для отправки случайных мемов:"
-
-#: ../../source/api-reference.rst:353
+#: ../../source/api-reference.rst:492
 msgid "NoteBot"
 msgstr "NoteBot"
 
-#: ../../source/api-reference.rst:355
+#: ../../source/api-reference.rst:494
 msgid "Note-taking bot with JSON storage:"
 msgstr "Бот для заметок с хранилищем JSON:"
 
-#: ../../source/api-reference.rst:365
+#: ../../source/api-reference.rst:504
 msgid "ReminderBot"
 msgstr "ReminderBot"
 
-#: ../../source/api-reference.rst:367
+#: ../../source/api-reference.rst:506
 msgid "Reminder bot with SQLite storage:"
 msgstr "Бот для напоминаний с хранилищем SQLite:"
 
-#: ../../source/api-reference.rst:377
+#: ../../source/api-reference.rst:516
 msgid "CLI Tools"
 msgstr "Инструменты командной строки"
 
-#: ../../source/api-reference.rst:379
+#: ../../source/api-reference.rst:518
 msgid "The framework provides command-line tools for bot management:"
 msgstr ""
 "Фреймворк предоставляет инструменты командной строки для управления ботом:"
 
-#: ../../source/api-reference.rst:408
+#: ../../source/api-reference.rst:541
 msgid "Error Handling"
 msgstr "Обработка ошибок"
 
-#: ../../source/api-reference.rst:410
+#: ../../source/api-reference.rst:543
 msgid "The framework provides comprehensive error handling:"
 msgstr "Фреймворк предоставляет комплексную обработку ошибок:"
-
-#~ msgid ""
-#~ "Cryptographic message signing and verification for enhanced security:"
-#~ msgstr ""
-#~ "Криптографическая подпись и проверка сообщений для повышения безопасности:"
-
-#~ msgid ""
-#~ ":code:`sign_message(message, identity)`: Sign an LXMF message using the "
-#~ "provided RNS identity"
-#~ msgstr ""
-#~ ":code:`sign_message(message, identity)`: Подписать сообщение LXMF, "
-#~ "используя предоставленный идентификатор RNS"
-
-#~ msgid ""
-#~ ":code:`verify_message_signature(message, signature, sender_hash, "
-#~ "sender_identity=None)`: Verify a message signature against a sender "
-#~ "identity"
-#~ msgstr ""
-#~ ":code:`verify_message_signature(message, signature, sender_hash, "
-#~ "sender_identity=None)`: Проверить подпись сообщения по идентификатору "
-#~ "отправителя"
-
-#~ msgid ""
-#~ "LXMFy uses custom LXMF field :code:`0xFA` (FIELD_SIGNATURE) to store "
-#~ "cryptographic signatures. Messages are canonicalized by sorting and "
-#~ "concatenating fields in the following order:"
-#~ msgstr ""
-#~ "LXMFy использует пользовательское поле LXMF :code:`0xFA` "
-#~ "(FIELD_SIGNATURE) для хранения криптографических подписей. Сообщения "
-#~ "канонизируются путем сортировки и объединения полей в следующем порядке:"
-
-#~ msgid "source hash (prefixed with \"source:\")"
-#~ msgstr "хэш источника (с префиксом \"source:\")"
-
-#~ msgid "destination hash (prefixed with \"dest:\")"
-#~ msgstr "хэш назначения (с префиксом \"dest:\")"
-
-#~ msgid "content (prefixed with \"content:\")"
-#~ msgstr "содержимое (с префиксом \"content:\")"
-
-#~ msgid "title (prefixed with \"title:\")"
-#~ msgstr "заголовок (с префиксом \"title:\")"
-
-#~ msgid "timestamp (prefixed with \"timestamp:\")"
-#~ msgstr "временная метка (с префиксом \"timestamp:\")"
-
-#~ msgid ""
-#~ "custom fields (excluding signature field, prefixed with \"field_{id}:\")"
-#~ msgstr ""
-#~ "пользовательские поля (исключая поле подписи, с префиксом \"field_{id}:\")"
-
-#~ msgid "Best Practices"
-#~ msgstr "Лучшие практики"
-
-#~ msgid "Always enable the permission system for better security"
-#~ msgstr "Всегда включайте систему разрешений для повышения безопасности"
-
-#~ msgid "Use appropriate storage backend based on data size"
-#~ msgstr ""
-#~ "Используйте подходящий бэкенд для хранения данных в зависимости от их "
-#~ "размера"
-
-#~ msgid "Implement proper error handling in commands"
-#~ msgstr "Реализуйте правильную обработку ошибок в командах"
-
-#~ msgid "Use middleware for cross-cutting concerns"
-#~ msgstr "Используйте промежуточное ПО для сквозных задач"
-
-#~ msgid "Follow the event-driven architecture for extensibility"
-#~ msgstr "Следуйте событийно-ориентированной архитектуре для расширяемости"
-
-#~ msgid "Use the validation system to ensure proper configuration"
-#~ msgstr ""
-#~ "Используйте систему валидации для обеспечения правильной конфигурации"
-
-#~ msgid "Implement proper spam protection"
-#~ msgstr "Реализуйте надлежащую защиту от спама"
-
-#~ msgid "Use the scheduler for periodic tasks"
-#~ msgstr "Используйте планировщик для периодических задач"
-
-#~ msgid "Follow the template structure for new bots"
-#~ msgstr "Следуйте структуре шаблонов для новых ботов"
-
-#~ msgid "Use the CLI tools for bot management"
-#~ msgstr "Используйте инструменты командной строки для управления ботом"
-
-#~ msgid "Security Considerations"
-#~ msgstr "Вопросы безопасности"
-
-#~ msgid "Always validate user input"
-#~ msgstr "Всегда проверяйте вводимые пользователем данные"
-
-#~ msgid "Use the permission system"
-#~ msgstr "Используйте систему разрешений"
-
-#~ msgid "Implement rate limiting"
-#~ msgstr "Реализуйте ограничение частоты запросов"
-
-#~ msgid "Use spam protection"
-#~ msgstr "Используйте защиту от спама"
-
-#~ msgid "Validate attachments"
-#~ msgstr "Проверяйте вложения"
-
-#~ msgid "Use secure storage"
-#~ msgstr "Используйте безопасное хранилище"
-
-#~ msgid "Implement proper error handling"
-#~ msgstr "Реализуйте правильную обработку ошибок"
-
-#~ msgid "Use the validation system"
-#~ msgstr "Используйте систему валидации"
-
-#~ msgid "Follow security best practices"
-#~ msgstr "Следуйте лучшим практикам безопасности"
-
-#~ msgid "Keep dependencies updated"
-#~ msgstr "Своевременно обновляйте зависимости"

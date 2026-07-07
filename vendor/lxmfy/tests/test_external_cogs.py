@@ -7,7 +7,12 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from lxmfy import BotConfig, LXMFBot
-from lxmfy.cogs_core import _get_sandbox_command, load_cogs_from_directory
+from lxmfy.cogs_core import (
+    SandboxSetup,
+    _get_sandbox_command,
+    _get_sandbox_setup,
+    load_cogs_from_directory,
+)
 
 
 @pytest.fixture
@@ -113,6 +118,7 @@ def test_sandbox_detection_bwrap():
     bot = MagicMock()
     bot.config.external_cogs_sandbox_enabled = True
     bot.config.external_cogs_sandbox_type = "auto"
+    bot.config.landlock_enabled = False
 
     with (
         patch("shutil.which") as mock_which,
@@ -131,6 +137,7 @@ def test_sandbox_detection_firejail():
     bot = MagicMock()
     bot.config.external_cogs_sandbox_enabled = True
     bot.config.external_cogs_sandbox_type = "auto"
+    bot.config.landlock_enabled = False
 
     with patch("shutil.which") as mock_which, patch("sys.platform", "linux"):
         mock_which.side_effect = lambda x: f"/usr/bin/{x}" if x == "firejail" else None
@@ -138,6 +145,42 @@ def test_sandbox_detection_firejail():
         cmd = _get_sandbox_command(bot, "/path/to/script")
         assert cmd is not None
         assert "/usr/bin/firejail" in cmd
+
+
+def test_sandbox_detection_landlock():
+    """Test landlock sandbox detection in auto mode."""
+    bot = MagicMock()
+    bot.config.external_cogs_sandbox_enabled = True
+    bot.config.external_cogs_sandbox_type = "auto"
+    bot.config.landlock_enabled = True
+
+    with (
+        patch("lxmfy.cogs_core._landlock_available", return_value=True),
+        patch("shutil.which", return_value=None),
+        patch("sys.platform", "linux"),
+    ):
+        setup = _get_sandbox_setup(bot, "/path/to/script")
+        assert setup is not None
+        assert setup.preexec_fn is not None
+        assert setup.cmd_prefix is None
+
+
+def test_sandbox_detection_bwrap_prefers_landlock_in_auto():
+    """Landlock is preferred over bwrap when both are available."""
+    bot = MagicMock()
+    bot.config.external_cogs_sandbox_enabled = True
+    bot.config.external_cogs_sandbox_type = "auto"
+    bot.config.landlock_enabled = True
+
+    with (
+        patch("lxmfy.cogs_core._landlock_available", return_value=True),
+        patch("shutil.which", return_value="/usr/bin/bwrap"),
+        patch("sys.platform", "linux"),
+    ):
+        setup = _get_sandbox_setup(bot, "/path/to/script")
+        assert isinstance(setup, SandboxSetup)
+        assert setup.preexec_fn is not None
+        assert setup.cmd_prefix is None
 
 
 def test_cog_external_timeout_enforcement(external_cog_setup):

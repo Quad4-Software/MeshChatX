@@ -1,6 +1,30 @@
 # Changelog
 
-## [1.6.3] - 2026-05-06
+## [1.6.5] - 2026-07-04
+
+### Features
+- **Landlock LSM sandbox (Linux)**: Optional filesystem sandbox for the bot process and external script cogs on kernels with Landlock support (5.13+).
+  - `landlock_enabled` in `BotConfig` (default `True`); override with `LXMFY_LANDLOCK=0` or `LXMFY_LANDLOCK=1`.
+  - `LXMFBot.get_landlock_status()` reports kernel support, request state, and whether the sandbox is active.
+  - External cog sandbox `auto` mode now prefers Landlock, then `bwrap`, then `firejail`; added explicit `landlock` and `none` sandbox types.
+- **Static type checking**: Added `pyright` dev dependency, `[tool.pyright]` config, and `make typecheck` / `make ci` integration.
+
+### Fixes
+- **Propagation node init**: Removed invalid `enforce_stamps` argument from `LXMRouter.enable_propagation()` (stamp enforcement belongs on router construction only).
+- **Cog permissions**: `Cog.has_permission()` now delegates to `bot.permissions` instead of referencing non-existent cog attributes.
+- **Type annotations**: Corrected optional types and Landlock-related typing across the codebase for clean `pyright` runs.
+
+### Updates
+- **Dependencies**: LXMF 1.0.1+, RNS 1.3.5+ (lockfile: LXMF 1.0.1, RNS 1.3.7).
+- **Documentation**: English and Russian Sphinx docs updated for Landlock, sandboxing, prerequisites, and development workflow.
+- **README**: Project and docs READMEs updated with requirements, sandbox configuration, and translation workflow.
+
+## [1.6.4] - 2026-05-30
+
+### Updates
+- **Dependencies**: LXMF 1.0.0, RNS 1.3.4
+
+## [1.6.3] - 2026-05-08
 
 ### Features
 - **LXMF FIELD_COMMANDS / FIELD_RESULTS support**: Bots can now receive structured commands and requests sent via LXMF message fields (`FIELD_COMMANDS = 0x09`) and automatically reply with results (`FIELD_RESULTS = 0x0A`).

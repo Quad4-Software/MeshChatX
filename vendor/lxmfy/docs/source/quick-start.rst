@@ -5,7 +5,8 @@ Prerequisites
 -------------
 
 *   Python 3.11+
-*   Reticulum Network Stack (:code:`pip install rns`)
+*   Reticulum Network Stack (:code:`pip install rns`, version 1.3.5+)
+*   LXMF (:code:`pip install lxmf`, version 1.0.1+; installed automatically with LXMFy)
 *   LXMFy (:code:`pip install lxmfy` or install from source)
 
 Creating Your First Bot (Using the CLI)
@@ -116,7 +117,14 @@ Once you're comfortable with the basics, explore these advanced features:
 
 *   Enable :code:`signature_verification_enabled=True` to enforce LXMF's built-in signature verification
 *   Set :code:`require_message_signatures=True` to reject unsigned or invalid messages
-*   Note: LXMF automatically signs all messages; LXMFy just enforces verification policy
+*   On Linux, enable the Landlock LSM filesystem sandbox with :code:`landlock_enabled=True` (default); override with :code:`LXMFY_LANDLOCK=0` or :code:`LXMFY_LANDLOCK=1`
+*   External script cogs can run in a Landlock, bubblewrap, or firejail sandbox via :code:`external_cogs_sandbox_type`
+*   Note: LXMF automatically signs all messages; LXMFy enforces verification policy and optional sandboxing
+
+**Development:**
+
+*   Run static type checking with :code:`make typecheck` (:code:`pyright lxmfy`)
+*   Run the full CI suite with :code:`make ci` (lint, typecheck, security check, tests, build)
 
 See the `Creating Bots <creating-bots.html>`_ guide and `API Reference <api-reference.html>`_ for detailed information on these features.
 

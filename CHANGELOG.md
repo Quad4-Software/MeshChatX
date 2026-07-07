@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file.
 - **Plugins**: `POST /api/v1/plugins/{id}/report-failure` for frontend worker crash reporting; kill-switch broadcasts over WebSocket when a plugin is auto-disabled.
 - **Dependencies**: Added **wasmtime** for backend WASM plugin execution.
 - **Plugins**: `--disable-plugins` CLI flag and `MESHCHAT_DISABLE_PLUGINS` environment variable to disable the plugin system entirely at runtime.
+- **Vendored LXMFy**: Refreshed `vendor/lxmfy` to upstream **1.6.5** (`d92cfe0`) — Landlock LSM sandbox for bot processes and external cogs, propagation-node init fix, cog permission fix, and dependency alignment with RNS 1.3.5+ / LXMF 1.0.1+.
 
 ### Fixed
 

@@ -38,8 +38,9 @@ The main bot class that handles message routing, command processing, and bot lif
         dynamic_cogs_enabled=True,
         external_cogs_enabled=True,
         external_cogs_sandbox_enabled=True,
-        external_cogs_sandbox_type="auto",
+        external_cogs_sandbox_type="auto",  # "auto", "landlock", "bwrap", "firejail", "none"
         external_cogs_timeout=30,
+        landlock_enabled=True,
         nlp_enabled=False,
         nlp_threshold=0.5,
         link_support_enabled=False,
@@ -49,6 +50,7 @@ The main bot class that handles message routing, command processing, and bot lif
 Key Methods
 ^^^^^^^^^^^
 
+- :code:`get_landlock_status()`: Return Landlock LSM sandbox availability and activation state for the bot process
 - :code:`run(delay=10)`: Start the bot's main loop
 - :code:`send(destination, message, title="Reply", lxmf_fields=None, stamp_cost=None, opportunistic=None)`: Send a message to a destination, optionally with custom LXMF fields, stamp cost override, and opportunistic sending (tries direct, falls back to propagation immediately if configured).
 - :code:`send_with_attachment(destination, message, attachment, title="Reply", stamp_cost=None, opportunistic=None)`: Send a message with an attachment
@@ -313,6 +315,36 @@ LXMFy provides configuration options for LXMF's built-in cryptographic message s
 - Integrates with the permission system (e.g., bypass verification for trusted users)
 
 The actual cryptographic operations are performed by LXMF/RNS, not by LXMFy.
+
+Landlock LSM Sandbox
+^^^^^^^^^^^^^^^^^^^^
+
+On Linux kernels with Landlock support (5.13+), LXMFy can restrict filesystem access for the bot process and for external script cogs.
+
+**Bot process sandbox**
+
+When :code:`landlock_enabled=True` (default) and not running in :code:`test_mode`, the bot calls :code:`apply_landlock_sandbox()` during initialization. System directories are read-only; bot storage, config, cogs, Reticulum config, and temp paths remain writable.
+
+.. code-block:: python
+
+    bot = LXMFBot(
+        name="SecureBot",
+        landlock_enabled=True,
+    )
+
+    status = bot.get_landlock_status()
+    # status keys: landlock_kernel_supported, landlock_requested,
+    # landlock_auto_enabled, landlock_disabled_by_env, landlock_active
+
+**Environment override**
+
+- :code:`LXMFY_LANDLOCK=0`: disable Landlock even on supported kernels
+- :code:`LXMFY_LANDLOCK=1`: attempt Landlock on Linux regardless of auto-detection
+- unset: follow :code:`landlock_enabled` and kernel auto-detection
+
+**External cog sandbox**
+
+Script cogs use :code:`external_cogs_sandbox_type`. In :code:`auto` mode, Landlock is preferred when available because it requires no external tools. See the `Creating Bots <creating-bots.html>`_ guide for the full sandbox option list.
 
 Identity Pinning
 ^^^^^^^^^^^^^^^^

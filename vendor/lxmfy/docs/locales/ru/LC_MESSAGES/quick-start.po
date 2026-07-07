@@ -1,18 +1,13 @@
-# SOME DESCRIPTIVE TITLE.
-# Copyright (C) 2025, Ivan
-# This file is distributed under the same license as the LXMFy package.
-# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
-#, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: LXMFy \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-11-20 17:21-0600\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language-Team: LANGUAGE <LL@li.org>\n"
-"Language: \n"
+"POT-Creation-Date: 2026-07-04 17:25-0500\n"
+"PO-Revision-Date: 2026-07-04\n"
+"Last-Translator: \n"
+"Language-Team: Russian\n"
+"Language: ru\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -30,75 +25,84 @@ msgid "Python 3.11+"
 msgstr "Python 3.11+"
 
 #: ../../source/quick-start.rst:8
-msgid "Reticulum Network Stack (:code:`pip install rns`)"
-msgstr "Сетевой стек Reticulum (:code:`pip install rns`)"
+msgid "Reticulum Network Stack (:code:`pip install rns`, version 1.3.5+)"
+msgstr "Сетевой стек Reticulum (:code:`pip install rns`, версия 1.3.5+)"
 
 #: ../../source/quick-start.rst:9
+msgid ""
+"LXMF (:code:`pip install lxmf`, version 1.0.1+; installed automatically with"
+" LXMFy)"
+msgstr ""
+"LXMF (:code:`pip install lxmf`, версия 1.0.1+; устанавливается автоматически"
+" с LXMFy)"
+
+#: ../../source/quick-start.rst:10
 msgid "LXMFy (:code:`pip install lxmfy` or install from source)"
 msgstr "LXMFy (:code:`pip install lxmfy` или установка из исходного кода)"
 
-#: ../../source/quick-start.rst:12
+#: ../../source/quick-start.rst:13
 msgid "Creating Your First Bot (Using the CLI)"
 msgstr "Создание вашего первого бота (с помощью CLI)"
 
-#: ../../source/quick-start.rst:14
+#: ../../source/quick-start.rst:15
 msgid "The easiest way to start is using the LXMFy command-line tool."
 msgstr ""
-"Самый простой способ начать - использовать инструмент командной строки LXMFy."
+"Самый простой способ начать - использовать инструмент командной строки "
+"LXMFy."
 
-#: ../../source/quick-start.rst:16
+#: ../../source/quick-start.rst:17
 msgid ""
 "**Open your terminal** in the directory where you want to create your bot "
 "project."
 msgstr ""
 "**Откройте терминал** в каталоге, где вы хотите создать проект своего бота."
 
-#: ../../source/quick-start.rst:17
+#: ../../source/quick-start.rst:18
 msgid "**Run the create command:**"
 msgstr "**Выполните команду create:**"
 
-#: ../../source/quick-start.rst:23
+#: ../../source/quick-start.rst:24
 msgid ""
-"This command will generate the following files: *   :code:`my_first_bot.py`: "
-"Your main bot file, configured with sensible defaults. *   :code:`cogs/`: A "
-"directory for bot extensions (cogs). *   :code:`cogs/__init__.py`: Makes "
+"This command will generate the following files: *   :code:`my_first_bot.py`:"
+" Your main bot file, configured with sensible defaults. *   :code:`cogs/`: A"
+" directory for bot extensions (cogs). *   :code:`cogs/__init__.py`: Makes "
 "the :code:`cogs` directory a Python package. *   :code:`cogs/basic.py`: An "
-"example cog with simple \"hello\" and \"about\" commands. *   :code:`data/`: "
-"A directory where the bot will store its data (using JSON by default). "
-"*   :code:`config/`: A directory where the bot stores its identity and "
-"announce status."
+"example cog with simple \"hello\" and \"about\" commands. *   :code:`data/`:"
+" A directory where the bot will store its data (using JSON by default). *   "
+":code:`config/`: A directory where the bot stores its identity and announce "
+"status."
 msgstr ""
 "Эта команда сгенерирует следующие файлы: * :code:`my_first_bot.py`: Ваш "
-"основной файл бота, настроенный с разумными значениями по умолчанию. "
-"* :code:`cogs/`: Каталог для расширений бота (модулей). * :code:`cogs/"
-"__init__.py`: Делает каталог :code:`cogs` пакетом Python. * :code:`cogs/"
-"basic.py`: Пример модуля с простыми командами \"hello\" и \"about\". "
-"* :code:`data/`: Каталог, в котором бот будет хранить свои данные (по "
-"умолчанию используется JSON). * :code:`config/`: Каталог, в котором бот "
-"хранит свою идентификацию и статус объявления."
+"основной файл бота, настроенный с разумными значениями по умолчанию. * "
+":code:`cogs/`: Каталог для расширений бота (модулей). * "
+":code:`cogs/__init__.py`: Делает каталог :code:`cogs` пакетом Python. * "
+":code:`cogs/basic.py`: Пример модуля с простыми командами \"hello\" и "
+"\"about\". * :code:`data/`: Каталог, в котором бот будет хранить свои данные"
+" (по умолчанию используется JSON). * :code:`config/`: Каталог, в котором бот"
+" хранит свою идентификацию и статус объявления."
 
-#: ../../source/quick-start.rst:31
+#: ../../source/quick-start.rst:32
 msgid "**Review the :code:`my_first_bot.py` file:**"
 msgstr "**Просмотрите файл :code:`my_first_bot.py`:**"
 
-#: ../../source/quick-start.rst:80
+#: ../../source/quick-start.rst:81
 msgid ""
 "**(Optional) Add Your Admin Hash:** *   Find your LXMF address hash (e.g., "
 "from your Reticulum client like Sideband or NomadNet). *   Uncomment and "
-"edit the :code:`bot.config.admins.add(...)` line in :code:`my_first_bot.py`, "
-"replacing :code:`\"your_lxmf_hash_here\"` with your actual hash."
+"edit the :code:`bot.config.admins.add(...)` line in :code:`my_first_bot.py`,"
+" replacing :code:`\"your_lxmf_hash_here\"` with your actual hash."
 msgstr ""
 "**(Необязательно) Добавьте свой хэш администратора:** * Найдите хэш своего "
 "адреса LXMF (например, в вашем клиенте Reticulum, таком как Sideband или "
-"NomadNet). * Раскомментируйте и отредактируйте "
-"строку :code:`bot.config.admins.add(...)` в файле :code:`my_first_bot.py`, "
-"заменив :code:`\"your_lxmf_hash_here\"` на ваш фактический хэш."
+"NomadNet). * Раскомментируйте и отредактируйте строку "
+":code:`bot.config.admins.add(...)` в файле :code:`my_first_bot.py`, заменив "
+":code:`\"your_lxmf_hash_here\"` на ваш фактический хэш."
 
-#: ../../source/quick-start.rst:84
+#: ../../source/quick-start.rst:85
 msgid "**Run Your Bot:**"
 msgstr "**Запустите своего бота:**"
 
-#: ../../source/quick-start.rst:90
+#: ../../source/quick-start.rst:91
 msgid ""
 "Your bot will start, print its LXMF address, potentially send an announce "
 "message over the Reticulum network, and begin listening for messages."
@@ -106,91 +110,143 @@ msgstr ""
 "Ваш бот запустится, выведет свой адрес LXMF, потенциально отправит "
 "объявление по сети Reticulum и начнет прослушивать сообщения."
 
-#: ../../source/quick-start.rst:93
+#: ../../source/quick-start.rst:94
 msgid "Interacting With Your Bot"
 msgstr "Взаимодействие с вашим ботом"
 
-#: ../../source/quick-start.rst:95
+#: ../../source/quick-start.rst:96
 msgid "**Send a message** to the bot's LXMF address from your client."
 msgstr "**Отправьте сообщение** на адрес LXMF бота из вашего клиента."
 
-#: ../../source/quick-start.rst:96
+#: ../../source/quick-start.rst:97
 msgid ""
-"**Try the example command:** Send :code:`/hello` to the bot. It should reply "
-"with \"Hello :code:`<your_hash>`!\". If you uncommented the icon example "
+"**Try the example command:** Send :code:`/hello` to the bot. It should reply"
+" with \"Hello :code:`<your_hash>`!\". If you uncommented the icon example "
 "above, this reply might also carry an icon."
 msgstr ""
 "**Попробуйте пример команды:** Отправьте :code:`/hello` боту. Он должен "
 "ответить \"Hello :code:`<your_hash>`!\". Если вы раскомментировали пример с "
 "иконкой выше, этот ответ также может содержать иконку."
 
-#: ../../source/quick-start.rst:98
+#: ../../source/quick-start.rst:99
 msgid "**Try the help command:** Send :code:`/help`."
 msgstr "**Попробуйте команду помощи:** Отправьте :code:`/help`."
 
-#: ../../source/quick-start.rst:101
+#: ../../source/quick-start.rst:102
 msgid "Advanced Features"
 msgstr "Расширенные возможности"
 
-#: ../../source/quick-start.rst:103
+#: ../../source/quick-start.rst:104
 msgid ""
 "Once you're comfortable with the basics, explore these advanced features:"
 msgstr "Когда вы освоитесь с основами, изучите эти расширенные возможности:"
 
-#: ../../source/quick-start.rst:105
+#: ../../source/quick-start.rst:106
 msgid "**Message Handlers:**"
 msgstr "**Обработчики сообщений:**"
 
-#: ../../source/quick-start.rst:107
-msgid "Use :code:`@bot.on_first_message()` to welcome new users"
-msgstr "Используйте :code:`@bot.on_first_message()` для приветствия новых пользователей"
-
 #: ../../source/quick-start.rst:108
+msgid "Use :code:`@bot.on_first_message()` to welcome new users"
+msgstr ""
+"Используйте :code:`@bot.on_first_message()` для приветствия новых "
+"пользователей"
+
+#: ../../source/quick-start.rst:109
 msgid ""
 "Use :code:`@bot.on_message()` to handle all messages before command "
 "processing"
-msgstr "Используйте :code:`@bot.on_message()` для обработки всех сообщений перед обработкой команд"
+msgstr ""
+"Используйте :code:`@bot.on_message()` для обработки всех сообщений перед "
+"обработкой команд"
 
-#: ../../source/quick-start.rst:110
+#: ../../source/quick-start.rst:111
 msgid "**Reliable Delivery:**"
 msgstr "**Надежная доставка:**"
 
-#: ../../source/quick-start.rst:112
-msgid ""
-"Configure :code:`max_retries` parameter in :code:`bot.send()` for automatic "
-"retry on delivery failure"
-msgstr "Настройте параметр :code:`max_retries` в :code:`bot.send()` для автоматического повтора при сбое доставки"
-
 #: ../../source/quick-start.rst:113
 msgid ""
-"Use :code:`propagation_node` parameter to route messages through specific "
-"LXMF propagation nodes"
-msgstr "Используйте параметр :code:`propagation_node` для маршрутизации сообщений через определенные узлы распространения LXMF"
+"Configure :code:`direct_delivery_retries` in :code:`LXMFBot(...)` for "
+"automatic retry before propagation fallback"
+msgstr ""
+"Настройте :code:`direct_delivery_retries` в :code:`LXMFBot(...)` для "
+"автоматического повтора перед переходом к распространению"
 
-#: ../../source/quick-start.rst:115
+#: ../../source/quick-start.rst:114
+msgid ""
+"Configure :code:`propagation_node` in bot config (or use "
+":code:`bot.set_propagation_node(...)`) to route through a specific LXMF "
+"propagation node"
+msgstr ""
+"Настройте :code:`propagation_node` в конфигурации бота (или используйте "
+":code:`bot.set_propagation_node(...)`) для маршрутизации через определённый "
+"узел распространения LXMF"
+
+#: ../../source/quick-start.rst:116
 msgid "**Security:**"
 msgstr "**Безопасность:**"
 
-#: ../../source/quick-start.rst:117
+#: ../../source/quick-start.rst:118
 msgid ""
 "Enable :code:`signature_verification_enabled=True` to enforce LXMF's built-"
 "in signature verification"
-msgstr "Включите :code:`signature_verification_enabled=True` для принудительной встроенной проверки подписи LXMF"
-
-#: ../../source/quick-start.rst:118
-msgid ""
-"Set :code:`require_message_signatures=True` to reject unsigned or invalid "
-"messages"
-msgstr "Установите :code:`require_message_signatures=True` для отклонения неподписанных или недействительных сообщений"
+msgstr ""
+"Включите :code:`signature_verification_enabled=True` для принудительной "
+"встроенной проверки подписи LXMF"
 
 #: ../../source/quick-start.rst:119
 msgid ""
-"Note: LXMF automatically signs all messages; LXMFy just enforces "
-"verification policy"
-msgstr "Примечание: LXMF автоматически подписывает все сообщения; LXMFy только применяет политику проверки"
+"Set :code:`require_message_signatures=True` to reject unsigned or invalid "
+"messages"
+msgstr ""
+"Установите :code:`require_message_signatures=True` для отклонения "
+"неподписанных или недействительных сообщений"
+
+#: ../../source/quick-start.rst:120
+msgid ""
+"On Linux, enable the Landlock LSM filesystem sandbox with "
+":code:`landlock_enabled=True` (default); override with "
+":code:`LXMFY_LANDLOCK=0` or :code:`LXMFY_LANDLOCK=1`"
+msgstr ""
+"В Linux включите файловую песочницу Landlock LSM с "
+":code:`landlock_enabled=True` (по умолчанию); переопределите с помощью "
+":code:`LXMFY_LANDLOCK=0` или :code:`LXMFY_LANDLOCK=1`"
 
 #: ../../source/quick-start.rst:121
-#, fuzzy
+msgid ""
+"External script cogs can run in a Landlock, bubblewrap, or firejail sandbox "
+"via :code:`external_cogs_sandbox_type`"
+msgstr ""
+"Внешние скриптовые модули могут выполняться в песочнице Landlock, bubblewrap"
+" или firejail через :code:`external_cogs_sandbox_type`"
+
+#: ../../source/quick-start.rst:122
+msgid ""
+"Note: LXMF automatically signs all messages; LXMFy enforces verification "
+"policy and optional sandboxing"
+msgstr ""
+"Примечание: LXMF автоматически подписывает все сообщения; LXMFy применяет "
+"политику проверки и опциональную песочницу"
+
+#: ../../source/quick-start.rst:124
+msgid "**Development:**"
+msgstr "**Разработка:**"
+
+#: ../../source/quick-start.rst:126
+msgid ""
+"Run static type checking with :code:`make typecheck` (:code:`pyright lxmfy`)"
+msgstr ""
+"Запустите статическую проверку типов с помощью :code:`make typecheck` "
+"(:code:`pyright lxmfy`)"
+
+#: ../../source/quick-start.rst:127
+msgid ""
+"Run the full CI suite with :code:`make ci` (lint, typecheck, security check,"
+" tests, build)"
+msgstr ""
+"Запустите полный набор CI с помощью :code:`make ci` (lint, typecheck, "
+"security check, tests, build)"
+
+#: ../../source/quick-start.rst:129
 msgid ""
 "See the `Creating Bots <creating-bots.html>`_ guide and `API Reference <api-"
 "reference.html>`_ for detailed information on these features."
@@ -198,11 +254,11 @@ msgstr ""
 "См. руководство `Создание ботов <creating-bots.html>`_ и `Справочник по API "
 "<api-reference.html>`_ для получения подробной информации об этих функциях."
 
-#: ../../source/quick-start.rst:124
+#: ../../source/quick-start.rst:132
 msgid "Next Steps"
 msgstr "Следующие шаги"
 
-#: ../../source/quick-start.rst:126
+#: ../../source/quick-start.rst:134
 msgid ""
 "Explore the `Creating Bots <creating-bots.html>`_ guide for more details on "
 "adding commands, using cogs, and different bot types."
@@ -211,7 +267,7 @@ msgstr ""
 "более подробную информацию о добавлении команд, использовании модулей и "
 "различных типах ботов."
 
-#: ../../source/quick-start.rst:127
+#: ../../source/quick-start.rst:135
 msgid ""
 "Check the `API Reference <api-reference.html>`_ for detailed information on "
 "framework components."

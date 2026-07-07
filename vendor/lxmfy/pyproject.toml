@@ -1,6 +1,6 @@
 [project]
 name = "lxmfy"
-version = "1.6.2"
+version = "1.6.5"
 description = "LXMF bot framework for creating bots for the Reticulum Network"
 authors = [{name = "Quad4", email = "team@quad4.io"}]
 readme = "README.md"
@@ -15,8 +15,8 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "lxmf>=0.9.6",
-    "rns>=1.2.0"
+    "lxmf>=1.0.1",
+    "rns>=1.3.5"
 ]
 
 [project.urls]
@@ -30,13 +30,20 @@ lxmfy = "lxmfy.cli:main"
 packages = [{include = "lxmfy"}]
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.14.3"
+ruff = "^0.15.0"
 pytest = "^8.4.2"
 pytest-asyncio = "^1.2.0"
 pytest-cov = "^7.0.0"
 twine = "^6.2.0"
 psutil = "^7.2.1"
 hypothesis = "^6.150.2"
+pyright = "^1.1.411"
+
+[tool.pyright]
+include = ["lxmfy"]
+pythonVersion = "3.11"
+typeCheckingMode = "standard"
+reportMissingTypeStubs = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

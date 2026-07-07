@@ -14,7 +14,7 @@ import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
-from typing import Callable
+from typing import Any, Callable, cast
 from types import SimpleNamespace
 
 import RNS
@@ -26,6 +26,7 @@ from .commands import Command
 from .config import BotConfig
 from .events import Event, EventManager, EventPriority
 from .help import HelpSystem
+from .landlock_sandbox import apply_landlock_sandbox, landlock_status_dict
 from .lxmf_fields import FIELD_RESULTS, pack_result, unpack_commands
 from .middleware import MiddlewareContext, MiddlewareManager, MiddlewareType
 from .moderation import SpamProtection
@@ -126,6 +127,19 @@ class LXMFBot:
 
         self._load_delivery_attempts()
 
+        self.landlock_active = False
+        if not self.config.test_mode:
+            storage_dir = os.path.abspath(
+                os.path.expanduser(self.config.storage_path),
+            )
+            self.landlock_active = apply_landlock_sandbox(
+                storage_dir=storage_dir,
+                reticulum_config_dir=self.reticulum_config_dir,
+                config_dir=self.config_path,
+                cogs_dir=self.cogs_dir,
+                config_enabled=self.config.landlock_enabled,
+            )
+
         identity_file = os.path.join(self.config_path, "identity")
 
         if not self.config.test_mode:
@@ -161,15 +175,14 @@ class LXMFBot:
                 display_name=self.config.name,
                 stamp_cost=self.config.stamp_cost,
             )
+            assert self.local is not None
             self._sync_delivery_display_name()
             self.router.register_delivery_callback(self._message_received)
             self.local.set_link_established_callback(self._link_established)
 
         if self.router and self.config.enable_propagation_node:
             try:
-                self.router.enable_propagation(
-                    enforce_stamps=self.config.require_stamps,
-                )
+                self.router.enable_propagation()
 
                 if self.config.message_storage_limit_mb > 0:
                     self.router.set_message_storage_limit(
@@ -315,7 +328,7 @@ class LXMFBot:
     def _sync_delivery_display_name(self) -> None:
         if not self.local:
             return
-        self.local.display_name = self._effective_announce_display_name()
+        setattr(self.local, "display_name", self._effective_announce_display_name())
 
     def command(self, *args, **kwargs):
         """Decorator for registering commands.
@@ -477,7 +490,8 @@ class LXMFBot:
                 allowed, msg = self.spam_protection.check_spam(sender)
                 if not allowed:
                     event.cancel()
-                    self.send(sender, msg)
+                    if msg:
+                        self.send(sender, msg)
                     return
 
             self._reset_delivery_attempts(sender)
@@ -612,7 +626,7 @@ class LXMFBot:
                         cmd_args = [cmd_args]
                     if not isinstance(cmd_args, list):
                         cmd_args = []
-                    if self._execute_command(cmd_name, cmd_args, msg):
+                    if cmd_name and self._execute_command(cmd_name, cmd_args, msg):
                         return
                     else:
                         reply(f"Unknown command: {cmd_name}", status="error")
@@ -883,8 +897,8 @@ class LXMFBot:
         lxm = LXMessage(
             lxmf_destination_obj,
             self.local,
-            message_bytes,
-            title=title_bytes,
+            cast(Any, message_bytes),
+            title=cast(Any, title_bytes),
             desired_method=desired_method,
             fields=lxmf_fields,
             stamp_cost=final_stamp_cost,
@@ -928,7 +942,7 @@ class LXMFBot:
             and (self.config.propagation_fallback_enabled or is_opportunistic)
             and has_prop_node
         ):
-            lxm.try_propagation_on_fail = True
+            setattr(lxm, "try_propagation_on_fail", True)
 
         self.queue.put(lxm)
         self._persist_queue()
@@ -1018,6 +1032,13 @@ class LXMFBot:
             opportunistic=opportunistic,
         )
 
+    def get_landlock_status(self) -> dict[str, bool]:
+        """Return Landlock LSM sandbox availability and activation state."""
+        return landlock_status_dict(
+            active=self.landlock_active,
+            config_enabled=self.config.landlock_enabled,
+        )
+
     def run(self, delay=10):
         """Run the bot"""
         self.scheduler.start()  # Start the scheduler
@@ -1105,6 +1126,9 @@ class LXMFBot:
                 "error": "Not available in test mode",
             }
 
+        if not self.router:
+            return {"error": "Router not initialized"}
+
         status = {
             "manual_node": self.config.propagation_node,
             "autopeer_enabled": self.config.autopeer_propagation,
@@ -1140,6 +1164,10 @@ class LXMFBot:
             RNS.log("Cannot set propagation node in test mode", RNS.LOG_WARNING)
             return
 
+        if not self.router:
+            RNS.log("Router not initialized", RNS.LOG_WARNING)
+            return
+
         try:
             propagation_node_bytes = bytes.fromhex(node_hash)
             self.router.set_outbound_propagation_node(propagation_node_bytes)
@@ -1171,6 +1199,10 @@ class LXMFBot:
                 "Storage limit only applies when running as a propagation node",
                 RNS.LOG_WARNING,
             )
+            return
+
+        if not self.router:
+            RNS.log("Router not initialized", RNS.LOG_WARNING)
             return
 
         try:
@@ -1208,9 +1240,15 @@ class LXMFBot:
                 "error": "Not running as propagation node",
             }
 
+        if not self.router:
+            return {"error": "Router not initialized"}
+
         try:
             storage_size = self.router.message_storage_size()
-            storage_limit = self.router.message_storage_limit
+            raw_limit = self.router.message_storage_limit
+            storage_limit = raw_limit() if callable(raw_limit) else raw_limit
+            if not isinstance(storage_limit, int):
+                storage_limit = None
 
             stats = {
                 "is_propagation_node": True,
@@ -1251,7 +1289,7 @@ class LXMFBot:
     def request_link(
         self,
         destination_hash: str,
-        callback: Callable = None,
+        callback: Callable | None = None,
         app_name: str = "lxmf",
         *aspects: str,
     ):

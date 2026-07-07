@@ -1,36 +1,41 @@
 # LXMFy Docs
 
-Docs for the LXMFy bot framework. Built using Sphinx and Furo theme.
+Documentation for the LXMFy bot framework. Built with Sphinx and the Furo theme.
+
+**Published docs:** https://lxmfy.quad4.io
+
+**Languages:** English (source) and Russian (`locales/ru/`).
 
 ## Building
 
 ```bash
 poetry install --with dev
 
-# Build English documentation (HTML, EPUB, PDF, Text)
+# English (default)
 make html
 make epub
 make latexpdf
 make text
 
-# Build Russian documentation
+# Russian
 make html-ru
 make epub-ru
 make latexpdf-ru
 make text-ru
 
-# Build documentation for any language (replace XX with language code)
+# Any language in locales/ (replace XX with language code)
 make html-XX epub-XX latexpdf-XX text-XX
-
-# Build all formats for all languages (English + all in locales/)
-# The Gitea Actions CI does this automatically
 ```
 
-## Running
+CI builds all formats for English and every language under `locales/`.
+
+## Running locally
 
 ```bash
 make serve
 ```
+
+Serves English HTML at http://localhost:8000. For Russian, open `build/html/ru/index.html` after `make html-ru`.
 
 ## Docker
 
@@ -52,36 +57,46 @@ If using Podman, replace `docker` with `podman`.
 
 ## Translations
 
-### How to Add or Update Translations
+Source files live in `source/` (reStructuredText). Translations are gettext `.po` files in `locales/<lang>/LC_MESSAGES/`.
 
-1.  **Generate translation templates:**
-    ```bash
-    make pot
-    ```
+### Update existing translations
 
-2.  **For a new language (e.g., `fr` for French):**
-    ```bash
-    # Create directory structure
-    mkdir -p locales/fr/LC_MESSAGES
+1. Edit English sources in `source/`.
+2. Extract strings:
 
-    # Copy and rename template files
-    cp build/gettext/*.pot locales/fr/LC_MESSAGES/
-    rename 's/\.pot$/.po/' locales/fr/LC_MESSAGES/*.pot
+   ```bash
+   make pot
+   ```
 
-    # Translate the msgstr fields in the .po files
-    ```
+3. Merge into existing `.po` files:
 
-3.  **For existing languages (update translations):**
-    ```bash
-    # Edit locales/*/LC_MESSAGES/*.po files to update translations
-    ```
+   ```bash
+   msgmerge --update locales/ru/LC_MESSAGES/creating-bots.po build/gettext/creating-bots.pot
+   msgmerge --update locales/ru/LC_MESSAGES/api-reference.po build/gettext/api-reference.pot
+   msgmerge --update locales/ru/LC_MESSAGES/quick-start.po build/gettext/quick-start.pot
+   msgmerge --update locales/ru/LC_MESSAGES/index.po build/gettext/index.pot
+   ```
 
-4.  **Build the translated documentation:**
-    ```bash
-    # Build all formats for your language (replace XX with language code)
-    make html-XX epub-XX latexpdf-XX text-XX
+4. Translate new or changed `msgstr` entries in the `.po` files.
+5. Validate:
 
-    # Gitea Actions automatically builds all languages and formats
-    ```
+   ```bash
+   msgfmt --check locales/ru/LC_MESSAGES/*.po
+   ```
 
-**Note:** The system automatically detects all languages in `locales/` and builds all formats for them. Adding a new language requires only creating the translation files - no workflow changes needed!
+6. Build and review:
+
+   ```bash
+   make html-ru
+   ```
+
+### Add a new language
+
+1. Run `make pot`.
+2. Create `locales/<lang>/LC_MESSAGES/`.
+3. Copy each `build/gettext/*.pot` to `locales/<lang>/LC_MESSAGES/*.po`.
+4. Set `Language: <lang>` in each `.po` header and translate all `msgstr` fields.
+5. Add the language to `source/index.rst` under **Languages**.
+6. Build with `make html-<lang>`.
+
+Adding a language only requires translation files and an index link; CI picks up new `locales/` entries automatically.
