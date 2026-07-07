@@ -1737,7 +1737,14 @@
         "bulk_add_to_favourites": "Add to favourites",
         "bulk_add_favourites_done": "Added {count} nodes to favourites",
         "bulk_block_nodes": "Banish",
-        "bulk_nothing_to_add_favourites": "Nothing to add (already favourites or none selected)"
+        "bulk_nothing_to_add_favourites": "Nothing to add (already favourites or none selected)",
+        "context_tabs": "Tabs",
+        "close_tabs_to_right": "Close tabs to the right",
+        "close_other_tabs": "Close other tabs",
+        "close_all_tabs": "Close all tabs",
+        "download_page": "Download page",
+        "download_page_started": "Page download started",
+        "download_page_unavailable": "No page content available to download"
     },
     "forwarder": {
         "title": "LXMF Forwarder",

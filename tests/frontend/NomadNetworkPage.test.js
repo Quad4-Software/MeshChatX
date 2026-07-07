@@ -62,6 +62,7 @@ describe("NomadNetworkPage.vue", () => {
                         template: '<div class="sidebar-stub"></div>',
                         props: ["nodes", "selectedDestinationHash"],
                     },
+                    NomadBrowserContextMenu: true,
                     VTooltip: {
                         template: '<div class="v-tooltip-stub"><slot /></div>',
                     },
@@ -501,6 +502,29 @@ describe("NomadNetworkPage.vue", () => {
             wrapper.vm.downloadNomadNetFile("c".repeat(32), "/file/data.bin", undefined, vi.fn(), vi.fn(), vi.fn());
             const payload = JSON.parse(WebSocketConnection.send.mock.calls[0][0]);
             expect(payload.nomadnet_file_download).not.toHaveProperty("data");
+        });
+    });
+
+    describe("browser context menu actions", () => {
+        it("showPageSource enables source view when a page is loaded", () => {
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.selectedNode = { destination_hash: "a".repeat(32), display_name: "Node" };
+            wrapper.vm.nodePagePath = `${"a".repeat(32)}:/page/index.mu`;
+            wrapper.vm.isShowingNodePageSource = false;
+            wrapper.vm.showPageSource();
+            expect(wrapper.vm.isShowingNodePageSource).toBe(true);
+        });
+
+        it("downloadPageToDisk saves current page content", async () => {
+            const DownloadUtils = (await import("@/js/DownloadUtils")).default;
+            const downloadFile = vi.spyOn(DownloadUtils, "downloadFile").mockResolvedValue(undefined);
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.selectedNode = { destination_hash: "a".repeat(32), display_name: "Node" };
+            wrapper.vm.nodePagePath = `${"a".repeat(32)}:/page/index.mu`;
+            wrapper.vm.nodePageContent = "Hello Nomad";
+            await wrapper.vm.downloadPageToDisk();
+            expect(downloadFile).toHaveBeenCalledWith("index.mu", expect.any(Blob));
+            downloadFile.mockRestore();
         });
     });
 });
