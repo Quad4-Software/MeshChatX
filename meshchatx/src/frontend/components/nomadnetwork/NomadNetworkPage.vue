@@ -651,6 +651,10 @@ export default {
             type: Boolean,
             default: false,
         },
+        isActive: {
+            type: Boolean,
+            default: true,
+        },
         initialPath: {
             type: String,
             required: false,
@@ -1058,36 +1062,31 @@ export default {
         }
 
         // load nomadnetwork node if a destination hash was provided on page load
-        if (this.destinationHash) {
+        const bootstrapHash = (this.destinationHash || "").trim();
+        if (bootstrapHash) {
+            const bootstrapPath = this.embedded ? this.initialPath : this.$route.query.path;
+            const bootstrapArchiveId = this.embedded ? null : this.$route.query.archive_id;
             (async () => {
-                // fetch updated announce as we are probably loading node page before we loaded the announces list
-                await this.getNomadnetworkNodeAnnounce(this.destinationHash);
+                await this.getNomadnetworkNodeAnnounce(bootstrapHash);
 
-                // set selected node so the viewer shows up
-                if (this.nodes[this.destinationHash]) {
-                    this.selectedNode = this.nodes[this.destinationHash];
+                if (this.nodes[bootstrapHash]) {
+                    this.selectedNode = this.nodes[bootstrapHash];
                 } else {
-                    // if no announce found, create a placeholder node so we can still view archives
                     this.selectedNode = {
-                        destination_hash: this.destinationHash,
+                        destination_hash: bootstrapHash,
                         display_name: "Unknown Node",
                         aspect: "nomadnetwork.node",
                     };
                 }
 
-                // get path to destination
-                this.getNodePath(this.destinationHash);
+                this.getNodePath(bootstrapHash);
 
-                // check if we have a path or archive_id in query params
-                const path = this.embedded ? this.initialPath : this.$route.query.path;
-                const archiveId = this.embedded ? null : this.$route.query.archive_id;
-
-                if (archiveId) {
-                    await this.loadArchivedPage(archiveId);
-                } else if (path) {
-                    await this.onNodePageUrlClick(`${this.destinationHash}:${path}`);
+                if (bootstrapArchiveId) {
+                    await this.loadArchivedPage(bootstrapArchiveId);
+                } else if (bootstrapPath) {
+                    await this.onNodePageUrlClick(`${bootstrapHash}:${bootstrapPath}`);
                 } else {
-                    await this.onNodePageUrlClick(`${this.destinationHash}:${this.defaultNodePagePath}`);
+                    await this.onNodePageUrlClick(`${bootstrapHash}:${this.defaultNodePagePath}`);
                 }
             })();
         }
@@ -1103,6 +1102,61 @@ export default {
         this.$nextTick(() => this.scheduleProcessPartials());
     },
     methods: {
+        getEmbeddedTabStateHash() {
+            return (this.selectedNode?.destination_hash || "").trim();
+        },
+        async restoreEmbeddedTabState(destinationHash, pagePath = null) {
+            const hash = (destinationHash || "").trim();
+            if (!this.embedded || !hash) {
+                return;
+            }
+            try {
+                await this.getNomadnetworkNodeAnnounce(hash);
+                this.selectedNode = this.nodes[hash] || {
+                    destination_hash: hash,
+                    display_name: this.$t("nomadnet.unknown_node"),
+                    aspect: "nomadnetwork.node",
+                };
+                const path = typeof pagePath === "string" && pagePath.length > 0 ? pagePath : this.defaultNodePagePath;
+                await this.loadNodePage(hash, path, null, false, true);
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error(this.$t("nomadnet.tab_restore_failed"));
+            }
+        },
+        ownsNomadPageDownloadEvent(nomadnetPageDownload, downloadId) {
+            const responsePagePath = `${nomadnetPageDownload.destination_hash}:${nomadnetPageDownload.page_path}`;
+            const callbackKey = this.getNomadnetPageDownloadCallbackKey(
+                nomadnetPageDownload.destination_hash,
+                nomadnetPageDownload.page_path
+            );
+            if (this.nomadnetPageDownloadCallbacks[callbackKey]) {
+                return true;
+            }
+            if (this.currentPageDownloadId !== null && this.currentPageDownloadId === downloadId) {
+                return true;
+            }
+            if (!this.nodePagePath || this.nodePagePath !== responsePagePath) {
+                return false;
+            }
+            if (this.isLoadingNodePage) {
+                return true;
+            }
+            return !this.embedded || this.isActive;
+        },
+        ownsNomadFileDownloadEvent(nomadnetFileDownload, downloadId) {
+            const callbackKey = this.getNomadnetFileDownloadCallbackKey(
+                nomadnetFileDownload.destination_hash,
+                nomadnetFileDownload.file_path
+            );
+            if (this.nomadnetFileDownloadCallbacks[callbackKey]) {
+                return true;
+            }
+            if (this.currentFileDownloadId !== null && this.currentFileDownloadId === downloadId) {
+                return true;
+            }
+            return !this.embedded || this.isActive;
+        },
         /**
          * Returns true if the given page content represents a failed load.
          * Matches the explicit "request_failed" sentinel and the user-facing
@@ -1271,14 +1325,15 @@ export default {
                     break;
                 }
                 case "nomadnet.page.download": {
-                    // get data from server
                     const nomadnetPageDownload = json.nomadnet_page_download;
                     const downloadId = json.download_id;
 
-                    // get response page path
+                    if (!this.ownsNomadPageDownloadEvent(nomadnetPageDownload, downloadId)) {
+                        break;
+                    }
+
                     const responsePagePath = `${nomadnetPageDownload.destination_hash}:${nomadnetPageDownload.page_path}`;
 
-                    // handle success for archived versions first (before path check)
                     if (nomadnetPageDownload.status === "success" && nomadnetPageDownload.is_archived_version) {
                         this.nodePagePath = responsePagePath;
                         this.nodePagePathUrlInput = responsePagePath;
@@ -1311,8 +1366,14 @@ export default {
                         }
                     }
 
-                    // handle started status
                     if (nomadnetPageDownload.status === "started") {
+                        const startedCallbackKey = this.getNomadnetPageDownloadCallbackKey(
+                            nomadnetPageDownload.destination_hash,
+                            nomadnetPageDownload.page_path
+                        );
+                        if (!this.nomadnetPageDownloadCallbacks[startedCallbackKey]) {
+                            break;
+                        }
                         if (this.pendingNomadPageCancelWithoutId) {
                             this.pendingNomadPageCancelWithoutId = false;
                             WebSocketConnection.send(
@@ -1380,12 +1441,21 @@ export default {
                     break;
                 }
                 case "nomadnet.file.download": {
-                    // get data from server
                     const nomadnetFileDownload = json.nomadnet_file_download;
                     const downloadId = json.download_id;
 
-                    // handle started status
+                    if (!this.ownsNomadFileDownloadEvent(nomadnetFileDownload, downloadId)) {
+                        break;
+                    }
+
                     if (nomadnetFileDownload.status === "started") {
+                        const fileCallbackKey = this.getNomadnetFileDownloadCallbackKey(
+                            nomadnetFileDownload.destination_hash,
+                            nomadnetFileDownload.file_path
+                        );
+                        if (!this.nomadnetFileDownloadCallbacks[fileCallbackKey]) {
+                            break;
+                        }
                         this.currentFileDownloadId = downloadId;
                         return;
                     }

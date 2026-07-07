@@ -22,11 +22,22 @@ vi.mock("@/js/ToastUtils", () => ({
     },
 }));
 
+const wsMessageHandlers = [];
+
 vi.mock("@/js/WebSocketConnection", () => ({
     default: {
         send: vi.fn(),
-        on: vi.fn(),
-        off: vi.fn(),
+        on: vi.fn((event, handler) => {
+            if (event === "message") {
+                wsMessageHandlers.push(handler);
+            }
+        }),
+        off: vi.fn((event, handler) => {
+            const index = wsMessageHandlers.indexOf(handler);
+            if (index >= 0) {
+                wsMessageHandlers.splice(index, 1);
+            }
+        }),
     },
 }));
 
@@ -40,6 +51,7 @@ describe("NomadNetworkPage.vue", () => {
             delete: vi.fn(),
         };
         window.api = axiosMock;
+        wsMessageHandlers.length = 0;
         vi.clearAllMocks();
 
         axiosMock.get.mockImplementation((url) => {
@@ -606,6 +618,94 @@ describe("NomadNetworkPage.vue", () => {
             });
             expect(ToastUtils.error).toHaveBeenCalledWith("nomadnet.context_menu_action_failed");
             expect(wrapper.vm.standaloneContextMenu.show).toBe(false);
+        });
+    });
+
+    describe("embedded tab websocket isolation", () => {
+        const hashA = "a".repeat(32);
+        const hashB = "b".repeat(32);
+        const pagePath = "/page/index.mu";
+
+        const emitPageDownload = (destinationHash, status, extra = {}) => ({
+            data: JSON.stringify({
+                type: "nomadnet.page.download",
+                download_id: 42,
+                nomadnet_page_download: {
+                    destination_hash: destinationHash,
+                    page_path: pagePath,
+                    status,
+                    page_content: "<p>other tab</p>",
+                    ...extra,
+                },
+            }),
+        });
+
+        it("inactive embedded instance ignores another tab's archived page download", async () => {
+            const active = mountNomadNetworkPage({
+                destinationHash: "",
+                embedded: true,
+                isActive: true,
+            });
+            const inactive = mountNomadNetworkPage({
+                destinationHash: "",
+                embedded: true,
+                isActive: false,
+            });
+            await active.vm.$nextTick();
+            await inactive.vm.$nextTick();
+
+            active.vm.selectedNode = { destination_hash: hashA, display_name: "A" };
+            active.vm.nodePagePath = `${hashA}:${pagePath}`;
+            active.vm.nodePageContent = "<p>tab a</p>";
+
+            inactive.vm.selectedNode = { destination_hash: hashA, display_name: "A" };
+            inactive.vm.nodePagePath = `${hashA}:${pagePath}`;
+            inactive.vm.nodePageContent = "<p>tab a copy</p>";
+
+            await inactive.vm.onWebsocketMessage(emitPageDownload(hashB, "success", { is_archived_version: true }));
+
+            expect(active.vm.nodePageContent).toBe("<p>tab a</p>");
+            expect(inactive.vm.nodePageContent).toBe("<p>tab a copy</p>");
+            active.unmount();
+            inactive.unmount();
+        });
+
+        it("inactive embedded instance ignores started events without a callback", async () => {
+            const inactive = mountNomadNetworkPage({
+                destinationHash: "",
+                embedded: true,
+                isActive: false,
+            });
+            await inactive.vm.$nextTick();
+            inactive.vm.selectedNode = { destination_hash: hashA, display_name: "A" };
+            inactive.vm.nodePagePath = `${hashA}:${pagePath}`;
+            inactive.vm.nodePageContent = "<p>stable</p>";
+
+            await inactive.vm.onWebsocketMessage(emitPageDownload(hashB, "started"));
+
+            expect(inactive.vm.currentPageDownloadId).toBeNull();
+            expect(inactive.vm.nodePageLoadPhase).toBeNull();
+            expect(inactive.vm.nodePageContent).toBe("<p>stable</p>");
+            inactive.unmount();
+        });
+
+        it("active instance with callback still receives page download success", async () => {
+            const wrapper = mountNomadNetworkPage({
+                destinationHash: "",
+                embedded: true,
+                isActive: true,
+            });
+            await wrapper.vm.$nextTick();
+
+            const onSuccess = vi.fn();
+            wrapper.vm.nomadnetPageDownloadCallbacks[`${hashB}:${pagePath}`] = {
+                onSuccessCallback: onSuccess,
+            };
+
+            await wrapper.vm.onWebsocketMessage(emitPageDownload(hashB, "success"));
+
+            expect(onSuccess).toHaveBeenCalledWith("<p>other tab</p>");
+            wrapper.unmount();
         });
     });
 });

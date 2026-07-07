@@ -1751,7 +1751,11 @@
         "context_menu_action_failed": "Échec de l'action du menu contextuel",
         "context_menu_favourite_failed": "Impossible de mettre à jour le favori",
         "favourite_added": "Ajouté aux favoris",
-        "favourite_removed": "Retiré des favoris"
+        "favourite_removed": "Retiré des favoris",
+        "tab_switch_failed": "Impossible de passer à cet onglet",
+        "tab_content_mismatch": "Cet onglet était désynchronisé et est en cours de rechargement",
+        "tab_restore_failed": "Impossible de restaurer la page de cet onglet",
+        "open_node_failed": "Impossible d'ouvrir le nœud NomadNet"
     },
     "forwarder": {
         "title": "Expéditeur LXMF",

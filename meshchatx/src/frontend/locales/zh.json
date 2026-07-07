@@ -1751,7 +1751,11 @@
         "context_menu_action_failed": "上下文菜单操作失败",
         "context_menu_favourite_failed": "无法更新收藏",
         "favourite_added": "已添加到收藏",
-        "favourite_removed": "已从收藏中移除"
+        "favourite_removed": "已从收藏中移除",
+        "tab_switch_failed": "无法切换到该标签页",
+        "tab_content_mismatch": "此标签页不同步，正在重新加载",
+        "tab_restore_failed": "无法恢复此标签页的页面",
+        "open_node_failed": "无法打开 NomadNet 节点"
     },
     "forwarder": {
         "title": "LXMF 转发器",

@@ -1751,7 +1751,11 @@
         "context_menu_action_failed": "Error en la acción del menú contextual",
         "context_menu_favourite_failed": "No se pudo actualizar el favorito",
         "favourite_added": "Añadido a favoritos",
-        "favourite_removed": "Eliminado de favoritos"
+        "favourite_removed": "Eliminado de favoritos",
+        "tab_switch_failed": "No se pudo cambiar a esa pestaña",
+        "tab_content_mismatch": "Esta pestaña estaba desincronizada y se está recargando",
+        "tab_restore_failed": "No se pudo restaurar la página de esta pestaña",
+        "open_node_failed": "No se pudo abrir el nodo NomadNet"
     },
     "forwarder": {
         "title": "LXMF Forwarder",

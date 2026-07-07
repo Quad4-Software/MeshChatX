@@ -1639,7 +1639,11 @@
         "context_menu_action_failed": "Kontextmenü-Aktion fehlgeschlagen",
         "context_menu_favourite_failed": "Favorit konnte nicht aktualisiert werden",
         "favourite_added": "Zu Favoriten hinzugefügt",
-        "favourite_removed": "Aus Favoriten entfernt"
+        "favourite_removed": "Aus Favoriten entfernt",
+        "tab_switch_failed": "Wechsel zu diesem Tab nicht möglich",
+        "tab_content_mismatch": "Dieser Tab war nicht synchron und wird neu geladen",
+        "tab_restore_failed": "Seite dieses Tabs konnte nicht wiederhergestellt werden",
+        "open_node_failed": "NomadNet-Knoten konnte nicht geöffnet werden"
     },
     "forwarder": {
         "title": "LXMF-Weiterleiter",
