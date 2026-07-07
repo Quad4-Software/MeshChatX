@@ -12,19 +12,19 @@ MeshChatX reads and writes interface configuration in your Reticulum config dire
 
 The **Add interface** flow includes:
 
-| Type | Typical use |
-| ---- | ----------- |
-| TCPClientInterface | Connect outbound to a known TCP peer |
-| TCPServerInterface | Accept inbound TCP connections |
-| BackboneInterface | High-throughput backbone link |
-| UDPInterface | UDP transport with discovery helpers |
-| RNodeInterface | LoRa via RNode (serial, BLE, or IP transport) |
-| RNodeIPInterface | RNode reached over IP |
-| SerialInterface | Direct serial devices |
-| KISSInterface | KISS TNC devices |
-| I2PInterface | I2P-based Reticulum transport |
-| AutoInterface | Automatic discovery on local networks |
-| Custom external types | Advanced setups |
+| Type                  | Typical use                                   |
+| --------------------- | --------------------------------------------- |
+| TCPClientInterface    | Connect outbound to a known TCP peer          |
+| TCPServerInterface    | Accept inbound TCP connections                |
+| BackboneInterface     | High-throughput backbone link                 |
+| UDPInterface          | UDP transport with discovery helpers          |
+| RNodeInterface        | LoRa via RNode (serial, BLE, or IP transport) |
+| RNodeIPInterface      | RNode reached over IP                         |
+| SerialInterface       | Direct serial devices                         |
+| KISSInterface         | KISS TNC devices                              |
+| I2PInterface          | I2P-based Reticulum transport                 |
+| AutoInterface         | Automatic discovery on local networks         |
+| Custom external types | Advanced setups                               |
 
 Community-curated suggestions come from `community_interfaces.json`, sourced from [directory.rns.recipes](https://directory.rns.recipes).
 

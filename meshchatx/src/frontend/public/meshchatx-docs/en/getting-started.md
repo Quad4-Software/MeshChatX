@@ -46,22 +46,22 @@ The same backend code powers Docker images, Python wheels, Linux packages, Elect
 
 ## Main areas of the UI
 
-| Area | Route | Purpose |
-| ---- | ----- | ------- |
-| Messages | `/messages` | LXMF direct messaging, folders, attachments |
-| Audio calls | `/call` | LXST voice calls and voicemail |
-| Contacts | `/contacts` | Telephone contacts and call-related entries |
-| Relay chat | `/relay-chat` | RRC hubs and rooms (when enabled in settings) |
-| Nomad Network | `/nomadnetwork` | Browse remote NomadNet pages and files |
-| Map | `/map` | OpenLayers map, offline tiles, telemetry |
-| Archives | `/archives` | Versioned snapshots of Nomad pages |
-| Tools | `/tools` | Ping, path tools, RNCP, bots, documentation, and more |
-| Interfaces | `/interfaces` | Add and manage Reticulum interfaces |
-| Network visualiser | `/network-visualiser` | Graph view of mesh topology |
-| Blocked | `/blocked` | Blocked destinations |
-| Settings | `/settings` | Theme, language, LXMF, telephone, security |
-| Identities | `/identities` | Create, import, or switch identities |
-| Documentation | `/documentation` | MeshChatX guides and the Reticulum manual |
+| Area               | Route                 | Purpose                                               |
+| ------------------ | --------------------- | ----------------------------------------------------- |
+| Messages           | `/messages`           | LXMF direct messaging, folders, attachments           |
+| Audio calls        | `/call`               | LXST voice calls and voicemail                        |
+| Contacts           | `/contacts`           | Telephone contacts and call-related entries           |
+| Relay chat         | `/relay-chat`         | RRC hubs and rooms (when enabled in settings)         |
+| Nomad Network      | `/nomadnetwork`       | Browse remote NomadNet pages and files                |
+| Map                | `/map`                | OpenLayers map, offline tiles, telemetry              |
+| Archives           | `/archives`           | Versioned snapshots of Nomad pages                    |
+| Tools              | `/tools`              | Ping, path tools, RNCP, bots, documentation, and more |
+| Interfaces         | `/interfaces`         | Add and manage Reticulum interfaces                   |
+| Network visualiser | `/network-visualiser` | Graph view of mesh topology                           |
+| Blocked            | `/blocked`            | Blocked destinations                                  |
+| Settings           | `/settings`           | Theme, language, LXMF, telephone, security            |
+| Identities         | `/identities`         | Create, import, or switch identities                  |
+| Documentation      | `/documentation`      | MeshChatX guides and the Reticulum manual             |
 
 Relay chat appears only when `rrc_enabled` is turned on in settings.
 
@@ -77,12 +77,12 @@ Use the search bar to query both sets at once. MeshChatX guide text is currently
 
 ## Storage locations
 
-| Data | Typical path |
-| ---- | ------------ |
-| MeshChatX app data | `~/.reticulum-meshchatx/` on Linux and macOS |
-| Reticulum config | `~/.reticulum/` |
+| Data                  | Typical path                                       |
+| --------------------- | -------------------------------------------------- |
+| MeshChatX app data    | `~/.reticulum-meshchatx/` on Linux and macOS       |
+| Reticulum config      | `~/.reticulum/`                                    |
 | Per-identity database | `<storage>/identities/<identity_hash>/database.db` |
-| Docker volume | `meshchatx-config` mounted at `/config` |
+| Docker volume         | `meshchatx-config` mounted at `/config`            |
 
 Legacy upstream data may still exist under `~/.reticulum-meshchat/`. Migration tooling can move you to the MeshChatX layout.
 

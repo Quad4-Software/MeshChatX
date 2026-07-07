@@ -4,12 +4,12 @@ MeshChatX serves pages from a **Mesh Server** page node and displays them in the
 
 ## Supported filenames
 
-| Extension | Role |
-| --------- | ---- |
-| `.mu` | Micron markup (NomadNet default) |
-| `.md` | Markdown with GitHub-flavored features via the renderer |
-| `.txt` | Plain text with escaped HTML and preserved whitespace |
-| `.html` | Static HTML with CSS only (see security below) |
+| Extension | Role                                                    |
+| --------- | ------------------------------------------------------- |
+| `.mu`     | Micron markup (NomadNet default)                        |
+| `.md`     | Markdown with GitHub-flavored features via the renderer |
+| `.txt`    | Plain text with escaped HTML and preserved whitespace   |
+| `.html`   | Static HTML with CSS only (see security below)          |
 
 If you add a page without a recognised extension, the server stores it as `.mu`. Filenames with other extensions (for example `.exe`) are rejected when saving through the API.
 

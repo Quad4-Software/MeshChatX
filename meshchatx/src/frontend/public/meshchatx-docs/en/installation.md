@@ -4,27 +4,27 @@ MeshChatX can be installed in several ways. All release artifacts that ship the 
 
 ## Requirements
 
-| Component | Version |
-| --------- | ------- |
-| Python | 3.11 or newer (`pyproject.toml`) |
-| Node.js | 24 or newer (development and frontend builds only) |
-| pnpm | 11.1.2 (development) |
-| UV | Used by Taskfile and CI |
+| Component | Version                                            |
+| --------- | -------------------------------------------------- |
+| Python    | 3.11 or newer (`pyproject.toml`)                   |
+| Node.js   | 24 or newer (development and frontend builds only) |
+| pnpm      | 11.1.2 (development)                               |
+| UV        | Used by Taskfile and CI                            |
 
 **Browsers for the web UI:** Safari 16.4+, Chrome 111+, Firefox 128+.
 
 ## Choose an install method
 
-| Method | Frontend included | Best for |
-| ------ | ----------------- | -------- |
-| Docker image | Yes | Fast server setup on Linux |
-| Python wheel | Yes | Headless install without building the UI |
-| Linux AppImage | Yes | Portable desktop on x64 or arm64 |
-| Debian `.deb` | Yes | Debian and Ubuntu systems |
-| RPM package | Yes | Fedora, RHEL, openSUSE style systems |
-| Electron desktop | Yes | Integrated desktop with bundled backend |
-| Android APK | Yes | Phones, tablets, Meta Quest sideload |
-| From source | Built locally | Development and custom builds |
+| Method           | Frontend included | Best for                                 |
+| ---------------- | ----------------- | ---------------------------------------- |
+| Docker image     | Yes               | Fast server setup on Linux               |
+| Python wheel     | Yes               | Headless install without building the UI |
+| Linux AppImage   | Yes               | Portable desktop on x64 or arm64         |
+| Debian `.deb`    | Yes               | Debian and Ubuntu systems                |
+| RPM package      | Yes               | Fedora, RHEL, openSUSE style systems     |
+| Electron desktop | Yes               | Integrated desktop with bundled backend  |
+| Android APK      | Yes               | Phones, tablets, Meta Quest sideload     |
+| From source      | Built locally     | Development and custom builds            |
 
 Release images are published to Docker Hub (`quad4io/meshchatx`) and GHCR (`ghcr.io/quad4-software/meshchatx`).
 
@@ -105,22 +105,22 @@ Open the UI at the host and port you chose. HTTPS is enabled by default with a s
 
 Common flags and environment variables:
 
-| Flag | Environment variable | Default | Description |
-| ---- | -------------------- | ------- | ----------- |
-| `--host` | `MESHCHAT_HOST` | `127.0.0.1` | Bind address |
-| `--port` | `MESHCHAT_PORT` | `8000` | HTTP or HTTPS port |
-| `--no-https` | `MESHCHAT_NO_HTTPS` | false | Serve plain HTTP |
-| `--ssl-cert` | `MESHCHAT_SSL_CERT` | auto | TLS certificate path |
-| `--ssl-key` | `MESHCHAT_SSL_KEY` | auto | TLS private key path |
-| `--headless` | `MESHCHAT_HEADLESS` | false | Do not open a browser |
-| `--auth` | `MESHCHAT_AUTH` | false | Require HTTP basic auth for the UI |
-| `--storage-dir` | `MESHCHAT_STORAGE_DIR` | `./storage` | Application data directory |
-| `--reticulum-config-dir` | (see `--help`) | `~/.reticulum` | Reticulum configuration |
-| `--identity-file` | `MESHCHAT_IDENTITY_FILE` | none | Load identity from file |
-| `--rns-log-level` | `MESHCHAT_RNS_LOG_LEVEL` | none | Reticulum log level |
-| `--auto-recover` | `MESHCHAT_AUTO_RECOVER` | false | Attempt SQLite recovery on start |
-| `--emergency` | | false | Start without database |
-| `--disable-plugins` | | false | Disable the plugin system |
+| Flag                     | Environment variable     | Default        | Description                        |
+| ------------------------ | ------------------------ | -------------- | ---------------------------------- |
+| `--host`                 | `MESHCHAT_HOST`          | `127.0.0.1`    | Bind address                       |
+| `--port`                 | `MESHCHAT_PORT`          | `8000`         | HTTP or HTTPS port                 |
+| `--no-https`             | `MESHCHAT_NO_HTTPS`      | false          | Serve plain HTTP                   |
+| `--ssl-cert`             | `MESHCHAT_SSL_CERT`      | auto           | TLS certificate path               |
+| `--ssl-key`              | `MESHCHAT_SSL_KEY`       | auto           | TLS private key path               |
+| `--headless`             | `MESHCHAT_HEADLESS`      | false          | Do not open a browser              |
+| `--auth`                 | `MESHCHAT_AUTH`          | false          | Require HTTP basic auth for the UI |
+| `--storage-dir`          | `MESHCHAT_STORAGE_DIR`   | `./storage`    | Application data directory         |
+| `--reticulum-config-dir` | (see `--help`)           | `~/.reticulum` | Reticulum configuration            |
+| `--identity-file`        | `MESHCHAT_IDENTITY_FILE` | none           | Load identity from file            |
+| `--rns-log-level`        | `MESHCHAT_RNS_LOG_LEVEL` | none           | Reticulum log level                |
+| `--auto-recover`         | `MESHCHAT_AUTO_RECOVER`  | false          | Attempt SQLite recovery on start   |
+| `--emergency`            |                          | false          | Start without database             |
+| `--disable-plugins`      |                          | false          | Disable the plugin system          |
 
 CLI flags override environment variables when both are set.
 
