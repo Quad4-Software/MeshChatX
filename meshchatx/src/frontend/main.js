@@ -17,6 +17,7 @@ import { fetchCsrfToken } from "./js/csrfToken.js";
 import { registerCoreContributions } from "./js/registries/registerCoreContributions.js";
 import { installWsEventBridge } from "./js/registries/wsEventBridge.js";
 import { pluginHost } from "./js/plugins/PluginHost.js";
+import GlobalState from "./js/GlobalState.js";
 import "./js/HeapMonitor.js";
 
 registerCoreContributions();
@@ -25,7 +26,6 @@ installWsEventBridge();
 import App from "./components/App.vue";
 import ChangelogModal from "./components/ChangelogModal.vue";
 import TutorialModal from "./components/TutorialModal.vue";
-import GlobalState from "./js/GlobalState";
 
 const localeModules = import.meta.glob("./locales/*.json", { eager: true });
 const messages = {};
@@ -299,12 +299,6 @@ const router = createRouter({
             component: () => import("./components/call/CallPage.vue"),
         },
         {
-            name: "plugin-transport-node-monitor",
-            path: "/plugins/com.meshchatx.transport-node-monitor",
-            component: () => import("./components/plugins/PluginPage.vue"),
-            props: { pluginId: "com.meshchatx.transport-node-monitor" },
-        },
-        {
             name: "plugin-mesh-observatory",
             path: "/plugins/com.meshchatx.mesh-observatory",
             component: () => import("./components/plugins/PluginPage.vue"),
@@ -417,10 +411,22 @@ function bootstrap() {
         splash.remove();
     }
     void startCodec2ScriptsBackgroundLoad();
-    if (GlobalState.authenticated || !GlobalState.authEnabled) {
-        void pluginHost.loadEnabledPlugins(window.api, i18n.global.locale.value).catch((error) => {
-            console.debug("Plugin host bootstrap failed:", error);
-        });
+    void loadPluginsIfEnabled();
+}
+
+async function loadPluginsIfEnabled() {
+    if (!(GlobalState.authenticated || !GlobalState.authEnabled)) {
+        return;
+    }
+    try {
+        const response = await window.api.get("/api/v1/plugins");
+        GlobalState.pluginsEnabled = response.data?.plugins_enabled !== false;
+        if (!GlobalState.pluginsEnabled) {
+            return;
+        }
+        await pluginHost.loadEnabledPlugins(window.api, i18n.global.locale.value);
+    } catch (error) {
+        console.debug("Plugin host bootstrap failed:", error);
     }
 }
 

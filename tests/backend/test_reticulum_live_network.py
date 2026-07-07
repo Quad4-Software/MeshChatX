@@ -18,6 +18,8 @@ import sys
 
 import pytest
 
+from tests.backend.support.test_temp_dir import subprocess_test_env
+
 _RUN = os.environ.get("MESHCHAT_LIVE_RETICULUM") == "1"
 
 
@@ -43,5 +45,6 @@ finally:
         text=True,
         timeout=120,
         check=False,
+        env=subprocess_test_env(),
     )
     assert result.returncode == 0, result.stderr + result.stdout

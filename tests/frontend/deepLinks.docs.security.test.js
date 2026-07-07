@@ -2,7 +2,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import App from "../../meshchatx/src/frontend/components/App.vue";
-import WebSocketConnection from "../../meshchatx/src/frontend/js/WebSocketConnection";
+import { handleLxmIngestUriResult } from "../../meshchatx/src/frontend/js/ingestUriResultNavigation.js";
 import ToastUtils from "../../meshchatx/src/frontend/js/ToastUtils";
 
 vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({
@@ -11,16 +11,6 @@ vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({
         error: vi.fn(),
         info: vi.fn(),
         warning: vi.fn(),
-    },
-}));
-
-vi.mock("../../meshchatx/src/frontend/js/WebSocketConnection", () => ({
-    default: {
-        send: vi.fn(),
-        connect: vi.fn(),
-        on: vi.fn(),
-        off: vi.fn(),
-        destroy: vi.fn(),
     },
 }));
 
@@ -75,18 +65,17 @@ describe("meshchatx://docs deep links (security / fuzz)", () => {
 
     it("onWebsocketMessage docs_view navigates like handleProtocolLink", async () => {
         const push = vi.fn().mockResolvedValue(undefined);
-        await App.methods.onWebsocketMessage.call(
-            { $router: { push } },
+        const handled = await handleLxmIngestUriResult(
             {
-                data: JSON.stringify({
-                    type: "lxm.ingest_uri.result",
-                    status: "success",
-                    ingest_type: "docs_view",
-                    message: "Opening documentation.",
-                    docs_query: { reticulum: "manual/interfaces.html#x" },
-                }),
-            }
+                type: "lxm.ingest_uri.result",
+                status: "success",
+                ingest_type: "docs_view",
+                message: "Opening documentation.",
+                docs_query: { reticulum: "manual/interfaces.html#x" },
+            },
+            { router: { push }, toast: ToastUtils }
         );
+        expect(handled).toBe(true);
         expect(push).toHaveBeenCalledWith({
             name: "documentation",
             query: { reticulum: encodeURIComponent("manual/interfaces.html#x") },
@@ -96,17 +85,16 @@ describe("meshchatx://docs deep links (security / fuzz)", () => {
 
     it("onWebsocketMessage docs_view without docs_query opens documentation index", async () => {
         const push = vi.fn().mockResolvedValue(undefined);
-        await App.methods.onWebsocketMessage.call(
-            { $router: { push } },
+        const handled = await handleLxmIngestUriResult(
             {
-                data: JSON.stringify({
-                    type: "lxm.ingest_uri.result",
-                    status: "success",
-                    ingest_type: "docs_view",
-                    message: "Opening documentation.",
-                }),
-            }
+                type: "lxm.ingest_uri.result",
+                status: "success",
+                ingest_type: "docs_view",
+                message: "Opening documentation.",
+            },
+            { router: { push }, toast: ToastUtils }
         );
+        expect(handled).toBe(true);
         expect(push).toHaveBeenCalledWith({ name: "documentation" });
     });
 });

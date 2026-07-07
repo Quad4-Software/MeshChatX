@@ -19,9 +19,7 @@ describe("pluginLabels", () => {
 
     it("resolves plugin UI strings with manifest fallback", () => {
         expect(resolvePluginUiString({}, "title", { name: "Fallback Name" })).toBe("Fallback Name");
-        expect(resolvePluginUiString({ title: "From Bundle" }, "title", { name: "Fallback Name" })).toBe(
-            "From Bundle"
-        );
+        expect(resolvePluginUiString({ title: "From Bundle" }, "title", { name: "Fallback Name" })).toBe("From Bundle");
     });
 
     it("loads plugin locale messages from plugin assets", async () => {

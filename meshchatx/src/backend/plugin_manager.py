@@ -94,6 +94,15 @@ class PluginManager:
     def set_app(self, app: Any) -> None:
         self.app = app
 
+    def _plugins_runtime_enabled(self) -> bool:
+        if self.app is None:
+            return True
+        return bool(getattr(self.app, "plugins_enabled", True))
+
+    def _require_runtime_enabled(self) -> None:
+        if not self._plugins_runtime_enabled():
+            raise PermissionError("plugins are disabled")
+
     def _load_wasmtime(self):
         if self._wasmtime is not None:
             return self._wasmtime
@@ -174,6 +183,8 @@ class PluginManager:
         return manifest
 
     def list_plugins(self) -> list[dict[str, Any]]:
+        if not self._plugins_runtime_enabled():
+            return []
         with self._lock:
             rows = []
             for record in self._plugins.values():
@@ -206,6 +217,7 @@ class PluginManager:
         }
 
     def install_from_directory(self, source_dir: str) -> dict[str, Any]:
+        self._require_runtime_enabled()
         manifest_path = os.path.join(source_dir, "plugin.json")
         if not os.path.isfile(manifest_path):
             raise ValueError("plugin.json not found")
@@ -242,6 +254,7 @@ class PluginManager:
             return self.install_from_directory(plugin_root)
 
     def enable(self, plugin_id: str) -> dict[str, Any]:
+        self._require_runtime_enabled()
         with self._lock:
             record = self._require_plugin(plugin_id)
             self._validate_plugin_runtime(record)
@@ -285,6 +298,7 @@ class PluginManager:
                 conn.commit()
 
     def asset_path(self, plugin_id: str, asset_name: str) -> str:
+        self._require_runtime_enabled()
         record = self._require_plugin(plugin_id)
         normalized = normalize_asset_path(asset_name)
         path = os.path.join(record.install_path, normalized)
@@ -444,6 +458,7 @@ class PluginManager:
     def invoke(
         self, plugin_id: str, method: str, args: dict[str, Any] | None = None
     ) -> Any:
+        self._require_runtime_enabled()
         record = self._require_plugin(plugin_id)
         if not record.enabled:
             raise PermissionError("plugin is disabled")
@@ -453,13 +468,6 @@ class PluginManager:
                 return self.call_manager(
                     plugin_id, args.get("capability"), args.get("args") or {}
                 )
-            if method == "getState":
-                watched = self.storage_get(plugin_id, "watched_nodes")
-                return {"watched_nodes": json.loads(watched) if watched else []}
-            if method == "setWatchedNodes":
-                nodes = args.get("nodes") or []
-                self.storage_set(plugin_id, "watched_nodes", json.dumps(nodes))
-                return {"ok": True}
             if method == "readPaths":
                 return self.call_manager(plugin_id, "destinationPath.read", args)
             backend = record.manifest.get("backend")
@@ -532,16 +540,6 @@ class PluginManager:
             data[ptr : ptr + len(payload)] = payload
         invoke = instance.exports(store)["invoke"]
         invoke(store, ptr, len(payload), 0)
-        if method == "getState":
-            watched = self.storage_get(record.id, "watched_nodes")
-            return {
-                "watched_nodes": json.loads(watched) if watched else [],
-                "logs": logs,
-            }
-        if method == "setWatchedNodes":
-            nodes = args.get("nodes") or []
-            self.storage_set(record.id, "watched_nodes", json.dumps(nodes))
-            return {"ok": True, "logs": logs}
         return {"ok": True, "logs": logs}
 
     def _ensure_minimal_wasm(self, record: PluginRecord) -> str:
@@ -623,6 +621,8 @@ class PluginManager:
         app_data: bytes,
         announce_packet_hash: bytes,
     ) -> None:
+        if not self._plugins_runtime_enabled():
+            return
         payload = {
             "aspect": aspect,
             "destination_hash": destination_hash.hex()
@@ -702,6 +702,8 @@ class PluginManager:
         AsyncUtils.run_async(self.app.websocket_broadcast(message))
 
     def install_bundled_examples(self) -> None:
+        if not self._plugins_runtime_enabled():
+            return
         bundled_root = os.path.join(os.path.dirname(__file__), "data", "plugins")
         if not os.path.isdir(bundled_root):
             return

@@ -2,6 +2,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import App from "../../meshchatx/src/frontend/components/App.vue";
+import { handleLxmIngestUriResult } from "../../meshchatx/src/frontend/js/ingestUriResultNavigation.js";
 import WebSocketConnection from "../../meshchatx/src/frontend/js/WebSocketConnection";
 import ToastUtils from "../../meshchatx/src/frontend/js/ToastUtils";
 
@@ -93,24 +94,23 @@ describe("App.vue deep link protocol handling (security-oriented)", () => {
     it("onWebsocketMessage map_view passes label and layers as opaque query strings", async () => {
         const push = vi.fn().mockResolvedValue(undefined);
         const marker = "<svg/onload=alert(1)>";
-        await App.methods.onWebsocketMessage.call(
-            { $router: { push } },
+        const handled = await handleLxmIngestUriResult(
             {
-                data: JSON.stringify({
-                    type: "lxm.ingest_uri.result",
-                    status: "success",
-                    ingest_type: "map_view",
-                    message: "Opening map view.",
-                    map_query: {
-                        lat: 3,
-                        lon: 4,
-                        zoom: 5,
-                        layers: "discovered",
-                        label: marker,
-                    },
-                }),
-            }
+                type: "lxm.ingest_uri.result",
+                status: "success",
+                ingest_type: "map_view",
+                message: "Opening map view.",
+                map_query: {
+                    lat: 3,
+                    lon: 4,
+                    zoom: 5,
+                    layers: "discovered",
+                    label: marker,
+                },
+            },
+            { router: { push }, toast: ToastUtils }
         );
+        expect(handled).toBe(true);
         expect(push).toHaveBeenCalledWith({
             name: "map",
             query: {

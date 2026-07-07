@@ -87,6 +87,7 @@ meshchat-config/
 storage/
 testing/
 telemetry_test_lxmf/
+temp-tests/
 
 # Logs
 *.log

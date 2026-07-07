@@ -1,7 +1,7 @@
 <!-- SPDX-License-Identifier: 0BSD -->
 
 <template>
-    <div class="plugin-slot space-y-4">
+    <div class="plugin-slot space-y-6">
         <PluginSlotNode
             v-for="(node, index) in nodes"
             :key="index"

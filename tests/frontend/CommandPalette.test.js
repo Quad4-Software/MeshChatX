@@ -2,12 +2,26 @@ import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import CommandPalette from "../../meshchatx/src/frontend/components/CommandPalette.vue";
 import GlobalEmitter from "../../meshchatx/src/frontend/js/GlobalEmitter";
+import { commandRegistry } from "../../meshchatx/src/frontend/js/registries/commandRegistry.js";
+import { navRegistry } from "../../meshchatx/src/frontend/js/registries/navRegistry.js";
+import { toolsRegistry } from "../../meshchatx/src/frontend/js/registries/toolsRegistry.js";
+import { settingsSectionRegistry } from "../../meshchatx/src/frontend/js/registries/settingsSectionRegistry.js";
+import {
+    registerCoreContributions,
+    resetCoreContributionsForTests,
+} from "../../meshchatx/src/frontend/js/registries/registerCoreContributions.js";
 
 describe("CommandPalette.vue", () => {
     let axiosMock;
     let routerMock;
 
     beforeEach(() => {
+        resetCoreContributionsForTests();
+        navRegistry.clear();
+        toolsRegistry.clear();
+        commandRegistry.clear();
+        settingsSectionRegistry.clear();
+        registerCoreContributions();
         axiosMock = {
             get: vi.fn().mockResolvedValue({
                 data: {

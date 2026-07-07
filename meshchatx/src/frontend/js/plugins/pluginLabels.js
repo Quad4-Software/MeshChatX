@@ -47,10 +47,9 @@ export async function loadPluginLabelMap(apiClient, pluginId, locale, manifest =
     for (const code of candidates) {
         try {
             const assetPath = `${directory}/${code}.json`;
-            const response = await apiClient.get(
-                `/api/v1/plugins/${encodeURIComponent(pluginId)}/asset/${assetPath}`,
-                { responseType: "json" }
-            );
+            const response = await apiClient.get(`/api/v1/plugins/${encodeURIComponent(pluginId)}/asset/${assetPath}`, {
+                responseType: "json",
+            });
             if (response.data && typeof response.data === "object") {
                 return flattenLocaleMessages(response.data);
             }
