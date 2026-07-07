@@ -44,13 +44,28 @@ export const SETTINGS_TABS = [
 
 export const DEFAULT_SETTINGS_TAB = "general";
 
+/** @type {readonly string[]} */
+export const ALL_SETTINGS_SECTIONS = Object.freeze(SETTINGS_TABS.flatMap((tab) => tab.sections));
+
+/**
+ * @param {string | undefined | null} tabId
+ * @returns {SettingsTab | null}
+ */
+export function getSettingsTab(tabId) {
+    if (!tabId) {
+        return null;
+    }
+    return SETTINGS_TABS.find((tab) => tab.id === tabId) ?? null;
+}
+
 /**
  * @param {string | undefined | null} tabId
  * @returns {string}
  */
 export function normalizeSettingsTabId(tabId) {
-    if (tabId && SETTINGS_TABS.some((tab) => tab.id === tabId)) {
-        return tabId;
+    const normalized = typeof tabId === "string" ? tabId.trim() : "";
+    if (normalized && SETTINGS_TABS.some((tab) => tab.id === normalized)) {
+        return normalized;
     }
     return DEFAULT_SETTINGS_TAB;
 }
@@ -62,4 +77,14 @@ export function normalizeSettingsTabId(tabId) {
 export function settingsTabForSection(sectionKey) {
     const tab = SETTINGS_TABS.find((entry) => entry.sections.includes(sectionKey));
     return tab ? tab.id : null;
+}
+
+/**
+ * @param {string} sectionKey
+ * @param {string} tabId
+ * @returns {boolean}
+ */
+export function settingsSectionBelongsToTab(sectionKey, tabId) {
+    const tab = getSettingsTab(tabId);
+    return Boolean(tab && tab.sections.includes(sectionKey));
 }
