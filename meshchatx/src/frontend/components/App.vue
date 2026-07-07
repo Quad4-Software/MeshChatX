@@ -228,7 +228,7 @@
                             <!-- navigation -->
                             <div class="flex-1">
                                 <ul class="py-3 pr-2 space-y-1">
-                                    <li v-for="item in visibleNavItems" :key="item.id" v-if="isNavItemVisible(item)">
+                                    <li v-for="item in visibleNavItems" :key="item.id">
                                         <SidebarLink :to="item.route" :is-collapsed="isSidebarCollapsed">
                                             <template #icon>
                                                 <MaterialDesignIcon
@@ -700,7 +700,7 @@ export default {
             return GlobalState.config?.rrc_enabled !== false;
         },
         visibleNavItems() {
-            return listNavItems();
+            return listNavItems().filter((item) => this.isNavItemVisible(item));
         },
         isSyncingPropagationNode() {
             return [
@@ -839,6 +839,9 @@ export default {
     },
     methods: {
         isNavItemVisible(item) {
+            if (!item) {
+                return false;
+            }
             if (item.visibleWhen === "rrcEnabled") {
                 return this.rrcEnabled;
             }

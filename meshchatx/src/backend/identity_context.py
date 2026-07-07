@@ -18,7 +18,12 @@ from meshchatx.src.backend.database import Database
 from meshchatx.src.backend.docs_manager import DocsManager
 from meshchatx.src.backend.repository_server_manager import RepositoryServerManager
 from meshchatx.src.backend.forwarding_manager import ForwardingManager
-from meshchatx.src.backend.integrity_manager import IntegrityManager
+from meshchatx.src.backend.async_utils import AsyncUtils
+from meshchatx.src.backend.integrity_manager import (
+    CriticalIntegrityError,
+    IntegrityManager,
+    select_critical_integrity_issues,
+)
 from meshchatx.src.backend.map_manager import MapManager
 from meshchatx.src.backend.meshchat_utils import create_lxmf_router
 from meshchatx.src.backend.message_handler import MessageHandler
@@ -153,6 +158,11 @@ class IdentityContext:
                 if not hasattr(self.app, "integrity_issues"):
                     self.app.integrity_issues = []
                 self.app.integrity_issues.extend(issues)
+                critical = select_critical_integrity_issues(issues)
+                if critical:
+                    raise CriticalIntegrityError(
+                        "Critical integrity failure: " + "; ".join(critical),
+                    )
 
         try:
             self.database.initialize()

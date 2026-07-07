@@ -11,8 +11,26 @@ from pathlib import Path
 from typing import ClassVar
 
 
+class CriticalIntegrityError(RuntimeError):
+    """Raised when tampering is detected in identity or database files at startup."""
+
+
+def select_critical_integrity_issues(issues: list[str]) -> list[str]:
+    return [
+        issue
+        for issue in issues
+        if any(marker in issue for marker in IntegrityManager.CRITICAL_ISSUE_MARKERS)
+    ]
+
+
 class IntegrityManager:
     """Manages the integrity of the database and identity files at rest."""
+
+    CRITICAL_ISSUE_MARKERS: ClassVar[tuple[str, ...]] = (
+        "Critical security component integrity compromised",
+        "Database structural issue",
+        "Identity mismatch",
+    )
 
     # Filename globs frequently rewritten by RNS/LXMF or SQLite that should be
     # ignored during integrity checks.

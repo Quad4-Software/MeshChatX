@@ -1,9 +1,12 @@
 # SPDX-License-Identifier: 0BSD AND MIT
 
 import asyncio
+import logging
 import threading
 from collections.abc import Coroutine
 from typing import Any, ClassVar
+
+_logger = logging.getLogger("meshchatx.async")
 
 
 class AsyncUtils:
@@ -13,6 +16,35 @@ class AsyncUtils:
     _futures_lock = threading.Lock()
     _FUTURES_SWEEP_THRESHOLD = 32
     _COROUTINES_MAX = 256
+    _background_loop: asyncio.AbstractEventLoop | None = None
+    _background_thread: threading.Thread | None = None
+    _background_ready = threading.Event()
+
+    @staticmethod
+    def ensure_background_loop() -> None:
+        """Start a daemon event loop for pre-web-server async work."""
+        if AsyncUtils.main_loop and AsyncUtils.main_loop.is_running():
+            return
+        if AsyncUtils._background_thread and AsyncUtils._background_thread.is_alive():
+            return
+
+        loop = asyncio.new_event_loop()
+        AsyncUtils._background_ready.clear()
+
+        def runner() -> None:
+            AsyncUtils.set_main_loop(loop)
+            AsyncUtils._background_ready.set()
+            loop.run_forever()
+
+        AsyncUtils._background_loop = loop
+        AsyncUtils._background_thread = threading.Thread(
+            target=runner,
+            name="meshchatx-async",
+            daemon=True,
+        )
+        AsyncUtils._background_thread.start()
+        if not AsyncUtils._background_ready.wait(timeout=5):
+            _logger.warning("Background asyncio loop did not become ready within 5s")
 
     @staticmethod
     def set_main_loop(loop: asyncio.AbstractEventLoop):

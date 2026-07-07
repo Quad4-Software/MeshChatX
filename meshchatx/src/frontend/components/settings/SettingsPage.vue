@@ -29,15 +29,6 @@
                             </div>
                         </div>
                     </div>
-                    <transition name="fade">
-                        <div
-                            v-if="copyToast"
-                            class="mt-3 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200 px-3 py-1 text-xs inline-flex items-center gap-2"
-                        >
-                            {{ copyToast }}
-                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-                        </div>
-                    </transition>
                     <div
                         class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 mt-4 text-sm text-gray-600 dark:text-gray-300"
                     >
