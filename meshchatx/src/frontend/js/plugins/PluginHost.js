@@ -1,39 +1,45 @@
 // SPDX-License-Identifier: 0BSD
 
 import { validatePluginManifest } from "./pluginManifest.js";
-import { buildPluginLabelMap } from "./pluginLabels.js";
+import { loadPluginLabelMap, resolvePluginUiString } from "./pluginLabels.js";
+import { setPluginUiLabels, clearPluginUiLabels } from "./pluginUiRegistry.js";
 import { registerNavItem, unregisterNavItem } from "../registries/navRegistry.js";
 import { registerTool, unregisterTool } from "../registries/toolsRegistry.js";
 import { onWsEvent, offWsEvent } from "../registries/wsEventRegistry.js";
 
 /** @typedef {import('./pluginManifest.js').PluginManifest} PluginManifest */
 
+const FAILURE_REPORT_INTERVAL_MS = 5000;
+/** @type {Map<string, number>} */
+const lastFailureReportAt = new Map();
+
 export class PluginHost {
     constructor() {
-        /** @type {Map<string, { worker: Worker, cleanup: Array<() => void>, manifest: PluginManifest, lastDescriptor: object | null }>} */
+        /** @type {Map<string, { worker: Worker, cleanup: Array<() => void>, manifest: PluginManifest, lastDescriptor: object | null, apiClient: ReturnType<import('../apiClient.js').createApiClient> | null }>} */
         this.instances = new Map();
     }
 
     /**
-     * @param {(key: string) => string} [translate]
+     * @param {ReturnType<import('../apiClient.js').createApiClient>} apiClient
+     * @param {string} [locale]
      */
-    async loadEnabledPlugins(apiClient, translate) {
+    async loadEnabledPlugins(apiClient, locale = "en") {
         const response = await apiClient.get("/api/v1/plugins");
         const plugins = response.data?.plugins || [];
-        const labels = typeof translate === "function" ? buildPluginLabelMap(translate) : {};
         for (const plugin of plugins) {
             if (!plugin.enabled) {
                 continue;
             }
-            await this.loadPlugin(plugin, apiClient, labels);
+            await this.loadPlugin(plugin, apiClient, locale);
         }
     }
 
     /**
      * @param {Record<string, unknown>} plugin
      * @param {ReturnType<import('../apiClient.js').createApiClient>} apiClient
+     * @param {string} [locale]
      */
-    async loadPlugin(plugin, apiClient, labels = {}) {
+    async loadPlugin(plugin, apiClient, locale = "en") {
         const pluginId = plugin.id;
         if (this.instances.has(pluginId)) {
             return;
@@ -42,16 +48,25 @@ export class PluginHost {
         if (!manifest.frontend) {
             return;
         }
+        const labels = await loadPluginLabelMap(apiClient, pluginId, locale, manifest);
+        setPluginUiLabels(pluginId, labels);
         const assetUrl = `/api/v1/plugins/${encodeURIComponent(pluginId)}/asset/${manifest.frontend.entry}`;
         const sourceResponse = await apiClient.get(assetUrl, { responseType: "text" });
-        const source = typeof sourceResponse.data === "string" ? sourceResponse.data : String(sourceResponse.data ?? "");
+        const source =
+            typeof sourceResponse.data === "string" ? sourceResponse.data : String(sourceResponse.data ?? "");
         const worker = new Worker(new URL("./pluginWorker.js", import.meta.url), { type: "module" });
         const cleanup = [];
 
         worker.onmessage = (event) => {
-            this.handleWorkerMessage(pluginId, event.data);
+            this.handleWorkerMessage(pluginId, event.data, apiClient);
         };
-        worker.onerror = () => {
+        worker.onerror = (event) => {
+            void this.reportPluginFailure(
+                pluginId,
+                event.message || "Plugin worker crashed",
+                apiClient,
+                "frontend-worker"
+            );
             this.unloadPlugin(pluginId);
         };
 
@@ -63,7 +78,8 @@ export class PluginHost {
             labels,
         });
 
-        cleanup.push(...this.registerContributions(pluginId, manifest));
+        cleanup.push(...this.registerContributions(pluginId, manifest, labels));
+        cleanup.push(() => clearPluginUiLabels(pluginId));
         if ((manifest.permissions?.hooks || []).length > 0) {
             const eventHandler = (payload) => {
                 if (payload?.plugin_id !== pluginId) {
@@ -110,7 +126,36 @@ export class PluginHost {
             void requestHandler(event.data);
         });
 
-        this.instances.set(pluginId, { worker, cleanup, manifest, lastDescriptor: null });
+        this.instances.set(pluginId, {
+            worker,
+            cleanup,
+            manifest,
+            lastDescriptor: null,
+            apiClient,
+        });
+    }
+
+    /**
+     * @param {string} pluginId
+     * @param {string} reason
+     * @param {ReturnType<import('../apiClient.js').createApiClient>} apiClient
+     * @param {string} [source]
+     */
+    async reportPluginFailure(pluginId, reason, apiClient, source = "frontend") {
+        const now = Date.now();
+        const last = lastFailureReportAt.get(pluginId) || 0;
+        if (now - last < FAILURE_REPORT_INTERVAL_MS) {
+            return;
+        }
+        lastFailureReportAt.set(pluginId, now);
+        try {
+            await apiClient.post(`/api/v1/plugins/${encodeURIComponent(pluginId)}/report-failure`, {
+                reason,
+                source,
+            });
+        } catch (error) {
+            console.debug("Plugin failure report failed:", error);
+        }
     }
 
     getLastDescriptor(pluginId) {
@@ -128,16 +173,26 @@ export class PluginHost {
     /**
      * @param {string} pluginId
      * @param {PluginManifest} manifest
+     * @param {Record<string, string>} labels
      */
-    registerContributions(pluginId, manifest) {
+    registerContributions(pluginId, manifest, labels) {
         const cleanup = [];
         const contributes = manifest.contributes || {};
         for (const item of contributes.navItems || []) {
-            registerNavItem({ ...item, pluginId });
+            registerNavItem({
+                ...item,
+                pluginId,
+                label: resolvePluginUiString(labels, item.labelKey, manifest),
+            });
             cleanup.push(() => unregisterNavItem(item.id));
         }
         for (const item of contributes.toolsPageEntries || []) {
-            registerTool({ ...item, pluginId });
+            registerTool({
+                ...item,
+                pluginId,
+                title: resolvePluginUiString(labels, item.titleKey, manifest),
+                description: resolvePluginUiString(labels, item.descriptionKey, manifest),
+            });
             cleanup.push(() => unregisterTool(item.name));
         }
         return cleanup;
@@ -146,8 +201,9 @@ export class PluginHost {
     /**
      * @param {string} pluginId
      * @param {unknown} message
+     * @param {ReturnType<import('../apiClient.js').createApiClient>} [apiClient]
      */
-    handleWorkerMessage(pluginId, message) {
+    handleWorkerMessage(pluginId, message, apiClient) {
         if (!message || typeof message !== "object") {
             return;
         }
@@ -163,11 +219,16 @@ export class PluginHost {
             );
         }
         if (message.type === "error") {
+            const client = apiClient || this.instances.get(pluginId)?.apiClient;
+            if (client) {
+                void this.reportPluginFailure(pluginId, message.message || "Plugin activation failed", client);
+            }
             window.dispatchEvent(
                 new CustomEvent("meshchatx-plugin-error", {
                     detail: { pluginId, message: message.message },
                 })
             );
+            this.unloadPlugin(pluginId);
         }
     }
 
@@ -181,6 +242,7 @@ export class PluginHost {
             fn();
         }
         this.instances.delete(pluginId);
+        lastFailureReportAt.delete(pluginId);
     }
 
     postAction(pluginId, actionId) {

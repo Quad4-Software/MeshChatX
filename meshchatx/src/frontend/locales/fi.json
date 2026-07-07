@@ -659,16 +659,17 @@
             "removed": "Liitännäinen poistettu",
             "installed": "Liitännäinen asennettu",
             "auto_disabled": "Liitännäinen poistettiin käytöstä automaattisesti: {reason}",
-            "kill_switch": "Liitännäinen poistettiin käytöstä: {reason}"
-        },
-        "transport_node_monitor": {
-            "nav": "Kuljetussolmut",
-            "title": "Kuljetussolmujen valvonta",
-            "description": "Seuraa kuljetussolmujen kohteita ja reitin hyppyjen määrää.",
-            "watch_hash": "Kohdehash",
-            "watch_hash_placeholder": "Syötä seurattava kohdehash",
-            "add_watch": "Lisää seuranta",
-            "no_path": "Ei reittiä"
+            "kill_switch": "Liitännäinen poistettiin käytöstä: {reason}",
+            "empty_state": "Ei asennettuja lisäosia. Lataa lisäosan ZIP aloittaaksesi.",
+            "drag_drop": "Pudota lisäosan ZIP tähän",
+            "choose_file": "Valitse ZIP-tiedosto",
+            "confirm_remove": "Poistetaanko lisäosa \"{name}\"? Tiedostot ja tallennetut tiedot poistetaan.",
+            "badge_enabled": "Käytössä",
+            "badge_disabled": "Pois",
+            "badge_frontend": "UI",
+            "badge_wasm": "WASM",
+            "install_failed": "Lisäosan asennus epäonnistui: {reason}",
+            "installing": "Asennetaan lisäosaa..."
         }
     },
     "maintenance": {

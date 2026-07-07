@@ -237,7 +237,7 @@
                                                 />
                                             </template>
                                             <template #text>
-                                                <span>{{ $t(item.labelKey) }}</span>
+                                                <span>{{ item.label || $t(item.labelKey) }}</span>
                                                 <span
                                                     v-if="getNavBadgeCount(item) > 0 && !item.badge?.pill"
                                                     class="ml-auto mr-2"

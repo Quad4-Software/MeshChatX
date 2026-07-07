@@ -6,7 +6,9 @@
         :class="
             node.variant === 'title'
                 ? 'text-lg font-semibold text-gray-900 dark:text-gray-100'
-                : 'text-sm text-gray-700 dark:text-gray-300'
+                : node.variant === 'mono'
+                  ? 'font-mono text-xs text-gray-800 dark:text-gray-200 break-all'
+                  : 'text-sm text-gray-700 dark:text-gray-300'
         "
     >
         {{ node.value }}

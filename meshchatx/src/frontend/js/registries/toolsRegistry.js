@@ -25,5 +25,9 @@ export function unregisterTool(name) {
  * @returns {ToolEntry[]}
  */
 export function listTools() {
-    return toolsRegistry.list().map(({ id: _id, ...entry }) => entry);
+    return toolsRegistry.list().map((entry) => {
+        const tool = { ...entry };
+        delete tool.id;
+        return tool;
+    });
 }

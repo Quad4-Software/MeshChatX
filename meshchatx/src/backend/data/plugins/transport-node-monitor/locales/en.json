@@ -1,0 +1,9 @@
+{
+  "nav": "Transport Nodes",
+  "title": "Transport Node Monitor",
+  "description": "Watch transport node destinations and path hop counts.",
+  "watch_hash": "Destination hash",
+  "watch_hash_placeholder": "Enter a destination hash to watch",
+  "add_watch": "Add watch",
+  "no_path": "No path"
+}

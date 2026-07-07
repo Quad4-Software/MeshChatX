@@ -2,13 +2,10 @@
 
 <template>
     <div class="h-full overflow-y-auto p-4 sm:p-6">
-        <div class="mx-auto max-w-3xl rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 sm:p-6">
-            <PluginSlotRenderer
-                :plugin-id="pluginId"
-                :descriptor="descriptor"
-                @action="onAction"
-                @input="onInput"
-            />
+        <div
+            class="mx-auto max-w-3xl rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4 sm:p-6"
+        >
+            <PluginSlotRenderer :plugin-id="pluginId" :descriptor="descriptor" @action="onAction" @input="onInput" />
         </div>
     </div>
 </template>

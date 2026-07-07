@@ -305,6 +305,12 @@ const router = createRouter({
             props: { pluginId: "com.meshchatx.transport-node-monitor" },
         },
         {
+            name: "plugin-mesh-observatory",
+            path: "/plugins/com.meshchatx.mesh-observatory",
+            component: () => import("./components/plugins/PluginPage.vue"),
+            props: { pluginId: "com.meshchatx.mesh-observatory" },
+        },
+        {
             name: "changelog",
             path: "/changelog",
             component: ChangelogModal,
@@ -412,7 +418,7 @@ function bootstrap() {
     }
     void startCodec2ScriptsBackgroundLoad();
     if (GlobalState.authenticated || !GlobalState.authEnabled) {
-        void pluginHost.loadEnabledPlugins(window.api, (key) => i18n.global.t(key)).catch((error) => {
+        void pluginHost.loadEnabledPlugins(window.api, i18n.global.locale.value).catch((error) => {
             console.debug("Plugin host bootstrap failed:", error);
         });
     }

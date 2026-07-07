@@ -2,16 +2,7 @@
 
 /** @type {Record<string, string[]>} */
 export const CORE_SETTINGS_SECTION_KEYWORDS = {
-    telephony: [
-        "Telephony",
-        "Telephone",
-        "LXST",
-        "Enable Telephone",
-        "voice",
-        "calling",
-        "call",
-        "mesh network",
-    ],
+    telephony: ["Telephony", "Telephone", "LXST", "Enable Telephone", "voice", "calling", "call", "mesh network"],
     strangerProtection: [
         "Security",
         "app.stranger_protection",
@@ -221,12 +212,7 @@ export const CORE_SETTINGS_SECTION_KEYWORDS = {
         "app.enable_transport_mode",
         "app.transport_toggle_description",
     ],
-    interfaces: [
-        "Adapters",
-        "app.interfaces",
-        "app.show_community_interfaces",
-        "app.community_interfaces_description",
-    ],
+    interfaces: ["Adapters", "app.interfaces", "app.show_community_interfaces", "app.community_interfaces_description"],
     blocked: ["Privacy", "Banished", "Manage Banished users and nodes"],
     auth: ["Security", "Authentication", "password", "Protect your instance with a password"],
     webExposure: [
