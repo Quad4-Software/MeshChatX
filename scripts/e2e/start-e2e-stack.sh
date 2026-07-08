@@ -6,6 +6,9 @@ cd "$ROOT"
 
 export E2E_BACKEND_PORT="${E2E_BACKEND_PORT:-18079}"
 export MESHCHAT_NO_HTTPS=1
+# E2E exercises /api/v1/self-test (subprocess + bots). Keep Landlock off so
+# uv-managed interpreters and temp paths are not a sandbox variable.
+export MESHCHAT_LANDLOCK=0
 BACKEND_PORT="$E2E_BACKEND_PORT"
 VITE_HOST="${E2E_VITE_HOST:-127.0.0.1}"
 VITE_PORT="${E2E_VITE_PORT:-5173}"

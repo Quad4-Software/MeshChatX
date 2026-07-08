@@ -236,6 +236,18 @@ def _collect_read_roots() -> list[str]:
     existing = _existing_dir(user_site)
     if existing:
         roots.add(existing)
+    # Allow execve of the running interpreter (uv-managed CPython lives outside
+    # /usr; bots / self-check / rnsh re-spawn sys.executable under Landlock).
+    for candidate in (sys.executable, os.path.realpath(sys.executable)):
+        if not candidate:
+            continue
+        exe_dir = _existing_dir(os.path.dirname(candidate))
+        if exe_dir:
+            roots.add(exe_dir)
+        # Prefer the install prefix (…/cpython-…/) so bin + lib are covered.
+        prefix = _existing_dir(getattr(sys, "base_prefix", None) or sys.prefix)
+        if prefix:
+            roots.add(prefix)
     return sorted(roots)
 
 

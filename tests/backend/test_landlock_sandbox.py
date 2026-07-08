@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
+import os
 import sys
 from unittest.mock import patch
 
@@ -80,3 +81,15 @@ def test_landlock_kernel_supported_on_linux():
 def test_collect_read_roots_includes_proc_for_psutil():
     roots = ll._collect_read_roots()
     assert "/proc" in roots
+
+
+def test_collect_read_roots_includes_interpreter_prefix():
+    roots = ll._collect_read_roots()
+    exe = os.path.realpath(sys.executable)
+    prefix = os.path.realpath(getattr(sys, "base_prefix", None) or sys.prefix)
+    assert any(
+        exe == root or exe.startswith(root.rstrip("/") + "/") for root in roots
+    ), f"executable {exe!r} not covered by {roots!r}"
+    assert any(
+        prefix == root or prefix.startswith(root.rstrip("/") + "/") for root in roots
+    ), f"prefix {prefix!r} not covered by {roots!r}"

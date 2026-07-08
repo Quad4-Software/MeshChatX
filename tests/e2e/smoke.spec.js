@@ -32,7 +32,10 @@ test.describe("MeshChatX E2E (Vite + Python backend)", () => {
         ];
         for (const key of keys) {
             expect(body[key], key).toBeDefined();
-            expect(body[key].status, key).toBe("ok");
+            expect(
+                body[key].status,
+                `${key}: ${body[key].reason || "(no reason)"}`,
+            ).toBe("ok");
         }
     });
 
