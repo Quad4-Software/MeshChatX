@@ -74,6 +74,14 @@ describe("ToolsPage.vue", () => {
         expect(wrapper.text()).toContain("common.no_results");
     });
 
+    it("shows an alpha badge on the rnsh tool", () => {
+        const wrapper = mountToolsPage();
+        const rnsh = wrapper.vm.tools.find((tool) => tool.name === "rnsh");
+        expect(rnsh?.alpha).toBe(true);
+        const rnshRow = wrapper.findAll(".tool-row").find((row) => row.text().includes("tools.rnsh.title"));
+        expect(rnshRow?.text()).toContain("tools.alpha_badge");
+    });
+
     it("clears search query when close button is clicked", async () => {
         const wrapper = mountToolsPage();
         const searchInput = wrapper.find("input");

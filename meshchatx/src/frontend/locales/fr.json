@@ -1872,6 +1872,7 @@
         "diagnostics_description": "Utilitaires mesh et Reticulum au même endroit : joignabilité, chemins, transfert de fichiers, traduction, documentation et aides matérielles. Ouvrez une ligne pour l'outil complet.",
         "back_to_tools": "Retour aux outils",
         "beta_badge": "Beta",
+        "alpha_badge": "Alpha",
         "ping": {
             "title": "Ping",
             "description": "Mesurer le temps aller-retour vers une destination qui accepte ping."
