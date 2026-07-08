@@ -220,7 +220,7 @@ export default {
                     failed: response.data.failed || 0,
                 };
             } catch (e) {
-                if (!window.api.isCancel(e)) {
+                if (!window.api.isCancel?.(e)) {
                     console.error(e);
                     DialogUtils.alert(e.response?.data?.message || this.$t("rnprobe.failed_to_probe"));
                 }

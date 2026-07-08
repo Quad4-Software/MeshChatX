@@ -277,7 +277,7 @@ export default {
                 });
                 this.interfaces = response.data.interface_stats?.interfaces ?? [];
             } catch (e) {
-                if (window.api.isCancel(e)) return;
+                if (window.api.isCancel?.(e)) return;
                 console.error("Failed to fetch interface stats", e);
             }
         },
@@ -289,7 +289,7 @@ export default {
                 this.discoveredInterfaces = response.data?.interfaces ?? [];
                 this.discoveredActive = response.data?.active ?? [];
             } catch (e) {
-                if (window.api.isCancel(e)) return;
+                if (window.api.isCancel?.(e)) return;
             }
         },
         async getPathTableBatch(destinationHashes = null) {
@@ -335,7 +335,7 @@ export default {
                     }
                 }
             } catch (e) {
-                if (window.api.isCancel(e)) return;
+                if (window.api.isCancel?.(e)) return;
                 console.error("Failed to fetch path table batch", e);
             }
         },
@@ -398,7 +398,7 @@ export default {
                 });
                 this.config = response.data.config;
             } catch (e) {
-                if (window.api.isCancel(e)) return;
+                if (window.api.isCancel?.(e)) return;
                 console.error("Failed to fetch config", e);
             }
         },
@@ -412,7 +412,7 @@ export default {
                     this.conversations[conversation.destination_hash] = conversation;
                 }
             } catch (e) {
-                if (window.api.isCancel(e)) return;
+                if (window.api.isCancel?.(e)) return;
                 console.error("Failed to fetch conversations", e);
             }
         },
