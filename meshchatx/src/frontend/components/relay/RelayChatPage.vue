@@ -1682,7 +1682,7 @@ export default {
                 await this.leaveRoom();
                 return;
             }
-            const confirmed = await DialogUtils.confirm(this.$t("relay_chat.leave_room_confirm"));
+            const confirmed = await DialogUtils.confirmCustom(this.$t("relay_chat.leave_room_confirm"));
             if (!confirmed) {
                 return;
             }
@@ -2102,7 +2102,7 @@ export default {
             if (!this.selectedHub || !this.selectedRoom) {
                 return;
             }
-            const confirmed = await DialogUtils.confirm(this.$t("relay_chat.leave_room_confirm"));
+            const confirmed = await DialogUtils.confirmCustom(this.$t("relay_chat.leave_room_confirm"));
             if (!confirmed) {
                 return;
             }
