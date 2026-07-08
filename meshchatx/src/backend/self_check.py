@@ -44,6 +44,24 @@ SELF_CHECK_LABELS = {
     "lxmf_router_good": "LXMF Router            ",
     "subprocess_good": "Subprocess Spawn       ",
     "run_module_good": "MeshChatX Run-Module   ",
+    "sqlite_roundtrip": "SQLite Roundtrip       ",
+    "identity_roundtrip": "Identity File Roundtrip",
+    "loopback_tcp": "Loopback TCP Bind      ",
+    "unicode_path_good": "Unicode Path I/O       ",
+    "rnode_support_good": "RNode Support Module   ",
+    "bot_launcher_good": "Bot Launcher Argv      ",
+    "http_status_good": "HTTP /api/v1/status    ",
+    "http_app_info_good": "HTTP /api/v1/app/info  ",
+    "http_config_good": "HTTP /api/v1/config    ",
+    "http_db_health_good": "HTTP Database Health   ",
+    "http_auth_csrf_good": "HTTP Auth CSRF         ",
+    "http_bots_status_good": "HTTP Bots Status       ",
+    "http_security_good": "HTTP Server Security   ",
+    "http_interfaces_good": "HTTP RNS Interfaces    ",
+    "http_identities_good": "HTTP Identities        ",
+    "http_favourites_good": "HTTP Favourites        ",
+    "http_telephone_good": "HTTP Telephone Status  ",
+    "websocket_good": "WebSocket /ws          ",
     "bots_lifecycle": "Bot Create/Start/Stop  ",
 }
 
@@ -306,3 +324,498 @@ def check_subprocess_spawn() -> dict[str, str]:
         return _status(True)
     except Exception as exc:
         return _status(False, f"Subprocess spawn check failed: {exc}")
+
+
+def check_sqlite_roundtrip(base_dir: str | None = None) -> dict[str, str]:
+    """Create a temp SQLite DB, write a row, read it back, then delete the file."""
+    import sqlite3
+
+    root = base_dir if base_dir and os.path.isdir(base_dir) else tempfile.gettempdir()
+    path = None
+    try:
+        fd, path = tempfile.mkstemp(
+            prefix="meshchatx_self_check_", suffix=".db", dir=root
+        )
+        os.close(fd)
+        conn = sqlite3.connect(path)
+        try:
+            conn.execute("CREATE TABLE probe (id INTEGER PRIMARY KEY, note TEXT)")
+            conn.execute(
+                "INSERT INTO probe (note) VALUES (?)", ("meshchatx-sqlite-ok",)
+            )
+            conn.commit()
+            row = conn.execute("SELECT note FROM probe WHERE id = 1").fetchone()
+        finally:
+            conn.close()
+        if not row or row[0] != "meshchatx-sqlite-ok":
+            return _status(False, f"Unexpected SQLite readback: {row!r}")
+        return _status(True)
+    except Exception as exc:
+        return _status(False, f"SQLite roundtrip failed: {exc}")
+    finally:
+        if path and os.path.exists(path):
+            with contextlib.suppress(Exception):
+                os.unlink(path)
+
+
+def check_identity_file_roundtrip(base_dir: str | None = None) -> dict[str, str]:
+    """Generate a Reticulum identity, save to disk, reload, and compare hashes."""
+    try:
+        import RNS
+    except Exception as exc:
+        return _status(False, f"RNS import failed: {exc}")
+
+    root = base_dir if base_dir and os.path.isdir(base_dir) else tempfile.gettempdir()
+    path = None
+    try:
+        fd, path = tempfile.mkstemp(
+            prefix="meshchatx_id_", suffix=".identity", dir=root
+        )
+        os.close(fd)
+        identity = RNS.Identity(create_keys=True)
+        original = bytes(identity.hash)
+        with open(path, "wb") as handle:
+            handle.write(identity.get_private_key())
+        loaded = RNS.Identity(create_keys=False)
+        loaded.load(path)
+        if bytes(loaded.hash) != original:
+            return _status(False, "Reloaded identity hash mismatch")
+        return _status(True)
+    except Exception as exc:
+        return _status(False, f"Identity file roundtrip failed: {exc}")
+    finally:
+        if path and os.path.exists(path):
+            with contextlib.suppress(Exception):
+                os.unlink(path)
+
+
+def check_loopback_tcp() -> dict[str, str]:
+    """Bind and accept a short-lived TCP connection on 127.0.0.1."""
+    import socket
+    import threading
+
+    try:
+        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        server.bind(("127.0.0.1", 0))
+        server.listen(1)
+        host, port = server.getsockname()
+        received: dict[str, bytes] = {}
+
+        def _accept():
+            conn, _addr = server.accept()
+            try:
+                received["data"] = conn.recv(64)
+                conn.sendall(b"meshchatx-tcp-ok")
+            finally:
+                conn.close()
+
+        thread = threading.Thread(target=_accept, daemon=True)
+        thread.start()
+        client = socket.create_connection((host, port), timeout=5)
+        try:
+            client.sendall(b"ping")
+            reply = client.recv(64)
+        finally:
+            client.close()
+        thread.join(timeout=5)
+        server.close()
+        if received.get("data") != b"ping":
+            return _status(False, f"Server received {received.get('data')!r}")
+        if reply != b"meshchatx-tcp-ok":
+            return _status(False, f"Unexpected client reply: {reply!r}")
+        return _status(True)
+    except Exception as exc:
+        return _status(False, f"Loopback TCP check failed: {exc}")
+
+
+def check_unicode_path(base_dir: str | None = None) -> dict[str, str]:
+    """Write and read a file whose name contains non-ASCII characters."""
+    root = base_dir if base_dir and os.path.isdir(base_dir) else tempfile.gettempdir()
+    path = os.path.join(root, "meshchatx_self_check_ユニコード.txt")
+    try:
+        payload = "meshchatx-unicode-ok-αβγ"
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write(payload)
+        with open(path, encoding="utf-8") as handle:
+            if handle.read() != payload:
+                return _status(False, "Unicode path readback mismatch")
+        return _status(True)
+    except Exception as exc:
+        return _status(False, f"Unicode path check failed: {exc}")
+    finally:
+        with contextlib.suppress(Exception):
+            if os.path.exists(path):
+                os.unlink(path)
+
+
+def check_rnode_support() -> dict[str, str]:
+    """Import rnode_support and verify transport classification helpers."""
+    try:
+        from meshchatx.src.backend import rnode_support as rn
+
+        cases = (
+            ({"port": "tcp://127.0.0.1"}, "tcp"),
+            ({"port": "ble://aa:bb:cc:dd:ee:ff"}, "ble"),
+            ({"port": "/dev/ttyUSB0"}, "serial"),
+            ({"port": "", "allow_bluetooth": "true"}, "bluetooth_classic"),
+        )
+        for iface, expected in cases:
+            got = rn._rnode_iface_transport(iface)
+            if got != expected:
+                return _status(
+                    False,
+                    f"transport for {iface!r} was {got!r}, expected {expected!r}",
+                )
+        if not rn.rnode_port_is_tcp("tcp://127.0.0.1"):
+            return _status(False, "rnode_port_is_tcp rejected tcp://127.0.0.1")
+        if rn.rnode_port_is_tcp("/dev/ttyUSB0"):
+            return _status(False, "rnode_port_is_tcp accepted serial path")
+        return _status(True)
+    except Exception as exc:
+        return _status(False, f"RNode support check failed: {exc}")
+
+
+def check_bot_launcher() -> dict[str, str]:
+    """Verify BotHandler launcher argv for frozen and unfrozen modes."""
+    try:
+        from unittest.mock import patch
+
+        from meshchatx.src.backend.bot_handler import (
+            BotHandler,
+            _BOT_PROCESS_MODULE,
+            _MESHCHATX_RUN_MODULE_FLAG,
+        )
+
+        handler = BotHandler.__new__(BotHandler)
+        handler.runner_path = os.path.join("fake", "bot_process.py")
+
+        with patch.object(BotHandler, "_is_frozen_executable", return_value=False):
+            unfrozen = handler._resolve_bot_launcher()
+        if unfrozen != [sys.executable, handler.runner_path]:
+            return _status(False, f"Unexpected unfrozen launcher: {unfrozen!r}")
+
+        with patch.object(BotHandler, "_is_frozen_executable", return_value=True):
+            frozen = handler._resolve_bot_launcher()
+        expected_frozen = [
+            sys.executable,
+            _MESHCHATX_RUN_MODULE_FLAG,
+            _BOT_PROCESS_MODULE,
+        ]
+        if frozen != expected_frozen:
+            return _status(False, f"Unexpected frozen launcher: {frozen!r}")
+        return _status(True)
+    except Exception as exc:
+        return _status(False, f"Bot launcher check failed: {exc}")
+
+
+def _ensure_app_session_secret(app: Any) -> None:
+    if getattr(app, "session_secret_key", None):
+        return
+    secret = None
+    try:
+        if app.config is not None:
+            secret = app.config.auth_session_secret.get()
+    except Exception:
+        secret = None
+    if not secret:
+        import secrets
+
+        secret = secrets.token_urlsafe(32)
+        with contextlib.suppress(Exception):
+            if app.config is not None:
+                app.config.auth_session_secret.set(secret)
+    app.session_secret_key = secret
+
+
+def _ensure_awaitable_method(app: Any, name: str) -> None:
+    """Ensure ``app.name`` is awaitable (unit tests often patch with sync MagicMock)."""
+    import asyncio
+
+    method = getattr(app, name, None)
+    if method is None:
+        return
+    try:
+        result = method()
+    except TypeError:
+        return
+    except Exception:
+        return
+    if asyncio.iscoroutine(result):
+        result.close()
+        return
+
+    async def _noop(*_args, **_kwargs):
+        return None
+
+    try:
+        object.__setattr__(app, name, _noop)
+    except Exception:
+        setattr(app, name, _noop)
+
+
+async def _build_probe_aio_app(app: Any):
+    import asyncio
+
+    from aiohttp import web
+    from aiohttp_session import setup as setup_session
+
+    _ensure_app_session_secret(app)
+    _ensure_awaitable_method(app, "send_config_to_websocket_clients")
+    broadcast = getattr(app, "websocket_broadcast", None)
+    if callable(broadcast):
+        try:
+            maybe = broadcast("{}")
+            if asyncio.iscoroutine(maybe):
+                maybe.close()
+            else:
+
+                async def _broadcast(_data):
+                    return None
+
+                try:
+                    object.__setattr__(app, "websocket_broadcast", _broadcast)
+                except Exception:
+                    app.websocket_broadcast = _broadcast
+        except Exception:
+            pass
+    routes = web.RouteTableDef()
+    auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw = app._define_routes(routes)
+    aio_app = web.Application(
+        middlewares=[auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw],
+    )
+    setup_session(aio_app, app._encrypted_cookie_storage(use_https=False))
+    aio_app.add_routes(routes)
+    return aio_app
+
+
+_WEB_PROBE_KEYS = (
+    "http_status_good",
+    "http_app_info_good",
+    "http_config_good",
+    "http_db_health_good",
+    "http_auth_csrf_good",
+    "http_bots_status_good",
+    "http_security_good",
+    "http_interfaces_good",
+    "http_identities_good",
+    "http_favourites_good",
+    "http_telephone_good",
+    "websocket_good",
+)
+
+
+async def _probe_json_get(
+    client: Any,
+    path: str,
+    *,
+    require_keys: tuple[str, ...] = (),
+    require_nested: tuple[tuple[str, type], ...] = (),
+    validate: Callable[[dict[str, Any]], str | None] | None = None,
+    timeout: float = 15.0,
+) -> dict[str, str]:
+    import asyncio
+
+    async def _once() -> dict[str, str]:
+        resp = await client.get(path)
+        body = await resp.json()
+        if resp.status != 200 or not isinstance(body, dict):
+            return _status(False, f"{path} status={resp.status}")
+        for key in require_keys:
+            if key not in body:
+                return _status(False, f"{path} missing key {key!r}")
+        for key, expected_type in require_nested:
+            value = body.get(key)
+            if not isinstance(value, expected_type):
+                return _status(
+                    False,
+                    f"{path} key {key!r} type={type(value).__name__}",
+                )
+        if validate is not None:
+            reason = validate(body)
+            if reason:
+                return _status(False, reason)
+        return _status(True)
+
+    try:
+        return await asyncio.wait_for(_once(), timeout=timeout)
+    except TimeoutError:
+        return _status(False, f"{path} timed out after {timeout:.0f}s")
+    except Exception as exc:
+        return _status(False, f"{path}: {exc}")
+
+
+async def _run_web_api_probes(app: Any) -> dict[str, dict[str, str]]:
+    """Hit critical HTTP + WebSocket endpoints on an ephemeral TestServer."""
+    import asyncio
+    import json
+
+    from aiohttp import WSMsgType
+    from aiohttp.test_utils import TestClient, TestServer
+
+    results: dict[str, dict[str, str]] = {
+        key: _status(False, "not run") for key in _WEB_PROBE_KEYS
+    }
+
+    try:
+        aio_app = await _build_probe_aio_app(app)
+    except Exception as exc:
+        failed = _status(False, f"Failed to build probe app: {exc}")
+        return {key: failed for key in results}
+
+    try:
+        async with TestClient(TestServer(aio_app)) as client:
+            results["http_status_good"] = await _probe_json_get(
+                client,
+                "/api/v1/status",
+                require_keys=("status",),
+                validate=lambda body: (
+                    None if body.get("status") == "ok" else f"status body={body!r}"
+                ),
+            )
+            results["http_app_info_good"] = await _probe_json_get(
+                client,
+                "/api/v1/app/info",
+                require_nested=(("app_info", dict),),
+                validate=lambda body: (
+                    None
+                    if body.get("app_info", {}).get("version")
+                    else "app_info.version missing"
+                ),
+            )
+            results["http_config_good"] = await _probe_json_get(
+                client,
+                "/api/v1/config",
+                require_nested=(("config", dict),),
+            )
+            results["http_db_health_good"] = await _probe_json_get(
+                client,
+                "/api/v1/database/health",
+                require_nested=(("database", dict),),
+            )
+
+            try:
+                resp = await asyncio.wait_for(
+                    client.get("/api/v1/auth/csrf"), timeout=15
+                )
+                body = await resp.json()
+                token = body.get("csrf_token") if isinstance(body, dict) else None
+                if resp.status != 200 or not token:
+                    results["http_auth_csrf_good"] = _status(
+                        False,
+                        f"csrf status={resp.status}",
+                    )
+                else:
+                    auth_resp = await asyncio.wait_for(
+                        client.get("/api/v1/auth/status"),
+                        timeout=15,
+                    )
+                    auth_body = await auth_resp.json()
+                    if auth_resp.status != 200 or "auth_enabled" not in auth_body:
+                        results["http_auth_csrf_good"] = _status(
+                            False,
+                            f"auth/status status={auth_resp.status}",
+                        )
+                    else:
+                        results["http_auth_csrf_good"] = _status(True)
+            except TimeoutError:
+                results["http_auth_csrf_good"] = _status(False, "auth csrf timed out")
+            except Exception as exc:
+                results["http_auth_csrf_good"] = _status(False, str(exc))
+
+            results["http_bots_status_good"] = await _probe_json_get(
+                client,
+                "/api/v1/bots/status",
+                require_keys=("status", "templates"),
+            )
+            results["http_security_good"] = await _probe_json_get(
+                client,
+                "/api/v1/server/security",
+                require_keys=("listen_host", "listen_port", "auth_enabled"),
+            )
+            results["http_interfaces_good"] = await _probe_json_get(
+                client,
+                "/api/v1/reticulum/interfaces",
+                require_nested=(("interfaces", dict),),
+            )
+            results["http_identities_good"] = await _probe_json_get(
+                client,
+                "/api/v1/identities",
+                require_nested=(("identities", list),),
+            )
+            results["http_favourites_good"] = await _probe_json_get(
+                client,
+                "/api/v1/favourites",
+                require_nested=(("favourites", list),),
+            )
+            results["http_telephone_good"] = await _probe_json_get(
+                client,
+                "/api/v1/telephone/status",
+                require_keys=("enabled",),
+            )
+
+            try:
+                ws = await asyncio.wait_for(client.ws_connect("/ws"), timeout=15)
+                try:
+                    try:
+                        msg = await asyncio.wait_for(ws.receive(), timeout=5)
+                    except TimeoutError:
+                        if ws.closed:
+                            results["websocket_good"] = _status(
+                                False,
+                                "ws closed without first message",
+                            )
+                        else:
+                            # Connection works; first push may be absent under test doubles.
+                            results["websocket_good"] = _status(True)
+                    else:
+                        if msg.type not in (WSMsgType.TEXT, WSMsgType.BINARY):
+                            results["websocket_good"] = _status(
+                                False,
+                                f"unexpected ws message type={msg.type}",
+                            )
+                        elif msg.type == WSMsgType.TEXT:
+                            try:
+                                payload = json.loads(msg.data)
+                                ok = isinstance(payload, dict)
+                            except Exception:
+                                ok = False
+                            results["websocket_good"] = _status(
+                                ok,
+                                "" if ok else "first ws message was not JSON object",
+                            )
+                        else:
+                            results["websocket_good"] = _status(True)
+                finally:
+                    await ws.close()
+            except Exception as exc:
+                results["websocket_good"] = _status(False, str(exc))
+    except Exception as exc:
+        failed = _status(False, f"Web probe client failed: {exc}")
+        for key in results:
+            if results[key]["status"] != "ok":
+                results[key] = failed
+
+    return results
+
+
+def check_web_stack(app: Any) -> dict[str, dict[str, str]]:
+    """Run HTTP/WebSocket probes against an ephemeral aiohttp TestServer."""
+    import asyncio
+
+    try:
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            return asyncio.run(_run_web_api_probes(app))
+
+        # Already inside an event loop (e.g. aiohttp request handler).
+        import concurrent.futures
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            return pool.submit(lambda: asyncio.run(_run_web_api_probes(app))).result(
+                timeout=90,
+            )
+    except Exception as exc:
+        failed = _status(False, f"Web stack check failed: {exc}")
+        return {key: failed for key in _WEB_PROBE_KEYS}

@@ -28,14 +28,29 @@ test.describe("MeshChatX E2E (Vite + Python backend)", () => {
             "lxmf_router_good",
             "subprocess_good",
             "run_module_good",
+            "sqlite_roundtrip",
+            "identity_roundtrip",
+            "loopback_tcp",
+            "unicode_path_good",
+            "rnode_support_good",
+            "bot_launcher_good",
+            "http_status_good",
+            "http_app_info_good",
+            "http_config_good",
+            "http_db_health_good",
+            "http_auth_csrf_good",
+            "http_bots_status_good",
+            "http_security_good",
+            "http_interfaces_good",
+            "http_identities_good",
+            "http_favourites_good",
+            "http_telephone_good",
+            "websocket_good",
             "bots_lifecycle",
         ];
         for (const key of keys) {
             expect(body[key], key).toBeDefined();
-            expect(
-                body[key].status,
-                `${key}: ${body[key].reason || "(no reason)"}`,
-            ).toBe("ok");
+            expect(body[key].status, `${key}: ${body[key].reason || "(no reason)"}`).toBe("ok");
         }
     });
 
