@@ -43,6 +43,10 @@ DEFAULT_TERMINAL_COLS = 120
 _LISTEN_ADDRESS_RE = re.compile(r"<([0-9a-fA-F]{16,})>")
 
 _RNSH_MODULE = "RNS.Utilities.rnsh.rnsh"
+# cx_Freeze / AppImage bundles set sys.executable to MeshChatX itself, which
+# does not accept Python's ``-m``. meshchat.main() dispatches this flag to
+# runpy.run_module before argparse (see meshchatx/meshchat.py).
+_MESHCHATX_RUN_MODULE_FLAG = "--meshchatx-run-module"
 
 
 class RNSHSession:
@@ -240,6 +244,10 @@ class RNSHSession:
             return False
 
     @staticmethod
+    def _is_frozen_executable():
+        return bool(getattr(sys, "frozen", False))
+
+    @staticmethod
     def _resolve_rnsh_launcher():
         """Return argv prefix for launching rnsh.
 
@@ -247,8 +255,18 @@ class RNSHSession:
         console-script wrapper is not executable (common with pip --user
         installs) or when Landlock denies executing paths outside allowed
         read roots (for example ``~/.local/bin/rnsh``).
+
+        Frozen desktop builds (Windows EXE, AppImage, macOS) set
+        ``sys.executable`` to MeshChatX itself, which rejects ``-m``. Those
+        builds re-enter via ``--meshchatx-run-module`` instead.
         """
         if RNSHSession._rnsh_module_available():
+            if RNSHSession._is_frozen_executable():
+                return [
+                    sys.executable,
+                    _MESHCHATX_RUN_MODULE_FLAG,
+                    _RNSH_MODULE,
+                ]
             return [sys.executable, "-m", _RNSH_MODULE]
         executable = shutil.which("rnsh")
         if executable and os.access(executable, os.X_OK):

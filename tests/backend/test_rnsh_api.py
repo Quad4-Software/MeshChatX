@@ -193,6 +193,7 @@ def test_rnsh_prefers_module_launcher_when_rns_installed(monkeypatch):
     from meshchatx.src.backend import rnsh_manager as rnsh_mod
 
     monkeypatch.setattr(rnsh_mod.RNSHSession, "_rnsh_module_available", lambda: True)
+    monkeypatch.setattr(rnsh_mod.RNSHSession, "_is_frozen_executable", lambda: False)
     monkeypatch.setattr(
         rnsh_mod.shutil, "which", lambda _name: "/home/user/.local/bin/rnsh"
     )
@@ -205,6 +206,29 @@ def test_rnsh_prefers_module_launcher_when_rns_installed(monkeypatch):
     )
     command = session._build_command()
     assert command[:3] == [rnsh_mod.sys.executable, "-m", rnsh_mod._RNSH_MODULE]
+    assert command[-1] == "deadbeef"
+
+
+def test_rnsh_frozen_uses_meshchatx_run_module(monkeypatch):
+    from meshchatx.src.backend import rnsh_manager as rnsh_mod
+
+    monkeypatch.setattr(rnsh_mod.RNSHSession, "_rnsh_module_available", lambda: True)
+    monkeypatch.setattr(rnsh_mod.RNSHSession, "_is_frozen_executable", lambda: True)
+    monkeypatch.setattr(rnsh_mod.sys, "executable", r"C:\App\ReticulumMeshChatX.exe")
+
+    manager = MagicMock()
+    session = rnsh_mod.RNSHSession(
+        manager,
+        "s1",
+        {"mode": "connect", "destination": "deadbeef"},
+    )
+    command = session._build_command()
+    assert command[:3] == [
+        r"C:\App\ReticulumMeshChatX.exe",
+        rnsh_mod._MESHCHATX_RUN_MODULE_FLAG,
+        rnsh_mod._RNSH_MODULE,
+    ]
+    assert "-m" not in command
     assert command[-1] == "deadbeef"
 
 
