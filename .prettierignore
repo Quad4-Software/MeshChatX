@@ -27,6 +27,7 @@ meshchatx/src/frontend/style.css
 
 # Other
 storage/
+temp-tests/
 __pycache__/
 .venv/
 MagicMock/

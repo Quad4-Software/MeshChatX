@@ -34,6 +34,7 @@ export default [
             "**/*.wasm",
             "**/*.proto",
             "**/tests/**",
+            "**/temp-tests/**",
             "**/.pnpm-store/**",
             "**/packaging/**",
         ],
