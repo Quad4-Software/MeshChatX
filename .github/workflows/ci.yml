@@ -327,6 +327,7 @@ jobs:
                   uv-version: ${{ env.UV_VERSION }}
                   node-version: ${{ env.NODE_VERSION }}
                   pnpm-version: ${{ env.PNPM_VERSION }}
+                  install-task: "false"
 
             - name: Run headless system self-check
               shell: bash
