@@ -96,6 +96,56 @@ def test_check_meshchatx_run_module_ok():
     assert result["status"] == "ok", result["reason"]
 
 
+def test_check_sqlite_roundtrip_ok(tmp_path):
+    assert self_check.check_sqlite_roundtrip(str(tmp_path))["status"] == "ok"
+
+
+def test_check_identity_file_roundtrip_ok(tmp_path):
+    result = self_check.check_identity_file_roundtrip(str(tmp_path))
+    assert result["status"] == "ok", result["reason"]
+
+
+def test_check_loopback_tcp_ok():
+    assert self_check.check_loopback_tcp()["status"] == "ok"
+
+
+def test_check_unicode_path_ok(tmp_path):
+    assert self_check.check_unicode_path(str(tmp_path))["status"] == "ok"
+
+
+def test_check_rnode_support_ok():
+    assert self_check.check_rnode_support()["status"] == "ok"
+
+
+def test_check_bot_launcher_ok():
+    assert self_check.check_bot_launcher()["status"] == "ok"
+
+
+def test_check_web_stack_ok(mock_app, require_loopback_tcp):
+    from unittest.mock import AsyncMock, MagicMock
+
+    # Avoid MagicMock telephone objects taking the "enabled" code path.
+    mock_app.telephone_manager.telephone = None
+    # /api/v1/config and /api/v1/app/info must JSON-serialize reticulum/identity fields.
+    mock_app.current_context.identity.get_public_key = MagicMock(
+        return_value=bytes(32),
+    )
+    mock_app.current_context.local_lxmf_destination.hexhash = "a" * 32
+    mock_app.current_context.message_router.propagation_destination.hexhash = "b" * 32
+    if getattr(mock_app, "reticulum", None) is not None:
+        mock_app.reticulum.is_connected_to_shared_instance = False
+        mock_app.reticulum.transport_enabled = MagicMock(return_value=False)
+        mock_app.reticulum.get_path_table = MagicMock(return_value=[])
+    # WebSocket handler awaits these.
+    mock_app.send_config_to_websocket_clients = AsyncMock(return_value=None)
+    mock_app.websocket_broadcast = AsyncMock()
+    results = self_check.check_web_stack(mock_app)
+    expected = set(self_check._WEB_PROBE_KEYS)
+    assert set(results) == expected
+    for key, value in results.items():
+        assert value["status"] == "ok", f"{key}: {value.get('reason')}"
+
+
 def test_self_check_labels_cover_schema_keys():
     from tests.backend.api_json_contract_schemas import SELF_TEST_SCHEMA
 

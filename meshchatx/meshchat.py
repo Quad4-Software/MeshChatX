@@ -965,6 +965,16 @@ class ReticulumMeshChat:
         )
         subprocess_result = self_check_mod.check_subprocess_spawn()
         run_module_result = self_check_mod.check_meshchatx_run_module()
+        storage_base = self.storage_path or self.storage_dir
+        sqlite_result = self_check_mod.check_sqlite_roundtrip(storage_base)
+        identity_file_result = self_check_mod.check_identity_file_roundtrip(
+            storage_base
+        )
+        loopback_result = self_check_mod.check_loopback_tcp()
+        unicode_result = self_check_mod.check_unicode_path(storage_base)
+        rnode_result = self_check_mod.check_rnode_support()
+        bot_launcher_result = self_check_mod.check_bot_launcher()
+        web_results = self_check_mod.check_web_stack(self)
 
         return {
             "stack_up": {
@@ -991,6 +1001,48 @@ class ReticulumMeshChat:
             "lxmf_router_good": lxmf_result,
             "subprocess_good": subprocess_result,
             "run_module_good": run_module_result,
+            "sqlite_roundtrip": sqlite_result,
+            "identity_roundtrip": identity_file_result,
+            "loopback_tcp": loopback_result,
+            "unicode_path_good": unicode_result,
+            "rnode_support_good": rnode_result,
+            "bot_launcher_good": bot_launcher_result,
+            "http_status_good": web_results.get(
+                "http_status_good", {"status": "failed", "reason": "missing"}
+            ),
+            "http_app_info_good": web_results.get(
+                "http_app_info_good", {"status": "failed", "reason": "missing"}
+            ),
+            "http_config_good": web_results.get(
+                "http_config_good", {"status": "failed", "reason": "missing"}
+            ),
+            "http_db_health_good": web_results.get(
+                "http_db_health_good", {"status": "failed", "reason": "missing"}
+            ),
+            "http_auth_csrf_good": web_results.get(
+                "http_auth_csrf_good", {"status": "failed", "reason": "missing"}
+            ),
+            "http_bots_status_good": web_results.get(
+                "http_bots_status_good", {"status": "failed", "reason": "missing"}
+            ),
+            "http_security_good": web_results.get(
+                "http_security_good", {"status": "failed", "reason": "missing"}
+            ),
+            "http_interfaces_good": web_results.get(
+                "http_interfaces_good", {"status": "failed", "reason": "missing"}
+            ),
+            "http_identities_good": web_results.get(
+                "http_identities_good", {"status": "failed", "reason": "missing"}
+            ),
+            "http_favourites_good": web_results.get(
+                "http_favourites_good", {"status": "failed", "reason": "missing"}
+            ),
+            "http_telephone_good": web_results.get(
+                "http_telephone_good", {"status": "failed", "reason": "missing"}
+            ),
+            "websocket_good": web_results.get(
+                "websocket_good", {"status": "failed", "reason": "missing"}
+            ),
             "bots_lifecycle": {
                 "status": "ok" if bots_ok else "failed",
                 "reason": bots_reason,

@@ -99,15 +99,11 @@ jobs:
                   esac
 
     backend-tests:
-        name: Backend tests (Python ${{ matrix.python-version }})
+        name: Backend tests (Python ${{ env.PYTHON_VERSION }})
         runs-on: ubuntu-latest
         timeout-minutes: 60
         permissions:
             contents: read
-        strategy:
-            fail-fast: false
-            matrix:
-                python-version: ["3.11", "3.14"]
         steps:
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
@@ -115,7 +111,7 @@ jobs:
             - name: Set up development environment
               uses: ./.github/actions/setup-dev-environment
               with:
-                  python-version: ${{ matrix.python-version }}
+                  python-version: ${{ env.PYTHON_VERSION }}
                   uv-version: ${{ env.UV_VERSION }}
                   node-version: ${{ env.NODE_VERSION }}
                   pnpm-version: ${{ env.PNPM_VERSION }}
