@@ -6,8 +6,6 @@ from datetime import UTC, datetime, timedelta
 
 from lxmfy import IconAppearance, LXMFBot, pack_icon_appearance_field
 
-HAS_LXMFY = True
-
 
 class StoppableBot:
     def __init__(self):
