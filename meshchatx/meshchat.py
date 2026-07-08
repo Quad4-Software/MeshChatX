@@ -20,6 +20,7 @@ import logging
 import os
 import platform
 import re
+import runpy
 import secrets
 import shutil
 import socket
@@ -19917,8 +19918,33 @@ class ReticulumMeshChat:
         return None
 
 
+def _maybe_run_embedded_module():
+    """Re-enter a bundled Python module from a frozen MeshChatX executable.
+
+    Desktop builds set ``sys.executable`` to MeshChatX itself, so
+    ``python -m …`` cannot be used to start tools like rnsh. Callers pass
+    ``--meshchatx-run-module <dotted.name>`` followed by that module's argv.
+    """
+    marker = "--meshchatx-run-module"
+    if len(sys.argv) < 3 or sys.argv[1] != marker:
+        return False
+    module_name = sys.argv[2]
+    if not module_name or module_name.startswith("-"):
+        print(
+            f"error: {marker} requires a module name",
+            file=sys.stderr,
+        )
+        raise SystemExit(2)
+    sys.argv = [sys.argv[0], *sys.argv[3:]]
+    runpy.run_module(module_name, run_name="__main__", alter_sys=True)
+    return True
+
+
 # class to manage config stored in database
 def main():
+    if _maybe_run_embedded_module():
+        return
+
     # Initialize crash recovery system early to catch startup errors
     recovery = CrashRecovery()
     recovery.install()
