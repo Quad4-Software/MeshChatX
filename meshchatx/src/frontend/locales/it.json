@@ -1738,6 +1738,7 @@
         "favourites_search_try_other": "Prova un altro termine di ricerca.",
         "no_favourites_in_section": "Nessun preferito in questa sezione.",
         "search_announces": "Cerca annunci",
+        "searching_announces": "Ricerca annunci in corso...",
         "announced_time_ago": "Annunciato {time} fa",
         "block_node": "Esilia Nodo",
         "no_announces_yet": "Ancora nessun annuncio",

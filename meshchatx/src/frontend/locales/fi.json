@@ -1686,6 +1686,7 @@
         "favourites_search_try_other": "Kokeile toista hakusanaa.",
         "no_favourites_in_section": "Ei suosikkeja osiossa.",
         "search_announces": "Hae kuulutuksista",
+        "searching_announces": "Haetaan kuulutuksia...",
         "announced_time_ago": "Kuulutettu {time} sitten",
         "block_node": "Karkota solmu",
         "no_announces_yet": "Ei kuulutuksia vielä",

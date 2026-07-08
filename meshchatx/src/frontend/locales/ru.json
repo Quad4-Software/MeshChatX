@@ -1574,6 +1574,7 @@
         "favourites_search_try_other": "Попробуйте другой поисковый запрос.",
         "no_favourites_in_section": "В этом разделе нет избранного.",
         "search_announces": "Поиск анонсов",
+        "searching_announces": "Поиск анонсов...",
         "announced_time_ago": "Анонсировано {time} назад",
         "block_node": "Заблокировать узел",
         "no_announces_yet": "Анонсов пока нет",

@@ -471,13 +471,23 @@
             <div v-else class="flex-1 flex flex-col min-h-0">
                 <div class="p-3 border-b border-gray-200 dark:border-zinc-800 space-y-2">
                     <div class="flex gap-1.5 items-center">
-                        <input
-                            :value="nodesSearchTerm"
-                            type="text"
-                            :placeholder="$t('nomadnet.search_placeholder_announces', { count: totalNodesCount })"
-                            class="input-field flex-1 min-w-0 rounded-none"
-                            @input="onNodesSearchInput"
-                        />
+                        <div class="relative flex-1 min-w-0">
+                            <input
+                                :value="nodesSearchTerm"
+                                type="text"
+                                :placeholder="$t('nomadnet.search_placeholder_announces', { count: totalNodesCount })"
+                                class="input-field w-full min-w-0 rounded-none"
+                                :class="{ 'pr-7': isSearchingNodes }"
+                                @input="onNodesSearchInput"
+                            />
+                            <span
+                                v-if="isSearchingNodes"
+                                class="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400"
+                                :title="$t('nomadnet.searching_announces')"
+                            >
+                                <MaterialDesignIcon icon-name="loading" class="size-4 animate-spin" />
+                            </span>
+                        </div>
                         <button
                             type="button"
                             class="shrink-0 self-center inline-flex items-center justify-center p-0.5 rounded-sm text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors leading-none"
@@ -626,6 +636,17 @@
                             <MaterialDesignIcon icon-name="loading" class="size-6 animate-spin text-gray-400" />
                         </div>
                     </div>
+                    <div
+                        v-else-if="isSearchingNodes && nodesSearchTerm.trim() !== ''"
+                        class="empty-state empty-state--panel"
+                    >
+                        <MaterialDesignIcon icon-name="loading" class="w-8 h-8 animate-spin" />
+                        <div class="font-semibold">{{ $t("nomadnet.searching_announces") }}</div>
+                    </div>
+                    <div v-else-if="nodesSearchTerm.trim() !== ''" class="empty-state empty-state--panel">
+                        <MaterialDesignIcon icon-name="radar" class="w-8 h-8" />
+                        <div class="font-semibold">{{ $t("nomadnet.no_search_results_peers") }}</div>
+                    </div>
                     <div v-else class="empty-state empty-state--panel">
                         <MaterialDesignIcon icon-name="radar" class="w-8 h-8" />
                         <div class="font-semibold">{{ $t("nomadnet.no_announces_yet") }}</div>
@@ -729,6 +750,10 @@ export default {
             default: 0,
         },
         isLoadingMoreNodes: {
+            type: Boolean,
+            default: false,
+        },
+        isSearchingNodes: {
             type: Boolean,
             default: false,
         },

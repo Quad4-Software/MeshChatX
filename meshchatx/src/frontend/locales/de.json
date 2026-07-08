@@ -1574,6 +1574,7 @@
         "favourites_search_try_other": "Versuchen Sie einen anderen Suchbegriff.",
         "no_favourites_in_section": "Keine Favoriten in diesem Abschnitt.",
         "search_announces": "Ankündigungen durchsuchen",
+        "searching_announces": "Ankündigungen werden durchsucht...",
         "announced_time_ago": "Vor {time} angekündigt",
         "block_node": "Knoten blockieren",
         "no_announces_yet": "Noch keine Ankündigungen",
