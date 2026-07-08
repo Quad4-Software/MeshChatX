@@ -88,6 +88,45 @@ describe("PingPage.vue", () => {
         expect(wrapper.text()).toContain("seq #1");
     });
 
+    it("terminates previous loop when stop and start are called sequentially", async () => {
+        axiosMock.get.mockResolvedValue({
+            data: {
+                ping_result: {
+                    rtt: 0.1,
+                    hops_there: 1,
+                    hops_back: 1,
+                    receiving_interface: "UDP",
+                },
+            },
+        });
+
+        const wrapper = mountPingPage();
+        await wrapper.setData({ destinationHash: "a".repeat(32) });
+
+        // track calls
+        const pingSpy = vi.spyOn(wrapper.vm, "ping");
+
+        wrapper.vm.sleep = vi.fn().mockImplementation(() => new Promise((r) => setTimeout(r, 50)));
+
+        // Start 1st loop
+        wrapper.vm.start();
+        await vi.waitFor(() => expect(pingSpy).toHaveBeenCalledTimes(1));
+
+        // Stop 1st loop and start 2nd loop immediately
+        wrapper.vm.stop();
+        wrapper.vm.start();
+
+        // Wait a bit to let any concurrent loop run if it existed
+        await new Promise((r) => setTimeout(r, 120));
+
+        // Total runs should be 1 from the first loop (before stop) and then continuing on the second loop.
+        // If the first loop did not terminate, they would both be calling ping,
+        // resulting in more calls than expected.
+        expect(pingSpy.mock.calls.length).toBeLessThanOrEqual(4);
+
+        wrapper.vm.stop();
+    });
+
     it("calls drop path API", async () => {
         axiosMock.post.mockResolvedValue({ data: { message: "Path dropped" } });
         const wrapper = mountPingPage();

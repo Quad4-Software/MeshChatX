@@ -169,6 +169,7 @@ export default {
             pingResults: [],
             abortController: null,
             lastPingSummary: null,
+            currentSessionId: 0,
         };
     },
     beforeUnmount() {
@@ -204,15 +205,19 @@ export default {
             // we are now running ping
             this.seq = 0;
             this.isRunning = true;
+            this.currentSessionId++;
+            const sessionId = this.currentSessionId;
             this.abortController = new AbortController();
 
             // run ping until stopped
-            while (this.isRunning) {
+            while (this.isRunning && this.currentSessionId === sessionId) {
                 // run ping
                 await this.ping();
 
                 // wait a bit before running next ping
-                await this.sleep(1000);
+                if (this.isRunning && this.currentSessionId === sessionId) {
+                    await this.sleep(1000);
+                }
             }
         },
         async stop() {
