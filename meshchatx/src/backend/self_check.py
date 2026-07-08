@@ -373,12 +373,21 @@ def check_identity_file_roundtrip(base_dir: str | None = None) -> dict[str, str]
         )
         os.close(fd)
         identity = RNS.Identity(create_keys=True)
-        original = bytes(identity.hash)
+        orig_hash = identity.hash
+        if orig_hash is None:
+            return _status(False, "Generated identity hash is None")
+        original = bytes(orig_hash)
+        priv_key = identity.get_private_key()
+        if priv_key is None:
+            return _status(False, "Generated private key is None")
         with open(path, "wb") as handle:
-            handle.write(identity.get_private_key())
+            handle.write(priv_key)
         loaded = RNS.Identity(create_keys=False)
         loaded.load(path)
-        if bytes(loaded.hash) != original:
+        loaded_hash = loaded.hash
+        if loaded_hash is None:
+            return _status(False, "Loaded identity hash is None")
+        if bytes(loaded_hash) != original:
             return _status(False, "Reloaded identity hash mismatch")
         return _status(True)
     except Exception as exc:
