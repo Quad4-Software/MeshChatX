@@ -13,6 +13,7 @@
             :nodes-search-term="nodesSearchTerm"
             :total-nodes-count="totalNodesCount"
             :is-loading-more-nodes="isLoadingMoreNodes"
+            :is-searching-nodes="isSearchingNodes"
             :has-more-nodes="hasMoreNodes"
             @node-click="onNodeClick"
             @rename-favourite="onRenameFavourite"
@@ -675,6 +676,7 @@ export default {
             totalNodesCount: 0,
             hasMoreNodes: true,
             isLoadingMoreNodes: false,
+            isSearchingNodes: false,
             nodesSearchTerm: "",
             pageSize: 50,
             selectedNode: null,
@@ -1657,14 +1659,21 @@ export default {
             }
         },
         async getNomadnetworkNodeAnnounces(append = false) {
+            // capture the controller that belongs to *this* call so a later,
+            // superseding call can't have its own finally block clear the
+            // loading state for an in-flight search out from under it.
+            let myController = this.nodesListAbortController;
             try {
                 if (!append) {
                     if (this.nodesListAbortController) {
                         this.nodesListAbortController.abort();
                     }
                     this.nodesListAbortController = new AbortController();
+                    myController = this.nodesListAbortController;
+                    this.isSearchingNodes = true;
                 } else if (!this.nodesListAbortController) {
                     this.nodesListAbortController = new AbortController();
+                    myController = this.nodesListAbortController;
                 }
                 const offset = append ? Object.keys(this.nodes).length : 0;
                 const response = await window.api.get(`/api/v1/announces`, {
@@ -1674,7 +1683,7 @@ export default {
                         offset: offset,
                         search: this.nodesSearchTerm,
                     },
-                    signal: this.nodesListAbortController.signal,
+                    signal: myController.signal,
                 });
 
                 const nodeAnnounces = response.data.announces;
@@ -1694,6 +1703,9 @@ export default {
                 console.log(e);
             } finally {
                 this.isLoadingMoreNodes = false;
+                if (!append && this.nodesListAbortController === myController) {
+                    this.isSearchingNodes = false;
+                }
             }
         },
         async loadMoreNodes() {
@@ -1703,6 +1715,7 @@ export default {
         },
         onNodesSearchChanged(term) {
             this.nodesSearchTerm = term;
+            this.isSearchingNodes = true;
             if (this.nodesRefreshTimeout) {
                 clearTimeout(this.nodesRefreshTimeout);
             }

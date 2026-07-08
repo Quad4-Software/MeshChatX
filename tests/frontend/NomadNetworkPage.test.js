@@ -116,6 +116,84 @@ describe("NomadNetworkPage.vue", () => {
         vi.useRealTimers();
     });
 
+    it("tracks isSearchingNodes while the debounce and request are pending, clearing it once resolved", async () => {
+        vi.useFakeTimers();
+        axiosMock.isCancel = vi.fn(() => false);
+
+        let resolveAnnounces;
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/favourites") return Promise.resolve({ data: { favourites: [] } });
+            if (url === "/api/v1/announces") {
+                return new Promise((resolve) => {
+                    resolveAnnounces = resolve;
+                });
+            }
+            return Promise.resolve({ data: {} });
+        });
+
+        const wrapper = mountNomadNetworkPage();
+
+        // the initial mount fetch is in flight
+        expect(wrapper.vm.isSearchingNodes).toBe(true);
+        resolveAnnounces({ data: { announces: [], total_count: 0 } });
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.isSearchingNodes).toBe(false);
+
+        wrapper.vm.onNodesSearchChanged("nodequery");
+        // indicator shows immediately, even before the debounce fires
+        expect(wrapper.vm.isSearchingNodes).toBe(true);
+
+        await vi.advanceTimersByTimeAsync(500);
+        // debounce elapsed, request is now in flight and still pending
+        expect(wrapper.vm.isSearchingNodes).toBe(true);
+
+        resolveAnnounces({ data: { announces: [], total_count: 0 } });
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.isSearchingNodes).toBe(false);
+
+        vi.useRealTimers();
+    });
+
+    it("does not clear isSearchingNodes for a stale request superseded by a newer search", async () => {
+        vi.useFakeTimers();
+        axiosMock.isCancel = vi.fn((e) => e?.isCancelled === true);
+
+        const pending = [];
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/favourites") return Promise.resolve({ data: { favourites: [] } });
+            if (url === "/api/v1/announces") {
+                return new Promise((resolve, reject) => {
+                    pending.push({ resolve, reject });
+                });
+            }
+            return Promise.resolve({ data: {} });
+        });
+
+        const wrapper = mountNomadNetworkPage();
+        await wrapper.vm.$nextTick();
+        expect(pending.length).toBe(1);
+
+        // reject the initial mount fetch as if it was aborted by a new search
+        wrapper.vm.onNodesSearchChanged("first");
+        await vi.advanceTimersByTimeAsync(500);
+        expect(pending.length).toBe(2);
+        pending[0].reject({ isCancelled: true });
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+
+        // the newer request is still in flight, so the indicator must stay on
+        expect(wrapper.vm.isSearchingNodes).toBe(true);
+
+        pending[1].resolve({ data: { announces: [], total_count: 0 } });
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.isSearchingNodes).toBe(false);
+
+        vi.useRealTimers();
+    });
+
     it("loads node when destinationHash prop is provided", async () => {
         const destHash = "0123456789abcdef0123456789abcdef";
         axiosMock.get.mockImplementation((url) => {

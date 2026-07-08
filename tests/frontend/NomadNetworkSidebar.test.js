@@ -59,6 +59,7 @@ describe("NomadNetworkSidebar.vue", () => {
                 nodesSearchTerm: overrides.nodesSearchTerm ?? "",
                 totalNodesCount: overrides.totalNodesCount ?? 1,
                 isLoadingMoreNodes: overrides.isLoadingMoreNodes ?? false,
+                isSearchingNodes: overrides.isSearchingNodes ?? false,
                 hasMoreNodes: overrides.hasMoreNodes ?? false,
             },
             global: {
@@ -230,5 +231,71 @@ describe("NomadNetworkSidebar.vue", () => {
         );
         expect(emitSpy).toHaveBeenCalledWith("block-status-changed");
         emitSpy.mockRestore();
+    });
+
+    it("shows a spinner next to the search input while a node search is in progress", async () => {
+        const wrapper = mountSidebar({ isSearchingNodes: true });
+        const announceTab = wrapper.findAll("button").find((b) => b.text().includes("nomadnet.announces"));
+        await announceTab.trigger("click");
+        await wrapper.vm.$nextTick();
+
+        const spinner = wrapper.find('[data-icon-name="loading"]');
+        expect(spinner.exists()).toBe(true);
+    });
+
+    it("does not show a search spinner when isSearchingNodes is false", async () => {
+        const wrapper = mountSidebar({ isSearchingNodes: false });
+        const announceTab = wrapper.findAll("button").find((b) => b.text().includes("nomadnet.announces"));
+        await announceTab.trigger("click");
+        await wrapper.vm.$nextTick();
+
+        const spinner = wrapper.find('[data-icon-name="loading"]');
+        expect(spinner.exists()).toBe(false);
+    });
+
+    it("shows a searching placeholder instead of the empty state while search results are still loading", async () => {
+        const wrapper = mountSidebar({
+            nodes: {},
+            totalNodesCount: 0,
+            nodesSearchTerm: "nonexistent",
+            isSearchingNodes: true,
+        });
+        const announceTab = wrapper.findAll("button").find((b) => b.text().includes("nomadnet.announces"));
+        await announceTab.trigger("click");
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.text()).toContain("nomadnet.searching_announces");
+        expect(wrapper.text()).not.toContain("nomadnet.no_announces_yet");
+        expect(wrapper.text()).not.toContain("nomadnet.no_search_results_peers");
+    });
+
+    it("shows the no-results-for-search message once a search finishes with no matches", async () => {
+        const wrapper = mountSidebar({
+            nodes: {},
+            totalNodesCount: 0,
+            nodesSearchTerm: "nonexistent",
+            isSearchingNodes: false,
+        });
+        const announceTab = wrapper.findAll("button").find((b) => b.text().includes("nomadnet.announces"));
+        await announceTab.trigger("click");
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.text()).toContain("nomadnet.no_search_results_peers");
+        expect(wrapper.text()).not.toContain("nomadnet.no_announces_yet");
+    });
+
+    it("shows the generic no-announces empty state when there is no search term", async () => {
+        const wrapper = mountSidebar({
+            nodes: {},
+            totalNodesCount: 0,
+            nodesSearchTerm: "",
+            isSearchingNodes: false,
+        });
+        const announceTab = wrapper.findAll("button").find((b) => b.text().includes("nomadnet.announces"));
+        await announceTab.trigger("click");
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.text()).toContain("nomadnet.no_announces_yet");
+        expect(wrapper.text()).not.toContain("nomadnet.no_search_results_peers");
     });
 });

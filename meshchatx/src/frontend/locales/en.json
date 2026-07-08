@@ -1686,6 +1686,7 @@
         "favourites_search_try_other": "Try a different search term.",
         "no_favourites_in_section": "No favourites in this section.",
         "search_announces": "Search announces",
+        "searching_announces": "Searching announces...",
         "announced_time_ago": "Announced {time} ago",
         "block_node": "Banish Node",
         "no_announces_yet": "No announces yet",

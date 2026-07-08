@@ -1686,6 +1686,7 @@
         "favourites_search_try_other": "Probeer een andere zoekterm.",
         "no_favourites_in_section": "Geen favorieten in deze sectie.",
         "search_announces": "Zoekopdracht kondigt aan",
+        "searching_announces": "Aankondigingen zoeken...",
         "announced_time_ago": "Aangekondigd {time} geleden",
         "block_node": "Knooppunt verwijderen",
         "no_announces_yet": "Nog geen aankondigingen",

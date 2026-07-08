@@ -1686,6 +1686,7 @@
         "favourites_search_try_other": "Pruebe con otro término de búsqueda.",
         "no_favourites_in_section": "No hay favoritos en esta sección.",
         "search_announces": "Búsqueda anuncia",
+        "searching_announces": "Buscando anuncios...",
         "announced_time_ago": "Anunciado hace {time}",
         "block_node": "Destierro",
         "no_announces_yet": "No anuncia todavía",
