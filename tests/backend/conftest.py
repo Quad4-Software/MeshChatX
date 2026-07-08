@@ -2,6 +2,10 @@
 
 import asyncio
 import os
+
+# Disable Landlock sandbox globally during backend testing to prevent process lockdown and PermissionError crashes.
+os.environ["MESHCHAT_LANDLOCK"] = "0"
+
 import socket
 from contextlib import ExitStack
 from unittest.mock import MagicMock, patch

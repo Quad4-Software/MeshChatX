@@ -781,11 +781,15 @@ class ReticulumMeshChat:
         if config_ok:
             try:
                 reticulum_config_path = self._api_reticulum_config_path()
-                if not reticulum_config_path or not os.path.exists(reticulum_config_path):
+                if not reticulum_config_path or not os.path.exists(
+                    reticulum_config_path
+                ):
                     config_ok = False
                     config_reason = "Reticulum config file not found"
                 else:
-                    if not reticulum_config_has_required_sections(reticulum_config_path):
+                    if not reticulum_config_has_required_sections(
+                        reticulum_config_path
+                    ):
                         config_ok = False
                         config_reason = "Reticulum config is missing required sections"
             except Exception as e:
@@ -803,7 +807,9 @@ class ReticulumMeshChat:
                 snapshot = self.database.get_database_health_snapshot()
                 if snapshot.get("quick_check") not in ("ok", "unknown"):
                     db_ok = False
-                    db_reason = f"Database quick check returned: {snapshot.get('quick_check')}"
+                    db_reason = (
+                        f"Database quick check returned: {snapshot.get('quick_check')}"
+                    )
             except Exception as e:
                 db_ok = False
                 db_reason = f"Database check failed: {str(e)}"
@@ -819,13 +825,13 @@ class ReticulumMeshChat:
                 test_data = "meshchatx_self_test_write_read_verify"
                 with open(temp_file_path, "w", encoding="utf-8") as f:
                     f.write(test_data)
-                
+
                 with open(temp_file_path, "r", encoding="utf-8") as f:
                     read_data = f.read()
-                
+
                 if os.path.exists(temp_file_path):
                     os.remove(temp_file_path)
-                
+
                 if read_data != test_data:
                     rw_ok = False
                     rw_reason = "Read data did not match written data"
@@ -20273,7 +20279,7 @@ def main():
         print("\n================================")
         print("   System Self-Check Results")
         print("================================")
-        
+
         all_passed = True
         labels = {
             "stack_up": "Network Stack          ",
@@ -20281,7 +20287,7 @@ def main():
             "db_good": "Database Connection    ",
             "read_write_good": "Storage Read/Write     ",
         }
-        
+
         for key, name in labels.items():
             check = results.get(key, {"status": "failed", "reason": "No result"})
             if check["status"] == "ok":
@@ -20290,7 +20296,7 @@ def main():
                 all_passed = False
                 reason = check.get("reason") or "Unknown error"
                 print(f"[FAILED] {name} - Reason: {reason}")
-                
+
         print("================================")
         if all_passed:
             print("Status: SUCCESS (All checks passed)")
