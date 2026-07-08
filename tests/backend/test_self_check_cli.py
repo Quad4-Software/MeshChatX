@@ -82,6 +82,7 @@ def test_self_check_cli_success(mock_rns, temp_dir):
         "config_good": {"status": "ok", "reason": ""},
         "db_good": {"status": "ok", "reason": ""},
         "read_write_good": {"status": "ok", "reason": ""},
+        "bots_lifecycle": {"status": "ok", "reason": ""},
     }
 
     with (
@@ -111,6 +112,7 @@ def test_self_check_cli_failure(mock_rns, temp_dir):
         "config_good": {"status": "ok", "reason": ""},
         "db_good": {"status": "failed", "reason": "Database check failed"},
         "read_write_good": {"status": "ok", "reason": ""},
+        "bots_lifecycle": {"status": "ok", "reason": ""},
     }
 
     with (
@@ -137,6 +139,7 @@ def test_self_check_env_var_success(mock_rns, temp_dir):
         "config_good": {"status": "ok", "reason": ""},
         "db_good": {"status": "ok", "reason": ""},
         "read_write_good": {"status": "ok", "reason": ""},
+        "bots_lifecycle": {"status": "ok", "reason": ""},
     }
 
     env = {

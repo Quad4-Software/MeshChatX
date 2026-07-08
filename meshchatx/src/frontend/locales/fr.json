@@ -704,6 +704,7 @@
         "config_good": "Intégrité de la configuration",
         "db_good": "Connexion à la base de données",
         "read_write": "Lecture/Écriture stockage",
+        "bots_lifecycle": "Bot Créer / Démarrer / Arrêter / Supprimer",
         "passed": "Réussi",
         "failed": "Échoué",
         "status_label": "Statut",

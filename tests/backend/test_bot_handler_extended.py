@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: 0BSD
 
 import os
+import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -139,6 +140,41 @@ def test_start_stop_bot(mock_popen, temp_identity_dir):
         handler.stop_bot(bot_id)
         assert mock_kill.called
         assert bot_id not in handler.running_bots
+
+
+@patch("subprocess.Popen")
+def test_start_bot_unfrozen_uses_bot_process_script(mock_popen, temp_identity_dir):
+    mock_process = MagicMock()
+    mock_process.pid = 4242
+    mock_popen.return_value = mock_process
+
+    handler = BotHandler(temp_identity_dir)
+    with patch.object(BotHandler, "_is_frozen_executable", return_value=False):
+        handler.start_bot("echo", "Script Bot")
+
+    cmd = mock_popen.call_args.args[0]
+    assert cmd[0] == sys.executable
+    assert cmd[1] == handler.runner_path
+    assert "--meshchatx-run-module" not in cmd
+    assert cmd[cmd.index("--template") + 1] == "echo"
+
+
+@patch("subprocess.Popen")
+def test_start_bot_frozen_uses_meshchatx_run_module(mock_popen, temp_identity_dir):
+    mock_process = MagicMock()
+    mock_process.pid = 4243
+    mock_popen.return_value = mock_process
+
+    handler = BotHandler(temp_identity_dir)
+    with patch.object(BotHandler, "_is_frozen_executable", return_value=True):
+        handler.start_bot("echo", "Frozen Bot")
+
+    cmd = mock_popen.call_args.args[0]
+    assert cmd[0] == sys.executable
+    assert cmd[1] == "--meshchatx-run-module"
+    assert cmd[2] == "meshchatx.src.backend.bot_process"
+    assert handler.runner_path not in cmd
+    assert cmd[cmd.index("--template") + 1] == "echo"
 
 
 def test_update_bot_name_writes_sidecar(temp_identity_dir):

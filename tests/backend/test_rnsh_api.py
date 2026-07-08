@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Tests for RNSh manager HTTP API endpoints."""
+"""Tests for RNSh manager HTTP API endpoints and launcher argv."""
 
 import json
 from unittest.mock import MagicMock
@@ -232,6 +232,69 @@ def test_rnsh_frozen_uses_meshchatx_run_module(monkeypatch):
     assert command[-1] == "deadbeef"
 
 
+def test_rnsh_frozen_listen_command_keeps_mirror_flag_separate(monkeypatch):
+    from meshchatx.src.backend import rnsh_manager as rnsh_mod
+
+    monkeypatch.setattr(rnsh_mod.RNSHSession, "_rnsh_module_available", lambda: True)
+    monkeypatch.setattr(rnsh_mod.RNSHSession, "_is_frozen_executable", lambda: True)
+    monkeypatch.setattr(rnsh_mod.sys, "executable", "/opt/ReticulumMeshChatX")
+
+    manager = MagicMock()
+    manager.reticulum_config_dir = "/tmp/rns-config"
+    session = rnsh_mod.RNSHSession(
+        manager,
+        "s1",
+        {
+            "mode": "listen",
+            "mirror": True,
+            "no_auth": True,
+            "quiet": 1,
+            "config_path": "/tmp/session-config",
+        },
+    )
+    command = session._build_command()
+    assert command[:3] == [
+        "/opt/ReticulumMeshChatX",
+        rnsh_mod._MESHCHATX_RUN_MODULE_FLAG,
+        rnsh_mod._RNSH_MODULE,
+    ]
+    assert command.count("-m") == 1
+    assert command.index("-m") > command.index(rnsh_mod._RNSH_MODULE)
+    assert "-c" in command
+    assert command[command.index("-c") + 1] == "/tmp/session-config"
+    assert "-l" in command
+    assert "-n" in command
+    assert "-q" in command
+
+
+def test_rnsh_connect_command_includes_destination_and_remote(monkeypatch):
+    from meshchatx.src.backend import rnsh_manager as rnsh_mod
+
+    monkeypatch.setattr(rnsh_mod.RNSHSession, "_rnsh_module_available", lambda: True)
+    monkeypatch.setattr(rnsh_mod.RNSHSession, "_is_frozen_executable", lambda: False)
+
+    manager = MagicMock()
+    manager.reticulum_config_dir = "/shared/rns"
+    session = rnsh_mod.RNSHSession(
+        manager,
+        "s1",
+        {
+            "mode": "connect",
+            "destination": "aabbccddeeff0011",
+            "remote_command": "uname -a",
+            "no_id": True,
+        },
+    )
+    command = session._build_command()
+    assert command[:3] == [rnsh_mod.sys.executable, "-m", rnsh_mod._RNSH_MODULE]
+    assert "-c" in command
+    assert command[command.index("-c") + 1] == "/shared/rns"
+    assert "-N" in command
+    assert "aabbccddeeff0011" in command
+    assert "--" in command
+    assert command[command.index("--") + 1 :] == ["uname", "-a"]
+
+
 def test_rnsh_falls_back_to_path_binary_when_module_missing(monkeypatch):
     from meshchatx.src.backend import rnsh_manager as rnsh_mod
 
@@ -268,6 +331,22 @@ def test_rnsh_non_executable_path_wrapper_raises_permission_error(monkeypatch):
         {"mode": "connect", "destination": "deadbeef"},
     )
     with pytest.raises(PermissionError, match="Permission denied"):
+        session._build_command()
+
+
+def test_rnsh_missing_module_and_binary_raises_file_not_found(monkeypatch):
+    from meshchatx.src.backend import rnsh_manager as rnsh_mod
+
+    monkeypatch.setattr(rnsh_mod.RNSHSession, "_rnsh_module_available", lambda: False)
+    monkeypatch.setattr(rnsh_mod.shutil, "which", lambda _name: None)
+
+    manager = MagicMock()
+    session = rnsh_mod.RNSHSession(
+        manager,
+        "s1",
+        {"mode": "connect", "destination": "deadbeef"},
+    )
+    with pytest.raises(FileNotFoundError, match="rnsh is not available"):
         session._build_command()
 
 

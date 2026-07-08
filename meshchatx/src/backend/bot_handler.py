@@ -13,9 +13,15 @@ import uuid
 
 import RNS
 
+from meshchatx.src.backend import bot_process as _bot_process  # noqa: F401
+
 logger = logging.getLogger("meshchatx.bots")
 
 _LXMF_HASH_RE = re.compile(r"^[0-9a-f]{32}$")
+_BOT_PROCESS_MODULE = "meshchatx.src.backend.bot_process"
+# cx_Freeze / AppImage / macOS bundles set sys.executable to MeshChatX itself.
+# meshchat.main() dispatches this flag to runpy.run_module before argparse.
+_MESHCHATX_RUN_MODULE_FLAG = "--meshchatx-run-module"
 
 
 class BotHandler:
@@ -37,6 +43,25 @@ class BotHandler:
             os.path.dirname(__file__),
             "bot_process.py",
         )
+
+    @staticmethod
+    def _is_frozen_executable():
+        return bool(getattr(sys, "frozen", False))
+
+    def _resolve_bot_launcher(self):
+        """Return argv prefix for launching bot_process.
+
+        Frozen desktop builds set ``sys.executable`` to MeshChatX itself. Passing
+        a ``.py`` path as argv[1] starts another full app instance and hits the
+        storage lock. Those builds re-enter via ``--meshchatx-run-module``.
+        """
+        if self._is_frozen_executable():
+            return [
+                sys.executable,
+                _MESHCHATX_RUN_MODULE_FLAG,
+                _BOT_PROCESS_MODULE,
+            ]
+        return [sys.executable, self.runner_path]
 
     def _load_state(self):
         try:
@@ -308,8 +333,7 @@ class BotHandler:
             os.unlink(err_file)
 
         cmd = [
-            sys.executable,
-            self.runner_path,
+            *self._resolve_bot_launcher(),
             "--template",
             template_id,
             "--name",
@@ -354,6 +378,7 @@ class BotHandler:
             "stop_event": None,
             "template": template_id,
             "pid": proc.pid,
+            "proc": proc,
         }
         logger.info(f"Started bot {bot_id} (template: {template_id}) pid={proc.pid}")
         return bot_id
@@ -379,13 +404,19 @@ class BotHandler:
                         timeout=5,
                     )
                 else:
-                    os.kill(pid, 15)
+                    try:
+                        os.killpg(pid, 15)
+                    except OSError:
+                        os.kill(pid, 15)
                     # brief wait
                     time.sleep(0.5)
                     # optional force kill if still alive
                     try:
-                        os.kill(pid, 0)
-                        os.kill(pid, 9)
+                        if self._is_pid_alive(pid):
+                            try:
+                                os.killpg(pid, 9)
+                            except OSError:
+                                os.kill(pid, 9)
                     except OSError:
                         pass
             except Exception as exc:
@@ -395,6 +426,7 @@ class BotHandler:
                     pid,
                     exc,
                 )
+            self._reap_process(bot_id, pid)
 
         entry["pid"] = None
         entry["enabled"] = False
@@ -566,9 +598,38 @@ class BotHandler:
             return False
         try:
             os.kill(pid, 0)
-            return True
         except OSError:
             return False
+        # Reaped children are gone; unreaped zombies still answer kill(0).
+        if sys.platform.startswith("linux"):
+            try:
+                with open(f"/proc/{pid}/status", encoding="utf-8") as f:
+                    for line in f:
+                        if line.startswith("State:"):
+                            # Z = zombie, X/x = dead
+                            state = line.split(":", 1)[1].strip()
+                            if state[:1] in ("Z", "X", "x"):
+                                return False
+                            break
+            except OSError:
+                return False
+        return True
+
+    def _reap_process(self, bot_id, pid):
+        tracked = self.running_bots.get(bot_id) or {}
+        proc = tracked.get("proc")
+        if proc is not None:
+            with contextlib.suppress(Exception):
+                proc.poll()
+            with contextlib.suppress(Exception):
+                proc.wait(timeout=2)
+            return
+        if not pid:
+            return
+        # Best-effort reap when we still own the child (same parent).
+        if hasattr(os, "waitpid"):
+            with contextlib.suppress(ChildProcessError, OSError):
+                os.waitpid(pid, os.WNOHANG)
 
     def stop_all(self):
         seen = set()

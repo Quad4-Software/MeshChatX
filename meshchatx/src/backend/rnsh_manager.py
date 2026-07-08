@@ -367,6 +367,9 @@ class RNSHSession:
         env.setdefault("TERM", "xterm-256color")
         env["COLUMNS"] = str(self._cols)
         env["LINES"] = str(self._rows)
+        # Pipe mode (Windows and pytest) has no TTY, so CPython fully buffers
+        # stdout and listen-address lines never reach the reader promptly.
+        env["PYTHONUNBUFFERED"] = "1"
         return env
 
     @staticmethod

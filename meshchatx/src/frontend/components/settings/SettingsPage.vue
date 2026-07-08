@@ -3069,6 +3069,12 @@ export default {
                     passed: this.selfTestResults.read_write_good.status === "ok",
                     reason: this.selfTestResults.read_write_good.reason,
                 },
+                {
+                    key: "bots_lifecycle",
+                    label: this.$t("selftest.bots_lifecycle"),
+                    passed: this.selfTestResults.bots_lifecycle?.status === "ok",
+                    reason: this.selfTestResults.bots_lifecycle?.reason || "",
+                },
             ];
         },
         allSelfTestChecksPassed() {
@@ -3150,6 +3156,7 @@ export default {
                     config_good: { status: "failed", reason: e.message || String(e) },
                     db_good: { status: "failed", reason: e.message || String(e) },
                     read_write_good: { status: "failed", reason: e.message || String(e) },
+                    bots_lifecycle: { status: "failed", reason: e.message || String(e) },
                 };
             } finally {
                 this.selfTestRunning = false;
