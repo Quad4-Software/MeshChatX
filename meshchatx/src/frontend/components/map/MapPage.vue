@@ -2260,13 +2260,14 @@ export default {
             if (!url || this.isLocalUrl(url)) {
                 return true;
             }
+            let timeoutId = null;
             try {
                 let testUrl = url.endsWith("/") ? url.slice(0, -1) : url;
                 if (testUrl.includes("{z}") || testUrl.includes("{x}") || testUrl.includes("{y}")) {
                     testUrl = testUrl.replace("{z}", "0").replace("{x}", "0").replace("{y}", "0");
                 }
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 8000);
+                timeoutId = setTimeout(() => controller.abort(), 8000);
                 const response = await fetch(testUrl, {
                     method: "HEAD",
                     signal: controller.signal,
@@ -2274,10 +2275,13 @@ export default {
                         "User-Agent": "ReticulumMeshChatX/1.0",
                     },
                 });
-                clearTimeout(timeoutId);
                 return response.ok || response.status === 405 || response.status === 404;
             } catch {
                 return false;
+            } finally {
+                if (timeoutId != null) {
+                    clearTimeout(timeoutId);
+                }
             }
         },
         isOpenFreeMapStyleUrl(url) {
