@@ -156,6 +156,9 @@ jobs:
             - name: Build backend (cx_Freeze)
               run: pnpm run build-backend
 
+            - name: Verify bleak bundled in frozen backend
+              run: bash scripts/ci/github-verify-frozen-bleak.sh build/exe
+
             - name: Upload Linux build-check artifacts
               uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
               with:
@@ -187,6 +190,8 @@ jobs:
                   test -d ".artifacts/linux-build-check/build/exe"
                   test -n "$(ls -A .artifacts/linux-build-check/meshchatx/public)"
                   test -n "$(ls -A .artifacts/linux-build-check/build/exe)"
+                  bash scripts/ci/github-verify-frozen-bleak.sh \
+                      .artifacts/linux-build-check/build/exe
                   echo "Linux build artifact download + content validation passed."
 
     native-build:
