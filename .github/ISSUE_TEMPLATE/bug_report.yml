@@ -2,93 +2,93 @@ name: Bug Report
 description: Report something that is broken or crashes
 title: "[Bug]: "
 labels:
-  - bug
+    - bug
 body:
-  - type: markdown
-    attributes:
-      value: |
-        Thanks for taking the time to report a bug. Please fill in the fields below so we can reproduce the issue.
+    - type: markdown
+      attributes:
+          value: |
+              Thanks for taking the time to report a bug. Please fill in the fields below so we can reproduce the issue.
 
-  - type: input
-    id: version
-    attributes:
-      label: MeshChatX version
-      description: The version shown in Settings or the release you installed (for example 4.8.0).
-      placeholder: "4.8.0"
-    validations:
-      required: true
-
-  - type: dropdown
-    id: os
-    attributes:
-      label: Operating system
-      description: Which OS were you using when the bug occurred?
-      options:
-        - Windows 11
-        - Windows 10
-        - Linux
-        - macOS
-        - Android
-        - Other
-    validations:
-      required: true
-
-  - type: input
-    id: os-other
-    attributes:
-      label: OS details (if Other)
-      description: Distribution, build, or device model (for example Ubuntu 24.04, Pixel 8).
-      placeholder: "Ubuntu 24.04 LTS"
-
-  - type: dropdown
-    id: install-method
-    attributes:
-      label: How did you install MeshChatX?
-      options:
-        - Windows installer / portable
-        - Linux AppImage / deb / Flatpak
-        - macOS app
-        - Android APK
-        - pip / uv / source checkout
-        - Docker
-        - Other
-    validations:
-      required: true
-
-  - type: textarea
-    id: description
-    attributes:
-      label: What happened?
-      description: Describe the bug and what you expected instead.
-      placeholder: When I enable an RNode over BLE interface on Windows 11, the backend crashes with...
-    validations:
-      required: true
-
-  - type: textarea
-    id: reproduction
-    attributes:
-      label: Steps to reproduce
-      description: Numbered steps that reliably trigger the issue.
-      placeholder: |
-        1. Open MeshChatX 4.8.0 on Windows 11
-        2. Add an RNode interface with port ble://...
-        3. Restart the app
-    validations:
-      required: true
-
-  - type: textarea
-    id: logs
-    attributes:
-      label: Logs or error output
-      description: Paste relevant console output, log lines, or screenshots.
-      render: shell
-
-  - type: checkboxes
-    id: terms
-    attributes:
-      label: Checklist
-      options:
-        - label: I searched existing issues to avoid duplicates
+    - type: input
+      id: version
+      attributes:
+          label: MeshChatX version
+          description: The version shown in Settings or the release you installed (for example 4.8.0).
+          placeholder: "4.8.0"
+      validations:
           required: true
-        - label: I included my MeshChatX version and operating system
+
+    - type: dropdown
+      id: os
+      attributes:
+          label: Operating system
+          description: Which OS were you using when the bug occurred?
+          options:
+              - Windows 11
+              - Windows 10
+              - Linux
+              - macOS
+              - Android
+              - Other
+      validations:
           required: true
+
+    - type: input
+      id: os-other
+      attributes:
+          label: OS details (if Other)
+          description: Distribution, build, or device model (for example Ubuntu 24.04, Pixel 8).
+          placeholder: "Ubuntu 24.04 LTS"
+
+    - type: dropdown
+      id: install-method
+      attributes:
+          label: How did you install MeshChatX?
+          options:
+              - Windows installer / portable
+              - Linux AppImage / deb / Flatpak
+              - macOS app
+              - Android APK
+              - pip / uv / source checkout
+              - Docker
+              - Other
+      validations:
+          required: true
+
+    - type: textarea
+      id: description
+      attributes:
+          label: What happened?
+          description: Describe the bug and what you expected instead.
+          placeholder: When I enable an RNode over BLE interface on Windows 11, the backend crashes with...
+      validations:
+          required: true
+
+    - type: textarea
+      id: reproduction
+      attributes:
+          label: Steps to reproduce
+          description: Numbered steps that reliably trigger the issue.
+          placeholder: |
+              1. Open MeshChatX 4.8.0 on Windows 11
+              2. Add an RNode interface with port ble://...
+              3. Restart the app
+      validations:
+          required: true
+
+    - type: textarea
+      id: logs
+      attributes:
+          label: Logs or error output
+          description: Paste relevant console output, log lines, or screenshots.
+          render: shell
+
+    - type: checkboxes
+      id: terms
+      attributes:
+          label: Checklist
+          options:
+              - label: I searched existing issues to avoid duplicates
+                required: true
+              - label: I included my MeshChatX version and operating system
+                required: true
