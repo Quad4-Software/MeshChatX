@@ -181,23 +181,46 @@ def check_temp_filesystem() -> dict[str, str]:
                 os.unlink(path)
 
 
+def _is_frozen_executable() -> bool:
+    return bool(getattr(sys, "frozen", False))
+
+
+def _frontend_source_available() -> bool:
+    """True when running from a source tree with Vite frontend sources.
+
+    Built ``meshchatx/public/`` is gitignored and often absent in CI / E2E
+    (Vite serves the UI). Frozen desktop builds still require bundled public.
+    """
+    try:
+        package_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        frontend = os.path.join(package_dir, "src", "frontend")
+        return os.path.isdir(frontend) and os.path.isfile(
+            os.path.join(frontend, "main.js")
+        )
+    except Exception:
+        return False
+
+
 def check_public_assets(public_path_fn: Callable[[str], str]) -> dict[str, str]:
     try:
         root = public_path_fn("")
+        index_path = public_path_fn("index.html") if root else ""
+        if root and os.path.isdir(root):
+            if os.path.isfile(index_path):
+                return _status(True)
+            names = [n for n in os.listdir(root) if not n.startswith(".")]
+            if names:
+                return _status(True)
+
+        # Source / CI / E2E: no built public dir, but frontend sources exist.
+        if not _is_frozen_executable() and _frontend_source_available():
+            return _status(True)
+
         if not root or not os.path.isdir(root):
             return _status(False, f"Public assets directory missing: {root!r}")
-        index_path = public_path_fn("index.html")
-        if not os.path.isfile(index_path):
-            names = os.listdir(root)
-            if not names:
-                return _status(False, "Public assets directory is empty")
-        return _status(True)
+        return _status(False, "Public assets directory is empty")
     except Exception as exc:
         return _status(False, f"Public assets check failed: {exc}")
-
-
-def _is_frozen_executable() -> bool:
-    return bool(getattr(sys, "frozen", False))
 
 
 def check_meshchatx_run_module() -> dict[str, str]:

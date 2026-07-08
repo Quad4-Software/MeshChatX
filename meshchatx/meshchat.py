@@ -20440,9 +20440,9 @@ def main():
 
     if args.self_check:
         results = reticulum_meshchat.run_self_test()
-        print("\n================================")
-        print("   System Self-Check Results")
-        print("================================")
+        print("\n================================", flush=True)
+        print("   System Self-Check Results", flush=True)
+        print("================================", flush=True)
 
         all_passed = True
         from meshchatx.src.backend.self_check import SELF_CHECK_LABELS
@@ -20450,20 +20450,20 @@ def main():
         for key, name in SELF_CHECK_LABELS.items():
             check = results.get(key, {"status": "failed", "reason": "No result"})
             if check["status"] == "ok":
-                print(f"[OK]     {name}")
+                print(f"[OK]     {name}", flush=True)
             else:
                 all_passed = False
                 reason = check.get("reason") or "Unknown error"
-                print(f"[FAILED] {name} - Reason: {reason}")
+                print(f"[FAILED] {name} - Reason: {reason}", flush=True)
 
-        print("================================")
+        print("================================", flush=True)
         if all_passed:
-            print("Status: SUCCESS (All checks passed)")
-            print("================================\n")
+            print("Status: SUCCESS (All checks passed)", flush=True)
+            print("================================\n", flush=True)
             sys.exit(0)
         else:
-            print("Status: FAILED")
-            print("================================\n")
+            print("Status: FAILED", flush=True)
+            print("================================\n", flush=True)
             sys.exit(1)
 
     if args.reset_password:
