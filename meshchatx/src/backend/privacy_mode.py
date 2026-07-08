@@ -22,7 +22,3 @@ def ensure_outbound_http_allowed(config, *, feature: str = "outbound HTTP") -> N
     if privacy_mode_enabled(config):
         msg = f"Privacy mode is enabled; {feature} is blocked"
         raise OutboundHttpBlockedError(msg)
-
-
-def csp_allows_external_sources(config) -> bool:
-    return not privacy_mode_enabled(config)
