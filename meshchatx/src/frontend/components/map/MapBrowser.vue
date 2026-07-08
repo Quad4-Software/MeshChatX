@@ -114,7 +114,7 @@ export default {
     },
     computed: {
         showTabStrip() {
-            return this.tabs.length > 0;
+            return this.isWideViewport && this.tabs.length > 0;
         },
         activeTab() {
             return this.tabs.find((tab) => tab.id === this.activeTabId) || null;
@@ -269,7 +269,7 @@ export default {
             }
         },
         handleKeydown(event) {
-            if (this.$route?.name !== "map") {
+            if (!this.isWideViewport || this.$route?.name !== "map") {
                 return;
             }
 

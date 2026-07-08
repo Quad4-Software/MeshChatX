@@ -96,8 +96,14 @@ describe("MapBrowser.vue", () => {
         expect(wrapper.vm.activeTabId).toBe(wrapper.vm.tabs[0].id);
     });
 
-    it("shows the tab strip when tabs exist", async () => {
+    it("shows the tab strip only on wide viewports", async () => {
         const wrapper = await mountBrowser();
+        wrapper.vm.isWideViewport = false;
+        await wrapper.vm.$nextTick();
+        expect(wrapper.find('[role="tablist"]').exists()).toBe(false);
+
+        wrapper.vm.isWideViewport = true;
+        await wrapper.vm.$nextTick();
         expect(wrapper.find('[role="tablist"]').exists()).toBe(true);
     });
 
@@ -199,12 +205,23 @@ describe("MapBrowser.vue", () => {
         expect(pages[0].props("isActiveTab")).toBe(false);
     });
 
-    it("Ctrl+T opens a new tab", async () => {
+    it("Ctrl+T opens a new tab on wide viewports", async () => {
         const wrapper = await mountBrowser();
+        wrapper.vm.isWideViewport = true;
         const before = wrapper.vm.tabs.length;
         window.dispatchEvent(
             new KeyboardEvent("keydown", { key: "t", ctrlKey: true, bubbles: true, cancelable: true })
         );
         expect(wrapper.vm.tabs).toHaveLength(before + 1);
+    });
+
+    it("ignores tab keyboard shortcuts on narrow viewports", async () => {
+        const wrapper = await mountBrowser();
+        wrapper.vm.isWideViewport = false;
+        const before = wrapper.vm.tabs.length;
+        window.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "t", ctrlKey: true, bubbles: true, cancelable: true })
+        );
+        expect(wrapper.vm.tabs).toHaveLength(before);
     });
 });
