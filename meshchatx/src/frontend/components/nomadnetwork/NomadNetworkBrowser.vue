@@ -28,7 +28,6 @@
                 @dragend="onTabDragEnd"
                 @contextmenu.prevent="openTabContextMenu($event, tab)"
             >
-                <MaterialDesignIcon icon-name="earth" class="size-4 shrink-0 opacity-70" />
                 <span class="min-w-0 flex-1 truncate text-left">{{ tabTitle(tab) }}</span>
                 <span
                     class="shrink-0 rounded p-0.5 text-sem-fg-muted hover:bg-sem-surface hover:text-sem-fg"
