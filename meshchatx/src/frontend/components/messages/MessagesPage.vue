@@ -701,14 +701,17 @@ export default {
             if (!append) {
                 this.announcesLoaded = true;
             }
+            let myController = this.announcesAbortController;
             try {
                 if (!append) {
                     if (this.announcesAbortController) {
                         this.announcesAbortController.abort();
                     }
                     this.announcesAbortController = new AbortController();
+                    myController = this.announcesAbortController;
                 } else if (!this.announcesAbortController) {
                     this.announcesAbortController = new AbortController();
+                    myController = this.announcesAbortController;
                 }
                 const offset = append ? Object.keys(this.peers).length : 0;
                 const response = await window.api.get(`/api/v1/announces`, {
@@ -718,7 +721,7 @@ export default {
                         offset: offset,
                         search: this.peersSearchTerm,
                     },
-                    signal: this.announcesAbortController.signal,
+                    signal: myController.signal,
                 });
 
                 const newAnnounces = response.data.announces;
@@ -737,7 +740,9 @@ export default {
                 if (window.api.isCancel?.(e)) return;
                 console.log(e);
             } finally {
-                this.isLoadingMoreAnnounces = false;
+                if (this.announcesAbortController === myController) {
+                    this.isLoadingMoreAnnounces = false;
+                }
             }
         },
         async loadMoreAnnounces() {
@@ -766,14 +771,17 @@ export default {
             }
         },
         async getConversations(append = false) {
+            let myController = this.conversationsAbortController;
             try {
                 if (!append) {
                     if (this.conversationsAbortController) {
                         this.conversationsAbortController.abort();
                     }
                     this.conversationsAbortController = new AbortController();
+                    myController = this.conversationsAbortController;
                 } else if (!this.conversationsAbortController) {
                     this.conversationsAbortController = new AbortController();
+                    myController = this.conversationsAbortController;
                 }
                 const shouldShowInitialLoading =
                     !append && !this.hasLoadedConversations && this.conversations.length === 0;
@@ -788,7 +796,7 @@ export default {
                         limit: this.pageSize,
                         offset: offset,
                     },
-                    signal: this.conversationsAbortController.signal,
+                    signal: myController.signal,
                 });
 
                 const newConversations = response.data.conversations;
@@ -848,8 +856,10 @@ export default {
                 if (window.api.isCancel?.(e)) return;
                 console.log(e);
             } finally {
-                this.isLoadingConversations = false;
-                this.isLoadingMore = false;
+                if (this.conversationsAbortController === myController) {
+                    this.isLoadingConversations = false;
+                    this.isLoadingMore = false;
+                }
             }
         },
         async loadConversationPins() {
