@@ -36,7 +36,12 @@ describe("NotificationUtils", () => {
 
         it("showNewMessageNotification delegates to electron", () => {
             NotificationUtils.showNewMessageNotification("Alice", "hello");
-            expect(electronMock.showNotification).toHaveBeenCalledWith("New Message", "Alice: hello");
+            expect(electronMock.showNotification).toHaveBeenCalledWith("New Message", "Alice: hello", false);
+        });
+
+        it("showNewMessageNotification passes silent flag to electron", () => {
+            NotificationUtils.showNewMessageNotification("Alice", "hello", true);
+            expect(electronMock.showNotification).toHaveBeenCalledWith("New Message", "Alice: hello", true);
         });
 
         it("showIncomingCallNotification delegates to electron", () => {

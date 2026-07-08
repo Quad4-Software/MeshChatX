@@ -14,7 +14,16 @@ export const SETTINGS_TABS = [
         id: "messages",
         labelKey: "settings.tabs.messages",
         descriptionKey: "settings.tabs.messages_desc",
-        sections: ["strangerProtection", "messages", "propagation", "stickers", "gifs", "banishment", "telephony"],
+        sections: [
+            "strangerProtection",
+            "messages",
+            "notificationSounds",
+            "propagation",
+            "stickers",
+            "gifs",
+            "banishment",
+            "telephony",
+        ],
     },
     {
         id: "network",

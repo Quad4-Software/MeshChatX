@@ -252,6 +252,17 @@ export const CORE_SETTINGS_SECTION_KEYWORDS = {
         "app.flood_max_stamp_cost",
         "app.flood_cooldown",
     ],
+    notificationSounds: [
+        "app.notifications",
+        "app.notification_sound_settings",
+        "app.notification_sound_settings_description",
+        "app.enable_notification_sound",
+        "app.enable_notification_sound_description",
+        "app.notification_sound_volume",
+        "app.notification_sound_default",
+        "app.notification_sounds",
+        "app.notification_sound_upload",
+    ],
     propagation: [
         "LXMF",
         "app.incoming_message_size",

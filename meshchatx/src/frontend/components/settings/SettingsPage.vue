@@ -2311,6 +2311,13 @@
                             </div>
                         </section>
 
+                        <NotificationSoundSettings
+                            v-show="showSection('notificationSounds')"
+                            :config="config"
+                            :show-section="showSection('notificationSounds')"
+                            :update-config="updateConfig"
+                        />
+
                         <!-- Messages (LXMF delivery, retries, inbound stamps) -->
                         <section v-show="showSection('messages')" class="settings-section break-inside-avoid">
                             <header class="settings-section__header">
@@ -2798,6 +2805,7 @@ import { DEFAULT_SETTINGS_TAB, normalizeSettingsTabId, SETTINGS_TABS } from "../
 import { getAllSettingsSectionKeywords } from "../../js/registries/settingsSectionRegistry.js";
 import { isMicronWasmBundled } from "../../js/MicronWasmLoader.js";
 import MicronWasmUpdateModal from "./MicronWasmUpdateModal.vue";
+import NotificationSoundSettings from "./NotificationSoundSettings.vue";
 import PluginsSettingsSection from "./PluginsSettingsSection.vue";
 
 export default {
@@ -2811,6 +2819,7 @@ export default {
         StickerPacksManager,
         PluginsSettingsSection,
         MicronWasmUpdateModal,
+        NotificationSoundSettings,
     },
     data() {
         return {

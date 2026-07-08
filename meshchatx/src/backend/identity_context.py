@@ -87,6 +87,7 @@ class IdentityContext:
         self.telephone_manager = None
         self.voicemail_manager = None
         self.ringtone_manager = None
+        self.notification_sound_manager = None
         self.auto_propagation_manager = None
         self.rncp_handler = None
         self.rnsh_manager = None
@@ -389,6 +390,13 @@ class IdentityContext:
         self.ringtone_manager = RingtoneManager(
             config=self.config,
             storage_dir=self.storage_path,
+        )
+
+        self.notification_sound_manager = RingtoneManager(
+            config=self.config,
+            storage_dir=self.storage_path,
+            asset_subdir="notification_sounds",
+            filename_prefix="notification",
         )
 
         self.community_interfaces_manager = CommunityInterfacesManager(

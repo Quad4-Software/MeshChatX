@@ -1,4 +1,4 @@
-import { mount } from "@vue/test-utils";
+import { mount, flushPromises } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import MessagesPage from "@/components/messages/MessagesPage.vue";
 import GlobalEmitter from "@/js/GlobalEmitter";
@@ -67,6 +67,16 @@ describe("MessagesPage.vue", () => {
 
         expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/config");
         expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/lxmf/conversations", expect.any(Object));
+    });
+
+    it("does not fetch lxmf delivery announces until the announces tab is opened", async () => {
+        mountMessagesPage();
+        await flushPromises();
+
+        const announceCalls = axiosMock.get.mock.calls.filter(
+            (call) => call[0] === "/api/v1/announces" && call[1]?.params?.aspect === "lxmf.delivery"
+        );
+        expect(announceCalls).toHaveLength(0);
     });
 
     it("debounces conversation search and sends search param to conversations API", async () => {

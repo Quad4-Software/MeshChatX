@@ -6926,13 +6926,13 @@ export default {
             try {
                 await window.api.post(`/api/v1/lxmf/conversations/${conversation.destination_hash}/mark-as-read`);
                 GlobalEmitter.emit("notifications-changed");
+                if (GlobalState.unreadConversationsCount > 0) {
+                    GlobalState.unreadConversationsCount -= 1;
+                }
             } catch (e) {
                 // do nothing if failed to mark as read
                 console.log(e);
             }
-
-            // reload conversations
-            this.$emit("reload-conversations");
         },
         toggleSentMessageInfo: function (messageHash) {
             if (this.expandedMessageInfo === messageHash) {

@@ -223,7 +223,27 @@ describe("NomadNetworkBrowser.vue", () => {
         expect(wrapper.vm.activeTab.destinationHash).toBe("b".repeat(32));
     });
 
-    it("renders one embedded NomadNetworkPage per tab", async () => {
+    it("only mounts the active tab page when multiple tabs are restored", async () => {
+        localStorage.setItem(
+            "meshchatx.nomadnet.tabs",
+            JSON.stringify({
+                tabs: [
+                    { destinationHash: "a".repeat(32), path: null, title: "Alpha" },
+                    { destinationHash: "b".repeat(32), path: null, title: "Bravo" },
+                ],
+                activeIndex: 1,
+            })
+        );
+
+        const wrapper = mountBrowser({}, { params: { destinationHash: "b".repeat(32) }, query: {} });
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.vm.tabs).toHaveLength(2);
+        expect(wrapper.findAllComponents({ name: "NomadNetworkPage" })).toHaveLength(1);
+        expect(wrapper.vm.activeTab.destinationHash).toBe("b".repeat(32));
+    });
+
+    it("renders one embedded NomadNetworkPage per activated tab", async () => {
         const wrapper = mountBrowser();
         wrapper.vm.addTab("f".repeat(32));
         await wrapper.vm.$nextTick();

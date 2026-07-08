@@ -122,7 +122,7 @@ describe("ConversationViewer.vue", () => {
         expect(wrapper.emitted("reload-conversations")).toBeFalsy();
     });
 
-    it("markConversationAsRead marks read and reloads once when conversation is unread", async () => {
+    it("markConversationAsRead marks read without reloading conversations when conversation is unread", async () => {
         const wrapper = mountConversationViewer();
         await flushPromises();
         axiosMock.post.mockClear();
@@ -135,7 +135,7 @@ describe("ConversationViewer.vue", () => {
         expect(conversation.is_unread).toBe(false);
         const markCalls = axiosMock.post.mock.calls.filter((c) => String(c[0]).includes("/mark-as-read"));
         expect(markCalls).toHaveLength(1);
-        expect(wrapper.emitted("reload-conversations")).toHaveLength(1);
+        expect(wrapper.emitted("reload-conversations")).toBeFalsy();
         expect(GlobalEmitter.emit).toHaveBeenCalledWith("notifications-changed");
     });
 

@@ -41,6 +41,7 @@
             @ingest-paper-message="openIngestPaperMessageModal"
             @load-more="loadMoreConversations"
             @load-more-announces="loadMoreAnnounces"
+            @announces-tab-activated="onAnnouncesTabActivated"
             @folder-click="onFolderClick"
             @create-folder="onCreateFolder"
             @rename-folder="onRenameFolder"
@@ -93,7 +94,7 @@
                         @update:selected-peer="onPanePeerUpdate(pane.id, $event)"
                         @update-peer-tracking="onUpdatePeerTracking"
                         @close="onPaneClose(pane.id)"
-                        @reload-conversations="getConversations"
+                        @reload-conversations="requestConversationsRefresh"
                     />
                     <div
                         v-if="!pane.peer"
@@ -332,6 +333,11 @@ import {
 } from "../../js/qrScannerUtils";
 import { lxmfConversationListPreview } from "../../js/lxmfConversationPreview";
 import {
+    conversationListSignature,
+    countUnreadConversations,
+    syncConversationListInPlace,
+} from "../../js/lxmfConversationListSync";
+import {
     loadMessagePanes,
     saveMessagePanes,
     loadFeatureSidebarCollapsed,
@@ -381,6 +387,8 @@ export default {
             threePaneViewportListener: null,
 
             conversations: [],
+            conversationListSignature: "",
+            announcesLoaded: false,
             folders: [],
             selectedFolderId: null,
             pageSize: 50,
@@ -492,10 +500,7 @@ export default {
             saveFeatureSidebarCollapsed("messages", collapsed);
         },
         conversations() {
-            // update global state
-            GlobalState.unreadConversationsCount = this.conversations.filter((conversation) => {
-                return conversation.is_unread;
-            }).length;
+            this.syncUnreadCount();
         },
         paneLayoutSignature() {
             this.persistPanes();
@@ -552,7 +557,6 @@ export default {
         this.getConversations();
         this.loadConversationPins();
         this.getFolders();
-        this.getLxmfDeliveryAnnounces();
 
         // update info every few seconds
         this.reloadInterval = setInterval(() => {
@@ -566,6 +570,16 @@ export default {
         }
     },
     methods: {
+        syncUnreadCount() {
+            GlobalState.unreadConversationsCount = countUnreadConversations(this.conversations);
+        },
+        onAnnouncesTabActivated() {
+            if (this.announcesLoaded) {
+                return;
+            }
+            this.announcesLoaded = true;
+            this.getLxmfDeliveryAnnounces();
+        },
         async onComposeNewMessage(destinationHash) {
             if (destinationHash == null) {
                 if (this.selectedPeer) {
@@ -634,7 +648,7 @@ export default {
                     break;
                 }
                 case "lxmf.delivery": {
-                    await this.getConversations();
+                    this.requestConversationsRefresh();
                     break;
                 }
                 case "lxmf_message_created": {
@@ -684,6 +698,9 @@ export default {
             }
         },
         async getLxmfDeliveryAnnounces(append = false) {
+            if (!append) {
+                this.announcesLoaded = true;
+            }
             try {
                 if (!append) {
                     if (this.announcesAbortController) {
@@ -775,10 +792,31 @@ export default {
                 });
 
                 const newConversations = response.data.conversations;
+                if (!append) {
+                    const nextSignature = conversationListSignature(newConversations);
+                    if (nextSignature === this.conversationListSignature) {
+                        this.hasLoadedConversations = true;
+                        this.hasMoreConversations = newConversations.length === this.pageSize;
+                        return;
+                    }
+                }
+
                 if (append) {
                     this.conversations = [...this.conversations, ...newConversations];
+                    this.conversationListSignature = conversationListSignature(this.conversations);
                 } else {
-                    this.conversations = newConversations;
+                    const nextSignature = conversationListSignature(newConversations);
+                    if (nextSignature !== this.conversationListSignature) {
+                        this.conversationListSignature = nextSignature;
+                        if (this.conversations.length === 0) {
+                            this.conversations = newConversations.slice();
+                        } else {
+                            const structureChanged = syncConversationListInPlace(this.conversations, newConversations);
+                            if (!structureChanged) {
+                                this.conversations = this.conversations.slice();
+                            }
+                        }
+                    }
                 }
 
                 for (const conversation of newConversations) {

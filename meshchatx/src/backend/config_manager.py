@@ -213,6 +213,23 @@ class ConfigManager:
         self.ringtone_preferred_id = self.IntConfig(self, "ringtone_preferred_id", 0)
         self.ringtone_volume = self.IntConfig(self, "ringtone_volume", 100)
 
+        # notification sound config
+        self.notification_sound_enabled = self.BoolConfig(
+            self,
+            "notification_sound_enabled",
+            False,
+        )
+        self.notification_sound_preferred_id = self.IntConfig(
+            self,
+            "notification_sound_preferred_id",
+            0,
+        )
+        self.notification_sound_volume = self.IntConfig(
+            self,
+            "notification_sound_volume",
+            100,
+        )
+
         # telephony config
         self.telephone_enabled = self.BoolConfig(
             self,

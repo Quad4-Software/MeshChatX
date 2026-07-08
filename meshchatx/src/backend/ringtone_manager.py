@@ -13,9 +13,18 @@ def _ringtone_profile():
 
 
 class RingtoneManager:
-    def __init__(self, config, storage_dir):
+    def __init__(
+        self,
+        config,
+        storage_dir,
+        *,
+        asset_subdir="ringtones",
+        filename_prefix="ringtone",
+    ):
         self.config = config
-        self.storage_dir = os.path.join(storage_dir, "ringtones")
+        self.asset_subdir = asset_subdir
+        self.filename_prefix = filename_prefix
+        self.storage_dir = os.path.join(storage_dir, asset_subdir)
 
         os.makedirs(self.storage_dir, exist_ok=True)
 
@@ -30,7 +39,7 @@ class RingtoneManager:
         """
         import secrets
 
-        filename = f"ringtone_{secrets.token_hex(8)}.opus"
+        filename = f"{self.filename_prefix}_{secrets.token_hex(8)}.opus"
         opus_path = os.path.join(self.storage_dir, filename)
         encode_audio_to_ogg_opus(input_path, opus_path, profile=_ringtone_profile())
         return filename
