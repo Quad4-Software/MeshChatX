@@ -695,6 +695,21 @@
             "installing": "正在安装插件..."
         }
     },
+    "selftest": {
+        "title": "系统自检",
+        "description": "运行诊断检查以确保核心网络栈、数据库、配置以及存储权限均正常运行。",
+        "run_test_btn": "运行诊断",
+        "running": "正在运行诊断...",
+        "stack_up": "网络栈",
+        "config_good": "配置完整性",
+        "db_good": "数据库连接",
+        "read_write": "存储读/写",
+        "passed": "已通过",
+        "failed": "已失败",
+        "status_label": "状态",
+        "reason_label": "原因",
+        "checks_completed": "所有检查已成功通过。"
+    },
     "maintenance": {
         "title": "数据维护",
         "description": "管理您的本地数据、清除缓存和备份对话。",

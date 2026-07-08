@@ -695,6 +695,21 @@
             "installing": "Plugin wird installiert..."
         }
     },
+    "selftest": {
+        "title": "System-Selbsttest",
+        "description": "Führen Sie Diagnoseprüfungen durch, um sicherzustellen, dass der Netzwerk-Stack, die Datenbank, die Konfigurationen und die Speicherberechtigungen funktionieren.",
+        "run_test_btn": "Diagnose ausführen",
+        "running": "Diagnose läuft...",
+        "stack_up": "Netzwerk-Stack",
+        "config_good": "Konfigurationsintegrität",
+        "db_good": "Datenbankverbindung",
+        "read_write": "Speicher Lese/Schreib",
+        "passed": "Bestanden",
+        "failed": "Fehlgeschlagen",
+        "status_label": "Status",
+        "reason_label": "Grund",
+        "checks_completed": "Alle Prüfungen erfolgreich bestanden."
+    },
     "maintenance": {
         "title": "Wartung & Daten",
         "description": "Verwalten Sie Ihre lokalen Daten, löschen Sie Caches und sichern Sie Konversationen.",

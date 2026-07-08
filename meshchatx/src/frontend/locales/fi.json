@@ -695,6 +695,21 @@
             "installing": "Asennetaan lisäosaa..."
         }
     },
+    "selftest": {
+        "title": "Järjestelmän itsetestaus",
+        "description": "Suorita diagnostiikkatarkistuksia varmistaaksesi, että verkko-ohjelmisto, tietokanta, asetukset ja tallennusoikeudet toimivat oikein.",
+        "run_test_btn": "Suorita diagnostiikka",
+        "running": "Suoritetaan diagnostiikkaa...",
+        "stack_up": "Verkkopino",
+        "config_good": "Asetusten eheys",
+        "db_good": "Tietokantayhteys",
+        "read_write": "Tallennustilan luku/kirjoitus",
+        "passed": "Hyväksytty",
+        "failed": "Epäonnistunut",
+        "status_label": "Tila",
+        "reason_label": "Syy",
+        "checks_completed": "Kaikki tarkistukset suoritettiin onnistuneesti."
+    },
     "maintenance": {
         "title": "Ylläpito ja tiedot",
         "description": "Hallinnoi paikallista dataa, pyyhi välimuisti ja varmuuskopioi keskustelut.",

@@ -683,6 +683,88 @@
                             </div>
                         </section>
 
+                        <section v-show="showSection('selftest')" class="settings-section break-inside-avoid">
+                            <header class="settings-section__header">
+                                <div>
+                                    <div class="settings-section__eyebrow">Maintenance</div>
+                                    <h2>{{ $t("selftest.title") }}</h2>
+                                    <p>{{ $t("selftest.description") }}</p>
+                                </div>
+                            </header>
+                            <div class="settings-section__body space-y-4">
+                                <div class="flex items-center gap-3">
+                                    <button
+                                        type="button"
+                                        class="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition flex items-center gap-2"
+                                        :disabled="selfTestRunning"
+                                        @click="runSelfTest"
+                                    >
+                                        <MaterialDesignIcon
+                                            v-if="selfTestRunning"
+                                            icon-name="loading"
+                                            class="animate-spin size-4"
+                                        />
+                                        <MaterialDesignIcon v-else icon-name="play-circle-outline" class="size-4" />
+                                        {{ selfTestRunning ? $t("selftest.running") : $t("selftest.run_test_btn") }}
+                                    </button>
+                                </div>
+
+                                <div
+                                    v-if="selfTestResults"
+                                    class="space-y-3 mt-4 border-t border-gray-100 dark:border-zinc-800 pt-4"
+                                >
+                                    <div
+                                        v-for="check in selfTestChecks"
+                                        :key="check.key"
+                                        class="flex flex-col p-3 rounded-xl border bg-white dark:bg-zinc-900"
+                                        :class="
+                                            check.passed
+                                                ? 'border-emerald-200/60 dark:border-emerald-900/30'
+                                                : 'border-red-200/60 dark:border-red-900/30'
+                                        "
+                                    >
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center gap-2 font-semibold text-sm">
+                                                <MaterialDesignIcon
+                                                    :icon-name="
+                                                        check.passed ? 'check-circle-outline' : 'alert-circle-outline'
+                                                    "
+                                                    :class="check.passed ? 'text-emerald-500' : 'text-red-500'"
+                                                    class="size-4"
+                                                />
+                                                <span>{{ check.label }}</span>
+                                            </div>
+                                            <span
+                                                class="px-2 py-0.5 text-xs font-bold rounded-md"
+                                                :class="
+                                                    check.passed
+                                                        ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300'
+                                                        : 'bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-300'
+                                                "
+                                            >
+                                                {{ check.passed ? $t("selftest.passed") : $t("selftest.failed") }}
+                                            </span>
+                                        </div>
+                                        <div
+                                            v-if="!check.passed && check.reason"
+                                            class="text-xs text-red-600 dark:text-red-400 mt-2 pl-6"
+                                        >
+                                            <span class="font-semibold">{{ $t("selftest.reason_label") }}:</span>
+                                            {{ check.reason }}
+                                        </div>
+                                    </div>
+
+                                    <div
+                                        v-if="allSelfTestChecksPassed"
+                                        class="text-xs text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-2 pl-2"
+                                    >
+                                        <MaterialDesignIcon icon-name="check" class="size-4" />
+                                        {{ $t("selftest.checks_completed") }}
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
                         <PluginsSettingsSection :visible="showSection('plugins')" />
 
                         <!-- Telephony Settings -->
@@ -2935,6 +3017,8 @@ export default {
             gifImportReplaceDuplicates: false,
             visualiserShowDisabledInterfaces: false,
             visualiserShowDiscoveredInterfaces: false,
+            selfTestRunning: false,
+            selfTestResults: null,
         };
     },
     computed: {
@@ -2955,6 +3039,40 @@ export default {
             return Object.values(this.sectionKeywords).some((keywords) =>
                 matchesSettingSearch(keywords, (k) => this.$t(k), this.searchQuery)
             );
+        },
+        selfTestChecks() {
+            if (!this.selfTestResults) {
+                return [];
+            }
+            return [
+                {
+                    key: "stack_up",
+                    label: this.$t("selftest.stack_up"),
+                    passed: this.selfTestResults.stack_up.status === "ok",
+                    reason: this.selfTestResults.stack_up.reason,
+                },
+                {
+                    key: "config_good",
+                    label: this.$t("selftest.config_good"),
+                    passed: this.selfTestResults.config_good.status === "ok",
+                    reason: this.selfTestResults.config_good.reason,
+                },
+                {
+                    key: "db_good",
+                    label: this.$t("selftest.db_good"),
+                    passed: this.selfTestResults.db_good.status === "ok",
+                    reason: this.selfTestResults.db_good.reason,
+                },
+                {
+                    key: "read_write_good",
+                    label: this.$t("selftest.read_write"),
+                    passed: this.selfTestResults.read_write_good.status === "ok",
+                    reason: this.selfTestResults.read_write_good.reason,
+                },
+            ];
+        },
+        allSelfTestChecksPassed() {
+            return this.selfTestChecks.length > 0 && this.selfTestChecks.every((check) => check.passed);
         },
         safeConfig() {
             if (!this.config) {
@@ -3016,6 +3134,27 @@ export default {
         this.loadVisualiserDisplayPrefsFromStorage();
     },
     methods: {
+        async runSelfTest() {
+            if (this.selfTestRunning) {
+                return;
+            }
+            this.selfTestRunning = true;
+            this.selfTestResults = null;
+            try {
+                const response = await window.api.get("/api/v1/self-test");
+                this.selfTestResults = response.data;
+            } catch (e) {
+                console.error("Failed to run system self-test", e);
+                this.selfTestResults = {
+                    stack_up: { status: "failed", reason: e.message || String(e) },
+                    config_good: { status: "failed", reason: e.message || String(e) },
+                    db_good: { status: "failed", reason: e.message || String(e) },
+                    read_write_good: { status: "failed", reason: e.message || String(e) },
+                };
+            } finally {
+                this.selfTestRunning = false;
+            }
+        },
         loadVisualiserDisplayPrefsFromStorage() {
             const p = loadVisualiserDisplayPrefs();
             this.visualiserShowDisabledInterfaces = p.showDisabledInterfaces;

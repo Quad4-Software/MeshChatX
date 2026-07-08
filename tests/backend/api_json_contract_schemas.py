@@ -169,6 +169,7 @@ _SERVER_BIND_STATUS_SCHEMA: dict = {
     "listen_port": {"type": ["integer", "null"]},
     "https_enabled": {"type": "boolean"},
     "is_loopback_bind": {"type": "boolean"},
+    "plugins_enabled": {"type": "boolean"},
     "landlock_kernel_supported": {"type": "boolean"},
     "landlock_requested": {"type": "boolean"},
     "landlock_auto_enabled": {"type": "boolean"},
@@ -182,6 +183,28 @@ API_V1_STATUS_SCHEMA: dict = {
     "properties": {
         "status": {"type": "string", "const": "ok"},
         **_SERVER_BIND_STATUS_SCHEMA,
+    },
+    "additionalProperties": False,
+}
+
+SELF_TEST_STATUS_ITEM_SCHEMA: dict = {
+    "type": "object",
+    "required": ["status", "reason"],
+    "properties": {
+        "status": {"type": "string", "enum": ["ok", "failed"]},
+        "reason": {"type": "string"},
+    },
+    "additionalProperties": False,
+}
+
+SELF_TEST_SCHEMA: dict = {
+    "type": "object",
+    "required": ["stack_up", "config_good", "db_good", "read_write_good"],
+    "properties": {
+        "stack_up": SELF_TEST_STATUS_ITEM_SCHEMA,
+        "config_good": SELF_TEST_STATUS_ITEM_SCHEMA,
+        "db_good": SELF_TEST_STATUS_ITEM_SCHEMA,
+        "read_write_good": SELF_TEST_STATUS_ITEM_SCHEMA,
     },
     "additionalProperties": False,
 }
