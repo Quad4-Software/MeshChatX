@@ -704,6 +704,7 @@
         "config_good": "Asetusten eheys",
         "db_good": "Tietokantayhteys",
         "read_write": "Tallennustilan luku/kirjoitus",
+        "bots_lifecycle": "Botin luonti / käynnistys / pysäytys / poisto",
         "passed": "Hyväksytty",
         "failed": "Epäonnistunut",
         "status_label": "Tila",

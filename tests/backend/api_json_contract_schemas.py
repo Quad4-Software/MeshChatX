@@ -199,12 +199,19 @@ SELF_TEST_STATUS_ITEM_SCHEMA: dict = {
 
 SELF_TEST_SCHEMA: dict = {
     "type": "object",
-    "required": ["stack_up", "config_good", "db_good", "read_write_good"],
+    "required": [
+        "stack_up",
+        "config_good",
+        "db_good",
+        "read_write_good",
+        "bots_lifecycle",
+    ],
     "properties": {
         "stack_up": SELF_TEST_STATUS_ITEM_SCHEMA,
         "config_good": SELF_TEST_STATUS_ITEM_SCHEMA,
         "db_good": SELF_TEST_STATUS_ITEM_SCHEMA,
         "read_write_good": SELF_TEST_STATUS_ITEM_SCHEMA,
+        "bots_lifecycle": SELF_TEST_STATUS_ITEM_SCHEMA,
     },
     "additionalProperties": False,
 }

@@ -704,6 +704,7 @@
         "config_good": "配置完整性",
         "db_good": "数据库连接",
         "read_write": "存储读/写",
+        "bots_lifecycle": "机器人 创建 / 启动 / 停止 / 删除",
         "passed": "已通过",
         "failed": "已失败",
         "status_label": "状态",

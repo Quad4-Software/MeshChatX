@@ -19,6 +19,7 @@ test.describe("MeshChatX E2E (Vite + Python backend)", () => {
         expect(body.config_good.status).toBe("ok");
         expect(body.db_good.status).toBe("ok");
         expect(body.read_write_good.status).toBe("ok");
+        expect(body.bots_lifecycle.status).toBe("ok");
     });
 
     test("backend /api/v1/app/info returns version JSON (direct backend)", async ({ request }) => {

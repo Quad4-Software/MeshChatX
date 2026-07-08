@@ -704,6 +704,7 @@
         "config_good": "Configuratie-integriteit",
         "db_good": "Databaseverbinding",
         "read_write": "Opslag Lezen/Schrijven",
+        "bots_lifecycle": "Bot Aanmaken / Starten / Stoppen / Verwijderen",
         "passed": "Geslaagd",
         "failed": "Mislukt",
         "status_label": "Status",
