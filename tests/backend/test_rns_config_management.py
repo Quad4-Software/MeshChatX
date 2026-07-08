@@ -134,3 +134,50 @@ def test_rns_config_file_path_is_normalized_to_directory(mock_rns, temp_dir):
 
         assert app.reticulum_config_dir == config_dir
         assert os.path.exists(config_file)
+
+
+def test_rns_config_disables_unsupported_ble_on_desktop_startup(
+    mock_rns,
+    temp_dir,
+    monkeypatch,
+):
+    """Startup repair must disable ble:// RNode entries when bleak is unavailable."""
+    from meshchatx.src.backend import rnode_support
+
+    config_dir = os.path.join(temp_dir, ".reticulum")
+    os.makedirs(config_dir, exist_ok=True)
+    config_file = os.path.join(config_dir, "config")
+    with open(config_file, "w", encoding="utf-8") as f:
+        f.write(
+            """[reticulum]
+enable_transport = False
+
+[interfaces]
+[[RNode BLE]]
+type = RNodeInterface
+interface_enabled = True
+port = ble://aa:bb:cc:dd:ee:ff
+[[RNode TCP]]
+type = RNodeInterface
+interface_enabled = True
+port = tcp://192.0.2.1:4242
+""",
+        )
+
+    monkeypatch.setattr(rnode_support, "_is_chaquopy_android", lambda: False)
+    monkeypatch.setattr(rnode_support, "desktop_ble_stack_available", lambda: False)
+    monkeypatch.setattr(rnode_support, "desktop_serial_stack_available", lambda: True)
+
+    with (
+        patch("meshchatx.meshchat.IdentityContext"),
+        patch("meshchatx.meshchat.WebAudioBridge"),
+        patch("meshchatx.meshchat.memory_log_handler"),
+    ):
+        ReticulumMeshChat(
+            identity=mock_rns["id_instance"],
+            storage_dir=temp_dir,
+            reticulum_config_dir=config_dir,
+        )
+
+    text = open(config_file, encoding="utf-8").read().lower()
+    assert text.count("interface_enabled = false") == 1
