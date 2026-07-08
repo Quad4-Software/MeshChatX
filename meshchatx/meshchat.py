@@ -14916,6 +14916,16 @@ class ReticulumMeshChat:
             return value.lower() == "true"
         return bool(value)
 
+    # Coerce untrusted config input to int. Returns None when the value
+    # cannot be converted so update_config can skip or fall back instead of
+    # raising on None/strings/lists received via the websocket API.
+    @staticmethod
+    def _coerce_int(value):
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None
+
     async def update_config(self, data):
         # update display name in config
         if "display_name" in data and data["display_name"] != "":
@@ -14934,9 +14944,15 @@ class ReticulumMeshChat:
         # update auto announce interval
         if "auto_announce_interval_seconds" in data:
             # auto auto announce interval
-            auto_announce_interval_seconds = int(data["auto_announce_interval_seconds"])
-            self.config.auto_announce_interval_seconds.set(
+            auto_announce_interval_seconds = self._coerce_int(
                 data["auto_announce_interval_seconds"],
+            )
+            if auto_announce_interval_seconds is None:
+                auto_announce_interval_seconds = (
+                    self.config.auto_announce_interval_seconds.get()
+                )
+            self.config.auto_announce_interval_seconds.set(
+                auto_announce_interval_seconds,
             )
 
             # enable or disable auto announce based on interval
@@ -14964,13 +14980,17 @@ class ReticulumMeshChat:
             self.config.auto_send_failed_messages_to_propagation_node.set(value)
 
         if "lxmf_delivery_transfer_limit_in_bytes" in data:
-            value = int(data["lxmf_delivery_transfer_limit_in_bytes"])
+            value = self._coerce_int(data["lxmf_delivery_transfer_limit_in_bytes"])
+            if value is None:
+                value = self.config.lxmf_delivery_transfer_limit_in_bytes.get()
             value = max(1000, min(value, 1000 * 1000 * 1000))
             self.config.lxmf_delivery_transfer_limit_in_bytes.set(value)
             self.message_router.delivery_per_transfer_limit = value / 1000
 
         if "lxmf_propagation_transfer_limit_in_bytes" in data:
-            value = int(data["lxmf_propagation_transfer_limit_in_bytes"])
+            value = self._coerce_int(data["lxmf_propagation_transfer_limit_in_bytes"])
+            if value is None:
+                value = self.config.lxmf_propagation_transfer_limit_in_bytes.get()
             value = max(1000, min(value, 1000 * 1000 * 100))
             self.config.lxmf_propagation_transfer_limit_in_bytes.set(value)
             self.message_router.propagation_per_transfer_limit = value / 1000
@@ -14978,7 +14998,9 @@ class ReticulumMeshChat:
                 self.message_router.announce_propagation_node()
 
         if "lxmf_propagation_sync_limit_in_bytes" in data:
-            value = int(data["lxmf_propagation_sync_limit_in_bytes"])
+            value = self._coerce_int(data["lxmf_propagation_sync_limit_in_bytes"])
+            if value is None:
+                value = self.config.lxmf_propagation_sync_limit_in_bytes.get()
             value = max(1000, min(value, 1000 * 1000 * 500))
             self.config.lxmf_propagation_sync_limit_in_bytes.set(value)
             self.message_router.propagation_per_sync_limit = value / 1000
@@ -15027,7 +15049,9 @@ class ReticulumMeshChat:
 
         # update inbound stamp cost (for direct delivery messages)
         if "lxmf_inbound_stamp_cost" in data:
-            value = int(data["lxmf_inbound_stamp_cost"])
+            value = self._coerce_int(data["lxmf_inbound_stamp_cost"])
+            if value is None:
+                value = self.config.lxmf_inbound_stamp_cost.get()
             # 0 disables inbound stamps; otherwise clamp to 1-254 (LXMF/LXMRouter)
             if value < 0:
                 value = 0
@@ -15054,7 +15078,9 @@ class ReticulumMeshChat:
 
         # update propagation node stamp cost (for messages propagated through your node)
         if "lxmf_propagation_node_stamp_cost" in data:
-            value = int(data["lxmf_propagation_node_stamp_cost"])
+            value = self._coerce_int(data["lxmf_propagation_node_stamp_cost"])
+            if value is None:
+                value = self.config.lxmf_propagation_node_stamp_cost.get()
             # validate stamp cost (must be at least 13, per LXMF minimum)
             if value < 13:
                 value = 13
@@ -15069,9 +15095,11 @@ class ReticulumMeshChat:
 
         # update auto sync interval
         if "lxmf_preferred_propagation_node_auto_sync_interval_seconds" in data:
-            value = int(
+            value = self._coerce_int(
                 data["lxmf_preferred_propagation_node_auto_sync_interval_seconds"],
             )
+            if value is None:
+                value = self.config.lxmf_preferred_propagation_node_auto_sync_interval_seconds.get()
             self.config.lxmf_preferred_propagation_node_auto_sync_interval_seconds.set(
                 value,
             )
@@ -15113,14 +15141,14 @@ class ReticulumMeshChat:
             )
 
         if "page_archiver_max_versions" in data:
-            self.config.page_archiver_max_versions.set(
-                int(data["page_archiver_max_versions"]),
-            )
+            value = self._coerce_int(data["page_archiver_max_versions"])
+            if value is not None:
+                self.config.page_archiver_max_versions.set(value)
 
         if "archives_max_storage_gb" in data:
-            self.config.archives_max_storage_gb.set(
-                int(data["archives_max_storage_gb"]),
-            )
+            value = self._coerce_int(data["archives_max_storage_gb"])
+            if value is not None:
+                self.config.archives_max_storage_gb.set(value)
 
         if "backup_max_count" in data:
             try:
@@ -15526,26 +15554,32 @@ class ReticulumMeshChat:
             self.config.voicemail_greeting.set(data["voicemail_greeting"])
 
         if "voicemail_auto_answer_delay_seconds" in data:
-            self.config.voicemail_auto_answer_delay_seconds.set(
-                int(data["voicemail_auto_answer_delay_seconds"]),
-            )
+            value = self._coerce_int(data["voicemail_auto_answer_delay_seconds"])
+            if value is not None:
+                self.config.voicemail_auto_answer_delay_seconds.set(value)
 
         if "voicemail_max_recording_seconds" in data:
-            self.config.voicemail_max_recording_seconds.set(
-                int(data["voicemail_max_recording_seconds"]),
-            )
+            value = self._coerce_int(data["voicemail_max_recording_seconds"])
+            if value is not None:
+                self.config.voicemail_max_recording_seconds.set(value)
 
         if "voicemail_tts_speed" in data:
-            self.config.voicemail_tts_speed.set(int(data["voicemail_tts_speed"]))
+            value = self._coerce_int(data["voicemail_tts_speed"])
+            if value is not None:
+                self.config.voicemail_tts_speed.set(value)
 
         if "voicemail_tts_pitch" in data:
-            self.config.voicemail_tts_pitch.set(int(data["voicemail_tts_pitch"]))
+            value = self._coerce_int(data["voicemail_tts_pitch"])
+            if value is not None:
+                self.config.voicemail_tts_pitch.set(value)
 
         if "voicemail_tts_voice" in data:
             self.config.voicemail_tts_voice.set(data["voicemail_tts_voice"])
 
         if "voicemail_tts_word_gap" in data:
-            self.config.voicemail_tts_word_gap.set(int(data["voicemail_tts_word_gap"]))
+            value = self._coerce_int(data["voicemail_tts_word_gap"])
+            if value is not None:
+                self.config.voicemail_tts_word_gap.set(value)
 
         # update ringtone settings
         if "custom_ringtone_enabled" in data:
@@ -15553,9 +15587,13 @@ class ReticulumMeshChat:
                 self._parse_bool(data["custom_ringtone_enabled"]),
             )
         if "ringtone_preferred_id" in data:
-            self.config.ringtone_preferred_id.set(int(data["ringtone_preferred_id"]))
+            value = self._coerce_int(data["ringtone_preferred_id"])
+            if value is not None:
+                self.config.ringtone_preferred_id.set(value)
         if "ringtone_volume" in data:
-            self.config.ringtone_volume.set(int(data["ringtone_volume"]))
+            value = self._coerce_int(data["ringtone_volume"])
+            if value is not None:
+                self.config.ringtone_volume.set(value)
 
         if "do_not_disturb_enabled" in data:
             self.config.do_not_disturb_enabled.set(
@@ -15604,12 +15642,14 @@ class ReticulumMeshChat:
             )
 
         if "telephone_tone_generator_volume" in data:
-            self.config.telephone_tone_generator_volume.set(
-                int(data["telephone_tone_generator_volume"]),
-            )
+            value = self._coerce_int(data["telephone_tone_generator_volume"])
+            if value is not None:
+                self.config.telephone_tone_generator_volume.set(value)
 
         if "telephone_audio_profile_id" in data:
-            profile_id = int(data["telephone_audio_profile_id"])
+            profile_id = self._coerce_int(data["telephone_audio_profile_id"])
+            if profile_id is None:
+                profile_id = self.config.telephone_audio_profile_id.get()
             self.config.telephone_audio_profile_id.set(profile_id)
             if self.telephone_manager and self.telephone_manager.telephone:
                 await asyncio.to_thread(
