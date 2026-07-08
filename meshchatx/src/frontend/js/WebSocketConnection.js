@@ -121,8 +121,20 @@ class WebSocketConnection {
             return;
         }
 
-        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+        // Don't tear down a connection that is already open, and don't
+        // abandon one that is already in flight (e.g. triggered again by a
+        // near-simultaneous focus/visibilitychange/online event) - doing so
+        // would thrash the socket and could delay recovery indefinitely.
+        if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
             return;
+        }
+
+        // A new attempt is starting now, so any previously scheduled
+        // backoff retry (from an earlier close) is redundant - drop it so
+        // it can't later fire and interfere with this attempt.
+        if (this._reconnectTimeout != null) {
+            clearTimeout(this._reconnectTimeout);
+            this._reconnectTimeout = null;
         }
 
         if (this.ws) {
@@ -210,6 +222,13 @@ class WebSocketConnection {
             return;
         }
 
+        // A connection attempt is already in flight (e.g. a previous
+        // foreground/network event just started one) - let it resolve on
+        // its own rather than tearing it down and starting another.
+        if (this.ws && this.ws.readyState === WebSocket.CONNECTING) {
+            return;
+        }
+
         if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
             this.reconnect();
             return;
@@ -224,6 +243,9 @@ class WebSocketConnection {
     }
 
     forceReconnect() {
+        if (!this.initialized || this.destroyed) {
+            return;
+        }
         if (this.ws) {
             this._isForcedReconnect = true;
             try {
