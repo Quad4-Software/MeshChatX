@@ -23,6 +23,14 @@ class DialogUtils {
         }
     }
 
+    // Always use the in-app confirm dialog, even inside electron, for
+    // callers that want a themed dialog instead of the native OS prompt.
+    static confirmCustom(message) {
+        return new Promise((resolve) => {
+            GlobalEmitter.emit("confirm", { message, resolve });
+        });
+    }
+
     static async prompt(message) {
         if (window.electron) {
             // running inside electron, use ipc prompt
