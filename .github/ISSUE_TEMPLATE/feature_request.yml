@@ -1,0 +1,60 @@
+name: Feature Request
+description: Suggest an improvement or new capability
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe what you want and why it would help. Include version and OS when platform support matters.
+
+  - type: input
+    id: version
+    attributes:
+      label: MeshChatX version
+      description: The version you are using today, if relevant.
+      placeholder: "4.8.0"
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows 11
+        - Windows 10
+        - Linux
+        - macOS
+        - Android
+        - All platforms
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: os-other
+    attributes:
+      label: OS details (if Other)
+      placeholder: "Ubuntu 24.04 LTS"
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What are you trying to do, and what is missing today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How would you like this to work?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any workarounds you tried.
