@@ -1924,6 +1924,7 @@
         "diagnostics_description": "Strumenti mesh e Reticulum in un unico posto: raggiungibilità, percorsi, trasferimento file, traduzione, documentazione e assistenza hardware. Apri una riga per lo strumento completo.",
         "back_to_tools": "Torna agli strumenti",
         "beta_badge": "Beta",
+        "alpha_badge": "Alpha",
         "ping": {
             "title": "Ping",
             "description": "Misura il tempo di andata e ritorno verso una destinazione che accetta il ping."

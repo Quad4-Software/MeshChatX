@@ -1872,6 +1872,7 @@
         "diagnostics_description": "Utilidades de malla y Reticulum en un mismo sitio: alcance, rutas, transferencia de archivos, traducción, documentación y ayudas de hardware. Abra una fila para la herramienta completa.",
         "back_to_tools": "Volver a herramientas",
         "beta_badge": "Beta",
+        "alpha_badge": "Alpha",
         "ping": {
             "title": "Ping",
             "description": "Medir el tiempo de ida y vuelta a un destino que acepta ping."

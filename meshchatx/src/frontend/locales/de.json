@@ -1760,6 +1760,7 @@
         "diagnostics_description": "Mesh- und Reticulum-Werkzeuge an einem Ort: Erreichbarkeit, Pfade, Dateitransfer, Übersetzung, Dokumentation und Hardware-Hilfen. Öffnen Sie eine Zeile für die vollständige Ansicht.",
         "back_to_tools": "Zurück zu Werkzeugen",
         "beta_badge": "Beta",
+        "alpha_badge": "Alpha",
         "ping": {
             "title": "Ping",
             "description": "Laufzeit bis zu einem Ziel, das Ping akzeptiert."

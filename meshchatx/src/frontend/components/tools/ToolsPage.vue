@@ -74,6 +74,12 @@
                                 <div class="flex items-center gap-2 flex-wrap">
                                     <div class="tool-card__title">{{ tool.title }}</div>
                                     <span
+                                        v-if="tool.alpha"
+                                        class="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 rounded-sm border border-violet-200 dark:border-violet-800"
+                                    >
+                                        {{ $t("tools.alpha_badge") }}
+                                    </span>
+                                    <span
                                         v-if="tool.beta"
                                         class="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-sm border border-amber-200 dark:border-amber-800"
                                     >

@@ -1872,6 +1872,7 @@
         "diagnostics_description": "Mesh- en Reticulumhulpprogramma's op één plek: bereikbaarheid, paden, bestandsoverdracht, vertaling, documentatie en hardwarehulpen. Open een rij voor de volledige tool.",
         "back_to_tools": "Terug naar gereedschap",
         "beta_badge": "Beta",
+        "alpha_badge": "Alpha",
         "ping": {
             "title": "Ping",
             "description": "Meet de rondreistijd naar een bestemming die ping accepteert."

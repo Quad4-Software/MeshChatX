@@ -1872,6 +1872,7 @@
         "diagnostics_description": "Mesh and Reticulum utilities in one place: reachability, paths, file transfer, translation, documentation, and hardware helpers. Open any row for the full tool.",
         "back_to_tools": "Back to tools",
         "beta_badge": "Beta",
+        "alpha_badge": "Alpha",
         "ping": {
             "title": "Ping",
             "description": "Measure round-trip time to another node or app that answers ping."
