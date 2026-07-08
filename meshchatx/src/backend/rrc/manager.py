@@ -630,6 +630,12 @@ class RRCHub:
             self._send_env(env)
         with self._lock:
             self.rooms.discard(room_n)
+            self.messages.pop(room_n, None)
+            self.unread_rooms.discard(room_n)
+            self.unread_counts.pop(room_n, None)
+            self.mention_rooms.discard(room_n)
+            self.members.pop(room_n, None)
+        self._delete_history(room_n)
         self.manager.save()
         self.manager._notify_change(self)
 
