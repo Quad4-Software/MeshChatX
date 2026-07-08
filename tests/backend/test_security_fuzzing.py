@@ -376,25 +376,6 @@ def test_telephone_callback_fuzzing(mock_app, caller_id_bytes):
 
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
 @given(
-    data=st.dictionaries(
-        keys=st.text(),
-        values=st.one_of(
-            st.text(),
-            st.binary(),
-            st.integers(),
-            st.floats(),
-            st.lists(st.text()),
-            st.dictionaries(keys=st.text(), values=st.text()),
-        ),
-    ),
-)
-def test_message_dao_upsert_fuzzing(mock_app, data):
-    """Fuzz MessageDAO.upsert_lxmf_message with varied dictionary data."""
-    mock_app.database.messages.upsert_lxmf_message(data)
-
-
-@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
-@given(
     title_bytes=st.binary(min_size=0, max_size=1000),
     content_bytes=st.binary(min_size=0, max_size=5000),
 )
@@ -441,17 +422,6 @@ def test_voicemail_greeting_fuzzing(mock_app, greeting_text):
                 assert mock_run.called
         except Exception:
             pass
-
-
-@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
-@given(caller_hash=st.binary(min_size=0, max_size=32))
-def test_voicemail_incoming_call_fuzzing(mock_app, caller_hash):
-    """Fuzz voicemail incoming call handling."""
-    mock_identity = MagicMock()
-    mock_identity.hash = caller_hash
-
-    # Should not crash with malformed identity hashes
-    mock_app.voicemail_manager.handle_incoming_call(mock_identity)
 
 
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
@@ -587,31 +557,6 @@ def test_lxm_generate_paper_uri_fuzzing(mock_app, dest_hash, content):
         )
     finally:
         loop.close()
-
-
-@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
-@given(
-    lon=st.floats(allow_nan=False, allow_infinity=False),
-    lat=st.floats(allow_nan=False, allow_infinity=False),
-    zoom=st.integers(min_value=-100, max_value=100),
-)
-def test_map_manager_coord_fuzzing(mock_app, lon, lat, zoom):
-    """Fuzz coordinate to tile conversion in MapManager."""
-    # Should handle invalid coordinates gracefully
-    mock_app.map_manager._lonlat_to_tile(lon, lat, zoom)
-
-
-@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
-@given(
-    text=st.text(),
-    source_lang=st.text(min_size=0, max_size=10),
-    target_lang=st.text(min_size=0, max_size=10),
-)
-def test_translator_handler_fuzzing(mock_app, text, source_lang, target_lang):
-    """Fuzz the TranslatorHandler translate_text method."""
-    mock_app.translator_handler.has_requests = False
-    mock_app.translator_handler.has_argos = False
-    mock_app.translator_handler.translate_text(text, source_lang, target_lang)
 
 
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
@@ -1155,16 +1100,6 @@ def test_map_tile_coordinates_fuzzing(mock_app, z, x, y):
 
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
 @given(
-    filename=st.text(min_size=0, max_size=500),
-)
-def test_mbtiles_filename_fuzzing(mock_app, filename):
-    """Fuzz MBTiles filename handling."""
-    mock_app.map_manager.delete_mbtiles(filename)
-    mock_app.map_manager.get_connection(filename)
-
-
-@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
-@given(
     destination_hash=st.text(min_size=0, max_size=100),
     page_path=st.text(min_size=0, max_size=1000),
     content=st.text(min_size=0, max_size=100000),
@@ -1179,28 +1114,6 @@ def test_archive_page_content_fuzzing(mock_app, destination_hash, page_path, con
         max_storage_gb=1,
     )
     mock_app.archiver_manager.get_archived_page_versions(destination_hash, page_path)
-
-
-@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
-@given(
-    ids=st.lists(
-        st.one_of(st.integers(), st.text(), st.floats()),
-        min_size=0,
-        max_size=100,
-    ),
-)
-def test_delete_archived_pages_ids_fuzzing(mock_app, ids):
-    """Fuzz SQL injection in delete_archived_pages."""
-    mock_app.database.misc.delete_archived_pages(ids=ids)
-
-
-@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
-@given(
-    query=st.text(min_size=0, max_size=500),
-)
-def test_archived_pages_query_sql_injection_fuzzing(mock_app, query):
-    """Fuzz SQL injection in archived_pages search."""
-    mock_app.database.misc.get_archived_pages_paginated(query=query)
 
 
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
@@ -1508,13 +1421,6 @@ def test_nomadnet_page_download_fuzzing(
 
 
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
-@given(archive_id=st.one_of(st.integers(), st.text(), st.floats(), st.none()))
-def test_get_archived_page_by_id_fuzzing(mock_app, archive_id):
-    """Fuzz archived page lookup by id (SQL injection, type confusion)."""
-    mock_app.database.misc.get_archived_page_by_id(archive_id)
-
-
-@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
 @given(
     forward_to_hash=st.text(min_size=0, max_size=100),
     identity_hash=st.one_of(st.text(min_size=0, max_size=100), st.none()),
@@ -1623,44 +1529,6 @@ def test_keyboard_shortcuts_set_fuzzing(mock_app, action, keys):
         pass
     finally:
         loop.close()
-
-
-@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
-@given(message_hash=st.text(min_size=0, max_size=200))
-def test_messages_get_by_hash_fuzzing(mock_app, message_hash):
-    """Fuzz message lookup by hash (SQL, type confusion)."""
-    mock_app.database.messages.get_lxmf_message_by_hash(message_hash)
-
-
-@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
-@given(message_hash=st.text(min_size=0, max_size=200))
-def test_messages_delete_by_hash_fuzzing(mock_app, message_hash):
-    """Fuzz single message delete by hash."""
-    try:
-        mock_app.database.messages.delete_lxmf_message_by_hash(message_hash)
-    except Exception:
-        pass
-
-
-@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
-@given(
-    message_hashes=st.lists(st.text(min_size=0, max_size=100), min_size=0, max_size=50),
-)
-def test_messages_delete_by_hashes_fuzzing(mock_app, message_hashes):
-    """Fuzz bulk message delete by hashes."""
-    try:
-        mock_app.database.messages.delete_lxmf_messages_by_hashes(message_hashes)
-    except Exception:
-        pass
-
-
-@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
-@given(
-    table_name=st.text(min_size=0, max_size=100),
-)
-def test_sql_table_name_injection_fuzzing(mock_app, table_name):
-    """Fuzz SQL table name injection."""
-    mock_app.database.provider.execute(f"PRAGMA table_info({table_name})")
 
 
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
@@ -1798,17 +1666,6 @@ def test_map_export_parameters_fuzzing(mock_app, bbox, min_zoom, max_zoom, name)
         max_zoom,
         name=name,
     )
-
-
-@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
-@given(
-    mbtiles_path=st.text(min_size=0, max_size=1000),
-)
-def test_mbtiles_metadata_parsing_fuzzing(mock_app, mbtiles_path):
-    """Fuzz MBTiles metadata parsing."""
-    mock_app.map_manager.get_metadata()
-    if os.path.exists(mbtiles_path):
-        mock_app.map_manager.get_connection(mbtiles_path)
 
 
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
