@@ -63,6 +63,7 @@ packages = [
     "pycparser",
     "cffi",
     "ply",
+    "bleak",
 ]
 
 if sys.version_info >= (3, 13):

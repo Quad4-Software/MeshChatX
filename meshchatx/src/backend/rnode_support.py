@@ -361,3 +361,22 @@ def guard_rnode_interfaces_on_android(config_path: str) -> bool:
             "is not supported on this Android build. RNode over TCP is unaffected.",
         )
     return disabled
+
+
+def guard_rnode_interfaces_on_desktop(config_path: str) -> bool:
+    """On desktop, disable RNode interfaces that can't be brought up here.
+
+    RNode over TCP is unaffected. Serial and classic-Bluetooth need pyserial;
+    BLE needs bleak. Unsupported entries are disabled before Reticulum startup
+    so RNS does not crash with a missing-dependency error.
+    """
+    if _is_chaquopy_android():
+        return False
+    disabled = disable_rnode_interfaces_in_config(config_path, is_android=False)
+    if disabled:
+        logger.warning(
+            "One or more RNode interfaces were disabled because their transport "
+            "is not supported on this build (serial/Bluetooth need pyserial; "
+            "BLE needs bleak). RNode over TCP is unaffected.",
+        )
+    return disabled
