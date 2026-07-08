@@ -9918,7 +9918,11 @@ class ReticulumMeshChat:
                 blocked_identity_hashes = [b["destination_hash"] for b in blocked]
 
             if search_query:
-                db_limit = min(search_max, limit) if limit is not None else search_max
+                # `limit` here is the caller's desired page size for the
+                # paginated, filtered results below, not the number of rows
+                # to scan for matches. Always scan up to search_max rows so
+                # matches outside the most-recent page are still found.
+                db_limit = search_max
             else:
                 db_limit = limit
             db_offset = offset if not search_query else 0
