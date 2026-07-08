@@ -1,0 +1,116 @@
+# Nightly builds from dev: push a nightly-* tag when dev has new
+# commits since the last nightly prerelease, then dispatch build-release.yml.
+# Tag push alone does not start other workflows when using GITHUB_TOKEN
+# (GitHub Actions event loop prevention); workflow_dispatch is required.
+#
+# Pinned first-party actions (bump tag and SHA together when upgrading):
+#   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
+#
+name: Nightly Release
+
+on:
+    schedule:
+        - cron: "0 7 * * *"
+    workflow_dispatch:
+
+concurrency:
+    group: nightly-release
+    cancel-in-progress: false
+
+permissions:
+    contents: read
+
+jobs:
+    metadata:
+        name: Prepare nightly tag
+        runs-on: ubuntu-latest
+        outputs:
+            tag_name: ${{ steps.meta.outputs.tag_name }}
+            commit_sha: ${{ steps.meta.outputs.commit_sha }}
+            skip_release: ${{ steps.meta.outputs.skip_release }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+              with:
+                  ref: dev
+                  fetch-depth: 0
+
+            - name: Compute nightly tag
+              id: meta
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  set -euo pipefail
+                  short_sha="$(git rev-parse --short=7 HEAD)"
+                  full_sha="$(git rev-parse HEAD)"
+                  tag="nightly-$(date -u +%Y.%m.%d)-${short_sha}"
+
+                  skip_release=false
+                  if [ "${{ github.event_name }}" = "schedule" ]; then
+                    last_nightly_tag="$(gh release list --limit 50 --json tagName,isPrerelease \
+                      --jq '[.[] | select(.isPrerelease) | select(.tagName | startswith("nightly-"))][0].tagName // empty')"
+                    last_nightly_sha=""
+                    if [ -n "${last_nightly_tag}" ]; then
+                      git fetch --tags --force origin
+                      last_nightly_sha="$(git rev-parse "refs/tags/${last_nightly_tag}^{commit}" 2>/dev/null || true)"
+                    fi
+                    if [ -n "${last_nightly_sha}" ] && [ "${last_nightly_sha}" = "${full_sha}" ]; then
+                      echo "No new commits on dev since last nightly (${last_nightly_tag} @ ${last_nightly_sha}); skipping scheduled release."
+                      skip_release=true
+                    fi
+                  fi
+
+                  echo "tag_name=${tag}" >> "$GITHUB_OUTPUT"
+                  echo "commit_sha=${full_sha}" >> "$GITHUB_OUTPUT"
+                  echo "skip_release=${skip_release}" >> "$GITHUB_OUTPUT"
+                  echo "Nightly tag: ${tag} @ ${full_sha} (skip_release=${skip_release})"
+
+    tag:
+        name: Tag dev and dispatch build-release
+        needs: metadata
+        if: needs.metadata.outputs.skip_release != 'true'
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+            actions: write
+        steps:
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+              with:
+                  ref: dev
+                  fetch-depth: 0
+
+            - name: Create and push nightly tag
+              env:
+                  TAG: ${{ needs.metadata.outputs.tag_name }}
+                  SHA: ${{ needs.metadata.outputs.commit_sha }}
+              run: |
+                  set -euo pipefail
+                  if git rev-parse "refs/tags/${TAG}" >/dev/null 2>&1; then
+                    echo "Tag ${TAG} already exists; skipping push."
+                  else
+                    git config user.name "github-actions[bot]"
+                    git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                    git tag -a "${TAG}" -m "Nightly build for ${SHA}" "${SHA}"
+                    git push origin "${TAG}"
+                  fi
+
+            - name: Dispatch build-release for tag
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  TAG: ${{ needs.metadata.outputs.tag_name }}
+                  SHA: ${{ needs.metadata.outputs.commit_sha }}
+              run: |
+                  set -euo pipefail
+                  # GITHUB_TOKEN tag pushes do not trigger other workflows; dispatch explicitly.
+                  # Retry briefly so the newly pushed tag is visible to the API.
+                  for attempt in 1 2 3 4 5; do
+                    if gh workflow run build-release.yml --ref "refs/tags/${TAG}"; then
+                      echo "Dispatched build-release.yml for ref ${TAG} (${SHA})"
+                      exit 0
+                    fi
+                    echo "Dispatch attempt ${attempt} failed; waiting for tag to propagate..."
+                    sleep 5
+                  done
+                  echo "Failed to dispatch build-release.yml for ${TAG}" >&2
+                  exit 1
