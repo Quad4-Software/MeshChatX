@@ -133,4 +133,35 @@ describe("WebSocketConnection module", () => {
 
         WebSocketConnection.destroy();
     });
+
+    it("reconnects or pings on foreground or network change", async () => {
+        const MockWS = makeWsImpl();
+        global.WebSocket = MockWS;
+
+        const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection.js");
+
+        await WebSocketConnection.connect();
+        await vi.waitUntil(() => WebSocketConnection.ws?.readyState === MockWS.OPEN);
+
+        const firstWs = WebSocketConnection.ws;
+        const sendSpy = vi.spyOn(firstWs, "send");
+
+        // 1. If idleTime is small, it should just send a ping
+        WebSocketConnection._lastReceivedTime = Date.now();
+        WebSocketConnection.handleForegroundOrNetworkChange();
+        expect(sendSpy).toHaveBeenCalled();
+        expect(WebSocketConnection.ws).toBe(firstWs);
+
+        // 2. If idleTime is large, it should force a reconnect
+        WebSocketConnection._lastReceivedTime = Date.now() - 60000;
+        WebSocketConnection.handleForegroundOrNetworkChange();
+
+        // Wait for the new WebSocket to be created and opened
+        await vi.waitUntil(() => WebSocketConnection.ws && WebSocketConnection.ws !== firstWs);
+        await vi.waitUntil(() => WebSocketConnection.ws.readyState === MockWS.OPEN);
+
+        expect(WebSocketConnection.ws).not.toBe(firstWs);
+
+        WebSocketConnection.destroy();
+    });
 });

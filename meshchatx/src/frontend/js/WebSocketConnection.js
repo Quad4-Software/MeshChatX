@@ -19,6 +19,9 @@ class WebSocketConnection {
         this.destroyed = false;
         this._hadSuccessfulOpen = false;
         this._pendingReconnectUi = false;
+        this._lastReceivedTime = Date.now();
+        this._hasEventListeners = false;
+        this._isForcedReconnect = false;
     }
 
     async connect() {
@@ -30,6 +33,24 @@ class WebSocketConnection {
         }
 
         this.initialized = true;
+
+        if (typeof window !== "undefined" && window.addEventListener) {
+            if (!this._hasEventListeners) {
+                window.addEventListener("visibilitychange", () => {
+                    if (typeof document !== "undefined" && document.visibilityState === "visible") {
+                        this.handleForegroundOrNetworkChange();
+                    }
+                });
+                window.addEventListener("focus", () => {
+                    this.handleForegroundOrNetworkChange();
+                });
+                window.addEventListener("online", () => {
+                    this.handleForegroundOrNetworkChange();
+                });
+                this._hasEventListeners = true;
+            }
+        }
+
         this.reconnect();
     }
 
@@ -130,12 +151,17 @@ class WebSocketConnection {
             const isReconnect = this._pendingReconnectUi;
             this._pendingReconnectUi = false;
             this._hadSuccessfulOpen = true;
+            this._lastReceivedTime = Date.now();
             this.emit("connected", { isReconnect });
         });
 
         this.ws.addEventListener("close", () => {
             this._stopHeartbeat();
             if (this.destroyed) {
+                return;
+            }
+            if (this._isForcedReconnect) {
+                this._isForcedReconnect = false;
                 return;
             }
             if (this._hadSuccessfulOpen) {
@@ -165,6 +191,7 @@ class WebSocketConnection {
         });
 
         this.ws.onmessage = (message) => {
+            this._lastReceivedTime = Date.now();
             try {
                 const data = JSON.parse(message.data);
                 if (data && data.type === "pong") {
@@ -176,6 +203,37 @@ class WebSocketConnection {
             }
             this.emit("message", message);
         };
+    }
+
+    handleForegroundOrNetworkChange() {
+        if (!this.initialized || this.destroyed) {
+            return;
+        }
+
+        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+            this.reconnect();
+            return;
+        }
+
+        const idleTime = Date.now() - this._lastReceivedTime;
+        if (idleTime > PING_INTERVAL_MS) {
+            this.forceReconnect();
+        } else {
+            this._sendAppPing();
+        }
+    }
+
+    forceReconnect() {
+        if (this.ws) {
+            this._isForcedReconnect = true;
+            try {
+                this.ws.close();
+            } catch {
+                // ignore
+            }
+            this.ws = null;
+        }
+        this.reconnect();
     }
 
     destroy() {
