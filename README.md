@@ -21,11 +21,13 @@ rngit NomadNet Node: `132f67e79d9b24aad014e93015fb858f:/page/index.mu`
 
 rngit: `git clone rns://06a54b505bb67b25ef3f8097e8001edc/public/MeshChatX`
 
-MeshChatX NomadNet Node: `c10d80b1a42fa958c37a6cc30dc04f53:/page/index.mu`
-
 ## Important Changes from Reticulum MeshChat
 
 - Uses LXST for calls
+- Integrates [RRC](https://rrc.kc1awv.net/0)
+- Expanded tools
+- Map w/ MBTiles support
+- Panes and Tabs
 - Replaced Peewee ORM with raw SQL.
 - Replaced Axios with native fetch.
 - Uses Electron 41.x (bundled Node 24 runtime).
