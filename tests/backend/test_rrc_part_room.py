@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Regression test: leaving a connected RRC room must drop it from the
-known-rooms list.
+"""Regression test for leaving a connected RRC room.
+
+Leaving a connected RRC room must drop it from the known-rooms list.
 
 `RRCHub.ordered_known_rooms()` treats any room with an entry in
 `self.messages` as "known", even if it was never joined. `part_room()`
