@@ -86,13 +86,18 @@ done
 mapfile -t files < <(find "$STAGE" -type f)
 
 {
-    if [[ "$TAG" == preview-dev-* ]]; then
-        echo "**Preview release (dev)** — automated weekly snapshot from \`dev\`. Not a stable release; use tagged production releases for daily use."
+    if [[ "$TAG" == nightly-* ]]; then
+        echo "**Nightly release** — automated daily snapshot from \`dev\`. Not a stable release; use tagged production releases for daily use."
+        echo
+        echo "Commit: \`${GITHUB_SHA:-unknown}\`"
+        echo
+    elif [[ "$TAG" == preview-dev-* ]]; then
+        echo "**Preview release (dev)** — automated snapshot from \`dev\`. Not a stable release; use tagged production releases for daily use."
         echo
         echo "Commit: \`${GITHUB_SHA:-unknown}\`"
         echo
     elif [[ "$TAG" == preview-* ]]; then
-        echo "**Preview release** — automated weekly snapshot from \`master\`. Not a stable release; use tagged production releases for daily use."
+        echo "**Preview release** — automated snapshot from \`master\`. Not a stable release; use tagged production releases for daily use."
         echo
         echo "Commit: \`${GITHUB_SHA:-unknown}\`"
         echo
@@ -118,13 +123,13 @@ mapfile -t files < <(find "$STAGE" -type f)
 } > "$notes_file"
 
 if ! gh release view "$TAG" >/dev/null 2>&1; then
-    if [[ "$TAG" == preview-* ]]; then
+    if [[ "$TAG" == nightly-* || "$TAG" == preview-* ]]; then
         gh release create "$TAG" --prerelease --title "$TAG" --notes-file "$notes_file"
     else
         gh release create "$TAG" --draft --title "$TAG" --notes-file "$notes_file"
     fi
 else
-    if [[ "$TAG" == preview-* ]]; then
+    if [[ "$TAG" == nightly-* || "$TAG" == preview-* ]]; then
         gh release edit "$TAG" --prerelease --title "$TAG" --notes-file "$notes_file"
     else
         gh release edit "$TAG" --notes-file "$notes_file"
