@@ -398,10 +398,13 @@ class BotHandler:
                 if sys.platform.startswith("win"):
                     # Use absolute path if possible to avoid S607
                     taskkill = shutil.which("taskkill") or "taskkill"
+                    # Process may already have exited; suppress "not found" noise.
                     subprocess.run(
                         [taskkill, "/PID", str(pid), "/T", "/F"],
                         check=False,
                         timeout=5,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
                     )
                 else:
                     try:

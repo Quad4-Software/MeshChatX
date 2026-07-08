@@ -64,12 +64,25 @@ def test_check_public_assets_ok(tmp_path):
     assert self_check.check_public_assets(public_path)["status"] == "ok"
 
 
-def test_check_public_assets_missing(tmp_path):
+def test_check_public_assets_allows_source_tree_without_build(tmp_path, monkeypatch):
     missing = tmp_path / "nope"
 
     def public_path(name=""):
         return str(missing / name) if name else str(missing)
 
+    monkeypatch.setattr(self_check, "_is_frozen_executable", lambda: False)
+    monkeypatch.setattr(self_check, "_frontend_source_available", lambda: True)
+    assert self_check.check_public_assets(public_path)["status"] == "ok"
+
+
+def test_check_public_assets_missing_when_frozen(tmp_path, monkeypatch):
+    missing = tmp_path / "nope"
+
+    def public_path(name=""):
+        return str(missing / name) if name else str(missing)
+
+    monkeypatch.setattr(self_check, "_is_frozen_executable", lambda: True)
+    monkeypatch.setattr(self_check, "_frontend_source_available", lambda: False)
     result = self_check.check_public_assets(public_path)
     assert result["status"] == "failed"
 
