@@ -695,6 +695,21 @@
             "installing": "Installing plugin..."
         }
     },
+    "selftest": {
+        "title": "System Self-Test",
+        "description": "Run diagnostic checks to ensure the core network stack, database, configurations, and storage permissions are functional.",
+        "run_test_btn": "Run Diagnostics",
+        "running": "Running Diagnostics...",
+        "stack_up": "Network Stack",
+        "config_good": "Configuration Integrity",
+        "db_good": "Database Connection",
+        "read_write": "Storage Read/Write",
+        "passed": "Passed",
+        "failed": "Failed",
+        "status_label": "Status",
+        "reason_label": "Reason",
+        "checks_completed": "All checks passed successfully."
+    },
     "maintenance": {
         "title": "Maintenance & Data",
         "description": "Manage your local data, clear caches, and backup conversations.",

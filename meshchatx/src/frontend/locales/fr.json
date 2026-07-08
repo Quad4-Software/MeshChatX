@@ -695,6 +695,21 @@
             "installing": "Installation du plugin..."
         }
     },
+    "selftest": {
+        "title": "Auto-test du système",
+        "description": "Exécuter des contrôles de diagnostic pour s'assurer que la pile réseau, la base de données, les configurations et les autorisations de stockage fonctionnent.",
+        "run_test_btn": "Exécuter les diagnostics",
+        "running": "Diagnostic en cours...",
+        "stack_up": "Pile réseau",
+        "config_good": "Intégrité de la configuration",
+        "db_good": "Connexion à la base de données",
+        "read_write": "Lecture/Écriture stockage",
+        "passed": "Réussi",
+        "failed": "Échoué",
+        "status_label": "Statut",
+        "reason_label": "Raison",
+        "checks_completed": "Tous les contrôles ont réussi."
+    },
     "maintenance": {
         "title": "Maintenance et données",
         "description": "Gérer vos données locales, effacer les caches et les conversations de sauvegarde.",

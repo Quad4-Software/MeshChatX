@@ -47,7 +47,7 @@ export const SETTINGS_TABS = [
         id: "maintenance",
         labelKey: "settings.tabs.maintenance",
         descriptionKey: "settings.tabs.maintenance_desc",
-        sections: ["maintenance", "plugins"],
+        sections: ["maintenance", "selftest", "plugins"],
     },
 ];
 

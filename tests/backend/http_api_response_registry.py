@@ -9,6 +9,7 @@ import re
 from tests.backend.api_json_contract_schemas import (
     API_V1_APP_INFO_ENVELOPE_SCHEMA,
     API_V1_STATUS_SCHEMA,
+    SELF_TEST_SCHEMA,
     AUTH_STATUS_SCHEMA,
     TELEPHONE_CONTACT_CHECK_SCHEMA,
     TELEPHONE_CONTACTS_LIST_SCHEMA,
@@ -121,6 +122,7 @@ _PAGE_NAME = "index.mu"
 
 HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
     HttpJsonContract("GET", "/api/v1/status", API_V1_STATUS_SCHEMA),
+    HttpJsonContract("GET", "/api/v1/self-test", SELF_TEST_SCHEMA),
     HttpJsonContract("GET", "/api/v1/app/info", API_V1_APP_INFO_ENVELOPE_SCHEMA),
     HttpJsonContract("GET", "/api/v1/app/changelog", CHANGELOG_SCHEMA),
     HttpJsonContract("GET", "/api/v1/auth/status", AUTH_STATUS_SCHEMA),

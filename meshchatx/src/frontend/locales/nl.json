@@ -695,6 +695,21 @@
             "installing": "Plugin installeren..."
         }
     },
+    "selftest": {
+        "title": "Systeem-zelftest",
+        "description": "Voer diagnostische controles uit om er zeker van te zijn dat de netwerkstack, database, configuraties en opslagmachtigingen functioneren.",
+        "run_test_btn": "Diagnostiek uitvoeren",
+        "running": "Diagnostiek uitvoeren...",
+        "stack_up": "Netwerkstack",
+        "config_good": "Configuratie-integriteit",
+        "db_good": "Databaseverbinding",
+        "read_write": "Opslag Lezen/Schrijven",
+        "passed": "Geslaagd",
+        "failed": "Mislukt",
+        "status_label": "Status",
+        "reason_label": "Reden",
+        "checks_completed": "Alle controles zijn succesvol geslaagd."
+    },
     "maintenance": {
         "title": "Onderhoud & gegevens",
         "description": "Beheer uw lokale gegevens, duidelijke caches en back-upgesprekken.",

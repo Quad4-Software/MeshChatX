@@ -753,6 +753,105 @@ class ReticulumMeshChat:
         if self.current_context:
             self.current_context.storage_path = value
 
+    def run_self_test(self) -> dict:
+        stack_ok = True
+        stack_reason = ""
+        if not hasattr(self, "reticulum") or self.reticulum is None:
+            stack_ok = False
+            stack_reason = "Reticulum stack is not initialized"
+        else:
+            try:
+                _ = self.reticulum.config
+            except Exception as e:
+                stack_ok = False
+                stack_reason = f"Reticulum stack internal error: {str(e)}"
+
+        config_ok = True
+        config_reason = ""
+        try:
+            if self.config is None:
+                config_ok = False
+                config_reason = "App configuration is not initialized"
+            else:
+                _ = self.config.display_name.get()
+        except Exception as e:
+            config_ok = False
+            config_reason = f"App config error: {str(e)}"
+
+        if config_ok:
+            try:
+                reticulum_config_path = self._api_reticulum_config_path()
+                if not reticulum_config_path or not os.path.exists(reticulum_config_path):
+                    config_ok = False
+                    config_reason = "Reticulum config file not found"
+                else:
+                    if not reticulum_config_has_required_sections(reticulum_config_path):
+                        config_ok = False
+                        config_reason = "Reticulum config is missing required sections"
+            except Exception as e:
+                config_ok = False
+                config_reason = f"Reticulum config check failed: {str(e)}"
+
+        db_ok = True
+        db_reason = ""
+        if not self.database:
+            db_ok = False
+            db_reason = "Database is not initialized"
+        else:
+            try:
+                self.database.execute_sql("SELECT 1").fetchone()
+                snapshot = self.database.get_database_health_snapshot()
+                if snapshot.get("quick_check") not in ("ok", "unknown"):
+                    db_ok = False
+                    db_reason = f"Database quick check returned: {snapshot.get('quick_check')}"
+            except Exception as e:
+                db_ok = False
+                db_reason = f"Database check failed: {str(e)}"
+
+        rw_ok = True
+        rw_reason = ""
+        try:
+            if not self.storage_path or not os.path.exists(self.storage_path):
+                rw_ok = False
+                rw_reason = "Storage directory does not exist"
+            else:
+                temp_file_path = os.path.join(self.storage_path, ".self_test_temp")
+                test_data = "meshchatx_self_test_write_read_verify"
+                with open(temp_file_path, "w", encoding="utf-8") as f:
+                    f.write(test_data)
+                
+                with open(temp_file_path, "r", encoding="utf-8") as f:
+                    read_data = f.read()
+                
+                if os.path.exists(temp_file_path):
+                    os.remove(temp_file_path)
+                
+                if read_data != test_data:
+                    rw_ok = False
+                    rw_reason = "Read data did not match written data"
+        except Exception as e:
+            rw_ok = False
+            rw_reason = f"Read/write test failed: {str(e)}"
+
+        return {
+            "stack_up": {
+                "status": "ok" if stack_ok else "failed",
+                "reason": stack_reason,
+            },
+            "config_good": {
+                "status": "ok" if config_ok else "failed",
+                "reason": config_reason,
+            },
+            "db_good": {
+                "status": "ok" if db_ok else "failed",
+                "reason": db_reason,
+            },
+            "read_write_good": {
+                "status": "ok" if rw_ok else "failed",
+                "reason": rw_reason,
+            },
+        }
+
     @property
     def database_path(self):
         return self.current_context.database_path if self.current_context else None
@@ -4403,6 +4502,11 @@ class ReticulumMeshChat:
                     **self._landlock_status_dict(),
                 },
             )
+
+        @routes.get("/api/v1/self-test")
+        async def self_test(request):
+            results = self.run_self_test()
+            return web.json_response(results)
 
         @routes.get("/api/v1/server/security")
         async def server_security_get(request):
@@ -19996,6 +20100,13 @@ def main():
         help="Disable the plugin system entirely. Can also be set via MESHCHAT_DISABLE_PLUGINS environment variable.",
     )
 
+    parser.add_argument(
+        "--self-check",
+        action="store_true",
+        default=env_bool("MESHCHAT_SELF_CHECK", False),
+        help="Run system self-check diagnostics on startup and then exit with 0 if all checks pass, or 1 if any fail. Can also be set via MESHCHAT_SELF_CHECK environment variable.",
+    )
+
     args = parser.parse_args()
 
     ssl_cert = (args.ssl_cert or "").strip() or None
@@ -20156,6 +20267,39 @@ def main():
         public_dir=reticulum_meshchat.public_dir_override or get_file_path("public"),
         reticulum_config_dir=reticulum_meshchat.reticulum_config_dir,
     )
+
+    if args.self_check:
+        results = reticulum_meshchat.run_self_test()
+        print("\n================================")
+        print("   System Self-Check Results")
+        print("================================")
+        
+        all_passed = True
+        labels = {
+            "stack_up": "Network Stack          ",
+            "config_good": "Configuration Integrity",
+            "db_good": "Database Connection    ",
+            "read_write_good": "Storage Read/Write     ",
+        }
+        
+        for key, name in labels.items():
+            check = results.get(key, {"status": "failed", "reason": "No result"})
+            if check["status"] == "ok":
+                print(f"[OK]     {name}")
+            else:
+                all_passed = False
+                reason = check.get("reason") or "Unknown error"
+                print(f"[FAILED] {name} - Reason: {reason}")
+                
+        print("================================")
+        if all_passed:
+            print("Status: SUCCESS (All checks passed)")
+            print("================================\n")
+            sys.exit(0)
+        else:
+            print("Status: FAILED")
+            print("================================\n")
+            sys.exit(1)
 
     if args.reset_password:
         if reticulum_meshchat.reset_password():

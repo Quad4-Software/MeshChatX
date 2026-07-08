@@ -695,6 +695,21 @@
             "installing": "Instalando plugin..."
         }
     },
+    "selftest": {
+        "title": "Autoprueba del sistema",
+        "description": "Ejecute pruebas de diagnóstico para garantizar que la pila de red, la base de datos, las configuraciones y los permisos de almacenamiento funcionen.",
+        "run_test_btn": "Ejecutar diagnóstico",
+        "running": "Ejecutando diagnóstico...",
+        "stack_up": "Pila de red",
+        "config_good": "Integridad de configuración",
+        "db_good": "Conexión a la base de datos",
+        "read_write": "Lectura/escritura de almacenamiento",
+        "passed": "Aprobado",
+        "failed": "Fallido",
+        "status_label": "Estado",
+        "reason_label": "Motivo",
+        "checks_completed": "Todas las comprobaciones se completaron con éxito."
+    },
     "maintenance": {
         "title": "Datos de mantenimiento",
         "description": "Gestione sus datos locales, jaulas claras y conversaciones de respaldo.",

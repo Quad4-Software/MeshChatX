@@ -98,6 +98,7 @@ export const CORE_SETTINGS_SECTION_KEYWORDS = {
         "Export Folders",
         "Import Folders",
     ],
+    selftest: ["Self-Test", "System Self-Test", "diagnostic", "checks", "selftest.title", "selftest.description"],
     desktop: [
         "Desktop",
         "App Behaviour",
