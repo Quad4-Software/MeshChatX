@@ -393,19 +393,26 @@ class BotHandler:
             return False
 
         pid = entry.get("pid")
+        tracked = self.running_bots.get(bot_id) or {}
+        proc = tracked.get("proc")
         if pid:
             try:
                 if sys.platform.startswith("win"):
-                    # Use absolute path if possible to avoid S607
-                    taskkill = shutil.which("taskkill") or "taskkill"
-                    # Process may already have exited; suppress "not found" noise.
-                    subprocess.run(
-                        [taskkill, "/PID", str(pid), "/T", "/F"],
-                        check=False,
-                        timeout=5,
-                        stdout=subprocess.DEVNULL,
-                        stderr=subprocess.DEVNULL,
-                    )
+                    if proc is not None:
+                        with contextlib.suppress(Exception):
+                            proc.terminate()
+                        with contextlib.suppress(Exception):
+                            proc.wait(timeout=2)
+                    if self._is_pid_alive(pid):
+                        taskkill = shutil.which("taskkill") or "taskkill"
+                        # Process may already have exited; suppress "not found" noise.
+                        subprocess.run(
+                            [taskkill, "/PID", str(pid), "/T", "/F"],
+                            check=False,
+                            timeout=5,
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL,
+                        )
                 else:
                     try:
                         os.killpg(pid, 15)
@@ -599,6 +606,8 @@ class BotHandler:
     def _is_pid_alive(pid):
         if not pid:
             return False
+        if sys.platform.startswith("win"):
+            return BotHandler._is_pid_alive_windows(pid)
         try:
             os.kill(pid, 0)
         except OSError:
@@ -618,6 +627,26 @@ class BotHandler:
                 return False
         return True
 
+    @staticmethod
+    def _is_pid_alive_windows(pid):
+        """Return True only while the process is still running (not exited)."""
+        import ctypes
+        from ctypes import wintypes
+
+        kernel32 = ctypes.windll.kernel32
+        PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+        STILL_ACTIVE = 259
+        handle = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, int(pid))
+        if not handle:
+            return False
+        try:
+            code = wintypes.DWORD()
+            if not kernel32.GetExitCodeProcess(handle, ctypes.byref(code)):
+                return False
+            return int(code.value) == STILL_ACTIVE
+        finally:
+            kernel32.CloseHandle(handle)
+
     def _reap_process(self, bot_id, pid):
         tracked = self.running_bots.get(bot_id) or {}
         proc = tracked.get("proc")
@@ -625,7 +654,7 @@ class BotHandler:
             with contextlib.suppress(Exception):
                 proc.poll()
             with contextlib.suppress(Exception):
-                proc.wait(timeout=2)
+                proc.wait(timeout=5)
             return
         if not pid:
             return

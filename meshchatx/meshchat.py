@@ -825,7 +825,7 @@ class ReticulumMeshChat:
 
             if not handler.stop_bot(bot_id):
                 return False, "stop_bot returned False"
-            stop_deadline = time.monotonic() + 5.0
+            stop_deadline = time.monotonic() + 8.0
             while time.monotonic() < stop_deadline and BotHandler._is_pid_alive(pid):
                 time.sleep(0.1)
             if BotHandler._is_pid_alive(pid):

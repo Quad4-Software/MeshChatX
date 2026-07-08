@@ -231,6 +231,11 @@ def check_meshchatx_run_module() -> dict[str, str]:
     env["MESHCHATX_SELF_CHECK_PROBE_PATH"] = marker
     env["PYTHONUNBUFFERED"] = "1"
     env["MESHCHAT_SKIP_STORAGE_LOCK"] = "1"
+    # Keep child logs/storage under the temp dir (Landlock RW + no user home writes).
+    env["MESHCHAT_LOG_DIR"] = os.path.join(marker_dir, "logs")
+    env["MESHCHAT_STORAGE_DIR"] = os.path.join(marker_dir, "storage")
+    os.makedirs(env["MESHCHAT_LOG_DIR"], exist_ok=True)
+    os.makedirs(env["MESHCHAT_STORAGE_DIR"], exist_ok=True)
 
     if _is_frozen_executable():
         cmd = [
@@ -294,7 +299,7 @@ def check_subprocess_spawn() -> dict[str, str]:
         if result.returncode != 0:
             return _status(
                 False,
-                f"spawn exited {result.returncode}: {(result.stderr or '')[-300:]}",
+                f"spawn exited {result.returncode}: {(result.stderr or result.stdout or '')[-300:]}",
             )
         if "meshchatx-spawn-ok" not in (result.stdout or ""):
             return _status(False, f"Unexpected spawn output: {result.stdout!r}")
