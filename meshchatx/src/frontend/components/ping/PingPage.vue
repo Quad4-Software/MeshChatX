@@ -287,7 +287,7 @@ export default {
                 };
             } catch (e) {
                 // ignore cancelled error
-                if (window.api.isCancel(e)) {
+                if (window.api.isCancel?.(e)) {
                     return;
                 }
 
