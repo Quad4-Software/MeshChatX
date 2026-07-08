@@ -121,6 +121,88 @@ describe("MessagesPage.vue", () => {
         vi.useRealTimers();
     });
 
+    it("does not prematurely clear isLoadingConversations when a superseded request aborts", async () => {
+        vi.useFakeTimers();
+        axiosMock.isCancel = vi.fn((e) => e?.isCancelled === true);
+
+        const pending = [];
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/config")
+                return Promise.resolve({ data: { config: { lxmf_address_hash: "my-hash" } } });
+            if (url === "/api/v1/lxmf/conversations") {
+                return new Promise((resolve, reject) => {
+                    pending.push({ resolve, reject });
+                });
+            }
+            return Promise.resolve({ data: {} });
+        });
+
+        const wrapper = mountMessagesPage();
+        await wrapper.vm.$nextTick();
+        expect(pending.length).toBe(1);
+
+        // start a new request that aborts the previous one
+        wrapper.vm.getConversations();
+        expect(pending.length).toBe(2);
+
+        // reject the first request with a cancelled error
+        pending[0].reject({ isCancelled: true });
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+
+        // isLoadingConversations should remain true because the second request is still in-flight
+        expect(wrapper.vm.isLoadingConversations).toBe(true);
+
+        // resolve the second request
+        pending[1].resolve({ data: { conversations: [] } });
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.vm.isLoadingConversations).toBe(false);
+        vi.useRealTimers();
+    });
+
+    it("does not prematurely clear isLoadingMoreAnnounces when a superseded announces request aborts", async () => {
+        vi.useFakeTimers();
+        axiosMock.isCancel = vi.fn((e) => e?.isCancelled === true);
+
+        const pending = [];
+        axiosMock.get.mockImplementation((url, config) => {
+            if (url === "/api/v1/config")
+                return Promise.resolve({ data: { config: { lxmf_address_hash: "my-hash" } } });
+            if (url === "/api/v1/announces") {
+                return new Promise((resolve, reject) => {
+                    pending.push({ resolve, reject });
+                });
+            }
+            if (url === "/api/v1/lxmf/conversations") return Promise.resolve({ data: { conversations: [] } });
+            return Promise.resolve({ data: {} });
+        });
+
+        const wrapper = mountMessagesPage();
+        await wrapper.vm.$nextTick();
+
+        wrapper.vm.isLoadingMoreAnnounces = true;
+        wrapper.vm.getLxmfDeliveryAnnounces();
+        expect(pending.length).toBe(1);
+
+        wrapper.vm.getLxmfDeliveryAnnounces();
+        expect(pending.length).toBe(2);
+
+        pending[0].reject({ isCancelled: true });
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.vm.isLoadingMoreAnnounces).toBe(true);
+
+        pending[1].resolve({ data: { announces: [] } });
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.vm.isLoadingMoreAnnounces).toBe(false);
+        vi.useRealTimers();
+    });
+
     it("opens ingest paper message modal", async () => {
         const wrapper = mountMessagesPage();
         await wrapper.vm.$nextTick();
