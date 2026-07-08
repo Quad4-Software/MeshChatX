@@ -19,6 +19,7 @@ from .map_drawings import MapDrawingsDAO
 from .messages import MessageDAO
 from .misc import MiscDAO
 from .provider import DatabaseProvider
+from .notification_sounds import NotificationSoundDAO
 from .ringtones import RingtoneDAO
 from .schema import DatabaseSchema
 from .sticker_packs import UserStickerPacksDAO
@@ -77,6 +78,7 @@ class Database:
         self.telemetry = TelemetryDAO(self.provider)
         self.voicemails = VoicemailDAO(self.provider)
         self.ringtones = RingtoneDAO(self.provider)
+        self.notification_sounds = NotificationSoundDAO(self.provider)
         self.contacts = ContactsDAO(self.provider)
         self.map_drawings = MapDrawingsDAO(self.provider)
         self.stickers = UserStickersDAO(self.provider)

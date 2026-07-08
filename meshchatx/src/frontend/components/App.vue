@@ -574,6 +574,7 @@ import { countRelayMentions } from "../js/relayMentionCount.js";
 import Utils from "../js/Utils";
 import GlobalEmitter from "../js/GlobalEmitter";
 import NotificationUtils from "../js/NotificationUtils";
+import NotificationSoundUtils from "../js/NotificationSoundUtils";
 import LxmfUserIcon from "./LxmfUserIcon.vue";
 import Toast from "./Toast.vue";
 import ConfirmDialog from "./ConfirmDialog.vue";
@@ -869,6 +870,7 @@ export default {
             return count;
         },
         onRingtoneUnlockGesture() {
+            NotificationSoundUtils.unlockAutoplay();
             if (!this.ringtoneAutoplayBlocked) {
                 return;
             }
@@ -1330,7 +1332,7 @@ export default {
                 "rrc.change": () => {
                     this.updateRelayChatUnreadCount();
                 },
-                "lxmf.delivery": (json) => {
+                "lxmf.delivery": async (json) => {
                     if (this.config?.do_not_disturb_enabled) {
                         return;
                     }
@@ -1338,14 +1340,18 @@ export default {
                         return;
                     }
                     this.updateUnreadConversationsCount();
-                    if (
-                        !document.hasFocus() &&
+                    const isIncomingMessage =
                         json.lxmf_message?.is_incoming === true &&
-                        (json.lxmf_message?.content || json.lxmf_message?.title)
-                    ) {
+                        (json.lxmf_message?.content || json.lxmf_message?.title);
+                    let playedNotificationSound = false;
+                    if (isIncomingMessage) {
+                        playedNotificationSound = await NotificationSoundUtils.play(this.config);
+                    }
+                    if (!document.hasFocus() && isIncomingMessage) {
                         NotificationUtils.showNewMessageNotification(
                             json.remote_identity_name,
-                            json.lxmf_message?.content
+                            json.lxmf_message?.content,
+                            playedNotificationSound
                         );
                     }
                 },

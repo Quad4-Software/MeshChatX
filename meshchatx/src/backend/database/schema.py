@@ -19,7 +19,7 @@ def _validate_identifier(name: str, label: str = "identifier") -> str:
 
 
 class DatabaseSchema:
-    LATEST_VERSION = 48
+    LATEST_VERSION = 49
 
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -377,6 +377,17 @@ class DatabaseSchema:
             """,
             "ringtones": """
                 CREATE TABLE IF NOT EXISTS ringtones (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    filename TEXT,
+                    display_name TEXT,
+                    storage_filename TEXT,
+                    is_primary INTEGER DEFAULT 0,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "notification_sounds": """
+                CREATE TABLE IF NOT EXISTS notification_sounds (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     filename TEXT,
                     display_name TEXT,
@@ -1294,3 +1305,16 @@ class DatabaseSchema:
         if current_version < 48:
             self._ensure_column("lxmf_messages", "path_finding_measure", "TEXT")
             self._ensure_column("lxmf_messages", "path_row_hash_hex", "TEXT")
+
+        if current_version < 49:
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS notification_sounds (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    filename TEXT,
+                    display_name TEXT,
+                    storage_filename TEXT,
+                    is_primary INTEGER DEFAULT 0,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)

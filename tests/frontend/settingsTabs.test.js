@@ -39,6 +39,7 @@ const KNOWN_SECTIONS_FROM_SETTINGS_PAGE = [
     "infrastructure",
     "csp",
     "messages",
+    "notificationSounds",
     "propagation",
     "shortcuts",
 ];

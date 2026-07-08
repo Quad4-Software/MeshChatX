@@ -164,6 +164,5 @@ async def test_telemetry_request_no_location_does_not_call_handler(mock_app):
 
     mock_app.handle_telemetry_request.assert_not_called()
 
-
     # We can't easily test the web endpoint here without more setup,
     # but we can test the logic it calls if it was refactored into a method.

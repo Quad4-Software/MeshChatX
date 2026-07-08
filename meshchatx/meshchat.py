@@ -595,6 +595,19 @@ class ReticulumMeshChat:
             self.current_context.ringtone_manager = value
 
     @property
+    def notification_sound_manager(self):
+        return (
+            self.current_context.notification_sound_manager
+            if self.current_context
+            else None
+        )
+
+    @notification_sound_manager.setter
+    def notification_sound_manager(self, value):
+        if self.current_context:
+            self.current_context.notification_sound_manager = value
+
+    @property
     def rncp_handler(self):
         return self.current_context.rncp_handler if self.current_context else None
 
@@ -9471,6 +9484,181 @@ class ReticulumMeshChat:
             except Exception as e:
                 return web.json_response({"message": str(e)}, status=500)
 
+        # notification sound routes
+        @routes.get("/api/v1/notification-sounds")
+        async def notification_sounds_get(request):
+            sounds = self.database.notification_sounds.get_all()
+            return web.json_response(
+                [
+                    {
+                        "id": s["id"],
+                        "filename": s["filename"],
+                        "display_name": s["display_name"],
+                        "is_primary": bool(s["is_primary"]),
+                        "created_at": s["created_at"],
+                    }
+                    for s in sounds
+                ],
+            )
+
+        @routes.get("/api/v1/notification-sounds/status")
+        async def notification_sound_status(request):
+            try:
+                sound_id = None
+
+                preferred_id = self.config.notification_sound_preferred_id.get()
+                if preferred_id and preferred_id > 0:
+                    sound_id = preferred_id
+
+                if sound_id is None:
+                    primary = self.database.notification_sounds.get_primary()
+                    if primary:
+                        sound_id = primary["id"]
+
+                has_sound = sound_id is not None
+                sound = (
+                    self.database.notification_sounds.get_by_id(sound_id)
+                    if sound_id
+                    else None
+                )
+
+                return web.json_response(
+                    {
+                        "has_sound": has_sound and sound is not None,
+                        "enabled": self.config.notification_sound_enabled.get(),
+                        "filename": sound["filename"] if sound else None,
+                        "id": sound_id,
+                        "volume": self.config.notification_sound_volume.get() / 100.0,
+                    },
+                )
+            except Exception as e:
+                logger.error(f"Error in notification_sound_status: {e}")
+                return web.json_response(
+                    {
+                        "has_sound": False,
+                        "enabled": self.config.notification_sound_enabled.get(),
+                        "filename": None,
+                        "id": None,
+                        "volume": self.config.notification_sound_volume.get() / 100.0,
+                    },
+                )
+
+        @routes.get("/api/v1/notification-sounds/{id}/audio")
+        async def notification_sound_audio(request):
+            sound_id = int(request.match_info["id"])
+            sound = self.database.notification_sounds.get_by_id(sound_id)
+            if not sound:
+                return web.Response(status=404)
+
+            if not self.notification_sound_manager:
+                return web.Response(status=503)
+
+            filepath = self.notification_sound_manager.get_ringtone_path(
+                sound["storage_filename"],
+            )
+            if not os.path.exists(filepath):
+                return web.Response(status=404)
+
+            return web.FileResponse(
+                filepath,
+                headers={
+                    "Content-Type": "audio/ogg",
+                    "Content-Disposition": f'attachment; filename="{sound["filename"]}"',
+                },
+            )
+
+        @routes.post("/api/v1/notification-sounds/upload")
+        async def notification_sound_upload(request):
+            if not self.notification_sound_manager:
+                return web.json_response(
+                    {"message": "Notification sound manager unavailable"},
+                    status=503,
+                )
+            try:
+                reader = await request.multipart()
+                field = await reader.next()
+                if field.name != "file":
+                    return web.json_response(
+                        {"message": "File field required"},
+                        status=400,
+                    )
+
+                filename = field.filename
+                extension = os.path.splitext(filename)[1].lower()
+                if extension not in [".mp3", ".ogg", ".wav", ".m4a", ".flac"]:
+                    return web.json_response(
+                        {"message": f"Unsupported file type: {extension}"},
+                        status=400,
+                    )
+
+                with tempfile.NamedTemporaryFile(suffix=extension, delete=False) as f:
+                    temp_path = f.name
+                    while True:
+                        chunk = await field.read_chunk()
+                        if not chunk:
+                            break
+                        f.write(chunk)
+
+                try:
+                    storage_filename = await asyncio.to_thread(
+                        self.notification_sound_manager.convert_to_ringtone,
+                        temp_path,
+                    )
+
+                    sound_id = self.database.notification_sounds.add(
+                        filename=filename,
+                        storage_filename=storage_filename,
+                    )
+
+                    return web.json_response(
+                        {
+                            "message": "Notification sound uploaded and converted",
+                            "id": sound_id,
+                            "filename": filename,
+                            "storage_filename": storage_filename,
+                        },
+                    )
+                finally:
+                    if os.path.exists(temp_path):
+                        os.remove(temp_path)
+
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+
+        @routes.patch("/api/v1/notification-sounds/{id}")
+        async def notification_sound_patch(request):
+            try:
+                sound_id = int(request.match_info["id"])
+                data = await request.json()
+
+                display_name = data.get("display_name")
+                is_primary = 1 if data.get("is_primary") else None
+
+                self.database.notification_sounds.update(
+                    sound_id,
+                    display_name=display_name,
+                    is_primary=is_primary,
+                )
+
+                return web.json_response({"message": "Notification sound updated"})
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+
+        @routes.delete("/api/v1/notification-sounds/{id}")
+        async def notification_sound_delete(request):
+            try:
+                sound_id = int(request.match_info["id"])
+                sound = self.database.notification_sounds.get_by_id(sound_id)
+                if sound:
+                    if self.notification_sound_manager:
+                        self.notification_sound_manager.remove_ringtone(
+                            sound["storage_filename"],
+                        )
+                    self.database.notification_sounds.delete(sound_id)
+                return web.json_response({"message": "Notification sound deleted"})
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+
         # contacts routes
         @routes.get("/api/v1/telephone/contacts")
         async def telephone_contacts_get(request):
@@ -15595,6 +15783,19 @@ class ReticulumMeshChat:
             if value is not None:
                 self.config.ringtone_volume.set(value)
 
+        if "notification_sound_enabled" in data:
+            self.config.notification_sound_enabled.set(
+                self._parse_bool(data["notification_sound_enabled"]),
+            )
+        if "notification_sound_preferred_id" in data:
+            value = self._coerce_int(data["notification_sound_preferred_id"])
+            if value is not None:
+                self.config.notification_sound_preferred_id.set(value)
+        if "notification_sound_volume" in data:
+            value = self._coerce_int(data["notification_sound_volume"])
+            if value is not None:
+                self.config.notification_sound_volume.set(value)
+
         if "do_not_disturb_enabled" in data:
             self.config.do_not_disturb_enabled.set(
                 self._parse_bool(data["do_not_disturb_enabled"]),
@@ -16864,6 +17065,9 @@ class ReticulumMeshChat:
             "ringtone_filename": ctx.config.ringtone_filename.get(),
             "ringtone_preferred_id": ctx.config.ringtone_preferred_id.get(),
             "ringtone_volume": ctx.config.ringtone_volume.get(),
+            "notification_sound_enabled": ctx.config.notification_sound_enabled.get(),
+            "notification_sound_preferred_id": ctx.config.notification_sound_preferred_id.get(),
+            "notification_sound_volume": ctx.config.notification_sound_volume.get(),
             "map_offline_enabled": ctx.config.map_offline_enabled.get(),
             "map_mbtiles_dir": ctx.config.map_mbtiles_dir.get(),
             "map_tile_cache_enabled": ctx.config.map_tile_cache_enabled.get(),

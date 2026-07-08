@@ -68,11 +68,12 @@ class NotificationUtils {
         });
     }
 
-    static showNewMessageNotification(from, content) {
+    static showNewMessageNotification(from, content, silent = false) {
         if (window.electron) {
             window.electron.showNotification(
                 "New Message",
-                from ? `${from}: ${content || "Sent a message."}` : "Someone sent you a message."
+                from ? `${from}: ${content || "Sent a message."}` : "Someone sent you a message.",
+                silent
             );
             return;
         }

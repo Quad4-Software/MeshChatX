@@ -911,6 +911,7 @@ export default {
         "ingest-paper-message",
         "load-more",
         "load-more-announces",
+        "announces-tab-activated",
         "folder-click",
         "create-folder",
         "rename-folder",
@@ -1064,6 +1065,11 @@ export default {
         },
     },
     watch: {
+        tab(newTab, oldTab) {
+            if (newTab === "announces" && oldTab !== "announces") {
+                this.$emit("announces-tab-activated");
+            }
+        },
         foldersExpanded(newVal) {
             try {
                 if (typeof localStorage !== "undefined") {

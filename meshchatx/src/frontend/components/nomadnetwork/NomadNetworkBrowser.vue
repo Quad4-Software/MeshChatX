@@ -50,21 +50,22 @@
         </div>
 
         <div class="relative flex flex-1 min-h-0 min-w-0 overflow-hidden">
-            <NomadNetworkPage
-                v-for="tab in tabs"
-                v-show="tab.id === activeTabId"
-                :key="tab.id"
-                :ref="(el) => setPageRef(tab.id, el)"
-                class="absolute inset-0 flex min-h-0 min-w-0"
-                embedded
-                :tabs-enabled="tabsEnabled"
-                :is-active="tab.id === activeTabId"
-                :destination-hash="tab.destinationHash"
-                :initial-path="tab.initialPath"
-                @navigate="onTabNavigate(tab.id, $event)"
-                @open-node="onOpenNode"
-                @close-tab="closeTab(tab.id)"
-            />
+            <template v-for="tab in tabs" :key="tab.id">
+                <NomadNetworkPage
+                    v-if="isTabMounted(tab.id)"
+                    v-show="tab.id === activeTabId"
+                    :ref="(el) => setPageRef(tab.id, el)"
+                    class="absolute inset-0 flex min-h-0 min-w-0"
+                    embedded
+                    :tabs-enabled="tabsEnabled"
+                    :is-active="tab.id === activeTabId"
+                    :destination-hash="tab.destinationHash"
+                    :initial-path="tab.initialPath"
+                    @navigate="onTabNavigate(tab.id, $event)"
+                    @open-node="onOpenNode"
+                    @close-tab="closeTab(tab.id)"
+                />
+            </template>
         </div>
 
         <NomadBrowserContextMenu
@@ -136,6 +137,7 @@ export default {
             mediaQueryListener: null,
             dragTabIndex: null,
             pageRefs: {},
+            mountedTabIds: {},
             contextMenu: {
                 show: false,
                 justOpened: false,
@@ -216,6 +218,7 @@ export default {
         }
 
         GlobalEmitter.on("nomad-open-node", this.handleNomadOpenNode);
+        this.mountTab(this.activeTabId);
     },
     activated() {
         if (this.$route?.query?.newTab === "1") {
@@ -256,6 +259,24 @@ export default {
             this.mediaQuery = null;
             this.mediaQueryListener = null;
         },
+        mountTab(tabId) {
+            if (tabId == null || this.mountedTabIds[tabId]) {
+                return;
+            }
+            this.mountedTabIds = { ...this.mountedTabIds, [tabId]: true };
+        },
+        isTabMounted(tabId) {
+            return Boolean(this.mountedTabIds[tabId]);
+        },
+        unmountTab(tabId) {
+            if (tabId == null || !this.mountedTabIds[tabId]) {
+                return;
+            }
+            delete this.pageRefs[tabId];
+            const nextMounted = { ...this.mountedTabIds };
+            delete nextMounted[tabId];
+            this.mountedTabIds = nextMounted;
+        },
         addTab(destinationHash = "", initialPath = null, title = null, activate = true) {
             const id = this.nextTabId++;
             this.tabs.push({
@@ -267,6 +288,7 @@ export default {
             });
             if (activate) {
                 this.activeTabId = id;
+                this.mountTab(id);
                 this.syncRoute();
             }
             return id;
@@ -444,6 +466,7 @@ export default {
                 return;
             }
             this.activeTabId = tabId;
+            this.mountTab(tabId);
             this.syncRoute();
             this.$nextTick(() => {
                 this.verifyActiveTabPage(tab);
@@ -494,6 +517,7 @@ export default {
 
             const wasActive = this.tabs[index].id === this.activeTabId;
             this.tabs.splice(index, 1);
+            this.unmountTab(tabId);
 
             if (this.tabs.length === 0) {
                 this.addTab();
@@ -503,6 +527,7 @@ export default {
             if (wasActive) {
                 const neighbour = this.tabs[index] || this.tabs[index - 1] || this.tabs[0];
                 this.activeTabId = neighbour.id;
+                this.mountTab(neighbour.id);
             }
             this.syncRoute();
         },

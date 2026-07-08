@@ -125,6 +125,10 @@ def test_all_telephony_settings_persist(db):
     config.ringtone_volume.set(75)
     config.ringtone_preferred_id.set(3)
 
+    config.notification_sound_enabled.set(True)
+    config.notification_sound_preferred_id.set(2)
+    config.notification_sound_volume.set(55)
+
     # Desktop / misc
     config.desktop_open_calls_in_separate_window.set(True)
 
@@ -158,6 +162,11 @@ def test_all_telephony_settings_persist(db):
     assert config2.custom_ringtone_enabled.get() is True
     assert config2.ringtone_volume.get() == 75
     assert config2.ringtone_preferred_id.get() == 3
+
+    # Notification sound
+    assert config2.notification_sound_enabled.get() is True
+    assert config2.notification_sound_preferred_id.get() == 2
+    assert config2.notification_sound_volume.get() == 55
 
     # Desktop
     assert config2.desktop_open_calls_in_separate_window.get() is True

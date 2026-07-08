@@ -108,7 +108,6 @@ def test_translate_argos_cli(mock_run):
         )
         assert result["translated_text"] == "Hola"
 
-
     # _detect_language is private
 
 
