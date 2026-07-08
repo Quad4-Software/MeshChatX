@@ -913,11 +913,13 @@ class ReticulumMeshChat:
         from meshchatx.src.backend.rnode_support import (
             guard_invalid_rnode_txpower_in_config,
             guard_rnode_interfaces_on_android,
+            guard_rnode_interfaces_on_desktop,
             normalize_rnode_tcp_host_in_config,
         )
 
         normalize_rnode_tcp_host_in_config(config_path)
         guard_rnode_interfaces_on_android(config_path)
+        guard_rnode_interfaces_on_desktop(config_path)
         guard_invalid_rnode_txpower_in_config(config_path)
 
     def setup_identity(self, identity: RNS.Identity):
@@ -5205,14 +5207,20 @@ class ReticulumMeshChat:
                     probe_interface,
                     is_android=_is_chaquopy_android(),
                 ):
+                    if _is_chaquopy_android():
+                        message = (
+                            "This RNode connection type is not available on this device. "
+                            "On Android, USB serial and Bluetooth need usbserial4a and jnius "
+                            "(see MeshChatX issue #6); RNode over IP (TCP) is unaffected."
+                        )
+                    else:
+                        message = (
+                            "This RNode connection type is not available on this device. "
+                            "USB serial and classic Bluetooth need pyserial; BLE needs bleak. "
+                            "RNode over IP (TCP) is unaffected."
+                        )
                     return web.json_response(
-                        {
-                            "message": (
-                                "This RNode connection type is not available on this device. "
-                                "On Android, USB serial and Bluetooth need usbserial4a and jnius "
-                                "(see MeshChatX issue #6); RNode over IP (TCP) is unaffected."
-                            ),
-                        },
+                        {"message": message},
                         status=422,
                     )
 

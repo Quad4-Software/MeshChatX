@@ -301,6 +301,51 @@ def test_guard_skips_rnode_multi_interface_off_android(tmp_path, monkeypatch):
     assert "interface_enabled = True" in config_path.read_text(encoding="utf-8")
 
 
+def test_guard_rnode_interfaces_on_desktop_disables_ble_without_bleak(
+    tmp_path,
+    monkeypatch,
+):
+    config_path = tmp_path / "config"
+    config_path.write_text(
+        """[interfaces]
+[[RNode BLE]]
+type = RNodeInterface
+interface_enabled = True
+port = ble://aa:bb:cc:dd:ee:ff
+[[RNode TCP]]
+type = RNodeInterface
+interface_enabled = True
+port = tcp://192.0.2.1:4242
+""",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(rnode_support, "_is_chaquopy_android", lambda: False)
+    monkeypatch.setattr(rnode_support, "desktop_ble_stack_available", lambda: False)
+    monkeypatch.setattr(rnode_support, "desktop_serial_stack_available", lambda: True)
+
+    assert rnode_support.guard_rnode_interfaces_on_desktop(str(config_path)) is True
+    text = config_path.read_text(encoding="utf-8").lower()
+    assert text.count("interface_enabled = false") == 1
+
+
+def test_guard_rnode_interfaces_on_desktop_skips_on_android(tmp_path, monkeypatch):
+    config_path = tmp_path / "config"
+    config_path.write_text(
+        """[interfaces]
+[[RNode BLE]]
+type = RNodeInterface
+interface_enabled = True
+port = ble://aa:bb:cc:dd:ee:ff
+""",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(rnode_support, "_is_chaquopy_android", lambda: True)
+    monkeypatch.setattr(rnode_support, "desktop_ble_stack_available", lambda: False)
+
+    assert rnode_support.guard_rnode_interfaces_on_desktop(str(config_path)) is False
+    assert "interface_enabled = True" in config_path.read_text(encoding="utf-8")
+
+
 def test_guard_skips_already_disabled_interfaces(tmp_path, monkeypatch):
     config_path = tmp_path / "config"
     config_path.write_text(
