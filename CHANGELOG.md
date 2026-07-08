@@ -20,6 +20,9 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- **RNSh / Windows**: Frozen desktop builds no longer launch rnsh via ``python -m`` (``sys.executable`` is MeshChatX itself and rejects ``-m``). Sessions re-enter the bundled rnsh module with ``--meshchatx-run-module``.
+- **CI / nightly**: Daily ``nightly-YYYY.MM.DD-<sha>`` tags from ``dev`` now explicitly ``workflow_dispatch`` ``build-release.yml`` after tagging so full release assets are produced.
+
 - **Plugins**: Plugin worker `postRequest` Promise wrapper, plugin locale loading at boot, cached UI on page open, and slot renderer recursion for nested column/list/row children.
 - **Plugins**: Mesh Observatory layout — spaced action buttons, section cards, truncated interface names, and state badges instead of squashed single-line rows.
 - **RNode / Android**: Hardened `rnode_support` startup guards — desktop TCP RNode no longer incorrectly requires pyserial; desktop BLE now checks for bleak instead of pyserial; whitespace-only Bluetooth ports classify correctly; invalid `tcp:///` hosts are no longer backfilled; `RNodeIPInterface` entries get `tcp_host` backfill on Android; RNodeMulti sibling sub-interfaces with invalid TX power are detected and disabled; txpower guard honors both `enabled` and `interface_enabled` keys.
