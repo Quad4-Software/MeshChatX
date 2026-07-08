@@ -3044,37 +3044,27 @@ export default {
             if (!this.selfTestResults) {
                 return [];
             }
+            const r = this.selfTestResults;
+            const item = (key, labelKey) => ({
+                key,
+                label: this.$t(labelKey),
+                passed: r[key]?.status === "ok",
+                reason: r[key]?.reason || "",
+            });
             return [
-                {
-                    key: "stack_up",
-                    label: this.$t("selftest.stack_up"),
-                    passed: this.selfTestResults.stack_up.status === "ok",
-                    reason: this.selfTestResults.stack_up.reason,
-                },
-                {
-                    key: "config_good",
-                    label: this.$t("selftest.config_good"),
-                    passed: this.selfTestResults.config_good.status === "ok",
-                    reason: this.selfTestResults.config_good.reason,
-                },
-                {
-                    key: "db_good",
-                    label: this.$t("selftest.db_good"),
-                    passed: this.selfTestResults.db_good.status === "ok",
-                    reason: this.selfTestResults.db_good.reason,
-                },
-                {
-                    key: "read_write_good",
-                    label: this.$t("selftest.read_write"),
-                    passed: this.selfTestResults.read_write_good.status === "ok",
-                    reason: this.selfTestResults.read_write_good.reason,
-                },
-                {
-                    key: "bots_lifecycle",
-                    label: this.$t("selftest.bots_lifecycle"),
-                    passed: this.selfTestResults.bots_lifecycle?.status === "ok",
-                    reason: this.selfTestResults.bots_lifecycle?.reason || "",
-                },
+                item("stack_up", "selftest.stack_up"),
+                item("config_good", "selftest.config_good"),
+                item("db_good", "selftest.db_good"),
+                item("read_write_good", "selftest.read_write"),
+                item("identity_good", "selftest.identity_good"),
+                item("imports_good", "selftest.imports_good"),
+                item("storage_lock_good", "selftest.storage_lock_good"),
+                item("temp_fs_good", "selftest.temp_fs_good"),
+                item("public_assets_good", "selftest.public_assets_good"),
+                item("lxmf_router_good", "selftest.lxmf_router_good"),
+                item("subprocess_good", "selftest.subprocess_good"),
+                item("run_module_good", "selftest.run_module_good"),
+                item("bots_lifecycle", "selftest.bots_lifecycle"),
             ];
         },
         allSelfTestChecksPassed() {
@@ -3156,6 +3146,14 @@ export default {
                     config_good: { status: "failed", reason: e.message || String(e) },
                     db_good: { status: "failed", reason: e.message || String(e) },
                     read_write_good: { status: "failed", reason: e.message || String(e) },
+                    identity_good: { status: "failed", reason: e.message || String(e) },
+                    imports_good: { status: "failed", reason: e.message || String(e) },
+                    storage_lock_good: { status: "failed", reason: e.message || String(e) },
+                    temp_fs_good: { status: "failed", reason: e.message || String(e) },
+                    public_assets_good: { status: "failed", reason: e.message || String(e) },
+                    lxmf_router_good: { status: "failed", reason: e.message || String(e) },
+                    subprocess_good: { status: "failed", reason: e.message || String(e) },
+                    run_module_good: { status: "failed", reason: e.message || String(e) },
                     bots_lifecycle: { status: "failed", reason: e.message || String(e) },
                 };
             } finally {

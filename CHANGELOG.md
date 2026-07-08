@@ -22,6 +22,7 @@ All notable changes to this project will be documented in this file.
 
 - **Bots / macOS**: Creating or starting LXMFy bots from a frozen desktop build no longer re-launches a second MeshChatX instance (and hit the storage lock). Bot subprocesses re-enter ``bot_process`` via ``--meshchatx-run-module``.
 - **Self-Test**: Diagnostics now include a live **bot create / start / stop / delete** check (also covered by ``--self-check`` CI and E2E smoke).
+- **Self-Test**: Expanded cross-platform checks for identity, critical imports, storage lock, temp filesystem, public assets, LXMF router, subprocess spawn, and ``--meshchatx-run-module`` re-entry (Windows / macOS / Linux CI).
 - **RNSh / Windows**: Frozen desktop builds no longer launch rnsh via ``python -m`` (``sys.executable`` is MeshChatX itself and rejects ``-m``). Sessions re-enter the bundled rnsh module with ``--meshchatx-run-module``.
 - **CI / nightly**: Daily ``nightly-YYYY.MM.DD-<sha>`` tags from ``dev`` now explicitly ``workflow_dispatch`` ``build-release.yml`` after tagging so full release assets are produced.
 - **Plugins**: Plugin worker `postRequest` Promise wrapper, plugin locale loading at boot, cached UI on page open, and slot renderer recursion for nested column/list/row children.

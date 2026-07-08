@@ -75,15 +75,15 @@ def mock_rns():
             }
 
 
+def _ok_results():
+    from meshchatx.src.backend.self_check import SELF_CHECK_LABELS
+
+    return {key: {"status": "ok", "reason": ""} for key in SELF_CHECK_LABELS}
+
+
 def test_self_check_cli_success(mock_rns, temp_dir):
     """Test that self-check CLI argument prints results and exits with 0 on success."""
-    mock_results = {
-        "stack_up": {"status": "ok", "reason": ""},
-        "config_good": {"status": "ok", "reason": ""},
-        "db_good": {"status": "ok", "reason": ""},
-        "read_write_good": {"status": "ok", "reason": ""},
-        "bots_lifecycle": {"status": "ok", "reason": ""},
-    }
+    mock_results = _ok_results()
 
     with (
         patch("meshchatx.meshchat.ReticulumMeshChat") as mock_app_class,
@@ -104,15 +104,14 @@ def test_self_check_cli_success(mock_rns, temp_dir):
 
 def test_self_check_cli_failure(mock_rns, temp_dir):
     """Test that self-check CLI argument prints results and exits with 1 on failure."""
-    mock_results = {
-        "stack_up": {
-            "status": "failed",
-            "reason": "Reticulum stack is not initialized",
-        },
-        "config_good": {"status": "ok", "reason": ""},
-        "db_good": {"status": "failed", "reason": "Database check failed"},
-        "read_write_good": {"status": "ok", "reason": ""},
-        "bots_lifecycle": {"status": "ok", "reason": ""},
+    mock_results = _ok_results()
+    mock_results["stack_up"] = {
+        "status": "failed",
+        "reason": "Reticulum stack is not initialized",
+    }
+    mock_results["db_good"] = {
+        "status": "failed",
+        "reason": "Database check failed",
     }
 
     with (
@@ -134,13 +133,7 @@ def test_self_check_cli_failure(mock_rns, temp_dir):
 
 def test_self_check_env_var_success(mock_rns, temp_dir):
     """Test that MESHCHAT_SELF_CHECK env var triggers self-check and exits with 0 on success."""
-    mock_results = {
-        "stack_up": {"status": "ok", "reason": ""},
-        "config_good": {"status": "ok", "reason": ""},
-        "db_good": {"status": "ok", "reason": ""},
-        "read_write_good": {"status": "ok", "reason": ""},
-        "bots_lifecycle": {"status": "ok", "reason": ""},
-    }
+    mock_results = _ok_results()
 
     env = {
         "MESHCHAT_SELF_CHECK": "true",

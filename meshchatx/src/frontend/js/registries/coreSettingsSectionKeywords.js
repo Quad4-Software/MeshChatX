@@ -107,6 +107,12 @@ export const CORE_SETTINGS_SECTION_KEYWORDS = {
         "selftest.description",
         "bot",
         "bots",
+        "identity",
+        "imports",
+        "storage lock",
+        "subprocess",
+        "run-module",
+        "lxmf",
     ],
     desktop: [
         "Desktop",

@@ -938,7 +938,33 @@ class ReticulumMeshChat:
             rw_ok = False
             rw_reason = f"Read/write test failed: {str(e)}"
 
+        from meshchatx.src.backend import self_check as self_check_mod
+
         bots_ok, bots_reason = self._check_bot_lifecycle()
+        identity_result = self_check_mod.check_identity(self.identity)
+        imports_result = self_check_mod.check_critical_imports()
+        # Fold Python runtime into imports so the UI stays one row.
+        runtime_result = self_check_mod.check_python_runtime()
+        if runtime_result["status"] != "ok" and imports_result["status"] == "ok":
+            imports_result = runtime_result
+        elif runtime_result["status"] != "ok":
+            imports_result = {
+                "status": "failed",
+                "reason": f"{imports_result.get('reason') or ''} | {runtime_result.get('reason') or ''}".strip(
+                    " |"
+                ),
+            }
+        storage_lock_result = self_check_mod.check_storage_lock(
+            self.storage_path or self.storage_dir
+        )
+        temp_fs_result = self_check_mod.check_temp_filesystem()
+        public_assets_result = self_check_mod.check_public_assets(self.get_public_path)
+        lxmf_result = self_check_mod.check_lxmf_router(
+            self.message_router,
+            self.local_lxmf_destination,
+        )
+        subprocess_result = self_check_mod.check_subprocess_spawn()
+        run_module_result = self_check_mod.check_meshchatx_run_module()
 
         return {
             "stack_up": {
@@ -957,6 +983,14 @@ class ReticulumMeshChat:
                 "status": "ok" if rw_ok else "failed",
                 "reason": rw_reason,
             },
+            "identity_good": identity_result,
+            "imports_good": imports_result,
+            "storage_lock_good": storage_lock_result,
+            "temp_fs_good": temp_fs_result,
+            "public_assets_good": public_assets_result,
+            "lxmf_router_good": lxmf_result,
+            "subprocess_good": subprocess_result,
+            "run_module_good": run_module_result,
             "bots_lifecycle": {
                 "status": "ok" if bots_ok else "failed",
                 "reason": bots_reason,
@@ -20411,15 +20445,9 @@ def main():
         print("================================")
 
         all_passed = True
-        labels = {
-            "stack_up": "Network Stack          ",
-            "config_good": "Configuration Integrity",
-            "db_good": "Database Connection    ",
-            "read_write_good": "Storage Read/Write     ",
-            "bots_lifecycle": "Bot Create/Start/Stop  ",
-        }
+        from meshchatx.src.backend.self_check import SELF_CHECK_LABELS
 
-        for key, name in labels.items():
+        for key, name in SELF_CHECK_LABELS.items():
             check = results.get(key, {"status": "failed", "reason": "No result"})
             if check["status"] == "ok":
                 print(f"[OK]     {name}")

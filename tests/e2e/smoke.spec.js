@@ -15,11 +15,25 @@ test.describe("MeshChatX E2E (Vite + Python backend)", () => {
         const res = await request.get("/api/v1/self-test");
         expect(res.ok()).toBeTruthy();
         const body = await res.json();
-        expect(body.stack_up.status).toBe("ok");
-        expect(body.config_good.status).toBe("ok");
-        expect(body.db_good.status).toBe("ok");
-        expect(body.read_write_good.status).toBe("ok");
-        expect(body.bots_lifecycle.status).toBe("ok");
+        const keys = [
+            "stack_up",
+            "config_good",
+            "db_good",
+            "read_write_good",
+            "identity_good",
+            "imports_good",
+            "storage_lock_good",
+            "temp_fs_good",
+            "public_assets_good",
+            "lxmf_router_good",
+            "subprocess_good",
+            "run_module_good",
+            "bots_lifecycle",
+        ];
+        for (const key of keys) {
+            expect(body[key], key).toBeDefined();
+            expect(body[key].status, key).toBe("ok");
+        }
     });
 
     test("backend /api/v1/app/info returns version JSON (direct backend)", async ({ request }) => {
