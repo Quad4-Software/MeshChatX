@@ -1176,7 +1176,12 @@
         "kernel_iface_picker_title": "Interfaces sur cette machine",
         "kernel_iface_loading": "Chargement…",
         "kernel_iface_picker_help": "Le champ Périphérique est optionnel : un seul nom d'interface noyau, ou laisser vide pour lier via l'IP d'écoute uniquement. Cliquez sur une ligne pour remplir.",
-        "auto_iface_ifname_chips_hint": "Interfaces sur cette machine : cliquez pour ajouter ou retirer des noms dans le champ ci-dessus."
+        "auto_iface_ifname_chips_hint": "Interfaces sur cette machine : cliquez pour ajouter ou retirer des noms dans le champ ci-dessus.",
+        "i2p_requirements_title": "Règles de l'interface I2P",
+        "i2p_requirements_body": "Une seule interface I2P est autorisée. Activez d'abord le mode transport dans les paramètres, puis ajoutez I2P en dernier. N'importez pas I2P depuis un fichier de configuration et ne la modifiez pas dans l'éditeur brut. Les changements qui laissent I2P au milieu sont réparés automatiquement à l'enregistrement et au démarrage.",
+        "i2p_transport_required": "Activez le mode transport dans les paramètres avant d'ajouter une interface I2P.",
+        "i2p_already_exists": "Une interface I2P existe déjà. Supprimez-la avant d'en ajouter une autre.",
+        "i2p_import_forbidden": "Les interfaces I2P ne peuvent pas être importées depuis un fichier. Ajoutez I2P uniquement via Ajouter une interface."
     },
     "map": {
         "title": "Carte",
@@ -2605,6 +2610,7 @@
         "command_placeholder": "/bin/bash --login",
         "mirror_exit_code": "Code de sortie miroir (-m)",
         "no_id": "Aucune identité locale (-N)",
+        "no_auth": "Autoriser toute identité (-n)",
         "create_and_start": "Créer et démarrer",
         "session_output": "Sortie de session",
         "no_command_yet": "Aucune commande démarrée pour l'instant",

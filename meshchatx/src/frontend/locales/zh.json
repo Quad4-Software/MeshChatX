@@ -1176,7 +1176,12 @@
         "kernel_iface_picker_title": "本机网络接口",
         "kernel_iface_loading": "加载中…",
         "kernel_iface_picker_help": "“设备”为可选，填写一个内核网卡名，或留空仅按 Listen IP 绑定。点击一行填入输入框。",
-        "auto_iface_ifname_chips_hint": "本机接口：点击可在上方字段中添加或移除名称。"
+        "auto_iface_ifname_chips_hint": "本机接口：点击可在上方字段中添加或移除名称。",
+        "i2p_requirements_title": "I2P 接口规则",
+        "i2p_requirements_body": "只允许一个 I2P 接口。请先在设置中启用传输模式，再将 I2P 添加为最后一个接口。不要从配置文件导入 I2P，也不要在原始配置编辑器中修改它。若 I2P 不在末尾，保存和启动时会自动修复。",
+        "i2p_transport_required": "添加 I2P 接口前请先在设置中启用传输模式。",
+        "i2p_already_exists": "已存在 I2P 接口。请先删除后再添加另一个。",
+        "i2p_import_forbidden": "不能从文件导入 I2P 接口。请仅通过“添加接口”页面添加 I2P。"
     },
     "map": {
         "title": "地图",
@@ -2605,6 +2610,7 @@
         "command_placeholder": "/bin/bash --login",
         "mirror_exit_code": "镜像退出码 (-m)",
         "no_id": "无本地身份 (-N)",
+        "no_auth": "允许任意身份 (-n)",
         "create_and_start": "创建并启动",
         "session_output": "会话输出",
         "no_command_yet": "尚未启动命令",

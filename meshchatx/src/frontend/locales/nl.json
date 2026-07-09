@@ -1176,7 +1176,12 @@
         "kernel_iface_picker_title": "Interfaces op deze host",
         "kernel_iface_loading": "Laden…",
         "kernel_iface_picker_help": "Apparaat is optioneel: één kernelinterfacenaam, of leeg laten en alleen via listen-IP binden. Klik op een regel om in te vullen.",
-        "auto_iface_ifname_chips_hint": "Interfaces op deze host: klik om namen in het veld erboven toe te voegen of te verwijderen."
+        "auto_iface_ifname_chips_hint": "Interfaces op deze host: klik om namen in het veld erboven toe te voegen of te verwijderen.",
+        "i2p_requirements_title": "I2P-interfaceregels",
+        "i2p_requirements_body": "Er is slechts één I2P-interface toegestaan. Schakel eerst transportmodus in bij Instellingen en voeg I2P als laatste toe. Importeer I2P niet uit een configbestand en bewerk het niet in de ruwe editor. Wijzigingen die I2P middenin laten staan worden automatisch hersteld bij opslaan en opstarten.",
+        "i2p_transport_required": "Schakel transportmodus in bij Instellingen voordat je een I2P-interface toevoegt.",
+        "i2p_already_exists": "Er bestaat al een I2P-interface. Verwijder die voordat je er nog een toevoegt.",
+        "i2p_import_forbidden": "I2P-interfaces kunnen niet uit een bestand worden geïmporteerd. Voeg I2P alleen toe via Interface toevoegen."
     },
     "map": {
         "title": "Kaart",
@@ -2605,6 +2610,7 @@
         "command_placeholder": "/bin/bash --login",
         "mirror_exit_code": "Afsluitcode spiegelen (-m)",
         "no_id": "Geen lokale identiteit (-N)",
+        "no_auth": "Elke identiteit toestaan (-n)",
         "create_and_start": "Aanmaken en starten",
         "session_output": "Sessie-uitvoer",
         "no_command_yet": "Nog geen opdracht gestart",

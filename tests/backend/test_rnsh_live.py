@@ -11,9 +11,11 @@ Enable with: MESHCHAT_LIVE_RNSH=1
 
 from __future__ import annotations
 
+import contextlib
 import importlib.util
 import os
 import shutil
+import socket
 import tempfile
 import textwrap
 import time
@@ -34,9 +36,13 @@ class _LiveManager:
     def __init__(self, reticulum_config_dir: str):
         self.reticulum_config_dir = reticulum_config_dir
         self.changes = 0
+        self.outputs = 0
 
     def _on_session_change(self, _session):
         self.changes += 1
+
+    def _on_session_output(self, _session, _chunk):
+        self.outputs += 1
 
     def save(self):
         return None
@@ -167,3 +173,174 @@ def test_rnsh_live_meshchatx_run_module_launcher_starts_listener(monkeypatch, tm
     finally:
         session.stop()
         shutil.rmtree(tmpdir, ignore_errors=True)
+
+
+def _write_tcp_pair(listen_dir: str, conn_dir: str, port: int) -> None:
+    listen_cfg = textwrap.dedent(
+        f"""\
+        [reticulum]
+          enable_transport = Yes
+          share_instance = No
+          shared_instance_port = {37000 + (port % 1000)}
+          instance_name = rnsh_live_listen_{port}
+          panic_on_interface_error = No
+
+        [logging]
+          loglevel = 4
+
+        [interfaces]
+          [[TCP Server]]
+            type = TCPServerInterface
+            enabled = Yes
+            listen_ip = 127.0.0.1
+            listen_port = {port}
+        """
+    )
+    conn_cfg = textwrap.dedent(
+        f"""\
+        [reticulum]
+          enable_transport = Yes
+          share_instance = No
+          shared_instance_port = {38000 + (port % 1000)}
+          instance_name = rnsh_live_conn_{port}
+          panic_on_interface_error = No
+
+        [logging]
+          loglevel = 4
+
+        [interfaces]
+          [[TCP Client]]
+            type = TCPClientInterface
+            enabled = Yes
+            target_host = 127.0.0.1
+            target_port = {port}
+        """
+    )
+    os.makedirs(listen_dir, exist_ok=True)
+    os.makedirs(conn_dir, exist_ok=True)
+    with open(os.path.join(listen_dir, "config"), "w", encoding="utf-8") as handle:
+        handle.write(listen_cfg)
+    with open(os.path.join(conn_dir, "config"), "w", encoding="utf-8") as handle:
+        handle.write(conn_cfg)
+
+
+def _wait_for_output(
+    session: RNSHSession,
+    needle: str,
+    timeout: float = 35.0,
+) -> str:
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        payload = session.to_dict(include_output_tail=True)
+        text = payload.get("output_text") or ""
+        if needle in text:
+            return text
+        if session.status == RNSHSession.STATUS_FAILED:
+            raise AssertionError(
+                f"session failed before output {needle!r}: {session.last_error!r} "
+                f"output={text!r}",
+            )
+        if (
+            session.status != RNSHSession.STATUS_RUNNING
+            and needle not in text
+            and session._process is None
+        ):
+            payload = session.to_dict(include_output_tail=True)
+            text = payload.get("output_text") or ""
+            if needle in text:
+                return text
+            raise AssertionError(
+                f"session stopped before output {needle!r}; status={session.status} "
+                f"exit={session.last_exit_code} output={text!r}",
+            )
+        time.sleep(0.25)
+    payload = session.to_dict(include_output_tail=True)
+    raise AssertionError(
+        f"timed out waiting for {needle!r}; status={session.status} "
+        f"output={payload.get('output_text')!r}",
+    )
+
+
+@pytest.mark.integration
+@pytest.mark.skipif(not _RUN, reason="Set MESHCHAT_LIVE_RNSH=1 to run live RNSh tests")
+@pytest.mark.skipif(
+    not _RNSH_AVAILABLE, reason="RNS.Utilities.rnsh.rnsh is not installed"
+)
+@pytest.mark.skipif(os.name != "posix", reason="Full connect e2e requires a PTY")
+def test_rnsh_live_listen_connect_echo_roundtrip():
+    """Full initiator/listener path over a local TCP Reticulum link.
+
+    Connect mode must use a real PTY: rnsh's initiator registers stdin with
+    asyncio, which fails under pipe/DEVNULL (PermissionError) and never runs
+    the remote command.
+    """
+    sock = socket.socket()
+    sock.bind(("127.0.0.1", 0))
+    port = sock.getsockname()[1]
+    sock.close()
+
+    listen_dir = tempfile.mkdtemp(prefix="meshchat_rnsh_e2e_listen_")
+    conn_dir = tempfile.mkdtemp(prefix="meshchat_rnsh_e2e_conn_")
+    _write_tcp_pair(listen_dir, conn_dir, port)
+
+    listen_manager = _LiveManager(listen_dir)
+    conn_manager = _LiveManager(conn_dir)
+    listen = RNSHSession(
+        listen_manager,
+        "e2e-listen",
+        {
+            "mode": "listen",
+            "no_auth": True,
+            "quiet": 1,
+            "config_path": listen_dir,
+            "announce_period": 2,
+        },
+    )
+    connect = RNSHSession(
+        conn_manager,
+        "e2e-connect",
+        {
+            "mode": "connect",
+            "destination": "pending",
+            "config_path": conn_dir,
+            "remote_command": "echo MESHCHAT_RNSH_E2E_OK",
+            "quiet": 1,
+            "timeout": 25,
+            "mirror": True,
+        },
+    )
+    try:
+        listen.start()
+        address = _wait_for_listen_address(listen, timeout=30.0)
+        listen_text = (
+            listen.to_dict(include_output_tail=True).get("output_text") or ""
+        ).lower()
+        assert f"listening for commands on <{address}>" in listen_text
+
+        # Allow TCP link + announce to settle before the initiator path request.
+        time.sleep(2.0)
+
+        connect.config["destination"] = address
+        connect.start()
+        assert connect.status == RNSHSession.STATUS_RUNNING
+        assert connect._master_fd is not None
+
+        output = _wait_for_output(connect, "MESHCHAT_RNSH_E2E_OK", timeout=35.0)
+        assert "MESHCHAT_RNSH_E2E_OK" in output
+
+        deadline = time.time() + 15.0
+        while time.time() < deadline and connect.status == RNSHSession.STATUS_RUNNING:
+            time.sleep(0.2)
+        assert connect.status in (
+            RNSHSession.STATUS_STOPPED,
+            RNSHSession.STATUS_FAILED,
+        )
+        if connect.last_exit_code is not None:
+            assert connect.last_exit_code == 0
+    finally:
+        with contextlib.suppress(Exception):
+            connect.stop()
+        with contextlib.suppress(Exception):
+            listen.stop()
+        shutil.rmtree(listen_dir, ignore_errors=True)
+        shutil.rmtree(conn_dir, ignore_errors=True)
