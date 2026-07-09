@@ -169,6 +169,7 @@ from meshchatx.src.backend.reticulum_config_guard import (
     repair_unparseable_reticulum_config,
     reticulum_config_has_required_sections,
 )
+from meshchatx.src.backend import i2p_support
 from meshchatx.src.backend.websocket_config_guard import (
     sanitize_websocket_config_update,
     websocket_type_requires_auth,
@@ -306,27 +307,45 @@ def _create_reticulum_instance(config_dir: str, loglevel: int | None = None):
     Reticulum registers SIGINT/SIGTERM handlers in ``__init__``. Python only allows
     ``signal.signal`` on the main thread, so deferred network setup must skip that
     registration when running in a background worker and install handlers later.
+
+    If the first init fails and the config still has an enabled I2P interface,
+    disable I2P and retry once so Android/desktop can recover without wiping
+    app data or the whole ``.reticulum`` tree.
     """
     kwargs = {}
     if loglevel is not None:
         kwargs["loglevel"] = loglevel
 
-    if threading.current_thread() is threading.main_thread():
-        return RNS.Reticulum(config_dir, **kwargs)
+    def _construct():
+        if threading.current_thread() is threading.main_thread():
+            return RNS.Reticulum(config_dir, **kwargs)
 
-    real_signal = signal.signal
+        real_signal = signal.signal
 
-    def _signal_allow_non_main(signum, handler):
+        def _signal_allow_non_main(signum, handler):
+            try:
+                return real_signal(signum, handler)
+            except ValueError:
+                return signal.getsignal(signum)
+
+        signal.signal = _signal_allow_non_main
         try:
-            return real_signal(signum, handler)
-        except ValueError:
-            return signal.getsignal(signum)
+            return RNS.Reticulum(config_dir, **kwargs)
+        finally:
+            signal.signal = real_signal
 
-    signal.signal = _signal_allow_non_main
     try:
-        return RNS.Reticulum(config_dir, **kwargs)
-    finally:
-        signal.signal = real_signal
+        return _construct()
+    except Exception as first_exc:
+        config_path = os.path.join(config_dir, "config")
+        if not i2p_support.disable_all_i2p_in_config(config_path):
+            raise
+        print(
+            "Reticulum init failed with I2P enabled; disabled I2P interfaces "
+            f"and retrying. Original error: {first_exc}",
+            flush=True,
+        )
+        return _construct()
 
 
 def _install_reticulum_signal_handlers() -> bool:
@@ -1304,6 +1323,7 @@ class ReticulumMeshChat:
         guard_rnode_interfaces_on_android(config_path)
         guard_rnode_interfaces_on_desktop(config_path)
         guard_invalid_rnode_txpower_in_config(config_path)
+        i2p_support.guard_i2p_interfaces_in_config(config_path)
 
     def _set_startup_stage(self, stage: str, error: str | None = None) -> None:
         self._startup_stage = stage
@@ -3790,6 +3810,13 @@ class ReticulumMeshChat:
         try:
             if hasattr(self, "reticulum") and self.reticulum:
                 self._sanitize_interfaces_section_names()
+                try:
+                    i2p_support.repair_interfaces_dict(
+                        self._get_interfaces_section(),
+                        self._get_reticulum_section(),
+                    )
+                except Exception as i2p_exc:
+                    print(f"I2P config repair before write failed: {i2p_exc}")
                 self.reticulum.config.write()
                 self._verify_reticulum_config_reloadable()
                 return True
@@ -5743,6 +5770,14 @@ class ReticulumMeshChat:
                     status=404,
                 )
             interface = interfaces[interface_name]
+            i2p_error = i2p_support.validate_i2p_enable(
+                interfaces,
+                self._get_reticulum_section(),
+                interface_name=interface_name,
+            )
+            if i2p_error is not None:
+                return web.json_response({"message": i2p_error}, status=422)
+
             if "enabled" in interface:
                 interface["enabled"] = "true"
             if "interface_enabled" in interface:
@@ -5904,6 +5939,16 @@ class ReticulumMeshChat:
                     },
                     status=422,
                 )
+
+            i2p_error = i2p_support.validate_i2p_add_or_update(
+                interfaces,
+                self._get_reticulum_section(),
+                interface_name=interface_name,
+                interface_type=interface_type,
+                updating_existing=bool(allow_overwriting_interface),
+            )
+            if i2p_error is not None:
+                return web.json_response({"message": i2p_error}, status=422)
 
             # get existing interface details if available
             interface_details = {}
@@ -6698,7 +6743,12 @@ class ReticulumMeshChat:
 
             # merge new interface into existing interfaces
             interfaces_before_write = self._get_interfaces_snapshot()
-            interfaces[interface_name] = interface_details
+            if interface_type == "I2PInterface":
+                # I2P must be last: drop and reinsert so ConfigObj order is correct.
+                interfaces.pop(interface_name, None)
+                interfaces[interface_name] = interface_details
+            else:
+                interfaces[interface_name] = interface_details
             # save config
             if not self._write_reticulum_config(
                 rollback_interfaces=interfaces_before_write
@@ -6718,6 +6768,17 @@ class ReticulumMeshChat:
                 return web.json_response(
                     {
                         "message": "Interface has been saved",
+                    },
+                )
+            if interface_type == "I2PInterface":
+                return web.json_response(
+                    {
+                        "message": (
+                            "I2P interface has been added as the last interface. "
+                            "Please restart MeshChat for these changes to take effect. "
+                            "Do not add or reorder other interfaces afterward without "
+                            "removing I2P first."
+                        ),
                     },
                 )
             return web.json_response(
@@ -6795,6 +6856,12 @@ class ReticulumMeshChat:
 
                 # parse interfaces from config
                 interfaces = InterfaceConfigParser.parse(config)
+                # I2P must not be imported from files; hide it from the picker.
+                interfaces = [
+                    iface
+                    for iface in interfaces
+                    if str(iface.get("type") or "").strip() != "I2PInterface"
+                ]
 
                 return web.json_response(
                     {
@@ -6859,6 +6926,15 @@ class ReticulumMeshChat:
 
                     iface_body = interface_config[interface_name]
                     iface_type = iface_body.get("type")
+                    if iface_type == "I2PInterface" or i2p_support.is_i2p_interface(
+                        iface_body
+                    ):
+                        return web.json_response(
+                            {
+                                "message": i2p_support.MSG_IMPORT_FORBIDDEN,
+                            },
+                            status=422,
+                        )
                     if iface_type in ("RNodeInterface", "RNodeIPInterface"):
                         freq = iface_body.get("frequency")
                         if freq is not None and freq != "":
@@ -8622,6 +8698,10 @@ class ReticulumMeshChat:
             # disable transport mode
             reticulum_config = self._get_reticulum_section()
             reticulum_config["enable_transport"] = False
+            i2p_support.disable_i2p_when_transport_off(
+                self._get_interfaces_section(),
+                reticulum_config,
+            )
             if not self._write_reticulum_config():
                 return web.json_response(
                     {
@@ -8819,8 +8899,28 @@ class ReticulumMeshChat:
                 if not os.path.exists(config_dir):
                     os.makedirs(config_dir, exist_ok=True)
                 config_path = self._reticulum_config_file_path()
+                previous_interfaces = {}
+                if os.path.isfile(config_path):
+                    try:
+                        from RNS.vendor.configobj import ConfigObj
+
+                        previous_interfaces = (
+                            ConfigObj(config_path).get("interfaces") or {}
+                        )
+                    except Exception:
+                        previous_interfaces = {}
+                i2p_raw_error = i2p_support.validate_raw_config_i2p_policy(
+                    content,
+                    previous_interfaces=previous_interfaces,
+                )
+                if i2p_raw_error is not None:
+                    return web.json_response(
+                        {"error": i2p_raw_error},
+                        status=422,
+                    )
                 with open(config_path, "w") as f:
                     f.write(content)
+                i2p_support.guard_i2p_interfaces_in_config(config_path)
                 return web.json_response(
                     {
                         "message": "Reticulum config saved",
@@ -11891,6 +11991,8 @@ class ReticulumMeshChat:
                 try:
                     session.start()
                 except Exception as e:
+                    with contextlib.suppress(Exception):
+                        manager.remove_session(session.session_id)
                     return web.json_response({"message": str(e)}, status=400)
             return web.json_response(
                 {"session": session.to_dict(include_output_tail=True)}

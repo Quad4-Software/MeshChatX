@@ -573,10 +573,30 @@
                                         <!-- I2P Interface -->
                                         <div v-if="newInterfaceType === 'I2PInterface'" class="space-y-4">
                                             <div
+                                                class="bg-amber-50/80 dark:bg-amber-900/20 p-3 rounded-2xl border border-amber-200 dark:border-amber-800/40 text-xs text-amber-900 dark:text-amber-200 space-y-1"
+                                            >
+                                                <div class="font-semibold">
+                                                    {{ $t("interfaces.i2p_requirements_title") }}
+                                                </div>
+                                                <p>{{ $t("interfaces.i2p_requirements_body") }}</p>
+                                            </div>
+                                            <div
                                                 class="bg-blue-50/50 dark:bg-blue-900/10 p-3 rounded-2xl border border-blue-100 dark:border-blue-900/20 text-xs text-blue-800 dark:text-blue-300"
                                             >
-                                                ⓘ To use the I2P interface, you must have an I2P router running on your
-                                                system.
+                                                To use the I2P interface, you must have an I2P router running on your
+                                                system with SAM enabled.
+                                            </div>
+                                            <div
+                                                v-if="!transportEnabled"
+                                                class="bg-red-50/80 dark:bg-red-900/20 p-3 rounded-2xl border border-red-200 dark:border-red-800/40 text-xs text-red-800 dark:text-red-200"
+                                            >
+                                                {{ $t("interfaces.i2p_transport_required") }}
+                                            </div>
+                                            <div
+                                                v-else-if="hasExistingI2PInterface && !isEditingInterface"
+                                                class="bg-red-50/80 dark:bg-red-900/20 p-3 rounded-2xl border border-red-200 dark:border-red-800/40 text-xs text-red-800 dark:text-red-200"
+                                            >
+                                                {{ $t("interfaces.i2p_already_exists") }}
                                             </div>
                                             <div class="flex items-center gap-2">
                                                 <Toggle id="i2p-connectable" v-model="newInterfaceConnectable" />
@@ -1916,6 +1936,19 @@ export default {
             newInterfaceBackboneListenPort: null,
             newInterfaceBackboneListenIp: null,
             newInterfaceBackboneListenDevice: null,
+            reticulumInstance: {
+                share_instance: true,
+                local_hops_delta: false,
+                respond_to_probes: false,
+                enable_remote_management: false,
+                shared_instance_type: "",
+                instance_name: "default",
+                rpc_key: null,
+                rpc_config_snippet: null,
+                is_connected_to_shared_instance: false,
+                enable_transport: false,
+            },
+            existingInterfaces: {},
 
             sharedInterfaceSettings: {
                 mode: null,
@@ -2082,6 +2115,23 @@ export default {
             }
             return `${totalHz} Hz`;
         },
+        transportEnabled() {
+            if (this.config && this.config.is_transport_enabled === true) {
+                return true;
+            }
+            return this.reticulumInstance.enable_transport === true;
+        },
+        hasExistingI2PInterface() {
+            return Object.values(this.existingInterfaces || {}).some(
+                (iface) => iface && iface.type === "I2PInterface"
+            );
+        },
+        canAddI2PInterface() {
+            if (this.isEditingInterface && this.newInterfaceType === "I2PInterface") {
+                return true;
+            }
+            return this.transportEnabled && !this.hasExistingI2PInterface;
+        },
     },
     watch: {
         newInterfaceBandwidth: "updateRNodeCalculations",
@@ -2092,6 +2142,8 @@ export default {
     },
     mounted() {
         this.getConfig();
+        this.loadReticulumInstance();
+        this.loadExistingInterfaces();
         this.loadReticulumDiscoveryConfig();
         this.loadComports();
         this.loadHostKernelInterfaces();
@@ -2116,6 +2168,28 @@ export default {
                 this.config = response.data.config;
             } catch (e) {
                 console.log(e);
+            }
+        },
+        async loadReticulumInstance() {
+            try {
+                const response = await window.api.get(`/api/v1/reticulum/instance`);
+                if (response.data?.instance) {
+                    this.reticulumInstance = {
+                        ...this.reticulumInstance,
+                        ...response.data.instance,
+                    };
+                }
+            } catch (e) {
+                console.log(e);
+            }
+        },
+        async loadExistingInterfaces() {
+            try {
+                const response = await window.api.get(`/api/v1/reticulum/interfaces`);
+                this.existingInterfaces = response.data?.interfaces || {};
+            } catch (e) {
+                console.log(e);
+                this.existingInterfaces = {};
             }
         },
         async updateConfig(config) {
@@ -2791,6 +2865,10 @@ export default {
             if (!config || !config.type || !config.name || this.isSaving) {
                 return;
             }
+            if (config.type === "I2PInterface") {
+                ToastUtils.error(this.$t("interfaces.i2p_import_forbidden"));
+                return;
+            }
             this.isSaving = true;
             try {
                 const response = await window.api.post(
@@ -2837,6 +2915,15 @@ export default {
                 const freqHz = Math.round(this.calculateFrequencyInHz());
 
                 if (!this.validateFixedMtuOrWarn()) {
+                    return;
+                }
+
+                if (this.newInterfaceType === "I2PInterface" && !this.canAddI2PInterface) {
+                    ToastUtils.error(
+                        !this.transportEnabled
+                            ? this.$t("interfaces.i2p_transport_required")
+                            : this.$t("interfaces.i2p_already_exists")
+                    );
                     return;
                 }
 

@@ -32,6 +32,7 @@
                             <ul class="list-disc list-inside">
                                 <li>You can import interfaces from a ~/.reticulum/config file.</li>
                                 <li>You can import interfaces from an exported interfaces file.</li>
+                                <li>{{ $t("interfaces.i2p_import_forbidden") }}</li>
                             </ul>
                         </div>
                     </div>

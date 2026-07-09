@@ -715,7 +715,12 @@ async def test_ax25_kiss_persists_callsign_and_ssid(temp_dir):
 
 @pytest.mark.asyncio
 async def test_i2p_connectable_can_be_disabled(temp_dir):
-    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+    config = ConfigDict(
+        {
+            "reticulum": {"enable_transport": "True"},
+            "interfaces": {},
+        }
+    )
 
     async with make_app(temp_dir, config) as handler:
         payload = {
@@ -730,3 +735,4 @@ async def test_i2p_connectable_can_be_disabled(temp_dir):
         saved = config["interfaces"]["I2POut"]
         assert saved["connectable"] == "False"
         assert saved["peers"] == ["abcdef.b32.i2p"]
+        assert list(config["interfaces"].keys())[-1] == "I2POut"
