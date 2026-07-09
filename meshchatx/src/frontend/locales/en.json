@@ -785,7 +785,7 @@
     },
     "selftest": {
         "title": "System Self-Test",
-        "description": "Run diagnostic checks for the network stack, database, identity, imports, storage, LXMF, subprocess/run-module, SQLite, identity files, loopback TCP, unicode paths, RNode helpers, bot launcher argv, HTTP status/config/health/auth/bots/security/interfaces/reticulum-instance/identities/favourites/telephone APIs, WebSocket, and bot lifecycle.",
+        "description": "Run diagnostic checks for the network stack, database, identity, imports, storage, LXMF, subprocess/run-module, SQLite, identity files, loopback TCP, unicode paths, RNode helpers, bot launcher argv, HTTP status/config/health/auth/bots/security/interfaces/reticulum-instance/identities/favourites/telephone/plugins/sideband/RRC APIs, plugin runtime, WebSocket, RNS Link API, and bot lifecycle.",
         "run_test_btn": "Run Diagnostics",
         "running": "Running Diagnostics...",
         "stack_up": "Network Stack",
@@ -818,7 +818,15 @@
         "http_identities_good": "HTTP Identities",
         "http_favourites_good": "HTTP Favourites",
         "http_telephone_good": "HTTP Telephone Status",
+        "http_plugins_good": "HTTP Plugins API",
+        "http_plugins_trust_good": "HTTP Plugin Trust List",
+        "http_sideband_plugins_good": "HTTP Sideband Plugins",
+        "http_sideband_config_good": "HTTP Sideband Config",
+        "http_rrc_hubs_good": "HTTP RRC Hubs",
+        "http_rrc_servers_good": "HTTP RRC Servers",
+        "plugins_runtime_good": "Plugin Manager Runtime",
         "websocket_good": "WebSocket",
+        "websocket_rns_link_good": "WebSocket RNS Link API",
         "bots_lifecycle": "Bot Create / Start / Stop / Delete",
         "passed": "Passed",
         "failed": "Failed",
@@ -3363,8 +3371,5 @@
         "action_getting_started_desc": "Open the setup guide",
         "action_changelog": "Changelog",
         "action_changelog_desc": "Recent changes"
-    },
-    "self_test": {
-        "websocket_rns_link_good": "WebSocket RNS Link API"
     }
 }
