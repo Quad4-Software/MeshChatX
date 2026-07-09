@@ -71,6 +71,24 @@ def _patch_aiohttp_run_app_for_android():
     return web, original_run_app
 
 
+def _clear_stale_storage_lock(storage_dir):
+    """Drop a leftover soft lock from a previous process death.
+
+    Android often lacks flock (ENOSYS), so StorageLock falls back to a PID
+    file. After force-stop / crash the old PID may still look "alive" under
+    Android's process model, which would make boot exit with SystemExit(1).
+    The Java wrapper already serializes start_server, so clearing is safe.
+    """
+    if not storage_dir:
+        return
+    lock_path = os.path.join(storage_dir, ".meshchatx.lock")
+    try:
+        if os.path.exists(lock_path):
+            os.remove(lock_path)
+    except OSError as exc:
+        print(f"meshchat_wrapper: could not clear storage lock: {exc}")
+
+
 def start_server(port=8000, app_files_dir=None):
     global _server_loop_active
     with _server_loop_lock:
@@ -88,6 +106,7 @@ def start_server(port=8000, app_files_dir=None):
             os.makedirs(storage_dir, exist_ok=True)
             os.makedirs(reticulum_config_dir, exist_ok=True)
             _ensure_android_reticulum_config(reticulum_config_dir)
+            _clear_stale_storage_lock(storage_dir)
 
         original_signal = signal.signal
 
@@ -140,6 +159,13 @@ def start_server(port=8000, app_files_dir=None):
             if aiohttp_run_app_patch is not None:
                 web_module, original_run_app = aiohttp_run_app_patch
                 web_module.run_app = original_run_app
+    except SystemExit as e:
+        # Chaquopy surfaces SystemExit as PyException; re-raise as RuntimeError
+        # so Java retry/error UI gets a readable message.
+        code = getattr(e, "code", e)
+        message = f"MeshChatX exited during startup (code={code})"
+        print(f"Error starting MeshChatX server: {message}")
+        raise RuntimeError(message) from e
     except Exception as e:
         print(f"Error starting MeshChatX server: {e}")
         import traceback

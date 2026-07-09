@@ -62,3 +62,32 @@ def test_start_server_hook_failure_still_invokes_main(monkeypatch):
     importlib.reload(meshchat_wrapper)
     meshchat_wrapper.start_server(8000, None)
     assert calls == [1]
+
+
+def test_start_server_clears_stale_storage_lock(monkeypatch, tmp_path):
+    import meshchatx.meshchat as mm
+
+    calls: list[int] = []
+    monkeypatch.setattr(mm, "main", lambda: calls.append(1))
+
+    storage = tmp_path / "meshchatx" / "storage"
+    storage.mkdir(parents=True)
+    lock_path = storage / ".meshchatx.lock"
+    lock_path.write_bytes(b"12345")
+
+    import meshchat_wrapper
+
+    importlib.reload(meshchat_wrapper)
+    meshchat_wrapper.start_server(8000, str(tmp_path))
+    assert calls == [1]
+    assert not lock_path.exists()
+
+
+def test_clear_stale_storage_lock_missing_is_ok(tmp_path):
+    import meshchat_wrapper
+
+    importlib.reload(meshchat_wrapper)
+    meshchat_wrapper._clear_stale_storage_lock(str(tmp_path / "missing"))
+    storage = tmp_path / "storage"
+    storage.mkdir()
+    meshchat_wrapper._clear_stale_storage_lock(str(storage))

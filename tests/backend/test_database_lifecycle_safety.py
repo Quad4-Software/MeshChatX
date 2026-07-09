@@ -148,6 +148,81 @@ def test_storage_lock_rejects_second_instance(temp_dir):
     lock_a.release()
 
 
+def test_storage_lock_soft_fallback_when_flock_unsupported(temp_dir, monkeypatch):
+    import errno
+    import fcntl
+
+    real_flock = fcntl.flock
+
+    def flock_enosys(fd, op):
+        if op & fcntl.LOCK_NB:
+            raise OSError(errno.ENOSYS, "Function not implemented")
+        return real_flock(fd, op)
+
+    monkeypatch.setattr(fcntl, "flock", flock_enosys)
+
+    lock_a = StorageLock(temp_dir)
+    lock_a.acquire()
+    assert lock_a._soft is True
+    # Same-process re-acquire must still fail under soft lock.
+    lock_b = StorageLock(temp_dir)
+    with pytest.raises(StorageLockError):
+        lock_b.acquire()
+    lock_a.release()
+
+    lock_c = StorageLock(temp_dir)
+    lock_c.acquire()
+    assert lock_c._soft is True
+    lock_c.release()
+
+
+def test_storage_lock_soft_allows_dead_pid(temp_dir, monkeypatch):
+    import errno
+    import fcntl
+
+    monkeypatch.setattr(
+        fcntl,
+        "flock",
+        lambda *_a, **_k: (_ for _ in ()).throw(
+            OSError(errno.ENOSYS, "Function not implemented")
+        ),
+    )
+    lock_path = os.path.join(temp_dir, ".meshchatx.lock")
+    with open(lock_path, "wb") as handle:
+        handle.write(b"999999999")
+
+    lock = StorageLock(temp_dir)
+    lock.acquire()
+    assert lock._soft is True
+    lock.release()
+
+
+def test_storage_lock_android_soft_ignores_foreign_pid(temp_dir, monkeypatch):
+    import errno
+    import fcntl
+
+    from meshchatx.src.backend import storage_lock as storage_lock_mod
+
+    monkeypatch.setattr(
+        fcntl,
+        "flock",
+        lambda *_a, **_k: (_ for _ in ()).throw(
+            OSError(errno.ENOSYS, "Function not implemented")
+        ),
+    )
+    monkeypatch.setenv("ANDROID_ROOT", "/system")
+    monkeypatch.setattr(storage_lock_mod.os, "kill", lambda *_a, **_k: None)
+
+    lock_path = os.path.join(temp_dir, ".meshchatx.lock")
+    with open(lock_path, "wb") as handle:
+        handle.write(b"1")
+
+    lock = StorageLock(temp_dir)
+    lock.acquire()
+    assert lock._soft is True
+    lock.release()
+
+
 def test_restore_rejects_non_sqlite_backup(temp_dir):
     db_path = os.path.join(temp_dir, "main.db")
     db = Database(db_path)

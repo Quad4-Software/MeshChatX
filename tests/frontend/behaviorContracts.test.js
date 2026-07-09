@@ -163,6 +163,15 @@ describe("behavior contracts: Android Chaquopy Python sync", () => {
         const initPy = readSource("vendor/lxmfy/lxmfy/__init__.py");
         expect(initPy.length).toBeGreaterThan(0);
     });
+
+    it("Android wrapper clears stale storage lock before main()", () => {
+        const wrapper = readSource("android/app/src/main/python/meshchat_wrapper.py");
+        expect(wrapper).toContain("_clear_stale_storage_lock");
+        expect(wrapper).toContain(".meshchatx.lock");
+        const lock = readSource("meshchatx/src/backend/storage_lock.py");
+        expect(lock).toContain("_flock_unsupported");
+        expect(lock).toContain("_acquire_soft");
+    });
 });
 
 describe("behavior contracts: Reticulum instance settings", () => {
