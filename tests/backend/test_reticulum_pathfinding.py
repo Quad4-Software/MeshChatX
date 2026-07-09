@@ -356,3 +356,55 @@ async def test_wait_for_path_times_out():
     ):
         ok = await rp.wait_for_path(MagicMock(), DEST, 0.01, 0.01)
     assert ok is False
+
+
+def test_prune_expired_path_table_entries_respects_trigger():
+    cleanup = []
+    try:
+        old = time.time() - (RNS.Transport.DESTINATION_TIMEOUT + 100)
+        entry = [old, None, None, None, None, None]
+        _put_path_entry(DEST, entry, cleanup)
+        assert (
+            rp.prune_expired_path_table_entries(
+                None,
+                max_to_drop=10,
+                trigger_size=10_000,
+            )
+            == 0
+        )
+        reticulum = MagicMock()
+        reticulum.drop_path.return_value = True
+        dropped = rp.prune_expired_path_table_entries(
+            reticulum,
+            max_to_drop=10,
+            trigger_size=1,
+        )
+        assert dropped == 1
+        reticulum.drop_path.assert_called_once_with(DEST)
+    finally:
+        with RNS.Transport.path_table_lock:
+            for dest in cleanup:
+                RNS.Transport.path_table.pop(dest, None)
+
+
+def test_prune_path_table_to_soft_cap_drops_oldest():
+    cleanup = []
+    try:
+        reticulum = MagicMock()
+        reticulum.drop_path.return_value = True
+        for i in range(3):
+            dest = bytes([i + 10]) * 16
+            entry = [float(i), None, None, None, None, None]
+            _put_path_entry(dest, entry, cleanup)
+        with patch.object(RNS.Transport, "path_is_unresponsive", return_value=False):
+            dropped = rp.prune_path_table_to_soft_cap(
+                reticulum,
+                soft_cap=1,
+                max_to_drop=5,
+            )
+        assert dropped >= 1
+        assert reticulum.drop_path.call_count >= 1
+    finally:
+        with RNS.Transport.path_table_lock:
+            for dest in cleanup:
+                RNS.Transport.path_table.pop(dest, None)

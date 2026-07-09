@@ -29,6 +29,7 @@ class HealthMonitor:
     ENTROPY_WARN_THRESHOLD = 1.5  # out of max ~2.32 for 5 log levels
     ERROR_RATE_WARN = 0.3
     MEMORY_WARN_MB = 100  # warn when available < 100 MB
+    MEMORY_RECOVER_MB = 400  # restore SQLite RAM pragmas above this
     CONSECUTIVE_NEEDED = 2  # consecutive bad readings before alert
 
     def __init__(self, log_handler, app=None):
@@ -41,6 +42,7 @@ class HealthMonitor:
         self._entropy_history = collections.deque(maxlen=self.ENTROPY_WINDOW)
         self._error_rate_history = collections.deque(maxlen=self.ENTROPY_WINDOW)
         self._mem_available_history = collections.deque(maxlen=self.ENTROPY_WINDOW)
+        self._memory_pressure_active = False
 
     def start(self):
         if self._running:
@@ -123,6 +125,15 @@ class HealthMonitor:
                     "value": round(available_mb, 1),
                 },
             )
+            self._trigger_memory_pressure(available_mb)
+        elif (
+            self._memory_pressure_active
+            and self._consecutive_above(
+                self._mem_available_history,
+                self.MEMORY_RECOVER_MB,
+            )
+        ):
+            self._recover_memory_pressure()
 
         for w in warnings:
             _log.warning("Health warning: %s", w["message"])
@@ -152,6 +163,26 @@ class HealthMonitor:
             return False
         vals = list(deq)
         return vals[-1] < threshold and vals[-2] < threshold
+
+    def _trigger_memory_pressure(self, available_mb: float) -> None:
+        self._memory_pressure_active = True
+        manager = getattr(self.app, "memory_pressure", None) if self.app else None
+        if manager is None:
+            return
+        try:
+            manager.on_memory_low(available_mb)
+        except Exception as exc:
+            _log.debug("Memory pressure cleanup failed: %s", exc)
+
+    def _recover_memory_pressure(self) -> None:
+        self._memory_pressure_active = False
+        manager = getattr(self.app, "memory_pressure", None) if self.app else None
+        if manager is None:
+            return
+        try:
+            manager.on_memory_recovered()
+        except Exception as exc:
+            _log.debug("Memory pressure recovery failed: %s", exc)
 
     def _broadcast(self, warning_data):
         if not self.app:

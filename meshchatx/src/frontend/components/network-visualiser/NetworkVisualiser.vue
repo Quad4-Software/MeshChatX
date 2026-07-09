@@ -53,6 +53,8 @@ import NetworkVisualiserLegend from "./internal/NetworkVisualiserLegend.vue";
 import {
     ANNOUNCE_HASH_CHUNK_SIZE,
     VIZ_ANNOUNCE_ASPECTS,
+    VIZ_ANNOUNCE_SOFT_CAP,
+    VIZ_PATH_TABLE_SOFT_CAP,
     dedupeIconQueueEntries,
     pathHashesWithinHopFilter,
     pickAdaptiveFetchConcurrency,
@@ -259,6 +261,15 @@ export default {
             delete this.iconCache[key];
         }
         this.iconCache = {};
+        this.pathTable = [];
+        this.announces = {};
+        this.conversations = {};
+        try {
+            this.nodes.clear();
+            this.edges.clear();
+        } catch {
+            /* DataSet may already be destroyed with the network */
+        }
     },
     mounted() {
         const isMobile = window.innerWidth < 640;
@@ -324,10 +335,15 @@ export default {
                     });
                     this.pathTable.push(...firstResp.data.path_table);
                     const totalCount = firstResp.data.total_count;
+                    const softCap = VIZ_PATH_TABLE_SOFT_CAP;
                     if (totalCount > this.pageSize) {
                         const concurrency = this.pathFetchConcurrency;
                         for (let offset = this.pageSize; offset < totalCount; offset += this.pageSize * concurrency) {
                             if (this.abortController.signal.aborted) return;
+                            if (this.pathTable.length >= softCap) {
+                                this.loadingStatus = `Loading paths (capped at ${softCap} / ${totalCount})`;
+                                break;
+                            }
                             const chunk = [];
                             for (let i = 0; i < concurrency && offset + i * this.pageSize < totalCount; i++) {
                                 chunk.push(offset + i * this.pageSize);
@@ -340,7 +356,10 @@ export default {
                             );
                             const responses = await Promise.all(promises);
                             for (const r of responses) {
-                                this.pathTable.push(...r.data.path_table);
+                                const rows = r.data.path_table || [];
+                                const room = softCap - this.pathTable.length;
+                                if (room <= 0) break;
+                                this.pathTable.push(...rows.slice(0, room));
                             }
                             this.loadingStatus = `Loading paths (${this.pathTable.length} / ${totalCount})`;
                         }
@@ -400,6 +419,15 @@ export default {
                     if (!neededSet.has(hash)) {
                         delete this.announces[hash];
                     }
+                }
+            }
+            const announceKeys = Object.keys(this.announces);
+            if (announceKeys.length > VIZ_ANNOUNCE_SOFT_CAP) {
+                const neededSet = new Set(needed);
+                const extras = announceKeys.filter((hash) => !neededSet.has(hash));
+                const overflow = announceKeys.length - VIZ_ANNOUNCE_SOFT_CAP;
+                for (const hash of extras.slice(0, overflow)) {
+                    delete this.announces[hash];
                 }
             }
         },

@@ -14,10 +14,12 @@ from meshchatx.src.backend import rns_link_manager as rlm
 def clear_link_cache():
     with rlm._rns_links_lock:
         rlm.rns_cached_links.clear()
+        rlm._rns_link_last_used.clear()
         rlm._link_failure_counts.clear()
     yield
     with rlm._rns_links_lock:
         rlm.rns_cached_links.clear()
+        rlm._rns_link_last_used.clear()
         rlm._link_failure_counts.clear()
 
 
@@ -451,3 +453,23 @@ def test_parse_dest_aspect_helpers():
         {"destination_hash": "zz", "aspect": "a"}
     )
     assert err == "invalid_destination_hash"
+
+
+def test_rns_link_cache_evicts_over_cap():
+    original_max = rlm.MAX_CACHED_LINKS
+    rlm.MAX_CACHED_LINKS = 2
+    try:
+        kept = []
+        for i in range(3):
+            link = MagicMock()
+            link.status = rlm.RNS.Link.ACTIVE
+            dest = bytes([i + 1]) * 16
+            rlm._cache_link_if_active("app.aspect", dest, link)
+            kept.append((dest, link))
+        assert rlm.cached_link_count() == 2
+        assert rlm.get_cached_active_link("app.aspect", kept[0][0]) is None
+        kept[0][1].teardown.assert_called()
+        assert rlm.get_cached_active_link("app.aspect", kept[1][0]) is kept[1][1]
+        assert rlm.get_cached_active_link("app.aspect", kept[2][0]) is kept[2][1]
+    finally:
+        rlm.MAX_CACHED_LINKS = original_max

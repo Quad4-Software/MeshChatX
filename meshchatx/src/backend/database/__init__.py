@@ -87,6 +87,7 @@ class Database:
         self.debug_logs = DebugLogsDAO(self.provider)
         self.access_attempts = AccessAttemptsDAO(self.provider)
         self.crash_history = CrashHistoryDAO(self.provider)
+        self._sqlite_memory_relaxed = False
 
     def initialize(self):
         self._tune_sqlite_pragmas()
@@ -104,8 +105,27 @@ class Database:
             self.execute_sql("PRAGMA cache_size=-8000")  # 8 MB
             self.execute_sql("PRAGMA mmap_size=67108864")  # 64 MB
             self.execute_sql("PRAGMA busy_timeout=5000")  # 5 s wait on lock contention
+            self._sqlite_memory_relaxed = False
         except Exception as exc:
             print(f"SQLite pragma setup failed: {exc}")
+
+    def apply_memory_pressure_pragmas(self, relax: bool) -> bool:
+        """Move SQLite temp/cache work toward disk when host RAM is low."""
+        try:
+            if relax:
+                self.execute_sql("PRAGMA temp_store=FILE")
+                self.execute_sql("PRAGMA cache_size=-2000")  # 2 MB
+                self.execute_sql("PRAGMA mmap_size=0")
+                self._sqlite_memory_relaxed = True
+            else:
+                self.execute_sql("PRAGMA temp_store=MEMORY")
+                self.execute_sql("PRAGMA cache_size=-8000")
+                self.execute_sql("PRAGMA mmap_size=67108864")
+                self._sqlite_memory_relaxed = False
+            return True
+        except Exception as exc:
+            print(f"SQLite memory-pressure pragma update failed: {exc}")
+            return False
 
     def _get_pragma_value(self, pragma: str, default=None):
         safe = _sanitize_pragma_read_name(pragma)

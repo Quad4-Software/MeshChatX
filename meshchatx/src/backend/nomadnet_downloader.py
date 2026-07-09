@@ -15,10 +15,20 @@ from meshchatx.src.backend.reticulum_pathfinding import ReticulumLike
 # Global cache for Nomad Network links (reuse instead of reconnecting per request).
 # Protected by _nomadnet_links_lock for callers that may touch Reticulum from multiple threads.
 nomadnet_cached_links: dict[bytes, object] = {}
+_nomadnet_link_last_used: dict[bytes, float] = {}
 _nomadnet_links_lock = threading.Lock()
+
+# Cap active Nomad links retained in process memory.
+MAX_CACHED_LINKS = 32
+LINK_IDLE_TTL_S = 30 * 60
 
 # Wait granularity while polling for path / link (seconds). Smaller = faster reaction, slightly more wakeups.
 _POLL_INTERVAL_S = 0.02
+
+
+def cached_link_count() -> int:
+    with _nomadnet_links_lock:
+        return len(nomadnet_cached_links)
 
 
 def get_cached_active_link(destination_hash: bytes):
@@ -28,16 +38,30 @@ def get_cached_active_link(destination_hash: bytes):
         if link is None:
             return None
         if link.status is RNS.Link.ACTIVE:
+            _nomadnet_link_last_used[destination_hash] = time.time()
             return link
         try:
             del nomadnet_cached_links[destination_hash]
         except KeyError:
             pass
+        _nomadnet_link_last_used.pop(destination_hash, None)
         return None
 
 
+def _teardown_links(links) -> None:
+    for link in links:
+        if link is None:
+            continue
+        try:
+            link.teardown()
+        except Exception:
+            pass
+
+
 def sweep_stale_links():
-    """Evict all non-ACTIVE links from the global cache."""
+    """Evict non-ACTIVE, idle, and over-cap links from the global cache."""
+    now = time.time()
+    to_teardown = []
     with _nomadnet_links_lock:
         stale = [
             k
@@ -45,14 +69,52 @@ def sweep_stale_links():
             if v.status is not RNS.Link.ACTIVE
         ]
         for k in stale:
-            del nomadnet_cached_links[k]
+            to_teardown.append(nomadnet_cached_links.pop(k, None))
+            _nomadnet_link_last_used.pop(k, None)
+
+        idle = [
+            k
+            for k, last in _nomadnet_link_last_used.items()
+            if k in nomadnet_cached_links and now - last > LINK_IDLE_TTL_S
+        ]
+        for k in idle:
+            to_teardown.append(nomadnet_cached_links.pop(k, None))
+            _nomadnet_link_last_used.pop(k, None)
+
+        while len(nomadnet_cached_links) > MAX_CACHED_LINKS:
+            oldest_key = min(
+                nomadnet_cached_links.keys(),
+                key=lambda k: _nomadnet_link_last_used.get(k, 0.0),
+            )
+            to_teardown.append(nomadnet_cached_links.pop(oldest_key, None))
+            _nomadnet_link_last_used.pop(oldest_key, None)
+
+        orphans = [k for k in _nomadnet_link_last_used if k not in nomadnet_cached_links]
+        for k in orphans:
+            del _nomadnet_link_last_used[k]
+    _teardown_links(to_teardown)
 
 
 def _cache_link_if_active(destination_hash: bytes, link) -> None:
     if link is None or link.status is not RNS.Link.ACTIVE:
         return
+    to_teardown = []
     with _nomadnet_links_lock:
         nomadnet_cached_links[destination_hash] = link
+        _nomadnet_link_last_used[destination_hash] = time.time()
+        while len(nomadnet_cached_links) > MAX_CACHED_LINKS:
+            candidates = [
+                k for k in nomadnet_cached_links if k != destination_hash
+            ]
+            if not candidates:
+                break
+            oldest_key = min(
+                candidates,
+                key=lambda k: _nomadnet_link_last_used.get(k, 0.0),
+            )
+            to_teardown.append(nomadnet_cached_links.pop(oldest_key, None))
+            _nomadnet_link_last_used.pop(oldest_key, None)
+    _teardown_links(to_teardown)
 
 
 def _uncache_link_if_matches(destination_hash: bytes, link) -> None:
@@ -64,6 +126,7 @@ def _uncache_link_if_matches(destination_hash: bytes, link) -> None:
                 del nomadnet_cached_links[destination_hash]
             except KeyError:
                 pass
+            _nomadnet_link_last_used.pop(destination_hash, None)
 
 
 class NomadnetDownloader:

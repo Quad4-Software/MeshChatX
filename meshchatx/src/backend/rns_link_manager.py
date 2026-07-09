@@ -16,6 +16,7 @@ from meshchatx.src.backend import reticulum_pathfinding
 # Kept separate from nomadnet_downloader.nomadnet_cached_links — the two caches
 # may merge in the future if NomadNet is ported onto this generic Links API.
 rns_cached_links: dict[tuple[str, bytes], "RNS.Link"] = {}
+_rns_link_last_used: dict[tuple[str, bytes], float] = {}
 _rns_links_lock = threading.Lock()
 
 # Per-cache-key count of consecutive RNS.Link request failures. Reset on
@@ -29,8 +30,17 @@ _link_failure_counts: dict[tuple[str, bytes], int] = {}
 # then go through the full open_link path and re-establish.
 _LINK_RECYCLE_FAILURE_THRESHOLD = 2
 
+# Cap active RNS links retained in process memory.
+MAX_CACHED_LINKS = 64
+LINK_IDLE_TTL_S = 30 * 60
+
 # Wait granularity while polling for path / link (seconds).
 _POLL_INTERVAL_S = 0.02
+
+
+def cached_link_count() -> int:
+    with _rns_links_lock:
+        return len(rns_cached_links)
 
 
 def get_cached_active_link(aspect: str, destination_hash: bytes):
@@ -41,37 +51,94 @@ def get_cached_active_link(aspect: str, destination_hash: bytes):
         if link is None:
             return None
         if link.status is RNS.Link.ACTIVE:
+            _rns_link_last_used[key] = time.time()
             return link
         try:
             del rns_cached_links[key]
         except KeyError:
             pass
+        _rns_link_last_used.pop(key, None)
+        _link_failure_counts.pop(key, None)
         return None
 
 
+def _teardown_links(links) -> None:
+    for link in links:
+        if link is None:
+            continue
+        try:
+            link.teardown()
+        except Exception:
+            pass
+
+
+def _evict_over_cap_locked(preserve_key=None):
+    """Evict oldest links until at or under MAX_CACHED_LINKS. Caller holds lock."""
+    to_teardown = []
+    while len(rns_cached_links) > MAX_CACHED_LINKS:
+        candidates = [
+            k for k in rns_cached_links if preserve_key is None or k != preserve_key
+        ]
+        if not candidates:
+            break
+        oldest_key = min(
+            candidates,
+            key=lambda k: _rns_link_last_used.get(k, 0.0),
+        )
+        to_teardown.append(rns_cached_links.pop(oldest_key, None))
+        _rns_link_last_used.pop(oldest_key, None)
+        _link_failure_counts.pop(oldest_key, None)
+    return to_teardown
+
+
 def sweep_stale_links():
+    now = time.time()
+    to_teardown = []
     with _rns_links_lock:
         stale = [
             k for k, v in rns_cached_links.items() if v.status is not RNS.Link.ACTIVE
         ]
         for k in stale:
-            del rns_cached_links[k]
+            to_teardown.append(rns_cached_links.pop(k, None))
+            _rns_link_last_used.pop(k, None)
+            _link_failure_counts.pop(k, None)
+
+        idle = [
+            k
+            for k, last in _rns_link_last_used.items()
+            if k in rns_cached_links and now - last > LINK_IDLE_TTL_S
+        ]
+        for k in idle:
+            to_teardown.append(rns_cached_links.pop(k, None))
+            _rns_link_last_used.pop(k, None)
+            _link_failure_counts.pop(k, None)
+
+        to_teardown.extend(_evict_over_cap_locked())
+
         # Drop counter entries whose link is no longer cached so the dict
         # cannot grow unbounded across link churn.
         orphans = [k for k in _link_failure_counts if k not in rns_cached_links]
         for k in orphans:
             del _link_failure_counts[k]
+        used_orphans = [k for k in _rns_link_last_used if k not in rns_cached_links]
+        for k in used_orphans:
+            del _rns_link_last_used[k]
+    _teardown_links(to_teardown)
 
 
 def _cache_link_if_active(aspect: str, destination_hash: bytes, link) -> None:
     if link is None or link.status is not RNS.Link.ACTIVE:
         return
     key = (aspect, destination_hash)
+    to_teardown = []
     with _rns_links_lock:
         rns_cached_links[key] = link
+        _rns_link_last_used[key] = time.time()
         # A freshly cached link starts with a clean failure count, even if
         # an older link at the same key died with a non-zero count.
         _link_failure_counts.pop(key, None)
+        to_teardown.extend(_evict_over_cap_locked(preserve_key=key))
+    _teardown_links(to_teardown)
 
 
 def _uncache_link_if_matches(aspect: str, destination_hash: bytes, link) -> None:
@@ -84,6 +151,7 @@ def _uncache_link_if_matches(aspect: str, destination_hash: bytes, link) -> None
                 del rns_cached_links[key]
             except KeyError:
                 pass
+            _rns_link_last_used.pop(key, None)
             _link_failure_counts.pop(key, None)
 
 
