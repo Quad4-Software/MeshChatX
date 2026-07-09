@@ -28,7 +28,7 @@ cd android
 ./gradlew --no-daemon :app:assembleDebug :app:assembleRelease
 ```
 
-There is a **single** application variant (no product flavors). Gradle syncs the **entire** `meshchatx/` tree into `app/src/main/python/meshchatx/` (including `public/repository-server-bundled` for the in-app repository server). The `fetchRepositoryBundledWheels` task runs before sync when bundled wheels are missing; if repo root `dist/reticulum_meshchatx-*.whl` exists (e.g. from `python -m build --wheel -o dist .`), that wheel is preferred over PyPI for the bundled set.
+There is a **single** application variant (no product flavors). Gradle syncs the **entire** `meshchatx/` tree into `app/src/main/python/meshchatx/` (including `public/repository-server-bundled` for the in-app repository server), and syncs vendored **`vendor/lxmfy/lxmfy`** into `app/src/main/python/lxmfy/` (required for bots; not installed via Chaquopy pip). The `fetchRepositoryBundledWheels` task runs before sync when bundled wheels are missing; if repo root `dist/reticulum_meshchatx-*.whl` exists (e.g. from `python -m build --wheel -o dist .`), that wheel is preferred over PyPI for the bundled set.
 
 ### Native ABIs (universal APK)
 

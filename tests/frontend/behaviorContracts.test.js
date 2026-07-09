@@ -150,3 +150,15 @@ describe("behavior contracts: dead API surface", () => {
         expect(viewer).toContain("cancelSendingMessage(");
     });
 });
+
+describe("behavior contracts: Android Chaquopy Python sync", () => {
+    it("Gradle syncs vendored lxmfy into Chaquopy python sources", () => {
+        const gradle = readSource("android/app/build.gradle");
+        expect(gradle).toContain('vendor/lxmfy/lxmfy');
+        expect(gradle).toContain('syncLxmfyPython');
+        expect(gradle).toContain('src/main/python/lxmfy');
+        expect(gradle).toMatch(/dependsOn\(tasks\.named\("syncMeshchatPython"\),\s*tasks\.named\("syncLxmfyPython"\)\)/);
+        const initPy = readSource("vendor/lxmfy/lxmfy/__init__.py");
+        expect(initPy.length).toBeGreaterThan(0);
+    });
+});
