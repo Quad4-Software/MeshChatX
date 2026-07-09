@@ -830,6 +830,14 @@
         },
         {
             "method": "GET",
+            "path": "/api/v1/reticulum/instance"
+        },
+        {
+            "method": "PATCH",
+            "path": "/api/v1/reticulum/instance"
+        },
+        {
+            "method": "GET",
             "path": "/api/v1/reticulum/interfaces"
         },
         {

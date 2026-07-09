@@ -206,6 +206,35 @@ DISCOVERY_CONFIG_SCHEMA: dict = {
     "additionalProperties": True,
 }
 
+RETICULUM_INSTANCE_SCHEMA: dict = {
+    "type": "object",
+    "required": ["instance"],
+    "properties": {
+        "instance": {
+            "type": "object",
+            "required": [
+                "share_instance",
+                "local_hops_delta",
+                "is_connected_to_shared_instance",
+            ],
+            "properties": {
+                "share_instance": _BOOLEAN,
+                "local_hops_delta": _BOOLEAN,
+                "respond_to_probes": _BOOLEAN,
+                "enable_remote_management": _BOOLEAN,
+                "shared_instance_type": {},
+                "instance_name": {},
+                "rpc_key": {},
+                "rpc_config_snippet": {},
+                "is_connected_to_shared_instance": _BOOLEAN,
+                "enable_transport": _BOOLEAN,
+            },
+            "additionalProperties": True,
+        }
+    },
+    "additionalProperties": True,
+}
+
 DISCOVERED_INTERFACES_SCHEMA: dict = {
     "type": "object",
     "required": ["interfaces"],

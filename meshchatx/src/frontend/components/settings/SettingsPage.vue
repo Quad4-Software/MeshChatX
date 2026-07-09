@@ -1936,7 +1936,7 @@
                             </div>
                         </section>
 
-                        <!-- Transport -->
+                        <!-- Transport / shared instance / hop obfuscation -->
                         <section v-show="showSection('transport')" class="settings-section break-inside-avoid">
                             <header class="settings-section__header">
                                 <div>
@@ -1959,6 +1959,138 @@
                                         }}</span>
                                     </span>
                                 </label>
+
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="share-reticulum-instance"
+                                        v-model="reticulumInstance.share_instance"
+                                        :disabled="reticulumInstanceSaving"
+                                        @update:model-value="onShareInstanceChange"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{
+                                            $t("app.share_reticulum_instance")
+                                        }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("app.share_reticulum_instance_description")
+                                        }}</span>
+                                    </span>
+                                </label>
+
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="obfuscate-hops"
+                                        v-model="reticulumInstance.local_hops_delta"
+                                        :disabled="reticulumInstanceSaving"
+                                        @update:model-value="onLocalHopsDeltaChange"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{ $t("app.obfuscate_hops") }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("app.obfuscate_hops_description")
+                                        }}</span>
+                                    </span>
+                                </label>
+
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="respond-to-probes"
+                                        v-model="reticulumInstance.respond_to_probes"
+                                        :disabled="reticulumInstanceSaving"
+                                        @update:model-value="onRespondToProbesChange"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{ $t("app.respond_to_probes") }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("app.respond_to_probes_description")
+                                        }}</span>
+                                    </span>
+                                </label>
+
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="enable-remote-management"
+                                        v-model="reticulumInstance.enable_remote_management"
+                                        :disabled="reticulumInstanceSaving"
+                                        @update:model-value="onEnableRemoteManagementChange"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{
+                                            $t("app.enable_remote_management")
+                                        }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("app.enable_remote_management_description")
+                                        }}</span>
+                                    </span>
+                                </label>
+
+                                <div class="grid gap-3 sm:grid-cols-2">
+                                    <label class="block space-y-1">
+                                        <span class="text-sm font-medium text-gray-800 dark:text-zinc-200">{{
+                                            $t("app.shared_instance_type")
+                                        }}</span>
+                                        <select
+                                            v-model="reticulumInstance.shared_instance_type"
+                                            class="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-gray-900 dark:text-white"
+                                            :disabled="reticulumInstanceSaving"
+                                            @change="onSharedInstanceTypeChange"
+                                        >
+                                            <option value="">{{ $t("app.shared_instance_type_default") }}</option>
+                                            <option value="unix">unix</option>
+                                            <option value="tcp">tcp</option>
+                                        </select>
+                                        <span class="text-xs text-gray-500 dark:text-zinc-400">{{
+                                            $t("app.shared_instance_type_description")
+                                        }}</span>
+                                    </label>
+                                    <label class="block space-y-1">
+                                        <span class="text-sm font-medium text-gray-800 dark:text-zinc-200">{{
+                                            $t("app.instance_name")
+                                        }}</span>
+                                        <input
+                                            v-model="reticulumInstance.instance_name"
+                                            type="text"
+                                            maxlength="64"
+                                            class="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm text-gray-900 dark:text-white"
+                                            :disabled="reticulumInstanceSaving"
+                                            @change="onInstanceNameChange"
+                                        />
+                                        <span class="text-xs text-gray-500 dark:text-zinc-400">{{
+                                            $t("app.instance_name_description")
+                                        }}</span>
+                                    </label>
+                                </div>
+
+                                <div
+                                    class="rounded-xl border border-gray-200 dark:border-zinc-700 bg-black/2 dark:bg-white/2 p-3 space-y-2"
+                                >
+                                    <div class="text-sm font-medium text-gray-900 dark:text-zinc-100">
+                                        {{ $t("app.rpc_config") }}
+                                    </div>
+                                    <p class="text-xs text-gray-600 dark:text-zinc-400">
+                                        {{ $t("app.rpc_config_description") }}
+                                    </p>
+                                    <p
+                                        v-if="reticulumInstance.is_connected_to_shared_instance"
+                                        class="text-xs text-amber-700 dark:text-amber-300"
+                                    >
+                                        {{ $t("app.connected_to_shared_instance") }}
+                                    </p>
+                                    <pre
+                                        class="text-xs font-mono whitespace-pre-wrap break-all text-gray-800 dark:text-zinc-200 bg-white/60 dark:bg-zinc-900/60 rounded-lg p-2 border border-gray-200/70 dark:border-zinc-800"
+                                        >{{
+                                            reticulumInstance.rpc_config_snippet || $t("app.rpc_config_unavailable")
+                                        }}</pre>
+                                    <button
+                                        type="button"
+                                        class="inline-flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-3 py-2"
+                                        :disabled="!reticulumInstance.rpc_config_snippet"
+                                        @click="copyRpcConfigSnippet"
+                                    >
+                                        <MaterialDesignIcon icon-name="content-copy" class="w-4 h-4" />
+                                        {{ $t("app.copy_rpc_config") }}
+                                    </button>
+                                </div>
                             </div>
                         </section>
 
@@ -2908,7 +3040,11 @@ import {
     fetchMergedConfig,
     patchServerConfig,
 } from "../../js/settings/settingsConfigService";
-import { applyTransportMode } from "../../js/settings/settingsTransportService";
+import {
+    applyTransportMode,
+    applyReticulumInstanceSettings,
+    fetchReticulumInstanceSettings,
+} from "../../js/settings/settingsTransportService";
 import * as maintenanceClient from "../../js/settings/settingsMaintenanceClient";
 import {
     loadVisualiserDisplayPrefs,
@@ -3067,6 +3203,19 @@ export default {
                 closeBehavior: "ask",
                 trayEnabled: true,
             },
+            reticulumInstance: {
+                share_instance: true,
+                local_hops_delta: false,
+                respond_to_probes: false,
+                enable_remote_management: false,
+                shared_instance_type: "",
+                instance_name: "default",
+                rpc_key: null,
+                rpc_config_snippet: null,
+                is_connected_to_shared_instance: false,
+                enable_transport: false,
+            },
+            reticulumInstanceSaving: false,
         };
     },
     computed: {
@@ -3195,8 +3344,79 @@ export default {
         this.loadGifCount();
         this.loadVisualiserDisplayPrefsFromStorage();
         this.loadDesktopCloseSettings();
+        this.loadReticulumInstanceSettings();
     },
     methods: {
+        async loadReticulumInstanceSettings() {
+            try {
+                const instance = await fetchReticulumInstanceSettings(window.api);
+                if (instance && typeof instance === "object") {
+                    this.reticulumInstance = {
+                        ...this.reticulumInstance,
+                        ...instance,
+                        shared_instance_type: instance.shared_instance_type || "",
+                        instance_name: instance.instance_name || "default",
+                    };
+                }
+            } catch (e) {
+                console.log(e);
+            }
+        },
+        async patchReticulumInstance(patch) {
+            if (this.reticulumInstanceSaving) return;
+            this.reticulumInstanceSaving = true;
+            try {
+                const response = await applyReticulumInstanceSettings(patch, window.api);
+                if (response?.data?.instance) {
+                    const instance = response.data.instance;
+                    this.reticulumInstance = {
+                        ...this.reticulumInstance,
+                        ...instance,
+                        shared_instance_type: instance.shared_instance_type || "",
+                        instance_name: instance.instance_name || "default",
+                    };
+                }
+                if (response?.data?.message) {
+                    ToastUtils.success(response.data.message);
+                }
+            } catch {
+                ToastUtils.error(this.$t("settings.failed_update_reticulum_instance"));
+                await this.loadReticulumInstanceSettings();
+            } finally {
+                this.reticulumInstanceSaving = false;
+            }
+        },
+        onShareInstanceChange(value) {
+            this.patchReticulumInstance({ share_instance: !!value });
+        },
+        onLocalHopsDeltaChange(value) {
+            this.patchReticulumInstance({ local_hops_delta: !!value });
+        },
+        onRespondToProbesChange(value) {
+            this.patchReticulumInstance({ respond_to_probes: !!value });
+        },
+        onEnableRemoteManagementChange(value) {
+            this.patchReticulumInstance({ enable_remote_management: !!value });
+        },
+        onSharedInstanceTypeChange() {
+            const value = this.reticulumInstance.shared_instance_type || null;
+            this.patchReticulumInstance({ shared_instance_type: value });
+        },
+        onInstanceNameChange() {
+            this.patchReticulumInstance({
+                instance_name: this.reticulumInstance.instance_name || "default",
+            });
+        },
+        async copyRpcConfigSnippet() {
+            const snippet = this.reticulumInstance.rpc_config_snippet;
+            if (!snippet) return;
+            try {
+                await navigator.clipboard.writeText(snippet);
+                ToastUtils.success(this.$t("app.rpc_config_copied"));
+            } catch {
+                ToastUtils.error(this.$t("app.copy_failed"));
+            }
+        },
         async loadDesktopCloseSettings() {
             if (!ElectronUtils.isElectron()) {
                 return;

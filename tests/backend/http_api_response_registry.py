@@ -42,6 +42,7 @@ from tests.backend.http_api_response_schemas import (
     DESTINATION_STAMP_INFO_SCHEMA,
     DISCOVERED_INTERFACES_SCHEMA,
     DISCOVERY_CONFIG_SCHEMA,
+    RETICULUM_INSTANCE_SCHEMA,
     DOCS_SEARCH_SCHEMA,
     DOCS_STATUS_SCHEMA,
     ERROR_ENVELOPE_SCHEMA,
@@ -141,6 +142,7 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
         "GET", "/api/v1/community-interfaces", COMMUNITY_INTERFACES_SCHEMA
     ),
     HttpJsonContract("GET", "/api/v1/reticulum/discovery", DISCOVERY_CONFIG_SCHEMA),
+    HttpJsonContract("GET", "/api/v1/reticulum/instance", RETICULUM_INSTANCE_SCHEMA),
     HttpJsonContract(
         "GET", "/api/v1/reticulum/discovered-interfaces", DISCOVERED_INTERFACES_SCHEMA
     ),

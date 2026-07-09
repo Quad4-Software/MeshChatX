@@ -10,3 +10,5 @@ export async function applyTransportMode(enabled, api) {
     }
     return api.post("/api/v1/reticulum/disable-transport");
 }
+
+export { applyReticulumInstanceSettings, fetchReticulumInstanceSettings } from "./settingsReticulumInstanceService.js";
