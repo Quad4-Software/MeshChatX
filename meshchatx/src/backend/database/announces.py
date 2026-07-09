@@ -1,6 +1,12 @@
 # SPDX-License-Identifier: 0BSD
 
+import json
 from datetime import UTC, datetime
+
+from meshchatx.src.backend.favourites_layout import (
+    NOMADNET_FAVOURITES_LAYOUT_KEY,
+    normalize_favourites_layout,
+)
 
 from .provider import DatabaseProvider
 
@@ -243,3 +249,47 @@ class AnnounceDAO:
             )
         else:
             self.provider.execute("DELETE FROM favourite_destinations")
+
+    def get_favourites_layout(self):
+        row = self.provider.fetchone(
+            "SELECT value FROM config WHERE key = ?",
+            (NOMADNET_FAVOURITES_LAYOUT_KEY,),
+        )
+        if not row or row["value"] in (None, ""):
+            return None
+        try:
+            parsed = json.loads(row["value"])
+        except (TypeError, ValueError, json.JSONDecodeError):
+            return None
+        return normalize_favourites_layout(parsed)
+
+    def set_favourites_layout(self, layout):
+        from meshchatx.src.backend.favourites_layout import (
+            MAX_LAYOUT_JSON_BYTES,
+        )
+
+        normalized = normalize_favourites_layout(layout)
+        if normalized is None:
+            msg = "invalid favourites layout"
+            raise ValueError(msg)
+        payload = json.dumps(normalized, separators=(",", ":"), ensure_ascii=False)
+        if len(payload.encode("utf-8")) > MAX_LAYOUT_JSON_BYTES:
+            msg = "favourites layout exceeds size limit"
+            raise ValueError(msg)
+        now = datetime.now(UTC)
+        self.provider.execute(
+            """
+            INSERT INTO config (key, value, created_at, updated_at)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(key) DO UPDATE SET
+                value = EXCLUDED.value,
+                updated_at = EXCLUDED.updated_at
+            """,
+            (
+                NOMADNET_FAVOURITES_LAYOUT_KEY,
+                payload,
+                now,
+                now,
+            ),
+        )
+        return normalized

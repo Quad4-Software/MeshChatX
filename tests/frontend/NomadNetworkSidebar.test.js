@@ -4,6 +4,7 @@ import NomadNetworkSidebar from "@/components/nomadnetwork/NomadNetworkSidebar.v
 import DialogUtils from "@/js/DialogUtils";
 import GlobalState from "@/js/GlobalState";
 import GlobalEmitter from "@/js/GlobalEmitter";
+import { _resetNomadFavouritesLayoutSaveStateForTests } from "@/js/nomadFavouritesLayoutStore.js";
 
 vi.mock("@/js/DialogUtils", () => ({
     default: {
@@ -28,8 +29,10 @@ describe("NomadNetworkSidebar.vue", () => {
     };
 
     beforeEach(() => {
+        _resetNomadFavouritesLayoutSaveStateForTests();
         axiosMock = {
-            get: vi.fn().mockResolvedValue({ data: {} }),
+            get: vi.fn().mockResolvedValue({ data: { layout: null } }),
+            put: vi.fn().mockImplementation((_url, body) => Promise.resolve({ data: body || {} })),
             post: vi.fn().mockResolvedValue({ data: {} }),
             delete: vi.fn().mockResolvedValue({ data: {} }),
         };
@@ -48,6 +51,7 @@ describe("NomadNetworkSidebar.vue", () => {
     afterEach(() => {
         delete window.api;
         vi.unstubAllGlobals();
+        _resetNomadFavouritesLayoutSaveStateForTests();
     });
 
     const mountSidebar = (overrides = {}) =>
@@ -335,17 +339,56 @@ describe("NomadNetworkSidebar.vue", () => {
             }
             return null;
         });
+        axiosMock.get.mockResolvedValue({ data: { layout } });
 
         const wrapper = mountSidebar({ favourites: [] });
         await wrapper.vm.$nextTick();
-
         expect(wrapper.vm.favouritesBySection.custom).toEqual([favHash]);
-        expect(localStorage.setItem).not.toHaveBeenCalled();
 
         await wrapper.setProps({ favourites: [defaultFavourite] });
         await wrapper.vm.$nextTick();
 
         expect(wrapper.vm.favouritesBySection.custom).toContain(favHash);
         expect(wrapper.vm.favouritesBySection.default || []).not.toContain(favHash);
+    });
+
+    it("persists favourite layout through the favourites layout API", async () => {
+        let resolveGet;
+        axiosMock.get.mockImplementation(
+            () =>
+                new Promise((resolve) => {
+                    resolveGet = resolve;
+                })
+        );
+        const wrapper = mountSidebar();
+        await vi.waitFor(() => expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/favourites/layout"));
+        await vi.waitFor(() => expect(wrapper.vm.sections.length).toBeGreaterThan(0));
+        axiosMock.put.mockClear();
+        wrapper.vm.sections = [
+            { id: "default", name: "Favourites", collapsed: false },
+            { id: "custom", name: "Custom", collapsed: false },
+        ];
+        wrapper.vm.sectionOrder = ["default", "custom"];
+        wrapper.vm.favouritesBySection = {
+            default: [],
+            custom: [defaultFavourite.destination_hash],
+        };
+        await wrapper.vm.persistFavouriteLayout({ immediate: true });
+        // Late hydrate must not wipe the edit we just persisted.
+        resolveGet({ data: { layout: null } });
+        await Promise.resolve();
+        expect(wrapper.vm.favouritesBySection.custom).toEqual([defaultFavourite.destination_hash]);
+        await vi.waitFor(() =>
+            expect(axiosMock.put).toHaveBeenCalledWith(
+                "/api/v1/favourites/layout",
+                expect.objectContaining({
+                    layout: expect.objectContaining({
+                        favouritesBySection: expect.objectContaining({
+                            custom: [defaultFavourite.destination_hash],
+                        }),
+                    }),
+                })
+            )
+        );
     });
 });
