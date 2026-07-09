@@ -47,7 +47,12 @@ class CommunityInterfacesManager:
 
     @staticmethod
     def _normalize_entry(item: dict[str, Any]) -> dict[str, Any]:
+        from meshchatx.src.backend.interface_editor import InterfaceEditor
+
         out = dict(item)
+        name = InterfaceEditor.sanitize_interface_section_name(out.get("name"))
+        if name:
+            out["name"] = name
         iface_type = out.get("type")
         if iface_type == "BackboneInterface":
             remote = (out.get("remote") or out.get("target_host") or "").strip()

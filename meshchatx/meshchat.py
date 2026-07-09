@@ -341,35 +341,6 @@ def _install_reticulum_signal_handlers() -> bool:
         return False
 
 
-def _python_jit_status_line() -> str:
-    jit_runtime = getattr(sys, "_jit", None)
-    if jit_runtime is None:
-        return "Python JIT: unavailable"
-
-    is_available = getattr(jit_runtime, "is_available", None)
-    if not callable(is_available):
-        return "Python JIT: unavailable"
-
-    try:
-        available = bool(is_available())
-    except Exception:
-        return "Python JIT: unavailable"
-
-    if not available:
-        return "Python JIT: unavailable"
-
-    is_enabled = getattr(jit_runtime, "is_enabled", None)
-    if not callable(is_enabled):
-        return "Python JIT: disabled"
-
-    try:
-        enabled = bool(is_enabled())
-    except Exception:
-        enabled = False
-
-    return "Python JIT: enabled" if enabled else "Python JIT: disabled"
-
-
 def list_host_network_interfaces():
     """Enumerate kernel network interfaces on the host running MeshChat.
 
@@ -3774,14 +3745,69 @@ class ReticulumMeshChat:
                     snapshot[name] = {}
         return snapshot
 
-    def _write_reticulum_config(self):
+    def _sanitize_interfaces_section_names(self) -> None:
+        """Rewrite interface section keys so ConfigObj can reload the config file."""
+        interfaces = self._get_interfaces_section()
+        if not isinstance(interfaces, dict) or not interfaces:
+            return
+        renamed: dict = {}
+        changed = False
+        for name, details in list(interfaces.items()):
+            safe = InterfaceEditor.sanitize_interface_section_name(name)
+            if not safe:
+                safe = "Interface"
+            if safe != name:
+                changed = True
+            # Avoid collisions after sanitizing two distinct names to the same key.
+            final = safe
+            suffix = 2
+            while final in renamed:
+                final = f"{safe} ({suffix})"
+                suffix += 1
+            if final != name:
+                changed = True
+            renamed[final] = details
+        if changed:
+            if hasattr(self, "reticulum") and self.reticulum:
+                self.reticulum.config["interfaces"] = renamed
+
+    def _verify_reticulum_config_reloadable(self) -> None:
+        """Ensure the on-disk config still parses after write (ConfigObj quirk)."""
+        from RNS.vendor.configobj import ConfigObj
+
+        path = None
+        try:
+            path = self._api_reticulum_config_path()
+        except Exception:
+            path = None
+        if not path:
+            path = getattr(getattr(self, "reticulum", None), "configpath", None)
+        if not path or not os.path.isfile(path):
+            return
+        ConfigObj(path)
+
+    def _write_reticulum_config(self, *, rollback_interfaces=None):
         try:
             if hasattr(self, "reticulum") and self.reticulum:
+                self._sanitize_interfaces_section_names()
                 self.reticulum.config.write()
+                self._verify_reticulum_config_reloadable()
                 return True
             return False
         except Exception as e:
             print(f"Failed to write Reticulum config: {e}")
+            if (
+                rollback_interfaces is not None
+                and hasattr(self, "reticulum")
+                and self.reticulum
+            ):
+                try:
+                    self.reticulum.config["interfaces"] = rollback_interfaces
+                except Exception as restore_exc:
+                    print(
+                        "Failed to restore Reticulum interfaces after write error: "
+                        f"{restore_exc}"
+                    )
             return False
 
     def _detect_failed_autointerfaces(self):
@@ -5854,7 +5880,9 @@ class ReticulumMeshChat:
         async def reticulum_interfaces_add(request):
             # get request data
             data = await request.json()
-            interface_name = data.get("name")
+            interface_name = InterfaceEditor.sanitize_interface_section_name(
+                data.get("name")
+            )
             interface_type = data.get("type")
             allow_overwriting_interface = data.get("allow_overwriting_interface", False)
 
@@ -6680,12 +6708,19 @@ class ReticulumMeshChat:
             InterfaceEditor.update_value(interface_details, data, "ifac_size")
 
             # merge new interface into existing interfaces
+            interfaces_before_write = self._get_interfaces_snapshot()
             interfaces[interface_name] = interface_details
             # save config
-            if not self._write_reticulum_config():
+            if not self._write_reticulum_config(
+                rollback_interfaces=interfaces_before_write
+            ):
                 return web.json_response(
                     {
-                        "message": "Failed to write Reticulum config",
+                        "message": (
+                            "Failed to write Reticulum config. "
+                            "Interface names must not contain '[' or ']' "
+                            "(ConfigObj section syntax)."
+                        ),
                     },
                     status=500,
                 )
@@ -6809,7 +6844,16 @@ class ReticulumMeshChat:
                 interface_config = {}
                 for interface in selected_interfaces:
                     # add interface and keys/values
-                    interface_name = interface["name"]
+                    interface_name = InterfaceEditor.sanitize_interface_section_name(
+                        interface.get("name")
+                    )
+                    if not interface_name:
+                        return web.json_response(
+                            {
+                                "message": "Imported interface is missing a valid name",
+                            },
+                            status=422,
+                        )
                     interface_config[interface_name] = {}
                     for key, value in interface.items():
                         interface_config[interface_name][key] = value
@@ -6882,12 +6926,19 @@ class ReticulumMeshChat:
                                     )
 
                 # update reticulum config with new interfaces
+                interfaces_before_write = self._get_interfaces_snapshot()
                 interfaces = self._get_interfaces_section()
                 interfaces.update(interface_config)
-                if not self._write_reticulum_config():
+                if not self._write_reticulum_config(
+                    rollback_interfaces=interfaces_before_write
+                ):
                     return web.json_response(
                         {
-                            "message": "Failed to write Reticulum config",
+                            "message": (
+                                "Failed to write Reticulum config. "
+                                "Interface names must not contain '[' or ']' "
+                                "(ConfigObj section syntax)."
+                            ),
                         },
                         status=500,
                     )
@@ -21296,7 +21347,6 @@ def main():
     # Initialize crash recovery system early to catch startup errors
     recovery = CrashRecovery()
     recovery.install()
-    print(_python_jit_status_line())
 
     parser = argparse.ArgumentParser(description="ReticulumMeshChat")
     parser.add_argument(

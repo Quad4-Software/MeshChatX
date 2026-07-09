@@ -196,7 +196,9 @@ def transform_directory_rows(rows: list[Any]) -> list[dict[str, Any]]:
         if not isinstance(row, dict):
             continue
 
-        name = (row.get("name") or "").strip()
+        from meshchatx.src.backend.interface_editor import InterfaceEditor
+
+        name = InterfaceEditor.sanitize_interface_section_name(row.get("name"))
         rtype = (row.get("type") or "").lower()
         type_name = row.get("typeName") or ""
         if not isinstance(type_name, str):
@@ -243,7 +245,7 @@ def transform_directory_rows(rows: list[Any]) -> list[dict[str, Any]]:
         if is_backboneish and tid:
             out_list.append(
                 {
-                    "name": name,
+                    "name": name or addr,
                     "type": "BackboneInterface",
                     "remote": addr,
                     "target_port": port_i,
@@ -256,7 +258,7 @@ def transform_directory_rows(rows: list[Any]) -> list[dict[str, Any]]:
         if is_backboneish and not tid:
             out_list.append(
                 {
-                    "name": name,
+                    "name": name or addr,
                     "type": "TCPClientInterface",
                     "target_host": addr,
                     "target_port": port_i,
@@ -268,7 +270,7 @@ def transform_directory_rows(rows: list[Any]) -> list[dict[str, Any]]:
         if is_tcp_style:
             out_list.append(
                 {
-                    "name": name,
+                    "name": name or addr,
                     "type": "TCPClientInterface",
                     "target_host": addr,
                     "target_port": port_i,

@@ -52,7 +52,7 @@
             "description": "directory.rns.recipes (user-submitted, online)"
         },
         {
-            "name": "MSK SZAO [HaLow Bridge]",
+            "name": "MSK SZAO (HaLow Bridge)",
             "type": "TCPClientInterface",
             "target_host": "dreadgurizta.ru",
             "target_port": 4242,
