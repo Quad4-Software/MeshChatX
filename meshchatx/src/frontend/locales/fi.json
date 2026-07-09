@@ -785,7 +785,7 @@
     },
     "selftest": {
         "title": "Järjestelmän itsetestaus",
-        "description": "Suorita diagnostiikkatarkistuksia varmistaaksesi, että verkko-ohjelmisto, tietokanta, asetukset ja tallennusoikeudet toimivat oikein.",
+        "description": "Run diagnostic checks for the network stack, database, identity, imports, storage, LXMF, subprocess/run-module, SQLite, identity files, loopback TCP, unicode paths, RNode helpers, bot launcher argv, HTTP status/config/health/auth/bots/security/interfaces/reticulum-instance/identities/favourites/telephone/plugins/sideband/RRC APIs, plugin runtime, WebSocket, RNS Link API, and bot lifecycle.",
         "run_test_btn": "Suorita diagnostiikka",
         "running": "Suoritetaan diagnostiikkaa...",
         "stack_up": "Verkkopino",
@@ -826,7 +826,15 @@
         "checks_completed": "Kaikki tarkistukset suoritettiin onnistuneesti.",
         "http_reticulum_instance_good": "HTTP RNS Instance Settings",
         "expand_reason": "Näytä virheen tiedot",
-        "collapse_reason": "Piilota virheen tiedot"
+        "collapse_reason": "Piilota virheen tiedot",
+        "http_plugins_good": "HTTP Plugins API",
+        "http_plugins_trust_good": "HTTP Plugin Trust List",
+        "http_sideband_plugins_good": "HTTP Sideband Plugins",
+        "http_sideband_config_good": "HTTP Sideband Config",
+        "http_rrc_hubs_good": "HTTP RRC Hubs",
+        "http_rrc_servers_good": "HTTP RRC Servers",
+        "plugins_runtime_good": "Plugin Manager Runtime",
+        "websocket_rns_link_good": "WebSocket RNS Link API"
     },
     "maintenance": {
         "title": "Ylläpito ja tiedot",
@@ -3363,8 +3371,5 @@
         "action_getting_started_desc": "Open the setup guide",
         "action_changelog": "Changelog",
         "action_changelog_desc": "Recent changes"
-    },
-    "self_test": {
-        "websocket_rns_link_good": "WebSocket RNS Link API"
     }
 }

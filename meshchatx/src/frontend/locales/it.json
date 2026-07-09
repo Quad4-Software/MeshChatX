@@ -785,7 +785,7 @@
     },
     "selftest": {
         "title": "Self-Test del Sistema",
-        "description": "Esegui controlli diagnostici per assicurarti che lo stack di rete, il database, le configurazioni e i permessi di archiviazione funzionino.",
+        "description": "Run diagnostic checks for the network stack, database, identity, imports, storage, LXMF, subprocess/run-module, SQLite, identity files, loopback TCP, unicode paths, RNode helpers, bot launcher argv, HTTP status/config/health/auth/bots/security/interfaces/reticulum-instance/identities/favourites/telephone/plugins/sideband/RRC APIs, plugin runtime, WebSocket, RNS Link API, and bot lifecycle.",
         "run_test_btn": "Esegui Diagnostica",
         "running": "Esecuzione Diagnostica...",
         "stack_up": "Stack di Rete",
@@ -826,7 +826,15 @@
         "checks_completed": "Tutti i controlli sono stati superati con successo.",
         "http_reticulum_instance_good": "HTTP RNS Instance Settings",
         "expand_reason": "Mostra dettagli dell’errore",
-        "collapse_reason": "Nascondi dettagli dell’errore"
+        "collapse_reason": "Nascondi dettagli dell’errore",
+        "http_plugins_good": "HTTP Plugins API",
+        "http_plugins_trust_good": "HTTP Plugin Trust List",
+        "http_sideband_plugins_good": "HTTP Sideband Plugins",
+        "http_sideband_config_good": "HTTP Sideband Config",
+        "http_rrc_hubs_good": "HTTP RRC Hubs",
+        "http_rrc_servers_good": "HTTP RRC Servers",
+        "plugins_runtime_good": "Plugin Manager Runtime",
+        "websocket_rns_link_good": "WebSocket RNS Link API"
     },
     "maintenance": {
         "title": "Manutenzione e Dati",
@@ -3363,8 +3371,5 @@
         "copy_restart_hint": "Copy scheduled. Closing the app — open MeshChatX again to finish.",
         "restart_to_apply": "Restart the app to apply your storage choice.",
         "failed": "Could not update storage location."
-    },
-    "self_test": {
-        "websocket_rns_link_good": "WebSocket RNS Link API"
     }
 }
