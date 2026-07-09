@@ -3359,6 +3359,118 @@ class ReticulumMeshChat:
 
         return reticulum_config
 
+    @staticmethod
+    def _parse_rns_config_bool(value, default=False):
+        """Parse Reticulum config Yes/No / bool-ish values."""
+        if value is None:
+            return bool(default)
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, (int, float)):
+            return value != 0
+        text = str(value).strip().lower()
+        if text in ("yes", "true", "1", "on"):
+            return True
+        if text in ("no", "false", "0", "off", ""):
+            return False
+        return bool(default)
+
+    @staticmethod
+    def _format_rns_config_bool(value):
+        return "Yes" if bool(value) else "No"
+
+    def _get_reticulum_rpc_key_hex(self):
+        """Return the live or configured RPC key as lowercase hex, or None."""
+        reticulum = getattr(self, "reticulum", None)
+        if reticulum is not None:
+            key = getattr(reticulum, "rpc_key", None)
+            if isinstance(key, (bytes, bytearray)) and key:
+                try:
+                    return RNS.hexrep(key, delimit=False)
+                except Exception:
+                    return bytes(key).hex()
+            if isinstance(key, str) and key.strip():
+                return key.strip().lower()
+        section = self._get_reticulum_section()
+        raw = section.get("rpc_key")
+        if isinstance(raw, str) and raw.strip():
+            return raw.strip().lower()
+        return None
+
+    def _build_reticulum_instance_settings(self):
+        """Sideband-parity shared-instance / RPC / hop-obfuscation settings."""
+        section = self._get_reticulum_section()
+        reticulum = getattr(self, "reticulum", None)
+        share_default = True
+        if reticulum is not None and hasattr(reticulum, "share_instance"):
+            share_default = bool(reticulum.share_instance)
+        share_instance = self._parse_rns_config_bool(
+            section.get("share_instance"),
+            default=share_default,
+        )
+        if "local_hops_delta" in section:
+            local_hops_delta = self._parse_rns_config_bool(
+                section.get("local_hops_delta"),
+                default=False,
+            )
+        else:
+            local_hops_delta = False
+            if reticulum is not None and hasattr(RNS.Reticulum, "local_hops_delta"):
+                try:
+                    local_hops_delta = bool(RNS.Reticulum.local_hops_delta())
+                except Exception:
+                    pass
+
+        shared_type_raw = section.get("shared_instance_type")
+        shared_instance_type = None
+        if isinstance(shared_type_raw, str) and shared_type_raw.strip():
+            shared_instance_type = shared_type_raw.strip().lower()
+        elif reticulum is not None:
+            live_type = getattr(reticulum, "shared_instance_type", None)
+            if isinstance(live_type, str) and live_type.strip():
+                shared_instance_type = live_type.strip().lower()
+
+        instance_name = section.get("instance_name")
+        if not isinstance(instance_name, str) or not instance_name.strip():
+            instance_name = "default"
+        else:
+            instance_name = instance_name.strip()
+
+        is_connected = bool(
+            reticulum is not None
+            and getattr(reticulum, "is_connected_to_shared_instance", False),
+        )
+        rpc_key = self._get_reticulum_rpc_key_hex()
+        rpc_snippet = None
+        if rpc_key:
+            type_line = shared_instance_type or "tcp"
+            rpc_snippet = f"shared_instance_type = {type_line}\nrpc_key = {rpc_key}"
+
+        return {
+            "share_instance": share_instance,
+            "local_hops_delta": local_hops_delta,
+            "shared_instance_type": shared_instance_type,
+            "instance_name": instance_name,
+            "rpc_key": rpc_key,
+            "rpc_config_snippet": rpc_snippet,
+            "is_connected_to_shared_instance": is_connected,
+            "enable_transport": self._parse_rns_config_bool(
+                section.get("enable_transport"),
+                default=bool(
+                    reticulum is not None
+                    and getattr(reticulum, "transport_enabled", lambda: False)(),
+                ),
+            ),
+            "respond_to_probes": self._parse_rns_config_bool(
+                section.get("respond_to_probes"),
+                default=False,
+            ),
+            "enable_remote_management": self._parse_rns_config_bool(
+                section.get("enable_remote_management"),
+                default=False,
+            ),
+        }
+
     def _get_interfaces_section(self):
         try:
             if hasattr(self, "reticulum") and self.reticulum:
@@ -8178,6 +8290,105 @@ class ReticulumMeshChat:
             return web.json_response(
                 {
                     "message": "Transport mode disabled and RNS restarted successfully.",
+                },
+            )
+
+        @routes.get("/api/v1/reticulum/instance")
+        async def reticulum_instance_get(request):
+            """Shared-instance, RPC, and hop-obfuscation settings (Sideband parity)."""
+            return web.json_response(
+                {"instance": self._build_reticulum_instance_settings()},
+            )
+
+        @routes.patch("/api/v1/reticulum/instance")
+        async def reticulum_instance_patch(request):
+            """Update [reticulum] shared-instance / hop-obfuscation options and reload."""
+            try:
+                data = await request.json()
+            except Exception:
+                return web.json_response(
+                    {"message": "Invalid request body"},
+                    status=400,
+                )
+            if not isinstance(data, dict):
+                return web.json_response(
+                    {"message": "Invalid request body"},
+                    status=400,
+                )
+
+            reticulum_config = self._get_reticulum_section()
+            changed = False
+
+            bool_keys = (
+                "share_instance",
+                "local_hops_delta",
+                "respond_to_probes",
+                "enable_remote_management",
+            )
+            for key in bool_keys:
+                if key not in data:
+                    continue
+                reticulum_config[key] = self._format_rns_config_bool(
+                    self._parse_rns_config_bool(data.get(key), default=False),
+                )
+                changed = True
+
+            if "instance_name" in data:
+                name = data.get("instance_name")
+                if name is None or str(name).strip() == "":
+                    reticulum_config.pop("instance_name", None)
+                else:
+                    cleaned = str(name).strip()
+                    if len(cleaned) > 64 or any(c.isspace() for c in cleaned):
+                        return web.json_response(
+                            {
+                                "message": "instance_name must be 1-64 characters without whitespace",
+                            },
+                            status=400,
+                        )
+                    reticulum_config["instance_name"] = cleaned
+                changed = True
+
+            if "shared_instance_type" in data:
+                raw_type = data.get("shared_instance_type")
+                if raw_type is None or str(raw_type).strip() == "":
+                    reticulum_config.pop("shared_instance_type", None)
+                else:
+                    cleaned_type = str(raw_type).strip().lower()
+                    if cleaned_type not in ("tcp", "unix"):
+                        return web.json_response(
+                            {
+                                "message": "shared_instance_type must be 'tcp' or 'unix'",
+                            },
+                            status=400,
+                        )
+                    reticulum_config["shared_instance_type"] = cleaned_type
+                changed = True
+
+            if not changed:
+                return web.json_response(
+                    {"instance": self._build_reticulum_instance_settings()},
+                )
+
+            if not self._write_reticulum_config():
+                return web.json_response(
+                    {"message": "Failed to write Reticulum config"},
+                    status=500,
+                )
+
+            if not await self.reload_reticulum():
+                return web.json_response(
+                    {
+                        "message": "Instance settings were saved, but RNS reload failed.",
+                        "instance": self._build_reticulum_instance_settings(),
+                    },
+                    status=500,
+                )
+
+            return web.json_response(
+                {
+                    "message": "Reticulum instance settings updated and RNS restarted.",
+                    "instance": self._build_reticulum_instance_settings(),
                 },
             )
 
