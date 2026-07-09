@@ -89,6 +89,26 @@ describe("electron/preload", () => {
         expect(cb).toHaveBeenCalledWith({ code: 255 });
     });
 
+    it("exposes close settings IPC helpers", async () => {
+        const exposeInMainWorld = vi.fn();
+        const invoke = vi.fn();
+        loadPreloadWithElectronMock({
+            contextBridge: { exposeInMainWorld },
+            ipcRenderer: { invoke, on: vi.fn() },
+        });
+        const api = exposeInMainWorld.mock.calls[0][1];
+        invoke.mockResolvedValueOnce({ closeBehavior: "ask", trayEnabled: true });
+        await expect(api.getCloseSettings()).resolves.toEqual({ closeBehavior: "ask", trayEnabled: true });
+        expect(invoke).toHaveBeenCalledWith("get-close-settings");
+
+        invoke.mockResolvedValueOnce({ closeBehavior: "quit", trayEnabled: false });
+        await expect(api.setCloseSettings({ closeBehavior: "quit" })).resolves.toEqual({
+            closeBehavior: "quit",
+            trayEnabled: false,
+        });
+        expect(invoke).toHaveBeenCalledWith("set-close-settings", { closeBehavior: "quit" });
+    });
+
     it("subscribes to log channel on load", () => {
         const exposeInMainWorld = vi.fn();
         const on = vi.fn();

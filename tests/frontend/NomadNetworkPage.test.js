@@ -670,6 +670,82 @@ describe("NomadNetworkPage.vue", () => {
             expect(ToastUtils.success).toHaveBeenCalledWith("nomadnet.favourite_added");
         });
 
+        it("resolveNodeForHash prefers favourite name over Unknown Node stub", () => {
+            const wrapper = mountNomadNetworkPage();
+            const hash = "a".repeat(32);
+            wrapper.vm.nodes = {};
+            wrapper.vm.favourites = [{ destination_hash: hash, display_name: "Saved Favourite" }];
+            const resolved = wrapper.vm.resolveNodeForHash(hash);
+            expect(resolved.display_name).toBe("Saved Favourite");
+            expect(resolved.destination_hash).toBe(hash);
+        });
+
+        it("addFavourite does not overwrite existing favourite with Unknown Node", async () => {
+            axiosMock.post.mockResolvedValueOnce({ data: {} });
+            axiosMock.get.mockResolvedValueOnce({ data: { favourites: [] } });
+            const wrapper = mountNomadNetworkPage();
+            const hash = "a".repeat(32);
+            wrapper.vm.favourites = [{ destination_hash: hash, display_name: "Kept Name" }];
+            await wrapper.vm.addFavourite({
+                destination_hash: hash,
+                display_name: "Unknown Node",
+            });
+            expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/favourites/add", {
+                destination_hash: hash,
+                display_name: "Kept Name",
+                aspect: "nomadnetwork.node",
+            });
+        });
+
+        it("addFavourite canonicalizes localized unknown names for new favourites", async () => {
+            axiosMock.post.mockResolvedValueOnce({ data: {} });
+            axiosMock.get.mockResolvedValueOnce({ data: { favourites: [] } });
+            const wrapper = mountNomadNetworkPage();
+            const hash = "b".repeat(32);
+            wrapper.vm.favourites = [];
+            await wrapper.vm.addFavourite({
+                destination_hash: hash,
+                display_name: "Unbekannter Knoten",
+            });
+            expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/favourites/add", {
+                destination_hash: hash,
+                display_name: "Unknown Node",
+                aspect: "nomadnetwork.node",
+            });
+        });
+
+        it("onNodeClick resolves favourite names through announce cache", async () => {
+            const wrapper = mountNomadNetworkPage();
+            const hash = "c".repeat(32);
+            wrapper.vm.nodes = {
+                [hash]: {
+                    destination_hash: hash,
+                    display_name: "From Announce",
+                    aspect: "nomadnetwork.node",
+                },
+            };
+            wrapper.vm.favourites = [{ destination_hash: hash, display_name: "Unknown Node" }];
+            const loadSpy = vi.spyOn(wrapper.vm, "loadNodePage").mockResolvedValue();
+            wrapper.vm.onNodeClick({ destination_hash: hash, display_name: "Unknown Node" });
+            expect(wrapper.vm.selectedNode.display_name).toBe("From Announce");
+            expect(loadSpy).toHaveBeenCalledWith(hash, wrapper.vm.defaultNodePagePath);
+            loadSpy.mockRestore();
+        });
+
+        it("onBulkAddFavouritesFromAnnounces uses canonical unknown sentinel", async () => {
+            axiosMock.post.mockResolvedValue({ data: {} });
+            axiosMock.get.mockResolvedValue({ data: { favourites: [] } });
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.favourites = [];
+            const hash = "d".repeat(32);
+            await wrapper.vm.onBulkAddFavouritesFromAnnounces([{ destination_hash: hash, display_name: "未知节点" }]);
+            expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/favourites/add", {
+                destination_hash: hash,
+                display_name: "Unknown Node",
+                aspect: "nomadnetwork.node",
+            });
+        });
+
         it("toggleFavouriteFromContext reports API failures", async () => {
             axiosMock.post.mockRejectedValueOnce(new Error("network"));
             const wrapper = mountNomadNetworkPage();

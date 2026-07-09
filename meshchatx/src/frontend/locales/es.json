@@ -423,7 +423,15 @@
         "flood_threshold": "Messages per minute threshold",
         "flood_max_stamp_cost": "Maximum stamp cost during flood",
         "flood_cooldown": "Cooldown before lowering cost (seconds)",
-        "relay_chat": "Chat de retransmision"
+        "relay_chat": "Chat de retransmision",
+        "desktop_tray_enabled": "System tray integration",
+        "desktop_tray_enabled_description": "Keep a tray icon so MeshChatX can hide to the background instead of quitting.",
+        "desktop_close_behavior": "When closing the window",
+        "desktop_close_behavior_description": "Choose whether closing the window quits, hides to the tray/taskbar, or asks each time.",
+        "desktop_close_behavior_ask": "Ask every time",
+        "desktop_close_behavior_quit": "Quit application",
+        "desktop_close_behavior_background": "Keep running in background",
+        "desktop_close_behavior_background_no_tray": "Minimize to taskbar"
     },
     "common": {
         "open": "Abierto",

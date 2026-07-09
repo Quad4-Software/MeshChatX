@@ -5,7 +5,12 @@ import {
     parseRelaySearchQuery,
     parseDateSearchToken,
 } from "@/js/relayMessageSearch.js";
-import { buildRelayMessageTimeline, relayMessageKey } from "@/js/relayMessageTimeline.js";
+import {
+    buildRelayMessageTimeline,
+    mergeRelayMessages,
+    relayMessageAlreadyPresent,
+    relayMessageKey,
+} from "@/js/relayMessageTimeline.js";
 
 const displayName = (msg) => msg.nick || "anon";
 
@@ -79,5 +84,35 @@ describe("relayMessageTimeline", () => {
     it("relayMessageKey is stable", () => {
         const msg = { kind: "msg", ts: 1, src: "ab", text: "x" };
         expect(relayMessageKey(msg)).toBe(relayMessageKey(msg));
+    });
+
+    it("relayMessageKey prefers seq when present", () => {
+        const msg = { kind: "msg", ts: 1, src: "ab", text: "x", seq: 42 };
+        expect(relayMessageKey(msg)).toBe("seq-42");
+    });
+
+    it("relayMessageAlreadyPresent matches by seq", () => {
+        const messages = [{ kind: "msg", ts: 1, src: "ab", text: "x", seq: 7 }];
+        expect(relayMessageAlreadyPresent(messages, { kind: "msg", ts: 99, src: "cd", text: "y", seq: 7 })).toBe(true);
+        expect(relayMessageAlreadyPresent(messages, { kind: "msg", ts: 1, src: "ab", text: "x", seq: 8 })).toBe(false);
+    });
+
+    it("relayMessageAlreadyPresent falls back when seq is missing", () => {
+        const messages = [{ kind: "msg", ts: 1, src: "ab", text: "hello" }];
+        expect(relayMessageAlreadyPresent(messages, { kind: "msg", ts: 1, src: "ab", text: "hello" })).toBe(true);
+        expect(relayMessageAlreadyPresent(messages, { kind: "msg", ts: 1, src: "ab", text: "other" })).toBe(false);
+    });
+
+    it("mergeRelayMessages keeps websocket arrivals not in the loaded page", () => {
+        const loaded = [
+            { kind: "msg", ts: 1, src: "ab", text: "a", seq: 1 },
+            { kind: "msg", ts: 2, src: "ab", text: "b", seq: 2 },
+        ];
+        const live = [
+            { kind: "msg", ts: 2, src: "ab", text: "b", seq: 2 },
+            { kind: "msg", ts: 3, src: "cd", text: "c", seq: 3 },
+        ];
+        const merged = mergeRelayMessages(loaded, live);
+        expect(merged.map((m) => m.seq)).toEqual([1, 2, 3]);
     });
 });

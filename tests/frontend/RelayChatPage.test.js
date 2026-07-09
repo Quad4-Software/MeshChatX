@@ -189,6 +189,112 @@ describe("RelayChatPage.vue", () => {
         expect(wrapper.text()).toContain("hello");
     });
 
+    it("keeps websocket messages that arrive while selectRoom is loading", async () => {
+        let resolveMessages;
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/rrc/hubs") {
+                return Promise.resolve({ data: { hubs: [makeHub()] } });
+            }
+            if (url === "/api/v1/rrc/servers") {
+                return Promise.resolve({ data: { hubs: [makeHostedHub()] } });
+            }
+            if (url === "/api/v1/announces") {
+                return Promise.resolve({ data: { announces: [makeAnnounce()] } });
+            }
+            if (url.includes("/rooms/") && url.endsWith("/messages")) {
+                return new Promise((resolve) => {
+                    resolveMessages = resolve;
+                });
+            }
+            return Promise.resolve({ data: {} });
+        });
+
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+
+        const selectPromise = wrapper.vm.selectRoom(HUB_HASH, "lobby");
+        await vi.waitFor(() => expect(typeof resolveMessages).toBe("function"));
+
+        wrapper.vm.onWebsocketMessage({
+            data: JSON.stringify({
+                type: "rrc.message",
+                hub_hash: HUB_HASH,
+                room: "lobby",
+                message: {
+                    kind: "msg",
+                    room: "lobby",
+                    src: "live",
+                    nick: "live",
+                    text: "during-load",
+                    ts: 99,
+                    seq: 99,
+                    mention: false,
+                },
+            }),
+        });
+        expect(wrapper.vm.messages.some((m) => m.text === "during-load")).toBe(true);
+
+        resolveMessages({
+            data: {
+                messages: [
+                    {
+                        kind: "msg",
+                        room: "lobby",
+                        src: "aabb",
+                        nick: "carol",
+                        text: "hello",
+                        ts: 1,
+                        seq: 1,
+                        mention: false,
+                    },
+                ],
+                members: [{ hash: "aabb", name: "carol" }],
+                has_more: false,
+            },
+        });
+        await selectPromise;
+
+        expect(wrapper.vm.messages.map((m) => m.text)).toEqual(["hello", "during-load"]);
+    });
+
+    it("dedupes websocket messages that already exist by seq", async () => {
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+        await wrapper.vm.selectRoom(HUB_HASH, "lobby");
+        wrapper.vm.messages = [
+            {
+                kind: "msg",
+                room: "lobby",
+                src: "aabb",
+                nick: "carol",
+                text: "hello",
+                ts: 1,
+                seq: 5,
+                mention: false,
+            },
+        ];
+
+        wrapper.vm.onWebsocketMessage({
+            data: JSON.stringify({
+                type: "rrc.message",
+                hub_hash: HUB_HASH,
+                room: "lobby",
+                message: {
+                    kind: "msg",
+                    room: "lobby",
+                    src: "aabb",
+                    nick: "carol",
+                    text: "hello",
+                    ts: 1,
+                    seq: 5,
+                    mention: false,
+                },
+            }),
+        });
+
+        expect(wrapper.vm.messages).toHaveLength(1);
+    });
+
     it("sends a message via the API", async () => {
         const wrapper = mountPage();
         await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));

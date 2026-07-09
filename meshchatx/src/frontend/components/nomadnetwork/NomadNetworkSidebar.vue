@@ -57,7 +57,7 @@
                             ? 'ring-2 ring-blue-500 ring-offset-1 ring-offset-white dark:ring-offset-zinc-950'
                             : 'hover:bg-white/10'
                     "
-                    :title="fav.display_name"
+                    :title="favouriteDisplayName(fav)"
                     @click="onFavouriteClick(fav)"
                 >
                     <MaterialDesignIcon icon-name="server-network" class="size-6 text-gray-600 dark:text-gray-300" />
@@ -348,9 +348,9 @@
                                     <div class="min-w-0 flex-1">
                                         <div
                                             class="text-sm font-semibold text-gray-900 dark:text-white truncate"
-                                            :title="favourite.display_name"
+                                            :title="favouriteDisplayName(favourite)"
                                         >
-                                            {{ favourite.display_name }}
+                                            {{ favouriteDisplayName(favourite) }}
                                         </div>
                                         <div
                                             class="text-xs text-gray-500 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 cursor-pointer inline-flex items-center"
@@ -715,6 +715,7 @@ import GlobalState from "../../js/GlobalState";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import ToastUtils from "../../js/ToastUtils";
 import DownloadUtils from "../../js/DownloadUtils";
+import { isUnknownNodeDisplayName } from "../../js/nomadUnknownNodeName.js";
 
 export default {
     name: "NomadNetworkSidebar",
@@ -1192,6 +1193,9 @@ export default {
             }
         },
         ensureFavouriteLayout() {
+            if (!Array.isArray(this.favourites) || this.favourites.length === 0) {
+                return;
+            }
             if (this.sections.length === 0) {
                 this.resetDefaultSections();
             }
@@ -1214,13 +1218,12 @@ export default {
                 sanitizedSections.unshift(defaultSection);
                 sectionIds.add(defaultSection.id);
             }
-            this.sections = sanitizedSections;
             const existingOrder = Array.isArray(this.sectionOrder) ? this.sectionOrder : [];
             const filteredOrder = existingOrder.filter((id) => sectionIds.has(id));
             const remaining = sanitizedSections
                 .map((section) => section.id)
                 .filter((id) => !filteredOrder.includes(id));
-            this.sectionOrder = [...filteredOrder, ...remaining];
+            const nextSectionOrder = [...filteredOrder, ...remaining];
 
             const nextFavouritesBySection = {};
             sanitizedSections.forEach((section) => {
@@ -1234,14 +1237,39 @@ export default {
                     assigned.add(hash);
                 }
             });
+
+            const sectionsChanged = JSON.stringify(this.sections) !== JSON.stringify(sanitizedSections);
+            const orderChanged = JSON.stringify(this.sectionOrder) !== JSON.stringify(nextSectionOrder);
+            const favouritesChanged =
+                JSON.stringify(this.favouritesBySection) !== JSON.stringify(nextFavouritesBySection);
+            this.sections = sanitizedSections;
+            this.sectionOrder = nextSectionOrder;
             this.favouritesBySection = nextFavouritesBySection;
-            this.persistFavouriteLayout();
+            if (sectionsChanged || orderChanged || favouritesChanged) {
+                this.persistFavouriteLayout();
+            }
         },
         isBlocked(identityHash) {
             return this.blockedDestinations.some((b) => b.destination_hash === identityHash);
         },
         isFavourite(destinationHash) {
             return this.favourites.some((f) => f.destination_hash === destinationHash);
+        },
+        favouriteDisplayName(favourite) {
+            if (!favourite) {
+                return "";
+            }
+            const hash = favourite.destination_hash;
+            const cached = hash ? this.nodes?.[hash] : null;
+            const cachedName = cached?.custom_display_name || cached?.display_name || "";
+            if (cachedName && !isUnknownNodeDisplayName(cachedName, this.$t("nomadnet.unknown_node"))) {
+                return cachedName;
+            }
+            const favouriteName = favourite.custom_display_name || favourite.display_name || "";
+            if (favouriteName && !isUnknownNodeDisplayName(favouriteName, this.$t("nomadnet.unknown_node"))) {
+                return favouriteName;
+            }
+            return favouriteName || this.$t("nomadnet.unknown_node");
         },
         addFavouriteFromContext() {
             const node = this.announceContextMenu.node;

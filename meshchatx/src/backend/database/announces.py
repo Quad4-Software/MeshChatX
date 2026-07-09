@@ -187,14 +187,32 @@ class AnnounceDAO:
 
     # Favourites
     def upsert_favourite(self, destination_hash, display_name, aspect):
+        from meshchatx.src.backend.favourite_display_names import (
+            is_unknown_favourite_display_name,
+        )
+
         now = datetime.now(UTC)
+        preserve_unknown = is_unknown_favourite_display_name(display_name)
         self.provider.execute(
             """
             INSERT INTO favourite_destinations (destination_hash, display_name, aspect, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?)
-            ON CONFLICT(destination_hash) DO UPDATE SET display_name = EXCLUDED.display_name, aspect = EXCLUDED.aspect, updated_at = EXCLUDED.updated_at
+            ON CONFLICT(destination_hash) DO UPDATE SET
+                display_name = CASE
+                    WHEN ? THEN favourite_destinations.display_name
+                    ELSE EXCLUDED.display_name
+                END,
+                aspect = EXCLUDED.aspect,
+                updated_at = EXCLUDED.updated_at
         """,
-            (destination_hash, display_name, aspect, now, now),
+            (
+                destination_hash,
+                display_name,
+                aspect,
+                now,
+                now,
+                1 if preserve_unknown else 0,
+            ),
         )
 
     def get_favourite_by_destination_hash(self, destination_hash):
