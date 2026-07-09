@@ -1228,7 +1228,12 @@
         "kernel_iface_picker_title": "Interfacce su questo host",
         "kernel_iface_loading": "Caricamento…",
         "kernel_iface_picker_help": "Il dispositivo è facoltativo: un solo nome di interfaccia del kernel, o lascia vuoto e lega solo con l'IP di ascolto. Clic su una riga per compilare.",
-        "auto_iface_ifname_chips_hint": "Interfacce su questo host: clic per aggiungere o rimuovere nomi nel campo sopra."
+        "auto_iface_ifname_chips_hint": "Interfacce su questo host: clic per aggiungere o rimuovere nomi nel campo sopra.",
+        "i2p_requirements_title": "Regole interfaccia I2P",
+        "i2p_requirements_body": "È consentita una sola interfaccia I2P. Abilita prima la modalità trasporto nelle Impostazioni, poi aggiungi I2P per ultima. Non importare I2P da un file di configurazione e non modificarla nell'editor grezzo. Le modifiche che lasciano I2P a metà elenco vengono riparate automaticamente al salvataggio e all'avvio.",
+        "i2p_transport_required": "Abilita la modalità trasporto nelle Impostazioni prima di aggiungere un'interfaccia I2P.",
+        "i2p_already_exists": "Esiste già un'interfaccia I2P. Rimuovila prima di aggiungerne un'altra.",
+        "i2p_import_forbidden": "Le interfacce I2P non possono essere importate da un file. Aggiungi I2P solo tramite Aggiungi interfaccia."
     },
     "map": {
         "title": "Mappa",
@@ -2657,6 +2662,7 @@
         "command_placeholder": "/bin/bash --login",
         "mirror_exit_code": "Rifletti codice di uscita (-m)",
         "no_id": "Nessuna identità locale (-N)",
+        "no_auth": "Consenti qualsiasi identità (-n)",
         "create_and_start": "Crea e avvia",
         "session_output": "Output della sessione",
         "no_command_yet": "Nessun comando ancora avviato",

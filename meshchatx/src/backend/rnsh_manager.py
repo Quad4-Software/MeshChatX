@@ -40,7 +40,11 @@ DEFAULT_TERMINAL_COLS = 120
 
 # Matches the listener address that rnsh logs on startup, e.g.
 # "rnsh listening for commands on <a1b2c3...>" or "Listening on : <...>".
-_LISTEN_ADDRESS_RE = re.compile(r"<([0-9a-fA-F]{16,})>")
+# Require the listening phrase so verbose identity/transport hashes are ignored.
+_LISTEN_ADDRESS_RE = re.compile(
+    r"listening(?:\s+for\s+commands)?\s+on\s*:?\s*<([0-9a-fA-F]{16,})>",
+    re.IGNORECASE,
+)
 
 _RNSH_MODULE = "RNS.Utilities.rnsh.rnsh"
 # cx_Freeze / AppImage bundles set sys.executable to MeshChatX itself, which
@@ -200,6 +204,7 @@ class RNSHSession:
         with self._lock:
             self._output_chunks.clear()
             self._output_text = ""
+            self._output_seq = 0
             self.updated_at = time.time()
         self.manager._on_session_change(self)
         self.manager.save()
@@ -207,6 +212,7 @@ class RNSHSession:
     def append_output(self, text):
         if not isinstance(text, str) or not text:
             return None
+        listen_address_changed = False
         with self._lock:
             self._output_seq += 1
             chunk = {
@@ -219,22 +225,25 @@ class RNSHSession:
             if len(self._output_text) > 200000:
                 self._output_text = self._output_text[-200000:]
             self.updated_at = chunk["ts"]
-            self._maybe_detect_listen_address()
-            return chunk
+            listen_address_changed = self._maybe_detect_listen_address()
+        if listen_address_changed:
+            self.manager._on_session_change(self)
+        return chunk
 
     def _maybe_detect_listen_address(self):
         """Extract the listener destination hash from rnsh log output.
 
         Must be called while holding ``self._lock``.
+        Returns True when a new listen address was stored.
         """
         if self.mode != "listen" or self.listen_address:
-            return
+            return False
         tail = self._output_text[-4000:]
-        if "listening" not in tail.lower() and "listening on" not in tail.lower():
-            return
         match = _LISTEN_ADDRESS_RE.search(tail)
         if match:
             self.listen_address = match.group(1).lower()
+            return True
+        return False
 
     @staticmethod
     def _rnsh_module_available():
@@ -391,24 +400,52 @@ class RNSHSession:
             fcntl.ioctl(0, termios.TIOCSCTTY, 0)
 
     def start(self):
+        notify_failure = False
+        failure = None
+        started_process = None
         with self._lock:
             if self._process is not None and self._process.poll() is None:
                 return self.to_dict(include_output_tail=True)
 
-            command = self._build_command()
-            self._stop_requested = False
-            self.last_error = None
-            self.last_exit_code = None
-            self.last_command = " ".join(shlex.quote(part) for part in command)
-
-            if self._supports_pty():
-                self._start_with_pty(command)
+            try:
+                command = self._build_command()
+            except Exception as exc:
+                self.status = self.STATUS_FAILED
+                self.last_error = str(exc)
+                self.pid = None
+                self.updated_at = time.time()
+                notify_failure = True
+                failure = exc
             else:
-                self._start_with_pipe(command)
+                self._stop_requested = False
+                self.last_error = None
+                self.last_exit_code = None
+                self.last_command = " ".join(shlex.quote(part) for part in command)
 
-            self.pid = self._process.pid
-            self.status = self.STATUS_RUNNING
-            self.updated_at = time.time()
+                try:
+                    if self._supports_pty():
+                        self._start_with_pty(command)
+                    else:
+                        self._start_with_pipe(command)
+                except Exception as exc:
+                    self.status = self.STATUS_FAILED
+                    self.last_error = str(exc)
+                    self.pid = None
+                    self._process = None
+                    self._master_fd = None
+                    self.updated_at = time.time()
+                    notify_failure = True
+                    failure = exc
+                else:
+                    self.pid = self._process.pid
+                    self.status = self.STATUS_RUNNING
+                    self.updated_at = time.time()
+                    started_process = self._process
+
+        if notify_failure:
+            self.manager._on_session_change(self)
+            self.manager.save()
+            raise failure
 
         self.manager._on_session_change(self)
         self.manager.save()
@@ -416,7 +453,11 @@ class RNSHSession:
         reader = threading.Thread(target=self._reader_loop, daemon=True)
         reader.start()
 
-        waiter = threading.Thread(target=self._waiter_loop, daemon=True)
+        waiter = threading.Thread(
+            target=self._waiter_loop,
+            args=(started_process,),
+            daemon=True,
+        )
         waiter.start()
 
         return self.to_dict(include_output_tail=True)
@@ -463,6 +504,11 @@ class RNSHSession:
             process = self._process
             self._stop_requested = True
         if process is None:
+            with self._lock:
+                if self.status == self.STATUS_RUNNING:
+                    self.status = self.STATUS_STOPPED
+                    self.pid = None
+                    self.updated_at = time.time()
             return self.to_dict(include_output_tail=True)
         with contextlib.suppress(Exception):
             process.terminate()
@@ -471,6 +517,17 @@ class RNSHSession:
         except Exception:
             with contextlib.suppress(Exception):
                 process.kill()
+            with contextlib.suppress(Exception):
+                process.wait(timeout=1.0)
+        with self._lock:
+            if self._process is process:
+                self.last_exit_code = process.poll()
+                self.pid = None
+                self._process = None
+                self.status = self.STATUS_STOPPED
+                self.updated_at = time.time()
+        self.manager._on_session_change(self)
+        self.manager.save()
         return self.to_dict(include_output_tail=True)
 
     def resize(self, rows, cols):
@@ -552,14 +609,19 @@ class RNSHSession:
         self._last_persist = now
         self.manager.save()
 
-    def _waiter_loop(self):
-        with self._lock:
-            process = self._process
+    def _waiter_loop(self, process):
+        """Wait for ``process`` and update status only if it is still current.
+
+        The process is passed in so a later restart cannot be clobbered by an
+        older waiter finishing after a new session process was started.
+        """
         if process is None:
             return
 
         exit_code = process.wait()
         with self._lock:
+            if self._process is not process:
+                return
             self.last_exit_code = exit_code
             self.pid = None
             self._process = None
@@ -676,14 +738,19 @@ class RNSHManager:
                 "sessions": [session.to_store() for session in self._sessions.values()],
             }
         path = self._store_path()
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "w", encoding="utf-8") as handle:
+        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+        tmp_path = f"{path}.tmp"
+        with open(tmp_path, "w", encoding="utf-8") as handle:
             json.dump(payload, handle, ensure_ascii=False, indent=2)
+            handle.flush()
+            with contextlib.suppress(OSError):
+                os.fsync(handle.fileno())
+        os.replace(tmp_path, path)
 
     def list_sessions(self):
         with self._lock:
             sessions = [
-                session.to_dict(include_output_tail=True)
+                session.to_dict(include_output_tail=True, output_tail_size=400)
                 for session in self._sessions.values()
             ]
         sessions.sort(key=lambda item: item.get("updated_at", 0), reverse=True)

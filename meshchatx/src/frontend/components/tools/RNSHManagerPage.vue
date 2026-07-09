@@ -224,6 +224,12 @@
                         {{ $t("rnsh.config_dir_hint") }}
                     </p>
                 </div>
+                <div class="flex flex-wrap items-center gap-3 sm:gap-4">
+                    <label class="flex items-center gap-2 text-xs sm:text-sm text-gray-700 dark:text-gray-300">
+                        <input v-model="listenForm.no_auth" type="checkbox" class="rounded-sm" />
+                        {{ $t("rnsh.no_auth") }}
+                    </label>
+                </div>
                 <button
                     type="button"
                     class="primary-chip px-4 py-2 text-sm w-full sm:w-auto"
@@ -325,6 +331,7 @@ export default {
                 allowed_hashes_text: "",
                 command: "",
                 config_path: "",
+                no_auth: true,
             },
             isNarrowScreen: false,
             mobileSessionsOpen: false,
@@ -466,14 +473,29 @@ export default {
             if (!session || !session.id) {
                 return;
             }
+            const existing = this.outputsBySession[session.id] || "";
             const chunks = Array.isArray(session.output_chunks) ? session.output_chunks : [];
-            if (chunks.length > 0) {
-                this.outputsBySession[session.id] = chunks.map((chunk) => chunk.text || "").join("");
-            } else if (typeof session.output_text === "string") {
-                this.outputsBySession[session.id] = session.output_text;
-            } else if (!this.outputsBySession[session.id]) {
-                this.outputsBySession[session.id] = "";
+            const fromChunks = chunks.length > 0 ? chunks.map((chunk) => chunk.text || "").join("") : "";
+            const fromText = typeof session.output_text === "string" ? session.output_text : "";
+            // Prefer the longer server buffer so a short chunk tail cannot hide output_text.
+            const incoming = fromText.length >= fromChunks.length ? fromText : fromChunks;
+            if (!incoming) {
+                if (!Object.prototype.hasOwnProperty.call(this.outputsBySession, session.id)) {
+                    this.outputsBySession[session.id] = "";
+                }
+                return;
             }
+            // Keep a longer live WebSocket buffer when a reload returns a truncated tail.
+            if (existing.length > incoming.length) {
+                if (
+                    existing.endsWith(incoming) ||
+                    (fromChunks && existing.endsWith(fromChunks)) ||
+                    (fromChunks && existing.includes(fromChunks))
+                ) {
+                    return;
+                }
+            }
+            this.outputsBySession[session.id] = incoming;
         },
         async loadSessions() {
             try {
@@ -516,6 +538,7 @@ export default {
                     .filter((value) => value.length > 0),
                 default_command: (this.listenForm.command || "").trim() || undefined,
                 config_path: (this.listenForm.config_path || "").trim() || undefined,
+                no_auth: !!this.listenForm.no_auth,
                 autostart: true,
             };
         },

@@ -132,4 +132,59 @@ describe("RNSHManagerPage.vue", () => {
         wrapper.vm.selectSession(SESSION_ID);
         expect(wrapper.vm.mobileSessionsOpen).toBe(false);
     });
+
+    it("creates a listen session with no_auth enabled by default", async () => {
+        window.api.post.mockResolvedValueOnce({
+            data: { session: makeSession({ id: "listen-1", mode: "listen", name: "Listener" }) },
+        });
+
+        const wrapper = mount(RNSHManagerPage, { global: mountToolsPageGlobals() });
+        await vi.waitFor(() => expect(wrapper.vm.sessions.length).toBe(1));
+
+        expect(wrapper.vm.listenForm.no_auth).toBe(true);
+        wrapper.vm.listenForm.name = "Listener";
+        await wrapper.vm.createListenSession();
+
+        expect(window.api.post).toHaveBeenCalledWith("/api/v1/rnsh/sessions", {
+            name: "Listener",
+            mode: "listen",
+            allowed_hashes: [],
+            default_command: undefined,
+            config_path: undefined,
+            no_auth: true,
+            autostart: true,
+        });
+    });
+
+    it("keeps longer live output when session reload returns a truncated chunk tail", async () => {
+        const wrapper = mount(RNSHManagerPage, { global: mountToolsPageGlobals() });
+        await vi.waitFor(() => expect(wrapper.vm.sessions.length).toBe(1));
+
+        const live = "LINE_0000\n".repeat(50) + "LINE_TAIL\n";
+        wrapper.vm.outputsBySession[SESSION_ID] = live;
+
+        wrapper.vm.ingestSession(
+            makeSession({
+                output_chunks: [{ seq: 99, text: "LINE_TAIL\n", ts: 2 }],
+                output_text: "LINE_0400\nLINE_TAIL\n",
+            }),
+        );
+
+        expect(wrapper.vm.outputsBySession[SESSION_ID]).toBe(live);
+    });
+
+    it("prefers longer output_text over short output_chunks on ingest", async () => {
+        const wrapper = mount(RNSHManagerPage, { global: mountToolsPageGlobals() });
+        await vi.waitFor(() => expect(wrapper.vm.sessions.length).toBe(1));
+
+        const longText = "full history\n".repeat(20);
+        wrapper.vm.ingestSession(
+            makeSession({
+                output_chunks: [{ seq: 1, text: "tail only\n", ts: 1 }],
+                output_text: longText,
+            }),
+        );
+
+        expect(wrapper.vm.outputsBySession[SESSION_ID]).toBe(longText);
+    });
 });

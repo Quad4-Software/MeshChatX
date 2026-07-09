@@ -1176,7 +1176,12 @@
         "kernel_iface_picker_title": "Sovittimet tällä isännällä",
         "kernel_iface_loading": "Ladataan…",
         "kernel_iface_picker_help": "Laite on valinnainen: yksi ytimen sovitinnimi, tai jätä tyhjäksi sitoaksesi ainoastaan kuuntelu-IP:n välityksellä. Klikkaa riviä täyttääksesi kentän.",
-        "auto_iface_ifname_chips_hint": "Tämän isännän sovittimet: klikkaa lisätäksesi tai poistaaksesi nimiä yllä olevista kentistä."
+        "auto_iface_ifname_chips_hint": "Tämän isännän sovittimet: klikkaa lisätäksesi tai poistaaksesi nimiä yllä olevista kentistä.",
+        "i2p_requirements_title": "I2P-liittymän säännöt",
+        "i2p_requirements_body": "Vain yksi I2P-liittymä on sallittu. Ota ensin välitystila käyttöön asetuksissa ja lisää I2P viimeiseksi. Älä tuo I2P:tä asetustiedostosta äläkä muokkaa sitä raakaeditorissa. Muutokset, jotka jättävät I2P:n keskelle, korjataan automaattisesti tallennuksessa ja käynnistyksessä.",
+        "i2p_transport_required": "Ota välitystila käyttöön asetuksissa ennen I2P-liittymän lisäämistä.",
+        "i2p_already_exists": "I2P-liittymä on jo olemassa. Poista se ennen uuden lisäämistä.",
+        "i2p_import_forbidden": "I2P-liittymiä ei voi tuoda tiedostosta. Lisää I2P vain Lisää liittymä -sivulta."
     },
     "map": {
         "title": "Kartta",
@@ -2793,6 +2798,7 @@
         "command_placeholder": "/bin/bash --login",
         "mirror_exit_code": "Peilaa poistumiskoodi (-m)",
         "no_id": "Ei paikallista identiteettiä (-N)",
+        "no_auth": "Salli mikä tahansa identiteetti (-n)",
         "create_and_start": "Luo ja käynnistä",
         "session_output": "Istunnon tuloste",
         "no_command_yet": "Komentoja ei ole vielä käynnistetty",

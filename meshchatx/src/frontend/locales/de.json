@@ -1228,7 +1228,12 @@
         "kernel_iface_picker_title": "Schnittstellen auf diesem Rechner",
         "kernel_iface_loading": "Laden…",
         "kernel_iface_picker_help": "Optional ein Kernel-Interface-Name, oder leer lassen und nur über Listen-IP binden. Klick füllt das Feld.",
-        "auto_iface_ifname_chips_hint": "Schnittstellen dieses Rechners: Klicken zum Hinzufügen oder Entfernen im Feld darüber."
+        "auto_iface_ifname_chips_hint": "Schnittstellen dieses Rechners: Klicken zum Hinzufügen oder Entfernen im Feld darüber.",
+        "i2p_requirements_title": "I2P-Schnittstellenregeln",
+        "i2p_requirements_body": "Nur eine I2P-Schnittstelle ist erlaubt. Aktivieren Sie zuerst den Transportmodus in den Einstellungen und fügen Sie I2P zuletzt hinzu. I2P nicht aus einer Konfigurationsdatei importieren und nicht im Roh-Editor bearbeiten. Änderungen, die I2P in der Mitte lassen, werden beim Speichern und Start automatisch repariert.",
+        "i2p_transport_required": "Aktivieren Sie den Transportmodus in den Einstellungen, bevor Sie eine I2P-Schnittstelle hinzufügen.",
+        "i2p_already_exists": "Es existiert bereits eine I2P-Schnittstelle. Entfernen Sie sie, bevor Sie eine weitere hinzufügen.",
+        "i2p_import_forbidden": "I2P-Schnittstellen können nicht aus einer Datei importiert werden. Fügen Sie I2P nur über Schnittstelle hinzufügen hinzu."
     },
     "map": {
         "title": "Karte",
@@ -2490,6 +2495,7 @@
         "command_placeholder": "/bin/bash --login",
         "mirror_exit_code": "Exit-Code spiegeln (-m)",
         "no_id": "Keine lokale Identität (-N)",
+        "no_auth": "Beliebige Identität erlauben (-n)",
         "create_and_start": "Erstellen und starten",
         "session_output": "Sitzungsausgabe",
         "no_command_yet": "Noch kein Befehl gestartet",
