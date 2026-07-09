@@ -171,7 +171,23 @@ class VoicemailManager:
             RNS.log("Voicemail: Voicemail is disabled", RNS.LOG_DEBUG)
             return
 
-        if self.db and self.db.misc.is_destination_blocked(caller_identity.hash.hex()):
+        caller_hash = caller_identity.hash.hex()
+        is_blocked = False
+        if self.db:
+            try:
+                if self.db.misc.is_destination_blocked(caller_hash):
+                    is_blocked = True
+                else:
+                    for ann in self.db.announces.get_announces_by_identity_hash(
+                        caller_hash,
+                    ):
+                        dest = ann.get("destination_hash")
+                        if dest and self.db.misc.is_destination_blocked(dest):
+                            is_blocked = True
+                            break
+            except Exception:
+                is_blocked = False
+        if is_blocked:
             RNS.log(
                 f"Voicemail: Caller {RNS.prettyhexrep(caller_identity.hash)} is blocked; skipping auto-answer",
                 RNS.LOG_DEBUG,

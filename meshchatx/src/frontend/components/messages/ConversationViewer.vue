@@ -3143,11 +3143,12 @@ export default {
                 await window.api.post("/api/v1/telephone/contacts", {
                     name: displayName,
                     lxmf_address: hash,
+                    remote_identity_hash: this.selectedPeer.identity_hash || undefined,
                 });
                 this.isStrangerPeer = false;
                 this.strangerBannerDismissed = true;
                 GlobalEmitter.emit("contact-updated", {
-                    remote_identity_hash: hash,
+                    remote_identity_hash: this.selectedPeer.identity_hash || hash,
                 });
                 this.$emit("reload-conversations");
                 ToastUtils.success(this.$t("contacts.contact_added"));

@@ -260,6 +260,28 @@ describe("CallPage.vue", () => {
         });
     });
 
+    it("call extracts 32-char RNS hash from pasted text", async () => {
+        const wrapper = mountCallPage();
+        await wrapper.vm.$nextTick();
+        const hash32 = "ab".repeat(16);
+        await wrapper.vm.call(`Call me at ${hash32} please`);
+        expect(axiosMock.get).toHaveBeenCalledWith(`/api/v1/telephone/call/${hash32}`);
+    });
+
+    it("addContactFromHistory prefers identity hash over destination hashes", async () => {
+        const wrapper = mountCallPage();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.addContactFromHistory({
+            remote_identity_name: "Sam",
+            remote_identity_hash: "aa".repeat(16),
+            remote_destination_hash: "bb".repeat(16),
+            remote_telephony_hash: "cc".repeat(16),
+        });
+        expect(wrapper.vm.contactForm.remote_identity_hash).toBe("aa".repeat(16));
+        expect(wrapper.vm.contactForm.lxmf_address).toBe("bb".repeat(16));
+        expect(wrapper.vm.contactForm.lxst_address).toBe("cc".repeat(16));
+    });
+
     it("toggleTelephoneAnnounceEnabled patches config", async () => {
         const wrapper = mountCallPage();
         await wrapper.vm.$nextTick();

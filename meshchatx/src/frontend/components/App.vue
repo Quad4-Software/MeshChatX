@@ -1267,7 +1267,11 @@ export default {
                     if (this.config?.do_not_disturb_enabled) {
                         return;
                     }
-                    if (this.config?.telephone_allow_calls_from_contacts_only && !json.is_contact) {
+                    if (
+                        (this.config?.telephone_allow_calls_from_contacts_only ||
+                            this.config?.block_all_from_strangers) &&
+                        !json.is_contact
+                    ) {
                         return;
                     }
                     if (this.initiationStatus) {
