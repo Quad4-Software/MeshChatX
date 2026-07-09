@@ -1044,6 +1044,7 @@ class ReticulumMeshChat:
         unicode_result = self_check_mod.check_unicode_path(storage_base)
         rnode_result = self_check_mod.check_rnode_support()
         bot_launcher_result = self_check_mod.check_bot_launcher()
+        plugins_runtime_result = self_check_mod.check_plugins_runtime(self)
         web_results = self_check_mod.check_web_stack(self)
 
         return {
@@ -1114,6 +1115,29 @@ class ReticulumMeshChat:
             "http_telephone_good": web_results.get(
                 "http_telephone_good", {"status": "failed", "reason": "missing"}
             ),
+            "http_plugins_good": web_results.get(
+                "http_plugins_good", {"status": "failed", "reason": "missing"}
+            ),
+            "http_plugins_trust_good": web_results.get(
+                "http_plugins_trust_good",
+                {"status": "failed", "reason": "missing"},
+            ),
+            "http_sideband_plugins_good": web_results.get(
+                "http_sideband_plugins_good",
+                {"status": "failed", "reason": "missing"},
+            ),
+            "http_sideband_config_good": web_results.get(
+                "http_sideband_config_good",
+                {"status": "failed", "reason": "missing"},
+            ),
+            "http_rrc_hubs_good": web_results.get(
+                "http_rrc_hubs_good", {"status": "failed", "reason": "missing"}
+            ),
+            "http_rrc_servers_good": web_results.get(
+                "http_rrc_servers_good",
+                {"status": "failed", "reason": "missing"},
+            ),
+            "plugins_runtime_good": plugins_runtime_result,
             "websocket_good": web_results.get(
                 "websocket_good", {"status": "failed", "reason": "missing"}
             ),

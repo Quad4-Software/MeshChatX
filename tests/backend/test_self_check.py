@@ -131,6 +131,11 @@ def test_check_bot_launcher_ok():
     assert self_check.check_bot_launcher()["status"] == "ok"
 
 
+def test_check_plugins_runtime_ok(mock_app):
+    result = self_check.check_plugins_runtime(mock_app)
+    assert result["status"] == "ok", result.get("reason")
+
+
 def test_check_web_stack_ok(mock_app, require_loopback_tcp):
     from unittest.mock import AsyncMock, MagicMock
 

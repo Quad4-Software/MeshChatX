@@ -62,6 +62,13 @@ SELF_CHECK_LABELS = {
     "http_identities_good": "HTTP Identities        ",
     "http_favourites_good": "HTTP Favourites        ",
     "http_telephone_good": "HTTP Telephone Status  ",
+    "http_plugins_good": "HTTP Plugins API       ",
+    "http_plugins_trust_good": "HTTP Plugin Trust List ",
+    "http_sideband_plugins_good": "HTTP Sideband Plugins  ",
+    "http_sideband_config_good": "HTTP Sideband Config   ",
+    "http_rrc_hubs_good": "HTTP RRC Hubs          ",
+    "http_rrc_servers_good": "HTTP RRC Servers       ",
+    "plugins_runtime_good": "Plugin Manager Runtime ",
     "websocket_good": "WebSocket /ws          ",
     "websocket_rns_link_good": "WebSocket RNS Link API ",
     "bots_lifecycle": "Bot Create/Start/Stop  ",
@@ -674,9 +681,46 @@ _WEB_PROBE_KEYS = (
     "http_identities_good",
     "http_favourites_good",
     "http_telephone_good",
+    "http_plugins_good",
+    "http_plugins_trust_good",
+    "http_sideband_plugins_good",
+    "http_sideband_config_good",
+    "http_rrc_hubs_good",
+    "http_rrc_servers_good",
     "websocket_good",
     "websocket_rns_link_good",
 )
+
+
+def check_plugins_runtime(app: Any) -> dict[str, str]:
+    """Verify plugin manager is wired and bundled example is available when enabled."""
+    manager = getattr(app, "plugin_manager", None)
+    if manager is None:
+        return _status(False, "plugin_manager is not initialized")
+    try:
+        plugins = manager.list_plugins()
+    except Exception as exc:
+        return _status(False, f"list_plugins failed: {exc}")
+    if not isinstance(plugins, list):
+        return _status(False, "list_plugins did not return a list")
+    plugins_enabled = bool(getattr(app, "plugins_enabled", True))
+    if not plugins_enabled:
+        return _status(True)
+    bundled_id = "com.meshchatx.mesh-observatory"
+    if any(
+        isinstance(item, dict) and item.get("id") == bundled_id for item in plugins
+    ):
+        return _status(True)
+    try:
+        manager.install_bundled_examples()
+        plugins = manager.list_plugins()
+    except Exception as exc:
+        return _status(False, f"install_bundled_examples failed: {exc}")
+    if any(
+        isinstance(item, dict) and item.get("id") == bundled_id for item in plugins
+    ):
+        return _status(True)
+    return _status(False, f"bundled plugin {bundled_id} missing after install")
 
 
 async def _probe_rns_link_api(ws: Any, *, timeout: float = 10.0) -> dict[str, str]:
@@ -894,6 +938,41 @@ async def _run_web_api_probes(app: Any) -> dict[str, dict[str, str]]:
                 client,
                 "/api/v1/telephone/status",
                 require_keys=("enabled",),
+            )
+            results["http_plugins_good"] = await _probe_json_get(
+                client,
+                "/api/v1/plugins",
+                require_keys=("plugins_enabled",),
+                require_nested=(("plugins", list),),
+            )
+            results["http_plugins_trust_good"] = await _probe_json_get(
+                client,
+                "/api/v1/plugins/trusted-publishers",
+                require_keys=("tampered",),
+                require_nested=(("publishers", list),),
+            )
+            results["http_sideband_plugins_good"] = await _probe_json_get(
+                client,
+                "/api/v1/sideband-plugins",
+                require_nested=(("config", dict), ("plugins", list)),
+            )
+            results["http_sideband_config_good"] = await _probe_json_get(
+                client,
+                "/api/v1/sideband-plugins/config",
+                require_keys=(
+                    "service_plugins_enabled",
+                    "command_plugins_enabled",
+                ),
+            )
+            results["http_rrc_hubs_good"] = await _probe_json_get(
+                client,
+                "/api/v1/rrc/hubs",
+                require_nested=(("hubs", list),),
+            )
+            results["http_rrc_servers_good"] = await _probe_json_get(
+                client,
+                "/api/v1/rrc/servers",
+                require_nested=(("hubs", list),),
             )
 
             try:
