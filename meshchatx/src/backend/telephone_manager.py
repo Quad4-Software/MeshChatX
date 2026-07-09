@@ -89,10 +89,67 @@ class TelephoneManager:
         self._path_retry_interval_s = 1.5
         self._status_poll_interval_s = 0.1
         self.is_voicemail_session_active = False
+        self.preferred_profile_id = None
 
     @property
     def is_recording(self):
         return False
+
+    @staticmethod
+    def codec2_available() -> bool:
+        """Return whether LXST can construct Codec2 codecs (pycodec2 + libcodec2)."""
+        try:
+            from LXST.Codecs import Codec2
+
+            if Codec2 is None:
+                return False
+            # Touch a mode constant and construct once to catch dlopen failures early.
+            _ = Codec2.CODEC2_1600
+            Codec2(mode=Codec2.CODEC2_1600)
+            return True
+        except Exception:
+            return False
+
+    def resolve_audio_profile_id(self, profile_id=None):
+        """Return a valid LXST profile id, falling back when Codec2 is unavailable."""
+        from LXST.Primitives.Telephony import Profiles
+
+        available = set(Profiles.available_profiles())
+        pid = profile_id
+        if pid is None and self.config_manager:
+            with contextlib.suppress(Exception):
+                pid = self.config_manager.telephone_audio_profile_id.get()
+        try:
+            pid = int(pid) if pid is not None else None
+        except (TypeError, ValueError):
+            pid = None
+        if pid not in available:
+            pid = Profiles.DEFAULT_PROFILE
+
+        codec2_profiles = {
+            Profiles.BANDWIDTH_ULTRA_LOW,
+            Profiles.BANDWIDTH_VERY_LOW,
+            Profiles.BANDWIDTH_LOW,
+        }
+        if pid in codec2_profiles and not self.codec2_available():
+            RNS.log(
+                "TelephoneManager: Codec2 unavailable, falling back to default Opus profile",
+                RNS.LOG_WARNING,
+            )
+            pid = Profiles.DEFAULT_PROFILE
+        return pid
+
+    def apply_preferred_profile(self, profile_id=None):
+        """Store preferred profile and apply it if a call is already established."""
+        self.preferred_profile_id = self.resolve_audio_profile_id(profile_id)
+        if (
+            self.telephone
+            and self.telephone.active_call
+            and self.telephone.call_status == 6
+        ):
+            with contextlib.suppress(Exception):
+                self.telephone.switch_profile(self.preferred_profile_id)
+        return self.preferred_profile_id
 
     def init_telephone(self):
         if self.telephone is not None:
@@ -106,10 +163,9 @@ class TelephoneManager:
         # Increase connection timeout for slower networks
         self.telephone.set_connect_timeout(30)
 
-        # Set initial profile from config
-        if self.config_manager:
-            profile_id = self.config_manager.telephone_audio_profile_id.get()
-            self.telephone.switch_profile(profile_id)
+        # LXST switch_profile is a no-op without an established call. Remember the
+        # preferred profile and pass it into telephone.call() on outbound dial.
+        self.preferred_profile_id = self.resolve_audio_profile_id()
 
         self.telephone.set_ringing_callback(self.on_telephone_ringing)
         self.telephone.set_established_callback(self.on_telephone_call_established)
@@ -385,10 +441,18 @@ class TelephoneManager:
             self.call_start_time = time.time()
             self.call_is_incoming = False
 
+            profile_id = self.resolve_audio_profile_id(self.preferred_profile_id)
+            self.preferred_profile_id = profile_id
+
             # Use a thread for the blocking LXST call, but monitor status for early exit
-            # if established elsewhere or timed out/hung up
+            # if established elsewhere or timed out/hung up. Pass preferred profile so
+            # Codec2/Opus selection actually applies (switch_profile alone is a no-op idle).
             call_task = asyncio.create_task(
-                asyncio.to_thread(self.telephone.call, destination_identity),
+                asyncio.to_thread(
+                    self.telephone.call,
+                    destination_identity,
+                    profile_id,
+                ),
             )
 
             start_wait = time.time()

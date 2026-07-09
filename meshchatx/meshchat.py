@@ -9767,15 +9767,36 @@ class ReticulumMeshChat:
                         status=400,
                     )
 
-                await asyncio.to_thread(
-                    self.telephone_manager.telephone.switch_profile,
+                resolved = await asyncio.to_thread(
+                    self.telephone_manager.apply_preferred_profile,
                     int(profile_id),
                 )
+                self.config.telephone_audio_profile_id.set(resolved)
                 return web.json_response(
-                    {"message": f"Switched to profile {profile_id}"},
+                    {
+                        "message": f"Switched to profile {resolved}",
+                        "profile_id": resolved,
+                    },
                 )
             except Exception as e:
                 return web.json_response({"message": str(e)}, status=500)
+
+        # Codec2 / audio backend readiness (Android packaging + LXST)
+        @routes.get("/api/v1/telephone/codec2/status")
+        async def telephone_codec2_status(request):
+            from meshchatx import android_codec2
+
+            available = await asyncio.to_thread(
+                self.telephone_manager.codec2_available,
+            )
+            return web.json_response(
+                {
+                    "codec2_available": available,
+                    "preload_error": android_codec2.codec2_preload_error(),
+                    "preferred_profile_id": self.telephone_manager.preferred_profile_id,
+                    "resolved_profile_id": self.telephone_manager.resolve_audio_profile_id(),
+                },
+            )
 
         # initiate a telephone call
         # initiate outgoing telephone call
@@ -16945,9 +16966,9 @@ class ReticulumMeshChat:
             if profile_id is None:
                 profile_id = self.config.telephone_audio_profile_id.get()
             self.config.telephone_audio_profile_id.set(profile_id)
-            if self.telephone_manager and self.telephone_manager.telephone:
+            if self.telephone_manager:
                 await asyncio.to_thread(
-                    self.telephone_manager.telephone.switch_profile,
+                    self.telephone_manager.apply_preferred_profile,
                     profile_id,
                 )
 

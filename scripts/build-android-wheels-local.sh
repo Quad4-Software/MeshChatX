@@ -750,6 +750,36 @@ with zipfile.ZipFile(src, "r") as zin, zipfile.ZipFile(dst, "w", compression=zip
         data = zin.read(item.filename)
         if item.filename == "LXST/Codecs/__init__.py":
             data = patched_codecs_init.encode("utf-8")
+        elif item.filename == "LXST/Primitives/Telephony.py":
+            text = data.decode("utf-8")
+            old_get_codec = """    @staticmethod
+    def get_codec(profile):
+        if   profile == Profiles.BANDWIDTH_ULTRA_LOW: return Codec2(mode=Codec2.CODEC2_700C)
+        elif profile == Profiles.BANDWIDTH_VERY_LOW:  return Codec2(mode=Codec2.CODEC2_1600)
+        elif profile == Profiles.BANDWIDTH_LOW:       return Codec2(mode=Codec2.CODEC2_3200)
+        elif profile == Profiles.QUALITY_MEDIUM:      return Opus(profile=Opus.PROFILE_VOICE_MEDIUM)
+        elif profile == Profiles.QUALITY_HIGH:        return Opus(profile=Opus.PROFILE_VOICE_HIGH)
+        elif profile == Profiles.QUALITY_MAX:         return Opus(profile=Opus.PROFILE_VOICE_MAX)
+        elif profile == Profiles.LATENCY_LOW:         return Opus(profile=Opus.PROFILE_VOICE_MEDIUM)
+        elif profile == Profiles.LATENCY_ULTRA_LOW:   return Opus(profile=Opus.PROFILE_VOICE_MEDIUM)
+        else:                                         return Opus(profile=Opus.PROFILE_VOICE_MEDIUM)
+"""
+            new_get_codec = """    @staticmethod
+    def get_codec(profile):
+        if Codec2 is not None:
+            if   profile == Profiles.BANDWIDTH_ULTRA_LOW: return Codec2(mode=Codec2.CODEC2_700C)
+            elif profile == Profiles.BANDWIDTH_VERY_LOW:  return Codec2(mode=Codec2.CODEC2_1600)
+            elif profile == Profiles.BANDWIDTH_LOW:       return Codec2(mode=Codec2.CODEC2_3200)
+        if   profile == Profiles.QUALITY_MEDIUM:      return Opus(profile=Opus.PROFILE_VOICE_MEDIUM)
+        elif profile == Profiles.QUALITY_HIGH:        return Opus(profile=Opus.PROFILE_VOICE_HIGH)
+        elif profile == Profiles.QUALITY_MAX:         return Opus(profile=Opus.PROFILE_VOICE_MAX)
+        elif profile == Profiles.LATENCY_LOW:         return Opus(profile=Opus.PROFILE_VOICE_MEDIUM)
+        elif profile == Profiles.LATENCY_ULTRA_LOW:   return Opus(profile=Opus.PROFILE_VOICE_MEDIUM)
+        else:                                         return Opus(profile=Opus.PROFILE_VOICE_MEDIUM)
+"""
+            if old_get_codec in text:
+                text = text.replace(old_get_codec, new_get_codec)
+            data = text.encode("utf-8")
         elif item.filename.endswith(".dist-info/METADATA"):
             text = data.decode("utf-8")
             text = text.replace("Requires-Dist: numpy>=2.3.4", "Requires-Dist: numpy==${NUMPY_VERSION}")

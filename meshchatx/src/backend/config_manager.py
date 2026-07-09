@@ -254,7 +254,7 @@ class ConfigManager:
         self.telephone_audio_profile_id = self.IntConfig(
             self,
             "telephone_audio_profile_id",
-            2,  # Default to Voice (profile 2)
+            64,  # LXST Profiles.DEFAULT_PROFILE (Medium Quality / Opus)
         )
         self.telephone_web_audio_enabled = self.BoolConfig(
             self,
@@ -589,12 +589,27 @@ class ConfigManager:
 
         self._migrate_legacy_announce_limit_keys()
         self._migrate_translator_from_legacy()
+        self._migrate_invalid_telephone_audio_profile()
 
     def get(self, key: str, default_value=None) -> str | None:
         return self.db.config.get(key, default_value)
 
     def set(self, key: str, value: str | None):
         self.db.config.set(key, value)
+
+    def _migrate_invalid_telephone_audio_profile(self):
+        """Reset stale profile ids (e.g. legacy default 2) to LXST DEFAULT_PROFILE."""
+        raw = self.db.config.get("telephone_audio_profile_id", default=None)
+        if raw is None:
+            return
+        try:
+            pid = int(raw)
+        except (TypeError, ValueError):
+            self.telephone_audio_profile_id.set(64)
+            return
+        valid = {16, 32, 48, 64, 80, 96, 112, 128}
+        if pid not in valid:
+            self.telephone_audio_profile_id.set(64)
 
     def _migrate_translator_from_legacy(self):
         old = self.db.config.get("translator_enabled", default=None)

@@ -321,6 +321,7 @@ public final class TelephoneNativeAudioSession {
 
     private void drainMicrophone() {
         byte[] buf = new byte[4096];
+        long lastLevelsMs = 0L;
         while (running.get() && webSocket != null) {
             AudioRecord ar;
             WebSocket w;
@@ -343,11 +344,19 @@ public final class TelephoneNativeAudioSession {
                 } catch (Exception e) {
                     break;
                 }
+                long now = System.currentTimeMillis();
+                if (now - lastLevelsMs >= 200L) {
+                    lastLevelsMs = now;
+                    float tx = pcmPeakLevel(buf, n);
+                    postLevels(tx, lastRxLevel);
+                }
             } else if (n < 0) {
                 break;
             }
         }
     }
+
+    private volatile float lastRxLevel = 0f;
 
     private void playPcm(ByteString bytes) {
         if (bytes == null || bytes.size() == 0) {
@@ -361,6 +370,7 @@ public final class TelephoneNativeAudioSession {
             return;
         }
         byte[] raw = bytes.toByteArray();
+        lastRxLevel = pcmPeakLevel(raw, raw.length);
         int off = 0;
         int left = raw.length;
         while (left > 0) {
@@ -388,6 +398,50 @@ public final class TelephoneNativeAudioSession {
             }
             off += written;
             left -= written;
+        }
+    }
+
+    private static float pcmPeakLevel(byte[] pcm, int length) {
+        if (pcm == null || length < 2) {
+            return 0f;
+        }
+        int peak = 0;
+        int end = length - (length % 2);
+        for (int i = 0; i < end; i += 2) {
+            int sample = (pcm[i] & 0xff) | (pcm[i + 1] << 8);
+            if (sample > 32767) {
+                sample -= 65536;
+            }
+            int abs = sample < 0 ? -sample : sample;
+            if (abs > peak) {
+                peak = abs;
+            }
+        }
+        return Math.min(1f, peak / 32767f);
+    }
+
+    private void postLevels(float tx, float rx) {
+        activity.runOnUiThread(() -> dispatchLevels(tx, rx));
+    }
+
+    private void dispatchLevels(float tx, float rx) {
+        try {
+            WebView wv = activity.getWebViewForNativeBridge();
+            if (wv == null) {
+                return;
+            }
+            JSONObject o = new JSONObject();
+            o.put("type", "meshchatx-native-telephone-audio");
+            o.put("kind", "levels");
+            o.put("tx_level", tx);
+            o.put("rx_level", rx);
+            String j = o.toString();
+            wv.evaluateJavascript(
+                "try{var d=" + j + ";"
+                    + "window.dispatchEvent(new CustomEvent('meshchatx-native-telephone-audio',{detail:d}));}catch(e){}",
+                null
+            );
+        } catch (Exception ignored) {
         }
     }
 

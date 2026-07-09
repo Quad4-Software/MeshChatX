@@ -148,10 +148,14 @@ def test_lxst_switch_profile_updates_codec_and_frame_time(monkeypatch):
         profile=LXSTTelephony.Profiles.QUALITY_MEDIUM,
         filters=[],
         packetizer=MagicMock(),
+        audio_source=MagicMock(),
     )
     telephone.transmit_mixer = _FakeMixer(target_frame_ms=60, gain=0.0)
+    telephone.receive_mixer = _FakeMixer(target_frame_ms=60, gain=0.0)
+    telephone.receive_mixer.set_source_max_frames = MagicMock()
     telephone.audio_input = _FakeLineSource()
     telephone.transmit_pipeline = _FakePipeline()
+    telephone.target_buffer_frames = 2
 
     telephone.switch_profile(LXSTTelephony.Profiles.QUALITY_HIGH, from_signalling=True)
 

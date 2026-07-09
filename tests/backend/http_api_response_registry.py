@@ -104,6 +104,7 @@ from tests.backend.http_api_response_schemas import (
     TELEMETRY_TRUSTED_PEERS_SCHEMA,
     TELEPHONE_AUDIO_PROFILES_SCHEMA,
     TELEPHONE_CALL_SCHEMA,
+    TELEPHONE_CODEC2_STATUS_SCHEMA,
     TELEPHONE_HISTORY_SCHEMA,
     TELEPHONE_RECORDINGS_SCHEMA,
     TELEPHONE_STATUS_SCHEMA,
@@ -380,6 +381,9 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
     ),
     HttpJsonContract(
         "GET", "/api/v1/telephone/audio-profiles", TELEPHONE_AUDIO_PROFILES_SCHEMA
+    ),
+    HttpJsonContract(
+        "GET", "/api/v1/telephone/codec2/status", TELEPHONE_CODEC2_STATUS_SCHEMA
     ),
     HttpJsonContract(
         "GET",
