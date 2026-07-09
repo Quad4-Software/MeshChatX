@@ -22,6 +22,11 @@ from meshchatx.src.backend.plugin_guard import (
     validate_wasm_file,
     validate_zip_bytes,
 )
+from meshchatx.src.backend.plugin_integrity import (
+    INTEGRITY_TAMPER_MESSAGE,
+    compute_dir_integrity_hash,
+    verify_dir_integrity,
+)
 from meshchatx.src.backend.plugin_permissions import (
     collect_network_endpoints,
     declared_permission_ids,
@@ -35,6 +40,32 @@ from meshchatx.src.backend.plugin_permissions import (
     requires_network_fetch,
     serialize_granted,
     validate_declared_permissions,
+)
+from meshchatx.src.backend.plugin_python_runtime import (
+    PluginPythonHost,
+    PluginPythonRuntime,
+)
+from meshchatx.src.backend.plugin_security_scan import assess_plugin
+from meshchatx.src.backend.plugin_signature import (
+    enrich_signature_with_trust,
+    require_valid_signature,
+    verify_dir_signature,
+    verify_wasm_signature,
+    verify_zip_signature,
+)
+from meshchatx.src.backend.plugin_trusted_publishers import (
+    add_user_trusted_publisher,
+    init_trusted_publishers_integrity,
+    list_trusted_publishers,
+    lookup_trusted_publisher_in_storage,
+    remove_user_trusted_publisher,
+    user_trusted_publishers_tampered,
+)
+from meshchatx.src.backend.plugin_wasm_bundle import (
+    is_wasm_bytes,
+    parse_wasm_bundle,
+    validate_embedded_bundle,
+    write_wasm_bundle,
 )
 
 SUPPORTED_API_VERSION = 1
@@ -66,6 +97,9 @@ class PluginRecord:
     announce_handlers: list[Any] = field(default_factory=list)
     error_count: int = 0
     last_error_at: float = 0.0
+    integrity_hash: str | None = None
+    tampered: bool = False
+    signature: dict[str, Any] | None = None
 
 
 class PluginManager:
@@ -79,8 +113,10 @@ class PluginManager:
         self._lock = threading.RLock()
         self._plugins: dict[str, PluginRecord] = {}
         self._wasmtime = None
+        self._python_runtime = PluginPythonRuntime()
         os.makedirs(self.installed_dir, exist_ok=True)
         self._init_state_db()
+        init_trusted_publishers_integrity(self.state_db_path, self.storage_dir)
         self._load_installed_plugins()
 
     def _init_state_db(self) -> None:
@@ -101,7 +137,9 @@ class PluginManager:
           plugin_id TEXT PRIMARY KEY,
           enabled INTEGER NOT NULL DEFAULT 0,
           auto_disabled_reason TEXT,
-          granted_permissions TEXT
+          granted_permissions TEXT,
+          integrity_hash TEXT,
+          tampered INTEGER NOT NULL DEFAULT 0
         )
         """
             )
@@ -113,6 +151,20 @@ class PluginManager:
                 conn.execute(
                     "ALTER TABLE plugin_state ADD COLUMN granted_permissions TEXT"
                 )
+            if "integrity_hash" not in columns:
+                conn.execute("ALTER TABLE plugin_state ADD COLUMN integrity_hash TEXT")
+            if "tampered" not in columns:
+                conn.execute(
+                    "ALTER TABLE plugin_state ADD COLUMN tampered INTEGER NOT NULL DEFAULT 0"
+                )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS plugin_settings (
+                  setting_key TEXT PRIMARY KEY,
+                  setting_value TEXT NOT NULL
+                )
+                """
+            )
             conn.commit()
 
     def set_app(self, app: Any) -> None:
@@ -149,15 +201,23 @@ class PluginManager:
                 with open(manifest_path, encoding="utf-8") as handle:
                     manifest = json.load(handle)
                 manifest = self._validate_manifest(manifest)
-                enabled, auto_disabled_reason, granted = self._read_plugin_state(
-                    manifest["id"]
-                )
+                (
+                    enabled,
+                    auto_disabled_reason,
+                    granted,
+                    integrity_hash,
+                    tampered,
+                ) = self._read_plugin_state(manifest["id"])
                 declared = declared_permission_ids(manifest)
                 if granted is None:
                     granted = list(declared)
                 else:
                     granted = normalize_granted_permissions(declared, granted)
-                self._plugins[manifest["id"]] = PluginRecord(
+                signature = enrich_signature_with_trust(
+                    verify_dir_signature(plugin_dir),
+                    self._lookup_trusted,
+                )
+                record = PluginRecord(
                     id=manifest["id"],
                     version=manifest["version"],
                     manifest=manifest,
@@ -165,24 +225,37 @@ class PluginManager:
                     install_path=plugin_dir,
                     auto_disabled_reason=auto_disabled_reason,
                     granted_permissions=granted,
+                    integrity_hash=integrity_hash,
+                    tampered=tampered,
+                    signature=signature.to_dict(),
                 )
+                if enabled and not self._verify_integrity_on_load(record):
+                    continue
+                self._plugins[manifest["id"]] = record
             except Exception as exc:
                 print(f"Failed to load plugin from {plugin_dir}: {exc}")
 
     def _read_plugin_state(
         self, plugin_id: str
-    ) -> tuple[bool, str | None, list[str] | None]:
+    ) -> tuple[bool, str | None, list[str] | None, str | None, bool]:
         with sqlite3.connect(self.state_db_path) as conn:
             row = conn.execute(
                 """
-        SELECT enabled, auto_disabled_reason, granted_permissions
+        SELECT enabled, auto_disabled_reason, granted_permissions,
+               integrity_hash, tampered
         FROM plugin_state WHERE plugin_id = ?
         """,
                 (plugin_id,),
             ).fetchone()
         if not row:
-            return False, None, None
-        return bool(row[0]), row[1], deserialize_granted(row[2])
+            return False, None, None, None, False
+        return (
+            bool(row[0]),
+            row[1],
+            deserialize_granted(row[2]),
+            row[3],
+            bool(row[4]),
+        )
 
     def _write_plugin_state(
         self,
@@ -190,21 +263,29 @@ class PluginManager:
         enabled: bool,
         auto_disabled_reason: str | None = None,
         granted_permissions: list[str] | None = None,
+        integrity_hash: str | None = None,
+        tampered: bool | None = None,
     ) -> None:
         with sqlite3.connect(self.state_db_path) as conn:
             conn.execute(
                 """
         INSERT INTO plugin_state (
-          plugin_id, enabled, auto_disabled_reason, granted_permissions
+          plugin_id, enabled, auto_disabled_reason, granted_permissions,
+          integrity_hash, tampered
         )
-        VALUES (?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?)
         ON CONFLICT(plugin_id) DO UPDATE SET
           enabled = excluded.enabled,
           auto_disabled_reason = excluded.auto_disabled_reason,
           granted_permissions = COALESCE(
             excluded.granted_permissions,
             plugin_state.granted_permissions
-          )
+          ),
+          integrity_hash = COALESCE(
+            excluded.integrity_hash,
+            plugin_state.integrity_hash
+          ),
+          tampered = COALESCE(excluded.tampered, plugin_state.tampered)
         """,
                 (
                     plugin_id,
@@ -213,6 +294,8 @@ class PluginManager:
                     None
                     if granted_permissions is None
                     else serialize_granted(granted_permissions),
+                    integrity_hash,
+                    None if tampered is None else (1 if tampered else 0),
                 ),
             )
             conn.commit()
@@ -237,6 +320,18 @@ class PluginManager:
             raise ValueError(
                 f"unsupported apiVersion (expected {SUPPORTED_API_VERSION})"
             )
+        backend = manifest.get("backend")
+        if backend is not None:
+            if not isinstance(backend, dict):
+                raise ValueError("plugin backend must be an object")
+            entry = backend.get("entry")
+            if not isinstance(entry, str) or not entry.strip():
+                raise ValueError("plugin backend.entry is required")
+            backend_type = backend.get("type") or "wasm"
+            if backend_type not in ("wasm", "python"):
+                raise ValueError("plugin backend.type must be wasm or python")
+            if not str(entry).lower().endswith(".py") and backend_type == "python":
+                raise ValueError("python backend entry must be a .py file")
         validate_declared_permissions(manifest)
         return manifest
 
@@ -265,6 +360,25 @@ class PluginManager:
         if granted is None:
             granted = list(declared)
         endpoints = collect_network_endpoints(manifest, record.install_path)
+        backend = manifest.get("backend") or {}
+        backend_type = None
+        if isinstance(backend, dict) and backend:
+            backend_type = backend.get("type") or "wasm"
+        signature = (
+            record.signature
+            or enrich_signature_with_trust(
+                verify_dir_signature(record.install_path),
+                self._lookup_trusted,
+            ).to_dict()
+        )
+        assessment = assess_plugin(
+            manifest,
+            record.install_path,
+            signature=enrich_signature_with_trust(
+                verify_dir_signature(record.install_path),
+                self._lookup_trusted,
+            ),
+        )
         return {
             "id": record.id,
             "version": record.version,
@@ -281,9 +395,20 @@ class PluginManager:
             "contributes": manifest.get("contributes") or {},
             "has_frontend": bool(manifest.get("frontend")),
             "has_backend": bool(manifest.get("backend")),
+            "backend_type": backend_type,
+            "signature": signature,
+            "tampered": bool(record.tampered),
+            "security_findings": [item.to_dict() for item in assessment.findings],
+            "risk_level": assessment.risk_level,
         }
 
-    def _build_preview_from_directory(self, source_dir: str) -> dict[str, Any]:
+    def _build_preview_from_directory(
+        self,
+        source_dir: str,
+        *,
+        signature_override=None,
+        embedded: dict[str, bytes] | None = None,
+    ) -> dict[str, Any]:
         manifest_path = os.path.join(source_dir, "plugin.json")
         if not os.path.isfile(manifest_path):
             raise ValueError("plugin.json not found")
@@ -294,6 +419,18 @@ class PluginManager:
         network_mode = normalize_network_mode(
             (manifest.get("permissions") or {}).get("network")
         )
+        signature = signature_override or verify_dir_signature(source_dir)
+        signature = enrich_signature_with_trust(signature, self._lookup_trusted)
+        assessment = assess_plugin(
+            manifest,
+            source_dir,
+            embedded=embedded,
+            signature=signature,
+        )
+        backend = manifest.get("backend") or {}
+        backend_type = None
+        if isinstance(backend, dict) and backend:
+            backend_type = backend.get("type") or "wasm"
         return {
             "id": manifest["id"],
             "name": manifest.get("name") or manifest["id"],
@@ -305,14 +442,24 @@ class PluginManager:
             "network_mode": network_mode,
             "has_frontend": bool(manifest.get("frontend")),
             "has_backend": bool(manifest.get("backend")),
+            "backend_type": backend_type,
             "manifest": manifest,
+            "signature": signature.to_dict(),
+            "security_findings": [item.to_dict() for item in assessment.findings],
+            "risk_level": assessment.risk_level,
         }
 
     def preview_from_zip_bytes(self, payload: bytes) -> dict[str, Any]:
         import tempfile
 
         self._require_runtime_enabled()
+        if is_wasm_bytes(payload):
+            return self.preview_from_wasm_bytes(payload)
         validate_zip_bytes(payload)
+        signature = enrich_signature_with_trust(
+            verify_zip_signature(payload),
+            self._lookup_trusted,
+        )
         with tempfile.TemporaryDirectory() as tmp:
             zip_path = os.path.join(tmp, "plugin.zip")
             with open(zip_path, "wb") as handle:
@@ -320,12 +467,39 @@ class PluginManager:
             extract_dir = os.path.join(tmp, "extract")
             os.makedirs(extract_dir, exist_ok=True)
             plugin_root = safe_extract_zip(zip_path, extract_dir)
-            return self._build_preview_from_directory(plugin_root)
+            return self._build_preview_from_directory(
+                plugin_root, signature_override=signature
+            )
+
+    def preview_from_wasm_bytes(self, payload: bytes) -> dict[str, Any]:
+        import tempfile
+
+        self._require_runtime_enabled()
+        if len(payload) > 32 * 1024 * 1024:
+            raise PluginSecurityError("wasm bundle is too large")
+        bundle = parse_wasm_bundle(payload)
+        validate_embedded_bundle(bundle)
+        if not bundle.manifest:
+            raise ValueError("wasm bundle missing embedded plugin manifest")
+        signature = enrich_signature_with_trust(
+            verify_wasm_signature(payload),
+            self._lookup_trusted,
+        )
+        embedded = {
+            path: content.encode("utf-8") for path, content in bundle.files.items()
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            write_wasm_bundle(tmp, bundle)
+            return self._build_preview_from_directory(
+                tmp, signature_override=signature, embedded=embedded
+            )
 
     def install_from_directory(
         self,
         source_dir: str,
         granted_permissions: list[str] | None = None,
+        *,
+        signature_override=None,
     ) -> dict[str, Any]:
         self._require_runtime_enabled()
         manifest_path = os.path.join(source_dir, "plugin.json")
@@ -333,6 +507,9 @@ class PluginManager:
             raise ValueError("plugin.json not found")
         with open(manifest_path, encoding="utf-8") as handle:
             manifest = self._validate_manifest(json.load(handle))
+        signature = signature_override or verify_dir_signature(source_dir)
+        signature = enrich_signature_with_trust(signature, self._lookup_trusted)
+        require_valid_signature(signature)
         plugin_id = manifest["id"]
         declared = declared_permission_ids(manifest)
         granted = normalize_granted_permissions(declared, granted_permissions)
@@ -340,16 +517,24 @@ class PluginManager:
         if os.path.exists(target_dir):
             shutil.rmtree(target_dir)
         shutil.copytree(source_dir, target_dir)
+        integrity_hash = compute_dir_integrity_hash(target_dir)
         with self._lock:
-            enabled, auto_disabled_reason, _existing_granted = self._read_plugin_state(
-                plugin_id
-            )
+            (
+                enabled,
+                auto_disabled_reason,
+                _existing_granted,
+                _old_hash,
+                _old_tampered,
+            ) = self._read_plugin_state(plugin_id)
             self._write_plugin_state(
                 plugin_id,
                 enabled,
                 auto_disabled_reason,
                 granted_permissions=granted,
+                integrity_hash=integrity_hash,
+                tampered=False,
             )
+            self._python_runtime.unload(plugin_id)
             self._plugins[plugin_id] = PluginRecord(
                 id=plugin_id,
                 version=manifest["version"],
@@ -358,6 +543,9 @@ class PluginManager:
                 install_path=target_dir,
                 auto_disabled_reason=auto_disabled_reason,
                 granted_permissions=granted,
+                integrity_hash=integrity_hash,
+                tampered=False,
+                signature=signature.to_dict(),
             )
             return self._public_plugin_view(self._plugins[plugin_id])
 
@@ -368,7 +556,16 @@ class PluginManager:
     ) -> dict[str, Any]:
         import tempfile
 
+        if is_wasm_bytes(payload):
+            return self.install_from_wasm_bytes(
+                payload, granted_permissions=granted_permissions
+            )
         validate_zip_bytes(payload)
+        signature = enrich_signature_with_trust(
+            verify_zip_signature(payload),
+            self._lookup_trusted,
+        )
+        require_valid_signature(signature)
         with tempfile.TemporaryDirectory() as tmp:
             zip_path = os.path.join(tmp, "plugin.zip")
             with open(zip_path, "wb") as handle:
@@ -377,7 +574,36 @@ class PluginManager:
             os.makedirs(extract_dir, exist_ok=True)
             plugin_root = safe_extract_zip(zip_path, extract_dir)
             return self.install_from_directory(
-                plugin_root, granted_permissions=granted_permissions
+                plugin_root,
+                granted_permissions=granted_permissions,
+                signature_override=signature,
+            )
+
+    def install_from_wasm_bytes(
+        self,
+        payload: bytes,
+        granted_permissions: list[str] | None = None,
+    ) -> dict[str, Any]:
+        import tempfile
+
+        self._require_runtime_enabled()
+        if len(payload) > 32 * 1024 * 1024:
+            raise PluginSecurityError("wasm bundle is too large")
+        signature = enrich_signature_with_trust(
+            verify_wasm_signature(payload),
+            self._lookup_trusted,
+        )
+        require_valid_signature(signature)
+        bundle = parse_wasm_bundle(payload)
+        validate_embedded_bundle(bundle)
+        if not bundle.manifest:
+            raise ValueError("wasm bundle missing embedded plugin manifest")
+        with tempfile.TemporaryDirectory() as tmp:
+            write_wasm_bundle(tmp, bundle)
+            return self.install_from_directory(
+                tmp,
+                granted_permissions=granted_permissions,
+                signature_override=signature,
             )
 
     def enable(self, plugin_id: str) -> dict[str, Any]:
@@ -385,13 +611,49 @@ class PluginManager:
         with self._lock:
             record = self._require_plugin(plugin_id)
             self._validate_plugin_runtime(record)
+            integrity_hash = compute_dir_integrity_hash(record.install_path)
+            record.integrity_hash = integrity_hash
+            record.tampered = False
             record.enabled = True
             record.auto_disabled_reason = None
             record.error_count = 0
             record.last_error_at = 0.0
-            self._write_plugin_state(plugin_id, True, None)
+            self._write_plugin_state(
+                plugin_id,
+                True,
+                None,
+                integrity_hash=integrity_hash,
+                tampered=False,
+            )
+            if self._backend_type(record) == "python":
+                self._python_runtime.activate(
+                    record.id,
+                    self._python_entry_path(record),
+                    self._python_host(record),
+                )
             self._register_plugin_hooks(record)
             return self._public_plugin_view(record)
+
+    def _lookup_trusted(self, signer_hex: str) -> tuple[str, bool]:
+        return lookup_trusted_publisher_in_storage(
+            signer_hex, self.storage_dir, self.state_db_path
+        )
+
+    def list_trusted_publishers(self) -> list[dict[str, str]]:
+        return list_trusted_publishers(self.storage_dir, self.state_db_path)
+
+    def add_trusted_publisher(
+        self, identity: str, name: str = ""
+    ) -> list[dict[str, str]]:
+        add_user_trusted_publisher(self.storage_dir, self.state_db_path, identity, name)
+        return self.list_trusted_publishers()
+
+    def remove_trusted_publisher(self, identity: str) -> list[dict[str, str]]:
+        remove_user_trusted_publisher(self.storage_dir, self.state_db_path, identity)
+        return self.list_trusted_publishers()
+
+    def trusted_publishers_tampered(self) -> tuple[bool, str]:
+        return user_trusted_publishers_tampered()
 
     def disable(self, plugin_id: str, reason: str | None = None) -> dict[str, Any]:
         with self._lock:
@@ -399,7 +661,13 @@ class PluginManager:
             record.enabled = False
             if reason:
                 record.auto_disabled_reason = reason
-            self._write_plugin_state(plugin_id, False, record.auto_disabled_reason)
+            self._write_plugin_state(
+                plugin_id,
+                False,
+                record.auto_disabled_reason,
+                tampered=record.tampered,
+            )
+            self._python_runtime.unload(plugin_id)
             self._unregister_plugin_hooks(record)
             if reason:
                 self._broadcast_plugin_event(
@@ -412,6 +680,7 @@ class PluginManager:
             record = self._plugins.pop(plugin_id, None)
             if record:
                 self._unregister_plugin_hooks(record)
+            self._python_runtime.unload(plugin_id)
             target_dir = os.path.join(self.installed_dir, plugin_id)
             if os.path.isdir(target_dir):
                 shutil.rmtree(target_dir)
@@ -423,6 +692,64 @@ class PluginManager:
                     "DELETE FROM plugin_storage WHERE plugin_id = ?", (plugin_id,)
                 )
                 conn.commit()
+
+    def _verify_integrity_on_load(self, record: PluginRecord) -> bool:
+        if not record.integrity_hash:
+            try:
+                record.integrity_hash = compute_dir_integrity_hash(record.install_path)
+                self._write_plugin_state(
+                    record.id,
+                    record.enabled,
+                    record.auto_disabled_reason,
+                    integrity_hash=record.integrity_hash,
+                    tampered=False,
+                )
+            except Exception:
+                return True
+            return True
+        ok, _current = verify_dir_integrity(record.install_path, record.integrity_hash)
+        if ok:
+            return True
+        record.enabled = False
+        record.tampered = True
+        record.auto_disabled_reason = INTEGRITY_TAMPER_MESSAGE
+        self._write_plugin_state(
+            record.id,
+            False,
+            INTEGRITY_TAMPER_MESSAGE,
+            integrity_hash=record.integrity_hash,
+            tampered=True,
+        )
+        return True
+
+    @staticmethod
+    def _backend_type(record: PluginRecord) -> str | None:
+        backend = record.manifest.get("backend")
+        if not isinstance(backend, dict) or not backend:
+            return None
+        return str(backend.get("type") or "wasm")
+
+    def _python_entry_path(self, record: PluginRecord) -> str:
+        backend = record.manifest.get("backend") or {}
+        entry = backend.get("entry")
+        if not isinstance(entry, str) or not entry.strip():
+            raise ValueError("python backend entry is missing")
+        path = os.path.join(record.install_path, entry)
+        if not os.path.isfile(path):
+            raise ValueError("python backend entry not found")
+        return path
+
+    def _python_host(self, record: PluginRecord) -> PluginPythonHost:
+        return PluginPythonHost(
+            record.id,
+            log=lambda message: print(f"[plugin:{record.id}] {message}"),
+            call_manager=lambda capability, args: self.call_manager(
+                record.id, capability, args
+            ),
+            storage_get=lambda key: self.storage_get(record.id, key),
+            storage_set=lambda key, value: self.storage_set(record.id, key, value),
+            network_fetch_allowed=lambda: self.network_fetch_allowed(record.id),
+        )
 
     def asset_path(self, plugin_id: str, asset_name: str) -> str:
         self._require_runtime_enabled()
@@ -846,6 +1173,15 @@ class PluginManager:
             backend = record.manifest.get("backend")
             if not backend:
                 raise ValueError(f"unknown method: {method}")
+            backend_type = self._backend_type(record)
+            if backend_type == "python":
+                return self._python_runtime.invoke(
+                    record.id,
+                    self._python_entry_path(record),
+                    method,
+                    args or {},
+                    self._python_host(record),
+                )
             return self._invoke_wasm(record, method, args or {})
         except Exception as exc:
             self._record_plugin_failure(record, exc, auto_disable=True)
@@ -934,7 +1270,19 @@ class PluginManager:
             return
         try:
             if record.manifest.get("backend"):
-                self._invoke_wasm(record, "on_hook", {"hook": hook, "payload": payload})
+                backend_type = self._backend_type(record)
+                if backend_type == "python":
+                    self._python_runtime.on_hook(
+                        record.id,
+                        self._python_entry_path(record),
+                        hook,
+                        payload,
+                        self._python_host(record),
+                    )
+                else:
+                    self._invoke_wasm(
+                        record, "on_hook", {"hook": hook, "payload": payload}
+                    )
             self._broadcast_plugin_event(plugin_id, hook, payload)
         except Exception as exc:
             self._record_plugin_failure(record, exc, auto_disable=True)
@@ -955,6 +1303,13 @@ class PluginManager:
         entry = backend.get("entry")
         if not isinstance(entry, str) or not entry.strip():
             raise ValueError("plugin backend entry is missing")
+        backend_type = self._backend_type(record)
+        if backend_type == "python":
+            path = self._python_entry_path(record)
+            size = os.path.getsize(path)
+            if size <= 0 or size > 1_000_000:
+                raise ValueError("python backend entry size rejected")
+            return
         wasm_path = self._resolve_backend_wasm_path(record)
         wasmtime = self._load_wasmtime()
         engine = wasmtime.Engine()

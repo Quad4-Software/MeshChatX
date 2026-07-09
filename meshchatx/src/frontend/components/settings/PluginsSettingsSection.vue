@@ -25,7 +25,7 @@
                     <input
                         ref="fileInput"
                         type="file"
-                        accept=".zip,application/zip"
+                        accept=".zip,.wasm,application/zip,application/wasm"
                         class="sr-only"
                         :disabled="installing || previewing"
                         @change="onInstallFile"
@@ -80,7 +80,13 @@
                                 {{ $t("plugins.settings.badge_frontend") }}
                             </span>
                             <span
-                                v-if="plugin.has_backend"
+                                v-if="plugin.has_backend && plugin.backend_type === 'python'"
+                                class="px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200"
+                            >
+                                {{ $t("plugins.settings.badge_python") }}
+                            </span>
+                            <span
+                                v-else-if="plugin.has_backend"
                                 class="px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide bg-violet-100 text-violet-800 dark:bg-violet-900/30 dark:text-violet-200"
                             >
                                 {{ $t("plugins.settings.badge_wasm") }}
@@ -90,6 +96,30 @@
                                 class="px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200"
                             >
                                 {{ $t("plugins.settings.badge_network") }}
+                            </span>
+                            <span
+                                v-if="plugin.signature?.trusted"
+                                class="px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200"
+                            >
+                                {{ $t("plugins.settings.badge_trusted") }}
+                            </span>
+                            <span
+                                v-else-if="plugin.signature?.valid"
+                                class="px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-200"
+                            >
+                                {{ $t("plugins.settings.badge_signed") }}
+                            </span>
+                            <span
+                                v-else-if="plugin.signature?.present && !plugin.signature?.valid"
+                                class="px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200"
+                            >
+                                {{ $t("plugins.settings.badge_invalid_signature") }}
+                            </span>
+                            <span
+                                v-if="plugin.tampered"
+                                class="px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200"
+                            >
+                                {{ $t("plugins.settings.badge_tampered") }}
                             </span>
                         </div>
                         <p class="text-sm text-gray-600 dark:text-gray-400">{{ plugin.description }}</p>
@@ -149,6 +179,88 @@
                     {{ $t("plugins.settings.auto_disabled", { reason: plugin.auto_disabled_reason }) }}
                 </p>
             </div>
+
+            <section class="rounded-lg border border-amber-300 dark:border-amber-800 p-4 space-y-3">
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                        {{ $t("plugins.sideband.title") }}
+                    </h3>
+                    <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        {{ $t("plugins.sideband.description") }}
+                    </p>
+                </div>
+                <label class="flex items-start gap-2 text-sm text-gray-800 dark:text-gray-200">
+                    <input
+                        v-model="sidebandConfig.service_plugins_enabled"
+                        type="checkbox"
+                        class="mt-1 rounded border-gray-300"
+                        @change="onSidebandMasterToggle"
+                    />
+                    <span>{{ $t("plugins.sideband.master_enable") }}</span>
+                </label>
+                <label class="flex items-start gap-2 text-sm text-gray-800 dark:text-gray-200">
+                    <input
+                        v-model="sidebandConfig.command_plugins_enabled"
+                        type="checkbox"
+                        class="mt-1 rounded border-gray-300"
+                        :disabled="!sidebandConfig.service_plugins_enabled"
+                    />
+                    <span>{{ $t("plugins.sideband.command_enable") }}</span>
+                </label>
+                <label class="block text-sm text-gray-800 dark:text-gray-200 space-y-1">
+                    <span>{{ $t("plugins.sideband.path") }}</span>
+                    <input
+                        v-model="sidebandConfig.command_plugins_path"
+                        type="text"
+                        class="w-full rounded-md border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-1.5 text-sm"
+                        :disabled="!sidebandConfig.service_plugins_enabled"
+                    />
+                </label>
+                <div class="flex flex-wrap gap-2">
+                    <button
+                        type="button"
+                        class="px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm"
+                        :disabled="sidebandBusy"
+                        @click="saveSidebandConfig"
+                    >
+                        {{ $t("plugins.sideband.save") }}
+                    </button>
+                    <button
+                        type="button"
+                        class="px-3 py-1.5 rounded-md border border-gray-300 dark:border-zinc-600 text-sm"
+                        :disabled="sidebandBusy"
+                        @click="reloadSideband"
+                    >
+                        {{ $t("plugins.sideband.reload") }}
+                    </button>
+                </div>
+                <div v-if="sidebandPlugins.length" class="space-y-2">
+                    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {{ $t("plugins.sideband.loaded") }}
+                    </p>
+                    <ul class="space-y-2">
+                        <li
+                            v-for="item in sidebandPlugins"
+                            :key="item.path"
+                            class="rounded-md border border-gray-200 dark:border-zinc-700 px-3 py-2 text-xs space-y-1"
+                        >
+                            <p class="font-medium text-gray-800 dark:text-gray-200">
+                                {{ item.name }}
+                                <span class="uppercase text-gray-500">({{ item.type }})</span>
+                            </p>
+                            <p v-if="item.error" class="text-red-600 dark:text-red-400">{{ item.error }}</p>
+                            <ul
+                                v-if="(item.security_findings || []).length"
+                                class="list-disc pl-4 text-gray-600 dark:text-gray-400"
+                            >
+                                <li v-for="finding in item.security_findings" :key="finding.id">
+                                    {{ finding.message }}
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </section>
         </div>
 
         <PluginInstallDialog
@@ -188,10 +300,18 @@ export default {
             dialogOpen: false,
             installPreview: null,
             pendingArchive: null,
+            sidebandBusy: false,
+            sidebandPlugins: [],
+            sidebandConfig: {
+                service_plugins_enabled: false,
+                command_plugins_enabled: false,
+                command_plugins_path: "",
+            },
         };
     },
     mounted() {
         void this.refresh();
+        void this.refreshSideband();
         this.onPluginDisabled = (payload) => {
             if (payload?.event === "plugin.disabled") {
                 ToastUtils.warning(this.$t("plugins.settings.kill_switch", { reason: payload?.payload?.reason || "" }));
@@ -218,6 +338,56 @@ export default {
         async refresh() {
             const response = await window.api.get("/api/v1/plugins");
             this.plugins = response.data?.plugins || [];
+        },
+        async refreshSideband() {
+            const response = await window.api.get("/api/v1/sideband-plugins");
+            const config = response.data?.config || {};
+            this.sidebandConfig = {
+                service_plugins_enabled: Boolean(config.service_plugins_enabled),
+                command_plugins_enabled: Boolean(config.command_plugins_enabled),
+                command_plugins_path: config.command_plugins_path || "",
+            };
+            this.sidebandPlugins = response.data?.plugins || [];
+        },
+        onSidebandMasterToggle() {
+            if (this.sidebandConfig.service_plugins_enabled) {
+                const ok = window.confirm(this.$t("plugins.sideband.danger_confirm"));
+                if (!ok) {
+                    this.sidebandConfig.service_plugins_enabled = false;
+                }
+            }
+        },
+        async saveSidebandConfig() {
+            this.sidebandBusy = true;
+            try {
+                const response = await window.api.post("/api/v1/sideband-plugins/config", {
+                    service_plugins_enabled: this.sidebandConfig.service_plugins_enabled,
+                    command_plugins_enabled: this.sidebandConfig.command_plugins_enabled,
+                    command_plugins_path: this.sidebandConfig.command_plugins_path || null,
+                });
+                this.sidebandPlugins = response.data?.plugins || [];
+                ToastUtils.success(this.$t("plugins.sideband.saved"));
+            } catch (error) {
+                ToastUtils.error(
+                    this.$t("plugins.settings.install_failed", { reason: error?.message || String(error) })
+                );
+            } finally {
+                this.sidebandBusy = false;
+            }
+        },
+        async reloadSideband() {
+            this.sidebandBusy = true;
+            try {
+                const response = await window.api.post("/api/v1/sideband-plugins/reload");
+                this.sidebandPlugins = response.data?.plugins || [];
+                ToastUtils.success(this.$t("plugins.sideband.reloaded"));
+            } catch (error) {
+                ToastUtils.error(
+                    this.$t("plugins.settings.install_failed", { reason: error?.message || String(error) })
+                );
+            } finally {
+                this.sidebandBusy = false;
+            }
         },
         async enablePlugin(pluginId) {
             this.busyPluginId = pluginId;
@@ -295,13 +465,19 @@ export default {
             this.installPreview = null;
             this.pendingArchive = null;
         },
-        async confirmInstallPreview({ grantedPermissions }) {
+        async confirmInstallPreview({ grantedPermissions, trustPublisher, signer, signerName }) {
             if (!this.pendingArchive) {
                 this.cancelInstallPreview();
                 return;
             }
             this.installing = true;
             try {
+                if (trustPublisher && signer) {
+                    await window.api.post("/api/v1/plugins/trusted-publishers", {
+                        identity: signer,
+                        name: signerName || signer,
+                    });
+                }
                 const formData = new FormData();
                 formData.append("archive", this.pendingArchive);
                 formData.append("granted_permissions", JSON.stringify(grantedPermissions || []));

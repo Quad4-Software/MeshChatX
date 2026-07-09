@@ -122,8 +122,12 @@ MeshChatX supports plugins with separate frontend and backend runtimes:
 
 - **Contribution registries** under `meshchatx/src/frontend/js/registries/` for navigation, tools, commands, settings, and WebSocket events.
 - **Frontend plugins** run in dedicated Workers (`PluginHost.js`) with declarative UI slots.
-- **Backend plugins** run in wasmtime with fuel metering and capability-gated host functions.
-- **HTTP API** under `/api/v1/plugins/*` for install, enable, invoke, and assets.
+- **Backend WASM plugins** run in wasmtime with fuel metering and capability-gated host functions.
+- **Backend Python plugins** (`backend.type: "python"`) run in-process with a permission-checked host (`log`, managers, storage, network flag).
+- **WASM bundles** embed manifest/files/signature in custom sections and unpack on install.
+- **Sideband-compatible loader** optionally `exec`s flat `*.py` plugins with `PLUGIN_COMMAND` LXMF dispatch.
+- **Security core** verifies RSG signatures, trusted publishers, integrity hashes, and heuristic findings.
+- **HTTP API** under `/api/v1/plugins/*` and `/api/v1/sideband-plugins/*` for install, enable, invoke, trust, and Sideband config.
 
 Practical extension paths today:
 

@@ -77,6 +77,19 @@ meshchatx --restore-db /path/to/backup.zip
 
 Startup integrity verification runs in packaged Electron builds and can be triggered from the backend. Failed checks surface recovery options instead of silently corrupting data.
 
+## Plugin signing and trust
+
+Packaged plugins may include a Reticulum Signature (`.rsg`) over a canonical ZIP payload (sorted paths, fixed 1980-01-01 mtimes, signature file excluded). MeshChatX plugin signing writes `meshchatx.plugin.rsg` and WASM sections `meshchatx.plugin` / `meshchatx.files` / `meshchatx.signature`.
+
+Policy:
+
+- Unsigned packages are allowed
+- Present but invalid signatures hard-block install
+- Valid signers can be added to a user trusted-publishers list (ignored if the list file is tampered outside MeshChatX)
+- Installed plugin trees get an integrity hash; on-disk changes disable the plugin as tampered
+
+Sideband Python plugins are opt-in via a master danger switch. They are not ZIP-permission gated. Optional per-file `.py.rsg` signatures are verified over script bytes.
+
 ## Safe deployment patterns
 
 ```

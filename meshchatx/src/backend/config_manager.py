@@ -308,6 +308,23 @@ class ConfigManager:
         # telemetry config
         self.telemetry_enabled = self.BoolConfig(self, "telemetry_enabled", False)
 
+        # Sideband-compatible plugin loader (master switch defaults off)
+        self.service_plugins_enabled = self.BoolConfig(
+            self,
+            "service_plugins_enabled",
+            False,
+        )
+        self.command_plugins_enabled = self.BoolConfig(
+            self,
+            "command_plugins_enabled",
+            False,
+        )
+        self.command_plugins_path = self.StringConfig(
+            self,
+            "command_plugins_path",
+            None,
+        )
+
         # translator config
         self.translator_argos_enabled = self.BoolConfig(
             self,

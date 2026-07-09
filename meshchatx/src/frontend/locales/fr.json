@@ -704,21 +704,21 @@
     "plugins": {
         "settings": {
             "title": "Plugins",
-            "description": "Install, enable, and review permissions for MeshChatX plugins. ZIP installs show a confirmation dialog with requested permissions and any external URLs.",
+            "description": "Install, enable, and review permissions for MeshChatX plugins. ZIP and WASM installs show a confirmation dialog with permissions, signature status, and security findings.",
             "enable": "Activer",
             "disable": "Désactiver",
             "remove": "Supprimer",
             "permissions": "Permissions",
-            "install_zip": "Installer un plugin depuis une archive ZIP",
+            "install_zip": "Install plugin from ZIP or WASM bundle",
             "enabled": "Plugin activé",
             "disabled": "Plugin désactivé",
             "removed": "Plugin supprimé",
             "installed": "Plugin installé",
             "auto_disabled": "Plugin désactivé automatiquement : {reason}",
             "kill_switch": "Un plugin a été désactivé : {reason}",
-            "empty_state": "Aucun plugin installé. Importez une archive ZIP pour commencer.",
-            "drag_drop": "Déposez une archive ZIP ici",
-            "choose_file": "Choisir un fichier ZIP",
+            "empty_state": "No plugins installed yet. Upload a plugin ZIP or WASM bundle to get started.",
+            "drag_drop": "Drag and drop a plugin ZIP or WASM bundle here",
+            "choose_file": "Choose ZIP or WASM file",
             "confirm_remove": "Supprimer le plugin « {name} » ? Ses fichiers et données seront effacés.",
             "badge_enabled": "Activé",
             "badge_disabled": "Désactivé",
@@ -728,7 +728,12 @@
             "installing": "Installation du plugin...",
             "badge_network": "Network",
             "network_endpoints": "Network endpoints",
-            "previewing": "Reviewing plugin..."
+            "previewing": "Reviewing plugin...",
+            "badge_python": "Python",
+            "badge_signed": "Signed",
+            "badge_trusted": "Trusted",
+            "badge_invalid_signature": "Invalid signature",
+            "badge_tampered": "Tampered"
         },
         "permissions": {
             "none": "No elevated permissions",
@@ -755,7 +760,27 @@
             "network_endpoints_unknown": "This plugin requests network access but did not declare specific endpoints.",
             "cancel": "Cancel",
             "confirm": "Install",
-            "close": "Close"
+            "close": "Close",
+            "signature": "Signature",
+            "signature_unsigned": "Unsigned",
+            "signature_signed": "Signed",
+            "signature_trusted": "Trusted publisher",
+            "signature_invalid": "Invalid signature (install blocked)",
+            "trust_publisher": "Trust this publisher",
+            "security_findings": "Security findings"
+        },
+        "sideband": {
+            "title": "Sideband plugins",
+            "description": "Optional Sideband-compatible Python plugins loaded from a directory. They run in-process with full host access when enabled.",
+            "master_enable": "Enable Sideband plugin loader (dangerous)",
+            "command_enable": "Enable Sideband command plugins",
+            "path": "Plugin directory path",
+            "save": "Save Sideband settings",
+            "reload": "Reload Sideband plugins",
+            "loaded": "Loaded Sideband plugins",
+            "saved": "Sideband plugin settings saved",
+            "reloaded": "Sideband plugins reloaded",
+            "danger_confirm": "Sideband plugins run as full Python code inside MeshChatX with filesystem, network, and LXMF access. Enable only if you trust every script in the directory."
         }
     },
     "selftest": {

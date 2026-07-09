@@ -741,6 +741,18 @@
             "path": "/api/v1/plugins/preview"
         },
         {
+            "method": "GET",
+            "path": "/api/v1/plugins/trusted-publishers"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/plugins/trusted-publishers"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/plugins/trusted-publishers/{identity}"
+        },
+        {
             "method": "DELETE",
             "path": "/api/v1/plugins/{plugin_id}"
         },
@@ -1099,6 +1111,22 @@
         {
             "method": "POST",
             "path": "/api/v1/setup/storage-migration"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/sideband-plugins"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/sideband-plugins/config"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/sideband-plugins/config"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/sideband-plugins/reload"
         },
         {
             "method": "GET",
