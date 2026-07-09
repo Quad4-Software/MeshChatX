@@ -19,9 +19,15 @@ from meshchatx.src.backend.nomadnet_downloader import (
 def clear_nomadnet_link_cache():
     with _nomadnet_links_lock:
         nomadnet_cached_links.clear()
+        from meshchatx.src.backend.nomadnet_downloader import _nomadnet_link_last_used
+
+        _nomadnet_link_last_used.clear()
     yield
     with _nomadnet_links_lock:
         nomadnet_cached_links.clear()
+        from meshchatx.src.backend.nomadnet_downloader import _nomadnet_link_last_used
+
+        _nomadnet_link_last_used.clear()
 
 
 @pytest.fixture
@@ -159,3 +165,25 @@ def test_file_downloader_passes_query_data_to_parent():
         data="foo=bar",
     )
     assert fd.data == "foo=bar"
+
+
+def test_nomad_link_cache_evicts_over_cap():
+    from meshchatx.src.backend import nomadnet_downloader as nd
+
+    original_max = nd.MAX_CACHED_LINKS
+    nd.MAX_CACHED_LINKS = 2
+    try:
+        links = []
+        for i in range(3):
+            link = MagicMock()
+            link.status = RNS.Link.ACTIVE
+            dest = bytes([i]) * 16
+            nd._cache_link_if_active(dest, link)
+            links.append((dest, link))
+        assert nd.cached_link_count() == 2
+        assert get_cached_active_link(links[0][0]) is None
+        links[0][1].teardown.assert_called()
+        assert get_cached_active_link(links[1][0]) is links[1][1]
+        assert get_cached_active_link(links[2][0]) is links[2][1]
+    finally:
+        nd.MAX_CACHED_LINKS = original_max

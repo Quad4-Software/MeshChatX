@@ -4,6 +4,12 @@ export const VIZ_ANNOUNCE_ASPECTS = ["lxmf.delivery", "nomadnetwork.node"];
 
 export const ANNOUNCE_HASH_CHUNK_SIZE = 500;
 
+/** Soft cap for client-side path table rows kept in the visualiser. */
+export const VIZ_PATH_TABLE_SOFT_CAP = 20_000;
+
+/** Soft cap for announce map entries keyed by destination hash. */
+export const VIZ_ANNOUNCE_SOFT_CAP = 10_000;
+
 /**
  * @param {unknown[]} pathTable
  * @param {number|null|undefined} hopMax

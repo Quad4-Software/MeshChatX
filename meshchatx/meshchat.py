@@ -139,11 +139,11 @@ from meshchatx.src.backend.meshchat_utils import (
     parse_lxmf_stamp_cost,
     parse_nomadnetwork_node_display_name,
 )
+from meshchatx.src.backend.memory_pressure import MemoryPressureManager, cache_stats
 from meshchatx.src.backend.nomadnet_downloader import (
     NomadnetFileDownloader,
     NomadnetPageDownloader,
     get_cached_active_link,
-    sweep_stale_links,
 )
 from meshchatx.src.backend.nomadnet_utils import (
     convert_nomadnet_field_data_to_map,
@@ -514,6 +514,7 @@ class ReticulumMeshChat:
             reticulum_getter=lambda: getattr(self, "reticulum", None),
             broadcast_event=self._on_rns_link_broadcast,
         )
+        self.memory_pressure = MemoryPressureManager(app=self)
         # Track long-running rns.link.* handler tasks per WS client so they can
         # be cancelled when the client disconnects.
         self._rns_link_tasks: dict[web.WebSocketResponse, set[asyncio.Task]] = {}
@@ -3048,7 +3049,10 @@ class ReticulumMeshChat:
             gc_counter += 1
             if gc_counter >= 300:
                 gc_counter = 0
-                sweep_stale_links()
+                try:
+                    await asyncio.to_thread(self.memory_pressure.run_periodic_cleanup)
+                except Exception as exc:
+                    print(f"[memory_pressure] periodic cleanup error: {exc}")
                 # Python 3.14+ incremental GC: with threshold[2]==0 full gen2
                 # collections are never scheduled automatically, so force one.
                 if sys.version_info >= (3, 14) and gc.get_threshold()[2] == 0:
@@ -7217,6 +7221,18 @@ class ReticulumMeshChat:
                                 None,
                             ),
                             "busy_timeout": _safe_sqlite_pragma("busy_timeout", None),
+                            "temp_store": _safe_sqlite_pragma("temp_store", None),
+                            "cache_size": _safe_sqlite_pragma("cache_size", None),
+                            "mmap_size": _safe_sqlite_pragma("mmap_size", None),
+                            "memory_relaxed": bool(
+                                getattr(
+                                    self.database,
+                                    "_sqlite_memory_relaxed",
+                                    False,
+                                )
+                                if self.database is not None
+                                else False
+                            ),
                         },
                         "reticulum_config_path": self._api_reticulum_config_path(),
                         "host_platform": sys.platform,
@@ -7243,6 +7259,12 @@ class ReticulumMeshChat:
                             "announces_per_second": announces_per_second,
                             "announces_per_minute": announces_per_minute,
                             "announces_per_hour": announces_per_hour,
+                            **cache_stats(),
+                            "memory_cleanup": getattr(
+                                getattr(self, "memory_pressure", None),
+                                "last_stats",
+                                {},
+                            ),
                         },
                         "is_reticulum_running": hasattr(self, "reticulum")
                         and self.reticulum is not None,

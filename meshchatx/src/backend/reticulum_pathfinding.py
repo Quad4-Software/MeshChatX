@@ -29,6 +29,11 @@ def format_outbound_path_finding_measure(outcome: OutboundPathOutcome) -> str:
 IDX_PT_TIMESTAMP = 0
 IDX_PT_RVCD_IF = 5
 
+# Soft cap for in-memory RNS path table entries (~270 MB at RNS estimate).
+DEFAULT_PATH_TABLE_SOFT_CAP = 15_000
+DEFAULT_PATH_PRUNE_BATCH = 500
+DEFAULT_PATH_PRUNE_TRIGGER = 10_000
+
 
 def _path_table_entry_is_expired_by_reticulum_rules(entry) -> bool:
     ts = entry[IDX_PT_TIMESTAMP]
@@ -52,6 +57,126 @@ def transport_path_table_entry_is_expired(destination_hash: bytes) -> bool:
             return True
         entry = RNS.Transport.path_table[destination_hash]
     return _path_table_entry_is_expired_by_reticulum_rules(entry)
+
+
+def path_table_size() -> int:
+    try:
+        with RNS.Transport.path_table_lock:
+            return len(RNS.Transport.path_table)
+    except Exception:
+        return 0
+
+
+def prune_expired_path_table_entries(
+    reticulum: Optional["ReticulumLike"] = None,
+    *,
+    max_to_drop: int = DEFAULT_PATH_PRUNE_BATCH,
+    trigger_size: int = DEFAULT_PATH_PRUNE_TRIGGER,
+) -> int:
+    """Drop expired path-table entries when the table is large.
+
+    Returns the number of paths dropped.
+    """
+    if max_to_drop <= 0:
+        return 0
+    size = path_table_size()
+    if size < trigger_size:
+        return 0
+
+    expired: list[tuple[float, bytes]] = []
+    try:
+        with RNS.Transport.path_table_lock:
+            for dest_hash, entry in RNS.Transport.path_table.items():
+                if _path_table_entry_is_expired_by_reticulum_rules(entry):
+                    ts = entry[IDX_PT_TIMESTAMP] if entry else 0.0
+                    expired.append((ts, dest_hash))
+    except Exception:
+        return 0
+
+    if not expired:
+        return 0
+
+    expired.sort(key=lambda item: item[0])
+    dropped = 0
+    for _ts, dest_hash in expired[:max_to_drop]:
+        try:
+            if reticulum is not None:
+                if reticulum.drop_path(dest_hash):
+                    dropped += 1
+            else:
+                RNS.Transport.expire_path(dest_hash)
+                dropped += 1
+        except Exception:
+            continue
+    return dropped
+
+
+def prune_path_table_to_soft_cap(
+    reticulum: Optional["ReticulumLike"] = None,
+    *,
+    soft_cap: int = DEFAULT_PATH_TABLE_SOFT_CAP,
+    max_to_drop: int = DEFAULT_PATH_PRUNE_BATCH,
+) -> int:
+    """If still over soft_cap after expiry prune, drop oldest unresponsive paths."""
+    if soft_cap <= 0 or max_to_drop <= 0:
+        return 0
+    size = path_table_size()
+    if size <= soft_cap:
+        return 0
+
+    candidates: list[tuple[float, bytes]] = []
+    try:
+        with RNS.Transport.path_table_lock:
+            for dest_hash, entry in RNS.Transport.path_table.items():
+                ts = entry[IDX_PT_TIMESTAMP] if entry else 0.0
+                unresponsive = False
+                try:
+                    unresponsive = RNS.Transport.path_is_unresponsive(dest_hash)
+                except Exception:
+                    unresponsive = False
+                # Prefer unresponsive, then oldest.
+                rank = (0.0 if unresponsive else 1.0e12) + float(ts or 0.0)
+                candidates.append((rank, dest_hash))
+    except Exception:
+        return 0
+
+    if not candidates:
+        return 0
+
+    over = size - soft_cap
+    budget = min(max_to_drop, over)
+    candidates.sort(key=lambda item: item[0])
+    dropped = 0
+    for _rank, dest_hash in candidates[:budget]:
+        try:
+            if reticulum is not None:
+                if reticulum.drop_path(dest_hash):
+                    dropped += 1
+            else:
+                RNS.Transport.expire_path(dest_hash)
+                dropped += 1
+        except Exception:
+            continue
+    return dropped
+
+
+def clean_rns_announce_cache() -> bool:
+    """Ask RNS to trim on-disk announce cache files not referenced by paths."""
+    try:
+        owner = getattr(RNS.Transport, "owner", None)
+        if owner is not None and getattr(owner, "is_connected_to_shared_instance", False):
+            return False
+        clean = getattr(RNS.Transport, "clean_cache", None)
+        if callable(clean):
+            clean()
+            return True
+        clean_ann = getattr(RNS.Transport, "clean_announce_cache", None)
+        if callable(clean_ann):
+            clean_ann()
+            return True
+    except Exception:
+        return False
+    return False
 
 
 def should_rediscover_path(destination_hash: bytes) -> bool:

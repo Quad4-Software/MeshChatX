@@ -9,7 +9,7 @@ const {
     loadCrashReport,
     persistCrashReport,
 } = require("./backendCrashReport");
-const { killOrphanBackendProcesses } = require("./backendProcessWin");
+const { killOrphanBackendProcesses } = require("./backendProcessOrphans");
 
 const LOG_LINE_CAP = 200;
 

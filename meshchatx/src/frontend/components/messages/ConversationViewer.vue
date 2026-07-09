@@ -1911,6 +1911,7 @@ export default {
             audioAttachmentRecordingTimer: null,
             androidNativeOpusAttachment: false,
             lxmfMessageAudioAttachmentCache: {},
+            lxmfMessageAudioAttachmentOrder: [],
             isDownloadingAudio: {},
             expandedMessageInfo: null,
             imageModalUrl: null,
@@ -2418,6 +2419,7 @@ export default {
                 this.messageBubbleTranslation = {};
                 if (oldPeer) {
                     this.saveDraft(oldPeer.destination_hash);
+                    this.clearAudioAttachmentCache();
                 }
                 this.teardownPeerHeaderResizeObserver();
                 this.disconnectOpenConversationScrollObserver();
@@ -2547,8 +2549,56 @@ export default {
             clearInterval(this.propagationStatusInterval);
         }
         this.disconnectOpenConversationScrollObserver();
+        this.clearAudioAttachmentCache();
     },
     methods: {
+        clearAudioAttachmentCache() {
+            const cache = this.lxmfMessageAudioAttachmentCache || {};
+            for (const url of Object.values(cache)) {
+                if (typeof url === "string" && url.startsWith("blob:")) {
+                    try {
+                        URL.revokeObjectURL(url);
+                    } catch {
+                        /* ignore */
+                    }
+                }
+            }
+            this.lxmfMessageAudioAttachmentCache = {};
+            this.lxmfMessageAudioAttachmentOrder = [];
+        },
+        rememberAudioAttachment(hash, objectUrl) {
+            if (!hash || !objectUrl) {
+                return;
+            }
+            const maxEntries = 50;
+            const cache = this.lxmfMessageAudioAttachmentCache;
+            const order = this.lxmfMessageAudioAttachmentOrder;
+            if (cache[hash] && cache[hash] !== objectUrl) {
+                try {
+                    URL.revokeObjectURL(cache[hash]);
+                } catch {
+                    /* ignore */
+                }
+            }
+            cache[hash] = objectUrl;
+            const existing = order.indexOf(hash);
+            if (existing >= 0) {
+                order.splice(existing, 1);
+            }
+            order.push(hash);
+            while (order.length > maxEntries) {
+                const evictHash = order.shift();
+                const evictUrl = cache[evictHash];
+                delete cache[evictHash];
+                if (typeof evictUrl === "string" && evictUrl.startsWith("blob:")) {
+                    try {
+                        URL.revokeObjectURL(evictUrl);
+                    } catch {
+                        /* ignore */
+                    }
+                }
+            }
+        },
         isMeshChatXAndroid() {
             return (
                 window.MeshChatXAndroid &&
@@ -4281,7 +4331,7 @@ export default {
 
                 const objectUrl = await this.decodeLxmfAudioFieldToBlobUrl(audioField);
                 if (objectUrl) {
-                    this.lxmfMessageAudioAttachmentCache[chatItem.lxmf_message.hash] = objectUrl;
+                    this.rememberAudioAttachment(chatItem.lxmf_message.hash, objectUrl);
                 }
             } catch (e) {
                 console.error("Failed to download or decode audio:", e);
@@ -5142,8 +5192,7 @@ export default {
                     continue;
                 }
 
-                // update audio cache
-                this.lxmfMessageAudioAttachmentCache[chatItem.lxmf_message.hash] = objectUrl;
+                this.rememberAudioAttachment(chatItem.lxmf_message.hash, objectUrl);
             }
         },
         async decodeLxmfAudioFieldToBlobUrl(audioField) {
