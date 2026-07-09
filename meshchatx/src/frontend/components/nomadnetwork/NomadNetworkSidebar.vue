@@ -716,6 +716,11 @@ import GlobalEmitter from "../../js/GlobalEmitter";
 import ToastUtils from "../../js/ToastUtils";
 import DownloadUtils from "../../js/DownloadUtils";
 import { isUnknownNodeDisplayName } from "../../js/nomadUnknownNodeName.js";
+import {
+    loadNomadFavouritesLayout,
+    readLocalNomadFavouritesLayout,
+    saveNomadFavouritesLayout,
+} from "../../js/nomadFavouritesLayoutStore.js";
 
 export default {
     name: "NomadNetworkSidebar",
@@ -792,6 +797,7 @@ export default {
             sections: [],
             sectionOrder: [],
             favouritesBySection: {},
+            favouriteLayoutLoadGen: 0,
             draggingFavouriteHash: null,
             draggingFavouriteHashes: [],
             draggingFavouriteSectionId: null,
@@ -942,8 +948,11 @@ export default {
         },
     },
     mounted() {
-        this.loadFavouriteLayout();
+        this._layoutPersistTimer = null;
+        // Paint immediately from local cache/defaults, then hydrate from the identity DB.
+        this.applyFavouriteLayout(readLocalNomadFavouritesLayout());
         this.ensureFavouriteLayout();
+        this.reloadFavouriteLayoutFromStore();
         this._smUpMql = window.matchMedia("(min-width: 640px)");
         this._smUpResize = () => {
             this.smUp = this._smUpMql.matches;
@@ -951,11 +960,16 @@ export default {
         this._smUpResize();
         this._smUpMql.addEventListener("change", this._smUpResize);
         this._onNomadnetFavouritesLayoutImported = () => {
-            this.loadFavouriteLayout();
+            this.reloadFavouriteLayoutFromStore();
         };
         GlobalEmitter.on("nomadnet-favourites-layout-imported", this._onNomadnetFavouritesLayoutImported);
     },
     unmounted() {
+        if (this._layoutPersistTimer) {
+            clearTimeout(this._layoutPersistTimer);
+            this._layoutPersistTimer = null;
+            this.persistFavouriteLayout({ immediate: true });
+        }
         if (this._smUpMql && this._smUpResize) {
             this._smUpMql.removeEventListener("change", this._smUpResize);
         }
@@ -964,6 +978,31 @@ export default {
         }
     },
     methods: {
+        applyFavouriteLayout(layout) {
+            if (!layout) {
+                if (this.sections.length === 0) {
+                    this.resetDefaultSections();
+                }
+                return;
+            }
+            this.sections = layout.sections || [];
+            this.sectionOrder =
+                layout.sectionOrder ||
+                (layout.sections ? layout.sections.map((section) => section.id) : this.sectionOrder);
+            this.favouritesBySection = layout.favouritesBySection || {};
+            if (this.sections.length === 0) {
+                this.resetDefaultSections();
+            }
+        },
+        async reloadFavouriteLayoutFromStore() {
+            const gen = ++this.favouriteLayoutLoadGen;
+            const layout = await loadNomadFavouritesLayout(window.api);
+            if (gen !== this.favouriteLayoutLoadGen) {
+                return;
+            }
+            this.applyFavouriteLayout(layout);
+            this.ensureFavouriteLayout();
+        },
         toggleFavouritesSelectionMode() {
             this.favouritesSelectionMode = !this.favouritesSelectionMode;
             if (!this.favouritesSelectionMode) {
@@ -1152,45 +1191,37 @@ export default {
             this.favouritesBySection = { [defaultSection.id]: [] };
         },
         loadFavouriteLayout() {
-            try {
-                const stored = localStorage.getItem("meshchat.nomadnet.favourites.layout");
-                if (stored) {
-                    const parsed = JSON.parse(stored);
-                    this.sections = parsed.sections || [];
-                    this.sectionOrder =
-                        parsed.sectionOrder ||
-                        (parsed.sections ? parsed.sections.map((section) => section.id) : this.sectionOrder);
-                    this.favouritesBySection = parsed.favouritesBySection || {};
-                    return;
-                }
-                const legacyOrder = localStorage.getItem("meshchat.nomadnet.favourites");
-                if (legacyOrder) {
-                    const parsedOrder = JSON.parse(legacyOrder);
-                    const defaultSection = this.buildDefaultSection();
-                    this.sections = [defaultSection];
-                    this.sectionOrder = [defaultSection.id];
-                    this.favouritesBySection = { [defaultSection.id]: parsedOrder };
-                }
-            } catch (e) {
-                console.log(e);
-            }
-            if (this.sections.length === 0) {
-                this.resetDefaultSections();
-            }
+            void this.reloadFavouriteLayoutFromStore();
         },
-        persistFavouriteLayout() {
-            try {
-                localStorage.setItem(
-                    "meshchat.nomadnet.favourites.layout",
-                    JSON.stringify({
-                        sections: this.sections,
-                        sectionOrder: this.sectionOrder,
-                        favouritesBySection: this.favouritesBySection,
-                    })
-                );
-            } catch (e) {
-                console.log(e);
+        persistFavouriteLayout(options = {}) {
+            // User-driven saves invalidate in-flight remote loads so they cannot clobber edits.
+            // Reconciliation persists (fromEnsure) must not, or the first hydrate is discarded.
+            if (!options.fromEnsure) {
+                this.favouriteLayoutLoadGen += 1;
             }
+            const layout = {
+                sections: this.sections,
+                sectionOrder: this.sectionOrder,
+                favouritesBySection: this.favouritesBySection,
+            };
+            const flush = () => {
+                this._layoutPersistTimer = null;
+                return saveNomadFavouritesLayout(window.api, layout);
+            };
+            if (options.immediate) {
+                if (this._layoutPersistTimer) {
+                    clearTimeout(this._layoutPersistTimer);
+                    this._layoutPersistTimer = null;
+                }
+                return flush();
+            }
+            if (this._layoutPersistTimer) {
+                clearTimeout(this._layoutPersistTimer);
+            }
+            this._layoutPersistTimer = setTimeout(() => {
+                void flush();
+            }, 250);
+            return undefined;
         },
         ensureFavouriteLayout() {
             if (!Array.isArray(this.favourites) || this.favourites.length === 0) {
@@ -1246,7 +1277,7 @@ export default {
             this.sectionOrder = nextSectionOrder;
             this.favouritesBySection = nextFavouritesBySection;
             if (sectionsChanged || orderChanged || favouritesChanged) {
-                this.persistFavouriteLayout();
+                this.persistFavouriteLayout({ fromEnsure: true });
             }
         },
         isBlocked(identityHash) {

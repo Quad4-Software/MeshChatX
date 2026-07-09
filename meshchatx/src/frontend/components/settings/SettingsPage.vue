@@ -2928,6 +2928,11 @@ import { isMicronWasmBundled } from "../../js/MicronWasmLoader.js";
 import MicronWasmUpdateModal from "./MicronWasmUpdateModal.vue";
 import NotificationSoundSettings from "./NotificationSoundSettings.vue";
 import PluginsSettingsSection from "./PluginsSettingsSection.vue";
+import {
+    loadNomadFavouritesLayout,
+    normalizeNomadFavouritesLayout,
+    saveNomadFavouritesLayout,
+} from "../../js/nomadFavouritesLayoutStore.js";
 
 export default {
     name: "SettingsPage",
@@ -4518,31 +4523,7 @@ export default {
             event.target.value = "";
         },
         normalizeNomadnetFavouritesLayoutShape(layout) {
-            if (!layout || typeof layout !== "object" || !Array.isArray(layout.sections)) {
-                return null;
-            }
-            const favouritesBySection =
-                layout.favouritesBySection && typeof layout.favouritesBySection === "object"
-                    ? layout.favouritesBySection
-                    : {};
-            const sectionOrder = Array.isArray(layout.sectionOrder)
-                ? layout.sectionOrder
-                : layout.sections.map((s) => s && s.id).filter(Boolean);
-            const sections = layout.sections
-                .filter((s) => s && typeof s.id === "string")
-                .map((s) => ({
-                    id: s.id,
-                    name: typeof s.name === "string" ? s.name : "",
-                    collapsed: s.collapsed === true,
-                }));
-            const sanitizedMap = {};
-            for (const k of Object.keys(favouritesBySection)) {
-                const arr = favouritesBySection[k];
-                if (Array.isArray(arr)) {
-                    sanitizedMap[k] = arr.filter((h) => typeof h === "string");
-                }
-            }
-            return { sections, sectionOrder, favouritesBySection: sanitizedMap };
+            return normalizeNomadFavouritesLayout(layout);
         },
         parseNomadnetFavouritesImportData(data) {
             if (!data || typeof data !== "object") {
@@ -4562,29 +4543,13 @@ export default {
             const layout = this.normalizeNomadnetFavouritesLayoutShape(data);
             return layout ? { kind: "full", layout } : null;
         },
-        mergeNomadnetFavouritesSectionImport(payload) {
+        async mergeNomadnetFavouritesSectionImport(payload) {
             const sec = payload.section;
             const hashes = Array.isArray(payload.destination_hashes)
                 ? payload.destination_hashes.filter((h) => typeof h === "string")
                 : [];
-            let raw = null;
-            try {
-                raw = localStorage.getItem("meshchat.nomadnet.favourites.layout");
-            } catch {
-                raw = null;
-            }
-            let base = { sections: [], sectionOrder: [], favouritesBySection: {} };
-            if (raw) {
-                try {
-                    const parsed = JSON.parse(raw);
-                    const normalized = this.normalizeNomadnetFavouritesLayoutShape(parsed);
-                    if (normalized) {
-                        base = normalized;
-                    }
-                } catch {
-                    // keep default base
-                }
-            }
+            const loaded = await loadNomadFavouritesLayout(window.api);
+            let base = loaded || { sections: [], sectionOrder: [], favouritesBySection: {} };
             const sections = [...base.sections];
             const sectionOrder = [...base.sectionOrder];
             const favouritesBySection = { ...base.favouritesBySection };
@@ -4612,18 +4577,14 @@ export default {
             if (!merged) {
                 throw new Error("invalid layout");
             }
-            localStorage.setItem("meshchat.nomadnet.favourites.layout", JSON.stringify(merged));
+            await saveNomadFavouritesLayout(window.api, merged);
         },
         async exportNomadnetFavouritesLayout() {
             let layout = { sections: [], sectionOrder: [], favouritesBySection: {} };
             try {
-                const raw = localStorage.getItem("meshchat.nomadnet.favourites.layout");
-                if (raw) {
-                    const parsed = JSON.parse(raw);
-                    const normalized = this.normalizeNomadnetFavouritesLayoutShape(parsed);
-                    if (normalized) {
-                        layout = normalized;
-                    }
+                const loaded = await loadNomadFavouritesLayout(window.api);
+                if (loaded) {
+                    layout = loaded;
                 }
             } catch {
                 // keep empty layout
@@ -4674,9 +4635,9 @@ export default {
                         });
                     }
                     if (parsed.kind === "full") {
-                        localStorage.setItem("meshchat.nomadnet.favourites.layout", JSON.stringify(parsed.layout));
+                        await saveNomadFavouritesLayout(window.api, parsed.layout);
                     } else if (parsed.kind === "section") {
-                        this.mergeNomadnetFavouritesSectionImport(parsed.payload);
+                        await this.mergeNomadnetFavouritesSectionImport(parsed.payload);
                     } else {
                         throw new Error("invalid file");
                     }
