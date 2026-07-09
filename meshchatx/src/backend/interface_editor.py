@@ -107,6 +107,25 @@ class InterfaceEditor:
     validate_rnode_txpower = staticmethod(validate_rnode_txpower)
 
     @staticmethod
+    def sanitize_interface_section_name(name: str | None) -> str:
+        """Make a name safe for Reticulum/ConfigObj ``[[section]]`` headers.
+
+        Square brackets break ConfigObj nesting and can leave the in-memory
+        interfaces map dirty after a failed write, blocking later adds.
+        """
+        cleaned = str(name or "").strip()
+        if not cleaned:
+            return ""
+        cleaned = (
+            cleaned.replace("[", "(")
+            .replace("]", ")")
+            .replace("\n", " ")
+            .replace("\r", " ")
+        )
+        cleaned = " ".join(cleaned.split())
+        return cleaned[:128]
+
+    @staticmethod
     def minimum_fixed_mtu() -> int:
         mtu = getattr(RNS.Reticulum, "MTU", None)
         if type(mtu) is int and mtu > 0:
