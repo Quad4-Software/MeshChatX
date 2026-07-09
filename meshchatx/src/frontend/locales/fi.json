@@ -763,7 +763,8 @@
         "failed": "Epäonnistunut",
         "status_label": "Tila",
         "reason_label": "Syy",
-        "checks_completed": "Kaikki tarkistukset suoritettiin onnistuneesti."
+        "checks_completed": "Kaikki tarkistukset suoritettiin onnistuneesti.",
+        "http_reticulum_instance_good": "HTTP RNS Instance Settings"
     },
     "maintenance": {
         "title": "Ylläpito ja tiedot",
@@ -2602,7 +2603,7 @@
         "discovery_title": "Discovered Hubs",
         "discovery_subtitle": "Relay Chat hubs heard announcing on the network.",
         "discovery_empty": "No hubs discovered yet. They appear here as they announce.",
-        "discovery_search": "Search hubs",
+        "discovery_search": "Hae {count} hubia",
         "discovery_add": "Lisää",
         "discovery_added": "Hub added from discovery",
         "discovery_open": "Avaa",
@@ -2631,7 +2632,15 @@
         "members_search_placeholder": "Search members...",
         "members_search_no_results": "No members match your search.",
         "popout_channel": "Open in new window",
-        "new_message_toast": "New message in #{room}"
+        "new_message_toast": "New message in #{room}",
+        "host_users": "käyttäjää",
+        "host_announce_interval": "Ilmoitusväli (minuuttia)",
+        "host_announce_interval_hint": "Joka {minutes}. minuutti",
+        "host_hub_settings": "Hubin asetukset",
+        "presence_joined": "{count} liittyi",
+        "presence_left": "{count} lähti",
+        "presence_events": "{count} liittymis-/lähtötapahtumaa",
+        "presence_connection": "{count} yhteystapahtumaa"
     },
     "rncp": {
         "file_transfer": "File Transfer",

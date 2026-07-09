@@ -88,6 +88,7 @@ class RRCHub:
         self._manual_disconnect = False
         self._reconnect_attempts = 0
         self._reconnect_timer = None
+        self._had_session = False
         self._pending_pings = {}
         self._last_history_clean = 0
         self.clean_last_removed = 0
@@ -418,6 +419,9 @@ class RRCHub:
     def _on_closed(self, link):
         self._stop_hello.set()
         with self._lock:
+            was_welcomed = self.welcomed
+            rooms = list(self.rooms)
+            manual = self._manual_disconnect
             self.link = None
             self.welcomed = False
             self.motd = None
@@ -428,6 +432,9 @@ class RRCHub:
             self._silent_joins.clear()
             self._silent_who_rooms.clear()
             should_reconnect = self.auto_reconnect and not self._manual_disconnect
+        if was_welcomed and rooms:
+            text = "Disconnected from hub" if manual else "Connection lost"
+            self._record_connection_event(text, rooms=rooms)
         self._set_status(RRCHub.STATUS_DISCONNECTED, "Disconnected")
         if should_reconnect:
             self._schedule_reconnect()
@@ -882,6 +889,15 @@ class RRCHub:
         self._append_history(room, msg)
         self._clean_history()
 
+    def _record_connection_event(self, text, rooms=None):
+        """Write a connection status line into each joined room timeline."""
+        if rooms is None:
+            with self._lock:
+                rooms = list(self.rooms)
+        for room in rooms:
+            with contextlib.suppress(Exception):
+                self._record_system(room, text)
+
     def _record_notice(self, msg):
         target_room = msg.room
         if not target_room:
@@ -964,9 +980,14 @@ class RRCHub:
             limits = body.get(proto.B_WELCOME_LIMITS)
             if isinstance(limits, dict):
                 self._apply_limits(limits)
-        self._set_status(RRCHub.STATUS_CONNECTED, "Connected")
         with self._lock:
+            was_reconnect = self._had_session
             self._reconnect_attempts = 0
+            self._had_session = True
+            rooms = list(self.rooms)
+        self._set_status(RRCHub.STATUS_CONNECTED, "Connected")
+        if was_reconnect and rooms:
+            self._record_connection_event("Reconnected to hub", rooms=rooms)
         self.manager._on_welcome(self)
         if self.auto_list:
             self._request_room_list()
@@ -1029,7 +1050,9 @@ class RRCHub:
                     self.nicks[jh] = joiner_nick
 
         if self_join:
-            if not silent:
+            if silent:
+                self._record_system(r, "You rejoined #" + r)
+            else:
                 self._record_system(r, "You joined #" + r)
             if self.auto_who:
                 try:

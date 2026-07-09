@@ -29,6 +29,26 @@ MESSAGE_LOG_CAP = 5000
 STORE_FILENAME = "hubs"
 HUB_CONFIG_FILENAME = "hub.toml"
 ROOMS_FILENAME = "rooms.toml"
+DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 900
+MIN_ANNOUNCE_INTERVAL_SECONDS = 60
+MAX_ANNOUNCE_INTERVAL_SECONDS = 86400
+
+
+def normalize_announce_interval_seconds(
+    value, default=DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+):
+    """Clamp announce interval to a supported range, or 0 to disable periodic announces."""
+    if value is None:
+        return int(default)
+    try:
+        seconds = int(value)
+    except (TypeError, ValueError):
+        return int(default)
+    if seconds <= 0:
+        return 0
+    return max(
+        MIN_ANNOUNCE_INTERVAL_SECONDS, min(MAX_ANNOUNCE_INTERVAL_SECONDS, seconds)
+    )
 
 
 class _LoopbackEndpoint:
@@ -90,6 +110,7 @@ class RRCHubServer:
         name=None,
         greeting=None,
         announce=True,
+        announce_interval_seconds=DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
         enabled=True,
     ):
         self.manager = manager
@@ -98,6 +119,9 @@ class RRCHubServer:
         self.name = name or ("Hub " + identity.hash.hex()[:8])
         self.greeting = greeting
         self.announce = announce
+        self.announce_interval_seconds = normalize_announce_interval_seconds(
+            announce_interval_seconds,
+        )
         self.enabled = enabled
 
         self.max_nick_bytes = proto.DEFAULT_MAX_NICK_BYTES
@@ -109,6 +133,7 @@ class RRCHubServer:
         self.destination = None
         self.running = False
         self._started_at = None
+        self._announce_timer = None
 
         self._lock = threading.RLock()
         self._sessions = {}
@@ -149,6 +174,7 @@ class RRCHubServer:
             self._started_at = time.time()
         if self.announce:
             self.announce_now()
+        self._sync_announce_timer()
         self._log("hub started at " + self.dest_hash.hex())
 
     def announce_now(self):
@@ -159,7 +185,47 @@ class RRCHubServer:
                 app_data=proto.encode({"proto": "rrc", "v": 1, "hub": self.name}),
             )
 
+    def _cancel_announce_timer(self):
+        timer = self._announce_timer
+        self._announce_timer = None
+        if timer is not None:
+            with contextlib.suppress(Exception):
+                timer.cancel()
+
+    def _sync_announce_timer(self):
+        self._cancel_announce_timer()
+        if not self.running or not self.announce:
+            return
+        interval = normalize_announce_interval_seconds(
+            self.announce_interval_seconds,
+            default=0,
+        )
+        if interval <= 0:
+            return
+        timer = threading.Timer(interval, self._announce_timer_fire)
+        timer.daemon = True
+        self._announce_timer = timer
+        timer.start()
+
+    def _announce_timer_fire(self):
+        self._announce_timer = None
+        if not self.running or not self.announce:
+            return
+        with contextlib.suppress(Exception):
+            self.announce_now()
+        self._sync_announce_timer()
+
+    def set_announce_settings(self, announce=None, announce_interval_seconds=None):
+        if announce is not None:
+            self.announce = bool(announce)
+        if announce_interval_seconds is not None:
+            self.announce_interval_seconds = normalize_announce_interval_seconds(
+                announce_interval_seconds,
+            )
+        self._sync_announce_timer()
+
     def stop(self):
+        self._cancel_announce_timer()
         with self._lock:
             links = list(self._sessions.keys())
             self._sessions.clear()
@@ -919,6 +985,7 @@ class RRCHubServer:
                 "running": self.running,
                 "uptime_seconds": uptime_seconds,
                 "announce": self.announce,
+                "announce_interval_seconds": self.announce_interval_seconds,
                 "greeting": self.greeting,
                 "clients": sum(1 for s in self._sessions.values() if s.welcomed),
                 "trusted_identities": policy["trusted_identities"],
@@ -949,6 +1016,7 @@ class RRCHubServer:
             "name": self.name,
             "enabled": self.enabled,
             "announce": self.announce,
+            "announce_interval_seconds": self.announce_interval_seconds,
             "greeting": self.greeting,
             "trusted_identities": policy["trusted_identities"],
             "banned_identities": policy["banned_identities"],
@@ -1004,7 +1072,14 @@ class RRCServerManager:
                     return hub
         return None
 
-    def create_hub(self, name=None, greeting=None, announce=True, enabled=True):
+    def create_hub(
+        self,
+        name=None,
+        greeting=None,
+        announce=True,
+        announce_interval_seconds=DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+        enabled=True,
+    ):
         identity = RNS.Identity()
         os.makedirs(self._server_dir(), exist_ok=True)
         identity.to_file(self._identity_path(identity.hash.hex()))
@@ -1014,6 +1089,7 @@ class RRCServerManager:
             name=name,
             greeting=greeting,
             announce=announce,
+            announce_interval_seconds=announce_interval_seconds,
             enabled=enabled,
         )
         trusted = self._owner_trusted_hex_list()
@@ -1082,6 +1158,7 @@ class RRCServerManager:
         name=None,
         greeting=None,
         announce=None,
+        announce_interval_seconds=None,
         trusted_identities=None,
         banned_identities=None,
     ):
@@ -1092,8 +1169,11 @@ class RRCServerManager:
             hub.name = name
         if greeting is not None:
             hub.greeting = greeting or None
-        if announce is not None:
-            hub.announce = bool(announce)
+        if announce is not None or announce_interval_seconds is not None:
+            hub.set_announce_settings(
+                announce=announce,
+                announce_interval_seconds=announce_interval_seconds,
+            )
         if trusted_identities is not None or banned_identities is not None:
             hub.policy.apply_config(
                 trusted_list=trusted_identities,
@@ -1178,6 +1258,10 @@ class RRCServerManager:
             name=entry.get("name"),
             greeting=entry.get("greeting"),
             announce=bool(entry.get("announce", True)),
+            announce_interval_seconds=entry.get(
+                "announce_interval_seconds",
+                DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+            ),
             enabled=bool(entry.get("enabled", True)),
         )
         hub.configure_storage(

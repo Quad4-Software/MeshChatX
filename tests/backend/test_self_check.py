@@ -134,8 +134,23 @@ def test_check_web_stack_ok(mock_app, require_loopback_tcp):
     mock_app.current_context.message_router.propagation_destination.hexhash = "b" * 32
     if getattr(mock_app, "reticulum", None) is not None:
         mock_app.reticulum.is_connected_to_shared_instance = False
+        mock_app.reticulum.share_instance = True
         mock_app.reticulum.transport_enabled = MagicMock(return_value=False)
         mock_app.reticulum.get_path_table = MagicMock(return_value=[])
+
+        class _Cfg(dict):
+            def write(self):
+                return True
+
+        mock_app.reticulum.config = _Cfg(
+            {
+                "reticulum": {
+                    "share_instance": "Yes",
+                    "local_hops_delta": "No",
+                },
+                "interfaces": {},
+            },
+        )
     # WebSocket handler awaits these.
     mock_app.send_config_to_websocket_clients = AsyncMock(return_value=None)
     mock_app.websocket_broadcast = AsyncMock()

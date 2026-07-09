@@ -263,6 +263,87 @@ def test_welcome_sends_list_when_auto_list_enabled(tmp_path):
     assert calls == ["/list"]
 
 
+def test_silent_self_join_records_rejoined_system_line(tmp_path):
+    manager = make_manager(tmp_path)
+    hub = manager.add_hub(bytes(range(16)))
+    hub._pending_joins.add("lobby")
+    hub._silent_joins.add("lobby")
+    env = proto.make_envelope(
+        proto.T_JOINED,
+        src=None,
+        room="lobby",
+        body=[manager.identity.hash],
+        nick="me",
+    )
+
+    hub._handle_joined(env)
+
+    msgs = hub.messages.get("lobby", [])
+    assert any(m.kind == "system" and m.text == "You rejoined #lobby" for m in msgs)
+
+
+def test_manual_self_join_records_joined_system_line(tmp_path):
+    manager = make_manager(tmp_path)
+    hub = manager.add_hub(bytes(range(16)))
+    hub._pending_joins.add("lobby")
+    env = proto.make_envelope(
+        proto.T_JOINED,
+        src=None,
+        room="lobby",
+        body=[manager.identity.hash],
+        nick="me",
+    )
+
+    hub._handle_joined(env)
+
+    msgs = hub.messages.get("lobby", [])
+    assert any(m.kind == "system" and m.text == "You joined #lobby" for m in msgs)
+
+
+def test_connection_lost_records_system_line_in_joined_rooms(tmp_path):
+    manager = make_manager(tmp_path)
+    hub = manager.add_hub(bytes(range(16)))
+    hub.welcomed = True
+    hub.rooms.add("lobby")
+    hub.messages["lobby"] = []
+    hub.auto_reconnect = False
+
+    hub._on_closed(object())
+
+    msgs = hub.messages.get("lobby", [])
+    assert any(m.kind == "system" and m.text == "Connection lost" for m in msgs)
+
+
+def test_manual_disconnect_records_disconnected_system_line(tmp_path):
+    manager = make_manager(tmp_path)
+    hub = manager.add_hub(bytes(range(16)))
+    hub.welcomed = True
+    hub.rooms.add("lobby")
+    hub.messages["lobby"] = []
+    hub._manual_disconnect = True
+    hub.auto_reconnect = False
+
+    hub._on_closed(object())
+
+    msgs = hub.messages.get("lobby", [])
+    assert any(m.kind == "system" and m.text == "Disconnected from hub" for m in msgs)
+
+
+def test_welcome_after_session_records_reconnected(tmp_path):
+    manager = make_manager(tmp_path)
+    hub = manager.add_hub(bytes(range(16)))
+    hub.rooms.add("lobby")
+    hub.messages["lobby"] = []
+    hub._had_session = True
+    hub.auto_list = False
+    hub.auto_who = False
+
+    hub._handle_welcome({})
+
+    msgs = hub.messages.get("lobby", [])
+    assert any(m.kind == "system" and m.text == "Reconnected to hub" for m in msgs)
+
+
 def test_set_auto_list_requests_list_immediately_when_already_connected(tmp_path):
     """Enabling auto-list mid-session must not require a reconnect to take effect."""
     manager = make_manager(tmp_path)

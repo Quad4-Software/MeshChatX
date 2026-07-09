@@ -14,6 +14,8 @@ function makeHostedHub(overrides = {}) {
         enabled: true,
         running: true,
         announce: true,
+        announce_interval_seconds: 900,
+        uptime_seconds: 120,
         greeting: null,
         clients: 0,
         rooms: [{ name: "lobby", topic: "Chat", private: false, registered: true, members: 0 }],
@@ -377,14 +379,63 @@ describe("RelayChatPage.vue", () => {
         const wrapper = mountPage();
         await vi.waitFor(() => expect(wrapper.vm.serverHubs.length).toBe(1));
 
-        wrapper.vm.createHubForm = { name: "Fresh Hub", greeting: "hi", announce: true };
+        wrapper.vm.createHubForm = {
+            name: "Fresh Hub",
+            greeting: "hi",
+            announce: true,
+            announce_interval_seconds: 1800,
+        };
         await wrapper.vm.createServerHub();
 
         expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/rrc/servers", {
             name: "Fresh Hub",
             greeting: "hi",
             announce: true,
+            announce_interval_seconds: 1800,
         });
+    });
+
+    it("saves hosted hub settings via the API", async () => {
+        axiosMock.patch.mockResolvedValueOnce({ data: { hub: makeHostedHub({ name: "Renamed" }) } });
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.serverHubs.length).toBe(1));
+
+        wrapper.vm.openHostHubSettings(wrapper.vm.serverHubs[0]);
+        wrapper.vm.hostHubSettingsForm = {
+            name: "Renamed",
+            announce: false,
+            announce_interval_seconds: 900,
+        };
+        await wrapper.vm.saveHostHubSettings();
+
+        expect(axiosMock.patch).toHaveBeenCalledWith(`/api/v1/rrc/servers/${HOSTED_HUB_ID}`, {
+            name: "Renamed",
+            announce: false,
+            announce_interval_seconds: 900,
+        });
+    });
+
+    it("toggles available rooms collapse and persists layout", async () => {
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/rrc/hubs") {
+                return Promise.resolve({
+                    data: { hubs: [makeHub({ available_rooms: { lobby: "Main", random: null } })] },
+                });
+            }
+            if (url === "/api/v1/rrc/servers") {
+                return Promise.resolve({ data: { hubs: [] } });
+            }
+            if (url === "/api/v1/announces") {
+                return Promise.resolve({ data: { announces: [] } });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+        expect(wrapper.vm.isAvailableRoomsExpanded(HUB_HASH)).toBe(true);
+        wrapper.vm.toggleAvailableRooms(HUB_HASH);
+        expect(wrapper.vm.isAvailableRoomsExpanded(HUB_HASH)).toBe(false);
+        expect(wrapper.vm.availableRoomsExpanded[HUB_HASH]).toBe(false);
     });
 
     it("creates a room on a hosted hub via the API", async () => {

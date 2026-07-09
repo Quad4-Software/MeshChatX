@@ -8830,12 +8830,17 @@ class ReticulumMeshChat:
             greeting = (data.get("greeting") or "").strip() or None
             announce = bool(data.get("announce", True))
             enabled = bool(data.get("enabled", True))
-            hub = manager.create_hub(
-                name=name,
-                greeting=greeting,
-                announce=announce,
-                enabled=enabled,
-            )
+            create_kwargs = {
+                "name": name,
+                "greeting": greeting,
+                "announce": announce,
+                "enabled": enabled,
+            }
+            if "announce_interval_seconds" in data:
+                create_kwargs["announce_interval_seconds"] = data.get(
+                    "announce_interval_seconds",
+                )
+            hub = manager.create_hub(**create_kwargs)
             return web.json_response({"hub": hub.to_dict()})
 
         @routes.delete("/api/v1/rrc/servers/{hub_id}")
@@ -8861,6 +8866,11 @@ class ReticulumMeshChat:
                 name=(data.get("name") if "name" in data else None),
                 greeting=(data.get("greeting") if "greeting" in data else None),
                 announce=(data.get("announce") if "announce" in data else None),
+                announce_interval_seconds=(
+                    data.get("announce_interval_seconds")
+                    if "announce_interval_seconds" in data
+                    else None
+                ),
                 trusted_identities=(
                     data.get("trusted_identities")
                     if "trusted_identities" in data

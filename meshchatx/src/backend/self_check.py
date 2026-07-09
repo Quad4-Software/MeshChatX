@@ -58,6 +58,7 @@ SELF_CHECK_LABELS = {
     "http_bots_status_good": "HTTP Bots Status       ",
     "http_security_good": "HTTP Server Security   ",
     "http_interfaces_good": "HTTP RNS Interfaces    ",
+    "http_reticulum_instance_good": "HTTP RNS Instance      ",
     "http_identities_good": "HTTP Identities        ",
     "http_favourites_good": "HTTP Favourites        ",
     "http_telephone_good": "HTTP Telephone Status  ",
@@ -607,6 +608,7 @@ _WEB_PROBE_KEYS = (
     "http_bots_status_good",
     "http_security_good",
     "http_interfaces_good",
+    "http_reticulum_instance_good",
     "http_identities_good",
     "http_favourites_good",
     "http_telephone_good",
@@ -746,6 +748,18 @@ async def _run_web_api_probes(app: Any) -> dict[str, dict[str, str]]:
                 client,
                 "/api/v1/reticulum/interfaces",
                 require_nested=(("interfaces", dict),),
+            )
+            results["http_reticulum_instance_good"] = await _probe_json_get(
+                client,
+                "/api/v1/reticulum/instance",
+                require_nested=(("instance", dict),),
+                validate=lambda body: (
+                    None
+                    if isinstance(body.get("instance"), dict)
+                    and "share_instance" in body["instance"]
+                    and "local_hops_delta" in body["instance"]
+                    else "instance missing share_instance/local_hops_delta"
+                ),
             )
             results["http_identities_good"] = await _probe_json_get(
                 client,

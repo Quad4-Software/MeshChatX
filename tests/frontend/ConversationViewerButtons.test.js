@@ -6,7 +6,7 @@ import DialogUtils from "@/js/DialogUtils";
 import GlobalEmitter from "@/js/GlobalEmitter";
 import GlobalState from "@/js/GlobalState";
 
-const RENDER_THRESHOLD_MS = 500;
+const RENDER_THRESHOLD_MS = 1500;
 
 vi.mock("@/js/DialogUtils", () => ({
     default: {

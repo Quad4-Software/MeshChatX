@@ -55,6 +55,9 @@ function entryKey(entry, index) {
     if (entry.type === "dateDivider") {
         return `date-${entry.dayKey}-${index}`;
     }
+    if (entry.type === "presenceGroup") {
+        return `presence-${entry.id}-${index}`;
+    }
     const msgKey = props.page.messageKey(entry.msg);
     return msgKey ? `${msgKey}-${index}` : `idx-${index}`;
 }

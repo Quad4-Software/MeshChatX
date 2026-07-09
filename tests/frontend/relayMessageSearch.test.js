@@ -81,6 +81,51 @@ describe("relayMessageTimeline", () => {
         expect(timeline.filter((e) => e.type === "message")).toHaveLength(2);
     });
 
+    it("collapses consecutive join/leave system lines into a presence group", () => {
+        const day = new Date("2026-06-02T12:00:00").getTime();
+        const timeline = buildRelayMessageTimeline([
+            { kind: "msg", ts: day, src: "a", text: "hi", seq: 1 },
+            { kind: "system", ts: day + 1, text: "nickie left", seq: 2 },
+            { kind: "system", ts: day + 2, text: "jrrz left", seq: 3 },
+            { kind: "system", ts: day + 3, text: "jrrz joined", seq: 4 },
+            { kind: "msg", ts: day + 4, src: "b", text: "yo", seq: 5 },
+            { kind: "system", ts: day + 5, text: "solo joined", seq: 6 },
+        ]);
+        const types = timeline.filter((e) => e.type !== "dateDivider").map((e) => e.type);
+        expect(types).toEqual(["message", "presenceGroup", "message", "message"]);
+        const group = timeline.find((e) => e.type === "presenceGroup");
+        expect(group.joinedCount).toBe(1);
+        expect(group.leftCount).toBe(2);
+        expect(group.messages).toHaveLength(3);
+        expect(timeline.filter((e) => e.type === "message").at(-1).msg.text).toBe("solo joined");
+    });
+
+    it("treats You joined / You rejoined as presence events", () => {
+        const day = new Date("2026-06-02T12:00:00").getTime();
+        const timeline = buildRelayMessageTimeline([
+            { kind: "system", ts: day, text: "You rejoined #lobby", seq: 1 },
+            { kind: "system", ts: day + 1, text: "alice joined", seq: 2 },
+            { kind: "system", ts: day + 2, text: "You joined #lobby", seq: 3 },
+        ]);
+        const group = timeline.find((e) => e.type === "presenceGroup");
+        expect(group).toBeTruthy();
+        expect(group.joinedCount).toBe(3);
+        expect(group.leftCount).toBe(0);
+    });
+
+    it("collapses connection lost/reconnected lines with presence events", () => {
+        const day = new Date("2026-06-02T12:00:00").getTime();
+        const timeline = buildRelayMessageTimeline([
+            { kind: "system", ts: day, text: "Connection lost", seq: 1 },
+            { kind: "system", ts: day + 1, text: "Reconnected to hub", seq: 2 },
+            { kind: "system", ts: day + 2, text: "You rejoined #lobby", seq: 3 },
+        ]);
+        const group = timeline.find((e) => e.type === "presenceGroup");
+        expect(group).toBeTruthy();
+        expect(group.connectionCount).toBe(2);
+        expect(group.joinedCount).toBe(1);
+    });
+
     it("relayMessageKey is stable", () => {
         const msg = { kind: "msg", ts: 1, src: "ab", text: "x" };
         expect(relayMessageKey(msg)).toBe(relayMessageKey(msg));
