@@ -164,3 +164,32 @@ describe("behavior contracts: Android Chaquopy Python sync", () => {
         expect(initPy.length).toBeGreaterThan(0);
     });
 });
+
+describe("behavior contracts: Reticulum instance settings", () => {
+    it("Settings transport section wires Sideband-parity instance controls", () => {
+        const page = readSource("meshchatx/src/frontend/components/settings/SettingsPage.vue");
+        expect(page).toContain("share-reticulum-instance");
+        expect(page).toContain("obfuscate-hops");
+        expect(page).toContain("copyRpcConfigSnippet");
+        expect(page).toContain("fetchReticulumInstanceSettings");
+        expect(page).toContain("applyReticulumInstanceSettings");
+        const service = readSource("meshchatx/src/frontend/js/settings/settingsReticulumInstanceService.js");
+        expect(service).toContain("/api/v1/reticulum/instance");
+        const selfCheck = readSource("meshchatx/src/backend/self_check.py");
+        expect(selfCheck).toContain("http_reticulum_instance_good");
+        expect(selfCheck).toContain("/api/v1/reticulum/instance");
+    });
+});
+
+describe("behavior contracts: network visualiser performance", () => {
+    it("keeps lean physics and edge-hide options for large meshes", () => {
+        const src = readSource("meshchatx/src/frontend/components/network-visualiser/NetworkVisualiser.vue");
+        expect(src).toContain("hideEdgesOnDrag: true");
+        expect(src).toContain("hideEdgesOnZoom: true");
+        expect(src).toMatch(/avoidOverlap:\s*0/);
+        expect(src).toContain('solver: "barnesHut"');
+        const perf = readSource("meshchatx/src/frontend/js/networkVisualiserPerf.js");
+        expect(perf).toContain("dedupeIconQueueEntries");
+        expect(perf).toContain("pickAdaptiveFetchConcurrency");
+    });
+});

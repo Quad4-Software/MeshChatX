@@ -763,7 +763,8 @@
         "failed": "已失败",
         "status_label": "状态",
         "reason_label": "原因",
-        "checks_completed": "所有检查已成功通过。"
+        "checks_completed": "所有检查已成功通过。",
+        "http_reticulum_instance_good": "HTTP RNS Instance Settings"
     },
     "maintenance": {
         "title": "数据维护",
@@ -3203,7 +3204,7 @@
         "discovery_title": "已发现的中枢",
         "discovery_subtitle": "在网络上通告的 Relay Chat 中枢。",
         "discovery_empty": "尚未发现中枢。它们在通告后会出现在此处。",
-        "discovery_search": "搜索中枢",
+        "discovery_search": "搜索 {count} 个枢纽",
         "discovery_add": "添加",
         "discovery_added": "已从发现添加中枢",
         "discovery_open": "打开",
@@ -3272,7 +3273,15 @@
         "search_messages": "搜索",
         "search_no_results": "没有匹配搜索的消息",
         "popout_channel": "在新窗口中打开",
-        "new_message_toast": "#{room} 中有新消息"
+        "new_message_toast": "#{room} 中有新消息",
+        "host_users": "用户",
+        "host_announce_interval": "通告间隔（分钟）",
+        "host_announce_interval_hint": "每 {minutes} 分钟",
+        "host_hub_settings": "枢纽设置",
+        "presence_joined": "{count} 人加入",
+        "presence_left": "{count} 人离开",
+        "presence_events": "{count} 条加入/离开事件",
+        "presence_connection": "{count} 条连接事件"
     },
     "android_storage": {
         "setup_title": "Choose where MeshChatX stores data",

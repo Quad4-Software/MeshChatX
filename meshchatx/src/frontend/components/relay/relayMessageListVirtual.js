@@ -12,6 +12,9 @@ export function estimateRelayEntryHeight(entry) {
     if (entry.type === "dateDivider") {
         return 44;
     }
+    if (entry.type === "presenceGroup") {
+        return 28;
+    }
     const text = typeof entry.msg?.text === "string" ? entry.msg.text : "";
     let height = 32;
     if (text) {

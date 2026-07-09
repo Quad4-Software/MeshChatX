@@ -725,7 +725,7 @@
     },
     "selftest": {
         "title": "System Self-Test",
-        "description": "Run diagnostic checks for the network stack, database, identity, imports, storage, LXMF, subprocess/run-module, SQLite, identity files, loopback TCP, unicode paths, RNode helpers, bot launcher argv, HTTP status/config/health/auth/bots/security/interfaces/identities/favourites/telephone APIs, WebSocket, and bot lifecycle.",
+        "description": "Run diagnostic checks for the network stack, database, identity, imports, storage, LXMF, subprocess/run-module, SQLite, identity files, loopback TCP, unicode paths, RNode helpers, bot launcher argv, HTTP status/config/health/auth/bots/security/interfaces/reticulum-instance/identities/favourites/telephone APIs, WebSocket, and bot lifecycle.",
         "run_test_btn": "Run Diagnostics",
         "running": "Running Diagnostics...",
         "stack_up": "Network Stack",
@@ -754,6 +754,7 @@
         "http_bots_status_good": "HTTP Bots Status",
         "http_security_good": "HTTP Server Security",
         "http_interfaces_good": "HTTP RNS Interfaces",
+        "http_reticulum_instance_good": "HTTP RNS Instance Settings",
         "http_identities_good": "HTTP Identities",
         "http_favourites_good": "HTTP Favourites",
         "http_telephone_good": "HTTP Telephone Status",
@@ -2602,7 +2603,7 @@
         "discovery_title": "Discovered Hubs",
         "discovery_subtitle": "Relay Chat hubs heard announcing on the network.",
         "discovery_empty": "No hubs discovered yet. They appear here as they announce.",
-        "discovery_search": "Search hubs",
+        "discovery_search": "Search {count} hubs",
         "discovery_add": "Add",
         "discovery_added": "Hub added from discovery",
         "discovery_open": "Open",
@@ -2631,7 +2632,15 @@
         "members_search_placeholder": "Search members...",
         "members_search_no_results": "No members match your search.",
         "popout_channel": "Open in new window",
-        "new_message_toast": "New message in #{room}"
+        "new_message_toast": "New message in #{room}",
+        "host_users": "users",
+        "host_announce_interval": "Announce interval (minutes)",
+        "host_announce_interval_hint": "Every {minutes} minutes",
+        "host_hub_settings": "Hub settings",
+        "presence_joined": "{count} joined",
+        "presence_left": "{count} left",
+        "presence_events": "{count} join/leave events",
+        "presence_connection": "{count} connection events"
     },
     "rncp": {
         "file_transfer": "File Transfer",

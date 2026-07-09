@@ -15,6 +15,30 @@
         </span>
         <span class="h-px w-10 shrink-0 bg-sem-border sm:w-14" aria-hidden="true" />
     </div>
+    <div v-else-if="entry.type === 'presenceGroup'" class="px-2 py-1">
+        <button
+            type="button"
+            class="mx-auto flex max-w-full items-center gap-1 rounded-md px-2 py-0.5 text-xs italic text-sem-fg-muted transition-colors hover:bg-sem-surface/50 hover:text-sem-fg"
+            :aria-expanded="expanded"
+            @click="page.togglePresenceGroup(entry.id)"
+        >
+            <MaterialDesignIcon
+                :icon-name="expanded ? 'chevron-down' : 'chevron-right'"
+                class="size-3.5 shrink-0 opacity-70"
+            />
+            <span class="truncate">{{ page.formatPresenceGroupSummary(entry) }}</span>
+        </button>
+        <div v-if="expanded" class="mt-1 space-y-0.5">
+            <div
+                v-for="(msg, idx) in entry.messages"
+                :key="page.messageKey(msg) || idx"
+                class="py-0.5 text-center text-xs italic text-sem-fg-muted"
+                :data-msg-key="page.messageKey(msg)"
+            >
+                {{ msg.text }}
+            </div>
+        </div>
+    </div>
     <div
         v-else-if="isSystemLike"
         class="py-0.5 text-center text-xs italic"
@@ -47,6 +71,7 @@
 
 <script setup>
 import { computed } from "vue";
+import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 
 const props = defineProps({
     entry: {
@@ -62,5 +87,12 @@ const props = defineProps({
 const isSystemLike = computed(() => {
     const kind = props.entry?.msg?.kind;
     return kind === "system" || kind === "notice" || kind === "error";
+});
+
+const expanded = computed(() => {
+    if (props.entry?.type !== "presenceGroup") {
+        return false;
+    }
+    return props.page.isPresenceGroupExpanded(props.entry.id);
 });
 </script>

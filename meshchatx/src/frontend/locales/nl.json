@@ -763,7 +763,8 @@
         "failed": "Mislukt",
         "status_label": "Status",
         "reason_label": "Reden",
-        "checks_completed": "Alle controles zijn succesvol geslaagd."
+        "checks_completed": "Alle controles zijn succesvol geslaagd.",
+        "http_reticulum_instance_good": "HTTP RNS Instance Settings"
     },
     "maintenance": {
         "title": "Onderhoud & gegevens",
@@ -3203,7 +3204,7 @@
         "discovery_title": "Ontdekte hubs",
         "discovery_subtitle": "Relay Chat-hubs die op het netwerk aankondigen.",
         "discovery_empty": "Nog geen hubs ontdekt. Ze verschijnen hier zodra ze aankondigen.",
-        "discovery_search": "Hubs zoeken",
+        "discovery_search": "{count} hubs zoeken",
         "discovery_add": "Toevoegen",
         "discovery_added": "Hub toegevoegd via ontdekking",
         "discovery_open": "Openen",
@@ -3272,7 +3273,15 @@
         "search_messages": "Zoeken",
         "search_no_results": "Geen berichten komen overeen met je zoekopdracht",
         "popout_channel": "Openen in nieuw venster",
-        "new_message_toast": "Nieuw bericht in #{room}"
+        "new_message_toast": "Nieuw bericht in #{room}",
+        "host_users": "gebruikers",
+        "host_announce_interval": "Aankondigingsinterval (minuten)",
+        "host_announce_interval_hint": "Elke {minutes} minuten",
+        "host_hub_settings": "Hub-instellingen",
+        "presence_joined": "{count} toegetreden",
+        "presence_left": "{count} vertrokken",
+        "presence_events": "{count} join/leave-gebeurtenissen",
+        "presence_connection": "{count} verbindingsgebeurtenissen"
     },
     "android_storage": {
         "setup_title": "Choose where MeshChatX stores data",

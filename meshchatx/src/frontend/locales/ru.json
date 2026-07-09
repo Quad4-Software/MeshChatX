@@ -763,7 +763,8 @@
         "failed": "Ошибка",
         "status_label": "Статус",
         "reason_label": "Причина",
-        "checks_completed": "Все проверки выполнены успешно."
+        "checks_completed": "Все проверки выполнены успешно.",
+        "http_reticulum_instance_good": "HTTP RNS Instance Settings"
     },
     "maintenance": {
         "title": "Обслуживание и данные",
@@ -3203,7 +3204,7 @@
         "discovery_title": "Обнаруженные хабы",
         "discovery_subtitle": "Хабы Relay Chat, объявленные в сети.",
         "discovery_empty": "Пока не обнаружено ни одного хаба. Они появятся здесь после объявления.",
-        "discovery_search": "Поиск хабов",
+        "discovery_search": "Поиск среди {count} хабов",
         "discovery_add": "Добавить",
         "discovery_added": "Хаб добавлен из обзора",
         "discovery_open": "Открыть",
@@ -3272,7 +3273,15 @@
         "search_messages": "Поиск",
         "search_no_results": "Сообщения по запросу не найдены",
         "popout_channel": "Открыть в новом окне",
-        "new_message_toast": "Новое сообщение в #{room}"
+        "new_message_toast": "Новое сообщение в #{room}",
+        "host_users": "пользователей",
+        "host_announce_interval": "Интервал анонса (минуты)",
+        "host_announce_interval_hint": "Каждые {minutes} мин.",
+        "host_hub_settings": "Настройки хаба",
+        "presence_joined": "{count} вошли",
+        "presence_left": "{count} вышли",
+        "presence_events": "{count} событий входа/выхода",
+        "presence_connection": "{count} событий соединения"
     },
     "android_storage": {
         "setup_title": "Choose where MeshChatX stores data",

@@ -75,7 +75,7 @@
                     <div v-if="effectiveSidebarCollapsed" class="flex flex-1 flex-col items-center gap-1 py-2 px-1">
                         <button
                             type="button"
-                            class="rounded-xl border-2 border-dashed border-sem-border p-2 text-sem-fg-muted hover:border-sem-accent hover:text-sem-accent"
+                            class="rounded-xl p-2 text-sem-fg-muted transition-colors hover:bg-sem-surface/60 hover:text-sem-accent"
                             :title="$t('relay_chat.add_hub')"
                             @click="openAddHub"
                         >
@@ -244,12 +244,22 @@
                                 </ul>
 
                                 <div v-if="availableRoomsFor(hub).length > 0" class="space-y-0.5">
-                                    <div
-                                        class="px-2.5 pt-1 text-[10px] font-semibold uppercase tracking-wide text-sem-fg-muted"
+                                    <button
+                                        type="button"
+                                        class="flex w-full items-center gap-1 px-2.5 pt-1 text-left text-[10px] font-semibold uppercase tracking-wide text-sem-fg-muted transition-colors hover:text-sem-fg"
+                                        @click="toggleAvailableRooms(hub.hub_hash)"
                                     >
-                                        {{ $t("relay_chat.available_rooms") }}
-                                    </div>
-                                    <ul class="space-y-0.5">
+                                        <MaterialDesignIcon
+                                            :icon-name="
+                                                isAvailableRoomsExpanded(hub.hub_hash)
+                                                    ? 'chevron-down'
+                                                    : 'chevron-right'
+                                            "
+                                            class="size-3.5 shrink-0"
+                                        />
+                                        <span class="truncate">{{ $t("relay_chat.available_rooms") }}</span>
+                                    </button>
+                                    <ul v-show="isAvailableRoomsExpanded(hub.hub_hash)" class="space-y-0.5">
                                         <li
                                             v-for="availableRoom in availableRoomsFor(hub)"
                                             :key="availableRoom.name"
@@ -266,7 +276,7 @@
                                             </span>
                                             <button
                                                 type="button"
-                                                :class="btnIconSm"
+                                                class="inline-flex size-6 shrink-0 items-center justify-center rounded-md text-sem-fg-muted transition-colors hover:bg-sem-surface/60 hover:text-sem-accent"
                                                 :title="$t('relay_chat.join')"
                                                 @click.stop="joinAvailableRoom(hub, availableRoom.name)"
                                             >
@@ -285,7 +295,7 @@
                                     />
                                     <button
                                         type="submit"
-                                        class="inline-flex size-7 shrink-0 items-center justify-center border border-sem-border bg-sem-canvas text-sem-fg transition hover:bg-sem-surface/60"
+                                        class="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-sem-fg-muted transition-colors hover:bg-sem-surface/60 hover:text-sem-accent"
                                         :title="$t('relay_chat.join_room')"
                                     >
                                         <MaterialDesignIcon icon-name="plus" class="size-4" />
@@ -615,7 +625,7 @@
 
             <!-- discovery view -->
             <div v-show="view === 'discovery'" class="flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-4">
-                <div class="mx-auto w-full max-w-3xl space-y-4">
+                <div class="mx-auto w-full max-w-3xl space-y-3">
                     <div class="flex flex-wrap items-start justify-between gap-3">
                         <div>
                             <h2 class="text-lg font-semibold">{{ $t("relay_chat.discovery_title") }}</h2>
@@ -644,7 +654,7 @@
                         <input
                             v-model="discoverySearch"
                             type="text"
-                            :placeholder="$t('relay_chat.discovery_search')"
+                            :placeholder="$t('relay_chat.discovery_search', { count: discovered.length })"
                             class="input-field !pl-9"
                             @input="onDiscoverySearch"
                         />
@@ -658,49 +668,56 @@
                         {{ $t("relay_chat.discovery_empty") }}
                     </div>
 
-                    <div
-                        v-for="node in discovered"
-                        :key="node.destination_hash"
-                        class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-sem-border bg-sem-canvas p-4 transition-colors hover:border-sem-border-strong"
-                    >
-                        <div class="min-w-0 flex-1">
-                            <div class="flex items-center gap-2">
-                                <MaterialDesignIcon icon-name="forum-outline" class="size-4 shrink-0 text-sem-accent" />
-                                <span class="truncate font-semibold">{{ nodeName(node) }}</span>
+                    <div class="space-y-2">
+                        <div
+                            v-for="node in discovered"
+                            :key="node.destination_hash"
+                            class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-sem-border bg-sem-canvas p-4 transition-colors hover:border-sem-border-strong"
+                        >
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-2">
+                                    <MaterialDesignIcon
+                                        icon-name="forum-outline"
+                                        class="size-4 shrink-0 text-sem-accent"
+                                    />
+                                    <span class="truncate font-semibold">{{ nodeName(node) }}</span>
+                                </div>
+                                <button
+                                    type="button"
+                                    class="mt-1 flex items-center gap-1.5 font-mono text-xs text-sem-fg-muted hover:text-sem-accent"
+                                    :title="$t('relay_chat.copy_hash')"
+                                    @click="copyHash(node.destination_hash)"
+                                >
+                                    <MaterialDesignIcon icon-name="content-copy" class="size-3.5" />
+                                    <span class="truncate">{{ formatHash(node.destination_hash) }}</span>
+                                </button>
+                                <div
+                                    class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-sem-fg-muted"
+                                >
+                                    <span class="inline-flex items-center gap-1">
+                                        <MaterialDesignIcon icon-name="clock-outline" class="size-3.5" />
+                                        {{ $t("relay_chat.announced_ago", { time: timeAgo(node.updated_at) }) }}
+                                    </span>
+                                    <span v-if="node.hops != null" class="inline-flex items-center gap-1">
+                                        <MaterialDesignIcon icon-name="transit-connection-variant" class="size-3.5" />
+                                        {{ $t("relay_chat.hops_away", { count: node.hops }) }}
+                                    </span>
+                                </div>
                             </div>
                             <button
+                                v-if="isHubAdded(node.destination_hash)"
                                 type="button"
-                                class="mt-1 flex items-center gap-1.5 font-mono text-xs text-sem-fg-muted hover:text-sem-accent"
-                                :title="$t('relay_chat.copy_hash')"
-                                @click="copyHash(node.destination_hash)"
+                                :class="btnSecondary"
+                                @click="openDiscovered(node)"
                             >
-                                <MaterialDesignIcon icon-name="content-copy" class="size-3.5" />
-                                <span class="truncate">{{ formatHash(node.destination_hash) }}</span>
+                                <MaterialDesignIcon icon-name="open-in-app" class="size-4" />
+                                {{ $t("relay_chat.discovery_open") }}
                             </button>
-                            <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-sem-fg-muted">
-                                <span class="inline-flex items-center gap-1">
-                                    <MaterialDesignIcon icon-name="clock-outline" class="size-3.5" />
-                                    {{ $t("relay_chat.announced_ago", { time: timeAgo(node.updated_at) }) }}
-                                </span>
-                                <span v-if="node.hops != null" class="inline-flex items-center gap-1">
-                                    <MaterialDesignIcon icon-name="transit-connection-variant" class="size-3.5" />
-                                    {{ $t("relay_chat.hops_away", { count: node.hops }) }}
-                                </span>
-                            </div>
+                            <button v-else type="button" :class="btnPrimary" @click="addFromDiscovery(node)">
+                                <MaterialDesignIcon icon-name="plus" class="size-4" />
+                                {{ $t("relay_chat.discovery_add") }}
+                            </button>
                         </div>
-                        <button
-                            v-if="isHubAdded(node.destination_hash)"
-                            type="button"
-                            :class="btnSecondary"
-                            @click="openDiscovered(node)"
-                        >
-                            <MaterialDesignIcon icon-name="open-in-app" class="size-4" />
-                            {{ $t("relay_chat.discovery_open") }}
-                        </button>
-                        <button v-else type="button" :class="btnPrimary" @click="addFromDiscovery(node)">
-                            <MaterialDesignIcon icon-name="plus" class="size-4" />
-                            {{ $t("relay_chat.discovery_add") }}
-                        </button>
                     </div>
                 </div>
             </div>
@@ -782,6 +799,14 @@
                                     <button
                                         type="button"
                                         :class="btnIcon"
+                                        :title="$t('relay_chat.host_hub_settings')"
+                                        @click="openHostHubSettings(hub)"
+                                    >
+                                        <MaterialDesignIcon icon-name="cog" class="size-4" />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        :class="btnIcon"
                                         :title="$t('relay_chat.host_announce')"
                                         :disabled="!hub.running"
                                         @click="announceServerHub(hub)"
@@ -802,11 +827,19 @@
                             <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-sem-fg-muted">
                                 <span class="inline-flex items-center gap-1">
                                     <MaterialDesignIcon icon-name="account-group" class="size-3.5" />
-                                    {{ hub.clients }} {{ $t("relay_chat.host_clients") }}
+                                    {{ hub.clients }} {{ $t("relay_chat.host_users") }}
                                 </span>
                                 <span class="inline-flex items-center gap-1">
                                     <MaterialDesignIcon icon-name="pound" class="size-3.5" />
                                     {{ hub.rooms.length }} {{ $t("relay_chat.host_rooms") }}
+                                </span>
+                                <span v-if="hub.running" class="inline-flex items-center gap-1">
+                                    <MaterialDesignIcon icon-name="clock-outline" class="size-3.5" />
+                                    {{
+                                        $t("relay_chat.host_moderation_uptime", {
+                                            time: formatUptime(hostedHubUptimeSeconds(hub)),
+                                        })
+                                    }}
                                 </span>
                             </div>
 
@@ -850,15 +883,131 @@
                                 class="input-field"
                             />
                         </div>
-                        <label class="flex items-center gap-2 text-sm">
-                            <input v-model="createHubForm.announce" type="checkbox" class="size-4" />
-                            {{ $t("relay_chat.host_announce_periodically") }}
+                        <label class="setting-toggle flex items-start gap-3">
+                            <Toggle id="rrc-create-announce" v-model="createHubForm.announce" />
+                            <span class="min-w-0 text-sm">
+                                <span class="font-medium text-sem-fg">{{
+                                    $t("relay_chat.host_announce_periodically")
+                                }}</span>
+                            </span>
                         </label>
+                        <div v-if="createHubForm.announce" class="space-y-2">
+                            <div class="flex items-center justify-between gap-2">
+                                <label
+                                    for="rrc-create-announce-interval"
+                                    class="text-sm font-semibold text-sem-fg-secondary"
+                                    >{{ $t("relay_chat.host_announce_interval") }}</label
+                                >
+                                <input
+                                    id="rrc-create-announce-interval-input"
+                                    type="text"
+                                    inputmode="numeric"
+                                    autocomplete="off"
+                                    maxlength="5"
+                                    class="w-16 shrink-0 rounded-lg border border-sem-border bg-sem-canvas px-1.5 py-1 text-center text-xs font-bold text-sem-accent tabular-nums shadow-xs focus:border-sem-accent focus:outline-hidden focus:ring-1 focus:ring-sem-accent/40"
+                                    :value="createAnnounceIntervalMinutesShown"
+                                    :aria-label="$t('relay_chat.host_announce_interval')"
+                                    @focus="onCreateAnnounceIntervalFocus"
+                                    @input="onCreateAnnounceIntervalInput"
+                                    @blur="onCreateAnnounceIntervalBlur"
+                                />
+                            </div>
+                            <input
+                                id="rrc-create-announce-interval"
+                                type="range"
+                                min="0"
+                                :max="announceSliderPosMax"
+                                step="1"
+                                :value="createAnnounceIntervalSliderPos"
+                                class="w-full h-2 rounded-lg appearance-none cursor-pointer bg-sem-surface-muted accent-sem-accent"
+                                @input="onCreateAnnounceIntervalSlider"
+                            />
+                            <p class="text-xs text-sem-fg-muted">
+                                {{
+                                    $t("relay_chat.host_announce_interval_hint", {
+                                        minutes: createAnnounceIntervalMinutes,
+                                    })
+                                }}
+                            </p>
+                        </div>
                         <div class="flex justify-end gap-2 pt-1">
                             <button type="button" :class="btnSecondary" @click="showCreateHub = false">
                                 {{ $t("common.cancel") }}
                             </button>
                             <button type="submit" :class="btnPrimary">{{ $t("relay_chat.create_hub") }}</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- hosted hub settings dialog -->
+            <div v-if="showHostHubSettings" :class="RELAY_HOST_MODAL_OVERLAY" @click.self="showHostHubSettings = false">
+                <div :class="RELAY_HOST_MODAL_PANEL_COMPACT" @click.stop>
+                    <h2 class="mb-4 text-lg font-semibold text-sem-fg">{{ $t("relay_chat.host_hub_settings") }}</h2>
+                    <form class="space-y-4" @submit.prevent="saveHostHubSettings">
+                        <div class="space-y-1.5">
+                            <label class="block text-sm font-semibold text-sem-fg-secondary">{{
+                                $t("relay_chat.hub_name")
+                            }}</label>
+                            <input
+                                v-model="hostHubSettingsForm.name"
+                                type="text"
+                                :placeholder="$t('relay_chat.hub_name_placeholder')"
+                                class="input-field"
+                            />
+                        </div>
+                        <label class="setting-toggle flex items-start gap-3">
+                            <Toggle id="rrc-host-announce" v-model="hostHubSettingsForm.announce" />
+                            <span class="min-w-0 text-sm">
+                                <span class="font-medium text-sem-fg">{{
+                                    $t("relay_chat.host_announce_periodically")
+                                }}</span>
+                            </span>
+                        </label>
+                        <div v-if="hostHubSettingsForm.announce" class="space-y-2">
+                            <div class="flex items-center justify-between gap-2">
+                                <label
+                                    for="rrc-host-announce-interval"
+                                    class="text-sm font-semibold text-sem-fg-secondary"
+                                    >{{ $t("relay_chat.host_announce_interval") }}</label
+                                >
+                                <input
+                                    id="rrc-host-announce-interval-input"
+                                    type="text"
+                                    inputmode="numeric"
+                                    autocomplete="off"
+                                    maxlength="5"
+                                    class="w-16 shrink-0 rounded-lg border border-sem-border bg-sem-canvas px-1.5 py-1 text-center text-xs font-bold text-sem-accent tabular-nums shadow-xs focus:border-sem-accent focus:outline-hidden focus:ring-1 focus:ring-sem-accent/40"
+                                    :value="hostAnnounceIntervalMinutesShown"
+                                    :aria-label="$t('relay_chat.host_announce_interval')"
+                                    @focus="onHostAnnounceIntervalFocus"
+                                    @input="onHostAnnounceIntervalInput"
+                                    @blur="onHostAnnounceIntervalBlur"
+                                />
+                            </div>
+                            <input
+                                id="rrc-host-announce-interval"
+                                type="range"
+                                min="0"
+                                :max="announceSliderPosMax"
+                                step="1"
+                                :value="hostAnnounceIntervalSliderPos"
+                                class="w-full h-2 rounded-lg appearance-none cursor-pointer bg-sem-surface-muted accent-sem-accent"
+                                @input="onHostAnnounceIntervalSlider"
+                            />
+                            <p class="text-xs text-sem-fg-muted">
+                                {{
+                                    $t("relay_chat.host_announce_interval_hint", {
+                                        minutes: hostAnnounceIntervalMinutes,
+                                    })
+                                }}
+                            </p>
+                        </div>
+                        <div class="flex justify-end gap-2 pt-1">
+                            <button type="button" :class="btnSecondary" @click="showHostHubSettings = false">
+                                {{ $t("common.cancel") }}
+                            </button>
+                            <button type="submit" :class="btnPrimary">{{ $t("relay_chat.save") }}</button>
                         </div>
                     </form>
                 </div>
@@ -1115,6 +1264,11 @@ import { MIN_VIRTUAL_RELAY_ENTRIES } from "./relayMessageListVirtual.js";
 import { loadRelayLayout, saveRelayLayout } from "../../js/relayLayoutStore.js";
 import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed } from "../../js/browserLayoutStore.js";
 import { RELAY_HOST_MODAL_OVERLAY, RELAY_HOST_MODAL_PANEL_COMPACT } from "../../js/relayHostModalClasses.js";
+import {
+    ANNOUNCE_SLIDER_POS_MAX,
+    announceMinutesToSliderPos,
+    announceSliderPosToMinutes,
+} from "../../js/announceIntervalSliderMap.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import MdiIconPickerModal from "../MdiIconPickerModal.vue";
 import RelayHostModerationPage from "./RelayHostModerationPage.vue";
@@ -1142,6 +1296,25 @@ const NAME_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#14b8a6", "#3b
 const RELAY_MESSAGES_INITIAL_PAGE_SIZE = 150;
 const RELAY_MESSAGES_PREVIOUS_PAGE_SIZE = 100;
 const LOAD_PREVIOUS_SCROLL_EDGE_PX = 200;
+const DEFAULT_ANNOUNCE_INTERVAL_SECONDS = 900;
+const ANNOUNCE_INTERVAL_MIN_MINUTES = 1;
+const ANNOUNCE_INTERVAL_MAX_MINUTES = 1440;
+
+function clampAnnounceIntervalMinutes(value) {
+    const n = Number.parseInt(String(value ?? ""), 10);
+    if (!Number.isFinite(n)) {
+        return Math.round(DEFAULT_ANNOUNCE_INTERVAL_SECONDS / 60);
+    }
+    return Math.max(ANNOUNCE_INTERVAL_MIN_MINUTES, Math.min(ANNOUNCE_INTERVAL_MAX_MINUTES, n));
+}
+
+function secondsToAnnounceMinutes(seconds) {
+    const s = Number(seconds);
+    if (!Number.isFinite(s) || s <= 0) {
+        return Math.round(DEFAULT_ANNOUNCE_INTERVAL_SECONDS / 60);
+    }
+    return clampAnnounceIntervalMinutes(Math.round(s / 60));
+}
 
 export default {
     name: "RelayChatPage",
@@ -1186,16 +1359,32 @@ export default {
             discoveryLoading: false,
             serverHubs: [],
             roomForms: {},
+            announceSliderPosMax: ANNOUNCE_SLIDER_POS_MAX,
             showCreateHub: false,
             createHubForm: {
                 name: "",
                 greeting: "",
                 announce: true,
+                announce_interval_seconds: DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
             },
+            createAnnounceIntervalDraft: null,
+            showHostHubSettings: false,
+            hostHubSettingsId: null,
+            hostHubSettingsForm: {
+                name: "",
+                announce: true,
+                announce_interval_seconds: DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+            },
+            hostAnnounceIntervalDraft: null,
             hubs: [],
             selectedHubHash: null,
             selectedRoom: null,
             expandedHubs: {},
+            availableRoomsExpanded: {},
+            hostUptimeTick: 0,
+            hostUptimeAnchorMs: 0,
+            hostUptimeTimer: null,
+            expandedPresenceGroups: {},
             relaySidebarCollapsed: loadFeatureSidebarCollapsed("relayChat") ?? false,
             smUp: false,
             smMq: null,
@@ -1286,6 +1475,30 @@ export default {
             const status = this.settingsHub?.status ?? 0;
             return this.statusIconColor(status);
         },
+        createAnnounceIntervalMinutes() {
+            return secondsToAnnounceMinutes(this.createHubForm.announce_interval_seconds);
+        },
+        createAnnounceIntervalSliderPos() {
+            return announceMinutesToSliderPos(this.createAnnounceIntervalMinutes);
+        },
+        createAnnounceIntervalMinutesShown() {
+            if (this.createAnnounceIntervalDraft != null) {
+                return this.createAnnounceIntervalDraft;
+            }
+            return String(this.createAnnounceIntervalMinutes);
+        },
+        hostAnnounceIntervalMinutes() {
+            return secondsToAnnounceMinutes(this.hostHubSettingsForm.announce_interval_seconds);
+        },
+        hostAnnounceIntervalSliderPos() {
+            return announceMinutesToSliderPos(this.hostAnnounceIntervalMinutes);
+        },
+        hostAnnounceIntervalMinutesShown() {
+            if (this.hostAnnounceIntervalDraft != null) {
+                return this.hostAnnounceIntervalDraft;
+            }
+            return String(this.hostAnnounceIntervalMinutes);
+        },
         messageTimeline() {
             return buildRelayMessageTimeline(this.messages);
         },
@@ -1354,6 +1567,12 @@ export default {
         this.smMq = window.matchMedia("(min-width: 640px)");
         this.smUp = this.smMq.matches;
         this.smMq.addEventListener("change", this.onSmMqChange);
+        this.hostUptimeAnchorMs = Date.now();
+        this.hostUptimeTimer = window.setInterval(() => {
+            if (this.view === "host" && this.serverHubs.some((h) => h.running)) {
+                this.hostUptimeTick += 1;
+            }
+        }, 1000);
         this.fetchHubs().then(() => {
             this.restoreRelayLayout();
             this.applyPopoutRoute();
@@ -1368,6 +1587,10 @@ export default {
         WebSocketConnection.off("message", this.onWebsocketMessage);
         if (this.discoverySearchTimer) {
             clearTimeout(this.discoverySearchTimer);
+        }
+        if (this.hostUptimeTimer) {
+            clearInterval(this.hostUptimeTimer);
+            this.hostUptimeTimer = null;
         }
         if (this.smMq) {
             this.smMq.removeEventListener("change", this.onSmMqChange);
@@ -1395,6 +1618,7 @@ export default {
                 selectedHubHash: this.selectedHubHash,
                 selectedRoom: this.selectedRoom,
                 expandedHubs: { ...this.expandedHubs },
+                availableRoomsExpanded: { ...this.availableRoomsExpanded },
                 relaySidebarCollapsed: this.relaySidebarCollapsed,
             });
         },
@@ -1414,6 +1638,9 @@ export default {
             }
             if (saved.expandedHubs && typeof saved.expandedHubs === "object") {
                 this.expandedHubs = { ...saved.expandedHubs };
+            }
+            if (saved.availableRoomsExpanded && typeof saved.availableRoomsExpanded === "object") {
+                this.availableRoomsExpanded = { ...saved.availableRoomsExpanded };
             }
             if (saved.selectedHubHash && this.hubs.some((h) => h.hub_hash === saved.selectedHubHash)) {
                 this.selectedHubHash = saved.selectedHubHash;
@@ -1458,6 +1685,145 @@ export default {
             this.selectedHubHash = hubHash;
             this.expandedHubs[hubHash] = !this.expandedHubs[hubHash];
             this.persistRelayLayout();
+        },
+        isAvailableRoomsExpanded(hubHash) {
+            return this.availableRoomsExpanded[hubHash] !== false;
+        },
+        toggleAvailableRooms(hubHash) {
+            this.availableRoomsExpanded[hubHash] = !this.isAvailableRoomsExpanded(hubHash);
+            this.persistRelayLayout();
+        },
+        hostedHubUptimeSeconds(hub) {
+            void this.hostUptimeTick;
+            if (!hub?.running) {
+                return 0;
+            }
+            const base = Number(hub.uptime_seconds);
+            if (!Number.isFinite(base) || base < 0) {
+                return 0;
+            }
+            if (!this.hostUptimeAnchorMs) {
+                return Math.floor(base);
+            }
+            return Math.floor(base + (Date.now() - this.hostUptimeAnchorMs) / 1000);
+        },
+        formatUptime(seconds) {
+            if (seconds == null || seconds < 0) {
+                return "—";
+            }
+            let s = Math.floor(seconds);
+            if (s < 60) {
+                return `${s}s`;
+            }
+            if (s < 3600) {
+                return `${Math.floor(s / 60)}m`;
+            }
+            if (s < 86400) {
+                return `${Math.floor(s / 3600)}h`;
+            }
+            if (s < 30 * 86400) {
+                return `${Math.floor(s / 86400)}d`;
+            }
+            const yearSec = 365 * 86400;
+            const monthSec = 30 * 86400;
+            const years = Math.floor(s / yearSec);
+            s -= years * yearSec;
+            const months = Math.floor(s / monthSec);
+            s -= months * monthSec;
+            const days = Math.floor(s / 86400);
+            const parts = [];
+            if (years) {
+                parts.push(`${years}y`);
+            }
+            if (months) {
+                parts.push(`${months}mo`);
+            }
+            if (days) {
+                parts.push(`${days}d`);
+            }
+            return parts.length ? parts.join(" ") : "0d";
+        },
+        onCreateAnnounceIntervalSlider(event) {
+            const minutes = announceSliderPosToMinutes(event?.target?.value);
+            this.createHubForm.announce_interval_seconds = minutes * 60;
+            this.createAnnounceIntervalDraft = null;
+        },
+        onCreateAnnounceIntervalFocus() {
+            this.createAnnounceIntervalDraft = String(this.createAnnounceIntervalMinutes);
+        },
+        onCreateAnnounceIntervalInput(event) {
+            const raw = String(event?.target?.value ?? "").replace(/\D/g, "");
+            this.createAnnounceIntervalDraft = raw;
+            if (raw === "") {
+                return;
+            }
+            const minutes = Number.parseInt(raw, 10);
+            if (Number.isFinite(minutes)) {
+                this.createHubForm.announce_interval_seconds = clampAnnounceIntervalMinutes(minutes) * 60;
+            }
+        },
+        onCreateAnnounceIntervalBlur() {
+            const minutes = clampAnnounceIntervalMinutes(
+                this.createAnnounceIntervalDraft || this.createAnnounceIntervalMinutes
+            );
+            this.createHubForm.announce_interval_seconds = minutes * 60;
+            this.createAnnounceIntervalDraft = null;
+        },
+        onHostAnnounceIntervalSlider(event) {
+            const minutes = announceSliderPosToMinutes(event?.target?.value);
+            this.hostHubSettingsForm.announce_interval_seconds = minutes * 60;
+            this.hostAnnounceIntervalDraft = null;
+        },
+        onHostAnnounceIntervalFocus() {
+            this.hostAnnounceIntervalDraft = String(this.hostAnnounceIntervalMinutes);
+        },
+        onHostAnnounceIntervalInput(event) {
+            const raw = String(event?.target?.value ?? "").replace(/\D/g, "");
+            this.hostAnnounceIntervalDraft = raw;
+            if (raw === "") {
+                return;
+            }
+            const minutes = Number.parseInt(raw, 10);
+            if (Number.isFinite(minutes)) {
+                this.hostHubSettingsForm.announce_interval_seconds = clampAnnounceIntervalMinutes(minutes) * 60;
+            }
+        },
+        onHostAnnounceIntervalBlur() {
+            const minutes = clampAnnounceIntervalMinutes(
+                this.hostAnnounceIntervalDraft || this.hostAnnounceIntervalMinutes
+            );
+            this.hostHubSettingsForm.announce_interval_seconds = minutes * 60;
+            this.hostAnnounceIntervalDraft = null;
+        },
+        openHostHubSettings(hub) {
+            this.hostHubSettingsId = hub.id;
+            this.hostHubSettingsForm = {
+                name: hub.name || "",
+                announce: hub.announce !== false,
+                announce_interval_seconds:
+                    hub.announce_interval_seconds > 0
+                        ? hub.announce_interval_seconds
+                        : DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+            };
+            this.hostAnnounceIntervalDraft = null;
+            this.showHostHubSettings = true;
+        },
+        async saveHostHubSettings() {
+            if (!this.hostHubSettingsId) {
+                return;
+            }
+            try {
+                await window.api.patch(`/api/v1/rrc/servers/${this.hostHubSettingsId}`, {
+                    name: this.hostHubSettingsForm.name.trim() || undefined,
+                    announce: this.hostHubSettingsForm.announce,
+                    announce_interval_seconds: this.hostHubSettingsForm.announce_interval_seconds,
+                });
+                this.showHostHubSettings = false;
+                ToastUtils.success(this.$t("relay_chat.settings_saved"));
+                await this.fetchServers();
+            } catch (e) {
+                ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.action_failed"));
+            }
         },
         statusLabel(status) {
             switch (status) {
@@ -1834,8 +2200,41 @@ export default {
             if (entry.type === "dateDivider") {
                 return `date-${entry.dayKey}-${index}`;
             }
+            if (entry.type === "presenceGroup") {
+                return `presence-${entry.id}-${index}`;
+            }
             const msgKey = this.messageKey(entry.msg);
             return msgKey ? `${msgKey}-${index}` : `idx-${index}`;
+        },
+        isPresenceGroupExpanded(groupId) {
+            return !!this.expandedPresenceGroups[groupId];
+        },
+        togglePresenceGroup(groupId) {
+            if (!groupId) {
+                return;
+            }
+            this.expandedPresenceGroups[groupId] = !this.expandedPresenceGroups[groupId];
+        },
+        formatPresenceGroupSummary(entry) {
+            const joined = Number(entry?.joinedCount) || 0;
+            const left = Number(entry?.leftCount) || 0;
+            const connection = Number(entry?.connectionCount) || 0;
+            const parts = [];
+            if (joined > 0) {
+                parts.push(this.$t("relay_chat.presence_joined", { count: joined }));
+            }
+            if (left > 0) {
+                parts.push(this.$t("relay_chat.presence_left", { count: left }));
+            }
+            if (connection > 0) {
+                parts.push(this.$t("relay_chat.presence_connection", { count: connection }));
+            }
+            if (parts.length === 0) {
+                return this.$t("relay_chat.presence_events", {
+                    count: Array.isArray(entry?.messages) ? entry.messages.length : 0,
+                });
+            }
+            return parts.join(" · ");
         },
         formatDateDividerLabel(dayKey) {
             if (!dayKey || typeof dayKey !== "string") {
@@ -1955,6 +2354,7 @@ export default {
             this.selectedRoom = room;
             this.expandedHubs[hubHash] = true;
             this.hasMorePrevious = false;
+            this.expandedPresenceGroups = {};
             // Clear before fetch so only websocket arrivals during the request are merged back.
             this.messages = [];
             this.members = [];
@@ -2364,12 +2764,20 @@ export default {
                     }
                 }
                 this.serverHubs = hubs;
+                this.hostUptimeAnchorMs = Date.now();
+                this.hostUptimeTick = 0;
             } catch {
                 // relay chat hosting may be unavailable for this identity
             }
         },
         openCreateHub() {
-            this.createHubForm = { name: "", greeting: "", announce: true };
+            this.createHubForm = {
+                name: "",
+                greeting: "",
+                announce: true,
+                announce_interval_seconds: DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+            };
+            this.createAnnounceIntervalDraft = null;
             this.showCreateHub = true;
         },
         async createServerHub() {
@@ -2378,6 +2786,7 @@ export default {
                     name: this.createHubForm.name.trim() || undefined,
                     greeting: this.createHubForm.greeting.trim() || undefined,
                     announce: this.createHubForm.announce,
+                    announce_interval_seconds: this.createHubForm.announce_interval_seconds,
                 });
                 this.showCreateHub = false;
                 ToastUtils.success(this.$t("relay_chat.host_hub_created"));

@@ -763,7 +763,8 @@
         "failed": "Échoué",
         "status_label": "Statut",
         "reason_label": "Raison",
-        "checks_completed": "Tous les contrôles ont réussi."
+        "checks_completed": "Tous les contrôles ont réussi.",
+        "http_reticulum_instance_good": "HTTP RNS Instance Settings"
     },
     "maintenance": {
         "title": "Maintenance et données",
@@ -3203,7 +3204,7 @@
         "discovery_title": "Hubs découverts",
         "discovery_subtitle": "Hubs Relay Chat annoncés sur le réseau.",
         "discovery_empty": "Aucun hub découvert pour l'instant. Ils apparaissent ici lorsqu'ils s'annoncent.",
-        "discovery_search": "Rechercher des hubs",
+        "discovery_search": "Rechercher {count} hubs",
         "discovery_add": "Ajouter",
         "discovery_added": "Hub ajouté depuis la découverte",
         "discovery_open": "Ouvrir",
@@ -3272,7 +3273,15 @@
         "search_messages": "Rechercher",
         "search_no_results": "Aucun message ne correspond à la recherche",
         "popout_channel": "Ouvrir dans une nouvelle fenêtre",
-        "new_message_toast": "Nouveau message dans #{room}"
+        "new_message_toast": "Nouveau message dans #{room}",
+        "host_users": "utilisateurs",
+        "host_announce_interval": "Intervalle d'annonce (minutes)",
+        "host_announce_interval_hint": "Toutes les {minutes} minutes",
+        "host_hub_settings": "Paramètres du hub",
+        "presence_joined": "{count} ont rejoint",
+        "presence_left": "{count} sont partis",
+        "presence_events": "{count} événements entrée/sortie",
+        "presence_connection": "{count} événements de connexion"
     },
     "android_storage": {
         "setup_title": "Choose where MeshChatX stores data",

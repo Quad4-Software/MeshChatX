@@ -446,3 +446,37 @@ def test_manager_save_roundtrip(tmp_path):
     assert obj["hubs"][0]["name"] == "Saved Hub"
     assert obj["hubs"][0]["rooms"][0]["name"] == "general"
     assert manager.find_hub(HUB_HASH.hex()) is hub
+
+
+def test_announce_interval_defaults_and_clamps():
+    from meshchatx.src.backend.rrc.server import (
+        DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
+        normalize_announce_interval_seconds,
+    )
+
+    assert (
+        normalize_announce_interval_seconds(None) == DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+    )
+    assert normalize_announce_interval_seconds(0) == 0
+    assert normalize_announce_interval_seconds(-5) == 0
+    assert normalize_announce_interval_seconds(30) == 60
+    assert normalize_announce_interval_seconds(999999) == 86400
+    server = make_server()
+    assert server.announce_interval_seconds == DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+    assert (
+        server.to_dict()["announce_interval_seconds"]
+        == DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+    )
+
+
+def test_set_announce_settings_syncs_timer():
+    server = make_running_server()
+    server.set_announce_settings(announce=True, announce_interval_seconds=120)
+    assert server.announce is True
+    assert server.announce_interval_seconds == 120
+    assert server._announce_timer is not None
+    server.set_announce_settings(announce=False)
+    assert server.announce is False
+    assert server._announce_timer is None
+    server.set_announce_settings(announce=True, announce_interval_seconds=0)
+    assert server._announce_timer is None
