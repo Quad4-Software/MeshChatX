@@ -10,6 +10,7 @@ from typing import Optional
 import RNS
 
 from meshchatx.src.backend import reticulum_pathfinding
+from meshchatx.src.backend.reticulum_pathfinding import ReticulumLike
 
 
 # Cache of established RNS Links keyed by (aspect_str, destination_hash_bytes).
@@ -206,7 +207,7 @@ class RnsLinkManager:
         self,
         *,
         self_identity_getter: Callable[[], Optional["RNS.Identity"]],
-        reticulum_getter: Callable[[], object],
+        reticulum_getter: Callable[[], Optional[ReticulumLike]],
         broadcast_event: Callable[[dict], None],
     ):
         self._get_identity = self_identity_getter

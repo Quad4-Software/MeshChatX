@@ -48,7 +48,7 @@ function deleteMapCacheDb() {
 
 describe("TileCache.js", () => {
     describe("indexedDB detection (mocked)", () => {
-        const DB_VERSION = 2;
+        const DB_VERSION = 3;
         let savedIndexedDb;
         let savedGlobalIndexedDb;
 
