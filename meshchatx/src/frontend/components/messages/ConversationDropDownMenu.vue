@@ -228,7 +228,8 @@ export default {
                     // create contact first
                     await window.api.post("/api/v1/telephone/contacts", {
                         name: this.peer.display_name,
-                        remote_identity_hash: this.peer.destination_hash,
+                        remote_identity_hash: this.peer.identity_hash || undefined,
+                        lxmf_address: this.peer.destination_hash,
                         is_telemetry_trusted: true,
                     });
                     await this.fetchContact();
@@ -239,7 +240,7 @@ export default {
                     this.contact.is_telemetry_trusted = newStatus;
                 }
                 GlobalEmitter.emit("contact-updated", {
-                    remote_identity_hash: this.peer.destination_hash,
+                    remote_identity_hash: this.peer.identity_hash || this.peer.destination_hash,
                     is_telemetry_trusted: newStatus,
                 });
                 DialogUtils.alert(

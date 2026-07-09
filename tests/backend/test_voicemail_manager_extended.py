@@ -201,6 +201,27 @@ def test_voicemail_session_sets_active_flag(mock_deps, temp_dir):
         assert mock_tel_manager.is_voicemail_session_active is True
 
 
+def test_handle_incoming_skips_when_lxmf_destination_blocked(mock_deps, temp_dir):
+    mock_db = MagicMock()
+    mock_config = MagicMock()
+    mock_config.voicemail_enabled.get.return_value = True
+    mock_tel_manager = MagicMock()
+    vm = VoicemailManager(mock_db, mock_config, mock_tel_manager, temp_dir)
+
+    caller_hash = "a1" * 16
+    lxmf_dest = "b2" * 16
+    mock_caller = MagicMock()
+    mock_caller.hash = bytes.fromhex(caller_hash)
+    mock_db.misc.is_destination_blocked.side_effect = lambda h: h == lxmf_dest
+    mock_db.announces.get_announces_by_identity_hash.return_value = [
+        {"destination_hash": lxmf_dest, "identity_hash": caller_hash},
+    ]
+
+    with patch("threading.Thread") as mock_thread:
+        vm.handle_incoming_call(mock_caller)
+        mock_thread.assert_not_called()
+
+
 def test_stop_recording_clears_active_flag(mock_deps, temp_dir):
     mock_db = MagicMock()
     mock_config = MagicMock()

@@ -2422,6 +2422,8 @@ export default {
             contactForm: {
                 name: "",
                 remote_identity_hash: "",
+                lxmf_address: "",
+                lxst_address: "",
             },
             searchDebounceTimeout: null,
             isVoicemailSettingsExpanded: false,
@@ -3585,8 +3587,9 @@ export default {
             this.editingContact = null;
             this.contactForm = {
                 name: entry.remote_identity_name || "",
-                remote_identity_hash:
-                    entry.remote_telephony_hash || entry.remote_destination_hash || entry.remote_identity_hash,
+                remote_identity_hash: entry.remote_identity_hash || "",
+                lxmf_address: entry.remote_destination_hash || "",
+                lxst_address: entry.remote_telephony_hash || "",
                 preferred_ringtone_id: null,
             };
             this.isContactModalOpen = true;
@@ -4245,22 +4248,32 @@ export default {
             }
 
             let hashToCall = identityHash.trim();
-            // Accept lxmf:// URIs or pasted text; extract first 64-char hex
-            const hexMatch = hashToCall.match(/[0-9a-fA-F]{64}/);
+            // Accept lxmf:// URIs or pasted text; RNS truncated hashes are 32 hex chars
+            const hexMatch = hashToCall.match(/[0-9a-fA-F]{32,64}/);
             if (hexMatch) {
-                hashToCall = hexMatch[0];
+                hashToCall = hexMatch[0].slice(0, 32);
             }
             hashToCall = hashToCall.toLowerCase();
 
             // Try to resolve name from contacts
             const contact = this.contacts.find((c) => c.name.toLowerCase() === hashToCall.toLowerCase());
             if (contact) {
-                hashToCall = contact.remote_identity_hash;
+                hashToCall =
+                    contact.remote_identity_hash ||
+                    contact.remote_telephony_hash ||
+                    contact.lxst_address ||
+                    contact.lxmf_address;
             }
 
             // Provide immediate feedback
             this.destinationHash = hashToCall;
-            const targetContact = this.contacts.find((c) => c.remote_identity_hash === hashToCall);
+            const targetContact = this.contacts.find(
+                (c) =>
+                    c.remote_identity_hash === hashToCall ||
+                    c.lxmf_address === hashToCall ||
+                    c.lxst_address === hashToCall ||
+                    c.remote_telephony_hash === hashToCall
+            );
             this.initiationTargetHash = hashToCall;
             this.initiationTargetName = targetContact ? targetContact.name : null;
             this.activeTab = "phone";

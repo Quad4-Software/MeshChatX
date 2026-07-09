@@ -4018,9 +4018,17 @@ class ReticulumMeshChat:
             return
 
         if ctx.telephone_manager and ctx.telephone_manager.initiation_status:
+            # Outgoing dial owns the line. Reject the inbound caller so they are
+            # not left ringing while we ignore the callback locally.
             print(
-                "on_incoming_telephone_call: Ignoring as we are currently initiating an outgoing call.",
+                "on_incoming_telephone_call: Rejecting as we are currently initiating an outgoing call.",
             )
+            telephone = getattr(ctx.telephone_manager, "telephone", None)
+            if telephone:
+                threading.Timer(
+                    0.5,
+                    lambda t=telephone: t.hangup(),
+                ).start()
             return
 
         caller_hash = caller_identity.hash.hex()
@@ -4054,15 +4062,7 @@ class ReticulumMeshChat:
             ctx.config.telephone_allow_calls_from_contacts_only.get()
             or ctx.config.block_all_from_strangers.get()
         ):
-            contact = None
-            try:
-                contact = ctx.database.contacts.get_contact_by_identity_hash(
-                    caller_hash
-                )
-            except Exception:
-                # Treat lookup failure as non-contact to avoid accidentally allowing spam
-                pass
-            if not contact:
+            if not self._is_contact(caller_hash, context=ctx):
                 print(f"Rejecting incoming call from non-contact: {caller_hash}")
                 telephone = getattr(ctx.telephone_manager, "telephone", None)
                 if telephone:
@@ -4078,13 +4078,7 @@ class ReticulumMeshChat:
         print(f"on_incoming_telephone_call: {caller_identity.hash.hex()}")
         ch = caller_identity.hash.hex()
         caller_name = (self.get_name_for_identity_hash(ch) or "").strip() or "Mesh"
-        is_contact = False
-        try:
-            is_contact = (
-                ctx.database.contacts.get_contact_by_identity_hash(ch) is not None
-            )
-        except Exception:
-            pass
+        is_contact = self._is_contact(ch, context=ctx)
         AsyncUtils.run_async(
             self.websocket_broadcast(
                 json.dumps(
@@ -4181,16 +4175,11 @@ class ReticulumMeshChat:
                 is_filtered = False
                 if ctx.config.do_not_disturb_enabled.get():
                     is_filtered = True
-                elif ctx.config.telephone_allow_calls_from_contacts_only.get():
-                    try:
-                        contact = ctx.database.contacts.get_contact_by_identity_hash(
-                            remote_identity_hash,
-                        )
-                        if not contact:
-                            is_filtered = True
-                    except Exception:
-                        # Treat lookup failure as filtered to avoid leaking missed-call noise
-                        is_filtered = True
+                elif (
+                    ctx.config.telephone_allow_calls_from_contacts_only.get()
+                    or ctx.config.block_all_from_strangers.get()
+                ) and not self._is_contact(remote_identity_hash, context=ctx):
+                    is_filtered = True
 
                 if not is_filtered:
                     AsyncUtils.run_async(
@@ -9435,16 +9424,14 @@ class ReticulumMeshChat:
                     if self.config.do_not_disturb_enabled.get():
                         # Don't report active call if DND is on and it's ringing
                         telephone_active_call = None
-                    elif self.config.telephone_allow_calls_from_contacts_only.get():
+                    elif (
+                        self.config.telephone_allow_calls_from_contacts_only.get()
+                        or self.config.block_all_from_strangers.get()
+                    ):
                         remote_identity = telephone_active_call.get_remote_identity()
                         if remote_identity:
                             caller_hash = remote_identity.hash.hex()
-                            contact = (
-                                self.database.contacts.get_contact_by_identity_hash(
-                                    caller_hash,
-                                )
-                            )
-                            if not contact:
+                            if not self._is_contact(caller_hash):
                                 # Don't report active call if contacts-only is on and caller is not a contact
                                 telephone_active_call = None
                         else:
@@ -9483,9 +9470,7 @@ class ReticulumMeshChat:
                 remote_icon = self.database.misc.get_user_icon(lxmf_destination_hash)
 
                 # Check if contact and get custom image
-                contact = self.database.contacts.get_contact_by_identity_hash(
-                    remote_hash,
-                )
+                contact = self._resolve_contact_for_hash(remote_hash)
                 custom_image = contact["custom_image"] if contact else None
 
                 active_call = {
@@ -9573,11 +9558,9 @@ class ReticulumMeshChat:
             initiation_target_name = None
             if initiation_target_hash:
                 try:
-                    contact = self.database.contacts.get_contact_by_identity_hash(
-                        initiation_target_hash,
-                    )
+                    contact = self._resolve_contact_for_hash(initiation_target_hash)
                     if contact:
-                        initiation_target_name = contact.name
+                        initiation_target_name = contact["name"]
                 except Exception:
                     pass
 
@@ -9755,9 +9738,7 @@ class ReticulumMeshChat:
                     if tele_hash:
                         d["remote_telephony_hash"] = tele_hash
 
-                    contact = self.database.contacts.get_contact_by_identity_hash(
-                        remote_identity_hash,
-                    )
+                    contact = self._resolve_contact_for_hash(remote_identity_hash)
                     d["is_contact"] = contact is not None
                     if contact:
                         d["contact_image"] = contact.get("custom_image")
@@ -10595,27 +10576,68 @@ class ReticulumMeshChat:
                     status=400,
                 )
 
-            if not remote_identity_hash:
-                # Try to derive identity from LXMF or LXST address
-                lookup_hash = lxmf_address or lxst_address
-                if lookup_hash:
-                    announce = self.database.announces.get_announce_by_hash(lookup_hash)
-                    if announce:
-                        remote_identity_hash = announce.get("identity_hash")
-                    else:
-                        # try to recall identity from RNS
-                        ident = self.recall_identity(lookup_hash)
-                        if ident:
-                            remote_identity_hash = ident.hash.hex()
+            # Normalize: chat UI often posts an LXMF destination hash as
+            # remote_identity_hash. Prefer the real identity hash when known so
+            # incoming-call policy (identity hash) matches saved contacts.
+            provided_hash = remote_identity_hash
+            lookup_hash = remote_identity_hash or lxmf_address or lxst_address
+            if lookup_hash:
+                announce = self.database.announces.get_announce_by_hash(lookup_hash)
+                if announce and announce.get("identity_hash"):
+                    remote_identity_hash = announce.get("identity_hash")
+                    if not lxmf_address and announce.get("aspect") == "lxmf.delivery":
+                        lxmf_address = announce.get("destination_hash") or lookup_hash
+                    if not lxst_address and announce.get("aspect") == "lxst.telephony":
+                        lxst_address = announce.get("destination_hash") or lookup_hash
+                else:
+                    ident = self.recall_identity(lookup_hash)
+                    if ident:
+                        remote_identity_hash = ident.hash.hex()
 
             if not remote_identity_hash:
-                # Fallback: use the provided lookup hash directly as identity hash
-                remote_identity_hash = lxmf_address or lxst_address
+                remote_identity_hash = lxmf_address or lxst_address or provided_hash
             if not remote_identity_hash:
                 return web.json_response(
                     {"message": "Identity hash is required or could not be derived"},
                     status=400,
                 )
+
+            # If the client only supplied a destination hash, keep it on the
+            # matching address field so lookups by either form succeed.
+            if provided_hash and provided_hash != remote_identity_hash:
+                if not lxmf_address:
+                    lxmf_announce = self.database.announces.get_announce_by_hash(
+                        provided_hash,
+                    )
+                    if lxmf_announce and lxmf_announce.get("aspect") == "lxmf.delivery":
+                        lxmf_address = provided_hash
+                    elif not lxst_address:
+                        lxst_announce = self.database.announces.get_announce_by_hash(
+                            provided_hash,
+                        )
+                        if (
+                            lxst_announce
+                            and lxst_announce.get("aspect") == "lxst.telephony"
+                        ):
+                            lxst_address = provided_hash
+                        else:
+                            # Default: treat unknown destination-shaped hashes as LXMF
+                            lxmf_address = lxmf_address or provided_hash
+
+            if not lxmf_address:
+                try:
+                    lxmf_address = self.get_lxmf_destination_hash_for_identity_hash(
+                        remote_identity_hash,
+                    )
+                except Exception:
+                    pass
+            if not lxst_address:
+                try:
+                    lxst_address = self.get_lxst_telephony_hash_for_identity_hash(
+                        remote_identity_hash,
+                    )
+                except Exception:
+                    pass
 
             self.database.contacts.add_contact(
                 name,
@@ -10663,7 +10685,7 @@ class ReticulumMeshChat:
         @routes.get("/api/v1/telephone/contacts/check/{identity_hash}")
         async def telephone_contacts_check(request):
             identity_hash = request.match_info["identity_hash"]
-            contact = self.database.contacts.get_contact_by_identity_hash(identity_hash)
+            contact = self._resolve_contact_for_hash(identity_hash)
             return web.json_response(
                 {
                     "is_contact": contact is not None,
@@ -19091,15 +19113,82 @@ class ReticulumMeshChat:
             background_colour,
         )
 
-    def _is_contact(self, source_hash: str, context=None) -> bool:
+    def _related_hashes_for_contact_lookup(self, source_hash: str, context=None):
+        """Collect identity/LXMF/LXST hashes that may identify the same peer."""
         ctx = context or self.current_context
+        related = []
+        seen = set()
+
+        def add(value):
+            if not value or not isinstance(value, str):
+                return
+            normalized = normalize_hex_identifier(value)
+            if not normalized or normalized in seen:
+                return
+            seen.add(normalized)
+            related.append(normalized)
+
+        add(source_hash)
         if not ctx or not ctx.database:
-            return False
+            return related
+
         try:
-            contact = ctx.database.contacts.get_contact_by_identity_hash(source_hash)
-            return contact is not None
+            announce = ctx.database.announces.get_announce_by_hash(source_hash)
+            if announce:
+                add(announce.get("identity_hash"))
+                add(announce.get("destination_hash"))
+                identity_hash = announce.get("identity_hash")
+                if identity_hash:
+                    for other in ctx.database.announces.get_announces_by_identity_hash(
+                        identity_hash,
+                    ):
+                        add(other.get("destination_hash"))
+                        add(other.get("identity_hash"))
+            else:
+                for other in ctx.database.announces.get_announces_by_identity_hash(
+                    source_hash,
+                ):
+                    add(other.get("destination_hash"))
+                    add(other.get("identity_hash"))
         except Exception:
-            return False
+            pass
+
+        try:
+            lxmf_hash = self.get_lxmf_destination_hash_for_identity_hash(source_hash)
+            add(lxmf_hash)
+        except Exception:
+            pass
+
+        try:
+            lxst_hash = self.get_lxst_telephony_hash_for_identity_hash(source_hash)
+            add(lxst_hash)
+        except Exception:
+            pass
+
+        return related
+
+    def _resolve_contact_for_hash(self, source_hash: str, context=None):
+        """Resolve a contact for an identity or destination hash.
+
+        Contacts are often saved with an LXMF destination hash as
+        ``remote_identity_hash`` (from chat UI). Incoming calls provide the
+        caller's identity hash. Bridge those forms via announces and derived
+        destination hashes so contacts-only call policy works.
+        """
+        ctx = context or self.current_context
+        if not ctx or not ctx.database or not source_hash:
+            return None
+        try:
+            related = self._related_hashes_for_contact_lookup(source_hash, context=ctx)
+            return ctx.database.contacts.get_contact_by_identity_hash(
+                source_hash,
+                related_hashes=related,
+            )
+        except Exception:
+            return None
+
+    def _is_contact(self, source_hash: str, context=None) -> bool:
+        return self._resolve_contact_for_hash(source_hash, context=context) is not None
 
     def _encode_pcm_wav_to_ogg_opus(self, wav_bytes: bytes) -> bytes | None:
         """Encode a WAV/PCM payload into an OGG/Opus byte string.

@@ -1275,13 +1275,13 @@ export default {
         async toggleTelemetryTrust(hash) {
             const contact = this.contextMenu.targetContact;
             const newStatus = !contact?.is_telemetry_trusted;
+            const conv = this.conversations.find((c) => c.destination_hash === hash);
             try {
                 if (!contact) {
-                    // find display name from conversations
-                    const conv = this.conversations.find((c) => c.destination_hash === hash);
                     await window.api.post("/api/v1/telephone/contacts", {
                         name: conv?.display_name || hash.substring(0, 8),
-                        remote_identity_hash: hash,
+                        remote_identity_hash: conv?.identity_hash || undefined,
+                        lxmf_address: hash,
                         is_telemetry_trusted: true,
                     });
                 } else {
@@ -1290,7 +1290,7 @@ export default {
                     });
                 }
                 GlobalEmitter.emit("contact-updated", {
-                    remote_identity_hash: hash,
+                    remote_identity_hash: conv?.identity_hash || hash,
                     is_telemetry_trusted: newStatus,
                 });
                 this.contextMenu.show = false;

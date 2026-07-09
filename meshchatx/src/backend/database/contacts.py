@@ -132,8 +132,38 @@ class ContactsDAO:
     def delete_contact(self, contact_id):
         self.provider.execute("DELETE FROM contacts WHERE id = ?", (contact_id,))
 
-    def get_contact_by_identity_hash(self, remote_identity_hash):
+    def get_contact_by_identity_hash(self, remote_identity_hash, related_hashes=None):
+        """Match a contact by identity, LXMF, or LXST hash.
+
+        ``related_hashes`` may include derived destination hashes for the same
+        peer so callers that only know an identity hash still match contacts
+        that were saved with an LXMF or LXST destination hash as the primary key.
+        Matching is case-insensitive. Hex-only forms are also tried so UUID-style
+        separators still match stored RNS hashes.
+        """
+        if not remote_identity_hash and not related_hashes:
+            return None
+
+        candidates = []
+        for value in (remote_identity_hash, *(related_hashes or ())):
+            if not value or not isinstance(value, str):
+                continue
+            lowered = value.strip().lower()
+            if lowered and lowered not in candidates:
+                candidates.append(lowered)
+            hex_only = "".join(c for c in lowered if c in "0123456789abcdef")
+            if hex_only and hex_only not in candidates:
+                candidates.append(hex_only)
+        if not candidates:
+            return None
+
+        placeholders = ", ".join("?" for _ in candidates)
         return self.provider.fetchone(
-            "SELECT * FROM contacts WHERE remote_identity_hash = ? OR lxmf_address = ? OR lxst_address = ?",
-            (remote_identity_hash, remote_identity_hash, remote_identity_hash),
+            f"""
+            SELECT * FROM contacts
+            WHERE lower(remote_identity_hash) IN ({placeholders})
+               OR lower(lxmf_address) IN ({placeholders})
+               OR lower(lxst_address) IN ({placeholders})
+            """,
+            tuple(candidates) * 3,
         )

@@ -288,6 +288,24 @@ class TestContactsEdgeCases:
         assert result is not None
         assert result["name"] == "Via LXST"
 
+    def test_get_contact_by_identity_hash_case_insensitive(self, contacts_dao):
+        contacts_dao.add_contact("Case", "AABB" + "cc" * 14)
+        result = contacts_dao.get_contact_by_identity_hash("aabb" + "CC" * 14)
+        assert result is not None
+        assert result["name"] == "Case"
+
+    def test_get_contact_by_identity_hash_related_hashes(self, contacts_dao):
+        identity = "a1" * 16
+        lxmf = "b2" * 16
+        contacts_dao.add_contact("SavedAsLxmf", lxmf, lxmf_address=lxmf)
+        result = contacts_dao.get_contact_by_identity_hash(
+            identity,
+            related_hashes=[lxmf],
+        )
+        assert result is not None
+        assert result["name"] == "SavedAsLxmf"
+        assert result["remote_identity_hash"] == lxmf
+
     def test_delete_nonexistent_contact(self, contacts_dao):
         contacts_dao.delete_contact(99999)
 
