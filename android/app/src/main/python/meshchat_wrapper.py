@@ -163,7 +163,12 @@ def start_server(port=8000, app_files_dir=None):
         # Chaquopy surfaces SystemExit as PyException; re-raise as RuntimeError
         # so Java retry/error UI gets a readable message.
         code = getattr(e, "code", e)
-        message = f"MeshChatX exited during startup (code={code})"
+        cause = e.__cause__ or e.__context__
+        cause_text = str(cause).strip() if cause is not None else ""
+        if cause_text:
+            message = f"MeshChatX exited during startup (code={code}): {cause_text}"
+        else:
+            message = f"MeshChatX exited during startup (code={code})"
         print(f"Error starting MeshChatX server: {message}")
         raise RuntimeError(message) from e
     except Exception as e:
