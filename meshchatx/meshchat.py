@@ -383,6 +383,7 @@ class ReticulumMeshChat:
         migration_context: dict | None = None,
         memory_diag_enabled: bool = False,
         plugins_enabled: bool = True,
+        defer_network_setup: bool = False,
     ):
         self.running = True
         self.plugins_enabled = plugins_enabled
@@ -427,6 +428,13 @@ class ReticulumMeshChat:
         self.listen_port: int | None = None
         self.use_https: bool = True
         self.landlock_active: bool = False
+        self._pending_identity = identity
+        self._network_setup_lock = threading.Lock()
+        self._network_ready_event = threading.Event()
+        self._network_setup_thread: threading.Thread | None = None
+        self._startup_stage = "ready" if not defer_network_setup else "http"
+        self._startup_error: str | None = None
+        self._network_ready = not defer_network_setup
 
         # track announce timestamps for rate calculation
         self.announce_timestamps = []
@@ -453,8 +461,12 @@ class ReticulumMeshChat:
         self._propagation_sync_metrics: dict[str, dict] = {}
 
         AsyncUtils.ensure_background_loop()
-        self.setup_identity(identity)
         self.web_audio_bridge = WebAudioBridge(None, None)
+        if defer_network_setup:
+            self._set_startup_stage("http")
+        else:
+            self.setup_identity(identity)
+            self._mark_network_ready()
 
     # Proxy properties for backward compatibility
     @property
@@ -1231,6 +1243,108 @@ class ReticulumMeshChat:
         guard_rnode_interfaces_on_desktop(config_path)
         guard_invalid_rnode_txpower_in_config(config_path)
 
+    def _set_startup_stage(self, stage: str, error: str | None = None) -> None:
+        self._startup_stage = stage
+        if error is not None:
+            self._startup_error = error
+        print(f"Startup stage: {stage}", flush=True)
+
+    def _mark_network_ready(self) -> None:
+        self._network_ready = True
+        self._startup_stage = "ready"
+        self._startup_error = None
+        self._network_ready_event.set()
+
+    def _startup_status_payload(self) -> dict:
+        ready = bool(self._network_ready) and bool(
+            self.current_context and self.current_context.running,
+        )
+        stage = "ready" if ready else (self._startup_stage or "starting")
+        payload = {
+            "status": "ok" if ready else "starting",
+            "stage": stage,
+            "network_ready": ready,
+            "listen_host": self.listen_host,
+            "listen_port": self.listen_port,
+            "https_enabled": self.use_https,
+            "is_loopback_bind": _is_loopback_bind_host(self.listen_host),
+            "plugins_enabled": self.plugins_enabled,
+            **self._landlock_status_dict(),
+        }
+        if self._startup_error:
+            payload["error"] = self._startup_error
+        return payload
+
+    def wait_until_network_ready(self, timeout: float | None = None) -> bool:
+        if self._network_ready and self.current_context and self.current_context.running:
+            return True
+        return self._network_ready_event.wait(timeout)
+
+    def start_network_setup_in_background(self, identity: RNS.Identity | None = None) -> None:
+        pending = identity if identity is not None else self._pending_identity
+        if pending is None:
+            raise RuntimeError("No identity available for network setup")
+        self._pending_identity = pending
+        if self._network_ready and self.current_context and self.current_context.running:
+            return
+        with self._network_setup_lock:
+            if self._network_setup_thread and self._network_setup_thread.is_alive():
+                return
+            self._set_startup_stage("starting")
+            thread = threading.Thread(
+                target=self._run_network_setup,
+                name="meshchatx-network-setup",
+                daemon=True,
+            )
+            self._network_setup_thread = thread
+            thread.start()
+
+    def _run_network_setup(self) -> None:
+        identity = self._pending_identity
+        if identity is None:
+            self._set_startup_stage("failed", "No identity available for network setup")
+            return
+        try:
+            self._set_startup_stage("rns")
+            self.setup_identity(identity)
+            if self.config is not None and getattr(self, "session_secret_key", None):
+                try:
+                    self.config.auth_session_secret.set(self.session_secret_key)
+                except Exception as exc:
+                    print(f"Failed to persist session secret into config: {exc}")
+            self._mark_network_ready()
+            print("Network stack ready", flush=True)
+            try:
+                AsyncUtils.run_async(
+                    self.websocket_broadcast(
+                        {
+                            "type": "startup_status",
+                            "status": "ok",
+                            "stage": "ready",
+                            "network_ready": True,
+                        },
+                    ),
+                )
+            except Exception:
+                pass
+        except Exception as exc:
+            traceback.print_exc()
+            self._set_startup_stage("failed", str(exc))
+            try:
+                AsyncUtils.run_async(
+                    self.websocket_broadcast(
+                        {
+                            "type": "startup_status",
+                            "status": "failed",
+                            "stage": "failed",
+                            "network_ready": False,
+                            "error": str(exc),
+                        },
+                    ),
+                )
+            except Exception:
+                pass
+
     def setup_identity(self, identity: RNS.Identity):
         identity_hash = identity.hash.hex()
 
@@ -1249,6 +1363,7 @@ class ReticulumMeshChat:
 
         # Initialize Reticulum if not already done
         if not hasattr(self, "reticulum"):
+            self._set_startup_stage("rns")
             self._ensure_reticulum_config()
             rns_loglevel = _resolve_rns_loglevel(self._rns_loglevel_cli)
             if rns_loglevel is not None:
@@ -1259,6 +1374,7 @@ class ReticulumMeshChat:
             else:
                 self.reticulum = RNS.Reticulum(self.reticulum_config_dir)
             _restore_rns_console_logging_after_reticulum_init(self)
+            self._set_startup_stage("identity")
             self.page_node_manager.load_nodes()
             self.page_node_manager.start_all()
             self.plugin_manager.set_app(self)
@@ -1266,6 +1382,7 @@ class ReticulumMeshChat:
                 self.plugin_manager.install_bundled_examples()
 
         # Create new context
+        self._set_startup_stage("identity")
         context = IdentityContext(identity, self)
         self.contexts[identity_hash] = context
         self.current_context = context
@@ -4211,6 +4328,11 @@ class ReticulumMeshChat:
             if path == "/api/v1/status":
                 return await handler(request)
 
+            # Allow CSRF bootstrap and auth status while the network stack starts so the
+            # Vue shell can load and show an in-app waiting state.
+            if path in ("/api/v1/auth/csrf", "/api/v1/auth/status"):
+                return await handler(request)
+
             # Serve the web UI shell and static files while an identity context is still
             # starting, so the browser can load assets and show in-app loading state.
             if not path.startswith("/api/"):
@@ -4243,7 +4365,12 @@ class ReticulumMeshChat:
 
             if not self.current_context or not self.current_context.running:
                 return web.json_response(
-                    {"error": "Application is initializing or switching identity"},
+                    {
+                        "error": "Application is initializing or switching identity",
+                        "status": "starting",
+                        "stage": self._startup_stage,
+                        "network_ready": False,
+                    },
                     status=503,
                 )
 
@@ -4800,17 +4927,7 @@ class ReticulumMeshChat:
 
         @routes.get("/api/v1/status")
         async def status(request):
-            return web.json_response(
-                {
-                    "status": "ok",
-                    "listen_host": self.listen_host,
-                    "listen_port": self.listen_port,
-                    "https_enabled": self.use_https,
-                    "is_loopback_bind": _is_loopback_bind_host(self.listen_host),
-                    "plugins_enabled": self.plugins_enabled,
-                    **self._landlock_status_dict(),
-                },
-            )
+            return web.json_response(self._startup_status_payload())
 
         @routes.get("/api/v1/self-test")
         async def self_test(request):
@@ -4876,6 +4993,17 @@ class ReticulumMeshChat:
         # auth status
         @routes.get("/api/v1/auth/status")
         async def auth_status(request):
+            if not self.current_context or not self.current_context.running:
+                return web.json_response(
+                    {
+                        "auth_enabled": self.auth_enabled,
+                        "password_set": False,
+                        "authenticated": False,
+                        "network_ready": False,
+                        "status": "starting",
+                        "stage": self._startup_stage,
+                    },
+                )
             try:
                 session = await get_session(request)
                 is_authenticated = session.get("authenticated", False)
@@ -4892,6 +5020,7 @@ class ReticulumMeshChat:
                         "password_set": self.config.auth_password_hash.get()
                         is not None,
                         "authenticated": actually_authenticated,
+                        "network_ready": True,
                     },
                 )
             except Exception as e:
@@ -4899,9 +5028,15 @@ class ReticulumMeshChat:
                 return web.json_response(
                     {
                         "auth_enabled": self.auth_enabled,
-                        "password_set": self.config.auth_password_hash.get()
-                        is not None,
+                        "password_set": (
+                            self.config.auth_password_hash.get() is not None
+                            if self.config
+                            else False
+                        ),
                         "authenticated": False,
+                        "network_ready": bool(
+                            self.current_context and self.current_context.running,
+                        ),
                         "error": str(e),
                     },
                 )
@@ -15330,7 +15465,8 @@ class ReticulumMeshChat:
 
         if not self.session_secret_key:
             # try to migrate from current identity config if available
-            self.session_secret_key = self.config.auth_session_secret.get()
+            if self.config is not None:
+                self.session_secret_key = self.config.auth_session_secret.get()
             if not self.session_secret_key:
                 self.session_secret_key = secrets.token_urlsafe(32)
 
@@ -15340,13 +15476,17 @@ class ReticulumMeshChat:
             except Exception as e:
                 print(f"Failed to write session secret to {session_secret_path}: {e}")
 
-        # ensure it's also in the current config for consistency
-        self.config.auth_session_secret.set(self.session_secret_key)
+        # ensure it's also in the current config for consistency when identity is ready
+        if self.config is not None:
+            self.config.auth_session_secret.set(self.session_secret_key)
 
         # called when web app has started
         async def on_startup(app):
             # remember main event loop
             AsyncUtils.set_main_loop(asyncio.get_event_loop())
+
+            if not self._network_ready:
+                self.start_network_setup_in_background()
 
             # auto launch web browser
             if launch_browser:
@@ -20725,6 +20865,13 @@ def main():
         )
         sys.exit(1)
 
+    needs_immediate_network = bool(
+        args.self_check
+        or args.reset_password
+        or args.backup_db
+        or args.restore_db
+        or args.restore_from_snapshot,
+    )
     reticulum_meshchat = ReticulumMeshChat(
         identity,
         args.storage_dir,
@@ -20741,12 +20888,13 @@ def main():
         migration_context=migration_context,
         memory_diag_enabled=args.memory_diag,
         plugins_enabled=not args.disable_plugins,
+        defer_network_setup=not needs_immediate_network,
     )
 
     # store recovery on app for wiring with identity context
     reticulum_meshchat._crash_recovery = recovery
 
-    # update recovery with known paths
+    # update recovery with known paths (database_path may be unset until identity setup)
     recovery.update_paths(
         storage_dir=reticulum_meshchat.storage_dir,
         database_path=reticulum_meshchat.database_path,
@@ -20820,6 +20968,7 @@ def main():
                 f"Snapshot restoration complete. Integrity check: {result['integrity_check']}",
             )
             reticulum_meshchat.setup_identity(identity)
+            reticulum_meshchat._mark_network_ready()
         else:
             print(f"Error: Snapshot not found at {snapshot_path}")
 
