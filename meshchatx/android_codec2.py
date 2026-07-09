@@ -89,6 +89,20 @@ def ensure_codec2_native_library() -> bool:
     return False
 
 
+def probe_pycodec2() -> tuple[bool, str | None]:
+    """Import pycodec2 after preload and report whether Codec2 works."""
+    if _is_chaquopy_android() and not ensure_codec2_native_library():
+        return False, codec2_preload_error()
+    try:
+        import pycodec2
+
+        c2 = pycodec2.Codec2(1600)
+        _ = c2.samples_per_frame()
+        return True, None
+    except Exception as exc:
+        return False, str(exc)
+
+
 def codec2_preload_error() -> str | None:
     """Return the last preload failure message, if any."""
     return _codec2_preload_error

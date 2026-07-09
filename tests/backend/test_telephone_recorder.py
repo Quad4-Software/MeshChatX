@@ -121,7 +121,7 @@ def test_audio_profile_persistence(mock_identity, mock_config, temp_storage):
         "meshchatx.src.backend.telephone_manager.Telephone",
     ) as mock_telephone_class:
         mock_telephone = mock_telephone_class.return_value
-        mock_config.telephone_audio_profile_id.get.return_value = 4
+        mock_config.telephone_audio_profile_id.get.return_value = 80
 
         tm = TelephoneManager(
             mock_identity,
@@ -130,8 +130,9 @@ def test_audio_profile_persistence(mock_identity, mock_config, temp_storage):
         )
         tm.init_telephone()
 
-        # Verify switch_profile was called with configured ID
-        mock_telephone.switch_profile.assert_called_with(4)
+        # Verify preferred profile is stored for outbound call() (switch_profile is idle no-op)
+        assert tm.preferred_profile_id == 80
+        mock_telephone.switch_profile.assert_not_called()
 
 
 @patch("meshchatx.src.backend.telephone_manager.Telephone")

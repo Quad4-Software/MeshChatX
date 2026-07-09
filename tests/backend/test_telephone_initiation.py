@@ -37,7 +37,7 @@ async def test_initiate_retries_path_requests_during_lookup(telephone_manager):
         state["calls"] += 1
         return state["calls"] >= 8
 
-    telephone_manager.telephone.call.side_effect = lambda _identity: setattr(
+    telephone_manager.telephone.call.side_effect = lambda _identity, *_a, **_k: setattr(
         telephone_manager.telephone, "call_status", 0
     )
 
@@ -96,7 +96,7 @@ async def test_initiate_cancels_quickly_while_dialling(telephone_manager):
     destination_hash = bytes.fromhex("cc" * 16)
     telephone_manager.telephone.call_status = 2
 
-    def blocking_call(_identity):
+    def blocking_call(_identity, *_a, **_k):
         time.sleep(0.2)
 
     telephone_manager.telephone.call.side_effect = blocking_call
@@ -162,7 +162,7 @@ async def test_cancel_between_identity_resolved_and_path_request(telephone_manag
 async def test_cancel_after_path_found_before_dialling_stabilizes(telephone_manager):
     destination_hash = bytes.fromhex("ee" * 16)
 
-    def slow_call(_identity):
+    def slow_call(_identity, *_a, **_k):
         time.sleep(0.1)
         telephone_manager.telephone.call_status = 0
 
@@ -208,7 +208,7 @@ async def test_request_path_exceptions_do_not_abort_discovery(telephone_manager)
         if isinstance(value, Exception):
             raise value
 
-    telephone_manager.telephone.call.side_effect = lambda _identity: setattr(
+    telephone_manager.telephone.call.side_effect = lambda _identity, *_a, **_k: setattr(
         telephone_manager.telephone, "call_status", 0
     )
 
@@ -244,7 +244,7 @@ async def test_flapping_path_state_recovers_and_dials(telephone_manager):
             return path_states.pop(0)
         return True
 
-    telephone_manager.telephone.call.side_effect = lambda _identity: setattr(
+    telephone_manager.telephone.call.side_effect = lambda _identity, *_a, **_k: setattr(
         telephone_manager.telephone, "call_status", 0
     )
 
@@ -302,7 +302,7 @@ async def test_call_thread_exception_surfaces_without_hanging(telephone_manager)
 async def test_inconsistent_call_status_finishes_within_timeout(telephone_manager):
     destination_hash = bytes.fromhex("78" * 16)
 
-    def inconsistent_call(_identity):
+    def inconsistent_call(_identity, *_a, **_k):
         telephone_manager.telephone.call_status = 5
 
     telephone_manager.telephone.call.side_effect = inconsistent_call
@@ -335,7 +335,7 @@ async def test_inconsistent_call_status_finishes_within_timeout(telephone_manage
 async def test_lxst_status_mapping_updates_ui_initiation_states(telephone_manager):
     destination_hash = bytes.fromhex("9a" * 16)
 
-    def status_progression_call(_identity):
+    def status_progression_call(_identity, *_a, **_k):
         telephone_manager.telephone.call_status = 2
         time.sleep(0.02)
         telephone_manager.telephone.call_status = 4
@@ -404,7 +404,7 @@ async def test_rapid_dial_cancel_soak_has_bounded_memory(telephone_manager):
     destination_hash = bytes.fromhex("de" * 16)
     loops = 120
 
-    def slow_call(_identity):
+    def slow_call(_identity, *_a, **_k):
         time.sleep(0.03)
         telephone_manager.telephone.call_status = 2
 
@@ -460,7 +460,7 @@ async def test_initiate_checks_path_for_lxst_telephony_destination(telephone_man
 
     fake_destination = MagicMock()
     fake_destination.hash = telephony_destination_hash
-    telephone_manager.telephone.call.side_effect = lambda _identity: setattr(
+    telephone_manager.telephone.call.side_effect = lambda _identity, *_a, **_k: setattr(
         telephone_manager.telephone, "call_status", 0
     )
 

@@ -36,6 +36,69 @@ def test_ensure_codec2_loads_bundled_library(tmp_path):
         cdll.assert_called_with(str(lib))
 
 
+def test_probe_pycodec2_reports_failure_when_import_breaks():
+    android_codec2._codec2_preload_done = True
+    android_codec2._codec2_preload_error = None
+    with (
+        patch.object(android_codec2, "_is_chaquopy_android", return_value=False),
+        patch.dict("sys.modules", {"pycodec2": None}),
+    ):
+        # Force ImportError path by making import raise
+        import builtins
+
+        real_import = builtins.__import__
+
+        def fake_import(name, *args, **kwargs):
+            if name == "pycodec2":
+                raise ImportError("no pycodec2")
+            return real_import(name, *args, **kwargs)
+
+        with patch("builtins.__import__", side_effect=fake_import):
+            ok, err = android_codec2.probe_pycodec2()
+        assert ok is False
+        assert err
+
+
+def test_vendor_wheels_bundle_libcodec2_for_all_abis():
+    import zipfile
+
+    repo = Path(__file__).resolve().parents[2]
+    vendor = repo / "android" / "vendor"
+    abis = ("arm64_v8a", "armeabi_v7a", "x86_64")
+    for abi in abis:
+        wheels = sorted(vendor.glob(f"pycodec2-*-android_24_{abi}.whl"))
+        assert wheels, f"missing pycodec2 wheel for {abi}"
+        with zipfile.ZipFile(wheels[-1]) as zin:
+            assert "pycodec2/libcodec2.so" in zin.namelist()
+            assert "pycodec2/pycodec2.so" in zin.namelist()
+        lib_wheels = sorted(vendor.glob(f"chaquopy_libcodec2-*-android_24_{abi}.whl"))
+        assert lib_wheels, f"missing chaquopy_libcodec2 for {abi}"
+        with zipfile.ZipFile(lib_wheels[-1]) as zin:
+            assert "chaquopy/lib/libcodec2.so" in zin.namelist()
+
+
+def test_jni_libs_synced_for_all_abis():
+    repo = Path(__file__).resolve().parents[2]
+    jni = repo / "android" / "app" / "src" / "main" / "jniLibs"
+    for abi in ("arm64-v8a", "armeabi-v7a", "x86_64"):
+        lib = jni / abi / "libcodec2.so"
+        assert lib.is_file(), f"missing jniLibs {lib}"
+        assert lib.stat().st_size > 100_000
+
+
+def test_android_lxst_wheel_get_codec_guards_missing_codec2():
+    import zipfile
+
+    repo = Path(__file__).resolve().parents[2]
+    whl = repo / "android" / "vendor" / "lxst-0.4.8-py3-none-any.whl"
+    assert whl.is_file()
+    with zipfile.ZipFile(whl) as zin:
+        telephony = zin.read("LXST/Primitives/Telephony.py").decode()
+        codecs_init = zin.read("LXST/Codecs/__init__.py").decode()
+    assert "if Codec2 is not None:" in telephony
+    assert "_CODEC2_IMPORT_ERROR" in codecs_init
+
+
 def test_repack_script_bundles_libcodec2(tmp_path):
     import importlib.util
     import zipfile

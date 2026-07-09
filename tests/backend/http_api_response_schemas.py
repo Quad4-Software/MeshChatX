@@ -702,6 +702,18 @@ TELEPHONE_AUDIO_PROFILES_SCHEMA: dict = {
     "additionalProperties": True,
 }
 
+TELEPHONE_CODEC2_STATUS_SCHEMA: dict = {
+    "type": "object",
+    "required": ["codec2_available"],
+    "properties": {
+        "codec2_available": {"type": "boolean"},
+        "preload_error": {"type": ["string", "null"]},
+        "preferred_profile_id": {"type": ["integer", "null"]},
+        "resolved_profile_id": {"type": ["integer", "null"]},
+    },
+    "additionalProperties": True,
+}
+
 TELEPHONE_CALL_SCHEMA: dict = {
     "type": "object",
     "required": ["call"],

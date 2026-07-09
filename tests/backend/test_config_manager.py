@@ -84,6 +84,16 @@ def test_telephony_config(db):
     config.telephone_allow_calls_from_contacts_only.set(False)
     assert config.telephone_allow_calls_from_contacts_only.get() is False
 
+    # Default audio profile must match LXST DEFAULT_PROFILE (64)
+    assert config.telephone_audio_profile_id.get() == 64
+    config.telephone_audio_profile_id.set(48)
+    assert config.telephone_audio_profile_id.get() == 48
+
+    # Legacy invalid profile 2 is migrated to 64 on reload
+    config.telephone_audio_profile_id.set(2)
+    config3 = ConfigManager(db)
+    assert config3.telephone_audio_profile_id.get() == 64
+
     # Test Call Recording
     assert config.call_recording_enabled.get() is False
     config.call_recording_enabled.set(True)

@@ -122,9 +122,14 @@ def start_server(port=8000, app_files_dir=None):
         asyncio_signal_patch = _patch_asyncio_signal_handlers_for_android()
         aiohttp_run_app_patch = _patch_aiohttp_run_app_for_android()
         try:
-            from meshchatx.android_codec2 import ensure_codec2_native_library
+            from meshchatx.android_codec2 import ensure_codec2_native_library, probe_pycodec2
 
             ensure_codec2_native_library()
+            ok, err = probe_pycodec2()
+            if ok:
+                print("meshchat_wrapper: Codec2/pycodec2 ready")
+            else:
+                print(f"meshchat_wrapper: Codec2/pycodec2 unavailable: {err}")
         except Exception as codec2_exc:
             print(f"meshchat_wrapper: Codec2 preload skipped: {codec2_exc}")
         from meshchatx.meshchat import ReticulumMeshChat, main
