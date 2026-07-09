@@ -1,0 +1,201 @@
+# Nightly / manual Android emulator smoke: build x86_64 debug APK, install on
+# an AVD, launch MainActivity, and require /api/v1/status == ok.
+# Catches Chaquopy boot failures (missing modules, storage lock SystemExit, etc.)
+# that assembleDebug alone cannot see.
+#
+# Pinned first-party actions (bump tag and SHA together when upgrading):
+#   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
+#   actions/setup-python@v6.2.0        a309ff8b426b58ec0e2a45f0f869d46889d02405
+#   actions/setup-java@v4.7.1          c5195efecf7bdfc987ee8bae7a71cb8b11521c00
+#   actions/upload-artifact@v5.0.0     330a01c490aca151604b8cf639adc76d48f6c5d4
+#   actions/download-artifact@v5.0.0   634f93cb2916e3fdff6788551b99b062d0335ce0
+#   reactivecircus/android-emulator-runner@v2.38.0
+#                                      a421e43855164a8197daf9d8d40fe71c6996bb0d
+
+name: Android emulator smoke
+
+on:
+    schedule:
+        # After nightly release tagging window; independent of release success.
+        - cron: "30 8 * * *"
+    workflow_dispatch:
+        inputs:
+            api_level:
+                description: Android API level for the emulator AVD
+                required: true
+                type: string
+                default: "30"
+
+permissions:
+    contents: read
+    actions: write
+
+concurrency:
+    group: android-emulator-smoke-${{ github.ref }}
+    cancel-in-progress: true
+
+env:
+    FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    NODE_OPTIONS: --max-old-space-size=8192
+    NODE_VERSION: "24"
+    PNPM_VERSION: "11.1.2"
+    PYTHON_VERSION: "3.11"
+    JAVA_VERSION: "17"
+    CHAQUOPY_REF: "9f563f45108a873d7feb363e1f754c0173f1114e"
+    MESHCHATX_ABIS: "x86_64"
+
+jobs:
+    frontend:
+        name: Build frontend artifact
+        uses: ./.github/workflows/frontend-build.yml
+        permissions:
+            contents: read
+        with:
+            artifact_name: meshchatx-frontend-android-smoke-${{ github.run_id }}-${{ github.run_attempt }}
+            retention_days: 1
+            python_version: "3.11"
+
+    smoke:
+        name: Emulator smoke (API ${{ github.event.inputs.api_level || '30' }})
+        runs-on: ubuntu-latest
+        needs: frontend
+        timeout-minutes: 120
+        permissions:
+            contents: read
+            actions: write
+        defaults:
+            run:
+                shell: bash
+        env:
+            FRONTEND_ARTIFACT_NAME: ${{ needs.frontend.outputs.artifact_name }}
+            API_LEVEL: ${{ github.event.inputs.api_level || '30' }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+
+            - name: Enable KVM
+              run: |
+                  echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+                  sudo udevadm control --reload-rules
+                  sudo udevadm trigger --name-match=kvm
+                  ls -l /dev/kvm
+
+            - name: Set up Java
+              uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00
+              with:
+                  distribution: temurin
+                  java-version: ${{ env.JAVA_VERSION }}
+                  cache: gradle
+                  cache-dependency-path: |
+                      android/build.gradle
+                      android/settings.gradle
+                      android/app/build.gradle
+
+            - name: Set up Python
+              uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+              with:
+                  python-version: ${{ env.PYTHON_VERSION }}
+
+            - name: Download frontend artifact
+              uses: ./.github/actions/fetch-frontend-artifact
+              with:
+                  artifact-name: ${{ env.FRONTEND_ARTIFACT_NAME }}
+
+            - name: Install Android wheel build dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y build-essential cmake pkg-config patchelf
+
+            - name: Install Rust toolchain
+              run: |
+                  curl -sSfL https://sh.rustup.rs -o rustup-init.sh
+                  chmod +x rustup-init.sh
+                  ./rustup-init.sh -y --profile minimal --default-toolchain stable
+                  echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
+            - name: Install Android NDK for Chaquopy native wheels
+              run: |
+                  set -euo pipefail
+                  SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+                  SDKMANAGER="${SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager"
+                  if [[ ! -x "${SDKMANAGER}" ]]; then
+                      echo "Expected preinstalled sdkmanager at ${SDKMANAGER}" >&2
+                      exit 1
+                  fi
+                  NDK_VERSION="27.3.13750724"
+                  yes_n() { for _ in $(seq 1 "$1"); do echo y; done; }
+                  if [[ ! -d "${SDK_ROOT}/ndk/${NDK_VERSION}" ]]; then
+                      yes_n 200 | "${SDKMANAGER}" --sdk_root="${SDK_ROOT}" --licenses >/dev/null
+                      yes_n 50 | "${SDKMANAGER}" --sdk_root="${SDK_ROOT}" "ndk;${NDK_VERSION}" >/dev/null
+                  fi
+                  {
+                      echo "ANDROID_HOME=${SDK_ROOT}"
+                      echo "ANDROID_SDK_ROOT=${SDK_ROOT}"
+                  } >> "${GITHUB_ENV}"
+
+            - name: Build Android wheels (x86_64 only)
+              run: bash scripts/build-android-wheels-local.sh --python-minor "${PYTHON_VERSION}" --chaquopy-ref "${CHAQUOPY_REF}" --abis x86_64
+
+            - name: Build MeshChatX wheel for repository bundle
+              run: |
+                  set -euo pipefail
+                  python -m pip install -U pip build
+                  python -m build --wheel -o dist .
+
+            - name: Verify required x86_64 Android wheels
+              run: |
+                  set -euo pipefail
+                  required=(
+                      "cbor2-5.6.5-*-cp311-cp311-android_24_x86_64.whl"
+                      "aiohttp-3.14.1-*-cp311-cp311-android_24_x86_64.whl"
+                      "cryptography-49.0.0-*-cp311-cp311-android_24_x86_64.whl"
+                      "miniaudio-1.70-*-cp311-cp311-android_24_x86_64.whl"
+                      "pycodec2-*-cp311-cp311-android_24_x86_64.whl"
+                      "chaquopy_libcodec2-*-android_24_x86_64.whl"
+                      "lxst-*-py3-none-any.whl"
+                      "bleak-*-py3-none-any.whl"
+                  )
+                  missing=0
+                  for pattern in "${required[@]}"; do
+                      if ! ls android/vendor/${pattern} >/dev/null 2>&1; then
+                          echo "::error::Missing wheel matching android/vendor/${pattern}"
+                          missing=1
+                      fi
+                  done
+                  if [[ "${missing}" -ne 0 ]]; then
+                      ls -la android/vendor/ || true
+                      exit 1
+                  fi
+
+            - name: Build x86_64 debug APK
+              working-directory: android
+              env:
+                  MESHCHATX_ABIS: x86_64
+              run: |
+                  chmod +x gradlew
+                  ./gradlew --no-daemon -PmeshchatxAbis=x86_64 :app:assembleDebug
+
+            - name: Upload smoke APK
+              uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+              with:
+                  name: meshchatx-android-smoke-apk-${{ github.run_id }}
+                  path: android/app/build/outputs/apk/debug/*.apk
+                  if-no-files-found: error
+                  retention-days: 7
+
+            - name: Run emulator smoke
+              uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+              with:
+                  api-level: ${{ env.API_LEVEL }}
+                  target: google_apis
+                  arch: x86_64
+                  profile: pixel_5
+                  force-avd-creation: false
+                  emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+                  disable-animations: true
+                  script: |
+                      set -euo pipefail
+                      APK="$(ls -1 android/app/build/outputs/apk/debug/*.apk | head -n 1)"
+                      echo "Using APK: ${APK}"
+                      chmod +x scripts/ci/android-emulator-smoke.sh
+                      MESHCHATX_SMOKE_TIMEOUT_SEC=180 bash scripts/ci/android-emulator-smoke.sh "${APK}"
