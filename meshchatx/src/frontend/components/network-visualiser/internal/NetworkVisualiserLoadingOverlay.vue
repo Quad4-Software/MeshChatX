@@ -3,7 +3,7 @@
 <template>
     <div
         v-if="isLoading"
-        class="absolute inset-0 z-20 flex items-center justify-center bg-zinc-950/10 backdrop-blur-[2px] transition-all duration-300"
+        class="absolute inset-0 z-20 flex items-center justify-center bg-zinc-950/15 transition-all duration-300"
     >
         <div
             class="bg-white/90 dark:bg-zinc-900/90 border border-gray-200 dark:border-zinc-800 rounded-2xl px-6 py-4 flex flex-col items-center gap-3"

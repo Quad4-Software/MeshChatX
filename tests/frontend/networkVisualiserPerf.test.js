@@ -33,6 +33,7 @@ describe("networkVisualiserPerf", () => {
         const out = dedupeIconQueueEntries(queue);
         expect(out).toHaveLength(2);
         expect(out.find((x) => x.cacheKey === "k1")?.nodeIds).toEqual(["n1", "n2"]);
+        expect(out.every((x) => x._seen === undefined)).toBe(true);
     });
 
     it("pickAdaptiveFetchConcurrency returns a positive integer", () => {

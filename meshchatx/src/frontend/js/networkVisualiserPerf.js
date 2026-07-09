@@ -52,6 +52,7 @@ export function dedupeIconQueueEntries(queue) {
             bucket = {
                 cacheKey: item.cacheKey,
                 nodeIds: [],
+                _seen: new Set(),
                 iconName: item.iconName,
                 fg: item.fg,
                 bg: item.bg,
@@ -60,11 +61,12 @@ export function dedupeIconQueueEntries(queue) {
             };
             byKey.set(item.cacheKey, bucket);
         }
-        if (!bucket.nodeIds.includes(item.nodeId)) {
+        if (!bucket._seen.has(item.nodeId)) {
+            bucket._seen.add(item.nodeId);
             bucket.nodeIds.push(item.nodeId);
         }
     }
-    return Array.from(byKey.values());
+    return Array.from(byKey.values()).map(({ _seen, ...rest }) => rest);
 }
 
 /**
