@@ -91,6 +91,7 @@ exclude = [
     "venv",
     ".venv",
     "tests/frontend",
+    "tests/backend/fixtures/sideband_plugins",
     "vendor",
     "*.egg-info",
 ]
