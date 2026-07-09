@@ -222,7 +222,8 @@ describe("NetworkVisualiser.vue", () => {
         const searchInput = wrapper.find('input[type="text"]');
         await searchInput.setValue("Remote Node");
 
-        // processVisualization is called via watcher on searchQuery
+        // searchQuery watcher debounces processVisualization
+        await new Promise((resolve) => setTimeout(resolve, 150));
         await wrapper.vm.$nextTick();
 
         // The number of nodes in the DataSet should match the search
@@ -425,12 +426,21 @@ describe("NetworkVisualiser.vue", () => {
         };
         wrapper.vm.config = { display_name: "Me", identity_hash: "abc" };
         wrapper.vm.interfaces = [{ name: "eth0", status: true, bitrate: 1000, txb: 0, rxb: 0 }];
-        wrapper.vm.pathTable = [{ hash: "node1", interface: "eth0", hops: 1 }];
+        wrapper.vm.pathTable = [
+            { hash: "node1", interface: "eth0", hops: 1 },
+            { hash: "node2", interface: "eth0", hops: 3 },
+        ];
         wrapper.vm.announces = {
             node1: {
                 destination_hash: "node1",
                 aspect: "lxmf.delivery",
                 display_name: "Remote",
+                updated_at: new Date().toISOString(),
+            },
+            node2: {
+                destination_hash: "node2",
+                aspect: "lxmf.delivery",
+                display_name: "Far",
                 updated_at: new Date().toISOString(),
             },
         };
@@ -439,16 +449,21 @@ describe("NetworkVisualiser.vue", () => {
 
         expect(wrapper.vm.edges.getIds()).toContain("me~eth0");
         expect(wrapper.vm.edges.getIds()).toContain("eth0~node1");
+        expect(wrapper.vm.edges.getIds()).toContain("eth0~node2");
         for (const edge of wrapper.vm.edges.get()) {
             expect(edge.hidden).not.toBe(true);
+            expect(edge.arrows).toBeFalsy();
+            expect(edge.dashes).toBeFalsy();
         }
         const ifaceEdge = wrapper.vm.edges.get("me~eth0");
         expect(ifaceEdge.color.color).toBe("#10b981");
-        expect(ifaceEdge.arrows.to.enabled).toBe(true);
+        expect(ifaceEdge.width).toBeGreaterThanOrEqual(3);
         const directPeerEdge = wrapper.vm.edges.get("eth0~node1");
         expect(directPeerEdge.color.color).toBe("#10b981");
-        expect(directPeerEdge.arrows.to.enabled).toBe(true);
-        expect(directPeerEdge.dashes).not.toBe(true);
+        expect(directPeerEdge.width).toBeGreaterThanOrEqual(2);
+        const multiHopEdge = wrapper.vm.edges.get("eth0~node2");
+        expect(multiHopEdge.color.color).toBe("#3b82f6");
+        expect(multiHopEdge.width).toBeLessThan(directPeerEdge.width);
         expect(wrapper.vm.network.redraw).toHaveBeenCalled();
     });
 

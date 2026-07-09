@@ -108,17 +108,20 @@ function yieldToMain() {
 
 /*
  * Pick a visualisation chunk size that scales down on weak hardware. ARM SBCs
- * commonly report 4 logical cores; phones/SoCs frequently report 2. We keep
- * desktop throughput (larger chunks => fewer yields) but drop hard for low
- * core-count devices so the main thread is not pinned for tens of ms per chunk.
+ * commonly report 4 logical cores; phones/SoCs frequently report 2. Desktop
+ * uses large chunks (fewer DataSet updates / yields) so wall-clock build time
+ * stays competitive with upstream's single-pass update.
  */
 function pickAdaptiveChunkSize() {
     const cores = (typeof navigator !== "undefined" && navigator.hardwareConcurrency) || 4;
-    if (cores <= 2) return 40;
-    if (cores <= 4) return 80;
-    if (cores <= 6) return 150;
-    return 250;
+    if (cores <= 2) return 60;
+    if (cores <= 4) return 120;
+    if (cores <= 6) return 250;
+    return 500;
 }
+
+/* Skip event-loop yields when the path table is small enough for one paint. */
+const VIZ_SYNC_PATH_THRESHOLD = 180;
 
 /*
  * Straight edges ({ enabled: false } object, never the boolean `false`). Boolean
@@ -168,6 +171,7 @@ export default {
             searchQuery: "",
             hopMaxFilter: readStoredHopMaxFilter(),
             hopFilterDebounceTimer: null,
+            searchDebounceTimer: null,
             abortController: new AbortController(),
             currentLOD: "high",
             didDisableStabilization: false,
@@ -202,8 +206,12 @@ export default {
             this.refreshPhysicsEnabled();
         },
         searchQuery() {
-            // we don't want to trigger a full update from server, just re-run the filtering on existing data
-            this.processVisualization();
+            // Debounce full rebuilds while typing; filter still runs on existing data.
+            if (this.searchDebounceTimer) clearTimeout(this.searchDebounceTimer);
+            this.searchDebounceTimer = setTimeout(() => {
+                this.searchDebounceTimer = null;
+                this.processVisualization();
+            }, 120);
         },
         hopMaxFilter() {
             if (this.hopFilterDebounceTimer) clearTimeout(this.hopFilterDebounceTimer);
@@ -227,6 +235,10 @@ export default {
         if (this.hopFilterDebounceTimer) {
             clearTimeout(this.hopFilterDebounceTimer);
             this.hopFilterDebounceTimer = null;
+        }
+        if (this.searchDebounceTimer) {
+            clearTimeout(this.searchDebounceTimer);
+            this.searchDebounceTimer = null;
         }
         if (this.lodRafId != null) {
             cancelAnimationFrame(this.lodRafId);
@@ -583,8 +595,10 @@ export default {
                     interaction: {
                         tooltipDelay: 100,
                         hover: true,
+                        // Hide edges while dragging/zooming — biggest win vs upstream
+                        // for large graphs (upstream redraws every edge every frame).
                         hideEdgesOnDrag: true,
-                        hideEdgesOnZoom: false,
+                        hideEdgesOnZoom: true,
                     },
                     layout: {
                         randomSeed: 42,
@@ -594,21 +608,27 @@ export default {
                         enabled: this.enablePhysics,
                         solver: "barnesHut",
                         barnesHut: {
-                            gravitationalConstant: -10000,
-                            springConstant: 0.02,
+                            // Match upstream gravity; avoidOverlap is O(n) per tick
+                            // and is the main reason we felt slower than MeshChat.
+                            gravitationalConstant: -5000,
+                            springConstant: 0.04,
                             springLength: 200,
-                            damping: 0.4,
-                            avoidOverlap: 1,
+                            damping: 0.35,
+                            avoidOverlap: 0,
+                            theta: 0.6,
                         },
                         stabilization: {
                             enabled: true,
-                            iterations: 150,
-                            updateInterval: 25,
+                            iterations: 80,
+                            updateInterval: 50,
                         },
+                        maxVelocity: 50,
+                        minVelocity: 0.75,
+                        timestep: 0.5,
                     },
                     nodes: {
-                        borderWidth: 3,
-                        borderWidthSelected: 6,
+                        borderWidth: 2,
+                        borderWidthSelected: 4,
                         color: {
                             border: "#3b82f6",
                             background: isDarkMode ? "#1e40af" : "#eff6ff",
@@ -617,7 +637,7 @@ export default {
                         },
                         font: {
                             face: "Inter, system-ui, sans-serif",
-                            strokeWidth: 4,
+                            strokeWidth: 3,
                             strokeColor: isDarkMode ? "rgba(9, 9, 11, 0.95)" : "rgba(255, 255, 255, 0.95)",
                         },
                         // Canvas shadows are by far the most expensive per-node
@@ -627,8 +647,8 @@ export default {
                     },
                     edges: {
                         smooth: VIZ_EDGE_SMOOTH,
-                        selectionWidth: 3,
-                        hoverWidth: 2,
+                        selectionWidth: 2,
+                        hoverWidth: 1.5,
                         color: {
                             opacity: 0.6,
                         },
@@ -728,11 +748,23 @@ export default {
             if (this.currentLOD === newLOD) return;
             this.currentLOD = newLOD;
 
+            // Only mutate nodes whose LOD props actually change (avoids O(N)
+            // DataSet churn + full redraw when zooming across thresholds).
             const allNodes = this.nodes.get();
-            const updates = allNodes.map((node) => {
-                return this.getNodeLODProps(node, newLOD);
-            });
-            this.nodes.update(updates);
+            const updates = [];
+            for (const node of allNodes) {
+                const next = this.getNodeLODProps(node, newLOD);
+                const shapeChanged = next.shape != null && next.shape !== node.shape;
+                const sizeChanged = next.size != null && next.size !== node.size;
+                const fontSize = next.font?.size;
+                const fontChanged = fontSize != null && fontSize !== (node.font?.size ?? null);
+                if (shapeChanged || sizeChanged || fontChanged) {
+                    updates.push(next);
+                }
+            }
+            if (updates.length > 0) {
+                this.nodes.update(updates);
+            }
 
             if (newLOD === "high" && this.iconQueue.length > 0) {
                 this.scheduleIconQueue();
@@ -764,9 +796,6 @@ export default {
                 color: isDarkMode ? "#60a5fa" : "#3b82f6",
                 opacity: 0.5,
             };
-        },
-        directEdgeArrows() {
-            return { to: { enabled: true, scaleFactor: 0.5 } };
         },
         interfaceDisplayLabel(name) {
             if (!name) return "Interface";
@@ -1002,9 +1031,10 @@ export default {
                               color: isDarkMode ? "#f87171" : "#ef4444",
                               opacity: 1,
                           },
+                    // Solid wider stroke (no arrows) — arrows are redrawn every
+                    // physics frame and dominate canvas cost on large meshes.
                     width: 3,
                     length: 200,
-                    arrows: this.directEdgeArrows(),
                     hidden: false,
                 });
                 processedEdgeIds.add(edgeId);
@@ -1058,7 +1088,6 @@ export default {
                         color: this.directEdgeColor(isDarkMode),
                         width: 3,
                         length: 200,
-                        arrows: this.directEdgeArrows(),
                         hidden: false,
                     });
                     processedEdgeIds.add(edgeId);
@@ -1071,6 +1100,14 @@ export default {
             const discoveredNodes = [];
             const discoveredEdges = [];
             if (this.showDiscoveredInterfaces) {
+                const activeEndpoints = new Set();
+                for (const a of this.discoveredActive) {
+                    const aHost = a.target_host || a.remote || a.listen_ip;
+                    const aPort = a.target_port || a.listen_port;
+                    if (aHost && aPort != null) {
+                        activeEndpoints.add(`${aHost}:${aPort}`);
+                    }
+                }
                 for (const disc of this.discoveredInterfaces) {
                     const discId = `discovered~${disc.discovery_hash || disc.name}`;
                     const discLabel = disc.name || disc.reachable_on || "Unknown";
@@ -1086,11 +1123,10 @@ export default {
                         continue;
                     }
 
-                    const isConnected = this.discoveredActive.some((a) => {
-                        const aHost = a.target_host || a.remote || a.listen_ip;
-                        const aPort = a.target_port || a.listen_port;
-                        return aHost && aPort && disc.reachable_on === aHost && String(disc.port) === String(aPort);
-                    });
+                    const isConnected =
+                        disc.reachable_on != null &&
+                        disc.port != null &&
+                        activeEndpoints.has(`${disc.reachable_on}:${disc.port}`);
 
                     const angle = Math.random() * 2 * Math.PI;
                     const dist = 800 + Math.random() * 200;
@@ -1129,10 +1165,9 @@ export default {
                         to: discId,
                         color: {
                             color: isDarkMode ? "#155e75" : "#06b6d4",
-                            opacity: 0.4,
+                            opacity: 0.35,
                         },
                         width: 1,
-                        dashes: true,
                         hidden: false,
                     });
                     processedEdgeIds.add(edgeId);
@@ -1299,10 +1334,10 @@ export default {
                         id: edgeId,
                         from: entry.interface,
                         to: entry.hash,
+                        // Direct = brighter/thicker; multi-hop = cooler/thinner.
+                        // No dashes/arrows — both force expensive per-frame path work.
                         color: directHop ? this.directEdgeColor(isDarkMode) : this.multiHopEdgeColor(isDarkMode),
-                        width: directHop ? 2 : 1,
-                        dashes: !directHop,
-                        arrows: directHop ? this.directEdgeArrows() : undefined,
+                        width: directHop ? 2.5 : 1,
                         hidden: false,
                     });
                     processedEdgeIds.add(edgeId);
@@ -1314,12 +1349,13 @@ export default {
                 this.loadingStatus = `Processing Batch ${this.currentBatch} / ${this.totalBatches}...`;
 
                 /*
-                 * Yield to the event loop using the prioritized scheduler
-                 * (or setTimeout fallback). $nextTick is a microtask and does
-                 * not let the renderer paint or process input between chunks,
-                 * which is what was making the app feel frozen.
+                 * Yield between chunks on large graphs so the overlay can paint.
+                 * Small graphs finish in one/few chunks — skip yields so we beat
+                 * upstream wall-clock on typical meshes.
                  */
-                await yieldToMain();
+                if (this.pathTable.length > VIZ_SYNC_PATH_THRESHOLD) {
+                    await yieldToMain();
+                }
 
                 if (!isCurrentRun()) return;
             }
@@ -1411,7 +1447,7 @@ export default {
 
 .vis-tooltip {
     color: #f4f4f5 !important;
-    background: rgba(9, 9, 11, 0.9) !important;
+    background: rgba(9, 9, 11, 0.92) !important;
     border: 1px solid rgba(63, 63, 70, 0.5) !important;
     border-radius: 12px !important;
     padding: 12px 16px !important;
@@ -1420,7 +1456,6 @@ export default {
     font-style: normal !important;
     font-family: Inter, system-ui, sans-serif !important;
     line-height: 1.5 !important;
-    backdrop-filter: blur(8px) !important;
     pointer-events: none !important;
 }
 
