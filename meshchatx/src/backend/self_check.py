@@ -707,18 +707,14 @@ def check_plugins_runtime(app: Any) -> dict[str, str]:
     if not plugins_enabled:
         return _status(True)
     bundled_id = "com.meshchatx.mesh-observatory"
-    if any(
-        isinstance(item, dict) and item.get("id") == bundled_id for item in plugins
-    ):
+    if any(isinstance(item, dict) and item.get("id") == bundled_id for item in plugins):
         return _status(True)
     try:
         manager.install_bundled_examples()
         plugins = manager.list_plugins()
     except Exception as exc:
         return _status(False, f"install_bundled_examples failed: {exc}")
-    if any(
-        isinstance(item, dict) and item.get("id") == bundled_id for item in plugins
-    ):
+    if any(isinstance(item, dict) and item.get("id") == bundled_id for item in plugins):
         return _status(True)
     return _status(False, f"bundled plugin {bundled_id} missing after install")
 

@@ -89,7 +89,9 @@ def sweep_stale_links():
             to_teardown.append(nomadnet_cached_links.pop(oldest_key, None))
             _nomadnet_link_last_used.pop(oldest_key, None)
 
-        orphans = [k for k in _nomadnet_link_last_used if k not in nomadnet_cached_links]
+        orphans = [
+            k for k in _nomadnet_link_last_used if k not in nomadnet_cached_links
+        ]
         for k in orphans:
             del _nomadnet_link_last_used[k]
     _teardown_links(to_teardown)
@@ -103,9 +105,7 @@ def _cache_link_if_active(destination_hash: bytes, link) -> None:
         nomadnet_cached_links[destination_hash] = link
         _nomadnet_link_last_used[destination_hash] = time.time()
         while len(nomadnet_cached_links) > MAX_CACHED_LINKS:
-            candidates = [
-                k for k in nomadnet_cached_links if k != destination_hash
-            ]
+            candidates = [k for k in nomadnet_cached_links if k != destination_hash]
             if not candidates:
                 break
             oldest_key = min(

@@ -126,12 +126,9 @@ class HealthMonitor:
                 },
             )
             self._trigger_memory_pressure(available_mb)
-        elif (
-            self._memory_pressure_active
-            and self._consecutive_above(
-                self._mem_available_history,
-                self.MEMORY_RECOVER_MB,
-            )
+        elif self._memory_pressure_active and self._consecutive_above(
+            self._mem_available_history,
+            self.MEMORY_RECOVER_MB,
         ):
             self._recover_memory_pressure()
 
