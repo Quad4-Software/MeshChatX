@@ -267,7 +267,7 @@ public class MainActivity extends AppCompatActivity {
                     view.loadUrl("about:blank");
                     if (backendFailed && !startupPageLoaded) {
                         CharSequence description = (error != null) ? error.getDescription() : "Unknown error";
-                        showStartupError("WebView failed to load MeshChatX: " + description);
+                        showStartupError("WebView failed to load MeshChatX:", description);
                     }
                 }
             }
@@ -280,7 +280,7 @@ public class MainActivity extends AppCompatActivity {
                     view.stopLoading();
                     view.loadUrl("about:blank");
                     if (backendFailed) {
-                        showStartupError("WebView failed to load MeshChatX: " + description);
+                        showStartupError("WebView failed to load MeshChatX:", description);
                     }
                 }
             }
@@ -459,7 +459,8 @@ public class MainActivity extends AppCompatActivity {
             AndroidStorageManager.runPendingMigration(this);
         } catch (IOException migrationError) {
             showStartupError(
-                "MeshChatX could not copy data to file-manager storage:\n" + migrationError.getMessage()
+                "MeshChatX could not copy data to file-manager storage:",
+                migrationError.getMessage()
             );
             return;
         }
@@ -661,7 +662,7 @@ public class MainActivity extends AppCompatActivity {
                         mainHandler.postDelayed(() -> startMeshChatServer(), MESHCHAT_SERVER_RETRY_DELAY_MS);
                     } else {
                         backendFailed = true;
-                        showStartupError("MeshChatX backend failed:\n" + stack);
+                        showStartupError("MeshChatX backend failed:", stack);
                     }
                 });
             }
@@ -767,7 +768,10 @@ public class MainActivity extends AppCompatActivity {
             }
             connectionAttempts += 1;
             if (connectionAttempts > MAX_CONNECTION_ATTEMPTS) {
-                showStartupError("Failed to connect to local MeshChatX server after waiting for startup.");
+                showStartupError(
+                    "Failed to connect to local MeshChatX server after waiting for startup.",
+                    null
+                );
                 return;
             }
             webView.loadUrl(SERVER_URL);
@@ -801,13 +805,26 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void showStartupError(String message) {
+    private void showStartupError(String title, @Nullable String detail) {
+        final String message = StartupErrorReport.format(
+            title,
+            detail,
+            StartupErrorReport.collect(this)
+        );
         runOnUiThread(() -> {
             mainHandler.removeCallbacksAndMessages(null);
-            webView.setVisibility(android.view.View.INVISIBLE);
-            loadingLogo.setVisibility(android.view.View.GONE);
-            progressBar.setVisibility(android.view.View.GONE);
-            loadingText.setVisibility(android.view.View.GONE);
+            if (webView != null) {
+                webView.setVisibility(android.view.View.INVISIBLE);
+            }
+            if (loadingLogo != null) {
+                loadingLogo.setVisibility(android.view.View.GONE);
+            }
+            if (progressBar != null) {
+                progressBar.setVisibility(android.view.View.GONE);
+            }
+            if (loadingText != null) {
+                loadingText.setVisibility(android.view.View.GONE);
+            }
             if (errorText != null) {
                 errorText.setText(message);
                 errorText.setVisibility(android.view.View.VISIBLE);

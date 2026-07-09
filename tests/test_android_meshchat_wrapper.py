@@ -91,3 +91,25 @@ def test_clear_stale_storage_lock_missing_is_ok(tmp_path):
     storage = tmp_path / "storage"
     storage.mkdir()
     meshchat_wrapper._clear_stale_storage_lock(str(storage))
+
+
+def test_start_server_systemexit_includes_cause(monkeypatch):
+    import pytest
+
+    import meshchatx.meshchat as mm
+
+    def fake_main():
+        try:
+            raise RuntimeError("storage lock held by pid 12345")
+        except RuntimeError as exc:
+            raise SystemExit(1) from exc
+
+    monkeypatch.setattr(mm, "main", fake_main)
+    import meshchat_wrapper
+
+    importlib.reload(meshchat_wrapper)
+    with pytest.raises(RuntimeError) as excinfo:
+        meshchat_wrapper.start_server(8000, None)
+    message = str(excinfo.value)
+    assert "code=1" in message
+    assert "storage lock held by pid 12345" in message
