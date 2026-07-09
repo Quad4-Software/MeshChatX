@@ -571,7 +571,7 @@ describe("TutorialModal getting started migration", () => {
         wrapper.unmount();
     });
 
-    it("hides footer Continue on connection and bootstrap steps", async () => {
+    it("hides footer Continue on connection step only", async () => {
         axiosMock.get.mockImplementation(discoveryApiHandlers({ show_choice: false }));
 
         const router = createRouter({
@@ -594,10 +594,6 @@ describe("TutorialModal getting started migration", () => {
         expect(wrapper.vm.showFooterContinue).toBe(false);
 
         wrapper.vm.currentStep = 4;
-        await wrapper.vm.$nextTick();
-        expect(wrapper.vm.showFooterContinue).toBe(false);
-
-        wrapper.vm.currentStep = 5;
         await wrapper.vm.$nextTick();
         expect(wrapper.vm.showFooterContinue).toBe(true);
 
@@ -667,60 +663,6 @@ describe("TutorialModal getting started migration", () => {
             enabled: true,
         });
         expect(wrapper.vm.currentStep).toBe(3);
-        expect(ToastUtils.error).toHaveBeenCalledWith(en.tutorial.failed_reload_rns);
-
-        wrapper.unmount();
-    });
-
-    it("confirmBootstraps reload failure keeps user on bootstrap step", async () => {
-        axiosMock.get.mockImplementation((url) => {
-            if (url === "/api/v1/community-interfaces") {
-                return Promise.resolve({
-                    data: {
-                        interfaces: [
-                            {
-                                name: "Test TCP",
-                                type: "TCPClientInterface",
-                                target_host: "1.2.3.4",
-                                target_port: 4242,
-                            },
-                        ],
-                    },
-                });
-            }
-            return discoveryApiHandlers({ show_choice: false })(url);
-        });
-        axiosMock.post.mockImplementation((url) => {
-            if (url === "/api/v1/reticulum/interfaces/add") {
-                return Promise.resolve({ data: { message: "added" } });
-            }
-            if (url === "/api/v1/reticulum/reload") {
-                return Promise.reject({ response: { data: { error: "reload failed" } } });
-            }
-            return Promise.resolve({ data: {} });
-        });
-
-        const router = createRouter({
-            history: createWebHashHistory(),
-            routes: [{ path: "/", name: "home", component: { template: "<div/>" } }],
-        });
-        await router.push("/");
-        await router.isReady();
-
-        const wrapper = mount(TutorialModal, {
-            attachTo: document.body,
-            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
-        });
-
-        await wrapper.vm.show();
-        await flushPromises();
-        wrapper.vm.currentStep = 4;
-        wrapper.vm.connectionMode = "discovery";
-        wrapper.vm.selectedBootstrapKeys = ["comm:Test TCP"];
-        await wrapper.vm.confirmBootstraps();
-        await flushPromises();
-
-        expect(wrapper.vm.currentStep).toBe(4);
         expect(ToastUtils.error).toHaveBeenCalledWith(en.tutorial.failed_reload_rns);
 
         wrapper.unmount();

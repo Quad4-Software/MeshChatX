@@ -379,34 +379,6 @@
                         <div class="grid grid-cols-1 gap-4">
                             <button
                                 type="button"
-                                class="text-left flex items-start gap-4 p-5 rounded-2xl bg-blue-500/5 dark:bg-blue-500/10 border-2 transition-all"
-                                :class="[
-                                    connectionMode === 'discovery'
-                                        ? 'border-blue-500 ring-2 ring-blue-500/30'
-                                        : 'border-blue-500/20 hover:border-blue-500',
-                                ]"
-                                :disabled="savingDiscovery"
-                                @click="useDiscoveryMode"
-                            >
-                                <v-icon icon="mdi-radar" color="blue" size="40"></v-icon>
-                                <div class="flex-1 min-w-0">
-                                    <div class="font-bold text-lg text-gray-900 dark:text-white">
-                                        {{ $t("tutorial.mode_discovery_title") }}
-                                    </div>
-                                    <div class="text-sm text-gray-600 dark:text-zinc-400 mt-1">
-                                        {{ $t("tutorial.mode_discovery_desc") }}
-                                    </div>
-                                </div>
-                                <v-progress-circular
-                                    v-if="savingDiscovery"
-                                    indeterminate
-                                    size="20"
-                                    width="2"
-                                ></v-progress-circular>
-                            </button>
-
-                            <button
-                                type="button"
                                 class="text-left flex items-start gap-4 p-5 rounded-2xl bg-emerald-500/5 dark:bg-emerald-500/10 border-2 transition-all"
                                 :class="[
                                     connectionMode === 'local'
@@ -460,308 +432,8 @@
                         </p>
                     </div>
 
-                    <!-- Step 4: Bootstrap Selection -->
-                    <div v-else-if="currentStep === 4" key="step4-bootstrap" class="space-y-6">
-                        <div class="text-center space-y-2">
-                            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
-                                {{ $t("tutorial.bootstrap_title") }}
-                            </h2>
-                            <p class="text-gray-600 dark:text-zinc-400 text-sm">
-                                {{ $t("tutorial.bootstrap_desc") }}
-                            </p>
-                            <div class="flex flex-col items-center gap-2 pt-1">
-                                <button
-                                    type="button"
-                                    class="inline-flex items-center gap-2 rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-2 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-500/15 dark:text-blue-300 dark:hover:bg-blue-500/20 disabled:opacity-60"
-                                    :disabled="loadingInterfaces || loadingDiscovered || pickingRandomBootstraps"
-                                    @click="pickRandomTcpBootstraps"
-                                >
-                                    <v-progress-circular
-                                        v-if="pickingRandomBootstraps"
-                                        indeterminate
-                                        size="16"
-                                        width="2"
-                                    />
-                                    <v-icon v-else icon="mdi-shuffle-variant" size="18" />
-                                    {{ $t("tutorial.bootstrap_pick_random_tcp") }}
-                                </button>
-                                <div
-                                    v-if="bootstrapSelectedLabels.length > 0"
-                                    class="w-full max-w-md rounded-xl border border-gray-200/90 bg-gray-50/80 px-3 py-2 text-left dark:border-zinc-700 dark:bg-zinc-900/50"
-                                >
-                                    <div
-                                        class="text-[10px] font-bold uppercase tracking-wide text-gray-500 dark:text-zinc-400"
-                                    >
-                                        {{ $t("tutorial.bootstrap_selected_nodes_heading") }}
-                                    </div>
-                                    <ul class="mt-1 space-y-0.5 text-xs text-gray-800 dark:text-zinc-200">
-                                        <li
-                                            v-for="(label, idx) in bootstrapSelectedLabels"
-                                            :key="selectedBootstrapKeys[idx]"
-                                        >
-                                            {{ label }}
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div
-                            class="flex items-start gap-3 sm:gap-4 rounded-2xl border border-gray-200 dark:border-zinc-700 bg-white/80 dark:bg-zinc-900/60 p-3.5 sm:p-4"
-                        >
-                            <div class="shrink-0 pr-0.5 pt-0.5 sm:pt-1 sm:pr-1 flex items-start">
-                                <Toggle
-                                    v-model="defaultBootstrapOnly"
-                                    @update:model-value="persistDefaultBootstrapOnly"
-                                />
-                            </div>
-                            <div class="min-w-0 flex-1 pl-0.5 sm:pl-0 sm:pt-0.5">
-                                <div class="text-sm font-semibold text-gray-900 dark:text-white leading-snug">
-                                    {{ $t("tutorial.bootstrap_only_label") }}
-                                </div>
-                                <p class="text-xs text-gray-500 dark:text-zinc-400 mt-1.5 leading-relaxed">
-                                    {{ $t("tutorial.bootstrap_only_hint") }}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="space-y-4">
-                            <div
-                                v-if="hasAnyBootstrapsToShow"
-                                class="w-full max-w-6xl mx-auto flex items-center gap-2 border-0 border-b border-gray-200/90 dark:border-zinc-600/90 py-1.5"
-                            >
-                                <v-icon icon="mdi-magnify" size="20" class="shrink-0 text-gray-400" />
-                                <input
-                                    v-model="bootstrapListSearch"
-                                    type="search"
-                                    autocomplete="off"
-                                    :placeholder="$t('tutorial.bootstrap_search_placeholder')"
-                                    class="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-gray-900 shadow-none ring-0 outline-hidden focus:ring-0 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500"
-                                />
-                                <button
-                                    v-if="bootstrapListSearch"
-                                    type="button"
-                                    class="shrink-0 rounded p-1 text-gray-400 transition-colors hover:text-gray-700 dark:hover:text-zinc-200"
-                                    :title="$t('tutorial.bootstrap_search_clear')"
-                                    :aria-label="$t('tutorial.bootstrap_search_clear')"
-                                    @click="bootstrapListSearch = ''"
-                                >
-                                    <v-icon icon="mdi-close" size="18" />
-                                </button>
-                            </div>
-
-                            <div
-                                v-if="sortedDiscoveredInterfaces.length > 0"
-                                class="h-fit min-w-0 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-3xl border border-emerald-500/20"
-                            >
-                                <button
-                                    type="button"
-                                    class="flex w-full items-center justify-between gap-2 p-4 text-left sm:px-4"
-                                    :aria-expanded="bootstrapDiscoveredSectionOpen"
-                                    @click="bootstrapDiscoveredSectionOpen = !bootstrapDiscoveredSectionOpen"
-                                >
-                                    <div class="flex min-w-0 items-center gap-2 text-sm">
-                                        <MaterialDesignIcon
-                                            :icon-name="bootstrapDiscoveredSectionOpen ? 'chevron-up' : 'chevron-down'"
-                                            class="size-4 shrink-0 text-gray-500"
-                                        />
-                                        <v-icon icon="mdi-radar" color="emerald"></v-icon>
-                                        <span class="font-bold text-gray-900 dark:text-white">{{
-                                            $t("tutorial.bootstrap_discovered")
-                                        }}</span>
-                                    </div>
-                                </button>
-                                <div v-show="bootstrapDiscoveredSectionOpen" class="px-4 pb-4">
-                                    <p
-                                        v-if="
-                                            bootstrapListSearch &&
-                                            sortedDiscoveredInterfaces.length > 0 &&
-                                            filteredDiscoveredForBootstrap.length === 0
-                                        "
-                                        class="text-xs text-gray-500 dark:text-zinc-400"
-                                    >
-                                        {{ $t("tutorial.bootstrap_search_no_match") }}
-                                    </p>
-                                    <div
-                                        v-else
-                                        class="space-y-2 max-h-[260px] overflow-y-auto pr-2 pt-1 custom-scrollbar"
-                                    >
-                                        <label
-                                            v-for="iface in filteredDiscoveredForBootstrap"
-                                            :key="iface.discovery_hash || iface.name"
-                                            class="flex cursor-pointer items-center gap-3 rounded-xl border bg-white p-3 transition-all dark:bg-zinc-800"
-                                            :class="[
-                                                isBootstrapSelected(`disc:${iface.discovery_hash || iface.name}`)
-                                                    ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
-                                                    : 'border-gray-100 dark:border-zinc-700 hover:border-emerald-400',
-                                            ]"
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                class="h-4 w-4 accent-emerald-500"
-                                                :checked="
-                                                    isBootstrapSelected(`disc:${iface.discovery_hash || iface.name}`)
-                                                "
-                                                @change="toggleBootstrap(`disc:${iface.discovery_hash || iface.name}`)"
-                                            />
-                                            <MaterialDesignIcon
-                                                :icon-name="getDiscoveryIcon(iface)"
-                                                class="h-5 w-5 shrink-0 text-emerald-500"
-                                            />
-                                            <div class="min-w-0 flex-1">
-                                                <div class="truncate text-sm font-bold text-gray-900 dark:text-white">
-                                                    {{ iface.name }}
-                                                </div>
-                                                <div
-                                                    class="truncate font-mono text-[10px] text-gray-500 dark:text-zinc-400"
-                                                >
-                                                    <span v-if="iface.reachable_on"
-                                                        >{{ iface.reachable_on
-                                                        }}<span v-if="iface.port">:{{ iface.port }}</span></span
-                                                    >
-                                                    <span v-else>{{ iface.type }}</span>
-                                                    <span class="ml-2 capitalize">{{ iface.status }}</span>
-                                                </div>
-                                            </div>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div
-                                class="h-fit min-w-0 rounded-3xl border border-gray-100 bg-gray-50 p-0 dark:border-zinc-800 dark:bg-zinc-900"
-                            >
-                                <div class="flex items-center justify-between gap-2 p-4 pr-2 sm:px-4">
-                                    <button
-                                        type="button"
-                                        class="flex min-w-0 flex-1 items-center gap-2 text-left text-sm"
-                                        :aria-expanded="bootstrapCommunitySectionOpen"
-                                        @click="bootstrapCommunitySectionOpen = !bootstrapCommunitySectionOpen"
-                                    >
-                                        <MaterialDesignIcon
-                                            :icon-name="bootstrapCommunitySectionOpen ? 'chevron-up' : 'chevron-down'"
-                                            class="size-4 shrink-0 text-gray-500"
-                                        />
-                                        <v-icon icon="mdi-web" color="blue"></v-icon>
-                                        <span class="font-bold text-gray-900 dark:text-white">{{
-                                            $t("tutorial.bootstrap_community")
-                                        }}</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        class="shrink-0 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-blue-600 disabled:opacity-50 dark:hover:bg-zinc-800 dark:hover:text-blue-400"
-                                        :disabled="refreshingCommunityPresets"
-                                        :title="$t('interfaces.community_presets_refresh')"
-                                        :aria-label="$t('interfaces.community_presets_refresh')"
-                                        @click.stop="refreshCommunityPresets"
-                                    >
-                                        <v-icon
-                                            icon="mdi-refresh"
-                                            size="20"
-                                            :class="{ 'animate-spin': refreshingCommunityPresets }"
-                                        />
-                                    </button>
-                                </div>
-                                <div v-show="bootstrapCommunitySectionOpen" class="px-4 pb-4">
-                                    <p
-                                        v-if="
-                                            bootstrapListSearch &&
-                                            communityInterfaces.length > 0 &&
-                                            filteredCommunityForBootstrap.length === 0
-                                        "
-                                        class="text-xs text-gray-500 dark:text-zinc-400"
-                                    >
-                                        {{ $t("tutorial.bootstrap_search_no_match") }}
-                                    </p>
-                                    <div
-                                        v-else
-                                        class="space-y-2 max-h-[260px] overflow-y-auto pr-2 pt-1 custom-scrollbar"
-                                    >
-                                        <label
-                                            v-for="iface in filteredCommunityForBootstrap"
-                                            :key="iface.name"
-                                            class="flex cursor-pointer items-center gap-3 rounded-xl border border-gray-100 bg-white p-3 transition-all dark:border-zinc-700 dark:bg-zinc-800"
-                                            :class="[
-                                                isBootstrapSelected(`comm:${iface.name}`)
-                                                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                                                    : 'hover:border-blue-400',
-                                            ]"
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                class="h-4 w-4 accent-blue-500"
-                                                :checked="isBootstrapSelected(`comm:${iface.name}`)"
-                                                @change="toggleBootstrap(`comm:${iface.name}`)"
-                                            />
-                                            <v-icon icon="mdi-server-network" color="blue" size="20"></v-icon>
-                                            <div class="min-w-0 flex-1">
-                                                <div class="truncate text-sm font-bold text-gray-900 dark:text-white">
-                                                    {{ iface.name }}
-                                                </div>
-                                                <div
-                                                    class="truncate font-mono text-[10px] text-gray-500 dark:text-zinc-400"
-                                                >
-                                                    {{ iface.target_host
-                                                    }}<span v-if="iface.target_port">:{{ iface.target_port }}</span>
-                                                </div>
-                                            </div>
-                                            <span
-                                                v-if="iface.online"
-                                                class="shrink-0 text-[9px] font-bold uppercase tracking-widest text-green-500"
-                                                >{{ $t("tutorial.online") }}</span
-                                            >
-                                        </label>
-                                        <div v-if="loadingInterfaces" class="flex justify-center py-3">
-                                            <v-progress-circular
-                                                indeterminate
-                                                color="blue"
-                                                size="24"
-                                            ></v-progress-circular>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-                                <p class="text-xs text-gray-500 dark:text-zinc-500">
-                                    {{
-                                        $t("tutorial.bootstrap_selected", {
-                                            count: selectedBootstrapCount,
-                                        })
-                                    }}
-                                </p>
-                                <div class="flex gap-2">
-                                    <button
-                                        type="button"
-                                        class="tutorial-action-btn tutorial-action-btn-secondary"
-                                        @click="skipBootstraps"
-                                    >
-                                        {{ $t("tutorial.bootstrap_skip") }}
-                                    </button>
-                                    <button
-                                        type="button"
-                                        class="tutorial-action-btn tutorial-action-btn-success"
-                                        :disabled="
-                                            addingBootstraps || reloadingReticulum || selectedBootstrapCount === 0
-                                        "
-                                        @click="confirmBootstraps"
-                                    >
-                                        <v-progress-circular
-                                            v-if="addingBootstraps || reloadingReticulum"
-                                            indeterminate
-                                            size="14"
-                                            width="2"
-                                            class="mr-1"
-                                        ></v-progress-circular>
-                                        {{ $t("tutorial.bootstrap_confirm") }}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Step 5: Propagation Mode -->
-                    <div v-else-if="currentStep === 5" key="step5-prop" class="space-y-6">
+                    <!-- Step 4: Propagation Mode -->
+                    <div v-else-if="currentStep === 4" key="step4-prop" class="space-y-6">
                         <div class="text-center space-y-2">
                             <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
                                 {{ $t("tutorial.propagation") }}
@@ -818,8 +490,8 @@
                         </div>
                     </div>
 
-                    <!-- Step 6: Learn & Create -->
-                    <div v-else-if="currentStep === 6" key="step6-tools" class="space-y-6">
+                    <!-- Step 5: Learn & Create -->
+                    <div v-else-if="currentStep === 5" key="step5-tools" class="space-y-6">
                         <div class="text-center space-y-2">
                             <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
                                 {{ $t("tutorial.learn_create") }}
@@ -1028,10 +700,10 @@
                         </div>
                     </div>
 
-                    <!-- Step 7: Finish -->
+                    <!-- Step 6: Finish -->
                     <div
-                        v-else-if="currentStep === 7"
-                        key="step7-finish"
+                        v-else-if="currentStep === 6"
+                        key="step6-finish"
                         class="flex flex-col items-center text-center space-y-8 py-10"
                     >
                         <div class="w-32 h-32 bg-green-500/10 rounded-full flex items-center justify-center relative">
@@ -1475,33 +1147,7 @@
                             </p>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-                            <button
-                                type="button"
-                                class="text-left flex flex-col gap-4 p-8 rounded-3xl bg-blue-500/5 dark:bg-blue-500/10 border-2 transition-all hover:scale-[1.02]"
-                                :class="[
-                                    connectionMode === 'discovery'
-                                        ? 'border-blue-500 ring-2 ring-blue-500/30'
-                                        : 'border-blue-500/20 hover:border-blue-500',
-                                ]"
-                                :disabled="savingDiscovery"
-                                @click="useDiscoveryMode"
-                            >
-                                <v-icon icon="mdi-radar" color="blue" size="56"></v-icon>
-                                <div class="font-bold text-xl text-gray-900 dark:text-white">
-                                    {{ $t("tutorial.mode_discovery_title") }}
-                                </div>
-                                <div class="text-sm text-gray-600 dark:text-zinc-400">
-                                    {{ $t("tutorial.mode_discovery_desc") }}
-                                </div>
-                                <v-progress-circular
-                                    v-if="savingDiscovery"
-                                    indeterminate
-                                    size="20"
-                                    width="2"
-                                ></v-progress-circular>
-                            </button>
-
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
                             <button
                                 type="button"
                                 class="text-left flex flex-col gap-4 p-8 rounded-3xl bg-emerald-500/5 dark:bg-emerald-500/10 border-2 transition-all hover:scale-[1.02]"
@@ -1553,313 +1199,8 @@
                         </p>
                     </div>
 
-                    <!-- Step 4: Bootstrap Selection -->
-                    <div v-else-if="currentStep === 4" key="page-step4-bootstrap" class="space-y-6 py-8">
-                        <div class="text-center space-y-2">
-                            <h2 class="text-3xl font-black text-gray-900 dark:text-white">
-                                {{ $t("tutorial.bootstrap_title") }}
-                            </h2>
-                            <p class="text-lg text-gray-600 dark:text-zinc-400 max-w-3xl mx-auto">
-                                {{ $t("tutorial.bootstrap_desc_page") }}
-                            </p>
-                            <div class="flex flex-col items-center gap-3 pt-2">
-                                <button
-                                    type="button"
-                                    class="inline-flex items-center gap-2 rounded-xl border-2 border-blue-500/30 bg-blue-500/10 px-5 py-2.5 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-500/15 dark:text-blue-300 dark:hover:bg-blue-500/20 disabled:opacity-60"
-                                    :disabled="loadingInterfaces || loadingDiscovered || pickingRandomBootstraps"
-                                    @click="pickRandomTcpBootstraps"
-                                >
-                                    <v-progress-circular
-                                        v-if="pickingRandomBootstraps"
-                                        indeterminate
-                                        size="18"
-                                        width="2"
-                                    />
-                                    <v-icon v-else icon="mdi-shuffle-variant" size="20" />
-                                    {{ $t("tutorial.bootstrap_pick_random_tcp") }}
-                                </button>
-                                <div
-                                    v-if="bootstrapSelectedLabels.length > 0"
-                                    class="w-full max-w-xl rounded-xl border border-gray-200/90 bg-gray-50/80 px-4 py-3 text-left dark:border-zinc-700 dark:bg-zinc-900/50"
-                                >
-                                    <div
-                                        class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-zinc-400"
-                                    >
-                                        {{ $t("tutorial.bootstrap_selected_nodes_heading") }}
-                                    </div>
-                                    <ul class="mt-1.5 space-y-1 text-sm text-gray-800 dark:text-zinc-200">
-                                        <li
-                                            v-for="(label, idx) in bootstrapSelectedLabels"
-                                            :key="selectedBootstrapKeys[idx]"
-                                        >
-                                            {{ label }}
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div
-                            class="flex items-start gap-3 sm:gap-5 max-w-3xl mx-auto rounded-2xl border border-gray-200 dark:border-zinc-700 bg-white/80 dark:bg-zinc-900/60 p-3.5 sm:p-5"
-                        >
-                            <div class="shrink-0 pr-0.5 pt-0.5 sm:pt-1.5 sm:pr-1 flex items-start">
-                                <Toggle
-                                    v-model="defaultBootstrapOnly"
-                                    @update:model-value="persistDefaultBootstrapOnly"
-                                />
-                            </div>
-                            <div class="min-w-0 flex-1 pl-0.5 sm:pl-0 sm:pt-0.5">
-                                <div
-                                    class="text-sm sm:text-base font-semibold text-gray-900 dark:text-white leading-snug"
-                                >
-                                    {{ $t("tutorial.bootstrap_only_label") }}
-                                </div>
-                                <p
-                                    class="text-xs sm:text-sm text-gray-500 dark:text-zinc-400 mt-1.5 sm:mt-2 leading-relaxed"
-                                >
-                                    {{ $t("tutorial.bootstrap_only_hint") }}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div
-                            v-if="hasAnyBootstrapsToShow"
-                            class="flex w-full max-w-6xl mx-auto items-center gap-2 border-0 border-b border-gray-200/90 dark:border-zinc-600/90 py-1.5"
-                        >
-                            <v-icon icon="mdi-magnify" size="22" class="shrink-0 text-gray-400" />
-                            <input
-                                v-model="bootstrapListSearch"
-                                type="search"
-                                autocomplete="off"
-                                :placeholder="$t('tutorial.bootstrap_search_placeholder')"
-                                class="min-w-0 flex-1 border-0 bg-transparent p-0 text-base text-gray-900 shadow-none ring-0 outline-hidden focus:ring-0 dark:text-zinc-100 placeholder:text-gray-400 dark:placeholder:text-zinc-500"
-                            />
-                            <button
-                                v-if="bootstrapListSearch"
-                                type="button"
-                                class="shrink-0 rounded p-1.5 text-gray-400 transition-colors hover:text-gray-700 dark:hover:text-zinc-200"
-                                :title="$t('tutorial.bootstrap_search_clear')"
-                                :aria-label="$t('tutorial.bootstrap_search_clear')"
-                                @click="bootstrapListSearch = ''"
-                            >
-                                <v-icon icon="mdi-close" size="20" />
-                            </button>
-                        </div>
-
-                        <div class="grid max-w-6xl mx-auto grid-cols-1 items-start gap-6 lg:grid-cols-2">
-                            <div
-                                v-if="sortedDiscoveredInterfaces.length > 0"
-                                class="h-fit min-w-0 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-3xl border border-emerald-500/20"
-                            >
-                                <button
-                                    type="button"
-                                    class="flex w-full items-center justify-between gap-2 p-4 text-left sm:px-5"
-                                    :aria-expanded="bootstrapDiscoveredSectionOpen"
-                                    @click="bootstrapDiscoveredSectionOpen = !bootstrapDiscoveredSectionOpen"
-                                >
-                                    <div class="flex min-w-0 items-center gap-2.5 text-base">
-                                        <MaterialDesignIcon
-                                            :icon-name="bootstrapDiscoveredSectionOpen ? 'chevron-up' : 'chevron-down'"
-                                            class="size-4 shrink-0 text-gray-500"
-                                        />
-                                        <v-icon icon="mdi-radar" color="emerald" size="22"></v-icon>
-                                        <span class="font-bold text-gray-900 dark:text-white">{{
-                                            $t("tutorial.bootstrap_discovered")
-                                        }}</span>
-                                    </div>
-                                </button>
-                                <div v-show="bootstrapDiscoveredSectionOpen" class="px-4 pb-5 sm:px-5">
-                                    <p
-                                        v-if="
-                                            bootstrapListSearch &&
-                                            sortedDiscoveredInterfaces.length > 0 &&
-                                            filteredDiscoveredForBootstrap.length === 0
-                                        "
-                                        class="text-sm text-gray-500 dark:text-zinc-400"
-                                    >
-                                        {{ $t("tutorial.bootstrap_search_no_match") }}
-                                    </p>
-                                    <div
-                                        v-else
-                                        class="max-h-[480px] space-y-2 overflow-y-auto pr-2 pt-1 custom-scrollbar"
-                                    >
-                                        <label
-                                            v-for="iface in filteredDiscoveredForBootstrap"
-                                            :key="iface.discovery_hash || iface.name"
-                                            class="flex cursor-pointer items-center gap-3 rounded-xl border border-gray-100 bg-white p-3 transition-all dark:border-zinc-700 dark:bg-zinc-800"
-                                            :class="[
-                                                isBootstrapSelected(`disc:${iface.discovery_hash || iface.name}`)
-                                                    ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
-                                                    : 'hover:border-emerald-400',
-                                            ]"
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                class="h-4 w-4 accent-emerald-500"
-                                                :checked="
-                                                    isBootstrapSelected(`disc:${iface.discovery_hash || iface.name}`)
-                                                "
-                                                @change="toggleBootstrap(`disc:${iface.discovery_hash || iface.name}`)"
-                                            />
-                                            <MaterialDesignIcon
-                                                :icon-name="getDiscoveryIcon(iface)"
-                                                class="h-5 w-5 shrink-0 text-emerald-500"
-                                            />
-                                            <div class="min-w-0 flex-1">
-                                                <div class="truncate text-sm font-bold text-gray-900 dark:text-white">
-                                                    {{ iface.name }}
-                                                </div>
-                                                <div
-                                                    class="truncate font-mono text-[10px] text-gray-500 dark:text-zinc-400"
-                                                >
-                                                    <span v-if="iface.reachable_on"
-                                                        >{{ iface.reachable_on
-                                                        }}<span v-if="iface.port">:{{ iface.port }}</span></span
-                                                    >
-                                                    <span v-else>{{ iface.type }}</span>
-                                                    <span class="ml-2 capitalize">{{ iface.status }}</span>
-                                                </div>
-                                            </div>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div
-                                class="h-fit min-w-0 rounded-3xl border border-gray-100 bg-gray-50 p-0 dark:border-zinc-800 dark:bg-zinc-900"
-                                :class="[sortedDiscoveredInterfaces.length === 0 ? 'lg:col-span-2' : '']"
-                            >
-                                <div class="flex items-center justify-between gap-2 p-4 pr-2 sm:px-5">
-                                    <button
-                                        type="button"
-                                        class="flex min-w-0 flex-1 items-center gap-2.5 text-left text-base"
-                                        :aria-expanded="bootstrapCommunitySectionOpen"
-                                        @click="bootstrapCommunitySectionOpen = !bootstrapCommunitySectionOpen"
-                                    >
-                                        <MaterialDesignIcon
-                                            :icon-name="bootstrapCommunitySectionOpen ? 'chevron-up' : 'chevron-down'"
-                                            class="size-4 shrink-0 text-gray-500"
-                                        />
-                                        <v-icon icon="mdi-web" color="blue" size="22"></v-icon>
-                                        <span class="font-bold text-gray-900 dark:text-white">{{
-                                            $t("tutorial.bootstrap_community")
-                                        }}</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        class="shrink-0 rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-blue-600 disabled:opacity-50 dark:hover:bg-zinc-800 dark:hover:text-blue-400"
-                                        :disabled="refreshingCommunityPresets"
-                                        :title="$t('interfaces.community_presets_refresh')"
-                                        :aria-label="$t('interfaces.community_presets_refresh')"
-                                        @click.stop="refreshCommunityPresets"
-                                    >
-                                        <v-icon
-                                            icon="mdi-refresh"
-                                            size="22"
-                                            :class="{ 'animate-spin': refreshingCommunityPresets }"
-                                        />
-                                    </button>
-                                </div>
-                                <div v-show="bootstrapCommunitySectionOpen" class="px-4 pb-5 sm:px-5">
-                                    <p
-                                        v-if="
-                                            bootstrapListSearch &&
-                                            communityInterfaces.length > 0 &&
-                                            filteredCommunityForBootstrap.length === 0
-                                        "
-                                        class="text-sm text-gray-500 dark:text-zinc-400"
-                                    >
-                                        {{ $t("tutorial.bootstrap_search_no_match") }}
-                                    </p>
-                                    <div
-                                        v-else
-                                        class="max-h-[480px] space-y-2 overflow-y-auto pr-2 pt-1 custom-scrollbar"
-                                    >
-                                        <label
-                                            v-for="iface in filteredCommunityForBootstrap"
-                                            :key="iface.name"
-                                            class="flex cursor-pointer items-center gap-3 rounded-xl border border-gray-100 bg-white p-3 transition-all dark:border-zinc-700 dark:bg-zinc-800"
-                                            :class="[
-                                                isBootstrapSelected(`comm:${iface.name}`)
-                                                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                                                    : 'hover:border-blue-400',
-                                            ]"
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                class="h-4 w-4 accent-blue-500"
-                                                :checked="isBootstrapSelected(`comm:${iface.name}`)"
-                                                @change="toggleBootstrap(`comm:${iface.name}`)"
-                                            />
-                                            <v-icon icon="mdi-server-network" color="blue" size="22"></v-icon>
-                                            <div class="min-w-0 flex-1">
-                                                <div class="truncate text-sm font-bold text-gray-900 dark:text-white">
-                                                    {{ iface.name }}
-                                                </div>
-                                                <div
-                                                    class="truncate font-mono text-[10px] text-gray-500 dark:text-zinc-400"
-                                                >
-                                                    {{ iface.target_host
-                                                    }}<span v-if="iface.target_port">:{{ iface.target_port }}</span>
-                                                </div>
-                                            </div>
-                                            <span
-                                                v-if="iface.online"
-                                                class="shrink-0 text-[9px] font-bold uppercase tracking-widest text-green-500"
-                                                >{{ $t("tutorial.online") }}</span
-                                            >
-                                        </label>
-                                        <div v-if="loadingInterfaces" class="flex justify-center py-3">
-                                            <v-progress-circular
-                                                indeterminate
-                                                color="blue"
-                                                size="24"
-                                            ></v-progress-circular>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div
-                            class="flex flex-col sm:flex-row items-center justify-between gap-4 max-w-6xl mx-auto pt-4"
-                        >
-                            <p class="text-sm text-gray-500 dark:text-zinc-500">
-                                {{
-                                    $t("tutorial.bootstrap_selected", {
-                                        count: selectedBootstrapCount,
-                                    })
-                                }}
-                            </p>
-                            <div class="flex gap-3">
-                                <button
-                                    type="button"
-                                    class="tutorial-action-btn tutorial-action-btn-secondary"
-                                    @click="skipBootstraps"
-                                >
-                                    {{ $t("tutorial.bootstrap_skip") }}
-                                </button>
-                                <button
-                                    type="button"
-                                    class="tutorial-action-btn tutorial-action-btn-success"
-                                    :disabled="addingBootstraps || reloadingReticulum || selectedBootstrapCount === 0"
-                                    @click="confirmBootstraps"
-                                >
-                                    <v-progress-circular
-                                        v-if="addingBootstraps || reloadingReticulum"
-                                        indeterminate
-                                        size="16"
-                                        width="2"
-                                        class="mr-2"
-                                    ></v-progress-circular>
-                                    {{ $t("tutorial.bootstrap_confirm") }}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Step 5: Propagation Mode -->
-                    <div v-else-if="currentStep === 5" key="page-step5-prop" class="space-y-8 py-12">
+                    <!-- Step 4: Propagation Mode -->
+                    <div v-else-if="currentStep === 4" key="page-step4-prop" class="space-y-8 py-12">
                         <div class="text-center space-y-4">
                             <h2 class="text-4xl font-black text-gray-900 dark:text-white">
                                 {{ $t("tutorial.propagation") }}
@@ -1916,8 +1257,8 @@
                         </div>
                     </div>
 
-                    <!-- Step 6: Learn & Create -->
-                    <div v-else-if="currentStep === 6" key="page-step6-tools" class="space-y-8 py-10">
+                    <!-- Step 5: Learn & Create -->
+                    <div v-else-if="currentStep === 5" key="page-step5-tools" class="space-y-8 py-10">
                         <div class="text-center space-y-4">
                             <h2 class="text-4xl font-black text-gray-900 dark:text-white">
                                 {{ $t("tutorial.learn_create") }}
@@ -2170,10 +1511,10 @@
                         </div>
                     </div>
 
-                    <!-- Step 7: Finish -->
+                    <!-- Step 6: Finish -->
                     <div
-                        v-else-if="currentStep === 7"
-                        key="page-step7-finish"
+                        v-else-if="currentStep === 6"
+                        key="page-step6-finish"
                         class="flex flex-col items-center text-center space-y-10 py-20"
                     >
                         <div class="w-48 h-48 bg-green-500/10 rounded-full flex items-center justify-center relative">
@@ -2258,20 +1599,18 @@ import GlobalState from "../js/GlobalState";
 import { bundledReticulumDocsUrl } from "../js/reticulumDocsEntryUrl.js";
 import LanguageSelector from "./LanguageSelector.vue";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
-import Toggle from "./forms/Toggle.vue";
 
 export default {
     name: "TutorialModal",
     components: {
         LanguageSelector,
         MaterialDesignIcon,
-        Toggle,
     },
     data() {
         return {
             visible: false,
             currentStep: 1,
-            totalSteps: 7,
+            totalSteps: 6,
             logoUrl,
             identityMode: "new",
             identityName: "",
@@ -2281,30 +1620,13 @@ export default {
             identityImportError: "",
             identityImportedHash: null,
             originalIdentityHash: null,
-            communityInterfaces: [],
-            loadingInterfaces: false,
             interfaceAddedViaTutorial: false,
             connectionMode: null,
-            selectedBootstrapKeys: [],
-            addedBootstrapKeys: [],
-            addingBootstraps: false,
             addingLocal: false,
             reloadingReticulum: false,
-            discoveredInterfaces: [],
-            discoveredActive: [],
-            loadingDiscovered: false,
-            savingDiscovery: false,
             savingPropagation: false,
-            discoveryInterval: null,
             markingSeen: false,
             windowWidth: typeof window !== "undefined" ? window.innerWidth : 1024,
-            defaultBootstrapOnly: false,
-            refreshingCommunityPresets: false,
-            bootstrapListSearch: "",
-            bootstrapDiscoveredSectionOpen: true,
-            bootstrapCommunitySectionOpen: true,
-            bootstrapAutoPickDone: false,
-            pickingRandomBootstraps: false,
             migrationOffer: null,
             migrationBusy: false,
             androidStorageSetup: null,
@@ -2323,55 +1645,6 @@ export default {
         config() {
             return GlobalState.config;
         },
-        sortedDiscoveredInterfaces() {
-            return [...this.discoveredInterfaces].sort((a, b) => (b.last_heard || 0) - (a.last_heard || 0));
-        },
-        interfacesWithLocation() {
-            return this.discoveredInterfaces.filter((iface) => iface.latitude != null && iface.longitude != null);
-        },
-        bootstrapCommunityKey() {
-            return (iface) => `comm:${iface.name}`;
-        },
-        bootstrapDiscoveredKey() {
-            return (iface) => `disc:${iface.discovery_hash || iface.name}`;
-        },
-        hasAnyBootstrapsToShow() {
-            return this.communityInterfaces.length > 0 || this.sortedDiscoveredInterfaces.length > 0;
-        },
-        filteredDiscoveredForBootstrap() {
-            const list = this.sortedDiscoveredInterfaces;
-            const q = (this.bootstrapListSearch || "").trim().toLowerCase();
-            if (!q) {
-                return list;
-            }
-            return list.filter((iface) => {
-                const parts = [
-                    iface.name,
-                    iface.type,
-                    iface.reachable_on,
-                    String(iface.port ?? ""),
-                    iface.status,
-                    iface.discovery_hash,
-                ].filter(Boolean);
-                return parts.join(" ").toLowerCase().includes(q);
-            });
-        },
-        filteredCommunityForBootstrap() {
-            const list = this.communityInterfaces;
-            const q = (this.bootstrapListSearch || "").trim().toLowerCase();
-            if (!q) {
-                return list;
-            }
-            return list.filter((iface) => {
-                const parts = [iface.name, iface.target_host, String(iface.target_port ?? ""), iface.type].filter(
-                    Boolean
-                );
-                return parts.join(" ").toLowerCase().includes(q);
-            });
-        },
-        selectedBootstrapCount() {
-            return this.selectedBootstrapKeys.length;
-        },
         reticulumBundledDocsUrl() {
             return bundledReticulumDocsUrl(this.$i18n.locale);
         },
@@ -2381,35 +1654,16 @@ export default {
         hasIdentityImportInput() {
             return Boolean(this.identityImportFile || this.identityImportBase32.trim());
         },
-        bootstrapSelectedLabels() {
-            return this.selectedBootstrapKeys.map((k) => this.bootstrapDisplayLabelForKey(k)).filter(Boolean);
-        },
         showFooterContinue() {
-            if (this.currentStep === 3 || this.currentStep === 4) {
+            if (this.currentStep === 3) {
                 return false;
             }
             return this.currentStep < this.totalSteps;
         },
     },
-    watch: {
-        communityInterfaces() {
-            this.$nextTick(() => void this.maybeAutoPickBootstrapTcp());
-        },
-        discoveredInterfaces() {
-            this.$nextTick(() => void this.maybeAutoPickBootstrapTcp());
-        },
-        currentStep(val) {
-            if (val === 4) {
-                this.$nextTick(() => void this.maybeAutoPickBootstrapTcp());
-            }
-        },
-    },
     beforeUnmount() {
         if (this.onWindowResize) {
             window.removeEventListener("resize", this.onWindowResize);
-        }
-        if (this.discoveryInterval) {
-            clearInterval(this.discoveryInterval);
         }
     },
     mounted() {
@@ -2419,14 +1673,8 @@ export default {
         window.addEventListener("resize", this.onWindowResize, { passive: true });
         if (this.isPage) {
             this.loadIdentitySetupDefaults();
-            this.loadDiscoveryBootstrapDefaults();
-            this.loadCommunityInterfaces();
-            this.loadDiscoveredInterfaces();
             this.refreshMigrationOffer();
             this.refreshAndroidStorageSetup();
-            this.discoveryInterval = setInterval(() => {
-                this.loadDiscoveredInterfaces();
-            }, 5000);
         }
     },
     methods: {
@@ -2555,63 +1803,9 @@ export default {
             this.resetIdentitySetupState();
             this.interfaceAddedViaTutorial = false;
             this.connectionMode = null;
-            this.selectedBootstrapKeys = [];
-            this.addedBootstrapKeys = [];
-            this.bootstrapListSearch = "";
-            this.bootstrapDiscoveredSectionOpen = true;
-            this.bootstrapCommunitySectionOpen = true;
-            this.bootstrapAutoPickDone = false;
             await this.refreshMigrationOffer();
             await this.refreshAndroidStorageSetup();
             await this.loadIdentitySetupDefaults();
-            await this.loadDiscoveryBootstrapDefaults();
-            await this.loadCommunityInterfaces();
-            await this.loadDiscoveredInterfaces();
-
-            if (this.discoveryInterval) {
-                clearInterval(this.discoveryInterval);
-            }
-            this.discoveryInterval = setInterval(() => {
-                this.loadDiscoveredInterfaces();
-            }, 5000);
-        },
-        async loadCommunityInterfaces() {
-            this.loadingInterfaces = true;
-            try {
-                const response = await window.api.get("/api/v1/community-interfaces");
-                this.communityInterfaces = response.data.interfaces;
-            } catch (e) {
-                console.error("Failed to load community interfaces:", e);
-            } finally {
-                this.loadingInterfaces = false;
-            }
-        },
-        async refreshCommunityPresets() {
-            if (this.refreshingCommunityPresets) return;
-            this.refreshingCommunityPresets = true;
-            try {
-                const r = await window.api.post("/api/v1/community-interfaces/refresh", {});
-                const n = r.data?.count ?? 0;
-                ToastUtils.success(this.$t("interfaces.community_presets_refreshed", { count: n }));
-                await this.loadCommunityInterfaces();
-            } catch (e) {
-                ToastUtils.error(e.response?.data?.message || this.$t("interfaces.community_presets_refresh_failed"));
-                console.error(e);
-            } finally {
-                this.refreshingCommunityPresets = false;
-            }
-        },
-        async loadDiscoveredInterfaces() {
-            this.loadingDiscovered = true;
-            try {
-                const response = await window.api.get(`/api/v1/reticulum/discovered-interfaces`);
-                this.discoveredInterfaces = response.data?.interfaces ?? [];
-                this.discoveredActive = response.data?.active ?? [];
-            } catch (e) {
-                console.error("Failed to load discovered interfaces:", e);
-            } finally {
-                this.loadingDiscovered = false;
-            }
         },
         async refreshMigrationOffer() {
             this.migrationOffer = null;
@@ -2713,32 +1907,6 @@ export default {
                 this.reloadingReticulum = false;
             }
         },
-        async useDiscoveryMode() {
-            this.savingDiscovery = true;
-            try {
-                const payload = {
-                    discover_interfaces: true,
-                    autoconnect_discovered_interfaces: 3,
-                    default_bootstrap_only: false,
-                };
-                await window.api.patch(`/api/v1/reticulum/discovery`, payload);
-                this.defaultBootstrapOnly = false;
-                ToastUtils.success(this.$t("tutorial.discovery_enabled"));
-                this.connectionMode = "discovery";
-                this.currentStep = 4;
-                this.bootstrapListSearch = "";
-                this.bootstrapDiscoveredSectionOpen = true;
-                this.bootstrapCommunitySectionOpen = true;
-                await this.loadCommunityInterfaces();
-                await this.loadDiscoveredInterfaces();
-                await this.maybeAutoPickBootstrapTcp();
-            } catch (e) {
-                console.error("Failed to enable discovery:", e);
-                ToastUtils.error(this.$t("tutorial.failed_enable_discovery"));
-            } finally {
-                this.savingDiscovery = false;
-            }
-        },
         async useLocalMode() {
             if (this.addingLocal) return;
             this.addingLocal = true;
@@ -2757,7 +1925,7 @@ export default {
                     return;
                 }
                 this.connectionMode = "local";
-                this.currentStep = 5;
+                this.currentStep = 4;
             } catch (e) {
                 console.error("Failed to add AutoInterface:", e);
                 ToastUtils.error(e.response?.data?.message || this.$t("tutorial.failed_add_local"));
@@ -2767,295 +1935,7 @@ export default {
         },
         useManualMode() {
             this.connectionMode = "manual";
-            this.currentStep = 5;
-        },
-        isBootstrapSelected(key) {
-            return this.selectedBootstrapKeys.includes(key);
-        },
-        toggleBootstrap(key) {
-            const idx = this.selectedBootstrapKeys.indexOf(key);
-            if (idx >= 0) {
-                this.selectedBootstrapKeys.splice(idx, 1);
-            } else {
-                this.selectedBootstrapKeys.push(key);
-            }
-        },
-        bootstrapDisplayLabelForKey(key) {
-            if (!key) {
-                return "";
-            }
-            if (key.startsWith("comm:")) {
-                const name = key.slice(5);
-                const iface = this.communityInterfaces.find((c) => c.name === name);
-                return iface?.name || name;
-            }
-            if (key.startsWith("disc:")) {
-                const suffix = key.slice(5);
-                const iface = this.discoveredInterfaces.find((d) => String(d.discovery_hash || d.name) === suffix);
-                return iface?.name || suffix;
-            }
-            return key;
-        },
-        communityBootstrapExcludedFromRandom(iface) {
-            const name = String(iface.name || "");
-            const desc = String(iface.description || "");
-            const host = String(iface.target_host || "").trim();
-            const hay = `${name} ${desc}`.toLowerCase();
-            if (hay.includes("yggdrasil")) {
-                return true;
-            }
-            if (/\bygg\b/.test(hay) || hay.includes("-ygg") || hay.includes(" ygg") || hay.includes("(ygg")) {
-                return true;
-            }
-            if (/^(200|201|202|203):[0-9a-f:]+$/i.test(host)) {
-                return true;
-            }
-            return false;
-        },
-        pickEligibleCommunityTcpBootstrapForRandom() {
-            const out = [];
-            for (const iface of this.communityInterfaces) {
-                const t = iface.type;
-                if (t !== "TCPClientInterface" && t !== "BackboneInterface") {
-                    continue;
-                }
-                const host = String(iface.target_host || "").trim();
-                const port = iface.target_port;
-                if (!host || port === undefined || port === null || port === "") {
-                    continue;
-                }
-                if (this.communityBootstrapExcludedFromRandom(iface)) {
-                    continue;
-                }
-                out.push({
-                    key: `comm:${iface.name}`,
-                    kind: "community",
-                    iface,
-                    dedupe: `${host.toLowerCase()}:${Number(port)}`,
-                });
-            }
-            return out;
-        },
-        pickEligibleTcpBootstrapEntries() {
-            const out = [];
-            for (const iface of this.communityInterfaces) {
-                const t = iface.type;
-                if (t !== "TCPClientInterface" && t !== "BackboneInterface") {
-                    continue;
-                }
-                const host = String(iface.target_host || "").trim();
-                const port = iface.target_port;
-                if (!host || port === undefined || port === null || port === "") {
-                    continue;
-                }
-                out.push({
-                    key: `comm:${iface.name}`,
-                    kind: "community",
-                    iface,
-                    dedupe: `${host.toLowerCase()}:${Number(port)}`,
-                });
-            }
-            for (const iface of this.discoveredInterfaces) {
-                const host = String(iface.reachable_on || "").trim();
-                const port = iface.port;
-                if (!host || port === undefined || port === null || port === "") {
-                    continue;
-                }
-                const typ = iface.type || "";
-                if (typ && typ !== "BackboneInterface" && typ !== "TCPClientInterface") {
-                    continue;
-                }
-                out.push({
-                    key: `disc:${iface.discovery_hash || iface.name}`,
-                    kind: "discovered",
-                    iface,
-                    dedupe: `${host.toLowerCase()}:${Number(port)}`,
-                });
-            }
-            return out;
-        },
-        dedupeBootstrapEntries(entries) {
-            const seen = new Set();
-            const deduped = [];
-            for (const e of entries) {
-                if (seen.has(e.dedupe)) {
-                    continue;
-                }
-                seen.add(e.dedupe);
-                deduped.push(e);
-            }
-            return deduped;
-        },
-        shuffleArrayInPlace(arr) {
-            for (let i = arr.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [arr[i], arr[j]] = [arr[j], arr[i]];
-            }
-        },
-        async pickRandomTcpBootstraps(options = {}) {
-            const silent = options.silent === true;
-            const auto = options.auto === true;
-            if (!silent && !auto) {
-                this.pickingRandomBootstraps = true;
-            }
-            await Promise.resolve();
-            await new Promise((resolve) => {
-                if (typeof requestAnimationFrame !== "undefined") {
-                    requestAnimationFrame(() => resolve());
-                } else {
-                    setTimeout(resolve, 0);
-                }
-            });
-            try {
-                let entries = this.pickEligibleCommunityTcpBootstrapForRandom();
-                entries = this.dedupeBootstrapEntries(entries);
-                if (entries.length === 0) {
-                    if (!silent && !auto) {
-                        ToastUtils.warning(this.$t("tutorial.bootstrap_pick_random_none"));
-                    }
-                    return;
-                }
-                this.shuffleArrayInPlace(entries);
-                const take = Math.min(3, entries.length);
-                this.selectedBootstrapKeys = entries.slice(0, take).map((e) => e.key);
-                const labels = this.selectedBootstrapKeys.map((k) => this.bootstrapDisplayLabelForKey(k));
-                if (!silent && !auto) {
-                    ToastUtils.success(
-                        this.$t("tutorial.bootstrap_pick_random_done", {
-                            count: take,
-                            names: labels.join(", "),
-                        })
-                    );
-                }
-            } finally {
-                if (!silent && !auto) {
-                    this.pickingRandomBootstraps = false;
-                }
-            }
-        },
-        async maybeAutoPickBootstrapTcp() {
-            if (this.bootstrapAutoPickDone) {
-                return;
-            }
-            if (this.currentStep !== 4 || this.connectionMode !== "discovery") {
-                return;
-            }
-            if (this.selectedBootstrapKeys.length > 0) {
-                return;
-            }
-            const entries = this.dedupeBootstrapEntries(this.pickEligibleCommunityTcpBootstrapForRandom());
-            if (entries.length === 0) {
-                return;
-            }
-            await this.pickRandomTcpBootstraps({ silent: true, auto: true });
-            this.bootstrapAutoPickDone = true;
-        },
-        buildBootstrapPayload(item) {
-            if (item.kind === "discovered") {
-                const iface = item.iface;
-                const payload = {
-                    name: iface.name || `Discovered ${iface.discovery_hash || ""}`.trim(),
-                    type: iface.type === "BackboneInterface" ? "TCPClientInterface" : iface.type,
-                    enabled: true,
-                    bootstrap_only: this.defaultBootstrapOnly === true,
-                };
-                if (iface.reachable_on) {
-                    payload.target_host = iface.reachable_on;
-                }
-                if (iface.port) {
-                    payload.target_port = iface.port;
-                }
-                return payload;
-            }
-            const iface = item.iface;
-            return {
-                name: iface.name,
-                type: iface.type,
-                target_host: iface.target_host,
-                target_port: iface.target_port,
-                enabled: true,
-                bootstrap_only: this.defaultBootstrapOnly === true,
-            };
-        },
-        parseDiscoveryBool(value, defaultValue = false) {
-            if (value === undefined || value === null || value === "") {
-                return defaultValue;
-            }
-            if (typeof value === "string") {
-                return ["true", "yes", "1", "y", "on"].includes(value.toLowerCase());
-            }
-            return Boolean(value);
-        },
-        async loadDiscoveryBootstrapDefaults() {
-            try {
-                const response = await window.api.get("/api/v1/reticulum/discovery");
-                const d = response.data?.discovery ?? {};
-                this.defaultBootstrapOnly = this.parseDiscoveryBool(d.default_bootstrap_only, false);
-            } catch (e) {
-                console.error(e);
-                this.defaultBootstrapOnly = false;
-            }
-        },
-        async persistDefaultBootstrapOnly(value) {
-            try {
-                await window.api.patch("/api/v1/reticulum/discovery", {
-                    default_bootstrap_only: value === true,
-                });
-                this.defaultBootstrapOnly = value === true;
-            } catch (e) {
-                console.error("Failed to save default_bootstrap_only:", e);
-                ToastUtils.error(this.$t("tutorial.failed_save_bootstrap_only"));
-                this.defaultBootstrapOnly = !value;
-            }
-        },
-        async confirmBootstraps() {
-            if (this.addingBootstraps) return;
-            if (this.selectedBootstrapKeys.length === 0) {
-                ToastUtils.warning(this.$t("tutorial.bootstrap_pick_at_least_one"));
-                return;
-            }
-            this.addingBootstraps = true;
-            const items = [];
-            for (const key of this.selectedBootstrapKeys) {
-                if (this.addedBootstrapKeys.includes(key)) continue;
-                if (key.startsWith("comm:")) {
-                    const iface = this.communityInterfaces.find((c) => `comm:${c.name}` === key);
-                    if (iface) items.push({ key, kind: "community", iface });
-                } else if (key.startsWith("disc:")) {
-                    const iface = this.discoveredInterfaces.find((d) => `disc:${d.discovery_hash || d.name}` === key);
-                    if (iface) items.push({ key, kind: "discovered", iface });
-                }
-            }
-            let added = 0;
-            for (const item of items) {
-                try {
-                    const payload = this.buildBootstrapPayload(item);
-                    if (!payload.target_host) continue;
-                    await window.api.post("/api/v1/reticulum/interfaces/add", payload);
-                    this.addedBootstrapKeys.push(item.key);
-                    GlobalState.hasPendingInterfaceChanges = true;
-                    GlobalState.modifiedInterfaceNames.add(payload.name);
-                    added += 1;
-                } catch (e) {
-                    console.error("Failed to add bootstrap interface:", e);
-                    ToastUtils.error(e.response?.data?.message || this.$t("tutorial.failed_add_bootstrap"));
-                }
-            }
-            if (added === 0) {
-                ToastUtils.warning(this.$t("tutorial.failed_add_bootstrap_none"));
-                this.addingBootstraps = false;
-                return;
-            }
-            this.interfaceAddedViaTutorial = true;
-            ToastUtils.success(this.$t("tutorial.bootstrap_added", { count: added }));
-            const reloaded = await this.reloadReticulum();
-            this.addingBootstraps = false;
-            if (reloaded) {
-                this.currentStep = 5;
-            }
-        },
-        skipBootstraps() {
-            this.currentStep = 5;
+            this.currentStep = 4;
         },
         async enableAutoPropagation() {
             this.savingPropagation = true;
@@ -3074,55 +1954,6 @@ export default {
             } finally {
                 this.savingPropagation = false;
             }
-        },
-        getDiscoveryIcon(iface) {
-            switch (iface.type) {
-                case "AutoInterface":
-                    return "home-automation";
-                case "RNodeInterface":
-                    return iface.port && iface.port.toString().startsWith("tcp://") ? "lan-connect" : "radio-tower";
-                case "RNodeMultiInterface":
-                    return "access-point-network";
-                case "TCPClientInterface":
-                case "BackboneInterface":
-                    return "lan-connect";
-                case "TCPServerInterface":
-                    return "lan";
-                case "UDPInterface":
-                    return "wan";
-                case "SerialInterface":
-                    return "usb-port";
-                case "KISSInterface":
-                case "AX25KISSInterface":
-                    return "antenna";
-                case "I2PInterface":
-                    return "eye";
-                case "PipeInterface":
-                    return "pipe";
-                default:
-                    return "server-network";
-            }
-        },
-        formatLastHeard(ts) {
-            const seconds = Math.max(0, Math.floor(Date.now() / 1000 - ts));
-            if (seconds < 60) return `${seconds}s ago`;
-            if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-            if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-            return `${Math.floor(seconds / 86400)}d ago`;
-        },
-        copyToClipboard(text, label) {
-            if (!text) return;
-            navigator.clipboard.writeText(text);
-            ToastUtils.success(`${label} copied to clipboard`);
-        },
-        mapAllDiscovered() {
-            if (!this.isPage) {
-                this.visible = false;
-            }
-            this.$router.push({
-                name: "map",
-                query: { view: "discovered" },
-            });
         },
         gotoAddInterface() {
             if (!this.isPage) {
@@ -3154,25 +1985,12 @@ export default {
                     ToastUtils.warning(this.$t("tutorial.connect_mode_required"));
                     return;
                 }
-                if (this.connectionMode !== "discovery") {
-                    this.currentStep = 5;
-                    return;
-                }
-            }
-            if (this.currentStep === 4) {
-                ToastUtils.warning(this.$t("tutorial.bootstrap_pick_at_least_one"));
-                return;
             }
             this.currentStep++;
-            if (this.currentStep === 4) {
-                this.bootstrapListSearch = "";
-                this.bootstrapDiscoveredSectionOpen = true;
-                this.bootstrapCommunitySectionOpen = true;
-            }
         },
         previousStep() {
             if (this.currentStep <= 1) return;
-            if (this.currentStep === 5 && this.connectionMode !== "discovery") {
+            if (this.currentStep === 4) {
                 this.currentStep = 3;
                 return;
             }
