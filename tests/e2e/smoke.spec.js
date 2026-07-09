@@ -42,6 +42,7 @@ test.describe("MeshChatX E2E (Vite + Python backend)", () => {
             "http_bots_status_good",
             "http_security_good",
             "http_interfaces_good",
+            "http_reticulum_instance_good",
             "http_identities_good",
             "http_favourites_good",
             "http_telephone_good",

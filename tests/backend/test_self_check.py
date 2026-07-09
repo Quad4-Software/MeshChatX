@@ -49,6 +49,14 @@ def test_check_storage_lock_ok(tmp_path):
     result = self_check.check_storage_lock(str(tmp_path))
     assert result["status"] == "ok", result["reason"]
     assert not (tmp_path / ".self_test_storage_lock").exists()
+    assert not (tmp_path / ".self_test_storage_lock_soft").exists()
+
+
+def test_check_storage_lock_soft_fallback_helper(tmp_path):
+    soft_dir = tmp_path / "soft"
+    soft_dir.mkdir()
+    result = self_check._check_storage_lock_soft_fallback(str(soft_dir))
+    assert result["status"] == "ok", result["reason"]
 
 
 def test_check_temp_filesystem_ok():
