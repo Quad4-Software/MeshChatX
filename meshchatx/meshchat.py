@@ -151,6 +151,7 @@ from meshchatx.src.backend.nomadnet_utils import (
 )
 from meshchatx.src.backend.page_node_manager import PageNodeManager
 from meshchatx.src.backend.plugin_manager import PluginManager
+from meshchatx.src.backend.sideband_plugin_loader import SidebandPluginLoader
 from meshchatx.src.backend.plugin_guard import PluginSecurityError
 from meshchatx.src.backend.persistent_log_handler import PersistentLogHandler
 from meshchatx.src.backend.app_security_settings import (
@@ -497,6 +498,9 @@ class ReticulumMeshChat:
         self.identity_manager = IdentityManager(self.storage_dir, identity_file_path)
         self.page_node_manager = PageNodeManager(self.storage_dir)
         self.plugin_manager = PluginManager(self.storage_dir, app=self)
+        self.sideband_plugin_loader = SidebandPluginLoader(self)
+        self._sideband_telemetry_thread = None
+        self._sideband_telemetry_running = False
 
         # Multi-identity support
         self.contexts: dict[str, IdentityContext] = {}
@@ -1331,6 +1335,29 @@ class ReticulumMeshChat:
         except Exception:
             pass
 
+    def _ensure_sideband_telemetry_loop(self) -> None:
+        config = self.sideband_plugin_loader.get_config()
+        should_run = bool(config.get("service_plugins_enabled"))
+        if should_run and not self._sideband_telemetry_running:
+            self._sideband_telemetry_running = True
+
+            def telemetry_job():
+                while self._sideband_telemetry_running:
+                    try:
+                        self.sideband_plugin_loader.update_telemetry()
+                    except Exception:
+                        pass
+                    time.sleep(60)
+
+            self._sideband_telemetry_thread = threading.Thread(
+                target=telemetry_job,
+                daemon=True,
+                name="sideband-plugin-telemetry",
+            )
+            self._sideband_telemetry_thread.start()
+        elif not should_run:
+            self._sideband_telemetry_running = False
+
     def _startup_status_payload(self) -> dict:
         if self._startup_stage == "failed" or self._startup_error:
             payload = {
@@ -1477,6 +1504,11 @@ class ReticulumMeshChat:
             self.plugin_manager.set_app(self)
             if self.plugins_enabled:
                 self.plugin_manager.install_bundled_examples()
+            try:
+                self.sideband_plugin_loader.reload()
+                self._ensure_sideband_telemetry_loop()
+            except Exception as exc:
+                print(f"Sideband plugin loader init failed: {exc}")
 
         # Create new context
         self._set_startup_stage("identity")
@@ -12045,6 +12077,84 @@ class ReticulumMeshChat:
             except Exception as e:
                 return web.json_response({"message": str(e)}, status=400)
 
+        @routes.get("/api/v1/plugins/trusted-publishers")
+        async def plugins_trusted_publishers_list(request):
+            tampered, reason = self.plugin_manager.trusted_publishers_tampered()
+            return web.json_response(
+                {
+                    "publishers": self.plugin_manager.list_trusted_publishers(),
+                    "tampered": tampered,
+                    "tamper_reason": reason,
+                }
+            )
+
+        @routes.post("/api/v1/plugins/trusted-publishers")
+        async def plugins_trusted_publishers_add(request):
+            try:
+                data = await request.json()
+            except Exception:
+                data = {}
+            identity = data.get("identity") or ""
+            name = data.get("name") or ""
+            try:
+                publishers = await asyncio.to_thread(
+                    self.plugin_manager.add_trusted_publisher, identity, name
+                )
+                return web.json_response({"publishers": publishers})
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=400)
+
+        @routes.delete("/api/v1/plugins/trusted-publishers/{identity}")
+        async def plugins_trusted_publishers_remove(request):
+            identity = request.match_info["identity"]
+            try:
+                publishers = await asyncio.to_thread(
+                    self.plugin_manager.remove_trusted_publisher, identity
+                )
+                return web.json_response({"publishers": publishers})
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=400)
+
+        @routes.get("/api/v1/sideband-plugins/config")
+        async def sideband_plugins_config_get(request):
+            return web.json_response(self.sideband_plugin_loader.get_config())
+
+        @routes.post("/api/v1/sideband-plugins/config")
+        async def sideband_plugins_config_set(request):
+            try:
+                data = await request.json()
+            except Exception:
+                data = {}
+            try:
+                result = await asyncio.to_thread(
+                    self.sideband_plugin_loader.set_config,
+                    service_plugins_enabled=data.get("service_plugins_enabled"),
+                    command_plugins_enabled=data.get("command_plugins_enabled"),
+                    command_plugins_path=data.get("command_plugins_path"),
+                )
+                self._ensure_sideband_telemetry_loop()
+                return web.json_response(result)
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=400)
+
+        @routes.get("/api/v1/sideband-plugins")
+        async def sideband_plugins_list(request):
+            return web.json_response(
+                {
+                    "config": self.sideband_plugin_loader.get_config(),
+                    "plugins": self.sideband_plugin_loader.list_plugins(),
+                }
+            )
+
+        @routes.post("/api/v1/sideband-plugins/reload")
+        async def sideband_plugins_reload(request):
+            try:
+                result = await asyncio.to_thread(self.sideband_plugin_loader.reload)
+                self._ensure_sideband_telemetry_loop()
+                return web.json_response(result)
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=400)
+
         @routes.post("/api/v1/plugins/install")
         async def plugins_install(request):
             if not self.plugins_enabled:
@@ -19433,6 +19543,24 @@ class ReticulumMeshChat:
                         or str(command) == str(SidebandCommands.TELEMETRY_REQUEST)
                     ):
                         is_sideband_telemetry_request = True
+                    if (
+                        isinstance(command, dict)
+                        and SidebandCommands.PLUGIN_COMMAND in command
+                        and getattr(lxmf_message, "signature_validated", False)
+                    ):
+                        plugin_command = command.get(SidebandCommands.PLUGIN_COMMAND)
+                        if isinstance(plugin_command, bytes):
+                            plugin_command = plugin_command.decode(
+                                "utf-8", errors="replace"
+                            )
+                        if isinstance(plugin_command, str) and plugin_command.strip():
+                            try:
+                                self.sideband_plugin_loader.handle_plugin_command(
+                                    plugin_command,
+                                    lxmf_message,
+                                )
+                            except Exception as exc:
+                                print(f"Sideband plugin command failed: {exc}")
 
             # respond to telemetry requests
             if is_sideband_telemetry_request:

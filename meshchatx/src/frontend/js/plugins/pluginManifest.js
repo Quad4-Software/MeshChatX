@@ -12,7 +12,7 @@ const SUPPORTED_API_VERSION = 1;
  * @property {string} [name]
  * @property {string} [description]
  * @property {{ entry: string, type: 'js' | 'wasm' }} [frontend]
- * @property {{ entry: string, type: 'wasm' }} [backend]
+ * @property {{ entry: string, type: 'wasm' | 'python' }} [backend]
  * @property {Object} [contributes]
  * @property {Object} [permissions]
  * @property {{ endpoints?: string[] }} [network]
@@ -51,8 +51,8 @@ export function validatePluginManifest(manifest) {
         if (typeof backend.entry !== "string" || !backend.entry.trim()) {
             throw new Error("Plugin backend.entry is required when backend is set");
         }
-        if (backend.type !== "wasm") {
-            throw new Error("Plugin backend.type must be wasm");
+        if (backend.type !== "wasm" && backend.type !== "python") {
+            throw new Error("Plugin backend.type must be wasm or python");
         }
     }
     const permissions = record.permissions ?? {};

@@ -216,13 +216,21 @@ describe("behavior contracts: plugin install permissions", () => {
         const meshchat = readSource("meshchatx/meshchat.py");
         expect(meshchat).toContain("/api/v1/plugins/preview");
         expect(meshchat).toContain("granted_permissions");
+        expect(meshchat).toContain("/api/v1/plugins/trusted-publishers");
+        expect(meshchat).toContain("/api/v1/sideband-plugins");
         const section = readSource("meshchatx/src/frontend/components/settings/PluginsSettingsSection.vue");
         expect(section).toContain("PluginInstallDialog");
         expect(section).toContain("/api/v1/plugins/preview");
         expect(section).toContain("granted_permissions");
+        expect(section).toContain(".wasm");
+        expect(section).toContain("trustPublisher");
+        expect(section).toContain("sideband");
         const dialog = readSource("meshchatx/src/frontend/components/settings/PluginInstallDialog.vue");
         expect(dialog).toContain("network_endpoints");
         expect(dialog).toContain("grantedMap");
+        expect(dialog).toContain("signatureBlocksInstall");
+        expect(dialog).toContain("trustPublisher");
+        expect(dialog).toContain("security_findings");
         const perms = readSource("meshchatx/src/backend/plugin_permissions.py");
         expect(perms).toContain("collect_network_endpoints");
         expect(perms).toContain('permission_id_for_network("fetch")');
@@ -230,6 +238,8 @@ describe("behavior contracts: plugin install permissions", () => {
         const manager = readSource("meshchatx/src/backend/plugin_manager.py");
         expect(manager).toContain("preview_from_zip_bytes");
         expect(manager).toContain("granted_allows_network_fetch");
+        expect(manager).toContain("require_valid_signature");
+        expect(manager).toContain("backend.type");
     });
 });
 

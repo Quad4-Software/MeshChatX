@@ -58,4 +58,14 @@ describe("pluginManifest", () => {
     it("labels unknown permissions with the raw id", () => {
         expect(permissionLabel("custom:thing", (key) => key)).toBe("custom:thing");
     });
+
+    it("accepts backend.type python", () => {
+        const manifest = validatePluginManifest({
+            id: "com.example.python",
+            version: "1.0.0",
+            apiVersion: 1,
+            backend: { entry: "backend/main.py", type: "python" },
+        });
+        expect(manifest.backend.type).toBe("python");
+    });
 });
