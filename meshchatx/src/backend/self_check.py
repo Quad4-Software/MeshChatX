@@ -135,6 +135,7 @@ def check_lxmf_router(message_router: Any, local_destination: Any) -> dict[str, 
 
 
 def check_storage_lock(base_dir: str) -> dict[str, str]:
+    """Verify StorageLock acquire/contest/release (native flock/msvcrt or soft)."""
     from meshchatx.src.backend.storage_lock import StorageLock, StorageLockError
 
     if not base_dir or not os.path.isdir(base_dir):
@@ -148,6 +149,7 @@ def check_storage_lock(base_dir: str) -> dict[str, str]:
 
         first = StorageLock(lock_dir)
         first.acquire()
+        mode = "soft" if getattr(first, "_soft", False) else "native"
         second = StorageLock(lock_dir)
         contested = False
         try:
@@ -156,21 +158,37 @@ def check_storage_lock(base_dir: str) -> dict[str, str]:
             contested = True
         except Exception as exc:
             first.release()
-            return _status(False, f"Unexpected lock error: {exc}")
+            return _status(False, f"Unexpected lock error ({mode}): {exc}")
         else:
             second.release()
             first.release()
-            return _status(False, "Second lock acquire should have failed while held")
+            return _status(
+                False,
+                f"Second lock acquire should have failed while held ({mode})",
+            )
 
         if not contested:
             first.release()
-            return _status(False, "Storage lock did not reject a second holder")
+            return _status(
+                False, f"Storage lock did not reject a second holder ({mode})"
+            )
 
         first.release()
 
         third = StorageLock(lock_dir)
         third.acquire()
         third.release()
+
+        # Soft-lock path used when flock is ENOSYS (Android / some FS). Exercise it
+        # on every CI OS so regressions in the fallback are caught on Win/macOS/Linux.
+        soft_dir = os.path.join(base_dir, ".self_test_storage_lock_soft")
+        if os.path.isdir(soft_dir):
+            shutil.rmtree(soft_dir, ignore_errors=True)
+        os.makedirs(soft_dir, exist_ok=True)
+        soft_result = _check_storage_lock_soft_fallback(soft_dir)
+        if soft_result["status"] != "ok":
+            return soft_result
+
         return _status(True)
     except Exception as exc:
         return _status(False, f"Storage lock check failed: {exc}")
@@ -178,6 +196,49 @@ def check_storage_lock(base_dir: str) -> dict[str, str]:
         with contextlib.suppress(Exception):
             if os.path.isdir(lock_dir):
                 shutil.rmtree(lock_dir, ignore_errors=True)
+            soft_dir = os.path.join(base_dir, ".self_test_storage_lock_soft")
+            if os.path.isdir(soft_dir):
+                shutil.rmtree(soft_dir, ignore_errors=True)
+
+
+def _check_storage_lock_soft_fallback(lock_dir: str) -> dict[str, str]:
+    """Force ENOSYS flock path and verify soft PID lock contest/release."""
+    import errno
+    from unittest.mock import patch
+
+    from meshchatx.src.backend.storage_lock import StorageLock, StorageLockError
+
+    if sys.platform == "win32":
+        # Windows uses msvcrt; soft fallback is Unix-only. Still verify a second
+        # native holder is rejected (covered above) and return ok here.
+        return _status(True)
+
+    def _enosys_flock(*_args, **_kwargs):
+        raise OSError(errno.ENOSYS, "Function not implemented")
+
+    with patch("fcntl.flock", side_effect=_enosys_flock):
+        first = StorageLock(lock_dir)
+        first.acquire()
+        if not getattr(first, "_soft", False):
+            first.release()
+            return _status(False, "Expected soft lock after flock ENOSYS")
+        second = StorageLock(lock_dir)
+        try:
+            second.acquire()
+        except StorageLockError:
+            pass
+        else:
+            second.release()
+            first.release()
+            return _status(False, "Soft lock did not reject same-process second holder")
+        first.release()
+        third = StorageLock(lock_dir)
+        third.acquire()
+        if not getattr(third, "_soft", False):
+            third.release()
+            return _status(False, "Soft re-acquire after release did not use soft mode")
+        third.release()
+    return _status(True)
 
 
 def check_temp_filesystem() -> dict[str, str]:
