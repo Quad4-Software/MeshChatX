@@ -8,9 +8,7 @@ import RNS
 from meshchatx.src.backend.plugin_rsg import create_rsg
 from meshchatx.src.backend.sideband_plugin_loader import SidebandPluginLoader
 
-SIDEBAND_FIXTURES = (
-    Path(__file__).resolve().parent / "fixtures" / "sideband_plugins"
-)
+SIDEBAND_FIXTURES = Path(__file__).resolve().parent / "fixtures" / "sideband_plugins"
 
 
 class FakeConfigValue:

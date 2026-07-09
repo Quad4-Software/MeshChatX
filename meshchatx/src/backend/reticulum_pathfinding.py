@@ -164,7 +164,9 @@ def clean_rns_announce_cache() -> bool:
     """Ask RNS to trim on-disk announce cache files not referenced by paths."""
     try:
         owner = getattr(RNS.Transport, "owner", None)
-        if owner is not None and getattr(owner, "is_connected_to_shared_instance", False):
+        if owner is not None and getattr(
+            owner, "is_connected_to_shared_instance", False
+        ):
             return False
         clean = getattr(RNS.Transport, "clean_cache", None)
         if callable(clean):

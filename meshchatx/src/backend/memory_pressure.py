@@ -8,7 +8,11 @@ import logging
 import time
 from typing import Any
 
-from meshchatx.src.backend import nomadnet_downloader, reticulum_pathfinding, rns_link_manager
+from meshchatx.src.backend import (
+    nomadnet_downloader,
+    reticulum_pathfinding,
+    rns_link_manager,
+)
 
 _log = logging.getLogger("meshchatx.memory_pressure")
 
