@@ -43,6 +43,7 @@ export function dedupeIconQueueEntries(queue) {
         return [];
     }
     const byKey = new Map();
+    const seenByKey = new Map();
     for (const item of queue) {
         if (!item || typeof item !== "object" || !item.cacheKey || !item.nodeId) {
             continue;
@@ -52,7 +53,6 @@ export function dedupeIconQueueEntries(queue) {
             bucket = {
                 cacheKey: item.cacheKey,
                 nodeIds: [],
-                _seen: new Set(),
                 iconName: item.iconName,
                 fg: item.fg,
                 bg: item.bg,
@@ -60,13 +60,15 @@ export function dedupeIconQueueEntries(queue) {
                 generation: item.generation,
             };
             byKey.set(item.cacheKey, bucket);
+            seenByKey.set(item.cacheKey, new Set());
         }
-        if (!bucket._seen.has(item.nodeId)) {
-            bucket._seen.add(item.nodeId);
+        const seen = seenByKey.get(item.cacheKey);
+        if (!seen.has(item.nodeId)) {
+            seen.add(item.nodeId);
             bucket.nodeIds.push(item.nodeId);
         }
     }
-    return Array.from(byKey.values()).map(({ _seen, ...rest }) => rest);
+    return Array.from(byKey.values());
 }
 
 /**
