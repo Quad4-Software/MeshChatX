@@ -663,7 +663,7 @@ jobs:
                   done
                   rm -f /tmp/cosign.key
 
-            - name: Upload to draft release
+            - name: Upload release assets (draft then publish for nightly/preview)
               env:
                   GH_TOKEN: ${{ github.token }}
               run: bash scripts/ci/github-draft-release-upload-assets.sh upload

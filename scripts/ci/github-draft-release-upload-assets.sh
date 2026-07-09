@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Create the GitHub release as a draft if missing, then upload every file in DIR to that tag.
+# Create the GitHub release as a draft if missing, upload every file in DIR, then
+# publish nightly/preview tags as prereleases. Draft-first is required when the
+# repository has immutable releases enabled (assets cannot be added after publish).
 # Skips electron-builder builder-debug.yml (and cosign bundles), including collision-renamed
 # copies (e.g. win__builder-debug.yml). Requires: gh, GH_TOKEN. TAG from TAG or GITHUB_REF_NAME.
 set -euo pipefail
@@ -22,6 +24,10 @@ export GH_TOKEN
 if [ -z "${GH_REPO:-}" ] && [ -n "${GITHUB_REPOSITORY:-}" ]; then
     export GH_REPO="$GITHUB_REPOSITORY"
 fi
+
+is_auto_prerelease_tag() {
+    [[ "$1" == nightly-* || "$1" == preview-* ]]
+}
 
 mapfile -d '' -t all < <(
     find "$DIR" -type f \
@@ -122,20 +128,37 @@ mapfile -t files < <(find "$STAGE" -type f)
     echo "- Or verify manually using the SHA256 table above."
 } > "$notes_file"
 
-if ! gh release view "$TAG" >/dev/null 2>&1; then
-    if [[ "$TAG" == nightly-* || "$TAG" == preview-* ]]; then
-        gh release create "$TAG" --prerelease --title "$TAG" --notes-file "$notes_file"
-    else
-        gh release create "$TAG" --draft --title "$TAG" --notes-file "$notes_file"
-    fi
+release_exists=false
+is_draft=true
+if gh release view "$TAG" >/dev/null 2>&1; then
+    release_exists=true
+    is_draft="$(gh release view "$TAG" --json isDraft --jq '.isDraft')"
+fi
+
+if [ "$release_exists" = true ] && [ "$is_draft" != "true" ]; then
+    echo "Release ${TAG} is already published." >&2
+    echo "Immutable releases cannot accept new assets after publish." >&2
+    echo "Create a new tag, or delete this release (and its tag if allowed) and re-run." >&2
+    exit 1
+fi
+
+# Always create/keep as draft while uploading. Immutable repos lock assets on publish.
+if [ "$release_exists" = false ]; then
+    gh release create "$TAG" --draft --title "$TAG" --notes-file "$notes_file"
 else
-    if [[ "$TAG" == nightly-* || "$TAG" == preview-* ]]; then
-        gh release edit "$TAG" --prerelease --title "$TAG" --notes-file "$notes_file"
-    else
-        gh release edit "$TAG" --notes-file "$notes_file"
-    fi
+    gh release edit "$TAG" --draft --title "$TAG" --notes-file "$notes_file"
 fi
 
 for f in "${files[@]}"; do
     gh release upload "$TAG" "$f" --clobber
 done
+
+# Nightly/preview: publish as prerelease after all assets are attached.
+# Stable tags remain drafts for manual review.
+if is_auto_prerelease_tag "$TAG"; then
+    gh release edit "$TAG" \
+        --draft=false \
+        --prerelease \
+        --title "$TAG" \
+        --notes-file "$notes_file"
+fi
