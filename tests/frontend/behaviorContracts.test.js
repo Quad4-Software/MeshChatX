@@ -205,6 +205,12 @@ describe("behavior contracts: RNS Link API", () => {
         const selfCheck = readSource("meshchatx/src/backend/self_check.py");
         expect(selfCheck).toContain("websocket_rns_link_good");
         expect(selfCheck).toContain("_probe_rns_link_api");
+        expect(selfCheck).toContain("http_plugins_good");
+        expect(selfCheck).toContain("http_sideband_plugins_good");
+        expect(selfCheck).toContain("http_rrc_hubs_good");
+        expect(selfCheck).toContain("http_rrc_servers_good");
+        expect(selfCheck).toContain("plugins_runtime_good");
+        expect(selfCheck).toContain("check_plugins_runtime");
         const guard = readSource("meshchatx/src/backend/websocket_config_guard.py");
         expect(guard).toContain("rns.link.open");
         expect(guard).toContain("rns.link.close");
