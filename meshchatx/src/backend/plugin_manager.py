@@ -22,6 +22,20 @@ from meshchatx.src.backend.plugin_guard import (
     validate_wasm_file,
     validate_zip_bytes,
 )
+from meshchatx.src.backend.plugin_permissions import (
+    collect_network_endpoints,
+    declared_permission_ids,
+    deserialize_granted,
+    granted_allows_hook,
+    granted_allows_manager,
+    granted_allows_network_fetch,
+    granted_allows_storage,
+    normalize_granted_permissions,
+    normalize_network_mode,
+    requires_network_fetch,
+    serialize_granted,
+    validate_declared_permissions,
+)
 
 SUPPORTED_API_VERSION = 1
 PLUGIN_ID_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$")
@@ -48,6 +62,7 @@ class PluginRecord:
     enabled: bool
     install_path: str
     auto_disabled_reason: str | None = None
+    granted_permissions: list[str] | None = None
     announce_handlers: list[Any] = field(default_factory=list)
     error_count: int = 0
     last_error_at: float = 0.0
@@ -85,10 +100,19 @@ class PluginManager:
         CREATE TABLE IF NOT EXISTS plugin_state (
           plugin_id TEXT PRIMARY KEY,
           enabled INTEGER NOT NULL DEFAULT 0,
-          auto_disabled_reason TEXT
+          auto_disabled_reason TEXT,
+          granted_permissions TEXT
         )
         """
             )
+            columns = {
+                row[1]
+                for row in conn.execute("PRAGMA table_info(plugin_state)").fetchall()
+            }
+            if "granted_permissions" not in columns:
+                conn.execute(
+                    "ALTER TABLE plugin_state ADD COLUMN granted_permissions TEXT"
+                )
             conn.commit()
 
     def set_app(self, app: Any) -> None:
@@ -125,7 +149,14 @@ class PluginManager:
                 with open(manifest_path, encoding="utf-8") as handle:
                     manifest = json.load(handle)
                 manifest = self._validate_manifest(manifest)
-                enabled, auto_disabled_reason = self._read_plugin_state(manifest["id"])
+                enabled, auto_disabled_reason, granted = self._read_plugin_state(
+                    manifest["id"]
+                )
+                declared = declared_permission_ids(manifest)
+                if granted is None:
+                    granted = list(declared)
+                else:
+                    granted = normalize_granted_permissions(declared, granted)
                 self._plugins[manifest["id"]] = PluginRecord(
                     id=manifest["id"],
                     version=manifest["version"],
@@ -133,33 +164,56 @@ class PluginManager:
                     enabled=enabled,
                     install_path=plugin_dir,
                     auto_disabled_reason=auto_disabled_reason,
+                    granted_permissions=granted,
                 )
             except Exception as exc:
                 print(f"Failed to load plugin from {plugin_dir}: {exc}")
 
-    def _read_plugin_state(self, plugin_id: str) -> tuple[bool, str | None]:
+    def _read_plugin_state(
+        self, plugin_id: str
+    ) -> tuple[bool, str | None, list[str] | None]:
         with sqlite3.connect(self.state_db_path) as conn:
             row = conn.execute(
-                "SELECT enabled, auto_disabled_reason FROM plugin_state WHERE plugin_id = ?",
+                """
+        SELECT enabled, auto_disabled_reason, granted_permissions
+        FROM plugin_state WHERE plugin_id = ?
+        """,
                 (plugin_id,),
             ).fetchone()
         if not row:
-            return False, None
-        return bool(row[0]), row[1]
+            return False, None, None
+        return bool(row[0]), row[1], deserialize_granted(row[2])
 
     def _write_plugin_state(
-        self, plugin_id: str, enabled: bool, auto_disabled_reason: str | None = None
+        self,
+        plugin_id: str,
+        enabled: bool,
+        auto_disabled_reason: str | None = None,
+        granted_permissions: list[str] | None = None,
     ) -> None:
         with sqlite3.connect(self.state_db_path) as conn:
             conn.execute(
                 """
-        INSERT INTO plugin_state (plugin_id, enabled, auto_disabled_reason)
-        VALUES (?, ?, ?)
+        INSERT INTO plugin_state (
+          plugin_id, enabled, auto_disabled_reason, granted_permissions
+        )
+        VALUES (?, ?, ?, ?)
         ON CONFLICT(plugin_id) DO UPDATE SET
           enabled = excluded.enabled,
-          auto_disabled_reason = excluded.auto_disabled_reason
+          auto_disabled_reason = excluded.auto_disabled_reason,
+          granted_permissions = COALESCE(
+            excluded.granted_permissions,
+            plugin_state.granted_permissions
+          )
         """,
-                (plugin_id, 1 if enabled else 0, auto_disabled_reason),
+                (
+                    plugin_id,
+                    1 if enabled else 0,
+                    auto_disabled_reason,
+                    None
+                    if granted_permissions is None
+                    else serialize_granted(granted_permissions),
+                ),
             )
             conn.commit()
 
@@ -183,9 +237,7 @@ class PluginManager:
             raise ValueError(
                 f"unsupported apiVersion (expected {SUPPORTED_API_VERSION})"
             )
-        permissions = manifest.get("permissions") or {}
-        if permissions and not isinstance(permissions, dict):
-            raise ValueError("permissions must be an object")
+        validate_declared_permissions(manifest)
         return manifest
 
     def list_plugins(self) -> list[dict[str, Any]]:
@@ -208,6 +260,11 @@ class PluginManager:
     def _public_plugin_view(self, record: PluginRecord) -> dict[str, Any]:
         manifest = record.manifest
         permissions = manifest.get("permissions") or {}
+        declared = declared_permission_ids(manifest)
+        granted = record.granted_permissions
+        if granted is None:
+            granted = list(declared)
+        endpoints = collect_network_endpoints(manifest, record.install_path)
         return {
             "id": record.id,
             "version": record.version,
@@ -217,12 +274,59 @@ class PluginManager:
             "auto_disabled_reason": record.auto_disabled_reason,
             "manifest": manifest,
             "permissions": permissions,
+            "declared_permissions": declared,
+            "granted_permissions": granted,
+            "network_endpoints": endpoints,
+            "requires_network_fetch": requires_network_fetch(manifest, endpoints),
             "contributes": manifest.get("contributes") or {},
             "has_frontend": bool(manifest.get("frontend")),
             "has_backend": bool(manifest.get("backend")),
         }
 
-    def install_from_directory(self, source_dir: str) -> dict[str, Any]:
+    def _build_preview_from_directory(self, source_dir: str) -> dict[str, Any]:
+        manifest_path = os.path.join(source_dir, "plugin.json")
+        if not os.path.isfile(manifest_path):
+            raise ValueError("plugin.json not found")
+        with open(manifest_path, encoding="utf-8") as handle:
+            manifest = self._validate_manifest(json.load(handle))
+        declared = declared_permission_ids(manifest)
+        endpoints = collect_network_endpoints(manifest, source_dir)
+        network_mode = normalize_network_mode(
+            (manifest.get("permissions") or {}).get("network")
+        )
+        return {
+            "id": manifest["id"],
+            "name": manifest.get("name") or manifest["id"],
+            "version": manifest["version"],
+            "description": manifest.get("description") or "",
+            "permissions": declared,
+            "network_endpoints": endpoints,
+            "requires_network_fetch": requires_network_fetch(manifest, endpoints),
+            "network_mode": network_mode,
+            "has_frontend": bool(manifest.get("frontend")),
+            "has_backend": bool(manifest.get("backend")),
+            "manifest": manifest,
+        }
+
+    def preview_from_zip_bytes(self, payload: bytes) -> dict[str, Any]:
+        import tempfile
+
+        self._require_runtime_enabled()
+        validate_zip_bytes(payload)
+        with tempfile.TemporaryDirectory() as tmp:
+            zip_path = os.path.join(tmp, "plugin.zip")
+            with open(zip_path, "wb") as handle:
+                handle.write(payload)
+            extract_dir = os.path.join(tmp, "extract")
+            os.makedirs(extract_dir, exist_ok=True)
+            plugin_root = safe_extract_zip(zip_path, extract_dir)
+            return self._build_preview_from_directory(plugin_root)
+
+    def install_from_directory(
+        self,
+        source_dir: str,
+        granted_permissions: list[str] | None = None,
+    ) -> dict[str, Any]:
         self._require_runtime_enabled()
         manifest_path = os.path.join(source_dir, "plugin.json")
         if not os.path.isfile(manifest_path):
@@ -230,12 +334,22 @@ class PluginManager:
         with open(manifest_path, encoding="utf-8") as handle:
             manifest = self._validate_manifest(json.load(handle))
         plugin_id = manifest["id"]
+        declared = declared_permission_ids(manifest)
+        granted = normalize_granted_permissions(declared, granted_permissions)
         target_dir = os.path.join(self.installed_dir, plugin_id)
         if os.path.exists(target_dir):
             shutil.rmtree(target_dir)
         shutil.copytree(source_dir, target_dir)
         with self._lock:
-            enabled, auto_disabled_reason = self._read_plugin_state(plugin_id)
+            enabled, auto_disabled_reason, _existing_granted = self._read_plugin_state(
+                plugin_id
+            )
+            self._write_plugin_state(
+                plugin_id,
+                enabled,
+                auto_disabled_reason,
+                granted_permissions=granted,
+            )
             self._plugins[plugin_id] = PluginRecord(
                 id=plugin_id,
                 version=manifest["version"],
@@ -243,10 +357,15 @@ class PluginManager:
                 enabled=enabled,
                 install_path=target_dir,
                 auto_disabled_reason=auto_disabled_reason,
+                granted_permissions=granted,
             )
             return self._public_plugin_view(self._plugins[plugin_id])
 
-    def install_from_zip_bytes(self, payload: bytes) -> dict[str, Any]:
+    def install_from_zip_bytes(
+        self,
+        payload: bytes,
+        granted_permissions: list[str] | None = None,
+    ) -> dict[str, Any]:
         import tempfile
 
         validate_zip_bytes(payload)
@@ -257,7 +376,9 @@ class PluginManager:
             extract_dir = os.path.join(tmp, "extract")
             os.makedirs(extract_dir, exist_ok=True)
             plugin_root = safe_extract_zip(zip_path, extract_dir)
-            return self.install_from_directory(plugin_root)
+            return self.install_from_directory(
+                plugin_root, granted_permissions=granted_permissions
+            )
 
     def enable(self, plugin_id: str) -> dict[str, Any]:
         self._require_runtime_enabled()
@@ -358,14 +479,35 @@ class PluginManager:
     def _permission_allowed(self, record: PluginRecord, capability: str) -> bool:
         permissions = record.manifest.get("permissions") or {}
         managers = permissions.get("managers") or []
-        return capability in managers
+        if capability not in managers:
+            return False
+        return granted_allows_manager(record.granted_permissions, capability)
 
     def _hook_allowed(self, record: PluginRecord, hook: str) -> bool:
         permissions = record.manifest.get("permissions") or {}
         hooks = permissions.get("hooks") or []
-        return hook in hooks
+        if hook not in hooks:
+            return False
+        return granted_allows_hook(record.granted_permissions, hook)
+
+    def _network_fetch_allowed(self, record: PluginRecord) -> bool:
+        permissions = record.manifest.get("permissions") or {}
+        network = normalize_network_mode(permissions.get("network"))
+        if network != "fetch":
+            return False
+        return granted_allows_network_fetch(record.granted_permissions)
+
+    def _storage_allowed(self, record: PluginRecord) -> bool:
+        permissions = record.manifest.get("permissions") or {}
+        storage = permissions.get("storage") or "none"
+        if storage != "isolated":
+            return False
+        return granted_allows_storage(record.granted_permissions)
 
     def storage_get(self, plugin_id: str, key: str) -> str | None:
+        record = self._require_plugin(plugin_id)
+        if not self._storage_allowed(record):
+            raise PermissionError("storage permission not granted")
         with sqlite3.connect(self.state_db_path) as conn:
             row = conn.execute(
                 "SELECT storage_value FROM plugin_storage WHERE plugin_id = ? AND storage_key = ?",
@@ -374,6 +516,9 @@ class PluginManager:
         return row[0] if row else None
 
     def storage_set(self, plugin_id: str, key: str, value: str) -> None:
+        record = self._require_plugin(plugin_id)
+        if not self._storage_allowed(record):
+            raise PermissionError("storage permission not granted")
         with sqlite3.connect(self.state_db_path) as conn:
             conn.execute(
                 """
@@ -385,6 +530,12 @@ class PluginManager:
             )
             conn.commit()
 
+    def network_fetch_allowed(self, plugin_id: str) -> bool:
+        record = self._require_plugin(plugin_id)
+        if not record.enabled:
+            return False
+        return self._network_fetch_allowed(record)
+
     def call_manager(
         self, plugin_id: str, capability: str, args: dict[str, Any]
     ) -> Any:
@@ -395,7 +546,222 @@ class PluginManager:
             raise PermissionError(f"capability not granted: {capability}")
         if capability == "destinationPath.read":
             return self._destination_path_read(args)
+        if capability == "rnsLink.open":
+            return self._rns_link_open(args)
+        if capability == "rnsLink.identify":
+            return self._rns_link_identify(args)
+        if capability == "rnsLink.request":
+            return self._rns_link_request(args)
+        if capability == "rnsLink.send":
+            return self._rns_link_send(args)
+        if capability == "rnsLink.close":
+            return self._rns_link_close(args)
         raise ValueError(f"unknown capability: {capability}")
+
+    def _require_rns_link_manager(self):
+        if not self.app:
+            raise RuntimeError("app is not available")
+        manager = getattr(self.app, "rns_link_manager", None)
+        if manager is None:
+            raise RuntimeError("rns_link_manager is not available")
+        return manager
+
+    @staticmethod
+    def _parse_rns_link_args(args: dict[str, Any]) -> tuple[bytes, str]:
+        dest_hex = args.get("destination_hash")
+        aspect = args.get("aspect")
+        if not isinstance(dest_hex, str) or not dest_hex:
+            raise ValueError("destination_hash is required")
+        if not isinstance(aspect, str) or not aspect:
+            raise ValueError("aspect is required")
+        try:
+            return bytes.fromhex(dest_hex), aspect
+        except ValueError as exc:
+            raise ValueError("invalid destination_hash") from exc
+
+    def _await_rns_link_coro(self, coro, *, timeout: float = 45.0):
+        import asyncio
+
+        from meshchatx.src.backend.async_utils import AsyncUtils
+
+        loop = AsyncUtils.main_loop
+        if loop is not None and loop.is_running():
+            return asyncio.run_coroutine_threadsafe(coro, loop).result(timeout=timeout)
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            return asyncio.run(coro)
+        raise RuntimeError("event loop is not available")
+
+    def _rns_link_open(self, args: dict[str, Any]) -> dict[str, Any]:
+        dest_hash, aspect = self._parse_rns_link_args(args)
+        manager = self._require_rns_link_manager()
+        auto_identify = bool(args.get("auto_identify", False))
+        link, identified, failure_reason = self._await_rns_link_coro(
+            manager.open_link(
+                dest_hash,
+                aspect,
+                auto_identify=auto_identify,
+            )
+        )
+        if link is None:
+            return {
+                "ok": False,
+                "failure_reason": failure_reason or "unknown",
+                "destination_hash": dest_hash.hex(),
+                "aspect": aspect,
+            }
+        return {
+            "ok": True,
+            "identified": identified,
+            "destination_hash": dest_hash.hex(),
+            "aspect": aspect,
+        }
+
+    def _rns_link_identify(self, args: dict[str, Any]) -> dict[str, Any]:
+        dest_hash, aspect = self._parse_rns_link_args(args)
+        manager = self._require_rns_link_manager()
+        ok, failure_reason = manager.identify(dest_hash, aspect)
+        return {
+            "ok": ok,
+            "failure_reason": failure_reason,
+            "destination_hash": dest_hash.hex(),
+            "aspect": aspect,
+        }
+
+    def _rns_link_request(self, args: dict[str, Any]) -> dict[str, Any]:
+        import base64
+
+        dest_hash, aspect = self._parse_rns_link_args(args)
+        path = args.get("path")
+        if not isinstance(path, str) or not path:
+            raise ValueError("path is required")
+        manager = self._require_rns_link_manager()
+        link, _identified, failure_reason = self._await_rns_link_coro(
+            manager.open_link(dest_hash, aspect, auto_identify=False)
+        )
+        if link is None:
+            return {
+                "ok": False,
+                "failure_reason": failure_reason or "unknown",
+                "destination_hash": dest_hash.hex(),
+                "aspect": aspect,
+            }
+
+        data_b64 = args.get("data_b64")
+        try:
+            body_bytes = base64.b64decode(data_b64, validate=True) if data_b64 else None
+        except Exception as exc:
+            raise ValueError("invalid data_b64") from exc
+        if body_bytes is None or len(body_bytes) == 0:
+            link_request_data = None
+        else:
+            from RNS.vendor import umsgpack
+
+            try:
+                link_request_data = umsgpack.unpackb(body_bytes)
+            except Exception as exc:
+                raise ValueError(f"data_msgpack_decode_failed: {exc}") from exc
+
+        timeout = args.get("timeout")
+        done = threading.Event()
+        result: dict[str, Any] = {
+            "ok": False,
+            "destination_hash": dest_hash.hex(),
+            "aspect": aspect,
+        }
+
+        def on_response(request_receipt):
+            raw = request_receipt.response
+            from RNS.vendor import umsgpack
+
+            try:
+                if hasattr(raw, "read") and not isinstance(raw, (bytes, bytearray)):
+                    raw_to_pack = raw.read()
+                else:
+                    raw_to_pack = raw
+                result["body_b64"] = base64.b64encode(
+                    umsgpack.packb(raw_to_pack)
+                ).decode("ascii")
+                result["ok"] = True
+            except Exception as exc:
+                result["failure_reason"] = f"response_encode_failed: {exc}"
+            done.set()
+
+        def on_failed(_receipt=None):
+            result["failure_reason"] = "request_failed"
+            done.set()
+
+        def on_progress(_receipt):
+            return
+
+        try:
+            manager.request(
+                dest_hash,
+                aspect,
+                path,
+                link_request_data,
+                response_callback=on_response,
+                failed_callback=on_failed,
+                progress_callback=on_progress,
+                timeout=timeout,
+            )
+        except Exception as exc:
+            return {
+                "ok": False,
+                "failure_reason": f"request_dispatch_failed: {exc}",
+                "destination_hash": dest_hash.hex(),
+                "aspect": aspect,
+            }
+
+        wait_timeout = float(timeout) if timeout is not None else 30.0
+        if not done.wait(timeout=max(wait_timeout, 1.0) + 5.0):
+            result["failure_reason"] = "request_timeout"
+        return result
+
+    def _rns_link_send(self, args: dict[str, Any]) -> dict[str, Any]:
+        import base64
+
+        dest_hash, aspect = self._parse_rns_link_args(args)
+        manager = self._require_rns_link_manager()
+        payload_b64 = args.get("payload_b64", "")
+        try:
+            payload = (
+                base64.b64decode(payload_b64, validate=True) if payload_b64 else b""
+            )
+        except Exception as exc:
+            raise ValueError("invalid payload_b64") from exc
+        ok, failure_reason = manager.send_packet(dest_hash, aspect, payload)
+        return {
+            "ok": ok,
+            "failure_reason": failure_reason,
+            "destination_hash": dest_hash.hex(),
+            "aspect": aspect,
+        }
+
+    def _rns_link_close(self, args: dict[str, Any]) -> dict[str, Any]:
+        dest_hash, aspect = self._parse_rns_link_args(args)
+        manager = self._require_rns_link_manager()
+        ok = manager.close(dest_hash, aspect)
+        return {
+            "ok": ok,
+            "failure_reason": None if ok else "no_active_link",
+            "destination_hash": dest_hash.hex(),
+            "aspect": aspect,
+        }
+
+    def on_rns_link_event(self, payload: dict[str, Any]) -> None:
+        if not self._plugins_runtime_enabled():
+            return
+        event_payload = {
+            "event": payload.get("event"),
+            "destination_hash": payload.get("destination_hash"),
+            "aspect": payload.get("aspect"),
+            "payload_b64": payload.get("payload_b64"),
+        }
+        for record in list(self._plugins.values()):
+            if record.enabled and self._hook_allowed(record, "rns.link.event"):
+                self.dispatch_hook(record.id, "rns.link.event", event_payload)
 
     def _destination_path_read(self, args: dict[str, Any]) -> dict[str, Any]:
         if not self.app or not getattr(self.app, "reticulum", None):

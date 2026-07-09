@@ -34,9 +34,9 @@
                 >
                     <div class="px-6 pt-8 pb-2 text-center">
                         <div
-                            class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white shadow-inner ring-1 ring-slate-200/80 dark:bg-zinc-950 dark:ring-zinc-700"
+                            class="mx-auto mb-4 flex h-20 w-20 items-center justify-center overflow-visible rounded-2xl bg-white p-2 shadow-inner ring-1 ring-slate-200/80 dark:bg-zinc-950 dark:ring-zinc-700"
                         >
-                            <img class="h-10 w-10 object-contain" src="./assets/images/logo.png" alt="" />
+                            <img class="h-14 w-14 object-contain" src="./assets/images/logo.png" alt="" />
                         </div>
                         <h1 class="text-xl font-semibold tracking-tight text-slate-900 dark:text-white">MeshChatX</h1>
                         <p id="status-line" class="mt-2 text-sm leading-relaxed text-slate-600 dark:text-zinc-400">
@@ -115,6 +115,7 @@
         </main>
 
         <script src="./loadingStatusNotice.js"></script>
+        <script src="./loadingStatusProbe.js"></script>
         <script>
             const statusLine = document.getElementById("status-line");
             const attemptHint = document.getElementById("attempt-hint");
@@ -324,11 +325,37 @@
             const recentFailures = [];
 
             function parseStatusJson(text) {
+                const helper = window.MeshchatLoadingStatusProbe;
+                if (helper && typeof helper.parseStatusJson === "function") {
+                    return helper.parseStatusJson(text);
+                }
                 try {
                     return JSON.parse(text);
                 } catch (e) {
                     return null;
                 }
+            }
+
+            function evaluateStatusResponse(httpStatus, bodyText) {
+                const helper = window.MeshchatLoadingStatusProbe;
+                if (helper && typeof helper.evaluateStatusResponse === "function") {
+                    return helper.evaluateStatusResponse(httpStatus, bodyText);
+                }
+                if (Number(httpStatus) !== 200) {
+                    return {
+                        ok: false,
+                        failure: { kind: "http-error", status: Number(httpStatus) || 0 },
+                    };
+                }
+                const data = parseStatusJson(bodyText);
+                if (data && (data.status === "ok" || data.status === "starting")) {
+                    return {
+                        ok: true,
+                        stage: data.stage || data.status,
+                        networkReady: !!data.network_ready,
+                    };
+                }
+                return { ok: false, failure: { kind: "invalid-payload" } };
             }
 
             function rememberFailure(failure) {
@@ -367,19 +394,19 @@
                 try {
                     const result = await fetch(url, { cache: "no-store" });
                     const text = await result.text();
-                    if (result.status !== 200) {
+                    const evaluated = evaluateStatusResponse(result.status, text);
+                    if (evaluated.ok) {
                         return {
-                            ok: false,
-                            failure: { kind: "http-error", status: result.status, protocol: protocol },
+                            ok: true,
+                            protocol: protocol,
+                            stage: evaluated.stage,
+                            networkReady: evaluated.networkReady,
                         };
                     }
-                    const data = parseStatusJson(text);
-                    if (data && data.status === "ok") {
-                        return { ok: true, protocol: protocol };
-                    }
+                    const failure = evaluated.failure || { kind: "invalid-payload" };
                     return {
                         ok: false,
-                        failure: { kind: "invalid-payload", protocol: protocol },
+                        failure: { ...failure, protocol: protocol },
                     };
                 } catch (error) {
                     return {
@@ -458,9 +485,14 @@
                             } catch (e) {}
                         }
                         detectedProtocol = result.protocol;
-                        statusLine.textContent = "Opening the app…";
+                        if (result.networkReady) {
+                            statusLine.textContent = "Opening the app…";
+                        } else {
+                            statusLine.textContent = "Opening the app (network still starting)…";
+                        }
                         attemptHint.textContent = "";
                         connectionNotice.textContent = "";
+                        // Theme/config may 503 until identity is ready; ignore failures.
                         syncThemeFromConfig();
                         setTimeout(onReady, 200);
                         return;

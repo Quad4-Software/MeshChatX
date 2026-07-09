@@ -6,6 +6,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import pytest
+
 from meshchatx.src.backend import self_check
 
 
@@ -174,3 +176,50 @@ def test_self_check_labels_cover_schema_keys():
 
     required = set(SELF_TEST_SCHEMA["required"])
     assert set(self_check.SELF_CHECK_LABELS) == required
+
+
+@pytest.mark.asyncio
+async def test_probe_rns_link_api_accepts_no_active_link():
+    from unittest.mock import AsyncMock
+
+    from aiohttp import WSMsgType
+
+    class FakeMsg:
+        def __init__(self, payload):
+            self.type = WSMsgType.TEXT
+            self.data = payload
+
+    ws = AsyncMock()
+    ws.send_str = AsyncMock()
+    ws.receive = AsyncMock(
+        return_value=FakeMsg(
+            '{"type":"rns.link.close","request_id":"self-check-rns-link",'
+            '"status":"failure","failure_reason":"no_active_link"}'
+        )
+    )
+    result = await self_check._probe_rns_link_api(ws, timeout=1)
+    assert result["status"] == "ok"
+    ws.send_str.assert_awaited()
+
+
+@pytest.mark.asyncio
+async def test_probe_rns_link_api_rejects_unexpected_failure():
+    from unittest.mock import AsyncMock
+
+    from aiohttp import WSMsgType
+
+    class FakeMsg:
+        def __init__(self, payload):
+            self.type = WSMsgType.TEXT
+            self.data = payload
+
+    ws = AsyncMock()
+    ws.send_str = AsyncMock()
+    ws.receive = AsyncMock(
+        return_value=FakeMsg(
+            '{"type":"rns.link.close","request_id":"self-check-rns-link",'
+            '"status":"failure","failure_reason":"boom"}'
+        )
+    )
+    result = await self_check._probe_rns_link_api(ws, timeout=1)
+    assert result["status"] == "failed"

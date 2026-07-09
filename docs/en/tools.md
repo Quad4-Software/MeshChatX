@@ -79,6 +79,12 @@ When `rrc_enabled` is on, you can run a local RRC hub from relay chat server set
 
 Installed plugins can add rows to **Tools** and **Navigation** through contribution manifests. Example bundled plugin: **Mesh Observatory** (`com.meshchatx.mesh-observatory`) for live announce feeds and path tables.
 
+Plugins are capability-gated, not fully open-ended: they cannot rewrite core MeshChatX. Supported runtimes are **frontend JS** (Worker) and optional **backend WASM**. Python plugins are not supported.
+
+ZIP install shows a confirmation dialog that lists requested permissions (hooks, managers, storage, `network:fetch`) and any scanned/declared external HTTP URLs. You can deny individual grants before install; denied capabilities stay blocked at runtime. Misbehaving plugins auto-disable after an error budget.
+
+Plugins that need a generic Reticulum Link transport (for example a microReticulum node management UI) can request `rnsLink.*` manager capabilities and the `rns.link.event` hook. External web apps can use the same transport over `/ws` without installing a plugin. See **RNS Link API**.
+
 Disable plugins at startup with `--disable-plugins` if you need a minimal surface.
 
 ## Command palette

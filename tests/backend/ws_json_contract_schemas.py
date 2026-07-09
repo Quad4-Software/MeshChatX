@@ -33,6 +33,21 @@ _WS_BOOL = {"type": "boolean"}
 WS_MESSAGE_SCHEMAS: dict[str, dict] = {
     "ping": _ws_type("ping"),
     "pong": _ws_type("pong"),
+    "error": _ws_type(
+        "error",
+        required=["message"],
+        properties={"message": _WS_STRING},
+    ),
+    "startup_status": _ws_type(
+        "startup_status",
+        required=["status"],
+        properties={
+            "status": _WS_STRING,
+            "stage": _WS_STRING,
+            "network_ready": _WS_BOOL,
+            "error": _WS_STRING,
+        },
+    ),
     "config.set": _ws_type(
         "config.set", required=["config"], properties={"config": _WS_OBJECT}
     ),
@@ -168,11 +183,93 @@ WS_MESSAGE_SCHEMAS: dict[str, dict] = {
     "rncp.transfer.progress": _ws_type("rncp.transfer.progress"),
     "rncp.send.completed": _ws_type("rncp.send.completed"),
     "rncp.fetch.completed": _ws_type("rncp.fetch.completed"),
+    "rns.link.open": _ws_type(
+        "rns.link.open",
+        required=["request_id"],
+        properties={
+            "request_id": _WS_STRING,
+            "destination_hash": _WS_STRING,
+            "aspect": _WS_STRING,
+            "status": _WS_STRING,
+            "phase": _WS_STRING,
+            "identified": _WS_BOOL,
+            "failure_reason": {"type": ["string", "null"]},
+            "auto_identify": _WS_BOOL,
+        },
+    ),
+    "rns.link.identify": _ws_type(
+        "rns.link.identify",
+        required=["request_id"],
+        properties={
+            "request_id": _WS_STRING,
+            "destination_hash": _WS_STRING,
+            "aspect": _WS_STRING,
+            "status": _WS_STRING,
+            "failure_reason": {"type": ["string", "null"]},
+        },
+    ),
+    "rns.link.request": _ws_type(
+        "rns.link.request",
+        required=["request_id"],
+        properties={
+            "request_id": _WS_STRING,
+            "destination_hash": _WS_STRING,
+            "aspect": _WS_STRING,
+            "path": _WS_STRING,
+            "data_b64": _WS_STRING,
+            "body_b64": _WS_STRING,
+            "status": _WS_STRING,
+            "phase": _WS_STRING,
+            "progress": {"type": "number"},
+            "failure_reason": {"type": ["string", "null"]},
+            "timeout": {"type": "number"},
+        },
+    ),
+    "rns.link.send": _ws_type(
+        "rns.link.send",
+        required=["request_id"],
+        properties={
+            "request_id": _WS_STRING,
+            "destination_hash": _WS_STRING,
+            "aspect": _WS_STRING,
+            "payload_b64": _WS_STRING,
+            "status": _WS_STRING,
+            "failure_reason": {"type": ["string", "null"]},
+        },
+    ),
+    "rns.link.close": _ws_type(
+        "rns.link.close",
+        required=["request_id"],
+        properties={
+            "request_id": _WS_STRING,
+            "destination_hash": _WS_STRING,
+            "aspect": _WS_STRING,
+            "status": _WS_STRING,
+            "failure_reason": {"type": ["string", "null"]},
+        },
+    ),
+    "rns.link.event": _ws_type(
+        "rns.link.event",
+        required=["event", "destination_hash", "aspect"],
+        properties={
+            "event": _WS_STRING,
+            "destination_hash": _WS_STRING,
+            "aspect": _WS_STRING,
+            "payload_b64": _WS_STRING,
+        },
+    ),
 }
 
 WS_MESSAGE_SAMPLES: dict[str, dict] = {
     "ping": {"type": "ping"},
     "pong": {"type": "pong"},
+    "error": {"type": "error", "message": "Authentication required"},
+    "startup_status": {
+        "type": "startup_status",
+        "status": "ok",
+        "stage": "ready",
+        "network_ready": True,
+    },
     "config.set": {"type": "config.set", "config": {"display_name": "Test"}},
     "config": {"type": "config", "config": {"display_name": "Test"}},
     "announced": {"type": "announced"},
@@ -283,6 +380,51 @@ WS_MESSAGE_SAMPLES: dict[str, dict] = {
     "rncp.transfer.progress": {"type": "rncp.transfer.progress", "percent": 50},
     "rncp.send.completed": {"type": "rncp.send.completed"},
     "rncp.fetch.completed": {"type": "rncp.fetch.completed"},
+    "rns.link.open": {
+        "type": "rns.link.open",
+        "request_id": "req-1",
+        "destination_hash": "aa" * 16,
+        "aspect": "microrn.mgmt",
+        "status": "success",
+        "identified": False,
+    },
+    "rns.link.identify": {
+        "type": "rns.link.identify",
+        "request_id": "req-2",
+        "destination_hash": "aa" * 16,
+        "aspect": "microrn.mgmt",
+        "status": "success",
+    },
+    "rns.link.request": {
+        "type": "rns.link.request",
+        "request_id": "req-3",
+        "destination_hash": "aa" * 16,
+        "aspect": "microrn.mgmt",
+        "path": "/status",
+        "status": "success",
+        "body_b64": "",
+    },
+    "rns.link.send": {
+        "type": "rns.link.send",
+        "request_id": "req-4",
+        "destination_hash": "aa" * 16,
+        "aspect": "microrn.mgmt",
+        "payload_b64": "",
+        "status": "success",
+    },
+    "rns.link.close": {
+        "type": "rns.link.close",
+        "request_id": "req-5",
+        "destination_hash": "aa" * 16,
+        "aspect": "microrn.mgmt",
+        "status": "success",
+    },
+    "rns.link.event": {
+        "type": "rns.link.event",
+        "event": "link_closed",
+        "destination_hash": "aa" * 16,
+        "aspect": "microrn.mgmt",
+    },
 }
 
 

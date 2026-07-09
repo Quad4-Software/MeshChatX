@@ -190,6 +190,49 @@ describe("behavior contracts: Reticulum instance settings", () => {
     });
 });
 
+describe("behavior contracts: RNS Link API", () => {
+    it("keeps generic rns.link transport wired for plugins and self-check", () => {
+        const meshchat = readSource("meshchatx/meshchat.py");
+        expect(meshchat).toContain("rns.link.open");
+        expect(meshchat).toContain("rns.link.request");
+        expect(meshchat).toContain("websocket_rns_link_good");
+        const manager = readSource("meshchatx/src/backend/rns_link_manager.py");
+        expect(manager).toContain("class RnsLinkManager");
+        expect(manager).toContain("rns.link.event");
+        const plugins = readSource("meshchatx/src/backend/plugin_manager.py");
+        expect(plugins).toContain("rnsLink.open");
+        expect(plugins).toContain("rns.link.event");
+        const selfCheck = readSource("meshchatx/src/backend/self_check.py");
+        expect(selfCheck).toContain("websocket_rns_link_good");
+        expect(selfCheck).toContain("_probe_rns_link_api");
+        const guard = readSource("meshchatx/src/backend/websocket_config_guard.py");
+        expect(guard).toContain("rns.link.open");
+        expect(guard).toContain("rns.link.close");
+    });
+});
+
+describe("behavior contracts: plugin install permissions", () => {
+    it("previews ZIP installs and lists network endpoints before grant", () => {
+        const meshchat = readSource("meshchatx/meshchat.py");
+        expect(meshchat).toContain("/api/v1/plugins/preview");
+        expect(meshchat).toContain("granted_permissions");
+        const section = readSource("meshchatx/src/frontend/components/settings/PluginsSettingsSection.vue");
+        expect(section).toContain("PluginInstallDialog");
+        expect(section).toContain("/api/v1/plugins/preview");
+        expect(section).toContain("granted_permissions");
+        const dialog = readSource("meshchatx/src/frontend/components/settings/PluginInstallDialog.vue");
+        expect(dialog).toContain("network_endpoints");
+        expect(dialog).toContain("grantedMap");
+        const perms = readSource("meshchatx/src/backend/plugin_permissions.py");
+        expect(perms).toContain("collect_network_endpoints");
+        expect(perms).toContain('permission_id_for_network("fetch")');
+        expect(perms).toContain("KNOWN_NETWORK");
+        const manager = readSource("meshchatx/src/backend/plugin_manager.py");
+        expect(manager).toContain("preview_from_zip_bytes");
+        expect(manager).toContain("granted_allows_network_fetch");
+    });
+});
+
 describe("behavior contracts: network visualiser performance", () => {
     it("keeps lean physics and edge-hide options for large meshes", () => {
         const src = readSource("meshchatx/src/frontend/components/network-visualiser/NetworkVisualiser.vue");

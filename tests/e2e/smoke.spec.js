@@ -47,6 +47,7 @@ test.describe("MeshChatX E2E (Vite + Python backend)", () => {
             "http_favourites_good",
             "http_telephone_good",
             "websocket_good",
+            "websocket_rns_link_good",
             "bots_lifecycle",
         ];
         for (const key of keys) {

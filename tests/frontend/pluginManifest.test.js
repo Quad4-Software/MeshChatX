@@ -5,6 +5,7 @@ import {
     validatePluginManifest,
     manifestPermissionSummary,
 } from "../../meshchatx/src/frontend/js/plugins/pluginManifest.js";
+import { declaredPermissionIds, permissionLabel } from "../../meshchatx/src/frontend/js/plugins/pluginPermissions.js";
 
 describe("pluginManifest", () => {
     it("validates a minimal manifest", () => {
@@ -27,15 +28,34 @@ describe("pluginManifest", () => {
         ).toThrow(/apiVersion/);
     });
 
-    it("summarizes permissions", () => {
-        const lines = manifestPermissionSummary({
+    it("summarizes permissions with labels", () => {
+        const lines = manifestPermissionSummary(
+            {
+                permissions: {
+                    hooks: ["announce.received"],
+                    managers: ["destinationPath.read"],
+                    storage: "isolated",
+                    network: "fetch",
+                },
+            },
+            (key) => (key === "plugins.permissions.network.fetch" ? "Make outbound internet HTTP requests" : key)
+        );
+        expect(lines.join(" ")).toContain("hooks:announce.received");
+        expect(lines.join(" ")).toContain("Make outbound internet HTTP requests");
+    });
+
+    it("builds declared permission ids including network.fetch", () => {
+        const ids = declaredPermissionIds({
             permissions: {
-                hooks: ["announce.received"],
-                managers: ["destinationPath.read"],
-                storage: "isolated",
+                hooks: ["rns.link.event"],
+                network: "http",
             },
         });
-        expect(lines.join(" ")).toContain("announce.received");
-        expect(lines.join(" ")).toContain("destinationPath.read");
+        expect(ids).toContain("hooks:rns.link.event");
+        expect(ids).toContain("network:fetch");
+    });
+
+    it("labels unknown permissions with the raw id", () => {
+        expect(permissionLabel("custom:thing", (key) => key)).toBe("custom:thing");
     });
 });

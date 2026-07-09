@@ -201,7 +201,7 @@ tasks:
                 fi
 
     test:quick:be:
-        desc: Backend regression subset (interface-stats, CSRF, LXMF send, nomad downloads)
+        desc: Backend regression subset (interface-stats, CSRF, LXMF send, nomad downloads, RNS link)
         cmds:
             - >-
                 uv run pytest
@@ -209,6 +209,9 @@ tasks:
                 tests/backend/test_http_auth_security.py
                 tests/backend/test_meshchat_coverage.py
                 tests/backend/test_nomadnet_downloader.py
+                tests/backend/test_rns_link_manager.py
+                tests/backend/test_rns_link_fuzzing.py
+                tests/backend/test_rns_link_plugin.py
                 -q
 
     test:quick:fe:
@@ -323,6 +326,19 @@ tasks:
         desc: Run backend benchmarks
         cmds:
             - uv run python tests/backend/run_comprehensive_benchmarks.py
+
+    bench:be:ci:
+        desc: Run backend benchmarks the way CI does (3 suite runs + smart gate)
+        cmds:
+            - >
+                uv run python tests/backend/run_comprehensive_benchmarks.py
+                --runs 3 --json-output bench_results.json
+            - >
+                uv run python tests/backend/compare_benchmarks.py
+                --current bench_results.json
+                --previous ./cache/benchmark-data.json
+                --baseline-out ./cache/benchmark-data.json
+                --summary bench_gate_summary.txt
 
     bench:be:extreme:
         desc: Run extreme stress benchmarks

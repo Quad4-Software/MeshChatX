@@ -39,17 +39,19 @@ uv run python -m meshchatx.meshchat \
     &
 BACK_PID=$!
 
-echo "E2E: waiting for /api/v1/status (HTTP 200)..."
+echo "E2E: waiting for /api/v1/status network_ready..."
 ready=0
 for i in $(seq 1 240); do
     if ! kill -0 "$BACK_PID" 2>/dev/null; then
         echo "E2E: backend process exited before becoming ready"
         exit 1
     fi
-    if curl -sf "http://127.0.0.1:${BACKEND_PORT}/api/v1/status" >/dev/null 2>&1; then
-        ready=1
-        echo "E2E: backend ready after ${i}s"
-        break
+    if body="$(curl -sf "http://127.0.0.1:${BACKEND_PORT}/api/v1/status" 2>/dev/null)"; then
+        if printf '%s' "$body" | python3 -c 'import json,sys; d=json.load(sys.stdin); sys.exit(0 if d.get("status")=="ok" or d.get("network_ready") else 1)'; then
+            ready=1
+            echo "E2E: backend ready after ${i}s"
+            break
+        fi
     fi
     sleep 1
 done

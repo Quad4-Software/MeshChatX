@@ -17,9 +17,15 @@
         "nomadnet.page.archive.load",
         "nomadnet.page.archives.get",
         "nomadnet.page.download",
-        "ping"
+        "ping",
+        "rns.link.close",
+        "rns.link.identify",
+        "rns.link.open",
+        "rns.link.request",
+        "rns.link.send"
     ],
     "client_direct_responses": [
+        "error",
         "keyboard_shortcuts",
         "lxm.generate_paper_uri.result",
         "lxm.ingest_uri.result",
@@ -29,7 +35,12 @@
         "nomadnet.page.archive.added",
         "nomadnet.page.archives",
         "nomadnet.page.download",
-        "pong"
+        "pong",
+        "rns.link.close",
+        "rns.link.identify",
+        "rns.link.open",
+        "rns.link.request",
+        "rns.link.send"
     ],
     "server_broadcast": [
         "announce",
@@ -47,11 +58,13 @@
         "rncp.fetch.completed",
         "rncp.send.completed",
         "rncp.transfer.progress",
+        "rns.link.event",
         "rnsh.output",
         "rnsh.session.change",
         "rrc.change",
         "rrc.message",
         "rrc.server.change",
+        "startup_status",
         "telephone_call_ended",
         "telephone_call_established",
         "telephone_initiation_status",

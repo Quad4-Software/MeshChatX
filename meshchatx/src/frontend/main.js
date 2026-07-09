@@ -328,106 +328,129 @@ window.api = createApiClient({
     },
 });
 
-try {
-    await fetchCsrfToken(window.api);
-} catch {
-    // CSRF token will be retried on the next mutating request if needed.
+import { waitForNetworkReady } from "./js/networkStartupWait.js";
+
+function setBootSplashLine(text) {
+    const splash = typeof document !== "undefined" ? document.getElementById("meshchatx-boot-splash") : null;
+    const line = splash?.querySelector("[data-boot-line]");
+    if (line && text) {
+        line.textContent = text;
+    }
 }
 
-router.beforeEach(async (to, from, next) => {
+function markBootSplashError() {
+    const splash = typeof document !== "undefined" ? document.getElementById("meshchatx-boot-splash") : null;
+    if (splash) {
+        splash.setAttribute("data-state", "error");
+    }
+}
+
+const networkReady = await waitForNetworkReady({
+    onLine: setBootSplashLine,
+    onErrorState: markBootSplashError,
+});
+if (networkReady) {
     try {
-        const response = await window.api.get("/api/v1/auth/status");
-        const status = response.data;
-        GlobalState.authEnabled = !!status.auth_enabled;
-        GlobalState.authenticated = !!status.authenticated;
-        GlobalState.authSessionResolved = true;
+        await fetchCsrfToken(window.api);
+    } catch {
+        // CSRF token will be retried on the next mutating request if needed.
+    }
 
-        if (!status.auth_enabled) {
-            next();
-            return;
-        }
+    router.beforeEach(async (to, from, next) => {
+        try {
+            const response = await window.api.get("/api/v1/auth/status");
+            const status = response.data;
+            GlobalState.authEnabled = !!status.auth_enabled;
+            GlobalState.authenticated = !!status.authenticated;
+            GlobalState.authSessionResolved = true;
 
-        if (status.authenticated) {
+            if (!status.auth_enabled) {
+                next();
+                return;
+            }
+
+            if (status.authenticated) {
+                if (to.name === "auth") {
+                    next("/");
+                } else {
+                    next();
+                }
+                return;
+            }
+
             if (to.name === "auth") {
-                next("/");
+                next();
+                return;
+            }
+
+            next("/auth");
+        } catch (e) {
+            GlobalState.authSessionResolved = true;
+            if (e.response?.status === 401 || e.response?.status === 403) {
+                GlobalState.authenticated = false;
+                next("/auth");
             } else {
                 next();
             }
-            return;
         }
-
-        if (to.name === "auth") {
-            next();
-            return;
-        }
-
-        next("/auth");
-    } catch (e) {
-        GlobalState.authSessionResolved = true;
-        if (e.response?.status === 401 || e.response?.status === 403) {
-            GlobalState.authenticated = false;
-            next("/auth");
-        } else {
-            next();
-        }
-    }
-});
-
-function registerMeshchatServiceWorker() {
-    if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
-        return;
-    }
-    navigator.serviceWorker.register("/service-worker.js").catch((error) => {
-        const errorMessage = error.message || "";
-        const errorName = error.name || "";
-        if (
-            errorName === "SecurityError" ||
-            errorMessage.includes("SSL certificate") ||
-            errorMessage.includes("certificate")
-        ) {
-            return;
-        }
-        console.debug("Service worker registration failed:", error);
     });
-}
 
-function bootstrap() {
-    registerMeshchatServiceWorker();
-    const splash = typeof document !== "undefined" ? document.getElementById("meshchatx-boot-splash") : null;
-    try {
-        createApp(App).use(router).use(vuetify).use(i18n).use(vClickOutside).mount("#app");
-    } catch (e) {
-        console.error("MeshChatX bootstrap failed:", e);
-        if (splash) {
-            splash.setAttribute("data-state", "error");
-            const line = splash.querySelector("[data-boot-line]");
-            if (line) {
-                line.textContent = "Failed to start. Try closing and reopening the app.";
-            }
-        }
-        return;
-    }
-    if (splash) {
-        splash.remove();
-    }
-    void startCodec2ScriptsBackgroundLoad();
-    void loadPluginsIfEnabled();
-}
-
-async function loadPluginsIfEnabled() {
-    if (!(GlobalState.authenticated || !GlobalState.authEnabled)) {
-        return;
-    }
-    try {
-        const response = await window.api.get("/api/v1/plugins");
-        GlobalState.pluginsEnabled = response.data?.plugins_enabled !== false;
-        if (!GlobalState.pluginsEnabled) {
+    function registerMeshchatServiceWorker() {
+        if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) {
             return;
         }
-        await pluginHost.loadEnabledPlugins(window.api, i18n.global.locale.value);
-    } catch (error) {
-        console.debug("Plugin host bootstrap failed:", error);
+        navigator.serviceWorker.register("/service-worker.js").catch((error) => {
+            const errorMessage = error.message || "";
+            const errorName = error.name || "";
+            if (
+                errorName === "SecurityError" ||
+                errorMessage.includes("SSL certificate") ||
+                errorMessage.includes("certificate")
+            ) {
+                return;
+            }
+            console.debug("Service worker registration failed:", error);
+        });
     }
-}
 
-bootstrap();
+    function bootstrap() {
+        registerMeshchatServiceWorker();
+        const splash = typeof document !== "undefined" ? document.getElementById("meshchatx-boot-splash") : null;
+        try {
+            createApp(App).use(router).use(vuetify).use(i18n).use(vClickOutside).mount("#app");
+        } catch (e) {
+            console.error("MeshChatX bootstrap failed:", e);
+            if (splash) {
+                splash.setAttribute("data-state", "error");
+                const line = splash.querySelector("[data-boot-line]");
+                if (line) {
+                    line.textContent = "Failed to start. Try closing and reopening the app.";
+                }
+            }
+            return;
+        }
+        if (splash) {
+            splash.remove();
+        }
+        void startCodec2ScriptsBackgroundLoad();
+        void loadPluginsIfEnabled();
+    }
+
+    async function loadPluginsIfEnabled() {
+        if (!(GlobalState.authenticated || !GlobalState.authEnabled)) {
+            return;
+        }
+        try {
+            const response = await window.api.get("/api/v1/plugins");
+            GlobalState.pluginsEnabled = response.data?.plugins_enabled !== false;
+            if (!GlobalState.pluginsEnabled) {
+                return;
+            }
+            await pluginHost.loadEnabledPlugins(window.api, i18n.global.locale.value);
+        } catch (error) {
+            console.debug("Plugin host bootstrap failed:", error);
+        }
+    }
+
+    bootstrap();
+}

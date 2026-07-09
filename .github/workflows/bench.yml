@@ -1,11 +1,11 @@
 # Benchmarks and integrity checks (push to main branches and workflow_dispatch).
-# Results are stored in a runner cache and compared on every run; the job fails
-# when any metric regresses beyond 150% of the stored baseline, and a commit
-# comment is posted with the offending numbers.
+# The suite runs 3 times; reported values are median-of-medians. A smart gate
+# (noise floor + absolute delta + adaptive ratio) decides regressions — flat
+# ratio alerts on sub-ms SQLite ops are useless on shared runners.
 #
 # Pinned first-party actions (bump tag and SHA together when upgrading):
 #   actions/checkout@v6.0.1            8e8c483db84b4bee98b60c0593521ed34d9990e8
-#   actions/cache@v4.2.0               1bd1e32a3bdc45362d1e726936510720a7c30a57
+#   actions/cache@v5.0.4               668228422ae6a00e4ad889ee87cd7109ec5666a7
 #   benchmark-action/github-action-benchmark@v1.22.0
 #                                      a60cea5bc7b49e15c1f58f411161f99e0df48372
 
@@ -50,17 +50,20 @@ jobs:
                   pnpm-version: ${{ env.PNPM_VERSION }}
 
             - name: Restore benchmark baseline cache
-              uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+              uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7
               with:
                   path: ./cache
-                  key: ${{ runner.os }}-bench-baseline-${{ github.ref_name }}
+                  key: ${{ runner.os }}-bench-baseline-v2-${{ github.ref_name }}-${{ github.sha }}
                   restore-keys: |
+                      ${{ runner.os }}-bench-baseline-v2-${{ github.ref_name }}-
+                      ${{ runner.os }}-bench-baseline-v2-
                       ${{ runner.os }}-bench-baseline-
 
-            - name: Run benchmarks
+            - name: Run benchmarks (3 suite runs, median of medians)
               run: |
                   set -euo pipefail
                   uv run python tests/backend/run_comprehensive_benchmarks.py \
+                      --runs 3 \
                       --json-output bench_results.json 2>&1 | tee bench_results.txt
 
             - name: Run integrity tests
@@ -68,7 +71,39 @@ jobs:
                   set -euo pipefail
                   task test:integrity 2>&1 | tee -a bench_results.txt
 
-            - name: Store and compare benchmark results
+            - name: Smart regression gate
+              id: gate
+              run: |
+                  set -euo pipefail
+                  mkdir -p cache
+                  set +e
+                  uv run python tests/backend/compare_benchmarks.py \
+                      --current bench_results.json \
+                      --previous ./cache/benchmark-data.json \
+                      --summary bench_gate_summary.txt \
+                      --noise-floor-ms 0.5 \
+                      --min-abs-delta-ms 1.5
+                  code=$?
+                  set -e
+                  echo "exit_code=${code}" >> "$GITHUB_OUTPUT"
+                  if [ "${code}" != "0" ]; then
+                      echo "::error::Benchmark gate reported actionable regressions (see summary)"
+                  fi
+                  exit "${code}"
+
+            - name: Update benchmark baseline cache
+              if: success()
+              run: |
+                  set -euo pipefail
+                  uv run python tests/backend/compare_benchmarks.py \
+                      --current bench_results.json \
+                      --previous ./cache/benchmark-data.json \
+                      --baseline-out ./cache/benchmark-data.json \
+                      --update-baseline
+
+            - name: Publish benchmark chart (informational)
+              if: success()
+              continue-on-error: true
               uses: benchmark-action/github-action-benchmark@a60cea5bc7b49e15c1f58f411161f99e0df48372
               with:
                   name: MeshChatX Backend Benchmarks
@@ -76,8 +111,8 @@ jobs:
                   output-file-path: bench_results.json
                   external-data-json-path: ./cache/benchmark-data.json
                   github-token: ${{ secrets.GITHUB_TOKEN }}
-                  alert-threshold: "200%"
-                  fail-threshold: "300%"
-                  fail-on-alert: true
-                  comment-on-alert: true
+                  # Chart/comment only — smart gate is the fail path.
+                  alert-threshold: "1000%"
+                  fail-on-alert: false
+                  comment-on-alert: false
                   summary-always: true

@@ -451,7 +451,12 @@
         "rpc_config_copied": "RPC config copied to clipboard",
         "copy_rpc_config": "Copy RPC Config",
         "connected_to_shared_instance": "This MeshChatX process is attached to an external shared Reticulum instance. Edit that instance's config to change share/RPC settings.",
-        "copy_failed": "Failed to copy to clipboard"
+        "copy_failed": "Failed to copy to clipboard",
+        "rpc_key_hidden": "Oculta — toca para mostrar",
+        "rpc_key_show": "Mostrar clave RPC",
+        "rpc_key_hide": "Ocultar clave RPC",
+        "refresh_community_interfaces": "Actualizar desde directory.rns.recipes",
+        "refresh_community_interfaces_busy": "Actualizando…"
     },
     "common": {
         "open": "Abierto",
@@ -699,7 +704,7 @@
     "plugins": {
         "settings": {
             "title": "Plugins",
-            "description": "Instalar, habilitar y revisar permisos de plugins de MeshChatX.",
+            "description": "Install, enable, and review permissions for MeshChatX plugins. ZIP installs show a confirmation dialog with requested permissions and any external URLs.",
             "enable": "Habilitar",
             "disable": "Deshabilitar",
             "remove": "Eliminar",
@@ -720,7 +725,37 @@
             "badge_frontend": "UI",
             "badge_wasm": "WASM",
             "install_failed": "Error al instalar el plugin: {reason}",
-            "installing": "Instalando plugin..."
+            "installing": "Instalando plugin...",
+            "badge_network": "Network",
+            "network_endpoints": "Network endpoints",
+            "previewing": "Reviewing plugin..."
+        },
+        "permissions": {
+            "none": "No elevated permissions",
+            "hooks.announce.received": "Receive mesh announce events",
+            "hooks.rns.link.event": "Receive RNS link packet and close events",
+            "managers.destinationPath.read": "Read the Reticulum path table",
+            "managers.rnsLink.open": "Open RNS links to destinations",
+            "managers.rnsLink.identify": "Identify on RNS links",
+            "managers.rnsLink.request": "Send request/response over RNS links",
+            "managers.rnsLink.send": "Send packets over RNS links",
+            "managers.rnsLink.close": "Close RNS links",
+            "storage.isolated": "Use isolated plugin storage",
+            "network.fetch": "Make outbound internet HTTP requests"
+        },
+        "install_dialog": {
+            "title": "Install plugin",
+            "network_title": "Install plugin with network access",
+            "message": "Review permissions for \"{name}\" ({id}) before installing.",
+            "permissions": "Requested permissions",
+            "permissions_hint": "Uncheck any permission you do not want to grant. Denied capabilities stay unavailable at runtime.",
+            "grant": "Allow",
+            "network_endpoints": "External network endpoints",
+            "network_endpoints_blocked": "Network access is not granted. These URLs will remain blocked.",
+            "network_endpoints_unknown": "This plugin requests network access but did not declare specific endpoints.",
+            "cancel": "Cancel",
+            "confirm": "Install",
+            "close": "Close"
         }
     },
     "selftest": {
@@ -764,7 +799,9 @@
         "status_label": "Estado",
         "reason_label": "Motivo",
         "checks_completed": "Todas las comprobaciones se completaron con éxito.",
-        "http_reticulum_instance_good": "HTTP RNS Instance Settings"
+        "http_reticulum_instance_good": "HTTP RNS Instance Settings",
+        "expand_reason": "Mostrar detalles del fallo",
+        "collapse_reason": "Ocultar detalles del fallo"
     },
     "maintenance": {
         "title": "Datos de mantenimiento",
@@ -1619,7 +1656,9 @@
             "privacy": "Privacy",
             "privacy_desc": "Data, access, and security",
             "maintenance": "Maintenance",
-            "maintenance_desc": "Cleanup, export, and import"
+            "maintenance_desc": "Cleanup, export, and import",
+            "plugins": "Complementos",
+            "plugins_desc": "Instalar y gestionar complementos de MeshChatX"
         },
         "failed_update_reticulum_instance": "Failed to update Reticulum instance settings!"
     },
@@ -3299,5 +3338,8 @@
         "copy_restart_hint": "Copy scheduled. Closing the app — open MeshChatX again to finish.",
         "restart_to_apply": "Restart the app to apply your storage choice.",
         "failed": "Could not update storage location."
+    },
+    "self_test": {
+        "websocket_rns_link_good": "WebSocket RNS Link API"
     }
 }

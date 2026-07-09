@@ -27,14 +27,18 @@
                         type="file"
                         accept=".zip,application/zip"
                         class="sr-only"
-                        :disabled="installing"
+                        :disabled="installing || previewing"
                         @change="onInstallFile"
                     />
                     <span
                         class="px-4 py-2 rounded-md bg-blue-600 text-white text-sm cursor-pointer hover:bg-blue-700"
-                        :class="installing ? 'opacity-60 pointer-events-none' : ''"
+                        :class="installing || previewing ? 'opacity-60 pointer-events-none' : ''"
                     >
-                        {{ installing ? $t("plugins.settings.installing") : $t("plugins.settings.choose_file") }}
+                        {{
+                            installing || previewing
+                                ? $t("plugins.settings.installing")
+                                : $t("plugins.settings.choose_file")
+                        }}
                     </span>
                 </label>
             </div>
@@ -81,6 +85,12 @@
                             >
                                 {{ $t("plugins.settings.badge_wasm") }}
                             </span>
+                            <span
+                                v-if="plugin.requires_network_fetch"
+                                class="px-2 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200"
+                            >
+                                {{ $t("plugins.settings.badge_network") }}
+                            </span>
                         </div>
                         <p class="text-sm text-gray-600 dark:text-gray-400">{{ plugin.description }}</p>
                         <p class="text-xs text-gray-500 dark:text-gray-500">{{ plugin.id }} · v{{ plugin.version }}</p>
@@ -120,24 +130,48 @@
                         <li v-for="line in permissionLines(plugin)" :key="line">{{ line }}</li>
                     </ul>
                 </div>
+                <div
+                    v-if="(plugin.network_endpoints || []).length"
+                    class="text-sm text-gray-700 dark:text-gray-300 space-y-1"
+                >
+                    <p class="font-medium">{{ $t("plugins.settings.network_endpoints") }}</p>
+                    <ul class="list-disc pl-5">
+                        <li
+                            v-for="endpoint in plugin.network_endpoints"
+                            :key="endpoint"
+                            class="font-mono text-xs break-all"
+                        >
+                            {{ endpoint }}
+                        </li>
+                    </ul>
+                </div>
                 <p v-if="plugin.auto_disabled_reason" class="text-sm text-amber-700 dark:text-amber-300">
                     {{ $t("plugins.settings.auto_disabled", { reason: plugin.auto_disabled_reason }) }}
                 </p>
             </div>
         </div>
+
+        <PluginInstallDialog
+            :open="dialogOpen"
+            :preview="installPreview"
+            :confirming="installing"
+            @cancel="cancelInstallPreview"
+            @confirm="confirmInstallPreview"
+        />
     </SettingsSectionBlock>
 </template>
 
 <script>
 import SettingsSectionBlock from "./SettingsSectionBlock.vue";
+import PluginInstallDialog from "./PluginInstallDialog.vue";
 import ToastUtils from "../../js/ToastUtils";
-import { manifestPermissionSummary } from "../../js/plugins/pluginManifest.js";
+import { permissionLabel } from "../../js/plugins/pluginPermissions.js";
 import { pluginHost } from "../../js/plugins/PluginHost.js";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
 
 export default {
     name: "PluginsSettingsSection",
-    components: { SettingsSectionBlock },
+    components: { SettingsSectionBlock, PluginInstallDialog },
     props: {
         visible: {
             type: Boolean,
@@ -149,7 +183,11 @@ export default {
             plugins: [],
             dragActive: false,
             installing: false,
+            previewing: false,
             busyPluginId: null,
+            dialogOpen: false,
+            installPreview: null,
+            pendingArchive: null,
         };
     },
     mounted() {
@@ -171,7 +209,11 @@ export default {
             return this.$i18n?.locale?.value || this.$i18n?.locale || "en";
         },
         permissionLines(plugin) {
-            return manifestPermissionSummary(plugin.manifest || { permissions: plugin.permissions || {} });
+            const granted = plugin.granted_permissions || plugin.declared_permissions || [];
+            if (!granted.length) {
+                return [this.$t("plugins.permissions.none")];
+            }
+            return granted.map((id) => permissionLabel(id, (key) => this.$t(key)));
         },
         async refresh() {
             const response = await window.api.get("/api/v1/plugins");
@@ -222,37 +264,67 @@ export default {
                 this.busyPluginId = null;
             }
         },
-        async installArchive(file) {
+        async beginInstallPreview(file) {
             if (!file) {
                 return;
             }
-            this.installing = true;
+            this.previewing = true;
+            this.pendingArchive = file;
             try {
                 const formData = new FormData();
                 formData.append("archive", file);
-                await window.api.post("/api/v1/plugins/install", formData);
-                await this.refresh();
-                ToastUtils.success(this.$t("plugins.settings.installed"));
+                const response = await window.api.post("/api/v1/plugins/preview", formData);
+                this.installPreview = response.data;
+                this.dialogOpen = true;
             } catch (error) {
+                this.pendingArchive = null;
+                this.installPreview = null;
                 ToastUtils.error(
                     this.$t("plugins.settings.install_failed", { reason: error?.message || String(error) })
                 );
             } finally {
-                this.installing = false;
+                this.previewing = false;
                 this.dragActive = false;
                 if (this.$refs.fileInput) {
                     this.$refs.fileInput.value = "";
                 }
             }
         },
+        cancelInstallPreview() {
+            this.dialogOpen = false;
+            this.installPreview = null;
+            this.pendingArchive = null;
+        },
+        async confirmInstallPreview({ grantedPermissions }) {
+            if (!this.pendingArchive) {
+                this.cancelInstallPreview();
+                return;
+            }
+            this.installing = true;
+            try {
+                const formData = new FormData();
+                formData.append("archive", this.pendingArchive);
+                formData.append("granted_permissions", JSON.stringify(grantedPermissions || []));
+                await window.api.post("/api/v1/plugins/install", formData);
+                await this.refresh();
+                ToastUtils.success(this.$t("plugins.settings.installed"));
+                this.cancelInstallPreview();
+            } catch (error) {
+                ToastUtils.error(
+                    this.$t("plugins.settings.install_failed", { reason: error?.message || String(error) })
+                );
+            } finally {
+                this.installing = false;
+            }
+        },
         async onInstallFile(event) {
             const file = event.target.files?.[0];
-            await this.installArchive(file);
+            await this.beginInstallPreview(file);
         },
         async onDropArchive(event) {
             this.dragActive = false;
             const file = event.dataTransfer?.files?.[0];
-            await this.installArchive(file);
+            await this.beginInstallPreview(file);
         },
     },
 };
