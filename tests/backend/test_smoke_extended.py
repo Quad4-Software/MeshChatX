@@ -43,6 +43,23 @@ def test_import_all_backend_modules():
                     pytest.fail(f"Failed to import {full_module_name}: {e}")
 
 
+def test_rns_link_manager_smoke():
+    """Smoke: RnsLinkManager constructs and exposes the public transport API."""
+    from meshchatx.src.backend.rns_link_manager import RnsLinkManager
+
+    manager = RnsLinkManager(
+        self_identity_getter=lambda: None,
+        reticulum_getter=lambda: None,
+        broadcast_event=lambda _payload: None,
+    )
+    assert callable(manager.open_link)
+    assert callable(manager.identify)
+    assert callable(manager.request)
+    assert callable(manager.send_packet)
+    assert callable(manager.close)
+    assert manager.close(b"\x00" * 16, "meshchatx.smoke") is False
+
+
 def test_database_migration_smoke():
     """Smoke test for database migrations from version 0 to latest."""
     from meshchatx.src.backend.database.provider import DatabaseProvider

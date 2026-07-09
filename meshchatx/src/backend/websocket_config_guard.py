@@ -49,6 +49,11 @@ WEBSOCKET_MUTATOR_TYPES = frozenset(
         "nomadnet.page.archive.add",
         "nomadnet.page.archive.flush",
         "nomadnet.page.download",
+        "rns.link.close",
+        "rns.link.identify",
+        "rns.link.open",
+        "rns.link.request",
+        "rns.link.send",
     },
 )
 

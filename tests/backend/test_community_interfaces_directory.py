@@ -10,6 +10,8 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from meshchatx.src.backend.community_interfaces_directory import (
+    DEFAULT_DIRECTORY_URLS,
+    DEFAULT_DISCOVERED_URL,
     DEFAULT_SUBMITTED_URL,
     fetch_directory_payload,
     rows_from_payload,
@@ -21,6 +23,11 @@ from meshchatx.src.backend.community_interfaces_directory import (
 def test_default_url_is_submitted_online():
     assert "submitted" in DEFAULT_SUBMITTED_URL
     assert "status=online" in DEFAULT_SUBMITTED_URL
+    assert "discovered" in DEFAULT_DISCOVERED_URL
+    assert DEFAULT_SUBMITTED_URL in DEFAULT_DIRECTORY_URLS
+    assert DEFAULT_DISCOVERED_URL in DEFAULT_DIRECTORY_URLS
+    assert "search=" not in DEFAULT_SUBMITTED_URL
+    assert "type=" not in DEFAULT_SUBMITTED_URL
 
 
 def test_validate_directory_fetch_url_accepts_default_host():

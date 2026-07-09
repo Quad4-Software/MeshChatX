@@ -179,9 +179,15 @@ _SERVER_BIND_STATUS_SCHEMA: dict = {
 
 API_V1_STATUS_SCHEMA: dict = {
     "type": "object",
-    "required": ["status"],
+    "required": ["status", "stage", "network_ready"],
     "properties": {
-        "status": {"type": "string", "const": "ok"},
+        "status": {"type": "string", "enum": ["ok", "starting", "failed"]},
+        "stage": {
+            "type": "string",
+            "enum": ["http", "starting", "rns", "identity", "ready", "failed"],
+        },
+        "network_ready": {"type": "boolean"},
+        "error": {"type": "string"},
         **_SERVER_BIND_STATUS_SCHEMA,
     },
     "additionalProperties": False,
@@ -231,6 +237,7 @@ SELF_TEST_SCHEMA: dict = {
         "http_favourites_good",
         "http_telephone_good",
         "websocket_good",
+        "websocket_rns_link_good",
         "bots_lifecycle",
     ],
     "properties": {
@@ -265,6 +272,7 @@ SELF_TEST_SCHEMA: dict = {
         "http_favourites_good": SELF_TEST_STATUS_ITEM_SCHEMA,
         "http_telephone_good": SELF_TEST_STATUS_ITEM_SCHEMA,
         "websocket_good": SELF_TEST_STATUS_ITEM_SCHEMA,
+        "websocket_rns_link_good": SELF_TEST_STATUS_ITEM_SCHEMA,
         "bots_lifecycle": SELF_TEST_STATUS_ITEM_SCHEMA,
     },
     "additionalProperties": False,
@@ -284,6 +292,12 @@ AUTH_STATUS_SCHEMA: dict = {
         "auth_enabled": {"type": "boolean"},
         "password_set": {"type": "boolean"},
         "authenticated": {"type": "boolean"},
+        "network_ready": {"type": "boolean"},
+        "status": {"type": "string", "enum": ["starting", "ok", "failed"]},
+        "stage": {
+            "type": "string",
+            "enum": ["http", "starting", "rns", "identity", "ready", "failed"],
+        },
         "error": {"type": "string"},
     },
     "additionalProperties": False,

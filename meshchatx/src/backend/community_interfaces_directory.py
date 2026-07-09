@@ -12,10 +12,14 @@ from typing import Any
 from urllib.parse import urlparse
 
 DEFAULT_SUBMITTED_URL = (
-    "https://directory.rns.recipes/api/directory/submitted?search=&type=&status=online"
+    "https://directory.rns.recipes/api/directory/submitted?status=online"
 )
+DEFAULT_DISCOVERED_URL = (
+    "https://directory.rns.recipes/api/directory/discovered?status=online"
+)
+DEFAULT_DIRECTORY_URLS = (DEFAULT_SUBMITTED_URL, DEFAULT_DISCOVERED_URL)
 
-DESCRIPTION = "directory.rns.recipes (user-submitted, online)"
+DESCRIPTION = "directory.rns.recipes (online submitted + discovered)"
 
 _ALLOWED_DIRECTORY_HOSTS = frozenset({"directory.rns.recipes"})
 
@@ -71,6 +75,26 @@ def fetch_directory_payload(url: str, *, timeout: float = 60.0) -> object:
         return json.loads(resp.read().decode("utf-8"))
 
 
+def _merge_directory_rows(row_lists: list[list[Any]]) -> list[Any]:
+    merged: list[Any] = []
+    seen: set[tuple[Any, ...]] = set()
+    for rows in row_lists:
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            key = (
+                str(row.get("name") or "").strip().lower(),
+                str(row.get("type") or "").strip().lower(),
+                str(row.get("host") or row.get("address") or "").strip().lower(),
+                str(row.get("port") or "").strip(),
+            )
+            if key in seen:
+                continue
+            seen.add(key)
+            merged.append(row)
+    return merged
+
+
 def build_interfaces_from_directory_url(
     url: str | None = None,
     *,
@@ -78,11 +102,25 @@ def build_interfaces_from_directory_url(
 ) -> tuple[list[dict[str, Any]], str]:
     if url is not None and str(url).strip():
         resolved = validate_directory_fetch_url(url)
-    else:
-        resolved = DEFAULT_SUBMITTED_URL
-    payload = fetch_directory_payload(resolved, timeout=timeout)
-    rows = rows_from_payload(payload)
-    return transform_directory_rows(rows), resolved
+        payload = fetch_directory_payload(resolved, timeout=timeout)
+        rows = rows_from_payload(payload)
+        return transform_directory_rows(rows), resolved
+
+    row_lists: list[list[Any]] = []
+    used: list[str] = []
+    errors: list[str] = []
+    for candidate in DEFAULT_DIRECTORY_URLS:
+        try:
+            payload = fetch_directory_payload(candidate, timeout=timeout)
+            row_lists.append(rows_from_payload(payload))
+            used.append(candidate)
+        except Exception as exc:
+            errors.append(f"{candidate}: {exc}")
+    if not used:
+        msg = "; ".join(errors) if errors else "No directory URLs configured"
+        raise ValueError(msg)
+    rows = _merge_directory_rows(row_lists)
+    return transform_directory_rows(rows), " + ".join(used)
 
 
 _RE_REMOTE = re.compile(r"^\s*remote\s*=\s*(\S+)", re.MULTILINE | re.IGNORECASE)

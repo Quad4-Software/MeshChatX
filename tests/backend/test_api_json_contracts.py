@@ -146,3 +146,41 @@ def test_auth_status_schema_accepts_error_envelope():
         "error": "decryption failed",
     }
     assert_matches_schema(sample, AUTH_STATUS_SCHEMA)
+
+
+def test_auth_status_schema_accepts_starting_envelope():
+    sample = {
+        "auth_enabled": False,
+        "password_set": False,
+        "authenticated": False,
+        "network_ready": False,
+        "status": "starting",
+        "stage": "rns",
+    }
+    assert_matches_schema(sample, AUTH_STATUS_SCHEMA)
+
+
+def test_status_schema_accepts_starting_and_failed_envelopes():
+    starting = {
+        "status": "starting",
+        "stage": "identity",
+        "network_ready": False,
+        "listen_host": "127.0.0.1",
+        "listen_port": 9337,
+        "https_enabled": True,
+        "is_loopback_bind": True,
+        "plugins_enabled": True,
+        "landlock_kernel_supported": False,
+        "landlock_requested": False,
+        "landlock_auto_enabled": False,
+        "landlock_disabled_by_env": False,
+        "landlock_active": False,
+    }
+    assert_matches_schema(starting, API_V1_STATUS_SCHEMA)
+    failed = {
+        **starting,
+        "status": "failed",
+        "stage": "failed",
+        "error": "RNS init failed",
+    }
+    assert_matches_schema(failed, API_V1_STATUS_SCHEMA)

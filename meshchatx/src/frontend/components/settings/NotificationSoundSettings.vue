@@ -10,19 +10,26 @@
             </div>
         </header>
         <div class="settings-section__body space-y-4">
-            <label class="setting-toggle">
-                <Toggle
-                    id="notification-sound-enabled"
-                    :model-value="config.notification_sound_enabled"
-                    @update:model-value="onEnabledChange"
-                />
-                <span class="setting-toggle__label">
-                    <span class="setting-toggle__title">{{ $t("app.enable_notification_sound") }}</span>
-                    <span class="setting-toggle__description">{{
-                        $t("app.enable_notification_sound_description")
-                    }}</span>
-                </span>
-            </label>
+            <div
+                class="rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 px-3 py-3"
+            >
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0 flex-1 space-y-1">
+                        <div class="text-sm font-semibold text-gray-900 dark:text-white">
+                            {{ $t("app.enable_notification_sound") }}
+                        </div>
+                        <p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+                            {{ $t("app.enable_notification_sound_description") }}
+                        </p>
+                    </div>
+                    <Toggle
+                        id="notification-sound-enabled"
+                        class="shrink-0 mt-0.5"
+                        :model-value="config.notification_sound_enabled"
+                        @update:model-value="onEnabledChange"
+                    />
+                </div>
+            </div>
 
             <div v-if="config.notification_sound_enabled" class="space-y-4">
                 <div>

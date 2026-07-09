@@ -37,10 +37,28 @@
                 background: #450a0a;
                 color: #fecaca;
             }
+            #meshchatx-boot-splash .meshchatx-boot-logo-wrap {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 4.5rem;
+                height: 4.5rem;
+                padding: 0.4rem;
+                border-radius: 1rem;
+                background: rgba(255, 255, 255, 0.72);
+                box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+            }
+            @media (prefers-color-scheme: dark) {
+                #meshchatx-boot-splash .meshchatx-boot-logo-wrap {
+                    background: rgba(24, 24, 27, 0.85);
+                    box-shadow: inset 0 0 0 1px rgba(244, 244, 245, 0.12);
+                }
+            }
             #meshchatx-boot-splash .meshchatx-boot-logo {
                 width: 3.25rem;
                 height: 3.25rem;
                 object-fit: contain;
+                display: block;
             }
             #meshchatx-boot-splash .meshchatx-boot-title {
                 font-weight: 600;
@@ -80,9 +98,11 @@
             </div>
         </noscript>
         <div id="meshchatx-boot-splash" role="status" aria-live="polite" aria-busy="true">
-            <img class="meshchatx-boot-logo" src="favicons/favicon-512x512.png" alt="" width="52" height="52" />
+            <div class="meshchatx-boot-logo-wrap">
+                <img class="meshchatx-boot-logo" src="favicons/favicon-512x512.png" alt="" width="52" height="52" />
+            </div>
             <div class="meshchatx-boot-title">MeshChatX</div>
-            <div class="meshchatx-boot-line" data-boot-line>Starting…</div>
+            <div class="meshchatx-boot-line" data-boot-line>Getting things ready…</div>
         </div>
         <div id="app"></div>
         <script type="module" src="main.js"></script>

@@ -78,6 +78,102 @@ class TestPluginManagerInstall:
         assert result["paths"][0]["destination_hash"] == "abc123"
         assert result["paths"][0]["interface"] == "RNode LoRa"
 
+    def test_rns_link_capabilities_require_manifest_grant(self, tmp_path):
+        class FakeLinkManager:
+            async def open_link(self, *_args, **_kwargs):
+                return object(), False, None
+
+            def identify(self, *_args, **_kwargs):
+                return True, None
+
+            def close(self, *_args, **_kwargs):
+                return True
+
+        class FakeApp:
+            reticulum = object()
+            rns_link_manager = FakeLinkManager()
+
+        manager = _make_manager(tmp_path, app=FakeApp())
+        manager.install_bundled_examples()
+        plugin_id = "com.meshchatx.mesh-observatory"
+        manager.enable(plugin_id)
+        with pytest.raises(PermissionError):
+            manager.call_manager(
+                plugin_id,
+                "rnsLink.open",
+                {"destination_hash": "aa" * 16, "aspect": "microrn.mgmt"},
+            )
+
+        record = manager._plugins[plugin_id]
+        record.manifest.setdefault("permissions", {})["managers"] = [
+            "destinationPath.read",
+            "rnsLink.open",
+            "rnsLink.close",
+        ]
+        record.granted_permissions = [
+            "managers:destinationPath.read",
+            "managers:rnsLink.open",
+            "managers:rnsLink.close",
+        ]
+        opened = manager.call_manager(
+            plugin_id,
+            "rnsLink.open",
+            {"destination_hash": "aa" * 16, "aspect": "microrn.mgmt"},
+        )
+        assert opened["ok"] is True
+        closed = manager.call_manager(
+            plugin_id,
+            "rnsLink.close",
+            {"destination_hash": "aa" * 16, "aspect": "microrn.mgmt"},
+        )
+        assert closed["ok"] is True
+
+    def test_rns_link_event_hook_dispatches(self, tmp_path):
+        events = []
+
+        class FakeApp:
+            plugins_enabled = True
+
+            def websocket_broadcast(self, _message):
+                return None
+
+        manager = _make_manager(tmp_path, app=FakeApp())
+        manager.install_bundled_examples()
+        plugin_id = "com.meshchatx.mesh-observatory"
+        manager.enable(plugin_id)
+        record = manager._plugins[plugin_id]
+        record.manifest.setdefault("permissions", {})["hooks"] = [
+            "announce.received",
+            "rns.link.event",
+        ]
+        record.granted_permissions = [
+            "hooks:announce.received",
+            "hooks:rns.link.event",
+        ]
+        manager.dispatch_hook = lambda pid, hook, payload: events.append(
+            (pid, hook, payload)
+        )
+        manager.on_rns_link_event(
+            {
+                "type": "rns.link.event",
+                "event": "link_closed",
+                "destination_hash": "aa" * 16,
+                "aspect": "microrn.mgmt",
+            }
+        )
+        assert events == [
+            (
+                plugin_id,
+                "rns.link.event",
+                {
+                    "event": "link_closed",
+                    "destination_hash": "aa" * 16,
+                    "aspect": "microrn.mgmt",
+                    "payload_b64": None,
+                },
+            )
+        ]
+
     def test_manifest_validation_rejects_invalid_id(self, tmp_path):
         manager = _make_manager(tmp_path)
         plugin_dir = os.path.join(tmp_path, "bad-plugin")

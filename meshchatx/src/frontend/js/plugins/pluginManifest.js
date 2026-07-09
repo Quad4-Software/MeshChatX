@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: 0BSD
 
+import { declaredPermissionIds, manifestPermissionSummary as summarizePermissions } from "./pluginPermissions.js";
+
 const SUPPORTED_API_VERSION = 1;
 
 /**
@@ -13,6 +15,7 @@ const SUPPORTED_API_VERSION = 1;
  * @property {{ entry: string, type: 'wasm' }} [backend]
  * @property {Object} [contributes]
  * @property {Object} [permissions]
+ * @property {{ endpoints?: string[] }} [network]
  */
 
 /**
@@ -56,32 +59,20 @@ export function validatePluginManifest(manifest) {
     if (permissions && typeof permissions !== "object") {
         throw new Error("Plugin permissions must be an object");
     }
+    if (record.network != null && typeof record.network !== "object") {
+        throw new Error("Plugin network must be an object");
+    }
     return /** @type {PluginManifest} */ (manifest);
 }
 
 /**
  * @param {PluginManifest} manifest
+ * @param {(key: string, values?: Record<string, unknown>) => string} [t]
  * @returns {string[]}
  */
-export function manifestPermissionSummary(manifest) {
-    const permissions = manifest.permissions ?? {};
-    const lines = [];
-    if (Array.isArray(permissions.hooks) && permissions.hooks.length > 0) {
-        lines.push(`Hooks: ${permissions.hooks.join(", ")}`);
-    }
-    if (Array.isArray(permissions.managers) && permissions.managers.length > 0) {
-        lines.push(`Managers: ${permissions.managers.join(", ")}`);
-    }
-    if (permissions.storage === "isolated") {
-        lines.push("Isolated plugin storage");
-    }
-    if (permissions.network && permissions.network !== "none") {
-        lines.push(`Network: ${permissions.network}`);
-    }
-    if (lines.length === 0) {
-        lines.push("No elevated permissions");
-    }
-    return lines;
+export function manifestPermissionSummary(manifest, t) {
+    const translate = t || ((key) => key);
+    return summarizePermissions(manifest, translate);
 }
 
-export { SUPPORTED_API_VERSION };
+export { SUPPORTED_API_VERSION, declaredPermissionIds };

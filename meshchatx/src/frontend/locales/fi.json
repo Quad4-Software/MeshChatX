@@ -451,7 +451,12 @@
         "rpc_config_copied": "RPC config copied to clipboard",
         "copy_rpc_config": "Copy RPC Config",
         "connected_to_shared_instance": "This MeshChatX process is attached to an external shared Reticulum instance. Edit that instance's config to change share/RPC settings.",
-        "copy_failed": "Failed to copy to clipboard"
+        "copy_failed": "Failed to copy to clipboard",
+        "rpc_key_hidden": "Piilotettu — napauta näyttääksesi",
+        "rpc_key_show": "Näytä RPC-avain",
+        "rpc_key_hide": "Piilota RPC-avain",
+        "refresh_community_interfaces": "Päivitä lähteestä directory.rns.recipes",
+        "refresh_community_interfaces_busy": "Päivitetään…"
     },
     "common": {
         "open": "Avaa",
@@ -699,7 +704,7 @@
     "plugins": {
         "settings": {
             "title": "Liitännäiset",
-            "description": "Asenna, ota käyttöön ja tarkista MeshChatX-liitännäisten oikeudet.",
+            "description": "Install, enable, and review permissions for MeshChatX plugins. ZIP installs show a confirmation dialog with requested permissions and any external URLs.",
             "enable": "Ota käyttöön",
             "disable": "Poista käytöstä",
             "remove": "Poista",
@@ -720,7 +725,37 @@
             "badge_frontend": "UI",
             "badge_wasm": "WASM",
             "install_failed": "Lisäosan asennus epäonnistui: {reason}",
-            "installing": "Asennetaan lisäosaa..."
+            "installing": "Asennetaan lisäosaa...",
+            "badge_network": "Network",
+            "network_endpoints": "Network endpoints",
+            "previewing": "Reviewing plugin..."
+        },
+        "permissions": {
+            "none": "No elevated permissions",
+            "hooks.announce.received": "Receive mesh announce events",
+            "hooks.rns.link.event": "Receive RNS link packet and close events",
+            "managers.destinationPath.read": "Read the Reticulum path table",
+            "managers.rnsLink.open": "Open RNS links to destinations",
+            "managers.rnsLink.identify": "Identify on RNS links",
+            "managers.rnsLink.request": "Send request/response over RNS links",
+            "managers.rnsLink.send": "Send packets over RNS links",
+            "managers.rnsLink.close": "Close RNS links",
+            "storage.isolated": "Use isolated plugin storage",
+            "network.fetch": "Make outbound internet HTTP requests"
+        },
+        "install_dialog": {
+            "title": "Install plugin",
+            "network_title": "Install plugin with network access",
+            "message": "Review permissions for \"{name}\" ({id}) before installing.",
+            "permissions": "Requested permissions",
+            "permissions_hint": "Uncheck any permission you do not want to grant. Denied capabilities stay unavailable at runtime.",
+            "grant": "Allow",
+            "network_endpoints": "External network endpoints",
+            "network_endpoints_blocked": "Network access is not granted. These URLs will remain blocked.",
+            "network_endpoints_unknown": "This plugin requests network access but did not declare specific endpoints.",
+            "cancel": "Cancel",
+            "confirm": "Install",
+            "close": "Close"
         }
     },
     "selftest": {
@@ -764,7 +799,9 @@
         "status_label": "Tila",
         "reason_label": "Syy",
         "checks_completed": "Kaikki tarkistukset suoritettiin onnistuneesti.",
-        "http_reticulum_instance_good": "HTTP RNS Instance Settings"
+        "http_reticulum_instance_good": "HTTP RNS Instance Settings",
+        "expand_reason": "Näytä virheen tiedot",
+        "collapse_reason": "Piilota virheen tiedot"
     },
     "maintenance": {
         "title": "Ylläpito ja tiedot",
@@ -1573,7 +1610,9 @@
             "privacy": "Yksityisyys",
             "privacy_desc": "Data, käyttöoikeudet ja turvallisuus",
             "maintenance": "Ylläpito",
-            "maintenance_desc": "Siivous, vienti ja tuonti"
+            "maintenance_desc": "Siivous, vienti ja tuonti",
+            "plugins": "Laajennukset",
+            "plugins_desc": "Asenna ja hallitse MeshChatX-laajennuksia"
         },
         "shortcut_saved": "Näppäinoikotie tallennettu",
         "shortcut_deleted": "Näppäinoikotie poistettu",
@@ -3299,5 +3338,8 @@
         "action_getting_started_desc": "Open the setup guide",
         "action_changelog": "Changelog",
         "action_changelog_desc": "Recent changes"
+    },
+    "self_test": {
+        "websocket_rns_link_good": "WebSocket RNS Link API"
     }
 }

@@ -23,8 +23,12 @@ from meshchatx.src.backend.database.telephone import TelephoneDAO  # noqa: E402
 from meshchatx.src.backend.database.voicemails import VoicemailDAO  # noqa: E402
 from meshchatx.src.backend.identity_manager import IdentityManager  # noqa: E402
 from tests.backend.benchmarking_utils import (  # noqa: E402
+    BenchmarkResult,
+    aggregate_run_results,
     benchmark,
     get_memory_usage_mb,
+    median,
+    median_abs_deviation,
 )
 
 
@@ -41,11 +45,39 @@ class BackendBenchmarker:
         self.db.close()
         shutil.rmtree(self.temp_dir)
 
-    def run_all(self, extreme=False, json_output_path=None):
+    def reset_db(self):
+        """Fresh database between suite runs so state does not accumulate."""
+        self.db.close()
+        for name in os.listdir(self.temp_dir):
+            path = os.path.join(self.temp_dir, name)
+            if os.path.isfile(path):
+                os.remove(path)
+        self.db_path = os.path.join(self.temp_dir, "benchmark.db")
+        self.db = Database(self.db_path)
+        self.db.initialize()
+        self.results = []
+        self.my_hash = secrets.token_hex(16)
+
+    def run_all(self, extreme=False, json_output_path=None, runs=1):
+        runs = max(1, int(runs))
         print(f"\n{'=' * 20} BACKEND BENCHMARKING START {'=' * 20}")
         print(f"Mode: {'EXTREME (Breaking Space)' if extreme else 'Standard'}")
+        print(f"Suite runs: {runs} (report = median of run medians)")
         print(f"Base Memory: {get_memory_usage_mb():.2f} MB")
 
+        run_lists = []
+        for run_idx in range(runs):
+            if run_idx > 0:
+                self.reset_db()
+            print(f"\n{'=' * 10} Suite run {run_idx + 1}/{runs} {'=' * 10}")
+            self._run_suite(extreme=extreme)
+            run_lists.append(list(self.results))
+
+        self.results = aggregate_run_results(run_lists)
+        self._suite_runs = runs
+        self.print_summary(json_output_path=json_output_path)
+
+    def _run_suite(self, extreme=False):
         self.bench_db_initialization()
 
         if extreme:
@@ -66,8 +98,6 @@ class BackendBenchmarker:
         self.bench_voicemail_operations()
         self.bench_access_attempt_operations()
         self.bench_misc_operations()
-
-        self.print_summary(json_output_path=json_output_path)
 
     def bench_extreme_message_flood(self):
         """Insert 100,000 messages with large randomized content."""
@@ -271,16 +301,55 @@ class BackendBenchmarker:
         def get_announces():
             return self.db.announces.get_filtered_announces(limit=50)
 
-        @benchmark("Trim Announces for Aspect", iterations=20)
-        def trim_announces():
-            return self.db.announces.trim_announces_for_aspect("lxmf.delivery", 500)
+        def _seed_announces_for_trim(count):
+            with self.db.provider:
+                for _ in range(count):
+                    self.db.announces.upsert_announce(
+                        {
+                            "destination_hash": secrets.token_hex(16),
+                            "aspect": "lxmf.delivery",
+                            "identity_hash": secrets.token_hex(16),
+                            "identity_public_key": "pubkey",
+                            "app_data": "bench data",
+                            "rssi": -50,
+                            "snr": 5.0,
+                            "quality": 3,
+                        }
+                    )
 
         _, res = upsert_announces()
         self.results.append(res)
         _, res = get_announces()
         self.results.append(res)
-        _, res = trim_announces()
-        self.results.append(res)
+
+        # Time only the trim DELETE. Re-seed between samples so later
+        # iterations are not empty no-ops after the first successful trim.
+        import gc
+
+        trim_samples = []
+        gc.collect()
+        mem0 = get_memory_usage_mb()
+        for _ in range(10):
+            _seed_announces_for_trim(200)
+            t0 = time.perf_counter()
+            self.db.announces.trim_announces_for_aspect("lxmf.delivery", 50)
+            t1 = time.perf_counter()
+            trim_samples.append((t1 - t0) * 1000.0)
+        gc.collect()
+        trim_ms = median(trim_samples)
+        print("BENCHMARK: Trim Announces for Aspect")
+        print("  Iterations: 10 (re-seeded each sample)")
+        print(f"  Median Duration: {trim_ms:.3f} ms")
+        print(f"  MAD: {median_abs_deviation(trim_samples, center=trim_ms):.3f} ms")
+        self.results.append(
+            BenchmarkResult(
+                "Trim Announces for Aspect",
+                trim_ms,
+                get_memory_usage_mb() - mem0,
+                samples_ms=trim_samples,
+                iterations=10,
+            )
+        )
 
     def bench_identity_operations(self):
         manager = IdentityManager(self.temp_dir)
@@ -612,14 +681,19 @@ class BackendBenchmarker:
         self.results.append(res)
 
     def print_summary(self, json_output_path=None):
+        suite_runs = getattr(self, "_suite_runs", 1)
         print(f"\n{'=' * 20} BENCHMARK SUMMARY {'=' * 20}")
-        print(f"{'Benchmark Name':40} | {'Avg Time':10} | {'Mem Delta':10}")
-        print(f"{'-' * 40}-|-{'-' * 10}-|-{'-' * 10}")
+        print(f"Aggregated over {suite_runs} suite run(s) (median of medians)")
+        print(
+            f"{'Benchmark Name':40} | {'Median':10} | {'MAD':8} | {'CV':6} | {'Mem':10}"
+        )
+        print(f"{'-' * 40}-|-{'-' * 10}-|-{'-' * 8}-|-{'-' * 6}-|-{'-' * 10}")
         for r in self.results:
             print(
-                f"{r.name:40} | {r.duration_ms:8.2f} ms | {r.memory_delta_mb:8.2f} MB",
+                f"{r.name:40} | {r.duration_ms:8.3f} ms | "
+                f"{r.mad_ms:6.3f} | {r.cv:5.2f} | {r.memory_delta_mb:8.2f} MB",
             )
-        print(f"{'=' * 59}")
+        print(f"{'=' * 90}")
         print(f"Final Memory Usage: {get_memory_usage_mb():.2f} MB")
 
         if json_output_path:
@@ -630,7 +704,10 @@ class BackendBenchmarker:
                     "name": r.name,
                     "unit": "ms",
                     "value": round(r.duration_ms, 3),
-                    "extra": f"Memory delta: {r.memory_delta_mb:.2f} MB",
+                    "extra": (
+                        f"mad={r.mad_ms:.3f} cv={r.cv:.3f} runs={suite_runs} "
+                        f"mem_delta_mb={r.memory_delta_mb:.2f}"
+                    ),
                 }
                 for r in self.results
             ]
@@ -654,10 +731,20 @@ if __name__ == "__main__":
         default=None,
         help="Write benchmark results as github-action-benchmark customSmallerIsBetter JSON to PATH",
     )
+    parser.add_argument(
+        "--runs",
+        type=int,
+        default=1,
+        help="Repeat the full suite N times and report median of run medians (CI uses 3)",
+    )
     args = parser.parse_args()
 
     bench = BackendBenchmarker()
     try:
-        bench.run_all(extreme=args.extreme, json_output_path=args.json_output)
+        bench.run_all(
+            extreme=args.extreme,
+            json_output_path=args.json_output,
+            runs=args.runs,
+        )
     finally:
         bench.cleanup()

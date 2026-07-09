@@ -103,11 +103,11 @@ public class MainActivity extends AppCompatActivity {
     @Nullable
     WavPcmAttachmentRecorder attachmentPcmRecorder;
     private static final String[] STARTUP_PHASES = new String[] {
-        "Starting MeshChatX...",
-        "Initializing Reticulum network stack...",
-        "Loading MeshChatX frontend...",
-        "Establishing secure local connection...",
-        "Finalizing startup..."
+        "Starting MeshChatX…",
+        "Getting the network ready…",
+        "Almost there…",
+        "Opening MeshChatX…",
+        "Finishing up…"
     };
     private static boolean isAllowedWebViewNavigationUri(Uri uri) {
         if (uri == null) {
@@ -184,7 +184,7 @@ public class MainActivity extends AppCompatActivity {
         loadingText = findViewById(R.id.loadingText);
         errorText = findViewById(R.id.errorText);
         webView.setVisibility(android.view.View.INVISIBLE);
-        showLoading("Starting MeshChatX backend...");
+        showLoading("Starting MeshChatX…");
 
         if (!Python.isStarted()) {
             Python.start(new AndroidPlatform(this));
@@ -657,13 +657,7 @@ public class MainActivity extends AppCompatActivity {
                     meshchatServerStartAttempts += 1;
                     if (meshchatServerStartAttempts < MESHCHAT_SERVER_START_MAX_ATTEMPTS) {
                         backendFailed = false;
-                        showLoading(
-                            "MeshChatX backend error, retrying ("
-                                + meshchatServerStartAttempts
-                                + "/"
-                                + MESHCHAT_SERVER_START_MAX_ATTEMPTS
-                                + ")..."
-                        );
+                        showLoading("Having trouble starting. Trying again…");
                         mainHandler.postDelayed(() -> startMeshChatServer(), MESHCHAT_SERVER_RETRY_DELAY_MS);
                     } else {
                         backendFailed = true;
@@ -762,7 +756,7 @@ public class MainActivity extends AppCompatActivity {
         if (startupPageLoaded || backendFailed) {
             return;
         }
-        showLoading(message + " (" + (connectionAttempts + 1) + "/" + MAX_CONNECTION_ATTEMPTS + ")");
+        showLoading(message);
         long retryDelayMs = Math.min(
             CONNECTION_RETRY_MAX_DELAY_MS,
             CONNECTION_RETRY_INITIAL_DELAY_MS + (connectionAttempts * 250L)
@@ -777,7 +771,7 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
             webView.loadUrl(SERVER_URL);
-            scheduleConnectionRetry("Retrying connection...");
+            scheduleConnectionRetry("Still starting…");
         }, retryDelayMs);
     }
 
@@ -844,11 +838,18 @@ public class MainActivity extends AppCompatActivity {
             STARTUP_PHASES.length - 1,
             (connectionAttempts * STARTUP_PHASES.length) / Math.max(1, MAX_CONNECTION_ATTEMPTS)
         );
-        String phase = STARTUP_PHASES[phaseIndex];
-        if (connectionAttempts == 0) {
-            return phase;
+        // Prefer friendly phase copy over technical/counter messages.
+        if (fallbackMessage == null || fallbackMessage.isEmpty()) {
+            return STARTUP_PHASES[phaseIndex];
         }
-        return phase + " (" + connectionAttempts + "/" + MAX_CONNECTION_ATTEMPTS + ")";
+        String trimmed = fallbackMessage.trim();
+        if (trimmed.startsWith("Starting MeshChatX")
+            || trimmed.startsWith("Still starting")
+            || trimmed.startsWith("Retrying")
+            || trimmed.startsWith("Having trouble")) {
+            return STARTUP_PHASES[phaseIndex];
+        }
+        return trimmed;
     }
 
     @Override

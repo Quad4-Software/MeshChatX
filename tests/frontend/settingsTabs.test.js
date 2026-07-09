@@ -68,6 +68,8 @@ describe("settingsTabs", () => {
         expect(settingsTabForSection("appearance")).toBe("general");
         expect(settingsTabForSection("messages")).toBe("messages");
         expect(settingsTabForSection("archiver")).toBe("nomad");
+        expect(settingsTabForSection("plugins")).toBe("plugins");
+        expect(settingsTabForSection("selftest")).toBe("maintenance");
         expect(settingsTabForSection("unknown-section")).toBeNull();
     });
 

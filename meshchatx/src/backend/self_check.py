@@ -63,6 +63,7 @@ SELF_CHECK_LABELS = {
     "http_favourites_good": "HTTP Favourites        ",
     "http_telephone_good": "HTTP Telephone Status  ",
     "websocket_good": "WebSocket /ws          ",
+    "websocket_rns_link_good": "WebSocket RNS Link API ",
     "bots_lifecycle": "Bot Create/Start/Stop  ",
 }
 
@@ -674,7 +675,64 @@ _WEB_PROBE_KEYS = (
     "http_favourites_good",
     "http_telephone_good",
     "websocket_good",
+    "websocket_rns_link_good",
 )
+
+
+async def _probe_rns_link_api(ws: Any, *, timeout: float = 10.0) -> dict[str, str]:
+    """Exercise generic rns.link.* handlers without requiring a live mesh peer."""
+    import asyncio
+    import json
+
+    from aiohttp import WSMsgType
+
+    request_id = "self-check-rns-link"
+    try:
+        await ws.send_str(
+            json.dumps(
+                {
+                    "type": "rns.link.close",
+                    "destination_hash": "aa" * 16,
+                    "aspect": "meshchatx.selfcheck",
+                    "request_id": request_id,
+                }
+            )
+        )
+        deadline = asyncio.get_event_loop().time() + timeout
+        while True:
+            remaining = deadline - asyncio.get_event_loop().time()
+            if remaining <= 0:
+                return _status(False, "rns.link.close reply timed out")
+            msg = await asyncio.wait_for(ws.receive(), timeout=remaining)
+            if msg.type != WSMsgType.TEXT:
+                continue
+            try:
+                payload = json.loads(msg.data)
+            except Exception:
+                continue
+            if not isinstance(payload, dict):
+                continue
+            if payload.get("type") != "rns.link.close":
+                continue
+            if payload.get("request_id") != request_id:
+                continue
+            status = payload.get("status")
+            if status not in ("success", "failure"):
+                return _status(False, f"unexpected status={status!r}")
+            # No cached link is expected in self-check; failure is the normal path.
+            if status == "failure" and payload.get("failure_reason") not in (
+                None,
+                "no_active_link",
+            ):
+                return _status(
+                    False,
+                    f"unexpected failure_reason={payload.get('failure_reason')!r}",
+                )
+            return _status(True)
+    except TimeoutError:
+        return _status(False, "rns.link.close reply timed out")
+    except Exception as exc:
+        return _status(False, str(exc))
 
 
 async def _probe_json_get(
@@ -870,10 +928,21 @@ async def _run_web_api_probes(app: Any) -> dict[str, dict[str, str]]:
                             )
                         else:
                             results["websocket_good"] = _status(True)
+
+                    if results["websocket_good"]["status"] == "ok":
+                        results["websocket_rns_link_good"] = await _probe_rns_link_api(
+                            ws
+                        )
+                    else:
+                        results["websocket_rns_link_good"] = _status(
+                            False,
+                            "skipped: websocket_good failed",
+                        )
                 finally:
                     await ws.close()
             except Exception as exc:
                 results["websocket_good"] = _status(False, str(exc))
+                results["websocket_rns_link_good"] = _status(False, str(exc))
     except Exception as exc:
         failed = _status(False, f"Web probe client failed: {exc}")
         for key in results:

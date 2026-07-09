@@ -723,31 +723,59 @@
                                                 : 'border-red-200/60 dark:border-red-900/30'
                                         "
                                     >
-                                        <div class="flex items-center justify-between">
-                                            <div class="flex items-center gap-2 font-semibold text-sm">
+                                        <div class="flex items-center justify-between gap-2">
+                                            <div class="flex items-center gap-2 font-semibold text-sm min-w-0">
                                                 <MaterialDesignIcon
                                                     :icon-name="
                                                         check.passed ? 'check-circle-outline' : 'alert-circle-outline'
                                                     "
                                                     :class="check.passed ? 'text-emerald-500' : 'text-red-500'"
-                                                    class="size-4"
+                                                    class="size-4 shrink-0"
                                                 />
-                                                <span>{{ check.label }}</span>
+                                                <span class="truncate">{{ check.label }}</span>
                                             </div>
-                                            <span
-                                                class="px-2 py-0.5 text-xs font-bold rounded-md"
-                                                :class="
-                                                    check.passed
-                                                        ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300'
-                                                        : 'bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-300'
-                                                "
-                                            >
-                                                {{ check.passed ? $t("selftest.passed") : $t("selftest.failed") }}
-                                            </span>
+                                            <div class="flex items-center gap-1.5 shrink-0">
+                                                <button
+                                                    v-if="!check.passed && check.reason"
+                                                    type="button"
+                                                    class="inline-flex items-center justify-center rounded-lg p-1 text-red-600 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-950/40"
+                                                    :aria-expanded="isSelfTestReasonExpanded(check.key)"
+                                                    :aria-label="
+                                                        isSelfTestReasonExpanded(check.key)
+                                                            ? $t('selftest.collapse_reason')
+                                                            : $t('selftest.expand_reason')
+                                                    "
+                                                    :title="
+                                                        isSelfTestReasonExpanded(check.key)
+                                                            ? $t('selftest.collapse_reason')
+                                                            : $t('selftest.expand_reason')
+                                                    "
+                                                    @click="toggleSelfTestReason(check.key)"
+                                                >
+                                                    <MaterialDesignIcon
+                                                        :icon-name="
+                                                            isSelfTestReasonExpanded(check.key)
+                                                                ? 'chevron-up'
+                                                                : 'chevron-down'
+                                                        "
+                                                        class="size-4"
+                                                    />
+                                                </button>
+                                                <span
+                                                    class="px-2 py-0.5 text-xs font-bold rounded-md"
+                                                    :class="
+                                                        check.passed
+                                                            ? 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300'
+                                                            : 'bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-300'
+                                                    "
+                                                >
+                                                    {{ check.passed ? $t("selftest.passed") : $t("selftest.failed") }}
+                                                </span>
+                                            </div>
                                         </div>
                                         <div
-                                            v-if="!check.passed && check.reason"
-                                            class="text-xs text-red-600 dark:text-red-400 mt-2 pl-6"
+                                            v-if="!check.passed && check.reason && isSelfTestReasonExpanded(check.key)"
+                                            class="text-xs text-red-600 dark:text-red-400 mt-2 pl-6 whitespace-pre-wrap break-words"
                                         >
                                             <span class="font-semibold">{{ $t("selftest.reason_label") }}:</span>
                                             {{ check.reason }}
@@ -2076,11 +2104,28 @@
                                     >
                                         {{ $t("app.connected_to_shared_instance") }}
                                     </p>
-                                    <pre
-                                        class="text-xs font-mono whitespace-pre-wrap break-all text-gray-800 dark:text-zinc-200 bg-white/60 dark:bg-zinc-900/60 rounded-lg p-2 border border-gray-200/70 dark:border-zinc-800"
-                                        >{{
-                                            reticulumInstance.rpc_config_snippet || $t("app.rpc_config_unavailable")
-                                        }}</pre>
+                                    <div
+                                        class="relative rounded-lg border border-gray-200/70 dark:border-zinc-800 bg-white/60 dark:bg-zinc-900/60"
+                                    >
+                                        <pre
+                                            class="text-xs font-mono whitespace-pre-wrap break-all text-gray-800 dark:text-zinc-200 p-2 pr-12"
+                                            >{{ displayedRpcConfigSnippet }}</pre>
+                                        <button
+                                            v-if="reticulumInstance.rpc_config_snippet"
+                                            type="button"
+                                            class="absolute top-1.5 right-1.5 inline-flex items-center justify-center rounded-lg p-1.5 text-gray-500 hover:text-gray-800 hover:bg-gray-100 dark:text-zinc-400 dark:hover:text-zinc-100 dark:hover:bg-zinc-800"
+                                            :aria-label="
+                                                rpcKeyVisible ? $t('app.rpc_key_hide') : $t('app.rpc_key_show')
+                                            "
+                                            :title="rpcKeyVisible ? $t('app.rpc_key_hide') : $t('app.rpc_key_show')"
+                                            @click="rpcKeyVisible = !rpcKeyVisible"
+                                        >
+                                            <MaterialDesignIcon
+                                                :icon-name="rpcKeyVisible ? 'eye-off-outline' : 'eye-outline'"
+                                                class="w-4 h-4"
+                                            />
+                                        </button>
+                                    </div>
                                     <button
                                         type="button"
                                         class="inline-flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-3 py-2"
@@ -2104,21 +2149,41 @@
                                 </div>
                             </header>
                             <div class="settings-section__body space-y-3">
-                                <label class="setting-toggle">
-                                    <Toggle
-                                        id="show-community-interfaces"
-                                        v-model="config.show_suggested_community_interfaces"
-                                        @update:model-value="onShowSuggestedCommunityInterfacesChangeWrapper"
-                                    />
-                                    <span class="setting-toggle__label">
-                                        <span class="setting-toggle__title">{{
-                                            $t("app.show_community_interfaces")
-                                        }}</span>
-                                        <span class="setting-toggle__description">{{
-                                            $t("app.community_interfaces_description")
-                                        }}</span>
-                                    </span>
-                                </label>
+                                <div
+                                    class="flex items-start gap-2 rounded-2xl border border-gray-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 px-3 py-3"
+                                >
+                                    <label
+                                        class="setting-toggle flex-1 min-w-0 !border-0 !bg-transparent !p-0 !rounded-none"
+                                    >
+                                        <Toggle
+                                            id="show-community-interfaces"
+                                            v-model="config.show_suggested_community_interfaces"
+                                            @update:model-value="onShowSuggestedCommunityInterfacesChangeWrapper"
+                                        />
+                                        <span class="setting-toggle__label">
+                                            <span class="setting-toggle__title">{{
+                                                $t("app.show_community_interfaces")
+                                            }}</span>
+                                            <span class="setting-toggle__description">{{
+                                                $t("app.community_interfaces_description")
+                                            }}</span>
+                                        </span>
+                                    </label>
+                                    <button
+                                        type="button"
+                                        class="shrink-0 inline-flex items-center justify-center rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-2.5 text-gray-700 hover:bg-gray-50 dark:text-zinc-200 dark:hover:bg-zinc-800 disabled:opacity-50"
+                                        :disabled="refreshingCommunityInterfaces"
+                                        :aria-label="$t('app.refresh_community_interfaces')"
+                                        :title="$t('app.refresh_community_interfaces')"
+                                        @click="refreshCommunityInterfacesFromSettings"
+                                    >
+                                        <MaterialDesignIcon
+                                            icon-name="refresh"
+                                            class="w-4 h-4"
+                                            :class="{ 'animate-spin': refreshingCommunityInterfaces }"
+                                        />
+                                    </button>
+                                </div>
                             </div>
                         </section>
 
@@ -3199,6 +3264,9 @@ export default {
             visualiserShowDiscoveredInterfaces: false,
             selfTestRunning: false,
             selfTestResults: null,
+            selfTestExpandedReasons: {},
+            rpcKeyVisible: false,
+            refreshingCommunityInterfaces: false,
             desktopCloseSettings: {
                 closeBehavior: "ask",
                 trayEnabled: true,
@@ -3285,6 +3353,26 @@ export default {
         },
         allSelfTestChecksPassed() {
             return this.selfTestChecks.length > 0 && this.selfTestChecks.every((check) => check.passed);
+        },
+        displayedRpcConfigSnippet() {
+            const snippet = this.reticulumInstance?.rpc_config_snippet;
+            if (!snippet) {
+                return this.$t("app.rpc_config_unavailable");
+            }
+            if (this.rpcKeyVisible) {
+                return snippet;
+            }
+            return snippet
+                .split("\n")
+                .map((line) => {
+                    const match = line.match(/^(\s*rpc_key\s*=\s*)(.*)$/i);
+                    if (!match) {
+                        return line;
+                    }
+                    const value = match[2] || "";
+                    return `${match[1]}${"•".repeat(Math.max(8, Math.min(value.length, 48)))}`;
+                })
+                .join("\n");
         },
         safeConfig() {
             if (!this.config) {
@@ -3418,6 +3506,32 @@ export default {
                 ToastUtils.error(this.$t("app.copy_failed"));
             }
         },
+        isSelfTestReasonExpanded(key) {
+            return !!this.selfTestExpandedReasons?.[key];
+        },
+        toggleSelfTestReason(key) {
+            this.selfTestExpandedReasons = {
+                ...this.selfTestExpandedReasons,
+                [key]: !this.selfTestExpandedReasons?.[key],
+            };
+        },
+        async refreshCommunityInterfacesFromSettings() {
+            if (this.refreshingCommunityInterfaces) {
+                return;
+            }
+            this.refreshingCommunityInterfaces = true;
+            try {
+                const r = await window.api.post("/api/v1/community-interfaces/refresh", {});
+                const n = r.data?.count ?? 0;
+                ToastUtils.success(this.$t("interfaces.community_presets_refreshed", { count: n }));
+            } catch (e) {
+                const msg = e.response?.data?.message || this.$t("interfaces.community_presets_refresh_failed");
+                ToastUtils.error(msg);
+                console.error(e);
+            } finally {
+                this.refreshingCommunityInterfaces = false;
+            }
+        },
         async loadDesktopCloseSettings() {
             if (!ElectronUtils.isElectron()) {
                 return;
@@ -3473,6 +3587,7 @@ export default {
             }
             this.selfTestRunning = true;
             this.selfTestResults = null;
+            this.selfTestExpandedReasons = {};
             try {
                 const response = await window.api.get("/api/v1/self-test");
                 this.selfTestResults = response.data;
