@@ -50,12 +50,13 @@ const totalSize = computed(() => virtualizer.value.getTotalSize());
 
 function entryKey(entry, index) {
     if (!entry) {
-        return index;
+        return `idx-${index}`;
     }
     if (entry.type === "dateDivider") {
-        return `date-${entry.dayKey}`;
+        return `date-${entry.dayKey}-${index}`;
     }
-    return props.page.messageKey(entry.msg);
+    const msgKey = props.page.messageKey(entry.msg);
+    return msgKey ? `${msgKey}-${index}` : `idx-${index}`;
 }
 
 function measureElement(el) {

@@ -70,6 +70,14 @@ contextBridge.exposeInMainWorld("electron", {
         return await ipcRenderer.invoke("shutdown");
     },
 
+    getCloseSettings: async function () {
+        return await ipcRenderer.invoke("get-close-settings");
+    },
+
+    setCloseSettings: async function (partial) {
+        return await ipcRenderer.invoke("set-close-settings", partial);
+    },
+
     // allow getting memory usage in electron browser window
     getMemoryUsage: async function () {
         return await ipcRenderer.invoke("get-memory-usage");

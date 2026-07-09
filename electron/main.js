@@ -27,9 +27,18 @@ const {
 } = require("./mainHelpers");
 const { isAllowedShellPath } = require("./shellPathGuard");
 const { normalizeExternalUrlForOpen } = require("./safeExternalUrl");
+const {
+    loadCloseSettings,
+    saveCloseSettings,
+    resolveCloseAction,
+    rememberedCloseSettings,
+    createCloseRequestGuard,
+} = require("./closeBehavior");
 
 // remember main window
 var mainWindow = null;
+var closeSettings = null;
+var closeRequestGuard = createCloseRequestGuard();
 
 function getDialogParentWindow() {
     const focused = BrowserWindow.getFocusedWindow();
@@ -337,6 +346,14 @@ ipcMain.handle("relaunch-auto-recover", () => {
 ipcMain.handle("shutdown", () => {
     isQuiting = true;
     quit();
+});
+
+ipcMain.handle("get-close-settings", () => {
+    return getCloseSettings();
+});
+
+ipcMain.handle("set-close-settings", (_event, partial) => {
+    return updateCloseSettings(partial || {});
 });
 
 ipcMain.handle("get-memory-usage", async () => {
@@ -648,7 +665,30 @@ function getBackendManager() {
     return backendManager;
 }
 
+function getCloseSettings() {
+    if (!closeSettings) {
+        closeSettings = loadCloseSettings(getDefaultStorageDir());
+    }
+    return closeSettings;
+}
+
+function updateCloseSettings(partial) {
+    closeSettings = saveCloseSettings(getDefaultStorageDir(), partial);
+    syncTrayWithSettings();
+    return closeSettings;
+}
+
+function destroyTray() {
+    if (tray && !tray.isDestroyed()) {
+        tray.destroy();
+    }
+    tray = null;
+}
+
 function createTray() {
+    if (tray && !tray.isDestroyed()) {
+        return;
+    }
     tray = new Tray(getAppIconPath());
     const contextMenu = Menu.buildFromTemplate([
         {
@@ -680,6 +720,78 @@ function createTray() {
             }
         }
     });
+}
+
+function syncTrayWithSettings() {
+    const settings = getCloseSettings();
+    if (settings.trayEnabled) {
+        createTray();
+    } else {
+        destroyTray();
+    }
+}
+
+async function promptCloseAction() {
+    const settings = getCloseSettings();
+    const backgroundLabel = settings.trayEnabled ? "Keep running in background" : "Minimize to taskbar";
+    const backgroundDetail = settings.trayEnabled
+        ? "Hide the window and keep MeshChatX in the system tray."
+        : "Minimize MeshChatX to the taskbar.";
+    const result = await dialog.showMessageBox(getDialogParentWindow() || undefined, {
+        type: "question",
+        title: "Close MeshChatX?",
+        message: "Close MeshChatX?",
+        detail: `Choose whether to quit the application or keep it running.\n\n${backgroundDetail}`,
+        buttons: ["Cancel", "Quit application", backgroundLabel],
+        defaultId: 2,
+        cancelId: 0,
+        checkboxLabel: "Remember my choice",
+        checkboxChecked: false,
+    });
+    if (result.response === 0) {
+        return null;
+    }
+    const action = result.response === 1 ? "quit" : settings.trayEnabled ? "background" : "minimize";
+    const remembered = rememberedCloseSettings(action, result.checkboxChecked);
+    if (remembered) {
+        updateCloseSettings(remembered);
+    }
+    return action;
+}
+
+async function handleWindowCloseRequest(event) {
+    if (isQuiting) {
+        return;
+    }
+    event.preventDefault();
+    if (!closeRequestGuard.tryEnter()) {
+        return;
+    }
+    try {
+        const settings = getCloseSettings();
+        let action = resolveCloseAction(settings);
+        if (action === "ask") {
+            action = await promptCloseAction();
+            if (!action) {
+                return;
+            }
+        }
+        if (action === "quit") {
+            isQuiting = true;
+            quit();
+            return;
+        }
+        if (!mainWindow || mainWindow.isDestroyed()) {
+            return;
+        }
+        if (action === "minimize") {
+            mainWindow.minimize();
+            return;
+        }
+        mainWindow.hide();
+    } finally {
+        closeRequestGuard.leave();
+    }
 }
 
 app.whenReady().then(async () => {
@@ -721,8 +833,8 @@ app.whenReady().then(async () => {
     const isHardwareAccelerationEnabled = app.isHardwareAccelerationEnabled();
     log(`Hardware Acceleration Enabled: ${isHardwareAccelerationEnabled}`);
 
-    // Create system tray
-    createTray();
+    // Create system tray when enabled in desktop close settings
+    syncTrayWithSettings();
 
     // get arguments passed to application, and remove the provided application path
     const userProvidedArguments = getUserProvidedArguments(process.argv);
@@ -779,13 +891,9 @@ app.whenReady().then(async () => {
             }
         );
 
-        // minimize to tray behavior
+        // quit / minimize / hide-to-tray based on remembered close settings
         mainWindow.on("close", (event) => {
-            if (!isQuiting) {
-                event.preventDefault();
-                mainWindow.hide();
-                return false;
-            }
+            void handleWindowCloseRequest(event);
         });
 
         // navigate to loading page
@@ -938,10 +1046,7 @@ app.on("before-quit", () => {
         isQuiting = true;
     }
     // Ensure tray is destroyed to prevent it from keeping the app alive
-    if (tray && !tray.isDestroyed()) {
-        tray.destroy();
-        tray = null;
-    }
+    destroyTray();
 });
 
 // quit electron if all windows are closed

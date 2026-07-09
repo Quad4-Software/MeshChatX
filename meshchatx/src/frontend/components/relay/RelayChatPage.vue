@@ -412,7 +412,10 @@
                                         {{ $t("relay_chat.load_previous") }}
                                     </button>
                                     <template v-if="!useVirtualMessageList">
-                                        <template v-for="entry in messageTimeline" :key="timelineEntryKey(entry)">
+                                        <template
+                                            v-for="(entry, entryIndex) in messageTimeline"
+                                            :key="timelineEntryKey(entry, entryIndex)"
+                                        >
                                             <RelayMessageEntry :entry="entry" :page="relayChatPageSelf" />
                                         </template>
                                     </template>
@@ -1102,7 +1105,12 @@ import Utils from "../../js/Utils";
 import { DEFAULT_RRC_HUB_ICON, normalizeMdiIconName } from "../../js/mdiIconNames.js";
 import { countRelayMentions } from "../../js/relayMentionCount.js";
 import { filterRelayMembers, filterRelayMessages } from "../../js/relayMessageSearch.js";
-import { buildRelayMessageTimeline, relayMessageKey } from "../../js/relayMessageTimeline.js";
+import {
+    buildRelayMessageTimeline,
+    mergeRelayMessages,
+    relayMessageAlreadyPresent,
+    relayMessageKey,
+} from "../../js/relayMessageTimeline.js";
 import { MIN_VIRTUAL_RELAY_ENTRIES } from "./relayMessageListVirtual.js";
 import { loadRelayLayout, saveRelayLayout } from "../../js/relayLayoutStore.js";
 import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed } from "../../js/browserLayoutStore.js";
@@ -1822,11 +1830,12 @@ export default {
         messageKey(msg) {
             return relayMessageKey(msg);
         },
-        timelineEntryKey(entry) {
+        timelineEntryKey(entry, index = 0) {
             if (entry.type === "dateDivider") {
-                return `date-${entry.dayKey}`;
+                return `date-${entry.dayKey}-${index}`;
             }
-            return this.messageKey(entry.msg);
+            const msgKey = this.messageKey(entry.msg);
+            return msgKey ? `${msgKey}-${index}` : `idx-${index}`;
         },
         formatDateDividerLabel(dayKey) {
             if (!dayKey || typeof dayKey !== "string") {
@@ -1946,6 +1955,9 @@ export default {
             this.selectedRoom = room;
             this.expandedHubs[hubHash] = true;
             this.hasMorePrevious = false;
+            // Clear before fetch so only websocket arrivals during the request are merged back.
+            this.messages = [];
+            this.members = [];
             const seq = ++this.roomSelectSequence;
             try {
                 const response = await window.api.get(
@@ -1955,7 +1967,8 @@ export default {
                 if (seq !== this.roomSelectSequence) {
                     return;
                 }
-                this.messages = response.data?.messages || [];
+                const loaded = response.data?.messages || [];
+                this.messages = mergeRelayMessages(loaded, this.messages);
                 this.members = response.data?.members || [];
                 this.hasMorePrevious = Boolean(response.data?.has_more);
                 this.scrollToBottom();
@@ -1967,8 +1980,6 @@ export default {
                 if (seq !== this.roomSelectSequence) {
                     return;
                 }
-                this.messages = [];
-                this.members = [];
                 this.hasMorePrevious = false;
             }
         },
@@ -1999,10 +2010,23 @@ export default {
                 if (older.length === 0) {
                     return;
                 }
+                const existingSeqs = new Set(this.messages.filter((m) => m && m.seq != null).map((m) => m.seq));
+                const uniqueOlder = older.filter((m) => {
+                    if (!m) {
+                        return false;
+                    }
+                    if (m.seq != null && existingSeqs.has(m.seq)) {
+                        return false;
+                    }
+                    return !relayMessageAlreadyPresent(this.messages, m);
+                });
+                if (uniqueOlder.length === 0) {
+                    return;
+                }
                 const scrollEl = this.useVirtualMessageList ? null : this.$refs.messageList;
                 const prevScrollHeight = scrollEl ? scrollEl.scrollHeight : 0;
                 const prevScrollTop = scrollEl ? scrollEl.scrollTop : 0;
-                this.messages = [...older, ...this.messages];
+                this.messages = [...uniqueOlder, ...this.messages];
                 if (scrollEl) {
                     nextTick(() => {
                         const delta = scrollEl.scrollHeight - prevScrollHeight;
@@ -2475,8 +2499,10 @@ export default {
                 this.fetchHubs();
             } else if (json.type === "rrc.message") {
                 if (json.hub_hash === this.selectedHubHash && json.room === this.selectedRoom && json.message) {
-                    this.messages.push(json.message);
-                    this.scrollToBottom();
+                    if (!relayMessageAlreadyPresent(this.messages, json.message)) {
+                        this.messages.push(json.message);
+                        this.scrollToBottom();
+                    }
                     if (json.message.kind === "system" || json.message.kind === "notice") {
                         this.refreshMembers();
                     }

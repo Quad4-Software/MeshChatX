@@ -298,4 +298,54 @@ describe("NomadNetworkSidebar.vue", () => {
         expect(wrapper.text()).toContain("nomadnet.no_announces_yet");
         expect(wrapper.text()).not.toContain("nomadnet.no_search_results_peers");
     });
+
+    it("favouriteDisplayName prefers announce cache over unknown favourite label", async () => {
+        const favHash = defaultFavourite.destination_hash;
+        const wrapper = mountSidebar({
+            favourites: [{ destination_hash: favHash, display_name: "Unknown Node" }],
+            nodes: {
+                [favHash]: {
+                    destination_hash: favHash,
+                    display_name: "Live Announce Name",
+                },
+                [defaultNode.destination_hash]: defaultNode,
+            },
+        });
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.favouriteDisplayName(wrapper.vm.favourites[0])).toBe("Live Announce Name");
+        expect(wrapper.text()).toContain("Live Announce Name");
+    });
+
+    it("does not wipe persisted favourite section layout when favourites are still empty", async () => {
+        const favHash = defaultFavourite.destination_hash;
+        const layout = {
+            sections: [
+                { id: "default", name: "Favourites", collapsed: false },
+                { id: "custom", name: "Custom", collapsed: false },
+            ],
+            sectionOrder: ["default", "custom"],
+            favouritesBySection: {
+                default: [],
+                custom: [favHash],
+            },
+        };
+        localStorage.getItem.mockImplementation((key) => {
+            if (key === "meshchat.nomadnet.favourites.layout") {
+                return JSON.stringify(layout);
+            }
+            return null;
+        });
+
+        const wrapper = mountSidebar({ favourites: [] });
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.vm.favouritesBySection.custom).toEqual([favHash]);
+        expect(localStorage.setItem).not.toHaveBeenCalled();
+
+        await wrapper.setProps({ favourites: [defaultFavourite] });
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.vm.favouritesBySection.custom).toContain(favHash);
+        expect(wrapper.vm.favouritesBySection.default || []).not.toContain(favHash);
+    });
 });

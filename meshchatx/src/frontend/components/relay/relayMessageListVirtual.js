@@ -13,9 +13,10 @@ export function estimateRelayEntryHeight(entry) {
         return 44;
     }
     const text = typeof entry.msg?.text === "string" ? entry.msg.text : "";
-    let height = 28;
+    let height = 32;
     if (text) {
-        height += Math.ceil(text.length / 80) * 18;
+        const lines = text.split("\n").reduce((sum, line) => sum + Math.max(1, Math.ceil(line.length / 72)), 0);
+        height += Math.max(0, lines - 1) * 20;
     }
     return height;
 }

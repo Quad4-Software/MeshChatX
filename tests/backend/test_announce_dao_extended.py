@@ -154,3 +154,26 @@ def test_get_favourite_by_destination_hash(announce_dao):
     announce_dao.upsert_favourite("dh1", "Renamed", row["aspect"])
     row2 = announce_dao.get_favourite_by_destination_hash("dh1")
     assert row2["display_name"] == "Renamed"
+
+
+def test_upsert_favourite_preserves_name_for_unknown_sentinel(announce_dao):
+    announce_dao.upsert_favourite("dh1", "Kept Name", "nomadnetwork.node")
+    announce_dao.upsert_favourite("dh1", "Unknown Node", "nomadnetwork.node")
+    row = announce_dao.get_favourite_by_destination_hash("dh1")
+    assert row["display_name"] == "Kept Name"
+    announce_dao.upsert_favourite("dh1", "New Real Name", "nomadnetwork.node")
+    row2 = announce_dao.get_favourite_by_destination_hash("dh1")
+    assert row2["display_name"] == "New Real Name"
+
+
+def test_upsert_favourite_preserves_name_for_localized_unknown(announce_dao):
+    announce_dao.upsert_favourite("dh1", "Kept Name", "nomadnetwork.node")
+    for sentinel in (
+        "Unbekannter Knoten",
+        "未知节点",
+        "Anonymous Node",
+        "Неизвестный узел",
+    ):
+        announce_dao.upsert_favourite("dh1", sentinel, "nomadnetwork.node")
+        row = announce_dao.get_favourite_by_destination_hash("dh1")
+        assert row["display_name"] == "Kept Name", sentinel

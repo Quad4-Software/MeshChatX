@@ -841,6 +841,45 @@
                                         <span class="setting-toggle__hint">{{ $t("app.requires_restart") }}</span>
                                     </span>
                                 </label>
+
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="desktop-tray-enabled"
+                                        v-model="desktopCloseSettings.trayEnabled"
+                                        @update:model-value="onDesktopTrayEnabledChange"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{ $t("app.desktop_tray_enabled") }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("app.desktop_tray_enabled_description")
+                                        }}</span>
+                                    </span>
+                                </label>
+
+                                <label class="flex flex-col gap-2">
+                                    <span class="text-sm font-medium text-sem-fg">{{
+                                        $t("app.desktop_close_behavior")
+                                    }}</span>
+                                    <span class="text-xs text-sem-fg-muted">{{
+                                        $t("app.desktop_close_behavior_description")
+                                    }}</span>
+                                    <select
+                                        id="desktop-close-behavior"
+                                        v-model="desktopCloseSettings.closeBehavior"
+                                        class="input-field"
+                                        @change="onDesktopCloseBehaviorChange"
+                                    >
+                                        <option value="ask">{{ $t("app.desktop_close_behavior_ask") }}</option>
+                                        <option value="quit">{{ $t("app.desktop_close_behavior_quit") }}</option>
+                                        <option value="background">
+                                            {{
+                                                desktopCloseSettings.trayEnabled
+                                                    ? $t("app.desktop_close_behavior_background")
+                                                    : $t("app.desktop_close_behavior_background_no_tray")
+                                            }}
+                                        </option>
+                                    </select>
+                                </label>
                             </div>
                         </section>
 
@@ -3019,6 +3058,10 @@ export default {
             visualiserShowDiscoveredInterfaces: false,
             selfTestRunning: false,
             selfTestResults: null,
+            desktopCloseSettings: {
+                closeBehavior: "ask",
+                trayEnabled: true,
+            },
         };
     },
     computed: {
@@ -3146,8 +3189,58 @@ export default {
         this.loadStickerCount();
         this.loadGifCount();
         this.loadVisualiserDisplayPrefsFromStorage();
+        this.loadDesktopCloseSettings();
     },
     methods: {
+        async loadDesktopCloseSettings() {
+            if (!ElectronUtils.isElectron()) {
+                return;
+            }
+            try {
+                const settings = await ElectronUtils.getCloseSettings();
+                if (settings && typeof settings === "object") {
+                    this.desktopCloseSettings = {
+                        closeBehavior: settings.closeBehavior || "ask",
+                        trayEnabled: settings.trayEnabled !== false,
+                    };
+                }
+            } catch (e) {
+                console.log(e);
+            }
+        },
+        async onDesktopTrayEnabledChange(value) {
+            this.desktopCloseSettings.trayEnabled = value === true;
+            try {
+                const settings = await ElectronUtils.setCloseSettings({
+                    trayEnabled: this.desktopCloseSettings.trayEnabled,
+                });
+                if (settings && typeof settings === "object") {
+                    this.desktopCloseSettings = {
+                        closeBehavior: settings.closeBehavior || this.desktopCloseSettings.closeBehavior,
+                        trayEnabled: settings.trayEnabled !== false,
+                    };
+                }
+            } catch (e) {
+                console.log(e);
+                ToastUtils.error(this.$t("common.save_failed"));
+            }
+        },
+        async onDesktopCloseBehaviorChange() {
+            try {
+                const settings = await ElectronUtils.setCloseSettings({
+                    closeBehavior: this.desktopCloseSettings.closeBehavior,
+                });
+                if (settings && typeof settings === "object") {
+                    this.desktopCloseSettings = {
+                        closeBehavior: settings.closeBehavior || this.desktopCloseSettings.closeBehavior,
+                        trayEnabled: settings.trayEnabled !== false,
+                    };
+                }
+            } catch (e) {
+                console.log(e);
+                ToastUtils.error(this.$t("common.save_failed"));
+            }
+        },
         async runSelfTest() {
             if (this.selfTestRunning) {
                 return;

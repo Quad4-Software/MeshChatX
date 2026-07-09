@@ -17,6 +17,20 @@ class ElectronUtils {
         }
     }
 
+    static async getCloseSettings() {
+        if (window.electron?.getCloseSettings) {
+            return await window.electron.getCloseSettings();
+        }
+        return null;
+    }
+
+    static async setCloseSettings(partial) {
+        if (window.electron?.setCloseSettings) {
+            return await window.electron.setCloseSettings(partial);
+        }
+        return null;
+    }
+
     static async getMemoryUsage() {
         if (window.electron) {
             return await window.electron.getMemoryUsage();

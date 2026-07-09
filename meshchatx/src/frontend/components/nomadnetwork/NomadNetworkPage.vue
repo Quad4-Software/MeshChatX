@@ -621,6 +621,7 @@ import {
 } from "../../js/MicronWasmLoader";
 import { VTooltip } from "vuetify/components/VTooltip";
 import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed } from "../../js/browserLayoutStore";
+import { isUnknownNodeDisplayName, resolveFavouriteUpsertDisplayName } from "../../js/nomadUnknownNodeName.js";
 
 export default {
     name: "NomadNetworkPage",
@@ -1071,15 +1072,7 @@ export default {
             (async () => {
                 await this.getNomadnetworkNodeAnnounce(bootstrapHash);
 
-                if (this.nodes[bootstrapHash]) {
-                    this.selectedNode = this.nodes[bootstrapHash];
-                } else {
-                    this.selectedNode = {
-                        destination_hash: bootstrapHash,
-                        display_name: "Unknown Node",
-                        aspect: "nomadnetwork.node",
-                    };
-                }
+                this.selectedNode = this.resolveNodeForHash(bootstrapHash);
 
                 this.getNodePath(bootstrapHash);
 
@@ -1114,11 +1107,7 @@ export default {
             }
             try {
                 await this.getNomadnetworkNodeAnnounce(hash);
-                this.selectedNode = this.nodes[hash] || {
-                    destination_hash: hash,
-                    display_name: this.$t("nomadnet.unknown_node"),
-                    aspect: "nomadnetwork.node",
-                };
+                this.selectedNode = this.resolveNodeForHash(hash);
                 const path = typeof pagePath === "string" && pagePath.length > 0 ? pagePath : this.defaultNodePagePath;
                 await this.loadNodePage(hash, path, null, false, true);
             } catch (e) {
@@ -1584,6 +1573,48 @@ export default {
                 console.log(e);
             }
         },
+        isUnknownNodeName(name) {
+            return isUnknownNodeDisplayName(name, this.$t("nomadnet.unknown_node"));
+        },
+        resolveNodeForHash(destinationHash) {
+            const hash = (destinationHash || "").trim();
+            if (!hash) {
+                return null;
+            }
+            const cached = this.nodes[hash];
+            const favourite = this.favourites.find((f) => f.destination_hash === hash);
+            const favouriteName = favourite?.custom_display_name || favourite?.display_name || "";
+            if (cached) {
+                const cachedName = cached.custom_display_name || cached.display_name || "";
+                if (this.isUnknownNodeName(cachedName) && favouriteName && !this.isUnknownNodeName(favouriteName)) {
+                    return {
+                        ...cached,
+                        display_name: favouriteName,
+                        custom_display_name: favourite?.custom_display_name || favouriteName,
+                    };
+                }
+                return cached;
+            }
+            if (favouriteName && !this.isUnknownNodeName(favouriteName)) {
+                return {
+                    ...favourite,
+                    display_name: favouriteName,
+                    aspect: favourite.aspect || "nomadnetwork.node",
+                };
+            }
+            const selectedHash = this.selectedNode?.destination_hash;
+            if (selectedHash && Object.is(selectedHash, hash)) {
+                const existingName = this.selectedNode.custom_display_name || this.selectedNode.display_name;
+                if (existingName && !this.isUnknownNodeName(existingName)) {
+                    return this.selectedNode;
+                }
+            }
+            return {
+                destination_hash: hash,
+                display_name: this.$t("nomadnet.unknown_node"),
+                aspect: "nomadnetwork.node",
+            };
+        },
         isFavourite(destinationHash) {
             return (
                 this.favourites.find((favourite) => {
@@ -1593,9 +1624,13 @@ export default {
         },
         async addFavourite(node) {
             try {
+                const existing = this.favourites.find(
+                    (favourite) => favourite.destination_hash === node.destination_hash
+                );
+                const displayName = resolveFavouriteUpsertDisplayName(node, existing, this.$t("nomadnet.unknown_node"));
                 await window.api.post("/api/v1/favourites/add", {
                     destination_hash: node.destination_hash,
-                    display_name: node.display_name,
+                    display_name: displayName,
                     aspect: "nomadnetwork.node",
                 });
                 await this.getFavourites();
@@ -1643,9 +1678,10 @@ export default {
                     continue;
                 }
                 try {
+                    const displayName = resolveFavouriteUpsertDisplayName(node, null, this.$t("nomadnet.unknown_node"));
                     await window.api.post("/api/v1/favourites/add", {
                         destination_hash: node.destination_hash,
-                        display_name: node.display_name,
+                        display_name: displayName,
                         aspect: "nomadnetwork.node",
                     });
                     added += 1;
@@ -2472,10 +2508,7 @@ export default {
                 }
 
                 // update selected node, so relative urls work correctly when returned by the new node
-                this.selectedNode = this.nodes[destinationHash] || {
-                    display_name: this.$t("nomadnet.unknown_node"),
-                    destination_hash: destinationHash,
-                };
+                this.selectedNode = this.resolveNodeForHash(destinationHash);
 
                 // navigate to node page
                 this.loadNodePage(destinationHash, parsedUrl.path, fieldData, addToHistory, useCache, navOptions);
@@ -2492,18 +2525,21 @@ export default {
             return Utils.formatBytesPerSecond(bytesPerSecond);
         },
         onNodeClick: function (node) {
-            if (this.shouldOpenInNewTab(node.destination_hash, {})) {
-                this.emitOpenNode(
-                    node.destination_hash,
-                    this.defaultNodePagePath,
-                    node.custom_display_name || node.display_name || null,
-                    { activate: true }
-                );
+            const hash = node?.destination_hash;
+            const resolved = hash ? this.resolveNodeForHash(hash) : node;
+            const title =
+                resolved?.custom_display_name ||
+                resolved?.display_name ||
+                node?.custom_display_name ||
+                node?.display_name ||
+                null;
+            if (this.shouldOpenInNewTab(hash, {})) {
+                this.emitOpenNode(hash, this.defaultNodePagePath, title, { activate: true });
                 return;
             }
 
-            this.selectedNode = node;
-            this.loadNodePage(node.destination_hash, this.defaultNodePagePath);
+            this.selectedNode = resolved || node;
+            this.loadNodePage(hash, this.defaultNodePagePath);
         },
         async onRenameFavourite(favourite) {
             // ask user for new display name
