@@ -5,6 +5,7 @@ plugins {
 
 def repoRoot = rootProject.projectDir.parentFile
 def meshchatSourceDir = new File(repoRoot, "meshchatx")
+def lxmfySourceDir = new File(repoRoot, "vendor/lxmfy/lxmfy")
 def repositoryBundledWheelsDir = new File(meshchatSourceDir, "public/repository-server-bundled/bundled")
 def chaquopyBuildPython = System.getenv("CHAQUOPY_BUILD_PYTHON")
 def pythonTempDir = new File(buildDir, "python-tmp")
@@ -192,9 +193,33 @@ tasks.register("syncMeshchatPython", Sync) {
     into(file("$projectDir/src/main/python/meshchatx"))
 }
 
+/*
+ * Desktop installs lxmfy via setuptools (pyproject where=[".", "vendor/lxmfy"]).
+ * Chaquopy only sees android/app/src/main/python plus pip installs, so the
+ * vendored package must be synced here or bot_templates import fails at boot.
+ */
+tasks.register("syncLxmfyPython", Sync) {
+    if (!lxmfySourceDir.exists()) {
+        throw new org.gradle.api.GradleException(
+            "Missing vendored lxmfy package at ${lxmfySourceDir}. " +
+                "Expected vendor/lxmfy/lxmfy from the MeshChatX tree."
+        )
+    }
+    def initPy = new File(lxmfySourceDir, "__init__.py")
+    if (!initPy.exists()) {
+        throw new org.gradle.api.GradleException("Missing ${initPy}; vendored lxmfy tree looks incomplete.")
+    }
+    doFirst {
+        delete(file("$projectDir/src/main/python/lxmfy"))
+    }
+    from(lxmfySourceDir)
+    includeEmptyDirs = false
+    into(file("$projectDir/src/main/python/lxmfy"))
+}
+
 tasks.configureEach { task ->
     if (task.name.toLowerCase().contains("merge") && task.name.toLowerCase().contains("pythonsources")) {
-        task.dependsOn(tasks.named("syncMeshchatPython"))
+        task.dependsOn(tasks.named("syncMeshchatPython"), tasks.named("syncLxmfyPython"))
     }
 }
 
