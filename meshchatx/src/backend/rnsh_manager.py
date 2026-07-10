@@ -422,6 +422,9 @@ class RNSHSession:
                 self.last_exit_code = None
                 self.last_command = " ".join(shlex.quote(part) for part in command)
 
+                notify_failure = False
+                failure: Exception | None = None
+
                 try:
                     if self._supports_pty():
                         self._start_with_pty(command)
@@ -445,6 +448,7 @@ class RNSHSession:
         if notify_failure:
             self.manager._on_session_change(self)
             self.manager.save()
+            assert failure is not None
             raise failure
 
         self.manager._on_session_change(self)

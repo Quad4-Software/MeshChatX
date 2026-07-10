@@ -134,7 +134,9 @@ class MapOverlayManager:
         os.makedirs(path, exist_ok=True)
         return path
 
-    def cache_path_for(self, identity_hash: str, overlay_id: int, fmt: str) -> str:
+    def cache_path_for(
+        self, identity_hash: str, overlay_id: int, fmt: str
+    ) -> tuple[str, str]:
         rel = os.path.join(identity_hash, f"{overlay_id}.{fmt}")
         return os.path.join(self.overlay_root(), rel), rel
 
@@ -599,8 +601,8 @@ class MapOverlayManager:
             result = await asyncio.wait_for(
                 fetcher.fetch(
                     destination_hash=first.destination_hash,
-                    group=first.group_name,
-                    repository=first.repository,
+                    group=first.group_name or "",
+                    repository=first.repository or "",
                     paths=paths,
                     ref=first.ref,
                     job_id=job_id,
@@ -762,7 +764,7 @@ class MapOverlayManager:
             fields["ref"] = normalize_ref(data["ref"])
         if fields:
             self.database.map_overlays.update_fields(overlay_id, **fields)
-        return self.get_overlay(identity_hash, overlay_id)
+        return self.get_overlay(identity_hash, overlay_id) or {}
 
     def delete_overlay(self, identity_hash: str, overlay_id: int) -> bool:
         row = self.get_overlay(identity_hash, overlay_id)
@@ -812,7 +814,8 @@ class MapOverlayManager:
         )
         row = self.get_overlay(identity_hash, overlay_id)
         filename = _safe_filename(
-            row.get("name") if row else "overlay", EXTENSIONS[target_format]
+            (row.get("name") or "overlay") if row else "overlay",
+            EXTENSIONS[target_format],
         )
         return out, CONTENT_TYPES[target_format], filename
 
