@@ -110,4 +110,5 @@ Want offline Python packages     Repository server
 
 - **Reticulum interfaces** for transport setup
 - **LXMF messaging** and **Nomad Network** for feature-specific workflows
+- [Plugins](plugins.md) for extending MeshChatX functionality
 - **Documentation** for offline manuals
