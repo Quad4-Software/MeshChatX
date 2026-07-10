@@ -2134,13 +2134,12 @@
         "complete_percent": "{percent}% completato",
         "confirm_delete_version": "Eliminare la versione della documentazione \"{version}\"?",
         "prompt_version_name": "Inserisci un nome di versione per questo caricamento:",
-        "status_title": "Stato Documentazione",
-        "status_extracting": "Estrazione in corso...",
-        "status_available": "Manuale Offline Disponibile",
-        "status_not_available": "Manuale Non Disponibile",
-        "btn_upload": "Carica Manuale",
+        "status_title": "Stato della documentazione",
+        "status_extracting": "Estrazione della documentazione...",
+        "status_available": "Manuale offline disponibile",
+        "status_not_available": "Manuale non disponibile",
+        "btn_upload": "Carica manuale",
         "btn_share": "Condividi il manuale Reticulum come ZIP ricaricabile",
-        "empty_state_hint": "Carica uno ZIP del manuale Reticulum per consultarlo offline. Le release includono una copia offline inclusa nel build.",
         "error": "Errore",
         "failed_upload_docs": "Caricamento della documentazione non riuscito",
         "upload_success": "Documentazione caricata",
@@ -2150,7 +2149,8 @@
         "load_doc_failed": "Impossibile caricare questa guida.",
         "search_failed": "Ricerca non riuscita. Controlla la connessione e riprova.",
         "manifest_warning": "Impossibile leggere il file indice della documentazione. Vengono mostrati i file disponibili senza raggruppamento per sezione.",
-        "failed_upload_alert": "Caricamento della documentazione non riuscito: {message}"
+        "failed_upload_alert": "Caricamento della documentazione non riuscito: {message}",
+        "empty_state_hint": "Carica uno ZIP del manuale Reticulum per consultarlo offline. Le release includono una copia offline inclusa nel build."
     },
     "licenses": {
         "section_label": "Note legali",

@@ -2083,12 +2083,11 @@
         "confirm_delete_version": "Supprimer la version de documentation \"{version}\" ?",
         "prompt_version_name": "Entrez un nom de version pour ce téléversement :",
         "status_title": "État de la documentation",
-        "status_extracting": "Extraction...",
+        "status_extracting": "Extraction de la documentation...",
         "status_available": "Manuel hors ligne disponible",
         "status_not_available": "Manuel non disponible",
         "btn_upload": "Téléverser le manuel",
         "btn_share": "Partager le manuel Reticulum sous forme de ZIP réimportable",
-        "empty_state_hint": "Téléversez une archive ZIP du manuel Reticulum pour la consulter hors ligne. Les versions livrent une copie hors ligne intégrée au build.",
         "error": "Erreur",
         "failed_upload_docs": "Échec du téléversement de la documentation",
         "upload_success": "Documentation téléversée",
@@ -2098,7 +2097,8 @@
         "load_doc_failed": "Impossible de charger ce guide.",
         "search_failed": "La recherche a échoué. Vérifiez votre connexion et réessayez.",
         "manifest_warning": "Le fichier d'index de documentation n'a pas pu être lu. Affichage des fichiers disponibles sans regroupement par section.",
-        "failed_upload_alert": "Échec du téléversement de la documentation : {message}"
+        "failed_upload_alert": "Échec du téléversement de la documentation : {message}",
+        "empty_state_hint": "Téléversez une archive ZIP du manuel Reticulum pour la consulter hors ligne. Les versions livrent une copie hors ligne intégrée au build."
     },
     "licenses": {
         "section_label": "Droit",
