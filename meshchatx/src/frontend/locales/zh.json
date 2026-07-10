@@ -972,10 +972,10 @@
         "identity_restore_failed": "身份恢复失败",
         "no_identity_available": "无可用身份",
         "message_count": "{count} 条消息",
-        "import_key_only_hint": "This restores the identity key only. Message history and settings require a database backup zip from About.",
-        "switch_after_restore_confirm": "Switch to restored identity \"{name}\" now?",
-        "identity_restore_empty_file": "Identity file is empty.",
-        "identity_restore_file_too_large": "Identity file is too large."
+        "import_key_only_hint": "此操作仅恢复身份密钥。消息历史记录和设置需要通过「关于」中的数据库备份 ZIP 来恢复。",
+        "switch_after_restore_confirm": "立即切换到已恢复的身份 \"{name}\"？",
+        "identity_restore_empty_file": "身份文件为空。",
+        "identity_restore_file_too_large": "身份文件太大。"
     },
     "about": {
         "title": "关于",
@@ -2018,10 +2018,10 @@
         "forwarding_to": "转发至:{hash}",
         "source_filter_display": "源过滤器:{hash}",
         "delete_confirm": "您确定要删除此规则吗 ?",
-        "invalid_hash": "Forward-to hash must be a 32-character hex value",
-        "send_failed": "Could not send forwarding update (websocket disconnected)",
-        "rule_added": "Forwarding rule added",
-        "rule_deleted": "Forwarding rule deleted"
+        "invalid_hash": "转发哈希必须是 32 个字符的十六进制值",
+        "send_failed": "无法发送转发更新（WebSocket 已断开）",
+        "rule_added": "转发规则已添加",
+        "rule_deleted": "转发规则已删除"
     },
     "archives": {
         "description": "搜索游牧网络页面存储在您的本地档案中 。",
@@ -2153,10 +2153,10 @@
             "purge_confirm": "清除全部宣布队列吗 ? 这一点是无法消除的。",
             "queues_purged": "宣布队列已清除",
             "failed_purge": "清除队列失败",
-            "path_requested": "Path requested for {hash}...",
-            "drop_confirm": "Are you sure you want to drop the path to {hash}?",
-            "drop_via_confirm": "Drop ALL paths via {hash}?",
-            "invalid_hops": "Hops filter must be a number"
+            "path_requested": "已请求 {hash} 的路径...",
+            "drop_confirm": "确定要删除到 {hash} 的路径吗？",
+            "drop_via_confirm": "删除所有经过 {hash} 的路径？",
+            "invalid_hops": "跳数过滤必须是一个数字"
         },
         "rnpath_trace": {
             "title": "RNS 路径",
@@ -2184,10 +2184,10 @@
         "propagation_nodes": {
             "title": "传播节点",
             "description": "选择偏好的传播节点，查看实时统计数据并快速检查路径。",
-            "load_failed": "Failed to load propagation nodes",
-            "local_restarted": "Local propagation node restarted",
-            "local_stopped": "Local propagation node stopped",
-            "local_started": "Local propagation node started"
+            "load_failed": "加载传播节点失败",
+            "local_restarted": "本地传播节点已重启",
+            "local_stopped": "本地传播节点已停止",
+            "local_started": "本地传播节点已启动"
         },
         "sieve_filters": {
             "title": "筛选规则",
@@ -2803,9 +2803,9 @@
         "outgoing_announces": "出站广播",
         "airtime": "占用时长",
         "channel_load": "信道负载",
-        "blackhole_label": "Blackhole: {state}",
-        "blackhole_publishing": "Publishing",
-        "blackhole_inactive": "Inactive"
+        "blackhole_label": "黑洞：{state}",
+        "blackhole_publishing": "发布中",
+        "blackhole_inactive": "未激活"
     },
     "translator": {
         "text_translation": "文本翻译",
@@ -3207,13 +3207,13 @@
         "propagation_enable_auto": "启用自动配置",
         "propagation_skip_auto": "手动配置/跳过",
         "auto_propagation_enabled": "已启用自动传播",
-        "identity_import_empty_file": "Identity file is empty.",
-        "identity_import_file_too_large": "Identity file is too large.",
-        "identity_import_key_only_hint": "This imports your identity key only. To restore messages and settings, use About → Restore from File with a database backup zip.",
-        "identity_file_overrides_base32": "A selected file will be used instead of the pasted base32 key.",
-        "identity_import_pending_activate": "You imported an identity but have not activated it yet. Activate it now?",
-        "identity_import_pending_kept": "Imported identity was saved but not activated. Switch to it later from Identities.",
-        "identity_default_delete_failed": "Imported identity is active, but the default identity could not be removed."
+        "identity_import_empty_file": "身份文件为空。",
+        "identity_import_file_too_large": "身份文件太大。",
+        "identity_import_key_only_hint": "此操作仅导入您的身份密钥。要恢复消息和设置，请使用「关于」→「从文件恢复」并使用数据库备份 ZIP。",
+        "identity_file_overrides_base32": "选中的文件将替代粘贴的 base32 密钥使用。",
+        "identity_import_pending_activate": "您已导入一个身份但尚未激活。立即激活？",
+        "identity_import_pending_kept": "导入的身份已保存但未激活。稍后可在「身份」中切换。",
+        "identity_default_delete_failed": "导入的身份已激活，但无法删除默认身份。"
     },
     "command_palette": {
         "search_placeholder": "搜索命令、路径或端点",

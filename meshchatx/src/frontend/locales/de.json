@@ -972,10 +972,10 @@
         "identity_restore_failed": "Identitätswiederherstellung fehlgeschlagen",
         "no_identity_available": "Keine Identität verfügbar",
         "message_count": "{count} Nachrichten",
-        "import_key_only_hint": "This restores the identity key only. Message history and settings require a database backup zip from About.",
-        "switch_after_restore_confirm": "Switch to restored identity \"{name}\" now?",
-        "identity_restore_empty_file": "Identity file is empty.",
-        "identity_restore_file_too_large": "Identity file is too large."
+        "import_key_only_hint": "Hiermit wird nur der Identitätsschlüssel wiederhergestellt. Nachrichtenverlauf und Einstellungen erfordern eine Datenbank-Sicherungs-ZIP unter Über.",
+        "switch_after_restore_confirm": "Zur wiederhergestellten Identität \"{name}\" wechseln?",
+        "identity_restore_empty_file": "Identitätsdatei ist leer.",
+        "identity_restore_file_too_large": "Identitätsdatei ist zu groß."
     },
     "contacts": {
         "title": "Kontakte",
@@ -1901,10 +1901,10 @@
         "forwarding_to": "Weiterleitung an: {hash}",
         "source_filter_display": "Quellfilter: {hash}",
         "delete_confirm": "Sind Sie sicher, dass Sie diese Regel löschen möchten?",
-        "invalid_hash": "Forward-to hash must be a 32-character hex value",
-        "send_failed": "Could not send forwarding update (websocket disconnected)",
-        "rule_added": "Forwarding rule added",
-        "rule_deleted": "Forwarding rule deleted"
+        "invalid_hash": "Weiterleitungs-Hash muss ein 32-stelliger Hex-Wert sein",
+        "send_failed": "Weiterleitungs-Aktualisierung konnte nicht gesendet werden (WebSocket getrennt)",
+        "rule_added": "Weiterleitungsregel hinzugefügt",
+        "rule_deleted": "Weiterleitungsregel gelöscht"
     },
     "archives": {
         "description": "In Ihrem lokalen Archiv gespeicherte Nomad-Seiten durchsuchen.",
@@ -2036,10 +2036,10 @@
             "purge_confirm": "Alle Ankündigungswarteschlangen leeren? Dies kann nicht rückgängig gemacht werden.",
             "queues_purged": "Ankündigungswarteschlangen geleert",
             "failed_purge": "Warteschlangen konnten nicht geleert werden",
-            "path_requested": "Path requested for {hash}...",
-            "drop_confirm": "Are you sure you want to drop the path to {hash}?",
-            "drop_via_confirm": "Drop ALL paths via {hash}?",
-            "invalid_hops": "Hops filter must be a number"
+            "path_requested": "Pfad angefordert für {hash}...",
+            "drop_confirm": "Pfad zu {hash} wirklich löschen?",
+            "drop_via_confirm": "ALLE Pfade über {hash} löschen?",
+            "invalid_hops": "Hops-Filter muss eine Zahl sein"
         },
         "rnpath_trace": {
             "title": "RNS Pfad-Verfolgung",
@@ -2067,10 +2067,10 @@
         "propagation_nodes": {
             "title": "Propagationsknoten",
             "description": "Bevorzugte Mesh-Propagationsknoten wählen, Live-Statistiken sehen und schnelle Pfadprüfungen ausführen.",
-            "load_failed": "Failed to load propagation nodes",
-            "local_restarted": "Local propagation node restarted",
-            "local_stopped": "Local propagation node stopped",
-            "local_started": "Local propagation node started"
+            "load_failed": "Propagation-Nodes konnten nicht geladen werden",
+            "local_restarted": "Lokaler Propagation-Node neu gestartet",
+            "local_stopped": "Lokaler Propagation-Node gestoppt",
+            "local_started": "Lokaler Propagation-Node gestartet"
         },
         "sieve_filters": {
             "title": "Sieb-Filter",
@@ -2687,8 +2687,8 @@
         "airtime": "Sendezeit",
         "channel_load": "Kanallast",
         "blackhole_label": "Blackhole: {state}",
-        "blackhole_publishing": "Publishing",
-        "blackhole_inactive": "Inactive"
+        "blackhole_publishing": "Veröffentlicht",
+        "blackhole_inactive": "Inaktiv"
     },
     "translator": {
         "text_translation": "Textübersetzung",
@@ -3038,13 +3038,13 @@
         "propagation_enable_auto": "Automatische Konfiguration aktivieren",
         "propagation_skip_auto": "Manuelle Konfiguration",
         "auto_propagation_enabled": "Auto-Propagation aktiviert",
-        "identity_import_empty_file": "Identity file is empty.",
-        "identity_import_file_too_large": "Identity file is too large.",
-        "identity_import_key_only_hint": "This imports your identity key only. To restore messages and settings, use About → Restore from File with a database backup zip.",
-        "identity_file_overrides_base32": "A selected file will be used instead of the pasted base32 key.",
-        "identity_import_pending_activate": "You imported an identity but have not activated it yet. Activate it now?",
-        "identity_import_pending_kept": "Imported identity was saved but not activated. Switch to it later from Identities.",
-        "identity_default_delete_failed": "Imported identity is active, but the default identity could not be removed."
+        "identity_import_empty_file": "Identitätsdatei ist leer.",
+        "identity_import_file_too_large": "Identitätsdatei ist zu groß.",
+        "identity_import_key_only_hint": "Dies importiert nur den Identitätsschlüssel. Um Nachrichten und Einstellungen wiederherzustellen, verwende Über → Aus Datei wiederherstellen mit einer Datenbank-Sicherungs-ZIP.",
+        "identity_file_overrides_base32": "Eine ausgewählte Datei wird anstelle des eingefügten base32-Schlüssels verwendet.",
+        "identity_import_pending_activate": "Du hast eine Identität importiert, aber noch nicht aktiviert. Jetzt aktivieren?",
+        "identity_import_pending_kept": "Importierte Identität wurde gespeichert, aber nicht aktiviert. Später unter Identitäten wechseln.",
+        "identity_default_delete_failed": "Importierte Identität ist aktiv, aber die Standard-Identität konnte nicht entfernt werden."
     },
     "command_palette": {
         "search_placeholder": "Befehle, Routen oder Peers suchen",
