@@ -30,7 +30,7 @@ Options:
   --numpy-version V          NumPy version used during pycodec2 build (default: 1.26.2)
   --lxst-version V           LXST wheel version for metadata patch (default: 0.4.8)
   --bleak-version V          bleak pure-python wheel version to vendor (default: 3.0.2)
-  --rns-version V            rns wheel version to patch (default: 1.3.7)
+  --rns-version V            rns wheel version to patch (default: 1.3.8)
   --no-lxst-patch            Skip LXST metadata patch
   --no-rns-patch             Skip RNS Android RNodeInterface patch
   --only-recipes LIST        Comma-separated recipe directory names under
@@ -60,7 +60,7 @@ LIBCODEC2_VERSION="1.2.0"
 NUMPY_VERSION="1.26.2"
 LXST_VERSION="0.4.8"
 BLEAK_VERSION="3.0.2"
-RNS_VERSION="1.3.7"
+RNS_VERSION="1.3.8"
 PATCH_LXST="1"
 PATCH_RNS="1"
 ONLY_RECIPES=""
