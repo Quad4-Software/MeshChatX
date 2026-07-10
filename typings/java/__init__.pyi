@@ -1,0 +1,6 @@
+# Optional Chaquopy dependency; stub for type checking only.
+
+from typing import Any
+
+def jclass(name: str) -> Any: ...
+def dynamic_proxy(*args: Any, **kwargs: Any) -> Any: ...
