@@ -3,12 +3,13 @@
 """RNode USB serial / Bluetooth / BLE support checks for desktop and Android.
 
 RNode over TCP ("RNode over IP") needs no native Android modules and works
-unconditionally, since RNS's Android RNodeInterface is patched (see
-scripts/build-android-wheels-local.sh) to stop hard-crashing the process when
-usbserial4a/jnius are missing. Serial and classic-Bluetooth ports need
-usbserial4a + jnius. BLE (ble://) ports need able. This module lets the rest
-of the app tell which RNode config entries can actually be brought up on the
-current build, so only the genuinely unsupported ones get disabled.
+unconditionally. On Android, MeshChatX ships a Chaquopy jnius shim plus a
+patched usb4a context bridge so USB serial and classic Bluetooth can use
+usbserial4a. BLE (ble://) uses the bundled able package and org.able.BLE.
+Serial and classic-Bluetooth still need usbserial4a + jnius. BLE needs able.
+This module lets the rest of the app tell which RNode config entries can
+actually be brought up on the current build, so only the genuinely
+unsupported ones get disabled.
 """
 
 from __future__ import annotations
@@ -44,18 +45,20 @@ def android_usbserial4a_available() -> bool:
 
 
 def android_jnius_available() -> bool:
-    """True when jnius (pyjnius) can be imported.
+    """True when jnius (or the Chaquopy jnius shim) can be imported.
 
     RNS's Android-specific RNodeInterface needs jnius for USB serial and
-    classic Bluetooth (RFCOMM) access. Chaquopy does not ship pyjnius under
-    the importable name "jnius" unless bundled explicitly (e.g. via a
-    compatibility shim), so this is normally unavailable.
+    classic Bluetooth (RFCOMM) access. MeshChatX ships a Chaquopy-backed
+    shim under android/app/src/main/python/jnius so this resolves on device.
     """
     return _optional_module_available("jnius")
 
 
 def android_able_available() -> bool:
-    """True when able can be imported (BLE GATT support for RNode ble:// on Android)."""
+    """True when able can be imported (BLE GATT support for RNode ble://).
+
+    MeshChatX ships a Chaquopy-compatible able package plus org.able.BLE.
+    """
     return _optional_module_available("able")
 
 

@@ -537,6 +537,8 @@ async def test_rnode_serial_blocked_on_android_without_usbserial4a_or_jnius(temp
             body = json.loads(response.body)
             assert response.status == 422, body
             assert "RNode over IP" in body["message"]
+            assert "issue #" not in body["message"].lower()
+            assert "github" not in body["message"].lower()
             assert "Radio" not in config["interfaces"]
 
 

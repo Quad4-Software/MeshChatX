@@ -121,7 +121,20 @@ def _patch_rns_panic_for_android():
         return False
 
 
-def start_server(port=8000, app_files_dir=None):
+def _install_android_rnode_support(activity=None):
+    try:
+        from meshchatx.src.backend.android_rnode import install_android_rnode_support
+
+        ok = install_android_rnode_support(activity)
+        if ok:
+            print("meshchat_wrapper: Android RNode USB/Bluetooth support ready")
+        else:
+            print("meshchat_wrapper: Android RNode support not fully configured")
+    except Exception as exc:
+        print(f"meshchat_wrapper: Android RNode support skipped: {exc}")
+
+
+def start_server(port=8000, app_files_dir=None, activity=None):
     global _server_loop_active
     with _server_loop_lock:
         if _server_loop_active:
@@ -154,6 +167,7 @@ def start_server(port=8000, app_files_dir=None):
         asyncio_signal_patch = _patch_asyncio_signal_handlers_for_android()
         aiohttp_run_app_patch = _patch_aiohttp_run_app_for_android()
         _patch_rns_panic_for_android()
+        _install_android_rnode_support(activity)
         try:
             from meshchatx.android_codec2 import (
                 ensure_codec2_native_library,

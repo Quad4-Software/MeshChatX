@@ -203,6 +203,11 @@ public class MainActivity extends AppCompatActivity {
         if (!Python.isStarted()) {
             Python.start(new AndroidPlatform(this));
         }
+        try {
+            org.able.BLE.setAppContext(this);
+        } catch (Exception ignored) {
+            // BLE class may be unavailable in incomplete builds.
+        }
         requestRuntimePermissionsIfNeeded();
 
         WebSettings webSettings = webView.getSettings();
@@ -691,7 +696,9 @@ public class MainActivity extends AppCompatActivity {
             try {
                 Python py = Python.getInstance();
                 String appFilesDir = AndroidStorageManager.resolveActiveBaseDir(MainActivity.this).getAbsolutePath();
-                py.getModule("meshchat_wrapper").callAttr("start_server", SERVER_PORT, appFilesDir);
+                // Pass Activity so usb4a / org.able.BLE can open RNode USB and BLE.
+                py.getModule("meshchat_wrapper").callAttr(
+                    "start_server", SERVER_PORT, appFilesDir, MainActivity.this);
             } catch (Exception e) {
                 final String stack = toStackTrace(e);
                 runOnUiThread(() -> {
@@ -1309,18 +1316,52 @@ public class MainActivity extends AppCompatActivity {
 
         @JavascriptInterface
         public boolean hasUsbPermissions() {
-            // WebUSB / Web Serial polyfill drives the device picker. from the
-            // Android manifest standpoint USB host access is granted as soon as
-            // the user accepts the per-device dialog. Surface true when we
-            // have a UsbManager so the JS layer can short-circuit prompts.
             UsbManager manager = (UsbManager) activity.getSystemService(Context.USB_SERVICE);
-            return manager != null;
+            if (manager == null) {
+                return false;
+            }
+            java.util.HashMap<String, android.hardware.usb.UsbDevice> devices =
+                manager.getDeviceList();
+            if (devices == null || devices.isEmpty()) {
+                return true;
+            }
+            for (android.hardware.usb.UsbDevice device : devices.values()) {
+                if (!manager.hasPermission(device)) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         @JavascriptInterface
         public void requestUsbPermissions() {
-            // No-op on android: per-device prompts are issued by WebUSB itself.
-            // Method is exposed so the JS bridge contract is symmetric.
+            activity.runOnUiThread(() -> {
+                try {
+                    UsbManager manager =
+                        (UsbManager) activity.getSystemService(Context.USB_SERVICE);
+                    if (manager == null) {
+                        return;
+                    }
+                    Intent intent = new Intent("com.meshchatx.USB_PERMISSION");
+                    android.app.PendingIntent permissionIntent =
+                        android.app.PendingIntent.getBroadcast(
+                            activity,
+                            0,
+                            intent,
+                            android.app.PendingIntent.FLAG_IMMUTABLE);
+                    for (android.hardware.usb.UsbDevice device :
+                        manager.getDeviceList().values()) {
+                        if (!manager.hasPermission(device)) {
+                            manager.requestPermission(device, permissionIntent);
+                        }
+                    }
+                } catch (Exception e) {
+                    Toast.makeText(
+                        activity,
+                        "USB permission request failed",
+                        Toast.LENGTH_SHORT).show();
+                }
+            });
         }
 
         @JavascriptInterface
