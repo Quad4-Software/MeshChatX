@@ -7808,27 +7808,6 @@ class ReticulumMeshChat:
             except Exception as e:
                 return web.json_response({"error": str(e)}, status=500)
 
-        # pull latest Reticulum manual from GitHub
-        @routes.post("/api/v1/docs/update-from-github")
-        async def docs_update_from_github(request):
-            try:
-                self._require_outbound_http("Reticulum docs update")
-                if not self.docs_manager:
-                    return web.json_response(
-                        {"error": "Documentation manager is unavailable"},
-                        status=503,
-                    )
-                loop = asyncio.get_running_loop()
-                success, version = await loop.run_in_executor(
-                    None,
-                    self.docs_manager.update_from_github,
-                )
-                return web.json_response({"success": success, "version": version})
-            except OutboundHttpBlockedError as e:
-                return web.json_response({"error": str(e)}, status=403)
-            except Exception as e:
-                return web.json_response({"error": str(e)}, status=500)
-
         # switch docs version
         @routes.post("/api/v1/docs/switch")
         async def docs_switch(request):

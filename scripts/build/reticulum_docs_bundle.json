@@ -1,7 +1,7 @@
 {
   "dest": "meshchatx/public/reticulum-docs-bundled/current",
-  "fetched_utc": "2026-07-07T05:31:03Z",
-  "html_files": 201,
+  "fetched_utc": "2026-07-10T17:45:25Z",
+  "html_files": 206,
   "skipped_binary_files": 2,
-  "source_url": "https://github.com/markqvist/reticulum_website/archive/refs/heads/main.zip"
+  "source_url": "https://codeload.github.com/markqvist/reticulum_website/zip/refs/heads/master"
 }

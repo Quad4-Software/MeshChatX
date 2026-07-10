@@ -126,13 +126,13 @@ CLI flags override environment variables when both are set.
 
 ## Reticulum manual bundle
 
-The Reticulum HTML manual is fetched at build time. After cloning the repository, run:
+The Reticulum HTML manual is fetched from the upstream website **master** branch at build time. There is no in-app clearnet refresh. After cloning the repository, or before packaging a release, run:
 
 ```bash
 pnpm run build-docs
 ```
 
-This populates `meshchatx/public/reticulum-docs-bundled/current/`. Without that step the Reticulum tab may show an upload prompt until you build docs or upload a manual ZIP.
+That command always re-fetches (`--force`) into `meshchatx/public/reticulum-docs-bundled/current/`. CI release builds run the same step. Without a bundled copy the Reticulum tab may show an upload prompt until you build docs or upload a manual ZIP offline.
 
 ## Identity bootstrap
 
