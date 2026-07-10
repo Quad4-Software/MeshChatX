@@ -1643,7 +1643,7 @@
                                 </button>
                                 <button
                                     type="button"
-                                    class="primary-chip px-16! py-3! text-sm!"
+                                        class="primary-chip px-4 py-2 text-sm"
                                     :disabled="isSaving"
                                     @click="saveInterface"
                                 >

@@ -15,7 +15,7 @@
             <button
                 v-if="!isProvisioning"
                 :disabled="!canProvision"
-                class="max-w-xs mx-auto inline-flex items-center justify-center gap-2 rounded-xl bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/40 px-4 py-2.5 text-sm font-bold text-blue-700 dark:text-blue-400 transition-colors disabled:opacity-50"
+                class="w-full sm:max-w-xs mx-auto inline-flex items-center justify-center gap-2 rounded-xl bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/40 px-4 py-2.5 text-sm font-bold text-blue-700 dark:text-blue-400 transition-colors disabled:opacity-50"
                 @click="$emit('provision')"
             >
                 {{ $t("tools.rnode_flasher.provision") }}
@@ -38,7 +38,7 @@
             </p>
             <button
                 v-if="!isSettingFirmwareHash"
-                class="max-w-xs mx-auto inline-flex items-center justify-center gap-2 rounded-xl bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/40 px-4 py-2.5 text-sm font-bold text-blue-700 dark:text-blue-400 transition-colors"
+                class="w-full sm:max-w-xs mx-auto inline-flex items-center justify-center gap-2 rounded-xl bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/40 px-4 py-2.5 text-sm font-bold text-blue-700 dark:text-blue-400 transition-colors"
                 @click="$emit('set-hash')"
             >
                 {{ $t("tools.rnode_flasher.set_firmware_hash") }}
