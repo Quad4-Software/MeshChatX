@@ -270,7 +270,7 @@ public class MainActivity extends AppCompatActivity {
                     view.stopLoading();
                     view.loadUrl("about:blank");
                     if (backendFailed && !startupPageLoaded) {
-                        CharSequence description = (error != null) ? error.getDescription() : "Unknown error";
+                        String description = (error != null) ? error.getDescription().toString() : "Unknown error";
                         showStartupError("WebView failed to load MeshChatX:", description);
                     }
                 }
