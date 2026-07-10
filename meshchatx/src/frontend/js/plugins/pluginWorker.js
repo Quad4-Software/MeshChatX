@@ -18,6 +18,7 @@ function handleWorkerMessage(event, post) {
             ui: null,
             inputValues: {},
             actionHandler: null,
+            inputHandler: null,
             eventHandlers: new Map(),
             refreshHandler: null,
         };
@@ -45,11 +46,23 @@ function handleWorkerMessage(event, post) {
             onEvent(eventName, handler) {
                 state.eventHandlers.set(eventName, handler);
             },
+            onInput(handler) {
+                state.inputHandler = handler;
+            },
             getInputValue(id) {
                 return state.inputValues[id] ?? "";
             },
+            setInputValue(id, value) {
+                state.inputValues[id] = value == null ? "" : String(value);
+            },
             onRefresh(handler) {
                 state.refreshHandler = handler;
+            },
+            toast(message, type = "info", duration = 5000) {
+                post({ type: "toast", message, toastType: type, duration });
+            },
+            download(filename, data) {
+                post({ type: "download", filename, data });
             },
         };
 
@@ -102,6 +115,9 @@ function handleWorkerMessage(event, post) {
             }
             if (next.type === "input") {
                 state.inputValues[next.id] = next.value;
+                if (typeof state.inputHandler === "function") {
+                    void state.inputHandler(next.id, next.value);
+                }
                 return;
             }
             if (next.type === "refresh-ui") {

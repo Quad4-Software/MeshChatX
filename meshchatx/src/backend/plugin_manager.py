@@ -873,6 +873,30 @@ class PluginManager:
             raise PermissionError(f"capability not granted: {capability}")
         if capability == "destinationPath.read":
             return self._destination_path_read(args)
+        if capability == "debugLog.read":
+            return self._debug_log_read(args)
+        if capability == "bugReport.status":
+            return self._bug_report_call("status", args)
+        if capability == "bugReport.listCollectors":
+            return self._bug_report_call("list_collectors", args)
+        if capability == "bugReport.listReports":
+            return self._bug_report_call("list_reports", args)
+        if capability == "bugReport.deleteReport":
+            return self._bug_report_call("delete_report", args)
+        if capability == "bugReport.clearReports":
+            return self._bug_report_call("clear_reports", args)
+        if capability == "bugReport.preview":
+            return self._bug_report_call("preview_report", args)
+        if capability == "bugReport.send":
+            return self._bug_report_call("send_report", args)
+        if capability == "bugReport.startCollector":
+            return self._bug_report_call("start_collector", args)
+        if capability == "bugReport.stopCollector":
+            return self._bug_report_call("stop_collector", args)
+        if capability == "bugReport.announce":
+            return self._bug_report_call("announce", args)
+        if capability == "bugReport.setCollectorName":
+            return self._bug_report_call("set_collector_name", args)
         if capability == "rnsLink.open":
             return self._rns_link_open(args)
         if capability == "rnsLink.identify":
@@ -884,6 +908,52 @@ class PluginManager:
         if capability == "rnsLink.close":
             return self._rns_link_close(args)
         raise ValueError(f"unknown capability: {capability}")
+
+    def _require_bug_report_manager(self):
+        if not self.app:
+            raise RuntimeError("app is not available")
+        manager = getattr(self.app, "bug_report_manager", None)
+        if manager is None:
+            from meshchatx.src.backend.bug_report_manager import BugReportManager
+
+            manager = BugReportManager(self.app)
+            self.app.bug_report_manager = manager
+        return manager
+
+    def _debug_log_read(self, args: dict[str, Any]) -> dict[str, Any]:
+        manager = self._require_bug_report_manager()
+        return manager.read_debug_logs(
+            limit=int(args.get("limit") or 200),
+            search=args.get("search"),
+            level=args.get("level"),
+            module=args.get("module"),
+        )
+
+    def _bug_report_call(self, method: str, args: dict[str, Any]) -> Any:
+        manager = self._require_bug_report_manager()
+        if method == "status":
+            return manager.status()
+        if method == "list_collectors":
+            return manager.list_collectors()
+        if method == "list_reports":
+            return manager.list_reports(limit=int(args.get("limit") or 20))
+        if method == "delete_report":
+            return manager.delete_report(int(args.get("index") or 0))
+        if method == "clear_reports":
+            return manager.clear_reports()
+        if method == "preview_report":
+            return manager.preview_report(args or {})
+        if method == "send_report":
+            return manager.send_report(args or {})
+        if method == "start_collector":
+            return manager.start_collector(announce=bool(args.get("announce", True)))
+        if method == "stop_collector":
+            return manager.stop_collector()
+        if method == "announce":
+            return manager.announce()
+        if method == "set_collector_name":
+            return manager.set_collector_name(str(args.get("name") or ""))
+        raise ValueError(f"unknown bug report method: {method}")
 
     def _require_rns_link_manager(self):
         if not self.app:
@@ -1433,6 +1503,12 @@ class PluginManager:
     def install_bundled_examples(self) -> None:
         if not self._plugins_runtime_enabled():
             return
+        obsolete = "com.meshchatx.mesh-observatory"
+        if obsolete in self._plugins:
+            try:
+                self.remove(obsolete)
+            except Exception:
+                pass
         bundled_root = os.path.join(os.path.dirname(__file__), "data", "plugins")
         if not os.path.isdir(bundled_root):
             return
@@ -1443,7 +1519,4 @@ class PluginManager:
             manifest_path = os.path.join(source, "plugin.json")
             if not os.path.isfile(manifest_path):
                 continue
-            with open(manifest_path, encoding="utf-8") as handle:
-                manifest = json.load(handle)
-            if manifest.get("id") not in self._plugins:
-                self.install_from_directory(source)
+            self.install_from_directory(source)

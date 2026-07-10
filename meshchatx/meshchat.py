@@ -25,6 +25,7 @@ import secrets
 import shutil
 import signal
 import socket
+import sqlite3
 import ssl
 import sys
 import tempfile
@@ -122,6 +123,13 @@ from meshchatx.src.backend.map_manager import (
     is_mbtiles_filename,
     is_path_within_dir,
 )
+from meshchatx.src.backend.map_overlay_export import OverlayExportError
+from meshchatx.src.backend.map_overlay_manager import (
+    CONFIG_CLAMPS,
+    clamp_overlay_config_value,
+)
+from meshchatx.src.backend.map_overlay_sources import OverlaySourceParseError
+from meshchatx.src.backend.map_geo_validator import GeoValidationError
 from meshchatx.src.backend.markdown_renderer import MarkdownRenderer
 from meshchatx.src.backend.meshchat_utils import (
     convert_db_favourite_to_dict,
@@ -166,10 +174,15 @@ from meshchatx.src.backend.csrf import (
 )
 from meshchatx.src.backend.ip_allowlist import client_ip_allowed
 from meshchatx.src.backend.reticulum_config_guard import (
+    ensure_safe_reticulum_runtime_flags,
     repair_unparseable_reticulum_config,
     reticulum_config_has_required_sections,
 )
 from meshchatx.src.backend import i2p_support
+from meshchatx.src.backend.rns_startup_recovery import (
+    create_reticulum_with_recovery,
+    install_rns_panic_containment,
+)
 from meshchatx.src.backend.websocket_config_guard import (
     sanitize_websocket_config_update,
     websocket_type_requires_auth,
@@ -308,9 +321,10 @@ def _create_reticulum_instance(config_dir: str, loglevel: int | None = None):
     ``signal.signal`` on the main thread, so deferred network setup must skip that
     registration when running in a background worker and install handlers later.
 
-    If the first init fails and the config still has an enabled I2P interface,
-    disable I2P and retry once so Android/desktop can recover without wiping
-    app data or the whole ``.reticulum`` tree.
+    On failure, progressively disables risky interfaces (I2P, unsupported RNode,
+    AutoInterface, etc.) and retries so Android/desktop can recover without
+    wiping app data or the whole ``.reticulum`` tree. ``RNS.panic`` is contained
+    so it cannot ``os._exit`` the MeshChatX process.
     """
     kwargs = {}
     if loglevel is not None:
@@ -334,18 +348,10 @@ def _create_reticulum_instance(config_dir: str, loglevel: int | None = None):
         finally:
             signal.signal = real_signal
 
-    try:
-        return _construct()
-    except Exception as first_exc:
-        config_path = os.path.join(config_dir, "config")
-        if not i2p_support.disable_all_i2p_in_config(config_path):
-            raise
-        print(
-            "Reticulum init failed with I2P enabled; disabled I2P interfaces "
-            f"and retrying. Original error: {first_exc}",
-            flush=True,
-        )
-        return _construct()
+    return create_reticulum_with_recovery(
+        config_dir,
+        construct=_construct,
+    )
 
 
 def _install_reticulum_signal_handlers() -> bool:
@@ -469,6 +475,9 @@ class ReticulumMeshChat:
         self._startup_stage = "ready" if not defer_network_setup else "http"
         self._startup_error: str | None = None
         self._network_ready = not defer_network_setup
+        self._network_degraded = False
+        self._ui_ready = not defer_network_setup
+        self._rns_recovery_actions: list[str] = []
 
         # track announce timestamps for rate calculation
         self.announce_timestamps = []
@@ -488,6 +497,9 @@ class ReticulumMeshChat:
         self.identity_manager = IdentityManager(self.storage_dir, identity_file_path)
         self.page_node_manager = PageNodeManager(self.storage_dir)
         self.plugin_manager = PluginManager(self.storage_dir, app=self)
+        from meshchatx.src.backend.bug_report_manager import BugReportManager
+
+        self.bug_report_manager = BugReportManager(self)
         self.sideband_plugin_loader = SidebandPluginLoader(self)
         self._sideband_telemetry_thread = None
         self._sideband_telemetry_running = False
@@ -588,6 +600,17 @@ class ReticulumMeshChat:
     def map_manager(self, value):
         if self.current_context:
             self.current_context.map_manager = value
+
+    @property
+    def map_overlay_manager(self):
+        return (
+            self.current_context.map_overlay_manager if self.current_context else None
+        )
+
+    @map_overlay_manager.setter
+    def map_overlay_manager(self, value):
+        if self.current_context:
+            self.current_context.map_overlay_manager = value
 
     @property
     def docs_manager(self):
@@ -1324,6 +1347,7 @@ class ReticulumMeshChat:
         guard_rnode_interfaces_on_desktop(config_path)
         guard_invalid_rnode_txpower_in_config(config_path)
         i2p_support.guard_i2p_interfaces_in_config(config_path)
+        ensure_safe_reticulum_runtime_flags(config_path)
 
     def _set_startup_stage(self, stage: str, error: str | None = None) -> None:
         self._startup_stage = stage
@@ -1333,10 +1357,22 @@ class ReticulumMeshChat:
 
     def _mark_network_ready(self) -> None:
         self._network_ready = True
+        self._network_degraded = False
+        self._ui_ready = True
         self._startup_stage = "ready"
         self._startup_error = None
+        self._rns_recovery_actions = []
         self._network_ready_event.set()
         self._schedule_reticulum_signal_handlers()
+
+    def _mark_network_degraded(self, error: str) -> None:
+        """Keep HTTP/UI alive when the mesh stack cannot start."""
+        self._network_ready = False
+        self._network_degraded = True
+        self._ui_ready = True
+        self._startup_stage = "failed"
+        self._startup_error = error
+        print(f"Network degraded: {error}", flush=True)
 
     def _schedule_reticulum_signal_handlers(self) -> None:
         """Install RNS signal handlers on the main asyncio loop when possible."""
@@ -1380,6 +1416,8 @@ class ReticulumMeshChat:
                 "status": "failed",
                 "stage": "failed",
                 "network_ready": False,
+                "network_degraded": True,
+                "ui_ready": True,
                 "listen_host": self.listen_host,
                 "listen_port": self.listen_port,
                 "https_enabled": self.use_https,
@@ -1389,6 +1427,8 @@ class ReticulumMeshChat:
             }
             if self._startup_error:
                 payload["error"] = self._startup_error
+            if self._rns_recovery_actions:
+                payload["recovery_actions"] = list(self._rns_recovery_actions)
             return payload
         ready = bool(self._network_ready) and bool(
             self.current_context and self.current_context.running,
@@ -1398,6 +1438,8 @@ class ReticulumMeshChat:
             "status": "ok" if ready else "starting",
             "stage": stage,
             "network_ready": ready,
+            "network_degraded": False,
+            "ui_ready": True if ready else bool(self._ui_ready),
             "listen_host": self.listen_host,
             "listen_port": self.listen_port,
             "https_enabled": self.use_https,
@@ -1471,7 +1513,7 @@ class ReticulumMeshChat:
                     pass
         except Exception as exc:
             traceback.print_exc()
-            self._set_startup_stage("failed", str(exc))
+            self._mark_network_degraded(str(exc))
             if self.websocket_clients:
                 try:
                     AsyncUtils.run_async(
@@ -1481,6 +1523,8 @@ class ReticulumMeshChat:
                                 "status": "failed",
                                 "stage": "failed",
                                 "network_ready": False,
+                                "network_degraded": True,
+                                "ui_ready": True,
                                 "error": str(exc),
                             },
                         ),
@@ -2398,12 +2442,18 @@ class ReticulumMeshChat:
                 in_progress=False,
             )
 
-            # Try to recover if possible
+            # Try to recover if possible without wiping storage.
             if not hasattr(self, "reticulum") and identity_to_restore is not None:
                 try:
                     self.setup_identity(identity_to_restore)
-                except Exception:
-                    pass
+                    self._mark_network_ready()
+                    return False
+                except Exception as recover_exc:
+                    self._mark_network_degraded(
+                        f"RNS reload failed and recovery failed: {recover_exc}",
+                    )
+            else:
+                self._mark_network_degraded(f"RNS reload failed: {e}")
 
             return False
 
@@ -3112,10 +3162,11 @@ class ReticulumMeshChat:
                     and elapsed > 45.0
                 )
                 if propagation_sync_is_terminal(state):
-                    if state not in {router.PR_IDLE, router.PR_COMPLETE}:
+                    if state != router.PR_IDLE:
                         self.stop_propagation_node_sync(context=ctx)
                         with contextlib.suppress(Exception):
                             router.propagation_transfer_state = router.PR_IDLE
+                            router.propagation_transfer_progress = 0.0
                     ctx.config.lxmf_preferred_propagation_node_last_synced_at.set(
                         int(time.time())
                     )
@@ -4451,6 +4502,39 @@ class ReticulumMeshChat:
     def exit_app(self, code=0):
         sys.exit(code)
 
+    def _require_identity_context_ready(self):
+        """Return an HTTP 503 response when identity/DB is not ready yet."""
+        if not self.current_context or not getattr(
+            self.current_context, "running", False
+        ):
+            return web.json_response(
+                {
+                    "message": "Identity context is still starting. Retry shortly.",
+                    "stage": self._startup_stage,
+                    "network_ready": bool(self._network_ready),
+                },
+                status=503,
+            )
+        if self.database is None or self.message_handler is None:
+            return web.json_response(
+                {
+                    "message": "Database is still starting. Retry shortly.",
+                    "stage": self._startup_stage,
+                    "network_ready": bool(self._network_ready),
+                },
+                status=503,
+            )
+        if self.local_lxmf_destination is None:
+            return web.json_response(
+                {
+                    "message": "Local LXMF destination is still starting. Retry shortly.",
+                    "stage": self._startup_stage,
+                    "network_ready": bool(self._network_ready),
+                },
+                status=503,
+            )
+        return None
+
     def _require_outbound_http(self, feature: str) -> None:
         if self.config:
             ensure_outbound_http_allowed(self.config, feature=feature)
@@ -5127,6 +5211,106 @@ class ReticulumMeshChat:
         @routes.get("/api/v1/status")
         async def status(request):
             return web.json_response(self._startup_status_payload())
+
+        @routes.post("/api/v1/reticulum/recover")
+        async def reticulum_recover(request):
+            """Disable risky interfaces and retry network setup without wiping data."""
+            if (
+                self._network_ready
+                and self.current_context
+                and self.current_context.running
+            ):
+                return web.json_response(
+                    {
+                        "message": "Network stack is already running",
+                        "status": self._startup_status_payload(),
+                    },
+                )
+
+            identity = self._pending_identity or self.identity
+            if identity is None:
+                return web.json_response(
+                    {"message": "No identity available for recovery"},
+                    status=400,
+                )
+
+            config_path = self._reticulum_config_file_path()
+            actions: list[str] = []
+            try:
+                data = await request.json()
+            except Exception:
+                data = {}
+            if not isinstance(data, dict):
+                data = {}
+
+            disable_all = bool(data.get("disable_all_interfaces"))
+            named = data.get("disable_interfaces")
+            if isinstance(named, list) and named:
+                from meshchatx.src.backend.rns_startup_recovery import (
+                    disable_named_interfaces_in_config,
+                )
+
+                disabled = disable_named_interfaces_in_config(
+                    config_path,
+                    [str(n) for n in named],
+                )
+                actions.extend(disabled)
+            elif disable_all:
+                from meshchatx.src.backend.rns_startup_recovery import (
+                    disable_named_interfaces_in_config,
+                    list_enabled_interface_names,
+                )
+
+                names = list_enabled_interface_names(config_path)
+                disabled = disable_named_interfaces_in_config(config_path, names)
+                actions.extend(disabled)
+            else:
+                from meshchatx.src.backend.rns_startup_recovery import (
+                    apply_startup_recovery_step,
+                )
+
+                for attempt in range(4):
+                    disabled = apply_startup_recovery_step(
+                        config_path,
+                        self._startup_error or "manual recover",
+                        attempt=attempt,
+                    )
+                    actions.extend(disabled)
+                    if disabled:
+                        break
+
+            self._rns_recovery_actions = actions
+            self._startup_error = None
+            self._startup_stage = "starting"
+            self._network_degraded = False
+            self._ui_ready = True
+            self._network_ready = False
+            if hasattr(self, "reticulum"):
+                with contextlib.suppress(Exception):
+                    delattr(self, "reticulum")
+
+            try:
+                self.setup_identity(identity)
+                self._mark_network_ready()
+                return web.json_response(
+                    {
+                        "message": "Network stack recovered",
+                        "disabled_interfaces": actions,
+                        "status": self._startup_status_payload(),
+                    },
+                )
+            except Exception as exc:
+                traceback.print_exc()
+                self._mark_network_degraded(str(exc))
+                return web.json_response(
+                    {
+                        "message": "Recovery attempt failed",
+                        "error": str(exc),
+                        "disabled_interfaces": actions,
+                        "status": self._startup_status_payload(),
+                    },
+                    status=500,
+                )
 
         @routes.get("/api/v1/self-test")
         async def self_test(request):
@@ -7918,7 +8102,7 @@ class ReticulumMeshChat:
                     body=data,
                     headers={
                         "Content-Type": "application/octet-stream",
-                        "Content-Disposition": 'attachment; filename="identity"',
+                        "Content-Disposition": 'attachment; filename="identity.bin"',
                     },
                 )
             except Exception as e:
@@ -7952,29 +8136,32 @@ class ReticulumMeshChat:
                 # multipart file upload
                 if "multipart/form-data" in content_type:
                     reader = await request.multipart()
+                    identity_bytes = None
+                    display_name = None
                     field = await reader.next()
-                    if field is None or field.name != "file":
+                    while field is not None:
+                        if field.name == "file":
+                            with tempfile.NamedTemporaryFile(delete=False) as tmp:
+                                while True:
+                                    chunk = await field.read_chunk()
+                                    if not chunk:
+                                        break
+                                    tmp.write(chunk)
+                                temp_path = tmp.name
+                            try:
+                                with open(temp_path, "rb") as f:
+                                    identity_bytes = f.read()
+                            finally:
+                                with contextlib.suppress(OSError):
+                                    os.remove(temp_path)
+                        elif field.name == "display_name":
+                            display_name = (await field.text()).strip() or None
+                        field = await reader.next()
+                    if identity_bytes is None:
                         return web.json_response(
                             {"message": "Identity file is required"},
                             status=400,
                         )
-                    with tempfile.NamedTemporaryFile(delete=False) as tmp:
-                        while True:
-                            chunk = await field.read_chunk()
-                            if not chunk:
-                                break
-                            tmp.write(chunk)
-                        temp_path = tmp.name
-                    with open(temp_path, "rb") as f:
-                        identity_bytes = f.read()
-                    os.remove(temp_path)
-                    display_name = None
-                    next_field = await reader.next()
-                    while next_field is not None:
-                        if next_field.name == "display_name":
-                            display_name = (await next_field.text()).strip()
-                            break
-                        next_field = await reader.next()
                     result = self.restore_identity_from_bytes(
                         identity_bytes,
                         display_name=display_name,
@@ -7997,6 +8184,13 @@ class ReticulumMeshChat:
                         "message": "Identity restored. Restart app to use the new identity.",
                         "identity": result,
                     },
+                )
+            except ValueError as e:
+                return web.json_response(
+                    {
+                        "message": str(e),
+                    },
+                    status=400,
                 )
             except Exception as e:
                 return web.json_response(
@@ -11361,6 +11555,18 @@ class ReticulumMeshChat:
 
         @routes.get("/api/v1/lxmf/propagation-node/status")
         async def propagation_node_status(request):
+            router = self.message_router
+            if router is not None:
+                try:
+                    state = router.propagation_transfer_state
+                    # COMPLETE is terminal; expose idle so the UI does not keep
+                    # looking "busy" after a finished auto/manual sync.
+                    if state == router.PR_COMPLETE:
+                        router.propagation_transfer_state = router.PR_IDLE
+                        with contextlib.suppress(Exception):
+                            router.propagation_transfer_progress = 0.0
+                except Exception:
+                    pass
             sync_metrics = self._collect_propagation_sync_metrics()
             return web.json_response(
                 {
@@ -11852,30 +12058,57 @@ class ReticulumMeshChat:
             # get path params
             destination_hash_str = request.match_info.get("destination_hash", "")
 
-            # convert destination hash to bytes
-            destination_hash = bytes.fromhex(destination_hash_str)
+            try:
+                destination_hash = bytes.fromhex(destination_hash_str)
+            except Exception:
+                return web.json_response(
+                    {"message": "Ping failed. Invalid destination hash."},
+                    status=400,
+                )
 
-            # determine how long until we should time out
-            timeout_seconds = int(request.query.get("timeout", 15))
-            timeout_after_seconds = time.time() + timeout_seconds
+            try:
+                timeout_seconds = int(request.query.get("timeout", 15))
+            except (TypeError, ValueError):
+                return web.json_response(
+                    {"message": "Ping failed. Timeout must be an integer."},
+                    status=400,
+                )
+            if timeout_seconds < 1:
+                return web.json_response(
+                    {"message": "Ping failed. Timeout must be at least 1 second."},
+                    status=400,
+                )
+
+            # Split the budget so path discovery cannot consume the whole timeout.
+            path_budget_seconds = max(1, timeout_seconds // 2)
+            delivery_budget_seconds = max(1, timeout_seconds - path_budget_seconds)
+            path_deadline = time.time() + path_budget_seconds
 
             # request path if we don't have it
             if not RNS.Transport.has_path(destination_hash):
                 RNS.Transport.request_path(destination_hash)
 
-            # wait until we have a path, or give up after the configured timeout
+            # wait until we have a path, or give up after the path budget
             while (
                 not RNS.Transport.has_path(destination_hash)
-                and time.time() < timeout_after_seconds
+                and time.time() < path_deadline
             ):
                 await asyncio.sleep(0.1)
+
+            if not RNS.Transport.has_path(destination_hash):
+                return web.json_response(
+                    {
+                        "message": "Ping failed. Could not find path to destination.",
+                    },
+                    status=503,
+                )
 
             # find destination identity (pass string hash, not bytes)
             destination_identity = self.recall_identity(destination_hash_str)
             if destination_identity is None:
                 return web.json_response(
                     {
-                        "message": "Ping failed. Could not find path to destination.",
+                        "message": "Ping failed. Could not recall destination identity.",
                     },
                     status=503,
                 )
@@ -11893,10 +12126,11 @@ class ReticulumMeshChat:
             packet = RNS.Packet(request_destination, b"")
             receipt = packet.send()
 
-            # wait until delivered, or give up after time out
+            delivery_deadline = time.time() + delivery_budget_seconds
+            # wait until delivered, or give up after the delivery budget
             while (
                 receipt.status != RNS.PacketReceipt.DELIVERED
-                and time.time() < timeout_after_seconds
+                and time.time() < delivery_deadline
             ):
                 await asyncio.sleep(0.1)
 
@@ -12280,6 +12514,22 @@ class ReticulumMeshChat:
             except Exception as e:
                 return web.json_response({"message": str(e)}, status=500)
 
+        @routes.post("/api/v1/rncp/cancel")
+        async def rncp_cancel(request):
+            data = {}
+            with contextlib.suppress(Exception):
+                data = await request.json()
+            transfer_id = None
+            if isinstance(data, dict):
+                raw = data.get("transfer_id")
+                if isinstance(raw, str) and raw.strip():
+                    transfer_id = raw.strip()
+            try:
+                result = self.rncp_handler.cancel_transfer(transfer_id)
+                return web.json_response(result)
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+
         # --- Plugin API ---
 
         @routes.get("/api/v1/plugins")
@@ -12558,7 +12808,14 @@ class ReticulumMeshChat:
                 return web.json_response({"message": str(e)}, status=400)
             except ValueError as e:
                 return web.json_response({"message": str(e)}, status=400)
-            return web.FileResponse(path)
+            return web.FileResponse(
+                path,
+                headers={
+                    "Cache-Control": "no-cache, no-store, must-revalidate",
+                    "Pragma": "no-cache",
+                    "Expires": "0",
+                },
+            )
 
         # --- Page Node API ---
 
@@ -12792,18 +13049,24 @@ class ReticulumMeshChat:
 
         @routes.get("/api/v1/rnpath/table")
         async def rnpath_table(request):
-            max_hops = request.query.get("max_hops")
-            if max_hops:
-                max_hops = int(max_hops)
+            def _optional_int(raw, field_name):
+                if raw in (None, ""):
+                    return None
+                try:
+                    return int(raw)
+                except (TypeError, ValueError):
+                    raise ValueError(f"Invalid {field_name}") from None
+
+            try:
+                max_hops = _optional_int(request.query.get("max_hops"), "max_hops")
+                hops = _optional_int(request.query.get("hops"), "hops")
+                page = int(request.query.get("page", 1))
+                limit = int(request.query.get("limit", 50))
+            except ValueError as e:
+                return web.json_response({"message": str(e)}, status=400)
 
             search = request.query.get("search")
             interface = request.query.get("interface")
-            hops = request.query.get("hops")
-            if hops:
-                hops = int(hops)
-
-            page = int(request.query.get("page", 1))
-            limit = int(request.query.get("limit", 50))
 
             try:
                 result = self.rnpath_handler.get_path_table(
@@ -13572,12 +13835,18 @@ class ReticulumMeshChat:
                     },
                 )
 
-            except Exception:
+            except Exception as e:
+                detail = str(e).strip() or "Sending failed"
+                status = 503
+                if isinstance(e, (ValueError, LookupError)):
+                    status = 400
+                elif isinstance(e, TimeoutError):
+                    status = 503
                 return web.json_response(
                     {
-                        "message": "Sending failed",
+                        "message": detail,
                     },
-                    status=503,
+                    status=status,
                 )
 
         @routes.post("/api/v1/lxmf-messages/reactions")
@@ -13612,11 +13881,17 @@ class ReticulumMeshChat:
                     },
                 )
             except Exception as e:
+                detail = str(e).strip() or "Reaction failed"
+                status = 503
+                if isinstance(e, (ValueError, LookupError)):
+                    status = 400
+                elif isinstance(e, TimeoutError):
+                    status = 503
                 return web.json_response(
                     {
-                        "message": str(e),
+                        "message": detail,
                     },
-                    status=503,
+                    status=status,
                 )
 
         # cancel sending lxmf message
@@ -13895,6 +14170,10 @@ class ReticulumMeshChat:
         # get lxmf conversations
         @routes.get("/api/v1/lxmf/conversations")
         async def lxmf_conversations_get(request):
+            not_ready = self._require_identity_context_ready()
+            if not_ready is not None:
+                return not_ready
+
             # get query params
             search_query = request.query.get("search", request.query.get("q", None))
             filter_unread = parse_bool_query_param(
@@ -13935,103 +14214,136 @@ class ReticulumMeshChat:
             except ValueError:
                 offset = 0
 
-            local_hash = self.local_lxmf_destination.hexhash
+            try:
+                local_hash = self.local_lxmf_destination.hexhash
 
-            db_conversations = await asyncio.to_thread(
-                self.message_handler.get_conversations,
-                local_hash,
-                search=search_query,
-                filter_unread=filter_unread,
-                filter_failed=filter_failed,
-                filter_has_attachments=filter_has_attachments,
-                folder_id=folder_id,
-                limit=limit,
-                offset=offset,
-            )
-
-            conversations = []
-            for row in db_conversations:
-                other_user_hash = row["peer_hash"]
-
-                display_name = None
-                if row["peer_app_data"]:
-                    display_name = parse_lxmf_display_name(
-                        app_data_base64=row["peer_app_data"],
-                        default_value=None,
-                    )
-                if not display_name and row.get("contact_name"):
-                    display_name = row["contact_name"]
-                if not display_name:
-                    display_name = "Anonymous Peer"
-
-                if self._lxmf_sieve_hides_peer(
-                    other_user_hash,
-                    message_title=row.get("title"),
-                    message_content=row.get("content"),
-                ):
-                    continue
-
-                # user icon
-                user_icon = None
-                if row["icon_name"]:
-                    user_icon = {
-                        "icon_name": row["icon_name"],
-                        "foreground_colour": row["foreground_colour"],
-                        "background_colour": row["background_colour"],
-                    }
-
-                # contact image
-                contact_image = row.get("contact_image", None)
-
-                is_unread = compute_lxmf_conversation_unread_from_latest_row(row)
-
-                # Add extra check for notification viewed state if unread
-                if is_unread and filter_unread:
-                    if self.database.messages.is_notification_viewed(
-                        other_user_hash,
-                        row["timestamp"],
-                    ):
-                        is_unread = False
-                        if filter_unread:
-                            continue  # Skip this conversation if filtering unread and it's actually viewed
-
-                # add to conversations
-                conversations.append(
-                    {
-                        "display_name": display_name,
-                        "custom_display_name": row["custom_display_name"],
-                        "contact_image": contact_image,
-                        "destination_hash": other_user_hash,
-                        "is_unread": is_unread,
-                        "is_tracking": self.database.telemetry.is_tracking(
-                            other_user_hash,
-                        ),
-                        "failed_messages_count": row["failed_count"],
-                        "has_attachments": message_fields_have_attachments(
-                            row["fields"],
-                        ),
-                        "latest_message_title": row["title"],
-                        "latest_message_preview": lxmf_sidebar_preview_for_conversation_latest_row(
-                            row,
-                            local_hash=local_hash,
-                            peer_display_name=(
-                                row.get("custom_display_name")
-                                or display_name
-                                or "Anonymous Peer"
-                            ),
-                        ),
-                        "latest_message_created_at": row["created_at"],
-                        "lxmf_user_icon": user_icon,
-                        "is_contact": bool(row.get("is_contact", 0)),
-                        "updated_at": row["created_at"],
-                    },
+                db_conversations = await asyncio.to_thread(
+                    self.message_handler.get_conversations,
+                    local_hash,
+                    search=search_query,
+                    filter_unread=filter_unread,
+                    filter_failed=filter_failed,
+                    filter_has_attachments=filter_has_attachments,
+                    folder_id=folder_id,
+                    limit=limit,
+                    offset=offset,
                 )
 
-            return web.json_response(
-                {
-                    "conversations": conversations,
-                },
-            )
+                conversations = []
+                for row in db_conversations:
+                    if not isinstance(row, dict):
+                        row = dict(row)
+                    other_user_hash = row["peer_hash"]
+
+                    display_name = None
+                    if row.get("peer_app_data"):
+                        display_name = parse_lxmf_display_name(
+                            app_data_base64=row["peer_app_data"],
+                            default_value=None,
+                        )
+                    if not display_name and row.get("contact_name"):
+                        display_name = row["contact_name"]
+                    if not display_name:
+                        display_name = "Anonymous Peer"
+
+                    if self._lxmf_sieve_hides_peer(
+                        other_user_hash,
+                        message_title=row.get("title"),
+                        message_content=row.get("content"),
+                    ):
+                        continue
+
+                    # user icon
+                    user_icon = None
+                    if row.get("icon_name"):
+                        user_icon = {
+                            "icon_name": row["icon_name"],
+                            "foreground_colour": row["foreground_colour"],
+                            "background_colour": row["background_colour"],
+                        }
+
+                    # contact image
+                    contact_image = row.get("contact_image", None)
+
+                    try:
+                        is_unread = compute_lxmf_conversation_unread_from_latest_row(
+                            row
+                        )
+                    except Exception:
+                        is_unread = False
+
+                    # Add extra check for notification viewed state if unread
+                    if is_unread and filter_unread:
+                        if self.database.messages.is_notification_viewed(
+                            other_user_hash,
+                            row["timestamp"],
+                        ):
+                            is_unread = False
+                            if filter_unread:
+                                continue  # Skip this conversation if filtering unread and it's actually viewed
+
+                    has_attachments = bool(
+                        row.get("has_attachments") in (1, True, "1")
+                        or message_fields_have_attachments(row.get("fields"))
+                    )
+
+                    # add to conversations
+                    conversations.append(
+                        {
+                            "display_name": display_name,
+                            "custom_display_name": row["custom_display_name"],
+                            "contact_image": contact_image,
+                            "destination_hash": other_user_hash,
+                            "is_unread": is_unread,
+                            "is_tracking": self.database.telemetry.is_tracking(
+                                other_user_hash,
+                            ),
+                            "failed_messages_count": row["failed_count"],
+                            "has_attachments": has_attachments,
+                            "latest_message_title": row["title"],
+                            "latest_message_preview": lxmf_sidebar_preview_for_conversation_latest_row(
+                                row,
+                                local_hash=local_hash,
+                                peer_display_name=(
+                                    row.get("custom_display_name")
+                                    or display_name
+                                    or "Anonymous Peer"
+                                ),
+                            ),
+                            "latest_message_created_at": row["created_at"],
+                            "lxmf_user_icon": user_icon,
+                            "is_contact": bool(row.get("is_contact", 0)),
+                            "updated_at": row["created_at"],
+                        },
+                    )
+
+                return web.json_response(
+                    {
+                        "conversations": conversations,
+                    },
+                )
+            except Exception as e:
+                RNS.log(f"Error in lxmf_conversations_get: {e}", RNS.LOG_ERROR)
+                detail = str(e).lower()
+                status = (
+                    503
+                    if (
+                        isinstance(e, sqlite3.OperationalError)
+                        or "unable to open database file" in detail
+                        or "database is locked" in detail
+                    )
+                    else 500
+                )
+                return web.json_response(
+                    {
+                        "message": (
+                            "Database temporarily unavailable. Retry shortly."
+                            if status == 503
+                            else "Failed to load conversations"
+                        ),
+                    },
+                    status=status,
+                )
 
         @routes.get("/api/v1/lxmf/folders")
         async def lxmf_folders_get(request):
@@ -14313,6 +14625,9 @@ class ReticulumMeshChat:
 
         @routes.get("/api/v1/notifications")
         async def notifications_get(request):
+            not_ready = self._require_identity_context_ready()
+            if not_ready is not None:
+                return not_ready
             try:
                 filter_unread = parse_bool_query_param(
                     request.query.get("unread", "false"),
@@ -14594,9 +14909,25 @@ class ReticulumMeshChat:
                 )
             except Exception as e:
                 RNS.log(f"Error in notifications_get: {e}", RNS.LOG_ERROR)
+                detail = str(e).lower()
+                status = (
+                    503
+                    if (
+                        isinstance(e, sqlite3.OperationalError)
+                        or "unable to open database file" in detail
+                        or "database is locked" in detail
+                    )
+                    else 500
+                )
                 return web.json_response(
-                    {"error": "Internal error"},
-                    status=500,
+                    {
+                        "error": (
+                            "Database temporarily unavailable. Retry shortly."
+                            if status == 503
+                            else "Internal error"
+                        ),
+                    },
+                    status=status,
                 )
 
         # get blocked destinations
@@ -14909,6 +15240,196 @@ class ReticulumMeshChat:
             drawing_data = data.get("data")
             self.database.map_drawings.update_drawing(drawing_id, name, drawing_data)
             return web.json_response({"message": "Drawing updated successfully"})
+
+        @routes.get("/api/v1/map/overlays")
+        async def list_map_overlays(request):
+            if not self.map_overlay_manager:
+                return web.json_response({"error": "unavailable"}, status=503)
+            identity_hash = self.identity.hash.hex()
+            overlays = self.map_overlay_manager.list_overlays(identity_hash)
+            return web.json_response({"overlays": overlays})
+
+        @routes.post("/api/v1/map/overlays")
+        async def create_map_overlays(request):
+            if not self.map_overlay_manager:
+                return web.json_response({"error": "unavailable"}, status=503)
+            try:
+                data = await request.json()
+            except (json.JSONDecodeError, ValueError):
+                return web.json_response({"error": "invalid_json"}, status=400)
+            identity_hash = self.identity.hash.hex()
+            try:
+                result = await self.map_overlay_manager.create_overlays(
+                    identity_hash,
+                    data,
+                )
+            except OverlaySourceParseError as exc:
+                return web.json_response({"error": exc.code}, status=400)
+            except GeoValidationError as exc:
+                return web.json_response({"error": exc.code}, status=400)
+            return web.json_response(result)
+
+        @routes.post("/api/v1/map/overlays/export")
+        async def export_map_overlays_many(request):
+            if not self.map_overlay_manager:
+                return web.json_response({"error": "unavailable"}, status=503)
+            try:
+                data = await request.json()
+            except (json.JSONDecodeError, ValueError):
+                return web.json_response({"error": "invalid_json"}, status=400)
+            fmt = str(data.get("format") or "geojson").lower()
+            ids = data.get("ids") or []
+            if not isinstance(ids, list):
+                return web.json_response({"error": "missing_ids"}, status=400)
+            try:
+                overlay_ids = [int(i) for i in ids]
+            except (TypeError, ValueError):
+                return web.json_response({"error": "missing_ids"}, status=400)
+            identity_hash = self.identity.hash.hex()
+            try:
+                body, content_type, filename = self.map_overlay_manager.export_many(
+                    identity_hash,
+                    overlay_ids,
+                    fmt,
+                )
+            except OverlayExportError as exc:
+                status = 404 if exc.code == "cache_missing" else 400
+                return web.json_response({"error": exc.code}, status=status)
+            return web.Response(
+                body=body,
+                headers={
+                    "Content-Type": content_type,
+                    "Content-Disposition": f'attachment; filename="{filename}"',
+                },
+            )
+
+        @routes.get("/api/v1/map/overlays/jobs/{job_id}")
+        async def get_map_overlay_job(request):
+            if not self.map_overlay_manager:
+                return web.json_response({"error": "unavailable"}, status=503)
+            job_id = request.match_info.get("job_id")
+            job = self.map_overlay_manager.get_job(job_id)
+            if not job:
+                return web.json_response({"error": "not_found"}, status=404)
+            return web.json_response(job)
+
+        @routes.post("/api/v1/map/overlays/jobs/{job_id}/cancel")
+        async def cancel_map_overlay_job(request):
+            if not self.map_overlay_manager:
+                return web.json_response({"error": "unavailable"}, status=503)
+            job_id = request.match_info.get("job_id")
+            ok = self.map_overlay_manager.cancel_job(job_id)
+            if not ok:
+                return web.json_response({"error": "not_found"}, status=404)
+            return web.json_response({"cancelled": True})
+
+        @routes.post("/api/v1/map/overlays/{overlay_id}/refresh")
+        async def refresh_map_overlay(request):
+            if not self.map_overlay_manager:
+                return web.json_response({"error": "unavailable"}, status=503)
+            try:
+                overlay_id = int(request.match_info.get("overlay_id"))
+            except (TypeError, ValueError):
+                return web.json_response({"error": "not_found"}, status=404)
+            identity_hash = self.identity.hash.hex()
+            try:
+                result = await self.map_overlay_manager.refresh_overlay(
+                    identity_hash,
+                    overlay_id,
+                )
+            except OverlaySourceParseError as exc:
+                status = 404 if exc.code == "not_found" else 400
+                return web.json_response({"error": exc.code}, status=status)
+            return web.json_response(result)
+
+        @routes.patch("/api/v1/map/overlays/{overlay_id}")
+        async def patch_map_overlay(request):
+            if not self.map_overlay_manager:
+                return web.json_response({"error": "unavailable"}, status=503)
+            try:
+                overlay_id = int(request.match_info.get("overlay_id"))
+            except (TypeError, ValueError):
+                return web.json_response({"error": "not_found"}, status=404)
+            try:
+                data = await request.json()
+            except (json.JSONDecodeError, ValueError):
+                return web.json_response({"error": "invalid_json"}, status=400)
+            identity_hash = self.identity.hash.hex()
+            try:
+                overlay = self.map_overlay_manager.patch_overlay(
+                    identity_hash,
+                    overlay_id,
+                    data,
+                )
+            except OverlaySourceParseError as exc:
+                status = 404 if exc.code == "not_found" else 400
+                return web.json_response({"error": exc.code}, status=status)
+            return web.json_response({"overlay": overlay})
+
+        @routes.delete("/api/v1/map/overlays/{overlay_id}")
+        async def delete_map_overlay(request):
+            if not self.map_overlay_manager:
+                return web.json_response({"error": "unavailable"}, status=503)
+            try:
+                overlay_id = int(request.match_info.get("overlay_id"))
+            except (TypeError, ValueError):
+                return web.json_response({"error": "not_found"}, status=404)
+            identity_hash = self.identity.hash.hex()
+            ok = self.map_overlay_manager.delete_overlay(identity_hash, overlay_id)
+            if not ok:
+                return web.json_response({"error": "not_found"}, status=404)
+            return web.json_response({"deleted": True})
+
+        @routes.get("/api/v1/map/overlays/{overlay_id}/content")
+        async def get_map_overlay_content(request):
+            if not self.map_overlay_manager:
+                return web.json_response({"error": "unavailable"}, status=503)
+            try:
+                overlay_id = int(request.match_info.get("overlay_id"))
+            except (TypeError, ValueError):
+                return web.json_response({"error": "not_found"}, status=404)
+            identity_hash = self.identity.hash.hex()
+            cached = self.map_overlay_manager.read_cache_bytes(
+                identity_hash, overlay_id
+            )
+            if not cached:
+                return web.json_response({"error": "cache_missing"}, status=404)
+            data, fmt = cached
+            from meshchatx.src.backend.map_overlay_export import CONTENT_TYPES
+
+            return web.Response(
+                body=data,
+                headers={
+                    "Content-Type": CONTENT_TYPES.get(fmt, "application/octet-stream")
+                },
+            )
+
+        @routes.get("/api/v1/map/overlays/{overlay_id}/export")
+        async def export_map_overlay(request):
+            if not self.map_overlay_manager:
+                return web.json_response({"error": "unavailable"}, status=503)
+            try:
+                overlay_id = int(request.match_info.get("overlay_id"))
+            except (TypeError, ValueError):
+                return web.json_response({"error": "not_found"}, status=404)
+            fmt = str(request.rel_url.query.get("format") or "geojson").lower()
+            identity_hash = self.identity.hash.hex()
+            try:
+                body, content_type, filename = self.map_overlay_manager.export_overlay(
+                    identity_hash,
+                    overlay_id,
+                    fmt,
+                )
+            except OverlayExportError as exc:
+                status = 404 if exc.code == "cache_missing" else 400
+                return web.json_response({"error": exc.code}, status=status)
+            return web.Response(
+                body=body,
+                headers={
+                    "Content-Type": content_type,
+                    "Content-Disposition": f'attachment; filename="{filename}"',
+                },
+            )
 
         @routes.get("/api/v1/stickers")
         async def stickers_list(request):
@@ -16634,6 +17155,16 @@ class ReticulumMeshChat:
         if "map_nominatim_api_url" in data:
             self.config.map_nominatim_api_url.set(data["map_nominatim_api_url"])
 
+        for overlay_key in CONFIG_CLAMPS:
+            if overlay_key in data:
+                try:
+                    value = int(data[overlay_key])
+                except (TypeError, ValueError):
+                    continue
+                getattr(self.config, overlay_key).set(
+                    clamp_overlay_config_value(overlay_key, value),
+                )
+
         # update location settings
         if "location_source" in data:
             self.config.location_source.set(data["location_source"])
@@ -17740,6 +18271,7 @@ class ReticulumMeshChat:
                             "rules": [
                                 {
                                     "id": rule["id"],
+                                    "name": rule.get("name") or "",
                                     "identity_hash": rule["identity_hash"],
                                     "forward_to_hash": rule["forward_to_hash"],
                                     "source_filter_hash": rule["source_filter_hash"],
@@ -18717,6 +19249,16 @@ class ReticulumMeshChat:
             "map_default_zoom": ctx.config.map_default_zoom.get(),
             "map_tile_server_url": ctx.config.map_tile_server_url.get(),
             "map_nominatim_api_url": ctx.config.map_nominatim_api_url.get(),
+            "map_overlay_max_bytes": ctx.config.map_overlay_max_bytes.get(),
+            "map_overlay_max_features": ctx.config.map_overlay_max_features.get(),
+            "map_overlay_max_kmz_uncompressed_bytes": ctx.config.map_overlay_max_kmz_uncompressed_bytes.get(),
+            "map_overlay_max_sources": ctx.config.map_overlay_max_sources.get(),
+            "map_overlay_max_concurrent_jobs": ctx.config.map_overlay_max_concurrent_jobs.get(),
+            "map_overlay_path_timeout_seconds": ctx.config.map_overlay_path_timeout_seconds.get(),
+            "map_overlay_transfer_timeout_seconds": ctx.config.map_overlay_transfer_timeout_seconds.get(),
+            "map_overlay_job_timeout_seconds": ctx.config.map_overlay_job_timeout_seconds.get(),
+            "map_overlay_max_retries": ctx.config.map_overlay_max_retries.get(),
+            "map_overlay_retry_delay_seconds": ctx.config.map_overlay_retry_delay_seconds.get(),
             "do_not_disturb_enabled": ctx.config.do_not_disturb_enabled.get(),
             "telephone_enabled": ctx.config.telephone_enabled.get(),
             "telephone_allow_calls_from_contacts_only": ctx.config.telephone_allow_calls_from_contacts_only.get(),
@@ -20567,17 +21109,41 @@ class ReticulumMeshChat:
         )
 
         # convert destination hash to bytes
-        destination_hash_bytes = bytes.fromhex(destination_hash)
+        try:
+            destination_hash_bytes = bytes.fromhex(destination_hash)
+        except (TypeError, ValueError) as exc:
+            msg = "Invalid destination hash."
+            raise ValueError(msg) from exc
 
-        # Reticulum keeps a live path table; entries expire when peers move or links drop.
-        # We cannot replay "old" paths from the app layer — Transport.request_path refreshes discovery.
-        path_outcome = await self._await_transport_path(destination_hash_bytes)
+        wants_propagated = delivery_method == "propagated"
+
+        # Direct/opportunistic need a live peer path. Propagated uses the
+        # propagation node, so skip the peer path wait (still record outcome).
+        if wants_propagated:
+            path_outcome = reticulum_pathfinding.OutboundPathOutcome(
+                False, "skipped_for_propagated", False
+            )
+        else:
+            # Reticulum keeps a live path table; entries expire when peers move or links drop.
+            # We cannot replay "old" paths from the app layer — Transport.request_path refreshes discovery.
+            path_outcome = await self._await_transport_path(destination_hash_bytes)
 
         destination_identity = self.recall_identity(destination_hash)
         if destination_identity is None:
-            # we have to bail out of sending, since we don't have the identity/path yet
-            msg = "Could not find path to destination. Try again later."
-            raise Exception(msg)
+            msg = (
+                "Could not recall destination identity. "
+                "Wait for an announce from this peer, then try again."
+            )
+            raise LookupError(msg)
+
+        # Direct/opportunistic delivery needs a live transport path. Propagated
+        # delivery can proceed without a peer path (it uses the propagation node).
+        if not wants_propagated and not path_outcome.path_available:
+            msg = (
+                "No path to destination. "
+                "Use Path Finder or wait for a route, then try again."
+            )
+            raise TimeoutError(msg)
 
         # create destination for recipients lxmf delivery address
         lxmf_destination = RNS.Destination(
@@ -21244,7 +21810,7 @@ class ReticulumMeshChat:
                         continue
 
                 # send new message with failed message content
-                await self.send_message(
+                new_message = await self.send_message(
                     failed_message["destination_hash"],
                     failed_message["content"],
                     image_field=image_field,
@@ -21253,7 +21819,10 @@ class ReticulumMeshChat:
                     context=ctx,
                 )
 
-                # remove original failed message from database
+                # Only drop the old failed row after a replacement was queued.
+                if new_message is None or getattr(new_message, "hash", None) is None:
+                    continue
+
                 ctx.database.messages.delete_lxmf_message_by_hash(
                     failed_message["hash"],
                 )
@@ -21559,6 +22128,7 @@ def main():
     # Initialize crash recovery system early to catch startup errors
     recovery = CrashRecovery()
     recovery.install()
+    install_rns_panic_containment()
 
     parser = argparse.ArgumentParser(description="ReticulumMeshChat")
     parser.add_argument(
