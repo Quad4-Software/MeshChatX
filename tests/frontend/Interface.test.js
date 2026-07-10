@@ -93,10 +93,15 @@ describe("Interface.vue", () => {
 
     it("action buttons and dropdown have shrink-0 to prevent squashing", () => {
         const wrapper = mountInterface();
-        const actionsCol = wrapper.find(".absolute.top-2.right-2.z-20.flex.flex-row.items-center.gap-1.sm\\:static");
+        const actionsCol = wrapper.find(
+            ".flex.flex-row.items-center.gap-1.sm\\:relative.sm\\:z-auto.sm\\:flex.sm\\:flex-row.sm\\:gap-2.sm\\:items-center.sm\\:shrink-0.sm\\:justify-end"
+        );
+        expect(actionsCol.exists()).toBe(true);
         expect(actionsCol.classes()).toContain("sm:shrink-0");
         const btn = wrapper.find('button[title="interface.disable"]');
         expect(btn.classes()).toContain("shrink-0");
+        const dropdown = wrapper.find(".relative.z-50.shrink-0");
+        expect(dropdown.exists()).toBe(true);
     });
 
     it("detail-value has break-all for long addresses", () => {
