@@ -1,7 +1,26 @@
 import { mount } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import RNStatusPage from "@/components/rnstatus/RNStatusPage.vue";
+import ToastUtils from "@/js/ToastUtils";
+import WebSocketConnection from "@/js/WebSocketConnection";
 import { mountToolsPageGlobals } from "./testI18n.js";
+
+vi.mock("@/js/ToastUtils", () => ({
+    default: {
+        success: vi.fn(),
+        error: vi.fn(),
+        warning: vi.fn(),
+        info: vi.fn(),
+        dismiss: vi.fn(),
+    },
+}));
+
+vi.mock("@/js/WebSocketConnection", () => ({
+    default: {
+        on: vi.fn(),
+        off: vi.fn(),
+    },
+}));
 
 describe("RNStatusPage.vue", () => {
     let axiosMock;
@@ -60,6 +79,7 @@ describe("RNStatusPage.vue", () => {
         expect(wrapper.text()).toContain("Blackhole: Publishing");
         expect(wrapper.vm.blackholeEnabled).toBe(true);
         expect(wrapper.text()).toContain("src1");
+        expect(WebSocketConnection.on).toHaveBeenCalledWith("message", expect.any(Function));
     });
 
     it("labels disabled blackhole as Inactive", async () => {
@@ -100,5 +120,35 @@ describe("RNStatusPage.vue", () => {
                 params: expect.objectContaining({ include_link_stats: true }),
             })
         );
+    });
+
+    it("toasts on refresh failure", async () => {
+        axiosMock.get.mockRejectedValueOnce({
+            response: { data: { message: "RNS stack is reloading" }, status: 503 },
+        });
+        const wrapper = mountRNStatusPage();
+        await vi.waitFor(() => expect(wrapper.vm.isLoading).toBe(false));
+        expect(ToastUtils.error).toHaveBeenCalled();
+        const msg = ToastUtils.error.mock.calls[0][0];
+        expect(msg).toContain("Failed to refresh RNStatus");
+        expect(msg).toContain("RNS stack is reloading");
+    });
+
+    it("disables refresh while RNS reload is in progress", async () => {
+        const wrapper = mountRNStatusPage();
+        await vi.waitFor(() => expect(wrapper.vm.isLoading).toBe(false));
+        const callsBefore = axiosMock.get.mock.calls.length;
+
+        wrapper.vm.onWebsocketMessage({
+            type: "reticulum_reload_status",
+            in_progress: true,
+            message: "Reloading",
+        });
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.reloadingRns).toBe(true);
+        expect(wrapper.find("button").attributes("disabled")).toBeDefined();
+
+        await wrapper.vm.refreshStatus();
+        expect(axiosMock.get.mock.calls.length).toBe(callsBefore);
     });
 });

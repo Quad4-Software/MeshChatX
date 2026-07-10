@@ -79,6 +79,23 @@ def test_sweep_stale_links_and_orphan_counters():
         assert ("orphan", dest_stale) not in rlm._link_failure_counts
 
 
+def test_clear_all_cached_links_tears_down_active():
+    dest = bytes.fromhex("33" * 16)
+    link = MagicMock()
+    link.status = rlm.RNS.Link.ACTIVE
+    with rlm._rns_links_lock:
+        rlm.rns_cached_links[("app.aspect", dest)] = link
+        rlm._rns_link_last_used[("app.aspect", dest)] = 1.0
+        rlm._link_failure_counts[("app.aspect", dest)] = 2
+    cleared = rlm.clear_all_cached_links()
+    assert cleared == 1
+    link.teardown.assert_called_once()
+    with rlm._rns_links_lock:
+        assert rlm.rns_cached_links == {}
+        assert rlm._rns_link_last_used == {}
+        assert rlm._link_failure_counts == {}
+
+
 @pytest.mark.asyncio
 async def test_open_link_reuses_cached_active():
     dest = bytes.fromhex("bb" * 16)

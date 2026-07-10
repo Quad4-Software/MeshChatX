@@ -77,6 +77,24 @@ class MarkdownRenderer:
             flags=re.DOTALL,
         )
 
+        # Inline code before emphasis so snake_case / ``rst`` spans are not
+        # mangled by underscore italic (changelog uses both `code` and ``code``).
+        inline_codes: list[str] = []
+
+        def inline_code_placeholder(match):
+            code = match.group(1)
+            placeholder = f"[[IC{len(inline_codes)}]]"
+            inline_codes.append(
+                f'<code class="bg-gray-100 dark:bg-zinc-800 px-1.5 py-0.5 '
+                f"rounded-sm text-pink-600 dark:text-pink-400 font-mono "
+                f'text-[0.9em]">{code}</code>',
+            )
+            return placeholder
+
+        # Double-backtick spans first (CommonMark / changelog RST-style).
+        text = re.sub(r"``([^`]+)``", inline_code_placeholder, text)
+        text = re.sub(r"`([^`]+)`", inline_code_placeholder, text)
+
         text = MarkdownRenderer._render_tables(text)
 
         # Horizontal Rules
@@ -135,23 +153,19 @@ class MarkdownRenderer:
             flags=re.MULTILINE,
         )
 
-        # Bold and Italic
+        # Bold and Italic (underscore italic requires word boundaries so
+        # identifiers like local_hops_delta and api_extensions stay intact).
         text = re.sub(r"\*\*\*(.+?)\*\*\*", r"<strong><em>\1</em></strong>", text)
         text = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", text)
         text = re.sub(r"\*(?!\s)(.+?)(?<!\s)\*", r"<em>\1</em>", text)
         text = re.sub(r"___(.+?)___", r"<strong><em>\1</em></strong>", text)
-        text = re.sub(r"__(.+?)__", r"<strong>\1</strong>", text)
-        text = re.sub(r"_(?!\s)(.+?)(?<!\s)_", r"<em>\1</em>", text)
+        text = re.sub(
+            r"(?<!\w)__(?!\s)(.+?)(?<!\s)__(?!\w)", r"<strong>\1</strong>", text
+        )
+        text = re.sub(r"(?<!\w)_(?!\s)(.+?)(?<!\s)_(?!\w)", r"<em>\1</em>", text)
 
         # Strikethrough
         text = re.sub(r"~~(.*?)~~", r"<del>\1</del>", text)
-
-        # Inline code
-        text = re.sub(
-            r"`([^`]+)`",
-            r'<code class="bg-gray-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded-sm text-pink-600 dark:text-pink-400 font-mono text-[0.9em]">\1</code>',
-            text,
-        )
 
         # Task lists
         text = re.sub(
@@ -245,7 +259,7 @@ class MarkdownRenderer:
                 continue
 
             # If it's a placeholder for code block, don't wrap in <p>
-            if part.startswith("[[CB") and part.endswith("]]"):
+            if re.fullmatch(r"\[\[(?:CB|IC)\d+\]\]", part):
                 processed_parts.append(part)
                 continue
 
@@ -261,7 +275,9 @@ class MarkdownRenderer:
 
         text = "\n".join(processed_parts)
 
-        # Restore code blocks
+        # Restore inline code then fenced blocks (fenced last so IC inside CB is fine).
+        for i, code_html in enumerate(inline_codes):
+            text = text.replace(f"[[IC{i}]]", code_html)
         for i, code_html in enumerate(code_blocks):
             text = text.replace(f"[[CB{i}]]", code_html)
 

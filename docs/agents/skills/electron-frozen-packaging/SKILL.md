@@ -11,7 +11,7 @@ Package and recover the desktop shell correctly: frozen subprocess re-entry, loa
 ## Frozen executable rules
 
 - In frozen builds, `sys.executable` **is** MeshChatX.
-- Never spawn `python -m …` for bots, rnsh, or LXMFy from the packaged app.
+- Never spawn `python -m …` or `python -c …` for bots, rnsh, LXMFy, or self-check probes from the packaged app.
 - Use `--meshchatx-run-module <module>` so helpers re-enter the same binary without launching a second full app (storage lock collision).
 
 ## Loading and navigation

@@ -374,22 +374,45 @@ def check_meshchatx_run_module() -> dict[str, str]:
 
 
 def check_subprocess_spawn() -> dict[str, str]:
-    """Spawn a short-lived child process (covers Windows CreateProcess / POSIX fork)."""
+    """Spawn a short-lived child process (covers Windows CreateProcess / POSIX fork).
+
+    Frozen desktop builds (AppImage / EXE / macOS) set ``sys.executable`` to
+    MeshChatX itself, which rejects Python ``-c``. Those builds re-enter via
+    ``--meshchatx-run-module`` like bots and rnsh.
+    """
     try:
+        env = {**os.environ, "PYTHONUNBUFFERED": "1"}
+        if _is_frozen_executable():
+            env["MESHCHAT_SKIP_STORAGE_LOCK"] = "1"
+            cmd = [
+                sys.executable,
+                _MESHCHATX_RUN_MODULE_FLAG,
+                _SELF_CHECK_PROBE_MODULE,
+                "spawn-ok",
+            ]
+            expected = "meshchatx-self-check-probe"
+        else:
+            cmd = [
+                sys.executable,
+                "-c",
+                "print('meshchatx-spawn-ok', flush=True)",
+            ]
+            expected = "meshchatx-spawn-ok"
+
         result = subprocess.run(
-            [sys.executable, "-c", "print('meshchatx-spawn-ok', flush=True)"],
+            cmd,
             capture_output=True,
             text=True,
             timeout=30,
             check=False,
-            env={**os.environ, "PYTHONUNBUFFERED": "1"},
+            env=env,
         )
         if result.returncode != 0:
             return _status(
                 False,
                 f"spawn exited {result.returncode}: {(result.stderr or result.stdout or '')[-300:]}",
             )
-        if "meshchatx-spawn-ok" not in (result.stdout or ""):
+        if expected not in (result.stdout or ""):
             return _status(False, f"Unexpected spawn output: {result.stdout!r}")
         return _status(True)
     except Exception as exc:

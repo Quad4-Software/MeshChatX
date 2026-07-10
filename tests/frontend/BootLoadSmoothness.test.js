@@ -27,6 +27,8 @@ describe("boot and load smoothness", () => {
         expect(html).not.toMatch(/body class="bg-gray-100"/);
         expect(html).toContain("background-color: #f8fafc");
         expect(html).toContain("background-color: #09090b");
+        expect(html).toContain("meshchatx_ui_theme");
+        expect(html).toContain("getPreferredUiTheme");
         expect(html).toContain('id="meshchatx-boot-splash"');
         expect(html).toContain('id="app"');
     });
@@ -50,6 +52,8 @@ describe("boot and load smoothness", () => {
         const app = readFileSync(resolve(ROOT, "meshchatx/src/frontend/components/App.vue"), "utf8");
         expect(app).toContain('name="route-view-fade"');
         expect(app).toContain("bg-sem-canvas");
+        expect(app).toContain("setUiTheme");
+        expect(app).toContain("meshchatx_ui_theme");
     });
 
     it("Android theme and WebView use meshchat canvas color", () => {
@@ -62,11 +66,14 @@ describe("boot and load smoothness", () => {
         );
 
         expect(colors).toContain("meshchat_canvas");
+        expect(colors).toContain("#FF09090B");
+        expect(colors).toContain("meshchat_canvas_light");
         expect(colors).toContain("#FFF8FAFC");
         expect(themes).toContain("android:windowBackground");
         expect(layout).toContain("@color/meshchat_canvas");
-        expect(activity).toContain("setBackgroundColor(canvasColor)");
-        expect(activity).toContain("R.color.meshchat_canvas");
+        expect(activity).toContain("applyShellCanvasTheme");
+        expect(activity).toContain("setUiTheme");
+        expect(activity).toContain("setLocalNightMode");
     });
 
     it("injectMeshchatThemeVariables keeps light/dark canvas tokens aligned", () => {

@@ -2805,7 +2805,9 @@
         "channel_load": "Carga de Canal",
         "blackhole_label": "Agujero negro: {state}",
         "blackhole_publishing": "Publicando",
-        "blackhole_inactive": "Inactivo"
+        "blackhole_inactive": "Inactivo",
+        "failed_refresh": "Error al actualizar RNStatus",
+        "reloading": "Recargando RNS..."
     },
     "translator": {
         "text_translation": "Traducción de texto",
@@ -3172,7 +3174,7 @@
         "mode_change_later": "Puede cambiar la configuración de conexión en cualquier momento desde la configuración de Reticulum.",
         "bootstrap_title": "Seleccionar Nodos Bootstrap",
         "bootstrap_desc": "Los nodos de bootstrap dan a descubrimiento un punto de partida. Seleccione uno o más, luego continúe.",
-        "bootstrap_pick_random_tcp": "Elegir 3 nodos TCP aleatorios",
+        "bootstrap_pick_random_tcp": "Elegir 4 nodos TCP aleatorios",
         "bootstrap_pick_random_none": "No hay presets TCP comunitarios adecuados. Actualice los presets o elija a mano (el azar solo usa la lista comunitaria, no descubiertos).",
         "bootstrap_pick_random_done": "Seleccionados {count}: {names}",
         "bootstrap_selected_nodes_heading": "Nodos seleccionados",

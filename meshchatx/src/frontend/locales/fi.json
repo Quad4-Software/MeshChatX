@@ -2986,7 +2986,9 @@
         "channel_load": "Kanavakuorma",
         "blackhole_label": "Musta aukko: {state}",
         "blackhole_publishing": "Julkaistaan",
-        "blackhole_inactive": "Epäaktiivinen"
+        "blackhole_inactive": "Epäaktiivinen",
+        "failed_refresh": "RNStatusin päivitys epäonnistui",
+        "reloading": "Ladataan RNS uudelleen..."
     },
     "translator": {
         "text_translation": "Tekstin käännös",
@@ -3370,7 +3372,7 @@
         "mode_change_later": "Voit muuttaa yhteysasetuksia milloin tahansa Reticulum-asetuksista.",
         "bootstrap_title": "Valitse bootstrap-solmut",
         "bootstrap_desc": "Bootstrap-solmut antavat löydölle lähtökohdan. Valitse yksi tai useampi ja jatka.",
-        "bootstrap_pick_random_tcp": "Valitse 3 satunnaista TCP-solmua",
+        "bootstrap_pick_random_tcp": "Valitse 4 satunnaista TCP-solmua",
         "bootstrap_pick_random_none": "Sopivia TCP-yhteisön esiasetuksia ei ole saatavilla. Päivitä yhteisön esiasetukset tai valitse solmut manuaalisesti (löydettyjä listoja ei käytetä satunnaisvalintaan).",
         "bootstrap_pick_random_done": "Valittu {count}: {names}",
         "bootstrap_selected_nodes_heading": "Valitut solmut",

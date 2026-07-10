@@ -8,6 +8,7 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.hardware.usb.UsbManager;
@@ -45,6 +46,7 @@ import androidx.core.view.WindowCompat;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import com.chaquo.python.Python;
 import com.chaquo.python.android.AndroidPlatform;
 import java.io.File;
@@ -65,6 +67,11 @@ import okhttp3.Response;
 import org.json.JSONObject;
 
 public class MainActivity extends AppCompatActivity {
+    private static final String SHELL_PREFS = "meshchatx_shell";
+    private static final String PREF_UI_THEME = "ui_theme";
+    private static final String THEME_DARK = "dark";
+    private static final String THEME_LIGHT = "light";
+
     private WebView webView;
     private ProgressBar progressBar;
     private ImageView loadingLogo;
@@ -173,6 +180,10 @@ public class MainActivity extends AppCompatActivity {
     @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        boolean darkShell = isDarkUiTheme(resolvePreferredUiTheme());
+        getDelegate().setLocalNightMode(
+            darkShell ? AppCompatDelegate.MODE_NIGHT_YES : AppCompatDelegate.MODE_NIGHT_NO
+        );
         getTheme().applyStyle(R.style.OptOutEdgeToEdgeEnforcement, false);
         super.onCreate(savedInstanceState);
         WindowCompat.setDecorFitsSystemWindows(getWindow(), true);
@@ -183,10 +194,9 @@ public class MainActivity extends AppCompatActivity {
         loadingLogo = findViewById(R.id.loadingLogo);
         loadingText = findViewById(R.id.loadingText);
         errorText = findViewById(R.id.errorText);
-        // Match MeshChatX canvas so WebView never flashes default white during Chaquopy boot.
-        int canvasColor = getResources().getColor(R.color.meshchat_canvas, getTheme());
-        getWindow().getDecorView().setBackgroundColor(canvasColor);
-        webView.setBackgroundColor(canvasColor);
+        // Match MeshChatX canvas so WebView never flashes default white during Chaquopy boot
+        // or keyboard/resize gaps. Prefer last saved UI theme (default dark).
+        applyShellCanvasTheme(resolvePreferredUiTheme());
         webView.setVisibility(android.view.View.INVISIBLE);
         showLoading("Starting MeshChatX…");
 
@@ -812,6 +822,63 @@ public class MainActivity extends AppCompatActivity {
         }, retryDelayMs);
     }
 
+    private String resolvePreferredUiTheme() {
+        SharedPreferences prefs = getSharedPreferences(SHELL_PREFS, MODE_PRIVATE);
+        String stored = prefs.getString(PREF_UI_THEME, null);
+        if (THEME_LIGHT.equals(stored) || THEME_DARK.equals(stored)) {
+            return stored;
+        }
+        return THEME_DARK;
+    }
+
+    private static boolean isDarkUiTheme(String theme) {
+        return !THEME_LIGHT.equals(theme);
+    }
+
+    private void persistPreferredUiTheme(String theme) {
+        String normalized = isDarkUiTheme(theme) ? THEME_DARK : THEME_LIGHT;
+        getSharedPreferences(SHELL_PREFS, MODE_PRIVATE)
+            .edit()
+            .putString(PREF_UI_THEME, normalized)
+            .apply();
+    }
+
+    private void applyShellCanvasTheme(String theme) {
+        boolean dark = isDarkUiTheme(theme);
+        int canvasColor = ContextCompat.getColor(
+            this,
+            dark ? R.color.meshchat_canvas_dark : R.color.meshchat_canvas_light
+        );
+        getWindow().getDecorView().setBackgroundColor(canvasColor);
+        android.view.View content = findViewById(android.R.id.content);
+        if (content != null) {
+            content.setBackgroundColor(canvasColor);
+        }
+        if (webView != null) {
+            webView.setBackgroundColor(canvasColor);
+        }
+        if (loadingText != null) {
+            loadingText.setTextColor(
+                ContextCompat.getColor(this, dark ? R.color.white : R.color.black)
+            );
+        }
+    }
+
+    private void setUiThemeFromBridge(String theme) {
+        String normalized = isDarkUiTheme(theme) ? THEME_DARK : THEME_LIGHT;
+        persistPreferredUiTheme(normalized);
+        applyShellCanvasTheme(normalized);
+        // Update night mode without forcing an immediate recreate mid-session.
+        // Next cold start applies local night mode before setContentView.
+        int desired =
+            isDarkUiTheme(normalized)
+                ? AppCompatDelegate.MODE_NIGHT_YES
+                : AppCompatDelegate.MODE_NIGHT_NO;
+        if (getDelegate().getLocalNightMode() != desired) {
+            getDelegate().setLocalNightMode(desired);
+        }
+    }
+
     private String toStackTrace(Throwable error) {
         StringWriter sw = new StringWriter();
         PrintWriter pw = new PrintWriter(sw);
@@ -1123,6 +1190,16 @@ public class MainActivity extends AppCompatActivity {
         @JavascriptInterface
         public String getPlatform() {
             return "android";
+        }
+
+        @JavascriptInterface
+        public String getPreferredUiTheme() {
+            return activity.resolvePreferredUiTheme();
+        }
+
+        @JavascriptInterface
+        public void setUiTheme(String theme) {
+            activity.runOnUiThread(() -> activity.setUiThemeFromBridge(theme));
         }
 
         @JavascriptInterface

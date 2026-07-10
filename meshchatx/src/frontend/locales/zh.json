@@ -2805,7 +2805,9 @@
         "channel_load": "信道负载",
         "blackhole_label": "黑洞：{state}",
         "blackhole_publishing": "发布中",
-        "blackhole_inactive": "未激活"
+        "blackhole_inactive": "未激活",
+        "failed_refresh": "刷新 RNStatus 失败",
+        "reloading": "正在重新加载 RNS..."
     },
     "translator": {
         "text_translation": "文本翻译",
@@ -3172,7 +3174,7 @@
         "mode_change_later": "您可以随时从 Reticulum 设置中更改连接设置。",
         "bootstrap_title": "选择引导节点",
         "bootstrap_desc": "引导节点为发现提供起点。选择一个或多个，然后继续。",
-        "bootstrap_pick_random_tcp": "随机选择 3 个 TCP 节点",
+        "bootstrap_pick_random_tcp": "随机选择 4 个 TCP 节点",
         "bootstrap_pick_random_none": "没有可用的社区 TCP 预设。请刷新预设或手动选择（随机仅从社区列表选取，不含发现节点）。",
         "bootstrap_pick_random_done": "已选择 {count} 个：{names}",
         "bootstrap_selected_nodes_heading": "已选节点",

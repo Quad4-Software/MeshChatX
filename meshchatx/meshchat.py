@@ -206,7 +206,10 @@ from meshchatx.src.backend.recovery import (
     format_memory_log_line,
 )
 from meshchatx.src.backend import reticulum_pathfinding
-from meshchatx.src.backend.rns_link_manager import RnsLinkManager
+from meshchatx.src.backend.rns_link_manager import (
+    RnsLinkManager,
+    clear_all_cached_links,
+)
 from meshchatx.src.backend.rnprobe_handler import RNProbeHandler
 from meshchatx.src.backend.sideband_commands import SidebandCommands
 from meshchatx.src.backend.sticker_utils import (
@@ -1563,7 +1566,10 @@ class ReticulumMeshChat:
             self.page_node_manager.start_all()
             self.plugin_manager.set_app(self)
             if self.plugins_enabled:
-                self.plugin_manager.install_bundled_examples()
+                try:
+                    self.plugin_manager.install_bundled_examples()
+                except Exception as exc:
+                    print(f"Bundled plugin sync failed: {exc}", flush=True)
             try:
                 self.sideband_plugin_loader.reload()
                 self._ensure_sideband_telemetry_loop()
@@ -1844,6 +1850,40 @@ class ReticulumMeshChat:
     _meshchat_reload_epoch_max = 4_102_444_800
 
     @staticmethod
+    def _reset_transport_globals_for_reload() -> None:
+        """Clear RNS Transport globals so a new Reticulum can start cleanly.
+
+        ``Reticulum.exit_handler`` sets ``Transport._should_run = False``. Upstream
+        ``Transport.start`` never flips it back, so hot reload must restore it or
+        the new jobloop exits immediately and path/link tools stay dead while
+        interface RX/TX counters still update.
+        """
+        RNS.Transport._should_run = True
+        if hasattr(RNS.Transport, "jobs_running"):
+            RNS.Transport.jobs_running = False
+        RNS.Transport.interfaces = []
+        RNS.Transport.local_client_interfaces = []
+        RNS.Transport.destinations = []
+        if hasattr(RNS.Transport, "destinations_map"):
+            RNS.Transport.destinations_map = {}
+        RNS.Transport.active_links = []
+        RNS.Transport.pending_links = []
+        RNS.Transport.announce_handlers = []
+        RNS.Transport.announce_table = {}
+        RNS.Transport.path_table = {}
+        RNS.Transport.reverse_table = {}
+        RNS.Transport.link_table = {}
+        RNS.Transport.held_announces = {}
+        RNS.Transport.tunnels = {}
+        RNS.Transport.path_requests = {}
+        RNS.Transport.path_states = {}
+        RNS.Transport.announce_rate_table = {}
+        RNS.Transport.control_destinations = []
+        RNS.Transport.control_hashes = []
+        RNS.Transport.mgmt_destinations = []
+        RNS.Transport.mgmt_hashes = []
+
+    @staticmethod
     def _looks_like_meshchat_hot_reload_tail(pid: int, epoch: int) -> bool:
         """Limit repairs to suffixes :meth:`reload_reticulum` actually writes.
 
@@ -1952,6 +1992,7 @@ class ReticulumMeshChat:
 
             # Signal background loops to exit
             self._identity_session_id += 1
+            self._network_ready = False
 
             await self._send_rns_reload_status(
                 "stopping-services",
@@ -2073,14 +2114,8 @@ class ReticulumMeshChat:
                 if hasattr(RNS.Reticulum, "_Reticulum__interface_detach_ran"):
                     RNS.Reticulum._Reticulum__interface_detach_ran = False
 
-                # Also clear Transport caches and globals
-                RNS.Transport.interfaces = []
-                RNS.Transport.local_client_interfaces = []
-                RNS.Transport.destinations = []
-                RNS.Transport.active_links = []
-                RNS.Transport.pending_links = []
-                RNS.Transport.announce_handlers = []
-                RNS.Transport.jobs_running = False
+                self._reset_transport_globals_for_reload()
+                clear_all_cached_links()
 
                 # Clear Identity globals
                 RNS.Identity.known_destinations = {}
@@ -2423,6 +2458,7 @@ class ReticulumMeshChat:
             finally:
                 if switched_instance_name:
                     self._write_reticulum_instance_name(instance_restore_name)
+            self._mark_network_ready()
             await self._send_rns_reload_status(
                 "done",
                 "RNS reload complete.",
@@ -4528,6 +4564,29 @@ class ReticulumMeshChat:
             return web.json_response(
                 {
                     "message": "Local LXMF destination is still starting. Retry shortly.",
+                    "stage": self._startup_stage,
+                    "network_ready": bool(self._network_ready),
+                },
+                status=503,
+            )
+        return None
+
+    def _require_rns_tool_handler(self, handler, tool_name: str):
+        """Return 503 when an RNS tool handler is unavailable (e.g. mid-reload)."""
+        if handler is None:
+            return web.json_response(
+                {
+                    "message": f"{tool_name} is unavailable while the RNS stack is reloading.",
+                    "stage": self._startup_stage,
+                    "network_ready": bool(self._network_ready),
+                },
+                status=503,
+            )
+        reticulum = getattr(handler, "reticulum", None)
+        if reticulum is None and not hasattr(self, "reticulum"):
+            return web.json_response(
+                {
+                    "message": f"{tool_name} is unavailable while the RNS stack is reloading.",
                     "stage": self._startup_stage,
                     "network_ready": bool(self._network_ready),
                 },
@@ -13034,6 +13093,12 @@ class ReticulumMeshChat:
             sorting = request.query.get("sorting")
             sort_reverse = request.query.get("sort_reverse", "false") in ("true", "1")
 
+            not_ready = self._require_rns_tool_handler(
+                self.rnstatus_handler, "RNStatus"
+            )
+            if not_ready is not None:
+                return not_ready
+
             try:
                 status = self.rnstatus_handler.get_status(
                     include_link_stats=include_link_stats,
@@ -13068,6 +13133,10 @@ class ReticulumMeshChat:
             search = request.query.get("search")
             interface = request.query.get("interface")
 
+            not_ready = self._require_rns_tool_handler(self.rnpath_handler, "RNPath")
+            if not_ready is not None:
+                return not_ready
+
             try:
                 result = self.rnpath_handler.get_path_table(
                     max_hops=max_hops,
@@ -13083,6 +13152,9 @@ class ReticulumMeshChat:
 
         @routes.get("/api/v1/rnpath/rates")
         async def rnpath_rates(request):
+            not_ready = self._require_rns_tool_handler(self.rnpath_handler, "RNPath")
+            if not_ready is not None:
+                return not_ready
             try:
                 rates = self.rnpath_handler.get_rate_table()
                 return web.json_response({"rates": rates})
@@ -13098,6 +13170,9 @@ class ReticulumMeshChat:
                     {"message": "destination_hash is required"},
                     status=400,
                 )
+            not_ready = self._require_rns_tool_handler(self.rnpath_handler, "RNPath")
+            if not_ready is not None:
+                return not_ready
             try:
                 success = self.rnpath_handler.drop_path(destination_hash)
                 return web.json_response({"success": success})
@@ -13113,6 +13188,9 @@ class ReticulumMeshChat:
                     {"message": "transport_instance_hash is required"},
                     status=400,
                 )
+            not_ready = self._require_rns_tool_handler(self.rnpath_handler, "RNPath")
+            if not_ready is not None:
+                return not_ready
             try:
                 success = self.rnpath_handler.drop_all_via(transport_instance_hash)
                 return web.json_response({"success": success})
@@ -13121,6 +13199,9 @@ class ReticulumMeshChat:
 
         @routes.post("/api/v1/rnpath/drop-queues")
         async def rnpath_drop_queues(request):
+            not_ready = self._require_rns_tool_handler(self.rnpath_handler, "RNPath")
+            if not_ready is not None:
+                return not_ready
             try:
                 self.rnpath_handler.drop_announce_queues()
                 return web.json_response({"success": True})
@@ -13136,6 +13217,9 @@ class ReticulumMeshChat:
                     {"message": "destination_hash is required"},
                     status=400,
                 )
+            not_ready = self._require_rns_tool_handler(self.rnpath_handler, "RNPath")
+            if not_ready is not None:
+                return not_ready
             try:
                 success = self.rnpath_handler.request_path(destination_hash)
                 return web.json_response({"success": success})
@@ -13205,6 +13289,10 @@ class ReticulumMeshChat:
                     {"message": "full_name is required"},
                     status=400,
                 )
+
+            not_ready = self._require_rns_tool_handler(self.rnprobe_handler, "RNProbe")
+            if not_ready is not None:
+                return not_ready
 
             try:
                 result = await self.rnprobe_handler.probe_destination(

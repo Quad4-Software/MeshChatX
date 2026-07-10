@@ -202,3 +202,28 @@ class TestPluginManagerInstall:
         )
         with pytest.raises(PermissionError):
             manager.install_from_directory(os.path.abspath(source))
+
+    def test_bundled_reinstall_skips_unchanged_and_handles_readonly_tree(
+        self, tmp_path
+    ):
+        manager = _make_manager(tmp_path)
+        manager.install_bundled_examples()
+        plugin_id = "com.meshchatx.mcx-bugs"
+        record = manager._plugins[plugin_id]
+        first_hash = record.integrity_hash
+        install_path = record.install_path
+
+        for dirpath, dirnames, filenames in os.walk(install_path):
+            os.chmod(dirpath, 0o555)
+            for name in dirnames:
+                os.chmod(os.path.join(dirpath, name), 0o555)
+            for name in filenames:
+                os.chmod(os.path.join(dirpath, name), 0o444)
+
+        manager.install_bundled_examples()
+        assert manager._plugins[plugin_id].integrity_hash == first_hash
+
+        record.version = "0.0.0-test"
+        manager.install_bundled_examples()
+        assert manager._plugins[plugin_id].version != "0.0.0-test"
+        assert os.path.isdir(manager._plugins[plugin_id].install_path)

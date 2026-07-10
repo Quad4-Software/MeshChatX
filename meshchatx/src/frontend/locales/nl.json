@@ -2805,7 +2805,9 @@
         "channel_load": "Kanaal laden",
         "blackhole_label": "Zwart gat: {state}",
         "blackhole_publishing": "Publiceren",
-        "blackhole_inactive": "Inactief"
+        "blackhole_inactive": "Inactief",
+        "failed_refresh": "RNStatus vernieuwen mislukt",
+        "reloading": "RNS opnieuw laden..."
     },
     "translator": {
         "text_translation": "Tekstvertaling",
@@ -3172,7 +3174,7 @@
         "mode_change_later": "U kunt de verbindingsinstellingen op elk moment wijzigen vanuit de instellingen van Reticulum.",
         "bootstrap_title": "Kies Bootstrap-nodes",
         "bootstrap_desc": "Bootstrap knooppunten geven ontdekking een startpunt. Selecteer één of meer, ga dan verder.",
-        "bootstrap_pick_random_tcp": "Kies 3 willekeurige TCP-knooppunten",
+        "bootstrap_pick_random_tcp": "Kies 4 willekeurige TCP-knooppunten",
         "bootstrap_pick_random_none": "Geen geschikte TCP-community-presets. Vernieuw presets of kies handmatig (willekeur kiest alleen community, niet ontdekking).",
         "bootstrap_pick_random_done": "{count} geselecteerd: {names}",
         "bootstrap_selected_nodes_heading": "Geselecteerde knooppunten",

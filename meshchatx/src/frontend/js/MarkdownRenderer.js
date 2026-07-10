@@ -27,6 +27,18 @@ export default class MarkdownRenderer {
             return placeholder;
         });
 
+        // Inline code before emphasis so snake_case inside `code` / ``code`` is safe.
+        const inline_codes = [];
+        const pushInline = (code) => {
+            const placeholder = `[[IC${inline_codes.length}]]`;
+            inline_codes.push(
+                `<code class="bg-black/10 dark:bg-white/10 px-1 rounded-sm font-mono text-[0.9em]">${code}</code>`
+            );
+            return placeholder;
+        };
+        text = text.replace(/``([^`]+)``/g, (_m, code) => pushInline(code));
+        text = text.replace(/`([^`]+)`/g, (_m, code) => pushInline(code));
+
         // Headers
         text = text.replace(/^# (.*)$/gm, '<h1 class="text-xl font-bold mt-4 mb-2"> $1</h1>');
         text = text.replace(/^## (.*)$/gm, '<h2 class="text-lg font-bold mt-3 mb-1">$1</h2>');
@@ -46,16 +58,13 @@ export default class MarkdownRenderer {
             '<blockquote class="border-l-4 border-gray-300 dark:border-zinc-700 pl-3 py-1 my-2 italic opacity-80">$1</blockquote>'
         );
 
-        // Inline code
-        text = text.replace(
-            /`([^`]+)`/g,
-            '<code class="bg-black/10 dark:bg-white/10 px-1 rounded-sm font-mono text-[0.9em]">$1</code>'
-        );
-
         // Links
         text = LinkUtils.renderAllLinks(text);
 
-        // Restore code blocks
+        // Restore inline code then fenced blocks
+        for (let i = 0; i < inline_codes.length; i++) {
+            text = text.replace(`[[IC${i}]]`, inline_codes[i]);
+        }
         for (let i = 0; i < code_blocks.length; i++) {
             text = text.replace(`[[CB${i}]]`, code_blocks[i]);
         }
@@ -119,6 +128,10 @@ export default class MarkdownRenderer {
         // eslint-disable-next-line security/detect-unsafe-regex -- bounded fenced block, lazy match
         text = text.replace(/```(\w+)?\n([\s\S]*?)\n```/g, "[Code Block]");
 
+        // Strip inline code (double then single)
+        text = text.replace(/``([^`]+)``/g, "$1");
+        text = text.replace(/`([^`]+)`/g, "$1");
+
         // Strip headers
         text = text.replace(/^#+ (.*)$/gm, "$1");
 
@@ -129,9 +142,6 @@ export default class MarkdownRenderer {
         text = text.replace(/(^|[^\w])___(.*?)___(?=[^\w]|$)/g, "$1$2");
         text = text.replace(/(^|[^\w])__(.*?)__(?=[^\w]|$)/g, "$1$2");
         text = text.replace(/(^|[^\w])_(.*?)_(?=[^\w]|$)/g, "$1$2");
-
-        // Strip inline code
-        text = text.replace(/`([^`]+)`/g, "$1");
 
         return text;
     }

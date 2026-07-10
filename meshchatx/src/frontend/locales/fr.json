@@ -2805,7 +2805,9 @@
         "channel_load": "Chargement du canal",
         "blackhole_label": "Trou noir : {state}",
         "blackhole_publishing": "Publication",
-        "blackhole_inactive": "Inactif"
+        "blackhole_inactive": "Inactif",
+        "failed_refresh": "Échec de l'actualisation de RNStatus",
+        "reloading": "Rechargement de RNS..."
     },
     "translator": {
         "text_translation": "Traduction textuelle",
@@ -3172,7 +3174,7 @@
         "mode_change_later": "Vous pouvez modifier les paramètres de connexion à tout moment à partir des paramètres de Reticulum.",
         "bootstrap_title": "Choisir des nœuds de bootstrap",
         "bootstrap_desc": "Les nœuds de bootstrap donnent un point de départ à la découverte. Sélectionnez un ou plusieurs, puis continuez.",
-        "bootstrap_pick_random_tcp": "Choisir 3 nœuds TCP au hasard",
+        "bootstrap_pick_random_tcp": "Choisir 4 nœuds TCP au hasard",
         "bootstrap_pick_random_none": "Aucun préréglage TCP communautaire adapté. Actualisez les préréglages ou choisissez à la main (le tirage n'utilise que la liste communautaire, pas la découverte).",
         "bootstrap_pick_random_done": "{count} sélectionné(s) : {names}",
         "bootstrap_selected_nodes_heading": "Nœuds sélectionnés",

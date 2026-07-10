@@ -49,6 +49,31 @@ class TestMarkdownRenderer(unittest.TestCase):
             or "print(&#039;hello&#039;)" in rendered,
         )
 
+    def test_inline_code_before_underscore_italic(self):
+        rendered = MarkdownRenderer.render("Uses `local_hops_delta` and ``rpc_key``.")
+        self.assertIn("local_hops_delta", rendered)
+        self.assertIn("rpc_key", rendered)
+        self.assertNotIn("<em>hops</em>", rendered)
+        self.assertNotIn("<em>key</em>", rendered)
+
+    def test_intraword_underscores_not_italic(self):
+        rendered = MarkdownRenderer.render("snake_case_identifier stays plain")
+        self.assertIn("snake_case_identifier stays plain", rendered)
+        self.assertNotIn("<em>", rendered)
+
+    def test_changelog_markdown_balanced_tags(self):
+        from pathlib import Path
+
+        changelog = Path(__file__).resolve().parents[2] / "CHANGELOG.md"
+        if not changelog.is_file():
+            self.skipTest("CHANGELOG.md not present")
+        rendered = MarkdownRenderer.render(changelog.read_text(encoding="utf-8"))
+        self.assertNotIn("[[CB", rendered)
+        self.assertNotIn("[[IC", rendered)
+        self.assertEqual(rendered.count("<em>"), rendered.count("</em>"))
+        self.assertEqual(rendered.count("<strong>"), rendered.count("</strong>"))
+        self.assertEqual(rendered.count("<code"), rendered.count("</code>"))
+
     def test_lists(self):
         md = "* Item 1\n* Item 2"
         rendered = MarkdownRenderer.render(md)
