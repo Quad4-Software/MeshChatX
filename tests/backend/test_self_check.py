@@ -101,6 +101,28 @@ def test_check_subprocess_spawn_ok():
     assert self_check.check_subprocess_spawn()["status"] == "ok"
 
 
+def test_check_subprocess_spawn_frozen_uses_run_module(monkeypatch):
+    calls: list[list[str]] = []
+
+    class _Result:
+        returncode = 0
+        stdout = "meshchatx-self-check-probe spawn-ok\n"
+        stderr = ""
+
+    def _fake_run(cmd, **_kwargs):
+        calls.append(list(cmd))
+        return _Result()
+
+    monkeypatch.setattr(self_check, "_is_frozen_executable", lambda: True)
+    monkeypatch.setattr(self_check.subprocess, "run", _fake_run)
+    result = self_check.check_subprocess_spawn()
+    assert result["status"] == "ok", result["reason"]
+    assert calls
+    assert "-c" not in calls[0]
+    assert "--meshchatx-run-module" in calls[0]
+    assert "meshchatx.src.backend.self_check_probe" in calls[0]
+
+
 def test_check_meshchatx_run_module_ok():
     result = self_check.check_meshchatx_run_module()
     assert result["status"] == "ok", result["reason"]

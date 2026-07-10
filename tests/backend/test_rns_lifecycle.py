@@ -217,6 +217,82 @@ async def test_reload_reticulum(mock_rns, temp_dir):
         assert mock_rns["Reticulum"]._Reticulum__instance is None
         # Verify setup_identity was called again
         app.setup_identity.assert_called()
+        # Hot reload must restore Transport._should_run after exit_handler.
+        assert mock_rns["Transport"]._should_run is True
+        assert app._network_ready is True
+        app.teardown_identity()
+
+
+def test_reset_transport_globals_for_reload_restores_should_run():
+    """Direct unit test against live Transport globals (restored in finally)."""
+    transport = RNS.Transport
+    saved = {
+        "_should_run": transport._should_run,
+        "path_table": dict(transport.path_table),
+        "link_table": dict(transport.link_table),
+        "announce_table": dict(transport.announce_table),
+        "control_destinations": list(transport.control_destinations),
+        "control_hashes": list(transport.control_hashes),
+        "mgmt_destinations": list(transport.mgmt_destinations),
+        "mgmt_hashes": list(transport.mgmt_hashes),
+    }
+    try:
+        transport._should_run = False
+        transport.path_table = {"stale": 1}
+        transport.link_table = {"stale": 2}
+        transport.announce_table = {"stale": 3}
+        transport.control_destinations = ["old"]
+        transport.control_hashes = [b"old"]
+        transport.mgmt_destinations = ["old"]
+        transport.mgmt_hashes = [b"old"]
+
+        ReticulumMeshChat._reset_transport_globals_for_reload()
+
+        assert transport._should_run is True
+        assert transport.path_table == {}
+        assert transport.link_table == {}
+        assert transport.announce_table == {}
+        assert transport.control_destinations == []
+        assert transport.control_hashes == []
+        assert transport.mgmt_destinations == []
+        assert transport.mgmt_hashes == []
+    finally:
+        for key, value in saved.items():
+            setattr(transport, key, value)
+
+
+def test_require_rns_tool_handler_returns_503_when_missing(mock_rns, temp_dir):
+    with (
+        patch("meshchatx.src.backend.identity_context.Database"),
+        patch("meshchatx.src.backend.identity_context.ConfigManager"),
+        patch("meshchatx.src.backend.identity_context.MessageHandler"),
+        patch("meshchatx.src.backend.identity_context.AnnounceManager"),
+        patch("meshchatx.src.backend.identity_context.ArchiverManager"),
+        patch("meshchatx.src.backend.identity_context.MapManager"),
+        patch("meshchatx.src.backend.identity_context.TelephoneManager"),
+        patch("meshchatx.src.backend.identity_context.VoicemailManager"),
+        patch("meshchatx.src.backend.identity_context.RingtoneManager"),
+        patch("meshchatx.src.backend.identity_context.RNCPHandler"),
+        patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
+        patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
+        patch("meshchatx.src.backend.identity_context.TranslatorHandler"),
+        patch("LXMF.LXMRouter"),
+    ):
+        app = ReticulumMeshChat(
+            identity=mock_rns["id_instance"],
+            storage_dir=temp_dir,
+            reticulum_config_dir=temp_dir,
+        )
+        response = app._require_rns_tool_handler(None, "RNStatus")
+        assert response is not None
+        assert response.status == 503
+        body = json.loads(response.body)
+        assert "RNStatus" in body["message"]
+        assert "reloading" in body["message"].lower()
+
+        handler = MagicMock()
+        handler.reticulum = MagicMock()
+        assert app._require_rns_tool_handler(handler, "RNStatus") is None
         app.teardown_identity()
 
 

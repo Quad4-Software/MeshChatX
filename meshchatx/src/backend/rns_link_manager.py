@@ -127,6 +127,21 @@ def sweep_stale_links():
     _teardown_links(to_teardown)
 
 
+def clear_all_cached_links() -> int:
+    """Tear down every cached RNS link (used after RNS hot reload).
+
+    ``sweep_stale_links`` leaves ACTIVE links alone. After Transport reset those
+    objects are tied to the old stack and must be dropped.
+    """
+    with _rns_links_lock:
+        to_teardown = list(rns_cached_links.values())
+        rns_cached_links.clear()
+        _rns_link_last_used.clear()
+        _link_failure_counts.clear()
+    _teardown_links(to_teardown)
+    return len(to_teardown)
+
+
 def _cache_link_if_active(aspect: str, destination_hash: bytes, link) -> None:
     if link is None or link.status is not RNS.Link.ACTIVE:
         return

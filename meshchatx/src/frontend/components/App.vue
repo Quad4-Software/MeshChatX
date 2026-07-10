@@ -1268,6 +1268,21 @@ export default {
             const mode = theme === "dark" ? "dark" : "light";
             if (typeof document !== "undefined") {
                 document.documentElement.classList.toggle("dark", mode === "dark");
+                document.documentElement.dataset.bootTheme = mode;
+                document.documentElement.style.colorScheme = mode;
+            }
+            try {
+                window.localStorage.setItem("meshchatx_ui_theme", mode);
+            } catch {
+                // ignore quota / private mode
+            }
+            try {
+                const bridge = window.MeshChatXAndroid;
+                if (bridge && typeof bridge.setUiTheme === "function") {
+                    bridge.setUiTheme(mode);
+                }
+            } catch {
+                // ignore missing bridge
             }
             if (typeof this.vuetifyTheme?.change === "function") {
                 this.vuetifyTheme.change(mode);

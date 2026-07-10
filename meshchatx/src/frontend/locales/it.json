@@ -2857,7 +2857,9 @@
         "channel_load": "Carico Canale",
         "blackhole_label": "Buco nero: {state}",
         "blackhole_publishing": "Pubblicazione",
-        "blackhole_inactive": "Inattivo"
+        "blackhole_inactive": "Inattivo",
+        "failed_refresh": "Impossibile aggiornare RNStatus",
+        "reloading": "Ricaricamento RNS..."
     },
     "translator": {
         "text_translation": "Traduzione Testo",
@@ -3172,7 +3174,7 @@
         "mode_change_later": "Puoi cambiare le impostazioni di connessione in qualsiasi momento dalle impostazioni Reticulum.",
         "bootstrap_title": "Scegli nodi di bootstrap",
         "bootstrap_desc": "I nodi di bootstrap danno alla scoperta un punto di partenza. Selezionane uno o più e continua.",
-        "bootstrap_pick_random_tcp": "Scegli 3 nodi TCP casuali",
+        "bootstrap_pick_random_tcp": "Scegli 4 nodi TCP casuali",
         "bootstrap_pick_random_none": "Nessun preset TCP della community adatto. Aggiorna i preset o scegli manualmente (la selezione casuale usa solo la community, non il rilevamento).",
         "bootstrap_pick_random_done": "Selezionati {count}: {names}",
         "bootstrap_selected_nodes_heading": "Nodi selezionati",

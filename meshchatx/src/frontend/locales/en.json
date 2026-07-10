@@ -2986,7 +2986,9 @@
         "channel_load": "Channel Load",
         "blackhole_label": "Blackhole: {state}",
         "blackhole_publishing": "Publishing",
-        "blackhole_inactive": "Inactive"
+        "blackhole_inactive": "Inactive",
+        "failed_refresh": "Failed to refresh RNStatus",
+        "reloading": "Reloading RNS..."
     },
     "translator": {
         "text_translation": "Text Translation",
@@ -3377,7 +3379,7 @@
         "mode_change_later": "You can change connection settings any time from Reticulum settings.",
         "bootstrap_title": "Pick Bootstrap Nodes",
         "bootstrap_desc": "Bootstrap nodes give discovery a starting point. Select one or more, then continue.",
-        "bootstrap_pick_random_tcp": "Pick 3 random TCP nodes",
+        "bootstrap_pick_random_tcp": "Pick 4 random TCP nodes",
         "bootstrap_pick_random_none": "No suitable TCP community presets are available. Refresh community presets or pick nodes manually (discovered lists are not used for random pick).",
         "bootstrap_pick_random_done": "Selected {count}: {names}",
         "bootstrap_selected_nodes_heading": "Selected nodes",

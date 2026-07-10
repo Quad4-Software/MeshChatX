@@ -2688,7 +2688,9 @@
         "channel_load": "Kanallast",
         "blackhole_label": "Blackhole: {state}",
         "blackhole_publishing": "Veröffentlicht",
-        "blackhole_inactive": "Inaktiv"
+        "blackhole_inactive": "Inaktiv",
+        "failed_refresh": "RNStatus konnte nicht aktualisiert werden",
+        "reloading": "RNS wird neu geladen..."
     },
     "translator": {
         "text_translation": "Textübersetzung",
@@ -3003,7 +3005,7 @@
         "mode_change_later": "Sie können die Verbindungseinstellungen jederzeit in den Reticulum-Einstellungen ändern.",
         "bootstrap_title": "Bootstrap-Knoten auswählen",
         "bootstrap_desc": "Bootstrap-Knoten geben der Erkennung einen Startpunkt. Wählen Sie einen oder mehrere und fahren Sie fort.",
-        "bootstrap_pick_random_tcp": "3 zufällige TCP-Knoten wählen",
+        "bootstrap_pick_random_tcp": "4 zufällige TCP-Knoten wählen",
         "bootstrap_pick_random_none": "Keine geeigneten TCP-Community-Presets. Presets aktualisieren oder manuell wählen (Zufall nutzt nur Community, nicht Erkennung).",
         "bootstrap_pick_random_done": "{count} Bootstrap-Knoten ausgewählt: {names}",
         "bootstrap_selected_nodes_heading": "Ausgewählte Knoten",

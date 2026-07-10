@@ -48,6 +48,14 @@ describe("MarkdownRenderer.js", () => {
             expect(result).toContain("code");
         });
 
+        it("keeps snake_case intact inside inline and double-backtick code", () => {
+            const result = MarkdownRenderer.render("Uses `local_hops_delta` and ``rpc_key``.");
+            expect(result).toContain("local_hops_delta");
+            expect(result).toContain("rpc_key");
+            expect(result).not.toContain("<em>hops</em>");
+            expect(result).not.toContain("`local_hops_delta`");
+        });
+
         it("keeps underscores intact in long https links", () => {
             const url = "https://github.com/Quad4-Software/MeshChatX/src/branch/dev/docs/meshchatx_on_raspberry_pi.md";
             const result = MarkdownRenderer.render(`visit ${url}`);

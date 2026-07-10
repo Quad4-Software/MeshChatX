@@ -2688,7 +2688,9 @@
         "channel_load": "Загрузка канала",
         "blackhole_label": "Чёрная дыра: {state}",
         "blackhole_publishing": "Публикация",
-        "blackhole_inactive": "Неактивно"
+        "blackhole_inactive": "Неактивно",
+        "failed_refresh": "Не удалось обновить RNStatus",
+        "reloading": "Перезагрузка RNS..."
     },
     "translator": {
         "text_translation": "Перевод текста",
@@ -3003,7 +3005,7 @@
         "mode_change_later": "Настройки подключения можно изменить в любое время в параметрах Reticulum.",
         "bootstrap_title": "Выберите начальные узлы",
         "bootstrap_desc": "Начальные узлы дают обнаружению точку входа. Выберите один или несколько и продолжайте.",
-        "bootstrap_pick_random_tcp": "Выбрать 3 случайных TCP-узла",
+        "bootstrap_pick_random_tcp": "Выбрать 4 случайных TCP-узла",
         "bootstrap_pick_random_none": "Нет подходящих TCP-пресетов сообщества. Обновите пресеты или выберите вручную (случайный выбор только из списка сообщества, не из обнаружения).",
         "bootstrap_pick_random_done": "Выбрано {count}: {names}",
         "bootstrap_selected_nodes_heading": "Выбранные узлы",

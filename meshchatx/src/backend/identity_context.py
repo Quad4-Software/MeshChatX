@@ -701,6 +701,11 @@ class IdentityContext:
                     self.rncp_handler.teardown_receive_destination()
                 self.rncp_handler = None
 
+            self.rnstatus_handler = None
+            self.rnpath_handler = None
+            self.rnpath_trace_handler = None
+            self.rnprobe_handler = None
+
             if self.message_router:
                 # Break cycles in mocks/objects
                 if hasattr(self.message_router, "register_delivery_callback"):

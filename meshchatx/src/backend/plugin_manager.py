@@ -515,8 +515,9 @@ class PluginManager:
         granted = normalize_granted_permissions(declared, granted_permissions)
         target_dir = os.path.join(self.installed_dir, plugin_id)
         if os.path.exists(target_dir):
-            shutil.rmtree(target_dir)
+            self._remove_install_tree(target_dir)
         shutil.copytree(source_dir, target_dir)
+        self._normalize_install_tree_permissions(target_dir)
         integrity_hash = compute_dir_integrity_hash(target_dir)
         with self._lock:
             (
@@ -1500,6 +1501,65 @@ class PluginManager:
         )
         AsyncUtils.run_async(self.app.websocket_broadcast(message))
 
+    @staticmethod
+    def _chmod_path(path: str, mode: int) -> None:
+        try:
+            os.chmod(path, mode)
+        except OSError:
+            pass
+
+    def _normalize_install_tree_permissions(self, root: str) -> None:
+        """Make installed trees deletable on Android/AssetFinder upgrades."""
+        for dirpath, dirnames, filenames in os.walk(root):
+            self._chmod_path(dirpath, 0o755)
+            for name in dirnames:
+                self._chmod_path(os.path.join(dirpath, name), 0o755)
+            for name in filenames:
+                self._chmod_path(os.path.join(dirpath, name), 0o644)
+
+    def _remove_install_tree(self, target_dir: str) -> None:
+        """Remove an install tree, fixing read-only modes copied from APK assets."""
+
+        def _onerror(func, path, _exc_info):
+            self._chmod_path(path, 0o700 if os.path.isdir(path) else 0o600)
+            parent = os.path.dirname(path)
+            if parent:
+                self._chmod_path(parent, 0o700)
+            func(path)
+
+        if not os.path.exists(target_dir):
+            return
+        self._normalize_install_tree_permissions(target_dir)
+        shutil.rmtree(target_dir, onerror=_onerror)
+
+    def _bundled_needs_reinstall(
+        self, source_dir: str, manifest: dict[str, Any]
+    ) -> bool:
+        plugin_id = manifest.get("id")
+        if not isinstance(plugin_id, str) or not plugin_id:
+            return False
+        existing = self._plugins.get(plugin_id)
+        if existing is None:
+            return True
+        if existing.version != manifest.get("version"):
+            return True
+        target_dir = os.path.join(self.installed_dir, plugin_id)
+        if not os.path.isdir(target_dir):
+            return True
+        try:
+            bundled_hash = compute_dir_integrity_hash(source_dir)
+        except Exception:
+            return True
+        if existing.integrity_hash and existing.integrity_hash != bundled_hash:
+            return True
+        if not existing.integrity_hash:
+            try:
+                installed_hash = compute_dir_integrity_hash(target_dir)
+            except Exception:
+                return True
+            return installed_hash != bundled_hash
+        return False
+
     def install_bundled_examples(self) -> None:
         if not self._plugins_runtime_enabled():
             return
@@ -1519,4 +1579,22 @@ class PluginManager:
             manifest_path = os.path.join(source, "plugin.json")
             if not os.path.isfile(manifest_path):
                 continue
-            self.install_from_directory(source)
+            try:
+                with open(manifest_path, encoding="utf-8") as handle:
+                    manifest = json.load(handle)
+            except Exception as exc:
+                print(
+                    f"Bundled plugin manifest read failed for {name}: {exc}", flush=True
+                )
+                continue
+            if not isinstance(manifest, dict):
+                continue
+            if not self._bundled_needs_reinstall(source, manifest):
+                continue
+            try:
+                self.install_from_directory(source)
+            except Exception as exc:
+                print(
+                    f"Bundled plugin sync failed for {manifest.get('id', name)}: {exc}",
+                    flush=True,
+                )
