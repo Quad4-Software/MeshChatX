@@ -148,6 +148,10 @@ from meshchatx.src.backend.meshchat_utils import (
     parse_nomadnetwork_node_display_name,
 )
 from meshchatx.src.backend.memory_pressure import MemoryPressureManager, cache_stats
+from meshchatx.src.backend.message_export_bundle import (
+    build_messages_export_bundle,
+    import_messages_export_bundle,
+)
 from meshchatx.src.backend.nomadnet_downloader import (
     NomadnetFileDownloader,
     NomadnetPageDownloader,
@@ -8504,26 +8508,26 @@ class ReticulumMeshChat:
                 if len(page) < page_size:
                     break
                 offset += page_size
-            icon_hashes = set()
-            for m in messages_list:
-                h = m.get("peer_hash") or m.get("source_hash")
-                if h:
-                    icon_hashes.add(h)
-            icons = {}
-            if icon_hashes:
-                icon_rows = self.database.misc.get_user_icons(list(icon_hashes))
-                for ir in icon_rows:
-                    icons[ir["destination_hash"]] = dict(ir)
-            for m in messages_list:
-                h = m.get("peer_hash") or m.get("source_hash")
-                if h and h in icons:
-                    m["lxmf_icon"] = icons[h]
-            return web.json_response({"messages": messages_list})
+            bundle = await asyncio.to_thread(
+                build_messages_export_bundle,
+                self.database,
+                messages_list,
+            )
+            return web.json_response(bundle)
 
         def _message_import_response(result):
+            if not result.get("ok", True) and result.get("error"):
+                return web.json_response(
+                    {
+                        "error": result["error"],
+                        "imported": result.get("imported", 0),
+                        "skipped": result.get("skipped", 0),
+                    },
+                    status=400,
+                )
             imported = result["imported"]
             skipped = result["skipped"]
-            errors = result["errors"]
+            errors = result.get("errors") or []
             if imported == 0 and errors:
                 return web.json_response(
                     {
@@ -8538,30 +8542,20 @@ class ReticulumMeshChat:
                 "message": f"Successfully imported {imported} messages",
                 "imported": imported,
                 "skipped": skipped,
+                "contacts_added": result.get("contacts_added", 0),
+                "contacts_skipped": result.get("contacts_skipped", 0),
+                "display_names_imported": result.get("display_names_imported", 0),
+                "read_state_imported": result.get("read_state_imported", 0),
             }
             if errors:
                 response["errors"] = errors
             return web.json_response(response)
-
-        def _parse_message_import_payload(payload):
-            if isinstance(payload, list):
-                return payload
-            if isinstance(payload, dict):
-                messages = payload.get("messages", [])
-                return [] if messages is None else messages
-            return None
 
         # maintenance - import messages
         @routes.post("/api/v1/maintenance/messages/import")
         async def maintenance_import_messages(request):
             try:
                 data = await request.json()
-                messages = _parse_message_import_payload(data)
-                if messages is None or not isinstance(messages, list):
-                    return web.json_response(
-                        {"error": "messages must be an array"},
-                        status=400,
-                    )
                 if self.database is None:
                     return web.json_response(
                         {"error": "No active identity database"},
@@ -8569,8 +8563,9 @@ class ReticulumMeshChat:
                     )
 
                 result = await asyncio.to_thread(
-                    self.database.messages.import_lxmf_messages,
-                    messages,
+                    import_messages_export_bundle,
+                    self.database,
+                    data,
                 )
                 return _message_import_response(result)
             except Exception as e:
@@ -8609,16 +8604,10 @@ class ReticulumMeshChat:
                         status=400,
                     )
 
-                messages = _parse_message_import_payload(payload)
-                if messages is None or not isinstance(messages, list):
-                    return web.json_response(
-                        {"error": "messages must be an array"},
-                        status=400,
-                    )
-
                 result = await asyncio.to_thread(
-                    self.database.messages.import_lxmf_messages,
-                    messages,
+                    import_messages_export_bundle,
+                    self.database,
+                    payload,
                 )
                 return _message_import_response(result)
             except Exception as e:
@@ -14585,7 +14574,14 @@ class ReticulumMeshChat:
         @routes.post("/api/v1/lxmf/conversations/bulk-mark-as-read")
         async def lxmf_conversations_bulk_mark_read(request):
             data = await request.json()
+            mark_all = bool(data.get("mark_all"))
             destination_hashes = data.get("destination_hashes", [])
+            if mark_all:
+                self.database.messages.mark_all_conversations_as_read()
+                self.database.messages.mark_all_notifications_as_viewed()
+                return web.json_response(
+                    {"message": "All conversations marked as read"}
+                )
             if not destination_hashes:
                 return web.json_response(
                     {"message": "destination_hashes is required"},

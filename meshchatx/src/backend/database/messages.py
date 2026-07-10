@@ -504,6 +504,72 @@ class MessageDAO:
             (now, now, now),
         )
 
+    def get_all_conversation_read_state(self):
+        return self.provider.fetchall(
+            "SELECT destination_hash, last_read_at, created_at, updated_at "
+            "FROM lxmf_conversation_read_state",
+        )
+
+    def import_conversation_read_state(self, rows):
+        if not isinstance(rows, list) or not rows:
+            return 0
+        imported = 0
+        now = datetime.now(UTC).isoformat()
+        with self.provider:
+            for row in rows:
+                if not isinstance(row, dict):
+                    continue
+                dest = row.get("destination_hash")
+                last_read_at = row.get("last_read_at")
+                if not dest or not last_read_at:
+                    continue
+                self.provider.execute(
+                    """
+                    INSERT INTO lxmf_conversation_read_state
+                        (destination_hash, last_read_at, created_at, updated_at)
+                    VALUES (?, ?, ?, ?)
+                    ON CONFLICT(destination_hash) DO UPDATE SET
+                        last_read_at = EXCLUDED.last_read_at,
+                        updated_at = EXCLUDED.updated_at
+                    """,
+                    (dest, last_read_at, now, now),
+                )
+                imported += 1
+        return imported
+
+    def get_all_notification_viewed_state(self):
+        return self.provider.fetchall(
+            "SELECT destination_hash, last_viewed_at, created_at, updated_at "
+            "FROM notification_viewed_state",
+        )
+
+    def import_notification_viewed_state(self, rows):
+        if not isinstance(rows, list) or not rows:
+            return 0
+        imported = 0
+        now = datetime.now(UTC).isoformat()
+        with self.provider:
+            for row in rows:
+                if not isinstance(row, dict):
+                    continue
+                dest = row.get("destination_hash")
+                last_viewed_at = row.get("last_viewed_at")
+                if not dest or not last_viewed_at:
+                    continue
+                self.provider.execute(
+                    """
+                    INSERT INTO notification_viewed_state
+                        (destination_hash, last_viewed_at, created_at, updated_at)
+                    VALUES (?, ?, ?, ?)
+                    ON CONFLICT(destination_hash) DO UPDATE SET
+                        last_viewed_at = EXCLUDED.last_viewed_at,
+                        updated_at = EXCLUDED.updated_at
+                    """,
+                    (dest, last_viewed_at, now, now),
+                )
+                imported += 1
+        return imported
+
     def is_conversation_unread(self, destination_hash):
         row = self.provider.fetchone(
             """

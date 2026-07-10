@@ -52,9 +52,7 @@ describe("main app CSP and boot theme", () => {
                 continue;
             }
             const rel = src.replace(/^\//, "");
-            expect(existsSync(resolve(PUBLIC_DIR, rel)), `missing public asset for ${src}`).toBe(
-                true,
-            );
+            expect(existsSync(resolve(PUBLIC_DIR, rel)), `missing public asset for ${src}`).toBe(true);
         }
     });
 

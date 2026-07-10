@@ -546,6 +546,24 @@ describe("MessagesPage.vue", () => {
         expect(GlobalEmitter.emit).toHaveBeenCalledWith("notifications-changed");
     });
 
+    it("onMarkAllAsRead posts mark_all and refreshes conversations", async () => {
+        const wrapper = mountMessagesPage();
+        await wrapper.vm.$nextTick();
+        axiosMock.post.mockResolvedValue({ data: {} });
+        axiosMock.get.mockResolvedValue({ data: { conversations: [] } });
+        GlobalEmitter.emit.mockClear();
+        const getConversations = vi.spyOn(wrapper.vm, "getConversations").mockResolvedValue(undefined);
+
+        await wrapper.vm.onMarkAllAsRead();
+        await wrapper.vm.$nextTick();
+
+        expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/lxmf/conversations/bulk-mark-as-read", {
+            mark_all: true,
+        });
+        expect(GlobalEmitter.emit).toHaveBeenCalledWith("notifications-changed");
+        expect(getConversations).toHaveBeenCalled();
+    });
+
     it("onBulkMarkAsRead does not notify bell when server rejects", async () => {
         const wrapper = mountMessagesPage();
         await wrapper.vm.$nextTick();
