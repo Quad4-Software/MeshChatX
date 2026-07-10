@@ -392,15 +392,50 @@ class MessageDAO:
 
         rows = self.provider.fetchall(
             "SELECT id, hash, peer_hash, source_hash, destination_hash, "
-            "is_incoming, title, content, fields, timestamp "
+            "is_incoming, title, "
+            "substr(COALESCE(content, ''), 1, 240) as content, "
+            "CASE WHEN length(COALESCE(fields, '')) > 16384 THEN NULL ELSE fields END as fields, "
+            "CASE WHEN fields IS NOT NULL AND fields != '' AND fields != '{}' "
+            "AND (instr(fields, '\"image\"') > 0 OR instr(fields, '\"0x05\"') > 0 "
+            "OR instr(fields, '\"audio\"') > 0 OR instr(fields, '\"0x06\"') > 0 "
+            "OR instr(fields, '\"file_attachments\"') > 0 OR instr(fields, '\"0x07\"') > 0) "
+            "THEN 1 ELSE 0 END as has_attachments, "
+            "CASE WHEN fields IS NOT NULL AND fields != '' AND fields != '{}' "
+            "AND (instr(fields, '\"reaction\"') > 0 OR instr(fields, '\"0x40\"') > 0) "
+            "THEN 1 ELSE 0 END as has_reaction, "
+            "CASE WHEN fields IS NOT NULL AND fields != '' AND fields != '{}' "
+            "AND (instr(fields, '\"image\"') > 0 OR instr(fields, '\"0x05\"') > 0) "
+            "THEN 1 ELSE 0 END as has_image, "
+            "CASE WHEN fields IS NOT NULL AND fields != '' AND fields != '{}' "
+            "AND (instr(fields, '\"audio\"') > 0 OR instr(fields, '\"0x06\"') > 0) "
+            "THEN 1 ELSE 0 END as has_audio, "
+            "CASE WHEN fields IS NOT NULL AND fields != '' AND fields != '{}' "
+            "AND (instr(fields, '\"file_attachments\"') > 0 OR instr(fields, '\"0x07\"') > 0) "
+            "THEN 1 ELSE 0 END as has_files, "
+            "timestamp "
             "FROM lxmf_messages WHERE peer_hash = ? AND is_incoming = 1 "
             "ORDER BY timestamp DESC LIMIT ?",
             (peer_hash, scan_limit),
         )
         for row in rows:
             row_dict = dict(row) if not isinstance(row, dict) else row
+            fields = row_dict.get("fields")
+            if fields is None and (
+                row_dict.get("has_attachments")
+                or row_dict.get("has_image")
+                or row_dict.get("has_audio")
+                or row_dict.get("has_files")
+            ):
+                # Huge attachment blob omitted from SELECT: still user-facing.
+                return row_dict
+            if row_dict.get("has_reaction") and not (
+                (row_dict.get("content") and str(row_dict.get("content")).strip())
+                or (row_dict.get("title") and str(row_dict.get("title")).strip())
+                or row_dict.get("has_attachments")
+            ):
+                continue
             if is_user_facing_lxmf_payload(
-                row_dict.get("fields"),
+                fields,
                 row_dict.get("content"),
                 row_dict.get("title"),
             ):

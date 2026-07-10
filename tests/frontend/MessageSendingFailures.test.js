@@ -4,6 +4,7 @@ import ConversationViewer from "@/components/messages/ConversationViewer.vue";
 import WebSocketConnection from "@/js/WebSocketConnection";
 import GlobalState from "@/js/GlobalState";
 import DialogUtils from "@/js/DialogUtils";
+import ToastUtils from "@/js/ToastUtils";
 
 describe("MessageSendingFailures.test.js", () => {
     let axiosMock;
@@ -21,7 +22,12 @@ describe("MessageSendingFailures.test.js", () => {
                     return Promise.resolve({ data: { lxmf_messages: [] } });
                 return Promise.resolve({ data: {} });
             }),
-            post: vi.fn().mockImplementation(() => Promise.resolve({ data: { lxmf_message: { hash: "mock" } } })),
+            post: vi.fn().mockImplementation((url) => {
+                if (typeof url === "string" && (url.includes("/request-path") || url.includes("/drop-path"))) {
+                    return Promise.resolve({ data: {} });
+                }
+                return Promise.resolve({ data: { lxmf_message: { hash: "mock" } } });
+            }),
             delete: vi.fn().mockResolvedValue({ data: {} }),
         };
         window.api = axiosMock;
@@ -32,6 +38,7 @@ describe("MessageSendingFailures.test.js", () => {
 
         vi.spyOn(DialogUtils, "confirm").mockResolvedValue(true);
         vi.spyOn(DialogUtils, "alert").mockImplementation(() => {});
+        vi.spyOn(ToastUtils, "error").mockImplementation(() => {});
     });
 
     afterEach(() => {
@@ -107,9 +114,18 @@ describe("MessageSendingFailures.test.js", () => {
         });
 
         const wrapper = mountConversationViewer();
+        wrapper.vm.peerPathSnapshot = {
+            path: { hops: 1 },
+            path_stale: false,
+            path_unresponsive: false,
+        };
         wrapper.vm.newMessageText = "http LAN host";
 
         await wrapper.vm.sendMessage();
+        await vi.waitFor(() => {
+            const sendCalls = axiosMock.post.mock.calls.filter((c) => c[0] === "/api/v1/lxmf-messages/send");
+            expect(sendCalls.length).toBeGreaterThan(0);
+        });
 
         expect(DialogUtils.alert).not.toHaveBeenCalled();
         expect(axiosMock.post).toHaveBeenCalledWith(
@@ -122,6 +138,46 @@ describe("MessageSendingFailures.test.js", () => {
             })
         );
         expect(wrapper.vm.chatItems.some((item) => item.lxmf_message.hash === "mock")).toBe(true);
+    });
+
+    it("warms path before direct send when peer path is missing", async () => {
+        const wrapper = mountConversationViewer();
+        wrapper.vm.peerPathSnapshot = { path: null, path_stale: true, path_unresponsive: false };
+        wrapper.vm.newMessageText = "need path";
+        wrapper.vm.newMessageDeliveryMethod = "direct";
+
+        await wrapper.vm.sendMessage();
+        await vi.waitFor(() => {
+            expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/destination/test-hash/request-path");
+            expect(axiosMock.post).toHaveBeenCalledWith(
+                "/api/v1/lxmf-messages/send",
+                expect.objectContaining({
+                    delivery_method: "direct",
+                })
+            );
+        });
+    });
+
+    it("skips path warm for propagated delivery", async () => {
+        const wrapper = mountConversationViewer();
+        wrapper.vm.peerPathSnapshot = { path: null, path_stale: true, path_unresponsive: false };
+        wrapper.vm.newMessageText = "via prop";
+        wrapper.vm.newMessageDeliveryMethod = "propagated";
+
+        await wrapper.vm.sendMessage();
+        await vi.waitFor(() => {
+            expect(axiosMock.post).toHaveBeenCalledWith(
+                "/api/v1/lxmf-messages/send",
+                expect.objectContaining({
+                    delivery_method: "propagated",
+                })
+            );
+        });
+
+        const pathWarmCalls = axiosMock.post.mock.calls.filter(
+            (c) => typeof c[0] === "string" && c[0].includes("/request-path")
+        );
+        expect(pathWarmCalls).toHaveLength(0);
     });
 
     it("updates UI when message state becomes failed via WebSocket", async () => {
@@ -160,6 +216,11 @@ describe("MessageSendingFailures.test.js", () => {
 
     it("handles second image failure in multi-image send", async () => {
         const wrapper = mountConversationViewer();
+        wrapper.vm.peerPathSnapshot = {
+            path: { hops: 1 },
+            path_stale: false,
+            path_unresponsive: false,
+        };
         wrapper.vm.newMessageText = "Two images";
 
         const image1 = new File([""], "image1.png", { type: "image/png" });
@@ -170,21 +231,32 @@ describe("MessageSendingFailures.test.js", () => {
         await wrapper.vm.onImageSelected(image1);
         await wrapper.vm.onImageSelected(image2);
 
-        // First image succeeds, second fails
-        axiosMock.post
-            .mockResolvedValueOnce({
-                data: { lxmf_message: { hash: "hash-1", content: "Two images", state: "outbound" } },
-            })
-            .mockRejectedValueOnce({ response: { data: { message: "Second image failed" } } });
+        let sendCount = 0;
+        axiosMock.post.mockImplementation((url) => {
+            if (typeof url === "string" && (url.includes("/request-path") || url.includes("/drop-path"))) {
+                return Promise.resolve({ data: {} });
+            }
+            if (typeof url === "string" && url.includes("/lxmf-messages/send")) {
+                sendCount += 1;
+                if (sendCount === 1) {
+                    return Promise.resolve({
+                        data: { lxmf_message: { hash: "hash-1", content: "Two images", state: "outbound" } },
+                    });
+                }
+                return Promise.reject({ response: { data: { message: "Second image failed" } } });
+            }
+            return Promise.resolve({ data: {} });
+        });
 
         const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
         await wrapper.vm.sendMessage();
+        await vi.waitFor(() => {
+            expect(sendCount).toBe(2);
+        });
 
-        // Both images should be processed, but second one logs an error
-        const sendCalls = axiosMock.post.mock.calls.filter((c) => c[0] === "/api/v1/lxmf-messages/send");
-        expect(sendCalls.length).toBe(2);
         expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("Failed to send image 2"), expect.anything());
+        expect(ToastUtils.error).toHaveBeenCalled();
 
         consoleSpy.mockRestore();
     });

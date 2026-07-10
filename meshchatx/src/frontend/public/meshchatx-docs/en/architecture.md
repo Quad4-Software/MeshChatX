@@ -10,6 +10,8 @@ MeshChatX is a heavily extended fork of Reticulum MeshChat. The goals below shap
 - Keep the Python backend and Vue frontend independently testable.
 - Run in constrained environments with predictable SQLite behaviour.
 
+Mesh features should follow Reticulum’s post-IP design patterns (portable identity hashes, announces, store-and-forward, transport-agnostic APIs, scarce payloads). Agent and contributor gates live in `docs/agents/conventions/reticulum-zen.md` and `docs/agents/skills/reticulum-design-gates/SKILL.md`, derived from the [Zen of Reticulum](https://reticulum.network/manual/zen.html).
+
 ## Process overview
 
 One Python process owns the web server, Reticulum stack, and all per-identity managers. The Vue frontend is static assets served from `meshchatx/public/` after a Vite build.
@@ -138,7 +140,7 @@ Practical extension paths today:
 - Database schema changes through migrations
 - Generic RNS Link transport over WebSocket (`rns.link.*`) for external consoles and plugins (see **RNS Link API**)
 
-Granted plugin manager capabilities include `destinationPath.read` and `rnsLink.open` / `identify` / `request` / `send` / `close`. Hooks include `announce.received` and `rns.link.event`. Storage (`storage:isolated`) and outbound HTTP (`network:fetch`) are also grantable; install preview scans plugin files for external URLs and stores the user-selected grant subset.
+Granted plugin manager capabilities include `destinationPath.read`, `debugLog.read`, `bugReport.*`, and `rnsLink.open` / `identify` / `request` / `send` / `close`. Hooks include `announce.received` and `rns.link.event`. Storage (`storage:isolated`) and outbound HTTP (`network:fetch`) are also grantable; install preview scans plugin files for external URLs and stores the user-selected grant subset.
 
 When adding features, prefer identity-scoped state, explicit migrations, endpoint tests, and narrowly declared plugin permissions.
 

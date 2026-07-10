@@ -12,7 +12,7 @@ export const STARTUP_STAGE_LABELS = {
 /**
  * Interpret a /api/v1/status JSON body for boot gating.
  * @param {unknown} data
- * @returns {{ kind: "ready" | "failed" | "starting" | "invalid", stage?: string, error?: string, label?: string }}
+ * @returns {{ kind: "ready" | "degraded" | "failed" | "starting" | "invalid", stage?: string, error?: string, label?: string }}
  */
 export function interpretStartupStatus(data) {
     if (!data || typeof data !== "object") {
@@ -21,6 +21,15 @@ export function interpretStartupStatus(data) {
     const status = data.status;
     const stage = typeof data.stage === "string" ? data.stage : undefined;
     if (status === "failed") {
+        // HTTP is up and the backend marked UI as usable: mount the app in
+        // degraded mode so interfaces/settings remain reachable for recovery.
+        if (data.ui_ready === true || data.network_degraded === true) {
+            return {
+                kind: "degraded",
+                stage: stage || "failed",
+                error: typeof data.error === "string" ? data.error : undefined,
+            };
+        }
         return {
             kind: "failed",
             stage: stage || "failed",
@@ -42,7 +51,7 @@ export function interpretStartupStatus(data) {
 }
 
 /**
- * Poll /api/v1/status until the network stack is ready.
+ * Poll /api/v1/status until the network stack is ready or degraded-but-usable.
  * @param {{
  *   fetchImpl?: typeof fetch,
  *   now?: () => number,
@@ -50,9 +59,10 @@ export function interpretStartupStatus(data) {
  *   timeoutMs?: number,
  *   onLine?: (text: string) => void,
  *   onErrorState?: () => void,
+ *   onDegraded?: (error?: string) => void,
  *   statusUrl?: string,
  * }} [options]
- * @returns {Promise<boolean>}
+ * @returns {Promise<"ready" | "degraded" | false>}
  */
 export async function waitForNetworkReady(options = {}) {
     const fetchImpl = options.fetchImpl || fetch;
@@ -61,6 +71,7 @@ export async function waitForNetworkReady(options = {}) {
     const timeoutMs = options.timeoutMs ?? 120000;
     const onLine = options.onLine || (() => {});
     const onErrorState = options.onErrorState || (() => {});
+    const onDegraded = options.onDegraded || (() => {});
     const statusUrl = options.statusUrl || "/api/v1/status";
 
     const deadline = now() + timeoutMs;
@@ -71,13 +82,18 @@ export async function waitForNetworkReady(options = {}) {
             if (response.ok) {
                 const data = await response.json();
                 const interpreted = interpretStartupStatus(data);
+                if (interpreted.kind === "degraded") {
+                    onLine(interpreted.error || "Mesh network unavailable. Opening recovery UI…");
+                    onDegraded(interpreted.error);
+                    return "degraded";
+                }
                 if (interpreted.kind === "failed") {
                     onLine(interpreted.error || "Network startup failed.");
                     onErrorState();
                     return false;
                 }
                 if (interpreted.kind === "ready") {
-                    return true;
+                    return "ready";
                 }
                 if (interpreted.kind === "starting") {
                     onLine(interpreted.label || "Getting things ready…");

@@ -627,7 +627,8 @@ export default {
             const f = event.target.files?.[0];
             event.target.value = "";
             if (!f) return;
-            this.sendFilePath = f.name;
+            // Browsers only expose the basename; require an explicit full path.
+            this.sendFilePath = "";
             DialogUtils.alert(this.$t("rncp.web_path_hint"));
         },
         async pickFetchSaveDirectory() {
@@ -725,9 +726,17 @@ export default {
                 this.sendInProgress = false;
             }
         },
-        cancelSend() {
+        async cancelSend() {
+            const transferId = this.sendTransferId;
             this.sendInProgress = false;
             this.sendProgress = 0;
+            try {
+                await window.api.post("/api/v1/rncp/cancel", {
+                    transfer_id: transferId || undefined,
+                });
+            } catch (e) {
+                console.error(e);
+            }
         },
         async fetchFile() {
             if (!this.fetchDestinationHash || this.fetchDestinationHash.length !== 32) {
@@ -773,9 +782,17 @@ export default {
                 this.fetchInProgress = false;
             }
         },
-        cancelFetch() {
+        async cancelFetch() {
+            const transferId = this.fetchTransferId;
             this.fetchInProgress = false;
             this.fetchProgress = 0;
+            try {
+                await window.api.post("/api/v1/rncp/cancel", {
+                    transfer_id: transferId || undefined,
+                });
+            } catch (e) {
+                console.error(e);
+            }
         },
         async startListen() {
             const allowedHashes = this.listenAllowedHashes

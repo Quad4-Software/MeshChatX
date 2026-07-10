@@ -7,13 +7,22 @@ vi.mock("@/js/WebSocketConnection", () => ({
     default: {
         on: vi.fn(),
         off: vi.fn(),
-        send: vi.fn(),
+        send: vi.fn(() => true),
+    },
+}));
+
+vi.mock("@/js/ToastUtils", () => ({
+    default: {
+        success: vi.fn(),
+        error: vi.fn(),
+        warning: vi.fn(),
     },
 }));
 
 describe("ForwarderPage.vue", () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        WebSocketConnection.send.mockReturnValue(true);
     });
 
     const mountForwarderPage = () => {

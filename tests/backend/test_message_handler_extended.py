@@ -69,6 +69,12 @@ def test_get_conversations_base(mock_db):
     query = args[0]
     assert "SELECT" in query
     assert "FROM lxmf_messages m1" in query
+    assert "substr(COALESCE(m1.content, ''), 1," in query
+    assert "has_image" in query
+    assert "has_attachments" in query
+    # Full attachment blobs must never be selected into the list API.
+    assert ", m1.fields," not in query
+    assert ", m1.content," not in query
 
 
 def test_get_conversations_with_filters(mock_db):
@@ -78,6 +84,7 @@ def test_get_conversations_with_filters(mock_db):
         search="test",
         filter_unread=True,
         filter_failed=True,
+        filter_has_attachments=True,
     )
 
     args, _ = mock_db.provider.fetchall.call_args
@@ -86,4 +93,5 @@ def test_get_conversations_with_filters(mock_db):
     # Check if any part of the query matches search or filters
     assert "m1.peer_hash" in query
     assert "m1.state = 'failed'" in query
+    assert "instr(m1.fields" in query
     assert "%test%" in params

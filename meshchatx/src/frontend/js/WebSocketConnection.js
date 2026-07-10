@@ -281,7 +281,9 @@ class WebSocketConnection {
     send(message) {
         if (this.ws != null && this.ws.readyState === WebSocket.OPEN) {
             this.ws.send(message);
+            return true;
         }
+        return false;
     }
 
     ping() {

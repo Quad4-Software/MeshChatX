@@ -1626,8 +1626,8 @@
                             <header class="settings-section__header">
                                 <div>
                                     <div class="settings-section__eyebrow">{{ $t("app.settings_map_eyebrow") }}</div>
-                                    <h2>{{ $t("app.location") }}</h2>
-                                    <p>{{ $t("app.location_manage_desc") }}</p>
+                                    <h2>{{ $t("app.map_settings_title") }}</h2>
+                                    <p>{{ $t("app.map_settings_desc") }}</p>
                                 </div>
                             </header>
                             <div class="settings-section__body space-y-4">
@@ -1720,6 +1720,161 @@
                                                 )
                                             "
                                         />
+                                    </div>
+                                </div>
+
+                                <div class="space-y-2 border-t border-gray-200 dark:border-zinc-800 pt-4">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("app.map_defaults_heading") }}
+                                    </div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                        <div class="space-y-2">
+                                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                                {{ $t("app.map_default_lat") }}
+                                            </div>
+                                            <input
+                                                v-model="config.map_default_lat"
+                                                type="text"
+                                                class="input-field"
+                                                @input="
+                                                    updateConfig(
+                                                        { map_default_lat: config.map_default_lat },
+                                                        'map_default_lat'
+                                                    )
+                                                "
+                                            />
+                                        </div>
+                                        <div class="space-y-2">
+                                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                                {{ $t("app.map_default_lon") }}
+                                            </div>
+                                            <input
+                                                v-model="config.map_default_lon"
+                                                type="text"
+                                                class="input-field"
+                                                @input="
+                                                    updateConfig(
+                                                        { map_default_lon: config.map_default_lon },
+                                                        'map_default_lon'
+                                                    )
+                                                "
+                                            />
+                                        </div>
+                                        <div class="space-y-2">
+                                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                                {{ $t("app.map_default_zoom") }}
+                                            </div>
+                                            <input
+                                                v-model.number="config.map_default_zoom"
+                                                type="number"
+                                                class="input-field"
+                                                @input="
+                                                    updateConfig(
+                                                        { map_default_zoom: config.map_default_zoom },
+                                                        'map_default_zoom'
+                                                    )
+                                                "
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-2 border-t border-gray-200 dark:border-zinc-800 pt-4">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("app.map_tiles_heading") }}
+                                    </div>
+                                    <div class="space-y-2">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            {{ $t("app.map_tile_server_url") }}
+                                        </div>
+                                        <input
+                                            v-model="config.map_tile_server_url"
+                                            type="text"
+                                            class="input-field"
+                                            @input="
+                                                updateConfig(
+                                                    { map_tile_server_url: config.map_tile_server_url },
+                                                    'map_tile_server_url'
+                                                )
+                                            "
+                                        />
+                                    </div>
+                                    <div class="space-y-2">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            {{ $t("app.map_nominatim_api_url") }}
+                                        </div>
+                                        <input
+                                            v-model="config.map_nominatim_api_url"
+                                            type="text"
+                                            class="input-field"
+                                            @input="
+                                                updateConfig(
+                                                    { map_nominatim_api_url: config.map_nominatim_api_url },
+                                                    'map_nominatim_api_url'
+                                                )
+                                            "
+                                        />
+                                    </div>
+                                    <label class="setting-toggle">
+                                        <Toggle
+                                            v-model="config.map_offline_enabled"
+                                            @update:model-value="
+                                                updateConfig(
+                                                    { map_offline_enabled: config.map_offline_enabled },
+                                                    'map_offline_enabled'
+                                                )
+                                            "
+                                        />
+                                        <span class="setting-toggle__label">
+                                            <span class="setting-toggle__title">{{
+                                                $t("app.map_offline_enabled")
+                                            }}</span>
+                                        </span>
+                                    </label>
+                                    <label class="setting-toggle">
+                                        <Toggle
+                                            v-model="config.map_tile_cache_enabled"
+                                            @update:model-value="
+                                                updateConfig(
+                                                    { map_tile_cache_enabled: config.map_tile_cache_enabled },
+                                                    'map_tile_cache_enabled'
+                                                )
+                                            "
+                                        />
+                                        <span class="setting-toggle__label">
+                                            <span class="setting-toggle__title">{{
+                                                $t("app.map_tile_cache_enabled")
+                                            }}</span>
+                                        </span>
+                                    </label>
+                                </div>
+
+                                <div class="space-y-3 border-t border-gray-200 dark:border-zinc-800 pt-4">
+                                    <div>
+                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            {{ $t("app.map_overlay_limits_heading") }}
+                                        </div>
+                                        <div class="text-xs text-gray-600 dark:text-gray-400">
+                                            {{ $t("app.map_overlay_limits_desc") }}
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div v-for="field in mapOverlayLimitFields" :key="field.key" class="space-y-2">
+                                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                                {{ $t(field.labelKey) }}
+                                            </div>
+                                            <input
+                                                v-model.number="config[field.key]"
+                                                type="number"
+                                                class="input-field"
+                                                :min="field.min"
+                                                :max="field.max"
+                                                @change="onMapOverlayLimitChange(field.key)"
+                                            />
+                                            <div class="text-[10px] text-gray-500">
+                                                {{ field.min }} .. {{ field.max }}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -3035,25 +3190,34 @@
                         <!-- Keyboard Shortcuts -->
                         <div v-show="showSection('shortcuts')">
                             <section class="settings-section">
-                                <div class="settings-section__header">
-                                    <div class="flex items-center gap-3">
+                                <button
+                                    type="button"
+                                    class="settings-section__header w-full text-left"
+                                    :aria-expanded="shortcutsExpanded"
+                                    @click="shortcutsExpanded = !shortcutsExpanded"
+                                >
+                                    <div class="flex items-center gap-3 w-full min-w-0">
                                         <div
-                                            class="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl"
+                                            class="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl shrink-0"
                                         >
                                             <MaterialDesignIcon icon-name="keyboard-outline" class="size-6" />
                                         </div>
-                                        <div>
-                                            <h2>Keyboard Shortcuts</h2>
-                                            <p>Customize your workflow with quick keyboard actions</p>
+                                        <div class="min-w-0 flex-1">
+                                            <h2>{{ $t("settings.keyboard_shortcuts_title") }}</h2>
+                                            <p>{{ $t("settings.keyboard_shortcuts_description") }}</p>
                                         </div>
+                                        <MaterialDesignIcon
+                                            :icon-name="shortcutsExpanded ? 'chevron-up' : 'chevron-down'"
+                                            class="size-6 shrink-0 text-gray-500 dark:text-zinc-400"
+                                        />
                                     </div>
-                                </div>
-                                <div class="settings-section__body">
-                                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                </button>
+                                <div v-show="shortcutsExpanded" class="settings-section__body">
+                                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                                         <div
                                             v-for="shortcut in KeyboardShortcuts.getDefaultShortcuts()"
                                             :key="shortcut.action"
-                                            class="bg-gray-50/50 dark:bg-zinc-800/30 rounded-2xl p-5 border border-gray-100 dark:border-zinc-800"
+                                            class="bg-gray-50/50 dark:bg-zinc-800/30 rounded-2xl p-4 sm:p-5 border border-gray-100 dark:border-zinc-800"
                                         >
                                             <div class="flex items-center justify-between mb-3">
                                                 <span
@@ -3153,6 +3317,7 @@ export default {
             GlobalState,
             ElectronUtils,
             KeyboardShortcuts,
+            shortcutsExpanded: typeof window !== "undefined" ? window.innerWidth >= 1024 : true,
             config: {
                 display_name: "",
                 identity_hash: "",
@@ -3209,6 +3374,23 @@ export default {
                 location_manual_lat: "0.0",
                 location_manual_lon: "0.0",
                 location_manual_alt: "0.0",
+                map_default_lat: "0.0",
+                map_default_lon: "0.0",
+                map_default_zoom: 2,
+                map_tile_server_url: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                map_nominatim_api_url: "https://nominatim.openstreetmap.org",
+                map_offline_enabled: false,
+                map_tile_cache_enabled: true,
+                map_overlay_max_bytes: 8 * 1024 * 1024,
+                map_overlay_max_features: 50000,
+                map_overlay_max_kmz_uncompressed_bytes: 16 * 1024 * 1024,
+                map_overlay_max_sources: 64,
+                map_overlay_max_concurrent_jobs: 2,
+                map_overlay_path_timeout_seconds: 30,
+                map_overlay_transfer_timeout_seconds: 120,
+                map_overlay_job_timeout_seconds: 300,
+                map_overlay_max_retries: 3,
+                map_overlay_retry_delay_seconds: 2,
                 telemetry_enabled: false,
                 gitea_base_url: "",
                 csp_extra_connect_src: "",
@@ -3415,6 +3597,70 @@ export default {
         inboundStampsEnabled() {
             const c = this.config?.lxmf_inbound_stamp_cost;
             return (typeof c === "number" ? c : Number(c) || 0) > 0;
+        },
+        mapOverlayLimitFields() {
+            return [
+                {
+                    key: "map_overlay_max_bytes",
+                    labelKey: "app.map_overlay_max_bytes",
+                    min: 65536,
+                    max: 67108864,
+                },
+                {
+                    key: "map_overlay_max_features",
+                    labelKey: "app.map_overlay_max_features",
+                    min: 100,
+                    max: 500000,
+                },
+                {
+                    key: "map_overlay_max_kmz_uncompressed_bytes",
+                    labelKey: "app.map_overlay_max_kmz_uncompressed_bytes",
+                    min: 262144,
+                    max: 134217728,
+                },
+                {
+                    key: "map_overlay_max_sources",
+                    labelKey: "app.map_overlay_max_sources",
+                    min: 1,
+                    max: 256,
+                },
+                {
+                    key: "map_overlay_max_concurrent_jobs",
+                    labelKey: "app.map_overlay_max_concurrent_jobs",
+                    min: 1,
+                    max: 8,
+                },
+                {
+                    key: "map_overlay_path_timeout_seconds",
+                    labelKey: "app.map_overlay_path_timeout_seconds",
+                    min: 5,
+                    max: 300,
+                },
+                {
+                    key: "map_overlay_transfer_timeout_seconds",
+                    labelKey: "app.map_overlay_transfer_timeout_seconds",
+                    min: 15,
+                    max: 600,
+                },
+                {
+                    key: "map_overlay_job_timeout_seconds",
+                    labelKey: "app.map_overlay_job_timeout_seconds",
+                    min: 30,
+                    max: 1800,
+                },
+                {
+                    key: "map_overlay_max_retries",
+                    labelKey: "app.map_overlay_max_retries",
+                    min: 0,
+                    max: 10,
+                },
+                {
+                    key: "map_overlay_retry_delay_seconds",
+                    labelKey: "app.map_overlay_retry_delay_seconds",
+                    min: 1,
+                    max: 120,
+                },
+            ];
         },
         isMeshChatXAndroid() {
             return (
@@ -3851,6 +4097,18 @@ export default {
                 ToastUtils.error(this.$t("common.save_failed"));
                 console.log(e);
             }
+        },
+        async onMapOverlayLimitChange(key) {
+            const field = this.mapOverlayLimitFields.find((f) => f.key === key);
+            let value = Number(this.config[key]);
+            if (!Number.isFinite(value)) {
+                return;
+            }
+            if (field) {
+                value = Math.max(field.min, Math.min(field.max, Math.trunc(value)));
+                this.config[key] = value;
+            }
+            await this.updateConfig({ [key]: value }, key);
         },
         syncLxmfTransferLimitInputs() {
             const incoming = syncIncomingDeliveryFieldsFromBytes(this.config.lxmf_delivery_transfer_limit_in_bytes);

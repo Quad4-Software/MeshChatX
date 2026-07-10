@@ -167,7 +167,7 @@ describe("RNSHManagerPage.vue", () => {
             makeSession({
                 output_chunks: [{ seq: 99, text: "LINE_TAIL\n", ts: 2 }],
                 output_text: "LINE_0400\nLINE_TAIL\n",
-            }),
+            })
         );
 
         expect(wrapper.vm.outputsBySession[SESSION_ID]).toBe(live);
@@ -182,7 +182,7 @@ describe("RNSHManagerPage.vue", () => {
             makeSession({
                 output_chunks: [{ seq: 1, text: "tail only\n", ts: 1 }],
                 output_text: longText,
-            }),
+            })
         );
 
         expect(wrapper.vm.outputsBySession[SESSION_ID]).toBe(longText);

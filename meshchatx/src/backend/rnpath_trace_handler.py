@@ -62,7 +62,17 @@ class RNPathTraceHandler:
 
             path.append({"type": "local", "hash": local_hash, "name": "Local Node"})
 
-            if hops == 1:
+            if hops == 0:
+                path.append(
+                    {
+                        "type": "destination",
+                        "hash": destination_hash_str,
+                        "hops": 0,
+                        "interface": next_hop_interface,
+                        "name": "Local destination",
+                    },
+                )
+            elif hops == 1:
                 # Direct
                 path.append(
                     {

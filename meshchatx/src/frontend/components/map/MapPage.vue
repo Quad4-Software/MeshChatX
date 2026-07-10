@@ -571,6 +571,14 @@
                         @export-kmz="exportVectorKmz"
                     />
 
+                    <MapRemoteOverlayPanel
+                        :disabled="!map"
+                        @overlays-changed="onRemoteOverlaysChanged"
+                        @export-overlay="onRemoteOverlayExport"
+                        @copy-overlay-to-drawings="onRemoteOverlayCopyToDrawings"
+                        @error="onRemoteOverlayError"
+                    />
+
                     <!-- Map Style Presets -->
                     <div v-if="!offlineEnabled" class="space-y-2">
                         <div class="flex items-center justify-between">
@@ -1166,6 +1174,7 @@ import MapExportConfigPanel from "./internal/MapExportConfigPanel.vue";
 import MapExportProgressPanel from "./internal/MapExportProgressPanel.vue";
 import MapLoadingOverlay from "./internal/MapLoadingOverlay.vue";
 import MapVectorExchangePanel from "./internal/MapVectorExchangePanel.vue";
+import MapRemoteOverlayPanel from "./internal/MapRemoteOverlayPanel.vue";
 import { buildMeshchatMapUri, buildWebHashMapUrl } from "../../js/mapLinkUtils.js";
 import { readGeoJsonToFeatures, writeFeaturesToGeoJson } from "../../js/mapExchange/geoJsonCodec.js";
 import { readKmlToFeatures, writeFeaturesToKml } from "../../js/mapExchange/kmlCodec.js";
@@ -1203,6 +1212,7 @@ export default {
         MapExportProgressPanel,
         MapLoadingOverlay,
         MapVectorExchangePanel,
+        MapRemoteOverlayPanel,
     },
     props: {
         embedded: {
@@ -1299,6 +1309,10 @@ export default {
             tileFailoverInProgress: false,
             showTileConnectivityBanner: false,
             tileConnectivityBannerTimer: null,
+
+            // remote overlay layers (id -> { source, layer })
+            remoteOverlayLayers: {},
+            remoteOverlayLoadGeneration: 0,
 
             // drawing tools
             draw: null,
@@ -1636,6 +1650,9 @@ export default {
             settingsEl.style.willChange = "";
         }
         if (this.map) {
+            for (const id of Object.keys(this.remoteOverlayLayers || {})) {
+                this.removeRemoteOverlayLayer(id);
+            }
             const v = this.map.getView();
             if (v && typeof v.un === "function") {
                 v.un("change:rotation", this.syncMapNorthIndicatorFromViewRotation);
@@ -4447,6 +4464,162 @@ export default {
 
         onVectorExchangeImportError() {
             ToastUtils.error(this.$t("map.vector_import_failed"));
+        },
+
+        onRemoteOverlayError(err) {
+            console.error(err);
+            ToastUtils.error(this.$t("map.remote_overlays_error"));
+        },
+
+        async onRemoteOverlaysChanged(overlays) {
+            if (!this.map) {
+                return;
+            }
+            const gen = ++this.remoteOverlayLoadGeneration;
+            const list = Array.isArray(overlays) ? overlays : [];
+            const keep = new Set(list.map((o) => String(o.id)));
+            for (const id of Object.keys(this.remoteOverlayLayers)) {
+                if (!keep.has(id)) {
+                    this.removeRemoteOverlayLayer(id);
+                }
+            }
+            for (const overlay of list) {
+                if (gen !== this.remoteOverlayLoadGeneration) {
+                    return;
+                }
+                const id = String(overlay.id);
+                const visible = Boolean(overlay.visible);
+                if (overlay.status !== "ready" || !overlay.format) {
+                    const existing = this.remoteOverlayLayers[id];
+                    if (existing?.layer) {
+                        existing.layer.setVisible(false);
+                    }
+                    continue;
+                }
+                try {
+                    await this.ensureRemoteOverlayLayer(overlay);
+                    if (gen !== this.remoteOverlayLoadGeneration) {
+                        return;
+                    }
+                    const entry = this.remoteOverlayLayers[id];
+                    if (entry?.layer) {
+                        entry.layer.setVisible(visible);
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+        },
+
+        removeRemoteOverlayLayer(id) {
+            const entry = this.remoteOverlayLayers[id];
+            if (!entry) {
+                return;
+            }
+            if (this.map && entry.layer) {
+                this.map.removeLayer(entry.layer);
+            }
+            delete this.remoteOverlayLayers[id];
+        },
+
+        async ensureRemoteOverlayLayer(overlay) {
+            const id = String(overlay.id);
+            const contentRes = await fetch(`/api/v1/map/overlays/${overlay.id}/content`, {
+                credentials: "same-origin",
+            });
+            if (!contentRes.ok) {
+                throw new Error(`overlay content ${contentRes.status}`);
+            }
+            let features = [];
+            const fmt = overlay.format;
+            if (fmt === "kmz") {
+                const buf = await contentRes.arrayBuffer();
+                features = await readKmzToFeatures(buf, "EPSG:3857");
+            } else {
+                const text = await contentRes.text();
+                if (fmt === "kml") {
+                    features = readKmlToFeatures(text, "EPSG:3857");
+                } else {
+                    features = readGeoJsonToFeatures(text, "EPSG:3857");
+                }
+            }
+            for (const f of features) {
+                f.set("type", "remote_overlay");
+                f.set("overlay_id", overlay.id);
+            }
+            let entry = this.remoteOverlayLayers[id];
+            if (!entry) {
+                const source = new VectorSource();
+                const layer = new VectorLayer({
+                    source,
+                    zIndex: 45,
+                    opacity: 0.95,
+                });
+                this.map.addLayer(layer);
+                entry = { source, layer, sha: overlay.content_sha256 };
+                this.remoteOverlayLayers[id] = entry;
+            }
+            entry.source.clear();
+            entry.source.addFeatures(features);
+            entry.sha = overlay.content_sha256;
+        },
+
+        async onRemoteOverlayExport({ id, format }) {
+            try {
+                const res = await fetch(`/api/v1/map/overlays/${id}/export?format=${encodeURIComponent(format)}`, {
+                    credentials: "same-origin",
+                });
+                if (!res.ok) {
+                    throw new Error(`export ${res.status}`);
+                }
+                const blob = await res.blob();
+                const cd = res.headers.get("Content-Disposition") || "";
+                const match = /filename="([^"]+)"/.exec(cd);
+                const name = match?.[1] || `overlay-${id}.${format}`;
+                this.downloadBlobFile(name, blob, blob.type || "application/octet-stream");
+                ToastUtils.success(this.$t("map.remote_overlays_export_ok"));
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error(this.$t("map.remote_overlays_export_failed"));
+            }
+        },
+
+        async onRemoteOverlayCopyToDrawings(overlay) {
+            if (!this.drawSource || !overlay?.id) {
+                return;
+            }
+            try {
+                const contentRes = await fetch(`/api/v1/map/overlays/${overlay.id}/content`, {
+                    credentials: "same-origin",
+                });
+                if (!contentRes.ok) {
+                    throw new Error(`overlay content ${contentRes.status}`);
+                }
+                let features = [];
+                const fmt = overlay.format;
+                if (fmt === "kmz") {
+                    const buf = await contentRes.arrayBuffer();
+                    features = await readKmzToFeatures(buf, "EPSG:3857");
+                } else {
+                    const text = await contentRes.text();
+                    if (fmt === "kml") {
+                        features = readKmlToFeatures(text, "EPSG:3857");
+                    } else {
+                        features = readGeoJsonToFeatures(text, "EPSG:3857");
+                    }
+                }
+                for (const f of features) {
+                    f.set("type", "draw");
+                    f.unset("overlay_id");
+                }
+                this.drawSource.addFeatures(features);
+                this.rebuildMeasurementOverlays();
+                this.saveMapState();
+                ToastUtils.success(this.$t("map.remote_overlays_copied"));
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error(this.$t("map.remote_overlays_error"));
+            }
         },
 
         onMapDragOver(ev) {

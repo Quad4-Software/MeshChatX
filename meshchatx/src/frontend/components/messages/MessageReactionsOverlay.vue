@@ -17,8 +17,8 @@
             :style="{
                 order: isOutbound ? chipIdx + 2 : chipIdx + 1,
             }"
-            :title="chip.kind === 'reaction' ? cv.reactionReactorLabel(chip.reaction.sender) : ''"
-            >{{ chip.kind === "more" ? `+${hiddenReactionCount}` : chip.reaction.emoji }}</span
+            :title="chip.kind === 'reaction' ? reactionTitle(chip.reaction) : ''"
+            >{{ chip.kind === "more" ? `+${hiddenReactionCount}` : chip.reaction?.emoji || "" }}</span
         >
         <button
             v-if="showReactButton"
@@ -74,21 +74,37 @@ export default {
     },
     computed: {
         visibleReactions() {
-            return (this.reactions || []).slice(0, MAX_VISIBLE_REACTIONS);
+            const list = Array.isArray(this.reactions) ? this.reactions : [];
+            return list.filter((r) => r && typeof r === "object").slice(0, MAX_VISIBLE_REACTIONS);
         },
         hiddenReactionCount() {
-            return Math.max(0, (this.reactions?.length ?? 0) - MAX_VISIBLE_REACTIONS);
+            const list = Array.isArray(this.reactions) ? this.reactions : [];
+            const valid = list.filter((r) => r && typeof r === "object");
+            return Math.max(0, valid.length - MAX_VISIBLE_REACTIONS);
         },
         reactionChips() {
             const chips = this.visibleReactions.map((r, idx) => ({
                 kind: "reaction",
-                key: r.reactionHash || `reaction-${idx}`,
+                key: r.reactionHash || `reaction-${idx}-${r.emoji || ""}-${r.sender || ""}`,
                 reaction: r,
             }));
             if (this.hiddenReactionCount > 0) {
                 chips.push({ kind: "more", key: "reaction-more" });
             }
             return chips;
+        },
+    },
+    methods: {
+        reactionTitle(reaction) {
+            try {
+                if (!reaction || typeof this.cv?.reactionReactorLabel !== "function") {
+                    return "";
+                }
+                return this.cv.reactionReactorLabel(reaction.sender) || "";
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
         },
     },
 };

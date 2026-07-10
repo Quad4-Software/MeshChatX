@@ -26,7 +26,7 @@ rngit: `git clone rns://06a54b505bb67b25ef3f8097e8001edc/public/MeshChatX`
 - Uses LXST for calls
 - Integrates [RRC](https://rrc.kc1awv.net/0)
 - Expanded tools
-- Map w/ MBTiles support
+- Map w/ MBTiles support, remote KMZ/KML/GeoJSON overlays (NomadNet `/file/` and RNGit sparse fetch)
 - Panes and Tabs
 - Replaced Peewee ORM with raw SQL.
 - Replaced Axios with native fetch.

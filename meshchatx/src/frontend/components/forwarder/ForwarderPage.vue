@@ -149,6 +149,7 @@
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import DialogUtils from "../../js/DialogUtils";
+import ToastUtils from "../../js/ToastUtils";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 
 export default {
@@ -195,33 +196,51 @@ export default {
         },
         addRule() {
             if (!this.newRule.forward_to_hash) return;
-            WebSocketConnection.send(
+            const hash = String(this.newRule.forward_to_hash || "").trim();
+            if (hash.length !== 32 || !/^[0-9a-fA-F]+$/.test(hash)) {
+                ToastUtils.warning(this.$t("forwarder.invalid_hash"));
+                return;
+            }
+            const sent = WebSocketConnection.send(
                 JSON.stringify({
                     type: "lxmf.forwarding.rule.add",
-                    rule: { ...this.newRule },
+                    rule: { ...this.newRule, forward_to_hash: hash },
                 })
             );
+            if (sent === false) {
+                ToastUtils.error(this.$t("forwarder.send_failed"));
+                return;
+            }
             this.newRule.name = "";
             this.newRule.forward_to_hash = "";
             this.newRule.source_filter_hash = "";
+            ToastUtils.success(this.$t("forwarder.rule_added"));
         },
         async deleteRule(id) {
             if (await DialogUtils.confirm(this.$t("forwarder.delete_confirm"))) {
-                WebSocketConnection.send(
+                const sent = WebSocketConnection.send(
                     JSON.stringify({
                         type: "lxmf.forwarding.rule.delete",
                         id: id,
                     })
                 );
+                if (sent === false) {
+                    ToastUtils.error(this.$t("forwarder.send_failed"));
+                    return;
+                }
+                ToastUtils.success(this.$t("forwarder.rule_deleted"));
             }
         },
         toggleRule(id) {
-            WebSocketConnection.send(
+            const sent = WebSocketConnection.send(
                 JSON.stringify({
                     type: "lxmf.forwarding.rule.toggle",
                     id: id,
                 })
             );
+            if (sent === false) {
+                ToastUtils.error(this.$t("forwarder.send_failed"));
+            }
         },
     },
 };

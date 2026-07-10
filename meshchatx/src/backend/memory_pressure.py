@@ -92,9 +92,16 @@ class MemoryPressureManager:
         db = getattr(self.app, "database", None) if self.app else None
         if db is not None and hasattr(db, "apply_memory_pressure_pragmas"):
             try:
-                db.apply_memory_pressure_pragmas(True)
+                landlock_active = bool(
+                    getattr(self.app, "landlock_active", False),
+                )
+                db.apply_memory_pressure_pragmas(
+                    True,
+                    landlock_active=landlock_active,
+                )
                 self._sqlite_relaxed = True
                 stats["sqlite_relaxed"] = True
+                stats["sqlite_file_temp"] = not landlock_active
             except Exception as exc:
                 _log.debug("SQLite pressure pragmas failed: %s", exc)
         _log.warning(

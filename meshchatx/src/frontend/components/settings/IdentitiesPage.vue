@@ -44,7 +44,7 @@
                 <input
                     ref="identityFileInput"
                     type="file"
-                    accept=".identity,.bin,.key"
+                    accept=".bin,.key,.identity,application/octet-stream,*/*"
                     class="hidden"
                     @change="onIdentityRestoreFileChange"
                 />
@@ -369,15 +369,21 @@
                 </div>
                 <div class="p-5 space-y-4">
                     <p class="text-sm text-gray-500 dark:text-gray-400">{{ $t("identities.import_hint") }}</p>
+                    <p class="text-xs text-gray-500 dark:text-zinc-400">
+                        {{ $t("identities.import_key_only_hint") }}
+                    </p>
                     <button
                         type="button"
                         class="w-full secondary-chip justify-center"
-                        @click="
-                            $refs.identityFileInput?.click();
-                            showImportModal = false;
-                        "
+                        :disabled="identityRestoreInProgress"
+                        @click="$refs.identityFileInput?.click()"
                     >
-                        <MaterialDesignIcon icon-name="upload" class="size-4" />
+                        <MaterialDesignIcon
+                            v-if="identityRestoreInProgress"
+                            icon-name="loading"
+                            class="size-4 animate-spin"
+                        />
+                        <MaterialDesignIcon v-else icon-name="upload" class="size-4" />
                         {{ $t("identities.upload_key_file") }}
                     </button>
                     <div class="border-t border-gray-200 dark:border-zinc-700 pt-4 space-y-3">
@@ -389,8 +395,9 @@
                             rows="3"
                             class="input-field font-mono text-xs w-full"
                             :placeholder="$t('identities.paste_base32_placeholder')"
+                            :disabled="identityRestoreInProgress"
                         />
-                        <div v-if="identityRestoreError" class="text-sm text-red-600 dark:text-red-400">
+                        <div v-if="identityRestoreError" role="alert" class="text-sm text-red-600 dark:text-red-400">
                             {{ identityRestoreError }}
                         </div>
                         <div v-if="identityRestoreMessage" class="text-sm text-green-600 dark:text-green-400">
@@ -541,13 +548,49 @@ export default {
         },
         onIdentityRestoreFileChange(event) {
             const files = event.target.files;
-            if (files?.[0]) {
-                this.identityRestoreFile = files[0];
-                this.identityRestoreError = "";
-                this.identityRestoreMessage = "";
-                this.restoreIdentityFile();
+            const file = files?.[0] || null;
+            this.identityRestoreError = "";
+            this.identityRestoreMessage = "";
+            if (!file) {
+                event.target.value = "";
+                return;
             }
+            if (file.size === 0) {
+                this.identityRestoreError = this.$t("identities.identity_restore_empty_file");
+                ToastUtils.error(this.identityRestoreError);
+                event.target.value = "";
+                return;
+            }
+            if (file.size > 65536) {
+                this.identityRestoreError = this.$t("identities.identity_restore_file_too_large");
+                ToastUtils.error(this.identityRestoreError);
+                event.target.value = "";
+                return;
+            }
+            this.identityRestoreFile = file;
+            this.restoreIdentityFile();
             event.target.value = "";
+        },
+        normalizeBase32(value) {
+            return String(value || "").replace(/\s+/g, "");
+        },
+        async maybeSwitchToRestoredIdentity(identity) {
+            if (!identity?.hash) {
+                return;
+            }
+            const switchNow = await DialogUtils.confirm(
+                this.$t("identities.switch_after_restore_confirm", {
+                    name: identity.display_name || identity.hash,
+                })
+            );
+            if (!switchNow) {
+                return;
+            }
+            await this.switchIdentity({
+                hash: identity.hash,
+                display_name: identity.display_name || identity.hash,
+                is_current: false,
+            });
         },
         async restoreIdentityFile() {
             if (this.identityRestoreInProgress || !this.identityRestoreFile) return;
@@ -560,29 +603,42 @@ export default {
                 const response = await window.api.post("/api/v1/identity/restore", formData, {
                     headers: { "Content-Type": "multipart/form-data" },
                 });
-                this.identityRestoreMessage = response.data?.message ?? this.$t("identities.identity_restored");
+                const message = response.data?.message ?? this.$t("identities.identity_restored");
+                this.identityRestoreMessage = message;
                 this.identityRestoreFile = null;
+                ToastUtils.success(message);
+                await this.getIdentities();
                 this.showImportModal = false;
-            } catch {
-                this.identityRestoreError = this.$t("identities.identity_restore_failed");
+                await this.maybeSwitchToRestoredIdentity(response.data?.identity);
+            } catch (e) {
+                const msg = e?.response?.data?.message || this.$t("identities.identity_restore_failed");
+                this.identityRestoreError = msg;
+                ToastUtils.error(msg);
             } finally {
                 this.identityRestoreInProgress = false;
             }
         },
         async restoreIdentityBase32() {
-            if (this.identityRestoreInProgress || !this.identityRestoreBase32?.trim()) return;
+            const normalized = this.normalizeBase32(this.identityRestoreBase32);
+            if (this.identityRestoreInProgress || !normalized) return;
             this.identityRestoreInProgress = true;
             this.identityRestoreMessage = "";
             this.identityRestoreError = "";
             try {
                 const response = await window.api.post("/api/v1/identity/restore", {
-                    base32: this.identityRestoreBase32.trim(),
+                    base32: normalized,
                 });
-                this.identityRestoreMessage = response.data?.message ?? this.$t("identities.identity_restored");
+                const message = response.data?.message ?? this.$t("identities.identity_restored");
+                this.identityRestoreMessage = message;
                 this.identityRestoreBase32 = "";
+                ToastUtils.success(message);
+                await this.getIdentities();
                 this.showImportModal = false;
-            } catch {
-                this.identityRestoreError = this.$t("identities.identity_restore_failed");
+                await this.maybeSwitchToRestoredIdentity(response.data?.identity);
+            } catch (e) {
+                const msg = e?.response?.data?.message || this.$t("identities.identity_restore_failed");
+                this.identityRestoreError = msg;
+                ToastUtils.error(msg);
             } finally {
                 this.identityRestoreInProgress = false;
             }

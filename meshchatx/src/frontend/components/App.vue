@@ -17,8 +17,15 @@
             :view-backend-logs-label="$t('app.view_backend_logs')"
             :show-ws-reconnected="wsReconnectedBanner"
             :ws-reconnected-label="$t('app.backend_reconnected')"
+            :show-network-degraded="showNetworkDegradedBanner"
+            :network-degraded-label="networkDegradedBannerLabel"
+            :network-recovering="networkRecovering"
+            :recover-network-label="$t('app.recover_network')"
+            :open-interfaces-label="$t('app.open_interfaces')"
             @restart-backend="onRestartBackend"
             @view-backend-logs="onViewBackendCrashReport"
+            @recover-network="onRecoverNetwork"
+            @open-interfaces="onOpenInterfacesForRecovery"
         />
 
         <RouterView v-if="$route.name === 'auth'" />
@@ -425,22 +432,24 @@
                     </div>
 
                     <div class="flex flex-1 min-w-0 overflow-hidden">
-                        <RouterView v-slot="{ Component, route }" class="flex-1 min-w-0 h-full">
+                        <RouterView v-slot="{ Component, route }" class="flex-1 min-w-0 h-full bg-sem-canvas">
                             <template v-if="Component">
                                 <KeepAlive>
                                     <component
                                         :is="Component"
                                         v-if="route.meta.keepAlive"
                                         :key="route.name"
-                                        class="flex-1 min-w-0 h-full"
+                                        class="flex-1 min-w-0 h-full bg-sem-canvas"
                                     />
                                 </KeepAlive>
-                                <component
-                                    :is="Component"
-                                    v-if="!route.meta.keepAlive"
-                                    :key="route.meta.stableKey ? route.name : route.fullPath"
-                                    class="flex-1 min-w-0 h-full"
-                                />
+                                <Transition name="route-view-fade" mode="out-in">
+                                    <component
+                                        :is="Component"
+                                        v-if="!route.meta.keepAlive"
+                                        :key="route.meta.stableKey ? route.name : route.fullPath"
+                                        class="flex-1 min-w-0 h-full bg-sem-canvas"
+                                    />
+                                </Transition>
                             </template>
                         </RouterView>
                     </div>
@@ -676,6 +685,8 @@ export default {
             backendProcessExited: false,
             backendExitCode: null,
             backendRestarting: false,
+            networkRecovering: false,
+            userInitiatedPropagationSync: false,
 
             identitySwitchDedupeHash: null,
             identitySwitchDedupeAt: 0,
@@ -705,6 +716,11 @@ export default {
             return listNavItems().filter((item) => this.isNavItemVisible(item));
         },
         isSyncingPropagationNode() {
+            // Only treat sync as "running" in the chrome when the user started it.
+            // Background auto-sync must not keep the header spinner forever.
+            if (!this.userInitiatedPropagationSync) {
+                return false;
+            }
             return [
                 "path_requested",
                 "link_establishing",
@@ -737,6 +753,16 @@ export default {
                 ElectronUtils.isElectron() &&
                 typeof window.electron?.restartBackend === "function"
             );
+        },
+        showNetworkDegradedBanner() {
+            return Boolean(GlobalState.networkDegraded) && this.$route?.name !== "auth";
+        },
+        networkDegradedBannerLabel() {
+            const detail = GlobalState.networkDegradedError;
+            if (detail) {
+                return `${this.$t("app.network_degraded")}: ${detail}`;
+            }
+            return this.$t("app.network_degraded");
         },
         identitySidebarLabel() {
             const raw = this.displayName;
@@ -1011,6 +1037,34 @@ export default {
                 ToastUtils.error(this.$t("app.restart_backend_failed"));
             } finally {
                 this.backendRestarting = false;
+            }
+        },
+        onOpenInterfacesForRecovery() {
+            this.$router.push({ name: "interfaces" });
+        },
+        async onRecoverNetwork() {
+            if (this.networkRecovering) {
+                return;
+            }
+            this.networkRecovering = true;
+            try {
+                const response = await window.api.post("/api/v1/reticulum/recover", {});
+                if (response.data?.status?.network_ready) {
+                    GlobalState.networkDegraded = false;
+                    GlobalState.networkDegradedError = null;
+                    ToastUtils.success(response.data.message || this.$t("app.network_recovered"));
+                    return;
+                }
+                const err = response.data?.error || response.data?.message || this.$t("app.network_recover_failed");
+                GlobalState.networkDegradedError = err;
+                ToastUtils.error(err);
+            } catch (e) {
+                const err =
+                    e.response?.data?.error || e.response?.data?.message || this.$t("app.network_recover_failed");
+                GlobalState.networkDegradedError = err;
+                ToastUtils.error(err);
+            } finally {
+                this.networkRecovering = false;
             }
         },
         async onViewBackendCrashReport() {
@@ -1594,6 +1648,8 @@ export default {
                 return;
             }
 
+            this.userInitiatedPropagationSync = true;
+
             // request sync
             try {
                 const preferredHash = this.config?.lxmf_preferred_propagation_node_destination_hash;
@@ -1602,6 +1658,7 @@ export default {
                 }
                 await window.api.get("/api/v1/lxmf/propagation-node/sync");
             } catch (e) {
+                this.userInitiatedPropagationSync = false;
                 const errorMessage = e.response?.data?.message ?? this.$t("app.sync_error_generic");
                 ToastUtils.error(errorMessage);
                 return;
@@ -1626,6 +1683,7 @@ export default {
                                 this._propagationSyncPollTimer = null;
                             }
                             await this.stopSyncingPropagationNode();
+                            this.userInitiatedPropagationSync = false;
                             ToastUtils.error(
                                 this.$t("app.sync_error", {
                                     status: this.propagationSyncStatusLabel("path_timeout"),
@@ -1640,6 +1698,7 @@ export default {
                         clearInterval(this._propagationSyncPollTimer);
                         this._propagationSyncPollTimer = null;
                     }
+                    this.userInitiatedPropagationSync = false;
                     ToastUtils.dismiss(propagationSyncToastKey);
                     const status = this.propagationNodeStatus?.state;
                     const messagesReceived = this.propagationNodeStatus?.messages_received ?? 0;
@@ -1665,6 +1724,8 @@ export default {
             if (this.isSyncingPropagationNode) {
                 ToastUtils.loading(this.propagationSyncLiveToastMessage(), 0, propagationSyncToastKey);
                 this._propagationSyncPollTimer = setInterval(poll, 500);
+            } else {
+                this.userInitiatedPropagationSync = false;
             }
             await poll();
         },
@@ -1697,6 +1758,7 @@ export default {
             }
             // Clear the polling guard flag
             this._isPropagationSyncPolling = false;
+            this.userInitiatedPropagationSync = false;
             ToastUtils.dismiss(propagationSyncToastKey);
             await this.updatePropagationNodeStatus();
         },
@@ -1704,6 +1766,21 @@ export default {
             try {
                 const response = await window.api.get("/api/v1/lxmf/propagation-node/status");
                 this.propagationNodeStatus = response.data.propagation_node_status;
+                const state = this.propagationNodeStatus?.state;
+                if (
+                    this.userInitiatedPropagationSync &&
+                    state &&
+                    ![
+                        "path_requested",
+                        "link_establishing",
+                        "link_established",
+                        "request_sent",
+                        "receiving",
+                        "response_received",
+                    ].includes(state)
+                ) {
+                    this.userInitiatedPropagationSync = false;
+                }
             } catch {
                 // do nothing on error
             }

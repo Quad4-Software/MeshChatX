@@ -18,14 +18,33 @@ def _ensure_android_reticulum_config(reticulum_config_dir):
     if os.path.exists(config_path):
         with open(config_path, encoding="utf-8") as existing_file:
             content = existing_file.read()
+        changed = False
         if "share_instance = Yes" in content:
             content = content.replace("share_instance = Yes", "share_instance = No")
+            changed = True
+        if "panic_on_interface_error" not in content:
+            if "[reticulum]" in content:
+                content = content.replace(
+                    "[reticulum]",
+                    "[reticulum]\n  panic_on_interface_error = No",
+                    1,
+                )
+            else:
+                content = "[reticulum]\n  panic_on_interface_error = No\n\n" + content
+            changed = True
+        if changed:
             with open(config_path, "w", encoding="utf-8") as config_file:
                 config_file.write(content)
         return
 
     with open(config_path, "w", encoding="utf-8") as config_file:
-        config_file.write("[reticulum]\n  share_instance = No\n\n[interfaces]\n")
+        config_file.write(
+            "[reticulum]\n"
+            "  share_instance = No\n"
+            "  panic_on_interface_error = No\n"
+            "\n"
+            "[interfaces]\n"
+        )
 
 
 def _patch_asyncio_signal_handlers_for_android():
@@ -89,6 +108,19 @@ def _clear_stale_storage_lock(storage_dir):
         print(f"meshchat_wrapper: could not clear storage lock: {exc}")
 
 
+def _patch_rns_panic_for_android():
+    """Stop RNS.panic/os._exit from killing the whole Android process."""
+    try:
+        from meshchatx.src.backend.rns_startup_recovery import (
+            install_rns_panic_containment,
+        )
+
+        return install_rns_panic_containment()
+    except Exception as exc:
+        print(f"meshchat_wrapper: RNS panic containment skipped: {exc}")
+        return False
+
+
 def start_server(port=8000, app_files_dir=None):
     global _server_loop_active
     with _server_loop_lock:
@@ -121,8 +153,12 @@ def start_server(port=8000, app_files_dir=None):
         signal.signal = _safe_signal
         asyncio_signal_patch = _patch_asyncio_signal_handlers_for_android()
         aiohttp_run_app_patch = _patch_aiohttp_run_app_for_android()
+        _patch_rns_panic_for_android()
         try:
-            from meshchatx.android_codec2 import ensure_codec2_native_library, probe_pycodec2
+            from meshchatx.android_codec2 import (
+                ensure_codec2_native_library,
+                probe_pycodec2,
+            )
 
             ensure_codec2_native_library()
             ok, err = probe_pycodec2()

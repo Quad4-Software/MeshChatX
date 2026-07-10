@@ -28,20 +28,30 @@ function makeSyncContext(axiosMock, tOverrides = {}) {
         propagationNodeStatus: null,
         _propagationSyncPollTimer: null,
         _isPropagationSyncPolling: false,
+        userInitiatedPropagationSync: false,
         propagationSyncLiveToastMessage: App.methods.propagationSyncLiveToastMessage,
         propagationSyncStatusLabel: App.methods.propagationSyncStatusLabel,
         get isSyncingPropagationNode() {
+            if (!this.userInitiatedPropagationSync) {
+                return false;
+            }
             return syncingStates.includes(this.propagationNodeStatus?.state);
         },
         async updatePropagationNodeStatus() {
             try {
                 const response = await axiosMock.get("/api/v1/lxmf/propagation-node/status");
                 this.propagationNodeStatus = response.data.propagation_node_status;
+                const state = this.propagationNodeStatus?.state;
+                if (this.userInitiatedPropagationSync && state && !syncingStates.includes(state)) {
+                    this.userInitiatedPropagationSync = false;
+                }
             } catch {
                 // ignore
             }
         },
-        async stopSyncingPropagationNode() {},
+        async stopSyncingPropagationNode() {
+            this.userInitiatedPropagationSync = false;
+        },
         $t(key, params = {}) {
             if (tOverrides[key]) {
                 return tOverrides[key](params);

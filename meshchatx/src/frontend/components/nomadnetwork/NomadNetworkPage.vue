@@ -291,9 +291,11 @@
                             </IconButton>
                         </template>
                         <template #items>
-                            <DropDownMenuItem @click="openNomadnetPopout">
-                                <MaterialDesignIcon icon-name="open-in-new" class="size-5" />
-                                <span>{{ $t("nomadnet.pop_out_browser") }}</span>
+                            <DropDownMenuItem @click="toggleNodePageSource">
+                                <MaterialDesignIcon icon-name="code-tags" class="size-5" />
+                                <span>{{
+                                    isShowingNodePageSource ? $t("nomadnet.hide_source") : $t("app.toggle_source")
+                                }}</span>
                             </DropDownMenuItem>
                             <DropDownMenuItem
                                 v-if="showMicronRendererInMobileMenu"
@@ -336,7 +338,7 @@
                         <MaterialDesignIcon icon-name="refresh" class="size-5" />
                     </IconButton>
                     <IconButton
-                        class="nomad-icon-btn shrink-0"
+                        class="nomad-icon-btn hidden lg:inline-flex shrink-0"
                         :title="$t('app.toggle_source')"
                         :class="{ 'bg-green-500/10 text-green-600 dark:text-green-400': isShowingNodePageSource }"
                         @click="toggleNodePageSource"

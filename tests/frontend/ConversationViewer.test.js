@@ -155,6 +155,7 @@ describe("ConversationViewer.vue", () => {
         await flushPromises();
 
         expect(GlobalEmitter.emit).not.toHaveBeenCalledWith("notifications-changed");
+        expect(conversation.is_unread).toBe(true);
     });
 
     it("onMessagePaste adds images from clipboard and prevents default", async () => {
@@ -718,6 +719,11 @@ describe("ConversationViewer.vue", () => {
 
     it("sends multiple images as separate messages", async () => {
         const wrapper = mountConversationViewer();
+        wrapper.vm.peerPathSnapshot = {
+            path: { hops: 1 },
+            path_stale: false,
+            path_unresponsive: false,
+        };
         wrapper.vm.newMessageText = "Hello";
 
         const image1 = new File([""], "image1.png", { type: "image/png" });
@@ -730,9 +736,18 @@ describe("ConversationViewer.vue", () => {
         await wrapper.vm.onImageSelected(image1);
         await wrapper.vm.onImageSelected(image2);
 
-        axiosMock.post.mockResolvedValue({ data: { lxmf_message: { hash: "mock-hash" } } });
+        axiosMock.post.mockImplementation((url) => {
+            if (typeof url === "string" && (url.includes("/request-path") || url.includes("/drop-path"))) {
+                return Promise.resolve({ data: {} });
+            }
+            return Promise.resolve({ data: { lxmf_message: { hash: "mock-hash" } } });
+        });
 
         await wrapper.vm.sendMessage();
+        await vi.waitFor(() => {
+            const sendCalls = axiosMock.post.mock.calls.filter((c) => c[0] === "/api/v1/lxmf-messages/send");
+            expect(sendCalls.length).toBe(2);
+        });
 
         const sendCalls = axiosMock.post.mock.calls.filter((c) => c[0] === "/api/v1/lxmf-messages/send");
         expect(sendCalls.length).toBe(2);
@@ -1196,6 +1211,11 @@ describe("ConversationViewer.vue", () => {
 
     it("sets reply state and includes reply_to_hash in sendMessage", async () => {
         const wrapper = mountConversationViewer();
+        wrapper.vm.peerPathSnapshot = {
+            path: { hops: 1 },
+            path_stale: false,
+            path_unresponsive: false,
+        };
         const chatItem = {
             lxmf_message: { hash: "original-hash", content: "Original message" },
         };
@@ -1207,19 +1227,25 @@ describe("ConversationViewer.vue", () => {
         expect(wrapper.vm.replyingTo.lxmf_message.hash).toBe(chatItem.lxmf_message.hash);
 
         wrapper.vm.newMessageText = "My reply";
-        axiosMock.post.mockResolvedValue({ data: { lxmf_message: { hash: "reply-hash" } } });
+        axiosMock.post.mockImplementation((url) => {
+            if (typeof url === "string" && (url.includes("/request-path") || url.includes("/drop-path"))) {
+                return Promise.resolve({ data: {} });
+            }
+            return Promise.resolve({ data: { lxmf_message: { hash: "reply-hash" } } });
+        });
 
         await wrapper.vm.sendMessage();
-
-        expect(axiosMock.post).toHaveBeenCalledWith(
-            "/api/v1/lxmf-messages/send",
-            expect.objectContaining({
-                lxmf_message: expect.objectContaining({
-                    content: "My reply",
-                    reply_to_hash: "original-hash",
-                }),
-            })
-        );
+        await vi.waitFor(() => {
+            expect(axiosMock.post).toHaveBeenCalledWith(
+                "/api/v1/lxmf-messages/send",
+                expect.objectContaining({
+                    lxmf_message: expect.objectContaining({
+                        content: "My reply",
+                        reply_to_hash: "original-hash",
+                    }),
+                })
+            );
+        });
         expect(wrapper.vm.replyingTo).toBeNull();
     });
 

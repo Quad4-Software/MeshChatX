@@ -15,6 +15,8 @@ const globalState = reactive({
     blockedDestinations: [],
     modifiedInterfaceNames: new Set(),
     hasPendingInterfaceChanges: false,
+    networkDegraded: false,
+    networkDegradedError: null,
     config: {
         show_unknown_contact_banner: true,
         banished_effect_enabled: true,

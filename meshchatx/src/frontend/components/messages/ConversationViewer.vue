@@ -1972,6 +1972,8 @@ export default {
             reactionPickerChatItem: null,
             reactionPickerPos: null,
             reactionDragState: null,
+            reactionDragCleanup: null,
+            reactionSendInFlight: null,
             userStickers: [],
             userStickerPacks: [],
             activeStickerPackId: null,
@@ -2148,14 +2150,8 @@ export default {
             return this.$t("messages.compose_hint_automatic");
         },
         isSyncingPropagationNode() {
-            return [
-                "path_requested",
-                "link_establishing",
-                "link_established",
-                "request_sent",
-                "receiving",
-                "response_received",
-            ].includes(this.propagationNodeStatus?.state);
+            // Mirror App chrome: only spin for user-started sync, not auto-sync.
+            return false;
         },
         blockedDestinations() {
             return GlobalState.blockedDestinations;
@@ -2500,11 +2496,8 @@ export default {
         // fetch contacts for suggestions
         this.fetchContacts();
 
-        // fetch propagation status
-        this.updatePropagationNodeStatus();
-        this.propagationStatusInterval = setInterval(() => {
-            this.updatePropagationNodeStatus();
-        }, 2000);
+        // Propagation sync chrome lives in App; this page only triggers it.
+        this.propagationStatusInterval = null;
 
         this._scheduleOutboundSendStatusTick();
         this.loadUserStickers();
@@ -2521,6 +2514,8 @@ export default {
     },
     beforeUnmount() {
         this.scrollBottomGen += 1;
+        this._cleanupReactionPickerDrag();
+        this.closeReactionPicker();
         this.teardownPeerHeaderResizeObserver();
         if (this.selectedPeer) {
             this.saveDraft(this.selectedPeer.destination_hash);
@@ -3611,6 +3606,11 @@ export default {
                 return;
             }
 
+            if (lxmfMessage?.is_reaction && lxmfMessage.reaction_to) {
+                this.applyIncomingReaction(lxmfMessage);
+                return;
+            }
+
             this.removeAllPendingOutboundPlaceholdersForPeer(lxmfMessage.destination_hash);
             this.reconcileOutboundPendingPlaceholders(lxmfMessage);
 
@@ -4138,130 +4138,244 @@ export default {
             return item ? item.lxmf_message : null;
         },
         reactionReactorLabel(senderHex) {
-            if (!senderHex || typeof senderHex !== "string") {
+            try {
+                if (senderHex == null || senderHex === "") {
+                    return "";
+                }
+                const hex = String(senderHex).toLowerCase();
+                if (this.myLxmfAddressHash && hex === String(this.myLxmfAddressHash).toLowerCase()) {
+                    return this.$t("messages.reaction_you");
+                }
+                if (
+                    this.selectedPeer?.destination_hash &&
+                    hex === String(this.selectedPeer.destination_hash).toLowerCase()
+                ) {
+                    return (
+                        this.selectedPeer.custom_display_name ??
+                        this.selectedPeer.display_name ??
+                        this.formatDestinationHash(hex)
+                    );
+                }
+                const conv = (this.conversations || []).find(
+                    (c) => c?.destination_hash && String(c.destination_hash).toLowerCase() === hex
+                );
+                if (conv) {
+                    return conv.custom_display_name ?? conv.display_name ?? this.formatDestinationHash(hex);
+                }
+                return this.formatDestinationHash(hex);
+            } catch (e) {
+                console.error(e);
                 return "";
             }
-            const hex = senderHex.toLowerCase();
-            if (this.myLxmfAddressHash && hex === String(this.myLxmfAddressHash).toLowerCase()) {
-                return this.$t("messages.reaction_you");
-            }
-            if (
-                this.selectedPeer?.destination_hash &&
-                hex === String(this.selectedPeer.destination_hash).toLowerCase()
-            ) {
-                return (
-                    this.selectedPeer.custom_display_name ??
-                    this.selectedPeer.display_name ??
-                    this.formatDestinationHash(hex)
-                );
-            }
-            const conv = this.conversations.find(
-                (c) => c.destination_hash && String(c.destination_hash).toLowerCase() === hex
-            );
-            if (conv) {
-                return conv.custom_display_name ?? conv.display_name ?? this.formatDestinationHash(hex);
-            }
-            return this.formatDestinationHash(hex);
         },
         applyIncomingReaction(lxmfMessage) {
-            const target = this.chatItems.find((i) => i.lxmf_message?.hash === lxmfMessage.reaction_to);
-            if (!target || !target.lxmf_message) {
-                return;
+            try {
+                if (!lxmfMessage || typeof lxmfMessage !== "object") {
+                    return;
+                }
+                const reactionTo = lxmfMessage.reaction_to;
+                if (!reactionTo) {
+                    return;
+                }
+                const target = this.chatItems.find((i) => this._hexEqual(i?.lxmf_message?.hash, reactionTo));
+                if (!target?.lxmf_message) {
+                    return;
+                }
+                if (!Array.isArray(target.lxmf_message.reactions)) {
+                    target.lxmf_message.reactions = [];
+                }
+                const sender = String(lxmfMessage.reaction_sender || lxmfMessage.source_hash || "");
+                const emoji = typeof lxmfMessage.reaction_emoji === "string" ? lxmfMessage.reaction_emoji : "";
+                if (!emoji) {
+                    return;
+                }
+                const senderKey = sender.toLowerCase();
+                const dup = target.lxmf_message.reactions.some(
+                    (r) => String(r?.sender || "").toLowerCase() === senderKey && r?.emoji === emoji
+                );
+                if (dup) {
+                    const existing = target.lxmf_message.reactions.find(
+                        (r) => String(r?.sender || "").toLowerCase() === senderKey && r?.emoji === emoji
+                    );
+                    if (existing && !existing.reactionHash && lxmfMessage.hash) {
+                        existing.reactionHash = lxmfMessage.hash;
+                    }
+                    return;
+                }
+                target.lxmf_message.reactions.push({
+                    emoji,
+                    sender,
+                    reactionHash: lxmfMessage.hash || null,
+                });
+            } catch (e) {
+                console.error(e);
             }
-            if (!target.lxmf_message.reactions) {
-                target.lxmf_message.reactions = [];
-            }
-            const sender = lxmfMessage.reaction_sender || lxmfMessage.source_hash || "";
-            const emoji = lxmfMessage.reaction_emoji || "";
-            const dup = target.lxmf_message.reactions.some((r) => r.sender === sender && r.emoji === emoji);
-            if (dup) {
-                return;
-            }
-            target.lxmf_message.reactions.push({
-                emoji,
-                sender,
-                reactionHash: lxmfMessage.hash,
-            });
         },
         openReactionPicker(chatItem) {
+            if (!chatItem?.lxmf_message?.hash) {
+                return;
+            }
+            this._cleanupReactionPickerDrag();
             this.reactionPickerPos = null;
             this.reactionPickerChatItem = chatItem;
         },
         closeReactionPicker() {
+            this._cleanupReactionPickerDrag();
             this.reactionPickerChatItem = null;
             this.reactionPickerPos = null;
             this.reactionDragState = null;
         },
+        _cleanupReactionPickerDrag() {
+            if (typeof this.reactionDragCleanup === "function") {
+                try {
+                    this.reactionDragCleanup();
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+            this.reactionDragCleanup = null;
+            this.reactionDragState = null;
+        },
         onReactionPickerDragStart(e) {
-            const evt = e.touches ? e.touches[0] : e;
-            const panel = this.$refs.reactionPickerPanel;
-            if (!panel) return;
-            const rect = panel.getBoundingClientRect();
-            this.reactionDragState = {
-                startX: evt.clientX,
-                startY: evt.clientY,
-                originX: rect.left,
-                originY: rect.top,
-            };
-            const onMove = (me) => {
-                const mv = me.touches ? me.touches[0] : me;
-                const dx = mv.clientX - this.reactionDragState.startX;
-                const dy = mv.clientY - this.reactionDragState.startY;
-                const panelEl = this.$refs.reactionPickerPanel;
-                if (!panelEl) return;
-                const pr = panelEl.getBoundingClientRect();
-                const nx = this.reactionDragState.originX + dx;
-                const ny = this.reactionDragState.originY + dy;
-                const { left, top } = clampFloatingToViewport(nx, ny, pr.width, pr.height);
-                this.reactionPickerPos = { x: left, y: top };
-            };
-            const onUp = () => {
-                document.removeEventListener("mousemove", onMove);
-                document.removeEventListener("mouseup", onUp);
-                document.removeEventListener("touchmove", onMove);
-                document.removeEventListener("touchend", onUp);
-            };
-            document.addEventListener("mousemove", onMove);
-            document.addEventListener("mouseup", onUp);
-            document.addEventListener("touchmove", onMove, { passive: false });
-            document.addEventListener("touchend", onUp);
+            try {
+                const evt = e?.touches?.[0] || e?.changedTouches?.[0] || e;
+                const panel = this.$refs.reactionPickerPanel;
+                if (!evt || !panel || typeof panel.getBoundingClientRect !== "function") {
+                    return;
+                }
+                if (typeof evt.clientX !== "number" || typeof evt.clientY !== "number") {
+                    return;
+                }
+                this._cleanupReactionPickerDrag();
+                const rect = panel.getBoundingClientRect();
+                const dragState = {
+                    startX: evt.clientX,
+                    startY: evt.clientY,
+                    originX: rect.left,
+                    originY: rect.top,
+                };
+                this.reactionDragState = dragState;
+                const onMove = (me) => {
+                    try {
+                        if (!this.reactionDragState) {
+                            return;
+                        }
+                        const mv = me?.touches?.[0] || me?.changedTouches?.[0] || me;
+                        if (!mv || typeof mv.clientX !== "number" || typeof mv.clientY !== "number") {
+                            return;
+                        }
+                        const dx = mv.clientX - this.reactionDragState.startX;
+                        const dy = mv.clientY - this.reactionDragState.startY;
+                        const panelEl = this.$refs.reactionPickerPanel;
+                        if (!panelEl || typeof panelEl.getBoundingClientRect !== "function") {
+                            return;
+                        }
+                        const pr = panelEl.getBoundingClientRect();
+                        const nx = this.reactionDragState.originX + dx;
+                        const ny = this.reactionDragState.originY + dy;
+                        const { left, top } = clampFloatingToViewport(nx, ny, pr.width, pr.height);
+                        this.reactionPickerPos = { x: left, y: top };
+                        if (me?.cancelable && typeof me.preventDefault === "function") {
+                            me.preventDefault();
+                        }
+                    } catch (moveErr) {
+                        console.error(moveErr);
+                    }
+                };
+                const onUp = () => {
+                    this._cleanupReactionPickerDrag();
+                };
+                document.addEventListener("mousemove", onMove);
+                document.addEventListener("mouseup", onUp);
+                document.addEventListener("touchmove", onMove, { passive: false });
+                document.addEventListener("touchend", onUp);
+                document.addEventListener("touchcancel", onUp);
+                this.reactionDragCleanup = () => {
+                    document.removeEventListener("mousemove", onMove);
+                    document.removeEventListener("mouseup", onUp);
+                    document.removeEventListener("touchmove", onMove);
+                    document.removeEventListener("touchend", onUp);
+                    document.removeEventListener("touchcancel", onUp);
+                    this.reactionDragState = null;
+                    this.reactionDragCleanup = null;
+                };
+            } catch (e) {
+                console.error(e);
+                this._cleanupReactionPickerDrag();
+            }
         },
         onReactionPickerEmojiClick(event) {
-            const emoji = event.detail?.unicode;
-            if (!emoji || !this.reactionPickerChatItem) {
-                return;
+            try {
+                const emoji = event?.detail?.unicode;
+                if (!emoji || typeof emoji !== "string" || !this.reactionPickerChatItem) {
+                    return;
+                }
+                const chatItem = this.reactionPickerChatItem;
+                this.closeReactionPicker();
+                void this.sendReactionEmojiFromMenu(chatItem, emoji);
+            } catch (e) {
+                console.error(e);
+                this.closeReactionPicker();
             }
-            const chatItem = this.reactionPickerChatItem;
-            this.reactionPickerChatItem = null;
-            this.sendReactionEmojiFromMenu(chatItem, emoji);
         },
         async sendReactionEmojiFromMenu(chatItem, emoji) {
-            this.messageContextMenu.show = false;
-            const hash = chatItem.lxmf_message?.hash;
-            if (!hash || !this.selectedPeer?.destination_hash) {
-                return;
-            }
             try {
-                await window.api.post("/api/v1/lxmf-messages/reactions", {
-                    destination_hash: this.selectedPeer.destination_hash,
-                    target_message_hash: hash,
-                    emoji,
-                });
-                const sender = this.myLxmfAddressHash;
-                if (!chatItem.lxmf_message.reactions) {
-                    chatItem.lxmf_message.reactions = [];
+                this.messageContextMenu.show = false;
+                this.closeReactionPicker();
+                if (!chatItem?.lxmf_message || typeof emoji !== "string" || !emoji) {
+                    return;
                 }
-                const dup = chatItem.lxmf_message.reactions.some((r) => r.sender === sender && r.emoji === emoji);
-                if (!dup) {
-                    chatItem.lxmf_message.reactions.push({
+                const hash = chatItem.lxmf_message.hash;
+                const destinationHash = this.selectedPeer?.destination_hash;
+                if (!hash || !destinationHash) {
+                    return;
+                }
+                const flightKey = `${String(hash).toLowerCase()}:${emoji}`;
+                if (this.reactionSendInFlight === flightKey) {
+                    return;
+                }
+                this.reactionSendInFlight = flightKey;
+                try {
+                    const response = await window.api.post("/api/v1/lxmf-messages/reactions", {
+                        destination_hash: destinationHash,
+                        target_message_hash: hash,
                         emoji,
-                        sender,
-                        reactionHash: null,
                     });
+                    const sender = this.myLxmfAddressHash || "";
+                    if (!Array.isArray(chatItem.lxmf_message.reactions)) {
+                        chatItem.lxmf_message.reactions = [];
+                    }
+                    const senderKey = String(sender).toLowerCase();
+                    const existing = chatItem.lxmf_message.reactions.find(
+                        (r) => String(r?.sender || "").toLowerCase() === senderKey && r?.emoji === emoji
+                    );
+                    const reactionHash = response?.data?.lxmf_message?.hash || null;
+                    if (existing) {
+                        if (!existing.reactionHash && reactionHash) {
+                            existing.reactionHash = reactionHash;
+                        }
+                    } else {
+                        chatItem.lxmf_message.reactions.push({
+                            emoji,
+                            sender,
+                            reactionHash,
+                        });
+                    }
+                    if (response?.data?.lxmf_message?.is_reaction) {
+                        this.applyIncomingReaction(response.data.lxmf_message);
+                    }
+                } finally {
+                    if (this.reactionSendInFlight === flightKey) {
+                        this.reactionSendInFlight = null;
+                    }
                 }
             } catch (e) {
                 console.error(e);
-                ToastUtils.error(this.$t("messages.reaction_send_failed"));
+                try {
+                    ToastUtils.error(this.$t("messages.reaction_send_failed"));
+                } catch (toastErr) {
+                    console.error(toastErr);
+                }
             }
         },
         onMessageContextMenu(event, chatItem, openedFromBubble = false) {
@@ -5549,6 +5663,17 @@ export default {
                     return;
                 }
 
+                // Warm a stale/missing path before the blocking backend path wait.
+                // Propagated delivery does not require a peer path.
+                if (job.deliveryMethod !== "propagated") {
+                    try {
+                        await warmPathIfNeeded(window.api, job.destinationHash, this.peerPathSnapshot);
+                        await this.refreshPeerPath({ warm: false });
+                    } catch (pathError) {
+                        console.error(pathError);
+                    }
+                }
+
                 if (job.images.length === 0) {
                     const response = await window.api.post(`/api/v1/lxmf-messages/send`, {
                         delivery_method: job.deliveryMethod,
@@ -5619,6 +5744,16 @@ export default {
                             }
                         } catch (subError) {
                             console.error(`Failed to send image ${i + 1}:`, subError);
+                            const detail =
+                                subError?.response?.data?.message ||
+                                subError?.message ||
+                                this.$t("messages.failed_to_send");
+                            ToastUtils.error(
+                                this.$t("messages.failed_to_send_image", {
+                                    index: i + 1,
+                                    detail,
+                                })
+                            );
                         }
                     }
                 }
@@ -6969,10 +7104,9 @@ export default {
                 return;
             }
 
-            // manually mark conversation read in memory to avoid delay updating ui
+            // Optimistic UI update; roll back if the server call fails.
             conversation.is_unread = false;
 
-            // mark conversation as read on server
             try {
                 await window.api.post(`/api/v1/lxmf/conversations/${conversation.destination_hash}/mark-as-read`);
                 GlobalEmitter.emit("notifications-changed");
@@ -6980,7 +7114,7 @@ export default {
                     GlobalState.unreadConversationsCount -= 1;
                 }
             } catch (e) {
-                // do nothing if failed to mark as read
+                conversation.is_unread = true;
                 console.log(e);
             }
         },

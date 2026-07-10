@@ -8,6 +8,13 @@ describe("Utils.js", () => {
             const hash = "e253d0b19fe34c3f0a09569165abc45a";
             expect(Utils.formatDestinationHash(hash)).toBe("<e253d0b1...65abc45a>");
         });
+
+        it("tolerates null and empty values without throwing", () => {
+            expect(Utils.formatDestinationHash(null)).toBe("<>");
+            expect(Utils.formatDestinationHash(undefined)).toBe("<>");
+            expect(Utils.formatDestinationHash("")).toBe("<>");
+            expect(Utils.formatDestinationHash(12)).toBe("<12...12>");
+        });
     });
 
     describe("formatBytes", () => {

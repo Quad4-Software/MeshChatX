@@ -16,6 +16,7 @@ from .crash_history import CrashHistoryDAO
 from .debug_logs import DebugLogsDAO
 from .gifs import UserGifsDAO
 from .map_drawings import MapDrawingsDAO
+from .map_overlays import MapOverlaysDAO
 from .messages import MessageDAO
 from .misc import MiscDAO
 from .provider import DatabaseProvider
@@ -81,6 +82,7 @@ class Database:
         self.notification_sounds = NotificationSoundDAO(self.provider)
         self.contacts = ContactsDAO(self.provider)
         self.map_drawings = MapDrawingsDAO(self.provider)
+        self.map_overlays = MapOverlaysDAO(self.provider)
         self.stickers = UserStickersDAO(self.provider)
         self.sticker_packs = UserStickerPacksDAO(self.provider)
         self.gifs = UserGifsDAO(self.provider)
@@ -96,8 +98,28 @@ class Database:
     def execute_sql(self, query, params=None):
         return self.provider.execute(query, params)
 
+    def _ensure_sqlite_temp_dir(self):
+        """Prefer a storage-local temp dir so Landlock can open spill files."""
+        try:
+            db_dir = self._identity_storage_dir()
+        except Exception:
+            return None
+        if not db_dir:
+            return None
+        temp_dir = os.path.join(db_dir, "sqlite-tmp")
+        try:
+            os.makedirs(temp_dir, exist_ok=True)
+        except OSError:
+            return None
+        # SQLite uses TMPDIR for PRAGMA temp_store=FILE spill files.
+        os.environ["TMPDIR"] = temp_dir
+        os.environ["TMP"] = temp_dir
+        os.environ["TEMP"] = temp_dir
+        return temp_dir
+
     def _tune_sqlite_pragmas(self):
         try:
+            self.provider.prefer_temp_store_file = False
             self.execute_sql("PRAGMA journal_mode=WAL")
             self.execute_sql("PRAGMA synchronous=NORMAL")
             self.execute_sql("PRAGMA wal_autocheckpoint=1000")
@@ -109,15 +131,36 @@ class Database:
         except Exception as exc:
             print(f"SQLite pragma setup failed: {exc}")
 
-    def apply_memory_pressure_pragmas(self, relax: bool) -> bool:
-        """Move SQLite temp/cache work toward disk when host RAM is low."""
+    def apply_memory_pressure_pragmas(
+        self,
+        relax: bool,
+        *,
+        landlock_active: bool = False,
+    ) -> bool:
+        """Shrink SQLite cache under low RAM.
+
+        FILE temp spills break complex conversation queries under Landlock
+        (``unable to open database file``), even when TMPDIR is inside the
+        allowed storage tree. Keep MEMORY temp while Landlock is active and
+        only reduce cache/mmap. Without Landlock, FILE temp is still used.
+        """
         try:
             if relax:
-                self.execute_sql("PRAGMA temp_store=FILE")
+                self._ensure_sqlite_temp_dir()
+                use_file_temp = not landlock_active
+                self.provider.prefer_temp_store_file = use_file_temp
+                if use_file_temp:
+                    self.execute_sql("PRAGMA temp_store=FILE")
+                else:
+                    self.execute_sql("PRAGMA temp_store=MEMORY")
+                    _log.info(
+                        "Memory pressure under Landlock: keeping temp_store=MEMORY",
+                    )
                 self.execute_sql("PRAGMA cache_size=-2000")  # 2 MB
                 self.execute_sql("PRAGMA mmap_size=0")
                 self._sqlite_memory_relaxed = True
             else:
+                self.provider.prefer_temp_store_file = False
                 self.execute_sql("PRAGMA temp_store=MEMORY")
                 self.execute_sql("PRAGMA cache_size=-8000")
                 self.execute_sql("PRAGMA mmap_size=67108864")
@@ -217,7 +260,7 @@ class Database:
     def check_db_health_at_open(self, storage_path):
         """Run integrity and baseline checks after opening the database.
 
-        Returns human-readable issue strings; empty if healthy.
+        Returns human-readable issue strings. Empty if healthy.
         """
         issues = []
         try:
@@ -266,7 +309,7 @@ class Database:
     def check_db_health_at_close(self, storage_path):
         """Run health checks before closing the database (for logging only).
 
-        Returns issue strings; empty if healthy.
+        Returns issue strings. Empty if healthy.
         """
         issues = []
         try:

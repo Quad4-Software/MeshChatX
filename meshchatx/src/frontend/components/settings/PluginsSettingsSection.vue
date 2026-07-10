@@ -209,12 +209,23 @@
                 </label>
                 <label class="block text-sm text-gray-800 dark:text-gray-200 space-y-1">
                     <span>{{ $t("plugins.sideband.path") }}</span>
-                    <input
-                        v-model="sidebandConfig.command_plugins_path"
-                        type="text"
-                        class="w-full rounded-md border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-1.5 text-sm"
-                        :disabled="!sidebandConfig.service_plugins_enabled"
-                    />
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input
+                            v-model="sidebandConfig.command_plugins_path"
+                            type="text"
+                            class="w-full rounded-md border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-1.5 text-sm min-w-0"
+                            :disabled="!sidebandConfig.service_plugins_enabled"
+                        />
+                        <button
+                            type="button"
+                            class="px-3 py-1.5 rounded-md border border-gray-300 dark:border-zinc-600 text-sm shrink-0 min-h-[44px]"
+                            :disabled="!sidebandConfig.service_plugins_enabled || sidebandBusy"
+                            :title="$t('plugins.sideband.browse_title')"
+                            @click="pickSidebandPluginsDirectory"
+                        >
+                            {{ $t("plugins.sideband.browse") }}
+                        </button>
+                    </div>
                 </label>
                 <div class="flex flex-wrap gap-2">
                     <button
@@ -277,6 +288,9 @@
 import SettingsSectionBlock from "./SettingsSectionBlock.vue";
 import PluginInstallDialog from "./PluginInstallDialog.vue";
 import ToastUtils from "../../js/ToastUtils";
+import DialogUtils from "../../js/DialogUtils";
+import ElectronUtils from "../../js/ElectronUtils";
+import AndroidBridge from "../../js/rnode/AndroidBridge";
 import { permissionLabel } from "../../js/plugins/pluginPermissions.js";
 import { pluginHost } from "../../js/plugins/PluginHost.js";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
@@ -355,6 +369,37 @@ export default {
                 if (!ok) {
                     this.sidebandConfig.service_plugins_enabled = false;
                 }
+            }
+        },
+        async pickSidebandPluginsDirectory() {
+            if (!this.sidebandConfig.service_plugins_enabled) {
+                return;
+            }
+            const picked = await ElectronUtils.pickDirectory();
+            if (picked) {
+                this.sidebandConfig.command_plugins_path = picked;
+                ToastUtils.success(this.$t("plugins.sideband.path_picked"));
+                return;
+            }
+            if (ElectronUtils.isElectron()) {
+                return;
+            }
+            const android = new AndroidBridge();
+            let initial = this.sidebandConfig.command_plugins_path || "";
+            if (android.isAvailable()) {
+                const suggested = android.getSidebandPluginsDefaultPath();
+                if (suggested && !initial) {
+                    initial = suggested;
+                }
+            }
+            const entered = await DialogUtils.prompt(
+                initial
+                    ? `${this.$t("plugins.sideband.path_prompt")}\n${initial}`
+                    : this.$t("plugins.sideband.path_prompt")
+            );
+            if (entered != null && String(entered).trim()) {
+                this.sidebandConfig.command_plugins_path = String(entered).trim();
+                ToastUtils.success(this.$t("plugins.sideband.path_picked"));
             }
         },
         async saveSidebandConfig() {

@@ -710,7 +710,13 @@ export default {
     },
     methods: {
         async onWebsocketMessage(message) {
-            const json = JSON.parse(message.data);
+            let json = null;
+            try {
+                json = JSON.parse(message.data);
+            } catch (e) {
+                console.error(e);
+                return;
+            }
             switch (json.type) {
                 case "config": {
                     this.config = json.config;
@@ -725,8 +731,8 @@ export default {
                 this.config = response.data.config;
                 this.syncManagerInputsFromConfig();
             } catch (e) {
-                // do nothing if failed to load config
                 console.log(e);
+                ToastUtils.error(this.$t("common.save_failed"));
             }
         },
         async updateConfig(config) {
@@ -751,7 +757,7 @@ export default {
                 this.propagationNodes = response.data.lxmf_propagation_nodes;
                 await this.refreshPriorityNodePaths();
             } catch {
-                // do nothing if failed to load
+                ToastUtils.error(this.$t("tools.propagation_nodes.load_failed"));
             }
         },
         async usePropagationNode(destination_hash) {
@@ -773,7 +779,7 @@ export default {
         async restartLocalPropagationNode() {
             try {
                 await window.api.post("/api/v1/lxmf/propagation-node/restart");
-                ToastUtils.success("Local propagation node restarted");
+                ToastUtils.success(this.$t("tools.propagation_nodes.local_restarted"));
                 await Promise.all([this.getConfig(), this.loadPropagationNodes()]);
                 await this.refreshPriorityNodePaths();
             } catch {
@@ -783,7 +789,7 @@ export default {
         async stopLocalPropagationNode() {
             try {
                 await window.api.post("/api/v1/lxmf/propagation-node/stop");
-                ToastUtils.success("Local propagation node stopped");
+                ToastUtils.success(this.$t("tools.propagation_nodes.local_stopped"));
                 await Promise.all([this.getConfig(), this.loadPropagationNodes()]);
                 await this.refreshPriorityNodePaths();
             } catch {
@@ -796,7 +802,7 @@ export default {
                 if (!didUpdate) {
                     return;
                 }
-                ToastUtils.success("Local propagation node started");
+                ToastUtils.success(this.$t("tools.propagation_nodes.local_started"));
                 await Promise.all([this.getConfig(), this.loadPropagationNodes()]);
                 await this.refreshPriorityNodePaths();
             } catch {

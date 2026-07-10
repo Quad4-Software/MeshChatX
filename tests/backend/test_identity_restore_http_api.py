@@ -97,3 +97,48 @@ async def test_post_identity_restore_multipart_file_passes_display_name(
     call_args, call_kwargs = web_identity_app.restore_identity_from_bytes.call_args
     assert call_args[0] == b"file-bytes"
     assert call_kwargs["display_name"] == "From File"
+
+
+@pytest.mark.asyncio
+async def test_post_identity_restore_multipart_display_name_before_file(
+    web_identity_app,
+):
+    web_identity_app.restore_identity_from_bytes = MagicMock(
+        return_value={"hash": "filehash", "display_name": "From File"}
+    )
+    aio_app = _build_aio_app(web_identity_app)
+
+    form = FormData()
+    form.add_field("display_name", "From File")
+    form.add_field(
+        "file",
+        b"file-bytes",
+        filename="identity.bin",
+        content_type="application/octet-stream",
+    )
+
+    async with TestClient(TestServer(aio_app)) as client:
+        response = await client.post("/api/v1/identity/restore", data=form)
+        assert response.status == 200
+
+    call_args, call_kwargs = web_identity_app.restore_identity_from_bytes.call_args
+    assert call_args[0] == b"file-bytes"
+    assert call_kwargs["display_name"] == "From File"
+
+
+@pytest.mark.asyncio
+async def test_post_identity_restore_value_error_returns_400(web_identity_app):
+    web_identity_app.restore_identity_from_base32 = MagicMock(
+        side_effect=ValueError("Identity file is empty")
+    )
+    aio_app = _build_aio_app(web_identity_app)
+
+    async with TestClient(TestServer(aio_app)) as client:
+        response = await client.post(
+            "/api/v1/identity/restore",
+            json={"base32": "AAAA"},
+        )
+        assert response.status == 400
+        data = await response.json()
+
+    assert data["message"] == "Identity file is empty"

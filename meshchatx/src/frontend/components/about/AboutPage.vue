@@ -554,7 +554,7 @@
                                     </div>
                                     <div>
                                         <div class="text-sm font-black text-gray-900 dark:text-white leading-tight">
-                                            {{ $t("about.dep_lxmfy_subtitle") }}
+                                            LXMFy
                                         </div>
                                         <div class="text-xs font-mono font-bold text-gray-400 mt-1">
                                             v{{ (appInfo.dependencies && appInfo.dependencies.lxmfy) || "unknown" }}
@@ -574,7 +574,7 @@
                                     </div>
                                     <div>
                                         <div class="text-sm font-black text-gray-900 dark:text-white leading-tight">
-                                            {{ $t("about.dep_lxmf_subtitle") }}
+                                            LXMF
                                         </div>
                                         <div class="text-xs font-mono font-bold text-gray-400 mt-1">
                                             v{{ appInfo.lxmf_version }}
@@ -594,7 +594,7 @@
                                     </div>
                                     <div>
                                         <div class="text-sm font-black text-gray-900 dark:text-white leading-tight">
-                                            {{ $t("about.dep_rns_subtitle") }}
+                                            RNS
                                         </div>
                                         <div class="flex flex-wrap items-center gap-2 mt-1 min-w-0">
                                             <div class="text-xs font-mono font-bold text-gray-400 shrink-0">

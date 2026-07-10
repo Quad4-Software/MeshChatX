@@ -382,6 +382,10 @@ export default {
         currentPage() {
             this.refreshTable();
         },
+        itemsPerPage() {
+            this.currentPage = 1;
+            this.refreshTable();
+        },
     },
     mounted() {
         this.refreshAll();
@@ -430,17 +434,26 @@ export default {
                 this.unresponsiveItems = res.unresponsive;
             } catch (e) {
                 console.error(e);
+                ToastUtils.error(this.$t("tools.rnpath.failed_fetch"));
             } finally {
                 this.isLoading = false;
             }
         },
         async fetchPathTable() {
+            let hops = undefined;
+            if (this.filterHops !== null && this.filterHops !== "") {
+                const parsed = Number(this.filterHops);
+                if (!Number.isFinite(parsed)) {
+                    throw new Error(this.$t("tools.rnpath.invalid_hops"));
+                }
+                hops = parsed;
+            }
             const params = {
                 page: this.currentPage,
                 limit: this.itemsPerPage,
                 search: this.searchQuery || undefined,
                 interface: this.filterInterface || undefined,
-                hops: this.filterHops !== null ? this.filterHops : undefined,
+                hops,
             };
             const res = await window.api.get("/api/v1/rnpath/table", { params });
             return res.data;
@@ -456,7 +469,7 @@ export default {
             return "UNKNOWN";
         },
         async dropPath(hash) {
-            if (!(await DialogUtils.confirm(`Are you sure you want to drop the path to ${hash}?`))) {
+            if (!(await DialogUtils.confirm(this.$t("tools.rnpath.drop_confirm", { hash })))) {
                 return;
             }
             try {
@@ -474,15 +487,14 @@ export default {
         async requestPath() {
             try {
                 await window.api.post("/api/v1/rnpath/request", { destination_hash: this.requestHash });
-                ToastUtils.success(`Path requested for ${this.requestHash.substring(0, 8)}...`);
+                ToastUtils.success(this.$t("tools.rnpath.path_requested", { hash: this.requestHash.substring(0, 8) }));
                 this.requestHash = "";
-                // Path requests take time, don't refresh immediately
             } catch {
                 ToastUtils.error(this.$t("tools.rnpath.failed_request"));
             }
         },
         async dropAllVia() {
-            if (!(await DialogUtils.confirm(`Drop ALL paths via ${this.dropViaHash}?`))) {
+            if (!(await DialogUtils.confirm(this.$t("tools.rnpath.drop_via_confirm", { hash: this.dropViaHash })))) {
                 return;
             }
             try {

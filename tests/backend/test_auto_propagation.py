@@ -230,6 +230,39 @@ async def test_auto_propagation_removes_broken_node_when_all_candidates_fail():
 
 
 @pytest.mark.asyncio
+async def test_auto_propagation_clears_previous_even_when_path_still_exists():
+    """Do not restore a sync-broken previous node just because has_path is true."""
+    manager, app, context, config, database = _make_manager()
+
+    config.lxmf_preferred_propagation_node_auto_select.get.return_value = True
+    config.lxmf_preferred_propagation_node_destination_hash.get.return_value = (
+        _VALID_HASH_A
+    )
+
+    announce1 = {
+        "destination_hash": _VALID_HASH_B,
+        "app_data": _APP_DATA_ENABLED,
+    }
+    database.announces.get_announces.return_value = [announce1]
+
+    with (
+        patch.object(RNS.Transport, "has_path", return_value=True),
+        patch.object(RNS.Transport, "path_is_unresponsive", return_value=False),
+        patch.object(RNS.Transport, "hops_to", return_value=1),
+        patch.object(manager, "_wait_for_path", return_value=True),
+        patch.object(manager, "_probe_propagation_sync", return_value=False),
+        patch(
+            "meshchatx.src.backend.auto_propagation_manager.reticulum_pathfinding.transport_path_table_entry_is_expired",
+            return_value=False,
+        ),
+    ):
+        await manager.check_and_update_propagation_node()
+
+    app.set_active_propagation_node.assert_not_called()
+    app.remove_active_propagation_node.assert_called_once_with(context=context)
+
+
+@pytest.mark.asyncio
 async def test_check_and_update_propagation_node_noops_without_message_router():
     manager, app, context, config, _database = _make_manager()
     context.message_router = None

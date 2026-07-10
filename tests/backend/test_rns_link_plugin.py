@@ -93,7 +93,7 @@ class TestRnsLinkPluginCapabilities:
 
         manager = _make_manager(tmp_path, app=FakeApp())
         manager.install_bundled_examples()
-        plugin_id = "com.meshchatx.mesh-observatory"
+        plugin_id = "com.meshchatx.mcx-bugs"
         _enable_with_link_perms(
             manager,
             plugin_id,
@@ -168,7 +168,7 @@ class TestRnsLinkPluginCapabilities:
 
         manager = _make_manager(tmp_path, app=FakeApp())
         manager.install_bundled_examples()
-        plugin_id = "com.meshchatx.mesh-observatory"
+        plugin_id = "com.meshchatx.mcx-bugs"
         _enable_with_link_perms(
             manager,
             plugin_id,
@@ -218,7 +218,7 @@ class TestRnsLinkPluginCapabilities:
 
         manager = _make_manager(tmp_path, app=FakeApp())
         manager.install_bundled_examples()
-        plugin_id = "com.meshchatx.mesh-observatory"
+        plugin_id = "com.meshchatx.mcx-bugs"
         _enable_with_link_perms(manager, plugin_id, managers=["rnsLink.request"])
         result = manager.call_manager(
             plugin_id,
@@ -243,7 +243,7 @@ class TestRnsLinkPluginCapabilities:
 
         manager = _make_manager(tmp_path, app=FakeApp())
         manager.install_bundled_examples()
-        plugin_id = "com.meshchatx.mesh-observatory"
+        plugin_id = "com.meshchatx.mcx-bugs"
         manager.enable(plugin_id)
         manager.dispatch_hook = lambda *args: events.append(args)
         manager.on_rns_link_event(
@@ -296,7 +296,7 @@ class TestRnsLinkPluginCapabilities:
 
         manager = _make_manager(tmp_path, app=FakeApp())
         manager.install_bundled_examples()
-        plugin_id = "com.meshchatx.mesh-observatory"
+        plugin_id = "com.meshchatx.mcx-bugs"
         _enable_with_link_perms(
             manager,
             plugin_id,

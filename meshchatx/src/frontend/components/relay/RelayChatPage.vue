@@ -340,7 +340,9 @@
                                 <MaterialDesignIcon icon-name="magnify" class="size-5" />
                             </button>
                             <button
+                                v-if="smUp"
                                 type="button"
+                                data-testid="relay-popout"
                                 :class="btnIcon"
                                 :title="$t('relay_chat.popout_channel')"
                                 @click="popoutChannel"

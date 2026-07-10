@@ -281,7 +281,7 @@
                         <input
                             ref="identityImportFileInput"
                             type="file"
-                            accept=".identity,.bin,.key"
+                            accept=".bin,.key,.identity,application/octet-stream,*/*"
                             class="hidden"
                             @change="onIdentityImportFileChange"
                         />
@@ -294,7 +294,7 @@
                                         ? 'border-blue-500 bg-blue-500/5'
                                         : 'border-gray-200 dark:border-zinc-700 hover:border-blue-400'
                                 "
-                                @click="identityMode = 'new'"
+                                @click="setIdentityMode('new')"
                             >
                                 <v-icon icon="mdi-account-plus-outline" color="blue" size="34"></v-icon>
                                 <div>
@@ -314,7 +314,7 @@
                                         ? 'border-blue-500 bg-blue-500/5'
                                         : 'border-gray-200 dark:border-zinc-700 hover:border-blue-400'
                                 "
-                                @click="identityMode = 'import'"
+                                @click="setIdentityMode('import')"
                             >
                                 <v-icon icon="mdi-file-import-outline" color="indigo" size="34"></v-icon>
                                 <div>
@@ -341,9 +341,13 @@
                                 v-if="identityMode === 'import'"
                                 class="space-y-3 pt-2 border-t border-gray-200 dark:border-zinc-800"
                             >
+                                <p class="text-xs text-gray-500 dark:text-zinc-400">
+                                    {{ $t("tutorial.identity_import_key_only_hint") }}
+                                </p>
                                 <button
                                     type="button"
                                     class="tutorial-action-btn tutorial-action-btn-secondary w-full justify-center"
+                                    :disabled="identityImportInProgress"
                                     @click="$refs.identityImportFileInput?.click()"
                                 >
                                     {{
@@ -357,9 +361,17 @@
                                     rows="3"
                                     class="w-full rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-xs font-mono text-gray-900 dark:text-zinc-100"
                                     :placeholder="$t('tutorial.identity_base32_placeholder')"
+                                    :disabled="Boolean(identityImportFile) || identityImportInProgress"
+                                    @input="onIdentityImportBase32Input"
                                 />
+                                <p
+                                    v-if="identityImportFile && identityImportBase32.trim()"
+                                    class="text-xs text-amber-600 dark:text-amber-400"
+                                >
+                                    {{ $t("tutorial.identity_file_overrides_base32") }}
+                                </p>
                             </div>
-                            <p v-if="identityImportError" class="text-sm text-red-600 dark:text-red-400">
+                            <p v-if="identityImportError" role="alert" class="text-sm text-red-600 dark:text-red-400">
                                 {{ identityImportError }}
                             </p>
                         </div>
@@ -758,7 +770,10 @@
                         v-if="showFooterContinue"
                         type="button"
                         class="tutorial-action-btn tutorial-action-btn-primary"
-                        :disabled="currentStep === 2 && identityImportInProgress"
+                        :disabled="
+                            (currentStep === 2 && identityImportInProgress) ||
+                            (currentStep === 2 && identityMode === 'import' && !hasIdentityImportInput)
+                        "
                         @click="handlePrimaryAction"
                     >
                         {{ $t("tutorial.next") }}
@@ -768,6 +783,7 @@
                         v-else
                         type="button"
                         class="tutorial-action-btn tutorial-action-btn-success"
+                        :disabled="finishingTutorial"
                         @click="finishTutorial"
                     >
                         {{ $t("tutorial.finish_setup") }}
@@ -1050,7 +1066,7 @@
                         <input
                             ref="identityImportFileInput"
                             type="file"
-                            accept=".identity,.bin,.key"
+                            accept=".bin,.key,.identity,application/octet-stream,*/*"
                             class="hidden"
                             @change="onIdentityImportFileChange"
                         />
@@ -1063,7 +1079,7 @@
                                         ? 'border-blue-500 bg-blue-500/5'
                                         : 'border-gray-200 dark:border-zinc-700 hover:border-blue-400'
                                 "
-                                @click="identityMode = 'new'"
+                                @click="setIdentityMode('new')"
                             >
                                 <v-icon icon="mdi-account-plus-outline" color="blue" size="52"></v-icon>
                                 <div>
@@ -1083,7 +1099,7 @@
                                         ? 'border-blue-500 bg-blue-500/5'
                                         : 'border-gray-200 dark:border-zinc-700 hover:border-blue-400'
                                 "
-                                @click="identityMode = 'import'"
+                                @click="setIdentityMode('import')"
                             >
                                 <v-icon icon="mdi-file-import-outline" color="indigo" size="52"></v-icon>
                                 <div>
@@ -1112,9 +1128,13 @@
                                 v-if="identityMode === 'import'"
                                 class="space-y-4 pt-3 border-t border-gray-200 dark:border-zinc-800"
                             >
+                                <p class="text-sm text-gray-500 dark:text-zinc-400">
+                                    {{ $t("tutorial.identity_import_key_only_hint") }}
+                                </p>
                                 <button
                                     type="button"
                                     class="tutorial-action-btn tutorial-action-btn-secondary w-full justify-center"
+                                    :disabled="identityImportInProgress"
                                     @click="$refs.identityImportFileInput?.click()"
                                 >
                                     {{
@@ -1128,9 +1148,17 @@
                                     rows="4"
                                     class="w-full rounded-xl border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-3 text-sm font-mono text-gray-900 dark:text-zinc-100"
                                     :placeholder="$t('tutorial.identity_base32_placeholder')"
+                                    :disabled="Boolean(identityImportFile) || identityImportInProgress"
+                                    @input="onIdentityImportBase32Input"
                                 />
+                                <p
+                                    v-if="identityImportFile && identityImportBase32.trim()"
+                                    class="text-sm text-amber-600 dark:text-amber-400"
+                                >
+                                    {{ $t("tutorial.identity_file_overrides_base32") }}
+                                </p>
                             </div>
-                            <p v-if="identityImportError" class="text-sm text-red-600 dark:text-red-400">
+                            <p v-if="identityImportError" role="alert" class="text-sm text-red-600 dark:text-red-400">
                                 {{ identityImportError }}
                             </p>
                         </div>
@@ -1569,7 +1597,10 @@
                             v-if="showFooterContinue"
                             type="button"
                             class="tutorial-action-btn tutorial-action-btn-primary"
-                            :disabled="currentStep === 2 && identityImportInProgress"
+                            :disabled="
+                                (currentStep === 2 && identityImportInProgress) ||
+                                (currentStep === 2 && identityMode === 'import' && !hasIdentityImportInput)
+                            "
                             @click="handlePrimaryAction"
                         >
                             {{ $t("tutorial.continue") }}
@@ -1579,6 +1610,7 @@
                             v-else
                             type="button"
                             class="tutorial-action-btn tutorial-action-btn-success"
+                            :disabled="finishingTutorial"
                             @click="finishTutorial"
                         >
                             {{ $t("tutorial.finish_setup") }}
@@ -1620,6 +1652,7 @@ export default {
             identityImportError: "",
             identityImportedHash: null,
             originalIdentityHash: null,
+            finishingTutorial: false,
             interfaceAddedViaTutorial: false,
             connectionMode: null,
             addingLocal: false,
@@ -1652,7 +1685,7 @@ export default {
             return "Anonymous Peer";
         },
         hasIdentityImportInput() {
-            return Boolean(this.identityImportFile || this.identityImportBase32.trim());
+            return Boolean(this.identityImportFile || this.normalizeBase32(this.identityImportBase32));
         },
         showFooterContinue() {
             if (this.currentStep === 3) {
@@ -1687,6 +1720,23 @@ export default {
             this.identityImportInProgress = false;
             this.identityImportedHash = null;
             this.originalIdentityHash = null;
+            this.finishingTutorial = false;
+        },
+        setIdentityMode(mode) {
+            this.identityMode = mode;
+            this.identityImportError = "";
+            if (mode === "new") {
+                this.identityImportFile = null;
+                this.identityImportBase32 = "";
+                this.identityImportedHash = null;
+            }
+        },
+        normalizeBase32(value) {
+            return String(value || "").replace(/\s+/g, "");
+        },
+        onIdentityImportBase32Input() {
+            this.identityImportedHash = null;
+            this.identityImportError = "";
         },
         async loadIdentitySetupDefaults() {
             try {
@@ -1705,8 +1755,18 @@ export default {
         },
         onIdentityImportFileChange(event) {
             const files = event?.target?.files;
-            this.identityImportFile = files?.[0] || null;
+            const file = files?.[0] || null;
+            this.identityImportedHash = null;
             this.identityImportError = "";
+            if (file && file.size === 0) {
+                this.identityImportFile = null;
+                this.identityImportError = this.$t("tutorial.identity_import_empty_file");
+            } else if (file && file.size > 65536) {
+                this.identityImportFile = null;
+                this.identityImportError = this.$t("tutorial.identity_import_file_too_large");
+            } else {
+                this.identityImportFile = file;
+            }
             if (event?.target) {
                 event.target.value = "";
             }
@@ -1723,7 +1783,7 @@ export default {
             return response.data?.identity?.hash || null;
         },
         async importIdentityFromBase32(base32, displayName) {
-            const payload = { base32 };
+            const payload = { base32: this.normalizeBase32(base32) };
             if (displayName) {
                 payload.display_name = displayName;
             }
@@ -1761,7 +1821,7 @@ export default {
                     importedHash = await this.importIdentityFromFile(this.identityImportFile, trimmedName);
                     this.identityImportFile = null;
                 } else {
-                    importedHash = await this.importIdentityFromBase32(this.identityImportBase32.trim(), trimmedName);
+                    importedHash = await this.importIdentityFromBase32(this.identityImportBase32, trimmedName);
                     this.identityImportBase32 = "";
                 }
                 if (!importedHash) {
@@ -1956,20 +2016,41 @@ export default {
             }
         },
         gotoAddInterface() {
-            if (!this.isPage) {
-                this.visible = false;
-            }
-            if (this.$router) {
-                this.$router.push({ path: "/interfaces/add" });
-            }
+            void this.closeWithPendingImportGuard().then((closed) => {
+                if (!closed) {
+                    return;
+                }
+                if (this.$router) {
+                    this.$router.push({ path: "/interfaces/add" });
+                }
+            });
         },
         gotoRoute(routeName) {
+            void this.closeWithPendingImportGuard().then((closed) => {
+                if (!closed) {
+                    return;
+                }
+                if (this.$router) {
+                    this.$router.push({ name: routeName });
+                }
+            });
+        },
+        async closeWithPendingImportGuard() {
+            if (this.identityImportedHash && this.identityImportedHash !== this.originalIdentityHash) {
+                const activate = await DialogUtils.confirm(this.$t("tutorial.identity_import_pending_activate"));
+                if (activate) {
+                    const activated = await this.activateImportedIdentity();
+                    if (!activated) {
+                        return false;
+                    }
+                } else {
+                    ToastUtils.warning(this.$t("tutorial.identity_import_pending_kept"));
+                }
+            }
             if (!this.isPage) {
                 this.visible = false;
             }
-            if (this.$router) {
-                this.$router.push({ name: routeName });
-            }
+            return true;
         },
         async handlePrimaryAction() {
             if (this.currentStep === 2) {
@@ -1997,10 +2078,22 @@ export default {
             this.currentStep--;
         },
         async skipTutorial() {
-            if (await DialogUtils.confirm(this.$t("tutorial.skip_confirm"))) {
-                this.visible = false;
-                this.markSeen();
+            if (!(await DialogUtils.confirm(this.$t("tutorial.skip_confirm")))) {
+                return;
             }
+            if (this.identityImportedHash && this.identityImportedHash !== this.originalIdentityHash) {
+                const activate = await DialogUtils.confirm(this.$t("tutorial.identity_import_pending_activate"));
+                if (activate) {
+                    const activated = await this.activateImportedIdentity();
+                    if (!activated) {
+                        return;
+                    }
+                } else {
+                    ToastUtils.warning(this.$t("tutorial.identity_import_pending_kept"));
+                }
+            }
+            this.visible = false;
+            this.markSeen();
         },
         async markSeen() {
             if (this.markingSeen) return;
@@ -2013,35 +2106,71 @@ export default {
                 this.markingSeen = false;
             }
         },
-        async finishTutorial() {
-            if (GlobalState.hasPendingInterfaceChanges) {
-                const reloaded = await this.reloadReticulum();
-                if (!reloaded) {
-                    return;
-                }
+        async activateImportedIdentity() {
+            if (!this.identityImportedHash) {
+                return true;
             }
-            if (this.identityImportedHash && this.identityImportedHash !== this.originalIdentityHash) {
-                try {
-                    await window.api.post("/api/v1/identities/switch", {
-                        identity_hash: this.identityImportedHash,
-                    });
-                    if (this.originalIdentityHash) {
+            if (this.identityImportedHash === this.originalIdentityHash) {
+                return true;
+            }
+            try {
+                const response = await window.api.post("/api/v1/identities/switch", {
+                    identity_hash: this.identityImportedHash,
+                });
+                if (this.originalIdentityHash) {
+                    try {
                         await window.api.delete(`/api/v1/identities/${this.originalIdentityHash}`);
+                    } catch (deleteError) {
+                        console.error("Failed to delete default identity after import:", deleteError);
+                        ToastUtils.warning(this.$t("tutorial.identity_default_delete_failed"));
                     }
-                } catch (e) {
-                    ToastUtils.error(e.response?.data?.message || this.$t("tutorial.identity_switch_failed"));
-                    return;
                 }
+                if (response?.data?.hotswapped === false) {
+                    ToastUtils.info(this.$t("identities.switch_scheduled"));
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                }
+                this.identityImportedHash = null;
+                return true;
+            } catch (e) {
+                ToastUtils.error(e.response?.data?.message || this.$t("tutorial.identity_switch_failed"));
+                return false;
             }
-            await this.markSeen();
-            this.visible = false;
-            if (this.interfaceAddedViaTutorial) {
-                ToastUtils.success(this.$t("tutorial.ready_finished"));
+        },
+        async finishTutorial() {
+            if (this.finishingTutorial) {
+                return;
+            }
+            this.finishingTutorial = true;
+            try {
+                if (GlobalState.hasPendingInterfaceChanges) {
+                    const reloaded = await this.reloadReticulum();
+                    if (!reloaded) {
+                        return;
+                    }
+                }
+                if (this.identityImportedHash && this.identityImportedHash !== this.originalIdentityHash) {
+                    const activated = await this.activateImportedIdentity();
+                    if (!activated) {
+                        return;
+                    }
+                }
+                await this.markSeen();
+                this.visible = false;
+                if (this.interfaceAddedViaTutorial) {
+                    ToastUtils.success(this.$t("tutorial.ready_finished"));
+                }
+            } finally {
+                this.finishingTutorial = false;
             }
         },
         async onVisibleUpdate(val) {
             if (!val) {
-                // if closed by clicking away or programmatically, mark as seen
+                // Closing without finish still marks seen, but warn if import was pending.
+                if (this.identityImportedHash && this.identityImportedHash !== this.originalIdentityHash) {
+                    ToastUtils.warning(this.$t("tutorial.identity_import_pending_kept"));
+                }
                 this.markSeen();
             }
         },

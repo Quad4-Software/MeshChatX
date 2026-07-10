@@ -15,14 +15,20 @@ function mountHeader(props = {}) {
         },
         global: {
             mocks: { $t: (key) => key },
-            stubs: [
-                "MaterialDesignIcon",
-                "IconButton",
-                "DropDownMenu",
-                "DropDownMenuItem",
-                "LxmfUserIcon",
-                "ConversationDropDownMenu",
-            ],
+            stubs: {
+                MaterialDesignIcon: true,
+                IconButton: true,
+                DropDownMenu: {
+                    template: '<div class="dd" v-bind="$attrs"><slot name="button" /><slot name="items" /></div>',
+                },
+                DropDownMenuItem: true,
+                LxmfUserIcon: true,
+                ConversationDropDownMenu: {
+                    name: "ConversationDropDownMenu",
+                    props: ["peer", "compact", "hasFailedMessages", "pathfinderInProgress"],
+                    template: '<div data-testid="conversation-menu"></div>',
+                },
+            },
         },
     });
 }
@@ -57,5 +63,15 @@ describe("ConversationPeerHeader.vue path row", () => {
             peerPathSnapshot: { path: { hops: 1 }, path_stale: true, path_unresponsive: false },
         });
         expect(wrapper.text()).toContain("messages.path_stale_label");
+    });
+
+    it("hides path-ops icon when compactPeerActions is true", () => {
+        const wrapper = mountHeader({ compactPeerActions: true });
+        expect(wrapper.find('[data-testid="conversation-path-ops"]').exists()).toBe(false);
+    });
+
+    it("shows path-ops icon when compactPeerActions is false", () => {
+        const wrapper = mountHeader({ compactPeerActions: false });
+        expect(wrapper.find('[data-testid="conversation-path-ops"]').exists()).toBe(true);
     });
 });

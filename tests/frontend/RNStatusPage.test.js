@@ -58,7 +58,23 @@ describe("RNStatusPage.vue", () => {
         expect(wrapper.text()).toContain("Discovered");
         expect(wrapper.text()).toContain("Active Links: 5");
         expect(wrapper.text()).toContain("Blackhole: Publishing");
+        expect(wrapper.vm.blackholeEnabled).toBe(true);
         expect(wrapper.text()).toContain("src1");
+    });
+
+    it("labels disabled blackhole as Inactive", async () => {
+        axiosMock.get.mockResolvedValueOnce({
+            data: {
+                interfaces: [],
+                link_count: 0,
+                blackhole_enabled: false,
+                blackhole_count: 0,
+                blackhole_sources: [],
+            },
+        });
+        const wrapper = mountRNStatusPage();
+        await vi.waitFor(() => expect(wrapper.vm.isLoading).toBe(false));
+        expect(wrapper.text()).toContain("Blackhole: Inactive");
     });
 
     it("refreshes status when button is clicked", async () => {
