@@ -1,0 +1,57 @@
+{
+    "id": "com.meshchatx.mcx-bugs",
+    "version": "1.0.0",
+    "apiVersion": 1,
+    "name": "Bug Reports",
+    "description": "Send redacted debug logs to an mcx-bugs-v1 collector, or run a collector yourself.",
+    "frontend": {
+        "entry": "frontend/main.js",
+        "type": "js"
+    },
+    "backend": {
+        "entry": "backend/main.py",
+        "type": "python"
+    },
+    "i18n": {
+        "directory": "locales",
+        "defaultLocale": "en"
+    },
+    "contributes": {
+        "navItems": [
+            {
+                "id": "mcx-bugs",
+                "route": { "name": "plugin-mcx-bugs" },
+                "icon": "bug-outline",
+                "labelKey": "nav"
+            }
+        ],
+        "toolsPageEntries": [
+            {
+                "name": "mcx-bugs",
+                "route": { "name": "plugin-mcx-bugs" },
+                "icon": "bug-outline",
+                "iconBg": "tool-card__icon bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200",
+                "titleKey": "title",
+                "descriptionKey": "description"
+            }
+        ]
+    },
+    "permissions": {
+        "managers": [
+            "debugLog.read",
+            "bugReport.status",
+            "bugReport.listCollectors",
+            "bugReport.listReports",
+            "bugReport.deleteReport",
+            "bugReport.clearReports",
+            "bugReport.preview",
+            "bugReport.send",
+            "bugReport.startCollector",
+            "bugReport.stopCollector",
+            "bugReport.announce",
+            "bugReport.setCollectorName"
+        ],
+        "storage": "isolated",
+        "network": "none"
+    }
+}

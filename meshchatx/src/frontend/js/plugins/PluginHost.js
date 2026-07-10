@@ -6,6 +6,7 @@ import { setPluginUiLabels, clearPluginUiLabels } from "./pluginUiRegistry.js";
 import { registerNavItem, unregisterNavItem } from "../registries/navRegistry.js";
 import { registerTool, unregisterTool } from "../registries/toolsRegistry.js";
 import { onWsEvent, offWsEvent } from "../registries/wsEventRegistry.js";
+import ToastUtils from "../ToastUtils.js";
 
 /** @typedef {import('./pluginManifest.js').PluginManifest} PluginManifest */
 
@@ -50,7 +51,7 @@ export class PluginHost {
         }
         const labels = await loadPluginLabelMap(apiClient, pluginId, locale, manifest);
         setPluginUiLabels(pluginId, labels);
-        const assetUrl = `/api/v1/plugins/${encodeURIComponent(pluginId)}/asset/${manifest.frontend.entry}`;
+        const assetUrl = `/api/v1/plugins/${encodeURIComponent(pluginId)}/asset/${manifest.frontend.entry}?v=${encodeURIComponent(manifest.version || "1")}`;
         const sourceResponse = await apiClient.get(assetUrl, { responseType: "text" });
         const source =
             typeof sourceResponse.data === "string" ? sourceResponse.data : String(sourceResponse.data ?? "");
@@ -229,6 +230,26 @@ export class PluginHost {
                 })
             );
             this.unloadPlugin(pluginId);
+        }
+        if (message.type === "toast") {
+            ToastUtils.show(message.message || "", message.toastType || "info", message.duration ?? 5000);
+        }
+        if (message.type === "download") {
+            try {
+                const blob = new Blob([message.data || ""], {
+                    type: "application/json",
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = message.filename || "download.json";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (e) {
+                console.error("Plugin download failed:", e);
+            }
         }
     }
 

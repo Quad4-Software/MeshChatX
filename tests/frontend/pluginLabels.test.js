@@ -10,10 +10,10 @@ import {
 describe("pluginLabels", () => {
     it("flattens nested plugin locale messages", () => {
         const labels = flattenLocaleMessages({
-            title: "Mesh Observatory",
+            title: "Bug Reports",
             nested: { value: "Hello" },
         });
-        expect(labels.title).toBe("Mesh Observatory");
+        expect(labels.title).toBe("Bug Reports");
         expect(labels["nested.value"]).toBe("Hello");
     });
 

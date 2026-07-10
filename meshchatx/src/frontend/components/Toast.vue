@@ -9,7 +9,7 @@
                 v-for="toast in toasts"
                 :key="toast.id"
                 ref="toastRefs"
-                class="pointer-events-auto flex items-center p-4 w-full sm:min-w-[300px] sm:max-w-md rounded-xl shadow-lg border backdrop-blur-md transition-all duration-300 select-none touch-pan-y"
+                class="pointer-events-auto flex items-center p-4 w-full sm:min-w-[300px] sm:max-w-md rounded-xl shadow-lg border backdrop-blur-md transition-all duration-300 select-text touch-pan-y"
                 :class="[toastClass(toast.type), toast.swipeClass]"
                 :style="toastSwipeStyle(toast)"
                 @touchstart="onTouchStart($event, toast)"

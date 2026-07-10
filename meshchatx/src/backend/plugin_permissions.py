@@ -19,6 +19,18 @@ KNOWN_HOOKS = frozenset(
 KNOWN_MANAGERS = frozenset(
     {
         "destinationPath.read",
+        "debugLog.read",
+        "bugReport.status",
+        "bugReport.listCollectors",
+        "bugReport.listReports",
+        "bugReport.deleteReport",
+        "bugReport.clearReports",
+        "bugReport.preview",
+        "bugReport.send",
+        "bugReport.startCollector",
+        "bugReport.stopCollector",
+        "bugReport.announce",
+        "bugReport.setCollectorName",
         "rnsLink.open",
         "rnsLink.identify",
         "rnsLink.request",

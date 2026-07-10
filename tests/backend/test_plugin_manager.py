@@ -18,13 +18,13 @@ class TestPluginManagerInstall:
         manager.install_bundled_examples()
         plugins = manager.list_plugins()
         ids = [plugin["id"] for plugin in plugins]
-        assert "com.meshchatx.mesh-observatory" in ids
+        assert "com.meshchatx.mcx-bugs" in ids
         assert "com.meshchatx.transport-node-monitor" not in ids
 
     def test_enable_disable_plugin(self, tmp_path):
         manager = _make_manager(tmp_path)
         manager.install_bundled_examples()
-        plugin_id = "com.meshchatx.mesh-observatory"
+        plugin_id = "com.meshchatx.mcx-bugs"
         enabled = manager.enable(plugin_id)
         assert enabled["enabled"] is True
         disabled = manager.disable(plugin_id)
@@ -33,7 +33,7 @@ class TestPluginManagerInstall:
     def test_storage_roundtrip(self, tmp_path):
         manager = _make_manager(tmp_path)
         manager.install_bundled_examples()
-        plugin_id = "com.meshchatx.mesh-observatory"
+        plugin_id = "com.meshchatx.mcx-bugs"
         manager.storage_set(plugin_id, "sample_key", json.dumps(["abc123"]))
         value = manager.storage_get(plugin_id, "sample_key")
         assert json.loads(value) == ["abc123"]
@@ -41,42 +41,46 @@ class TestPluginManagerInstall:
     def test_permission_denied_for_manager_capability(self, tmp_path):
         manager = _make_manager(tmp_path)
         manager.install_bundled_examples()
-        plugin_id = "com.meshchatx.mesh-observatory"
+        plugin_id = "com.meshchatx.mcx-bugs"
         manager.enable(plugin_id)
         with pytest.raises(PermissionError):
             manager.call_manager(plugin_id, "unknown.capability", {})
 
-    def test_destination_path_read_uses_rnpath_handler(self, tmp_path):
-        class FakeHandler:
-            def get_path_table(self, search=None, limit=0):
-                return {
-                    "table": [
-                        {
-                            "hash": "abc123",
-                            "hops": 2,
-                            "via": "def456",
-                            "interface": "RNode LoRa",
-                            "state": 1,
-                            "timestamp": 1.0,
-                        }
-                    ],
-                    "total": 1,
-                    "responsive": 1,
-                    "unresponsive": 0,
-                }
+    def test_bug_report_preview_reads_debug_logs(self, tmp_path):
+        class FakeLogs:
+            def get_logs(self, **_kwargs):
+                return [
+                    {
+                        "timestamp": 1.0,
+                        "level": "INFO",
+                        "module": "meshchat",
+                        "message": "peer aa" + ("bb" * 15) + " at /home/user1/secret",
+                    }
+                ]
+
+            def get_total_count(self, **_kwargs):
+                return 1
+
+        class FakeDatabase:
+            debug_logs = FakeLogs()
 
         class FakeApp:
             reticulum = object()
-            rnpath_handler = FakeHandler()
+            database = FakeDatabase()
+            storage_dir = str(tmp_path)
+            current_context = None
 
         manager = _make_manager(tmp_path, app=FakeApp())
         manager.install_bundled_examples()
-        plugin_id = "com.meshchatx.mesh-observatory"
+        plugin_id = "com.meshchatx.mcx-bugs"
         manager.enable(plugin_id)
-        result = manager.call_manager(plugin_id, "destinationPath.read", {"limit": 10})
-        assert result["total"] == 1
-        assert result["paths"][0]["destination_hash"] == "abc123"
-        assert result["paths"][0]["interface"] == "RNode LoRa"
+        preview = manager.call_manager(
+            plugin_id,
+            "bugReport.preview",
+            {"limit": 10},
+        )
+        assert preview["line_count"] == 1
+        assert "/home/user1/secret" in preview["log_text"]
 
     def test_rns_link_capabilities_require_manifest_grant(self, tmp_path):
         class FakeLinkManager:
@@ -95,7 +99,7 @@ class TestPluginManagerInstall:
 
         manager = _make_manager(tmp_path, app=FakeApp())
         manager.install_bundled_examples()
-        plugin_id = "com.meshchatx.mesh-observatory"
+        plugin_id = "com.meshchatx.mcx-bugs"
         manager.enable(plugin_id)
         with pytest.raises(PermissionError):
             manager.call_manager(
@@ -139,7 +143,7 @@ class TestPluginManagerInstall:
 
         manager = _make_manager(tmp_path, app=FakeApp())
         manager.install_bundled_examples()
-        plugin_id = "com.meshchatx.mesh-observatory"
+        plugin_id = "com.meshchatx.mcx-bugs"
         manager.enable(plugin_id)
         record = manager._plugins[plugin_id]
         record.manifest.setdefault("permissions", {})["hooks"] = [
@@ -194,7 +198,7 @@ class TestPluginManagerInstall:
         assert manager.list_plugins() == []
         source = os.path.join(
             os.path.dirname(__file__),
-            "../../meshchatx/src/backend/data/plugins/mesh-observatory",
+            "../../meshchatx/src/backend/data/plugins/mcx-bugs",
         )
         with pytest.raises(PermissionError):
             manager.install_from_directory(os.path.abspath(source))
