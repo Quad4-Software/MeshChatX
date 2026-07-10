@@ -2056,7 +2056,7 @@
     },
     "docs": {
         "title": "Dokumentaatio",
-        "subtitle": "Reticulum-ohjekirja MeshChatX-ohjeet saatavilla ilman verkkoyhteyttä.",
+        "subtitle": "Reticulum-ohjekirja ja MeshChatX-ohjeet, saatavilla ilman verkkoyhteyttä asetusten jälkeen.",
         "tab_meshchatx": "MeshChatX",
         "tab_reticulum": "Reticulum",
         "search_placeholder": "Hae dokumentaatiosta...",
@@ -2083,12 +2083,11 @@
         "confirm_delete_version": "Poistetaanko dokumentaatioversio \"{version}\"?",
         "prompt_version_name": "Anna tälle lataukselle version nimi:",
         "status_title": "Dokumentaation tila",
-        "status_extracting": "Viedään dokumentaatiota...",
+        "status_extracting": "Puretaan dokumentaatiota...",
         "status_available": "Paikallinen ohjekirja saatavilla",
         "status_not_available": "Ohjekirja ei ole saatavilla",
         "btn_upload": "Tuo ohjekirja",
-        "btn_share": "Jaa Reticulum-ohjekirja ZIP-tiedostona, jonka voi myöhemmin tuoda sovellukseen",
-        "empty_state_hint": "Tuo Reticulum-ohjekirjan ZIP paikallista käyttöä varten. Julkaisut sisältävät buildissa pakatun offline-kopion.",
+        "btn_share": "Jaa Reticulum-ohjekirja ZIP-tiedostona, jonka voi tuoda uudelleen",
         "error": "Virhe",
         "failed_upload_docs": "Dokumentaation tuominen epäonnistui",
         "upload_success": "Dokumentaatio ladattu",
@@ -2098,7 +2097,8 @@
         "load_doc_failed": "Tätä ohjetta ei voitu ladata.",
         "search_failed": "Haku epäonnistui. Tarkista yhteys ja yritä uudelleen.",
         "manifest_warning": "Dokumentaatioindeksiä ei voitu lukea. Näytetään saatavilla olevat tiedostot ilman osioryhmittelyä.",
-        "failed_upload_alert": "Dokumentaation lataus epäonnistui: {message}"
+        "failed_upload_alert": "Dokumentaation lataus epäonnistui: {message}",
+        "empty_state_hint": "Tuo Reticulum-ohjekirjan ZIP paikallista käyttöä varten. Julkaisut sisältävät buildissa pakatun offline-kopion."
     },
     "licenses": {
         "section_label": "Laki",

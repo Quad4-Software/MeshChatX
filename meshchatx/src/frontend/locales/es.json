@@ -2082,13 +2082,12 @@
         "complete_percent": "{percent}% completado",
         "confirm_delete_version": "¿Eliminar la versión de documentación \"{version}\"?",
         "prompt_version_name": "Introduce un nombre de versión para esta subida:",
-        "status_title": "Situación de la documentación",
-        "status_extracting": "Extrayendo...",
-        "status_available": "Manual disponible",
+        "status_title": "Estado de la documentación",
+        "status_extracting": "Extrayendo documentación...",
+        "status_available": "Manual sin conexión disponible",
         "status_not_available": "Manual no disponible",
-        "btn_upload": "Subir Manual",
+        "btn_upload": "Subir manual",
         "btn_share": "Compartir el manual de Reticulum como ZIP reimportable",
-        "empty_state_hint": "Sube un ZIP del manual de Reticulum para consultarlo sin conexión. Las versiones incluyen una copia sin conexión empaquetada en el build.",
         "error": "Error",
         "failed_upload_docs": "Error al subir la documentación",
         "upload_success": "Documentación subida",
@@ -2098,7 +2097,8 @@
         "load_doc_failed": "No se pudo cargar esta guía.",
         "search_failed": "La búsqueda falló. Comprueba tu conexión e inténtalo de nuevo.",
         "manifest_warning": "No se pudo leer el archivo índice de documentación. Se muestran los archivos disponibles sin agrupación por secciones.",
-        "failed_upload_alert": "Error al subir la documentación: {message}"
+        "failed_upload_alert": "Error al subir la documentación: {message}",
+        "empty_state_hint": "Sube un ZIP del manual de Reticulum para consultarlo sin conexión. Las versiones incluyen una copia sin conexión empaquetada en el build."
     },
     "licenses": {
         "section_label": "Legal",

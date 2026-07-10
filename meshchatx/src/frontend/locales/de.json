@@ -1970,8 +1970,7 @@
         "status_available": "Offline-Handbuch verfügbar",
         "status_not_available": "Handbuch nicht verfügbar",
         "btn_upload": "Handbuch hochladen",
-        "btn_share": "Reticulum-Handbuch als wieder hochladbares ZIP teilen",
-        "empty_state_hint": "Lade ein ZIP des Reticulum-Handbuchs hoch, um es offline anzuzeigen. Releases enthalten eine gebündelte Offline-Kopie aus dem Build.",
+        "btn_share": "Reticulum-Handbuch als erneut hochladbares ZIP teilen",
         "error": "Fehler",
         "failed_upload_docs": "Hochladen der Dokumentation fehlgeschlagen",
         "upload_success": "Dokumentation hochgeladen",
@@ -1981,7 +1980,8 @@
         "load_doc_failed": "Diese Anleitung konnte nicht geladen werden.",
         "search_failed": "Suche fehlgeschlagen. Verbindung prüfen und erneut versuchen.",
         "manifest_warning": "Die Dokumentationsindex-Datei konnte nicht gelesen werden. Verfügbare Dateien werden ohne Abschnittsgruppierung angezeigt.",
-        "failed_upload_alert": "Hochladen der Dokumentation fehlgeschlagen: {message}"
+        "failed_upload_alert": "Hochladen der Dokumentation fehlgeschlagen: {message}",
+        "empty_state_hint": "Lade ein ZIP des Reticulum-Handbuchs hoch, um es offline anzuzeigen. Releases enthalten eine gebündelte Offline-Kopie aus dem Build."
     },
     "licenses": {
         "section_label": "Rechtliches",
