@@ -971,7 +971,11 @@
         "identity_restored": "Identity imported.",
         "identity_restore_failed": "Ripristino identità fallito",
         "no_identity_available": "Nessuna identità disponibile",
-        "message_count": "{count} messaggi"
+        "message_count": "{count} messaggi",
+        "import_key_only_hint": "This restores the identity key only. Message history and settings require a database backup zip from About.",
+        "switch_after_restore_confirm": "Switch to restored identity \"{name}\" now?",
+        "identity_restore_empty_file": "Identity file is empty.",
+        "identity_restore_file_too_large": "Identity file is too large."
     },
     "contacts": {
         "title": "Contatti",
@@ -2065,7 +2069,11 @@
         "disabled": "Disabilitata",
         "forwarding_to": "Inoltro a: {hash}",
         "source_filter_display": "Filtro sorgente: {hash}",
-        "delete_confirm": "Sei sicuro di voler eliminare questa regola?"
+        "delete_confirm": "Sei sicuro di voler eliminare questa regola?",
+        "invalid_hash": "Forward-to hash must be a 32-character hex value",
+        "send_failed": "Could not send forwarding update (websocket disconnected)",
+        "rule_added": "Forwarding rule added",
+        "rule_deleted": "Forwarding rule deleted"
     },
     "archives": {
         "description": "Cerca pagine Nomad salvate nel tuo archivio locale.",
@@ -2196,7 +2204,11 @@
             "failed_drop_paths": "Impossibile eliminare i percorsi",
             "purge_confirm": "Svuotare tutte le code di annuncio? L'azione non può essere annullata.",
             "queues_purged": "Code di annuncio svuotate",
-            "failed_purge": "Impossibile svuotare le code"
+            "failed_purge": "Impossibile svuotare le code",
+            "path_requested": "Path requested for {hash}...",
+            "drop_confirm": "Are you sure you want to drop the path to {hash}?",
+            "drop_via_confirm": "Drop ALL paths via {hash}?",
+            "invalid_hops": "Hops filter must be a number"
         },
         "rnpath_trace": {
             "title": "RNS Path Trace",
@@ -2223,7 +2235,11 @@
         },
         "propagation_nodes": {
             "title": "Nodi di propagazione",
-            "description": "Scegli nodi di propagazione preferiti, controlla statistiche in tempo reale ed esegui verifiche rapide sui percorsi."
+            "description": "Scegli nodi di propagazione preferiti, controlla statistiche in tempo reale ed esegui verifiche rapide sui percorsi.",
+            "load_failed": "Failed to load propagation nodes",
+            "local_restarted": "Local propagation node restarted",
+            "local_stopped": "Local propagation node stopped",
+            "local_started": "Local propagation node started"
         },
         "sieve_filters": {
             "title": "Filtri a setaccio",
@@ -2838,7 +2854,10 @@
         "incoming_announces": "Annunci in Entrata",
         "outgoing_announces": "Annunci in Uscita",
         "airtime": "Tempo d'antenna",
-        "channel_load": "Carico Canale"
+        "channel_load": "Carico Canale",
+        "blackhole_label": "Blackhole: {state}",
+        "blackhole_publishing": "Publishing",
+        "blackhole_inactive": "Inactive"
     },
     "translator": {
         "text_translation": "Traduzione Testo",
@@ -3187,7 +3206,14 @@
         "propagation_manual_desc": "Puoi configurare manualmente un nodo di propagazione in seguito nelle impostazioni, oppure lasciare vuoto se non desideri utilizzarne uno.",
         "propagation_enable_auto": "Abilita configurazione automatica",
         "propagation_skip_auto": "Configurazione manuale",
-        "auto_propagation_enabled": "Auto-propagazione abilitata"
+        "auto_propagation_enabled": "Auto-propagazione abilitata",
+        "identity_import_empty_file": "Identity file is empty.",
+        "identity_import_file_too_large": "Identity file is too large.",
+        "identity_import_key_only_hint": "This imports your identity key only. To restore messages and settings, use About → Restore from File with a database backup zip.",
+        "identity_file_overrides_base32": "A selected file will be used instead of the pasted base32 key.",
+        "identity_import_pending_activate": "You imported an identity but have not activated it yet. Activate it now?",
+        "identity_import_pending_kept": "Imported identity was saved but not activated. Switch to it later from Identities.",
+        "identity_default_delete_failed": "Imported identity is active, but the default identity could not be removed."
     },
     "command_palette": {
         "search_placeholder": "Cerca comandi, percorsi o peer",

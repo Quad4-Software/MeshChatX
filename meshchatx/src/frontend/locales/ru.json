@@ -971,7 +971,11 @@
         "identity_restored": "Identity imported.",
         "identity_restore_failed": "Не удалось восстановить идентификатор",
         "no_identity_available": "Нет доступного идентификатора",
-        "message_count": "{count} сообщений"
+        "message_count": "{count} сообщений",
+        "import_key_only_hint": "This restores the identity key only. Message history and settings require a database backup zip from About.",
+        "switch_after_restore_confirm": "Switch to restored identity \"{name}\" now?",
+        "identity_restore_empty_file": "Identity file is empty.",
+        "identity_restore_file_too_large": "Identity file is too large."
     },
     "contacts": {
         "title": "Контакты",
@@ -1896,7 +1900,11 @@
         "disabled": "Выключено",
         "forwarding_to": "Пересылка на: {hash}",
         "source_filter_display": "Фильтр источника: {hash}",
-        "delete_confirm": "Вы уверены, что хотите удалить это правило?"
+        "delete_confirm": "Вы уверены, что хотите удалить это правило?",
+        "invalid_hash": "Forward-to hash must be a 32-character hex value",
+        "send_failed": "Could not send forwarding update (websocket disconnected)",
+        "rule_added": "Forwarding rule added",
+        "rule_deleted": "Forwarding rule deleted"
     },
     "archives": {
         "description": "Поиск страниц Nomad, сохранённых в локальном архиве.",
@@ -2027,7 +2035,11 @@
             "failed_drop_paths": "Не удалось удалить пути",
             "purge_confirm": "Очистить все очереди объявлений? Это действие необратимо.",
             "queues_purged": "Очереди объявлений очищены",
-            "failed_purge": "Не удалось очистить очереди"
+            "failed_purge": "Не удалось очистить очереди",
+            "path_requested": "Path requested for {hash}...",
+            "drop_confirm": "Are you sure you want to drop the path to {hash}?",
+            "drop_via_confirm": "Drop ALL paths via {hash}?",
+            "invalid_hops": "Hops filter must be a number"
         },
         "rnpath_trace": {
             "title": "RNS Трассировка пути",
@@ -2054,7 +2066,11 @@
         },
         "propagation_nodes": {
             "title": "Узлы распространения",
-            "description": "Выбор предпочтительных узлов распространения, просмотр статистики в реальном времени и быстрая проверка маршрутов."
+            "description": "Выбор предпочтительных узлов распространения, просмотр статистики в реальном времени и быстрая проверка маршрутов.",
+            "load_failed": "Failed to load propagation nodes",
+            "local_restarted": "Local propagation node restarted",
+            "local_stopped": "Local propagation node stopped",
+            "local_started": "Local propagation node started"
         },
         "sieve_filters": {
             "title": "Сито-фильтры",
@@ -2669,7 +2685,10 @@
         "incoming_announces": "Входящие анонсы",
         "outgoing_announces": "Исходящие анонсы",
         "airtime": "Эфирное время",
-        "channel_load": "Загрузка канала"
+        "channel_load": "Загрузка канала",
+        "blackhole_label": "Blackhole: {state}",
+        "blackhole_publishing": "Publishing",
+        "blackhole_inactive": "Inactive"
     },
     "translator": {
         "text_translation": "Перевод текста",
@@ -3018,7 +3037,14 @@
         "propagation_manual_desc": "Вы можете вручную настроить узел ретрансляции позже в настройках или оставить поле пустым, если не хотите его использовать.",
         "propagation_enable_auto": "Включить автонастройку",
         "propagation_skip_auto": "Ручная настройка",
-        "auto_propagation_enabled": "Авторетрансляция включена"
+        "auto_propagation_enabled": "Авторетрансляция включена",
+        "identity_import_empty_file": "Identity file is empty.",
+        "identity_import_file_too_large": "Identity file is too large.",
+        "identity_import_key_only_hint": "This imports your identity key only. To restore messages and settings, use About → Restore from File with a database backup zip.",
+        "identity_file_overrides_base32": "A selected file will be used instead of the pasted base32 key.",
+        "identity_import_pending_activate": "You imported an identity but have not activated it yet. Activate it now?",
+        "identity_import_pending_kept": "Imported identity was saved but not activated. Switch to it later from Identities.",
+        "identity_default_delete_failed": "Imported identity is active, but the default identity could not be removed."
     },
     "command_palette": {
         "search_placeholder": "Команды, маршруты или узлы",
