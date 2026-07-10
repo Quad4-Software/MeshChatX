@@ -476,6 +476,7 @@
         />
         <Toast />
         <ConfirmDialog />
+        <PromptDialog />
         <CommandPalette />
         <IntegrityWarningModal />
         <ChangelogModal ref="changelogModal" :app-version="appInfo?.version" />
@@ -587,6 +588,7 @@ import NotificationSoundUtils from "../js/NotificationSoundUtils";
 import LxmfUserIcon from "./LxmfUserIcon.vue";
 import Toast from "./Toast.vue";
 import ConfirmDialog from "./ConfirmDialog.vue";
+import PromptDialog from "./PromptDialog.vue";
 import ToastUtils from "../js/ToastUtils";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import QRCode from "qrcode";
@@ -616,6 +618,7 @@ export default {
         SidebarLink,
         Toast,
         ConfirmDialog,
+        PromptDialog,
         MaterialDesignIcon,
         NotificationBell,
         LanguageSelector,

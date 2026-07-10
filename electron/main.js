@@ -296,11 +296,11 @@ ipcMain.handle("confirm", async (event, message) => {
 });
 
 // add support for showing a prompt window via ipc
-ipcMain.handle("prompt", async (event, message) => {
+ipcMain.handle("prompt", async (event, message, defaultValue = "") => {
     return await electronPrompt({
         title: message,
         label: "",
-        value: "",
+        value: defaultValue == null ? "" : String(defaultValue),
         type: "input",
         inputAttrs: {
             type: "text",

@@ -544,3 +544,47 @@ def test_get_doc_content_returns_none_on_read_error(tmp_path, monkeypatch):
 
     monkeypatch.setattr("builtins.open", fail_open)
     assert dm.get_doc_content("en/guide.md") is None
+
+
+def test_resolve_docs_source_url_rejects_non_https():
+    with pytest.raises(ValueError, match="https"):
+        DocsManager._resolve_docs_source_url(
+            "http://github.com/markqvist/reticulum_website/archive/refs/heads/main.zip"
+        )
+
+
+def test_resolve_docs_source_url_rejects_unknown_host():
+    with pytest.raises(ValueError, match="not allowed"):
+        DocsManager._resolve_docs_source_url("https://evil.example/docs.zip")
+
+
+def test_update_from_github_downloads_and_installs(docs_manager, monkeypatch):
+    payload = _make_docs_zip(
+        files={
+            "reticulum_website-main/docs/index.html": "<html>github</html>",
+        },
+    )
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def read(self):
+            return payload
+
+    monkeypatch.setattr(
+        "meshchatx.src.backend.docs_manager.urllib.request.urlopen",
+        lambda *_args, **_kwargs: FakeResponse(),
+    )
+
+    success, version = docs_manager.update_from_github(version="github-test")
+    assert success is True
+    assert version == "github-test"
+    assert docs_manager.upload_status == "completed"
+    resolved = docs_manager.find_docs_file("index.html")
+    assert resolved is not None
+    with open(resolved) as fh:
+        assert "github" in fh.read()

@@ -187,7 +187,15 @@ class MessageHandler:
                      OR m1.peer_hash IN (SELECT peer_hash FROM lxmf_messages WHERE title LIKE ? OR content LIKE ?))
                 """)
                 params.extend(
-                    [like_term, like_term, like_term, like_term, like_term, like_term, like_term],
+                    [
+                        like_term,
+                        like_term,
+                        like_term,
+                        like_term,
+                        like_term,
+                        like_term,
+                        like_term,
+                    ],
                 )
 
         if where_clauses:

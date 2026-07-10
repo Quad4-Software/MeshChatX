@@ -35,8 +35,8 @@ contextBridge.exposeInMainWorld("electron", {
     },
 
     // add support for using "prompt" in electron browser window
-    prompt: async function (message) {
-        return await ipcRenderer.invoke("prompt", message);
+    prompt: async function (message, defaultValue = "") {
+        return await ipcRenderer.invoke("prompt", message, defaultValue);
     },
 
     // allow relaunching app in electron browser window

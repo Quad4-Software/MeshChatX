@@ -185,7 +185,15 @@ class MarkdownRenderer:
         def link_repl(match):
             label, url = match.group(1), match.group(2)
             safe_url = _safe_href(url)
-            return f'<a href="{html.escape(safe_url)}" class="text-blue-600 dark:text-blue-400 hover:underline" target="_blank" rel="noopener noreferrer">{label}</a>'
+            is_external = any(
+                safe_url.lower().startswith(p)
+                for p in ("https://", "http://", "mailto:")
+            )
+            target = ' target="_blank" rel="noopener noreferrer"' if is_external else ""
+            return (
+                f'<a href="{html.escape(safe_url)}" class="text-blue-600 '
+                f'dark:text-blue-400 hover:underline"{target}>{label}</a>'
+            )
 
         text = re.sub(
             r"\[([^\]]+)\]\(([^)]+)\)",
