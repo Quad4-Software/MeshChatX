@@ -274,7 +274,7 @@ describe("ConversationViewer reactions", () => {
         });
         wrapper.vm.$refs.reactionPickerPanel = panel;
         wrapper.vm.onReactionPickerDragStart({ clientX: 1, clientY: 2 });
-        expect(typeof wrapper.vm._reactionDragCleanup).toBe("function");
+        expect(typeof wrapper.vm.reactionDragCleanup).toBe("function");
         wrapper.unmount();
         expect(() => {
             document.dispatchEvent(new Event("touchmove"));
