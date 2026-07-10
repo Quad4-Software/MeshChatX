@@ -972,10 +972,10 @@
         "identity_restore_failed": "Identiteitsherstel is mislukt",
         "no_identity_available": "Geen identiteit beschikbaar",
         "message_count": "{count}-berichten",
-        "import_key_only_hint": "This restores the identity key only. Message history and settings require a database backup zip from About.",
-        "switch_after_restore_confirm": "Switch to restored identity \"{name}\" now?",
-        "identity_restore_empty_file": "Identity file is empty.",
-        "identity_restore_file_too_large": "Identity file is too large."
+        "import_key_only_hint": "Dit herstelt alleen de identiteitssleutel. Berichtgeschiedenis en instellingen vereisen een database-backup-ZIP via Over.",
+        "switch_after_restore_confirm": "Overschakelen naar herstelde identiteit \"{name}\"?",
+        "identity_restore_empty_file": "Identiteitsbestand is leeg.",
+        "identity_restore_file_too_large": "Identiteitsbestand is te groot."
     },
     "about": {
         "title": "Info",
@@ -2018,10 +2018,10 @@
         "forwarding_to": "Doorsturen naar:{hash}",
         "source_filter_display": "Bronfilter:{hash}",
         "delete_confirm": "Weet u zeker dat u deze regel wilt verwijderen?",
-        "invalid_hash": "Forward-to hash must be a 32-character hex value",
-        "send_failed": "Could not send forwarding update (websocket disconnected)",
-        "rule_added": "Forwarding rule added",
-        "rule_deleted": "Forwarding rule deleted"
+        "invalid_hash": "Doorstuurlings-hash moet een 32-tekens hexadecimale waarde zijn",
+        "send_failed": "Kon doorstuurbijwerking niet verzenden (WebSocket verbroken)",
+        "rule_added": "Doorstuurlingsregel toegevoegd",
+        "rule_deleted": "Doorstuurlingsregel verwijderd"
     },
     "archives": {
         "description": "Zoek Nomad Network pagina's opgeslagen in uw lokale archief.",
@@ -2153,10 +2153,10 @@
             "purge_confirm": "Alle rijen wissen? Dit kan niet ongedaan worden gemaakt.",
             "queues_purged": "Aankondigen wachtrijen gewist",
             "failed_purge": "Kon wachtrijen niet wissen",
-            "path_requested": "Path requested for {hash}...",
-            "drop_confirm": "Are you sure you want to drop the path to {hash}?",
-            "drop_via_confirm": "Drop ALL paths via {hash}?",
-            "invalid_hops": "Hops filter must be a number"
+            "path_requested": "Pad aangevraagd voor {hash}...",
+            "drop_confirm": "Pad naar {hash} verwijderen?",
+            "drop_via_confirm": "ALLE paden via {hash} verwijderen?",
+            "invalid_hops": "Hops-filter moet een getal zijn"
         },
         "rnpath_trace": {
             "title": "RNS-padspoor",
@@ -2184,10 +2184,10 @@
         "propagation_nodes": {
             "title": "Propagatienodes",
             "description": "Kies voorkeurs-propagatienodes, bekijk live statistieken en voer snelle padcontroles uit.",
-            "load_failed": "Failed to load propagation nodes",
-            "local_restarted": "Local propagation node restarted",
-            "local_stopped": "Local propagation node stopped",
-            "local_started": "Local propagation node started"
+            "load_failed": "Laden van propagatieknooppunten mislukt",
+            "local_restarted": "Lokaal propagatieknooppunt herstart",
+            "local_stopped": "Lokaal propagatieknooppunt gestopt",
+            "local_started": "Lokaal propagatieknooppunt gestart"
         },
         "sieve_filters": {
             "title": "Zeeffilters",
@@ -2803,9 +2803,9 @@
         "outgoing_announces": "Uitgaande mededelingen",
         "airtime": "Luchttijd",
         "channel_load": "Kanaal laden",
-        "blackhole_label": "Blackhole: {state}",
-        "blackhole_publishing": "Publishing",
-        "blackhole_inactive": "Inactive"
+        "blackhole_label": "Zwart gat: {state}",
+        "blackhole_publishing": "Publiceren",
+        "blackhole_inactive": "Inactief"
     },
     "translator": {
         "text_translation": "Tekstvertaling",
@@ -3207,13 +3207,13 @@
         "propagation_enable_auto": "Auto-configuratie inschakelen",
         "propagation_skip_auto": "Handmatig instellen / overslaan",
         "auto_propagation_enabled": "Auto-propagatie ingeschakeld",
-        "identity_import_empty_file": "Identity file is empty.",
-        "identity_import_file_too_large": "Identity file is too large.",
-        "identity_import_key_only_hint": "This imports your identity key only. To restore messages and settings, use About → Restore from File with a database backup zip.",
-        "identity_file_overrides_base32": "A selected file will be used instead of the pasted base32 key.",
-        "identity_import_pending_activate": "You imported an identity but have not activated it yet. Activate it now?",
-        "identity_import_pending_kept": "Imported identity was saved but not activated. Switch to it later from Identities.",
-        "identity_default_delete_failed": "Imported identity is active, but the default identity could not be removed."
+        "identity_import_empty_file": "Identiteitsbestand is leeg.",
+        "identity_import_file_too_large": "Identiteitsbestand is te groot.",
+        "identity_import_key_only_hint": "Dit importeert alleen je identiteitssleutel. Om berichten en instellingen te herstellen, gebruik Over → Herstellen uit bestand met een database-backup-ZIP.",
+        "identity_file_overrides_base32": "Een geselecteerd bestand wordt gebruikt in plaats van de geplakte base32-sleutel.",
+        "identity_import_pending_activate": "Je hebt een identiteit geïmporteerd maar nog niet geactiveerd. Nu activeren?",
+        "identity_import_pending_kept": "Geïmporteerde identiteit is opgeslagen maar niet geactiveerd. Schakel later over via Identiteiten.",
+        "identity_default_delete_failed": "Geïmporteerde identiteit is actief, maar de standaardidentiteit kon niet worden verwijderd."
     },
     "command_palette": {
         "search_placeholder": "Zoekopdrachten, routes of collega's",

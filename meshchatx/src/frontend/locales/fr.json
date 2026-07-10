@@ -972,10 +972,10 @@
         "identity_restore_failed": "La restauration de l'identité a échoué",
         "no_identity_available": "Aucune identité disponible",
         "message_count": "Messages{count}",
-        "import_key_only_hint": "This restores the identity key only. Message history and settings require a database backup zip from About.",
-        "switch_after_restore_confirm": "Switch to restored identity \"{name}\" now?",
-        "identity_restore_empty_file": "Identity file is empty.",
-        "identity_restore_file_too_large": "Identity file is too large."
+        "import_key_only_hint": "Cela restaure uniquement la clé d'identité. L'historique des messages et les paramètres nécessitent un ZIP de sauvegarde de la base de données depuis À propos.",
+        "switch_after_restore_confirm": "Passer à l'identité restaurée \"{name}\" maintenant ?",
+        "identity_restore_empty_file": "Le fichier d'identité est vide.",
+        "identity_restore_file_too_large": "Le fichier d'identité est trop volumineux."
     },
     "about": {
         "title": "À propos",
@@ -2018,10 +2018,10 @@
         "forwarding_to": "Transmission vers : {hash}",
         "source_filter_display": "Filtre source : {hash}",
         "delete_confirm": "Voulez-vous vraiment supprimer cette règle ?",
-        "invalid_hash": "Forward-to hash must be a 32-character hex value",
-        "send_failed": "Could not send forwarding update (websocket disconnected)",
-        "rule_added": "Forwarding rule added",
-        "rule_deleted": "Forwarding rule deleted"
+        "invalid_hash": "Le hash de transfert doit être une valeur hexadécimale de 32 caractères",
+        "send_failed": "Impossible d'envoyer la mise à jour de transfert (WebSocket déconnecté)",
+        "rule_added": "Règle de transfert ajoutée",
+        "rule_deleted": "Règle de transfert supprimée"
     },
     "archives": {
         "description": "Rechercher les pages du réseau Nomad stockées dans votre archive locale.",
@@ -2153,10 +2153,10 @@
             "purge_confirm": "Purger toutes les files d'attente ? Cela ne peut être annulé.",
             "queues_purged": "Annoncer les files d'attente purgées",
             "failed_purge": "Impossible de purger les files d'attente",
-            "path_requested": "Path requested for {hash}...",
-            "drop_confirm": "Are you sure you want to drop the path to {hash}?",
-            "drop_via_confirm": "Drop ALL paths via {hash}?",
-            "invalid_hops": "Hops filter must be a number"
+            "path_requested": "Chemin demandé pour {hash}...",
+            "drop_confirm": "Supprimer le chemin vers {hash} ?",
+            "drop_via_confirm": "Supprimer TOUS les chemins via {hash} ?",
+            "invalid_hops": "Le filtre de sauts doit être un nombre"
         },
         "rnpath_trace": {
             "title": "Trace de chemin RNS",
@@ -2184,10 +2184,10 @@
         "propagation_nodes": {
             "title": "Nœuds de propagation",
             "description": "Choisissez des nœuds de propagation préférés, consultez des statistiques en direct et lancez des vérifications de chemin.",
-            "load_failed": "Failed to load propagation nodes",
-            "local_restarted": "Local propagation node restarted",
-            "local_stopped": "Local propagation node stopped",
-            "local_started": "Local propagation node started"
+            "load_failed": "Échec du chargement des nœuds de propagation",
+            "local_restarted": "Nœud de propagation local redémarré",
+            "local_stopped": "Nœud de propagation local arrêté",
+            "local_started": "Nœud de propagation local démarré"
         },
         "sieve_filters": {
             "title": "Filtres tamis",
@@ -2803,9 +2803,9 @@
         "outgoing_announces": "Annonces",
         "airtime": "Temps d'antenne",
         "channel_load": "Chargement du canal",
-        "blackhole_label": "Blackhole: {state}",
-        "blackhole_publishing": "Publishing",
-        "blackhole_inactive": "Inactive"
+        "blackhole_label": "Trou noir : {state}",
+        "blackhole_publishing": "Publication",
+        "blackhole_inactive": "Inactif"
     },
     "translator": {
         "text_translation": "Traduction textuelle",
@@ -3207,13 +3207,13 @@
         "propagation_enable_auto": "Activer la configuration automatique",
         "propagation_skip_auto": "Configurer manuellement / Passer",
         "auto_propagation_enabled": "Autopropagation activée",
-        "identity_import_empty_file": "Identity file is empty.",
-        "identity_import_file_too_large": "Identity file is too large.",
-        "identity_import_key_only_hint": "This imports your identity key only. To restore messages and settings, use About → Restore from File with a database backup zip.",
-        "identity_file_overrides_base32": "A selected file will be used instead of the pasted base32 key.",
-        "identity_import_pending_activate": "You imported an identity but have not activated it yet. Activate it now?",
-        "identity_import_pending_kept": "Imported identity was saved but not activated. Switch to it later from Identities.",
-        "identity_default_delete_failed": "Imported identity is active, but the default identity could not be removed."
+        "identity_import_empty_file": "Le fichier d'identité est vide.",
+        "identity_import_file_too_large": "Le fichier d'identité est trop volumineux.",
+        "identity_import_key_only_hint": "Cela importe uniquement votre clé d'identité. Pour restaurer les messages et les paramètres, utilisez À propos → Restaurer à partir d'un fichier avec un ZIP de sauvegarde de la base de données.",
+        "identity_file_overrides_base32": "Un fichier sélectionné sera utilisé à la place de la clé base32 collée.",
+        "identity_import_pending_activate": "Vous avez importé une identité mais ne l'avez pas encore activée. L'activer maintenant ?",
+        "identity_import_pending_kept": "L'identité importée a été enregistrée mais pas activée. Changez plus tard depuis Identités.",
+        "identity_default_delete_failed": "L'identité importée est active, mais l'identité par défaut n'a pas pu être supprimée."
     },
     "command_palette": {
         "search_placeholder": "Commandes de recherche, itinéraires ou pairs",

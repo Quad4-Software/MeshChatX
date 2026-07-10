@@ -972,10 +972,10 @@
         "identity_restore_failed": "Identiteetin palautus epäonnistui",
         "no_identity_available": "Identiteettiä ei saatavilla",
         "message_count": "{count} viestiä",
-        "import_key_only_hint": "This restores the identity key only. Message history and settings require a database backup zip from About.",
-        "switch_after_restore_confirm": "Switch to restored identity \"{name}\" now?",
-        "identity_restore_empty_file": "Identity file is empty.",
-        "identity_restore_file_too_large": "Identity file is too large."
+        "import_key_only_hint": "Tämä palauttaa vain identiteettiavaimen. Viestihistoria ja asetukset vaativat tietokannan varmuuskopio-ZIP:n Tietoja-osiosta.",
+        "switch_after_restore_confirm": "Vaihda palautettuun identiteettiin \"{name}\" nyt?",
+        "identity_restore_empty_file": "Identiteettitiedosto on tyhjä.",
+        "identity_restore_file_too_large": "Identiteettitiedosto on liian suuri."
     },
     "about": {
         "title": "Tietoja",
@@ -2018,10 +2018,10 @@
         "forwarding_to": "Välitetään kohteeseen: {hash}",
         "source_filter_display": "Lähteen suodatin: {hash}",
         "delete_confirm": "Haluatko varmasti poistaa tämän säännön?",
-        "invalid_hash": "Forward-to hash must be a 32-character hex value",
-        "send_failed": "Could not send forwarding update (websocket disconnected)",
-        "rule_added": "Forwarding rule added",
-        "rule_deleted": "Forwarding rule deleted"
+        "invalid_hash": "Edelleenlähetyksen hashin on oltava 32 merkkiä pitkä heksadesimaaliarvo",
+        "send_failed": "Edelleenlähetyksen päivitystä ei voitu lähettää (WebSocket katkaistu)",
+        "rule_added": "Edelleenlähetyssääntö lisätty",
+        "rule_deleted": "Edelleenlähetyssääntö poistettu"
     },
     "archives": {
         "description": "Etsi Nomad Network -sivuja paikallisesta arkistosta.",
@@ -2153,10 +2153,10 @@
             "purge_confirm": "Tyhjennetäänkö kaikki ilmoitusjonot? Tätä ei voi peruuttaa.",
             "queues_purged": "Ilmoitusjonot tyhjennetty",
             "failed_purge": "Jonojen tyhjennys epäonnistui",
-            "path_requested": "Path requested for {hash}...",
-            "drop_confirm": "Are you sure you want to drop the path to {hash}?",
-            "drop_via_confirm": "Drop ALL paths via {hash}?",
-            "invalid_hops": "Hops filter must be a number"
+            "path_requested": "Polkua pyydetty kohteelle {hash}...",
+            "drop_confirm": "Haluatko varmasti pudottaa polun kohteeseen {hash}?",
+            "drop_via_confirm": "Pudotetaanko KAIKKI polut kohteen {hash} kautta?",
+            "invalid_hops": "Hyppyjen suodattimen on oltava numero"
         },
         "rnpath_trace": {
             "title": "RNS Path Trace",
@@ -2184,10 +2184,10 @@
         "propagation_nodes": {
             "title": "Etenemissolmut",
             "description": "Valitse haluamasi verkon etenemissolmut, tarkkaile reaaliaikaisia tilastoja ja suorita nopeita polkutarkistuksia.",
-            "load_failed": "Failed to load propagation nodes",
-            "local_restarted": "Local propagation node restarted",
-            "local_stopped": "Local propagation node stopped",
-            "local_started": "Local propagation node started"
+            "load_failed": "Propagointisolmujen lataus epäonnistui",
+            "local_restarted": "Paikallinen propagointisolmu käynnistetty uudelleen",
+            "local_stopped": "Paikallinen propagointisolmu pysäytetty",
+            "local_started": "Paikallinen propagointisolmu käynnistetty"
         },
         "sieve_filters": {
             "title": "Seulontasuodattimet",
@@ -2984,9 +2984,9 @@
         "outgoing_announces": "Lähtevät ilmoitukset",
         "airtime": "Ilma-aika",
         "channel_load": "Kanavakuorma",
-        "blackhole_label": "Blackhole: {state}",
-        "blackhole_publishing": "Publishing",
-        "blackhole_inactive": "Inactive"
+        "blackhole_label": "Musta aukko: {state}",
+        "blackhole_publishing": "Julkaistaan",
+        "blackhole_inactive": "Epäaktiivinen"
     },
     "translator": {
         "text_translation": "Tekstin käännös",
@@ -3405,13 +3405,13 @@
         "propagation_enable_auto": "Ota automaattikonfigurointi käyttöön",
         "propagation_skip_auto": "Määritä manuaalisesti / Ohita",
         "auto_propagation_enabled": "Automaattinen levitys käytössä",
-        "identity_import_empty_file": "Identity file is empty.",
-        "identity_import_file_too_large": "Identity file is too large.",
-        "identity_import_key_only_hint": "This imports your identity key only. To restore messages and settings, use About → Restore from File with a database backup zip.",
-        "identity_file_overrides_base32": "A selected file will be used instead of the pasted base32 key.",
-        "identity_import_pending_activate": "You imported an identity but have not activated it yet. Activate it now?",
-        "identity_import_pending_kept": "Imported identity was saved but not activated. Switch to it later from Identities.",
-        "identity_default_delete_failed": "Imported identity is active, but the default identity could not be removed."
+        "identity_import_empty_file": "Identiteettitiedosto on tyhjä.",
+        "identity_import_file_too_large": "Identiteettitiedosto on liian suuri.",
+        "identity_import_key_only_hint": "Tämä tuo vain identiteettiavaimesi. Palauttaaksesi viestit ja asetukset, käytä Tietoja → Palauta tiedostosta tietokannan varmuuskopio-ZIPillä.",
+        "identity_file_overrides_base32": "Valittua tiedostoa käytetään liitetyn base32-avaimen sijasta.",
+        "identity_import_pending_activate": "Toit identiteetin, mutta et ole vielä aktivoinut sitä. Aktivoi nyt?",
+        "identity_import_pending_kept": "Tuotu identiteetti tallennettiin, mutta sitä ei aktivoitu. Vaihda siihen myöhemmin Identiteetit-osiosta.",
+        "identity_default_delete_failed": "Tuotu identiteetti on aktiivinen, mutta oletusidentiteettiä ei voitu poistaa."
     },
     "command_palette": {
         "search_placeholder": "Hae komentoja, reittejä tai vertaisia",

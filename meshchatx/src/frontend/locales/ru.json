@@ -972,10 +972,10 @@
         "identity_restore_failed": "Не удалось восстановить идентификатор",
         "no_identity_available": "Нет доступного идентификатора",
         "message_count": "{count} сообщений",
-        "import_key_only_hint": "This restores the identity key only. Message history and settings require a database backup zip from About.",
-        "switch_after_restore_confirm": "Switch to restored identity \"{name}\" now?",
-        "identity_restore_empty_file": "Identity file is empty.",
-        "identity_restore_file_too_large": "Identity file is too large."
+        "import_key_only_hint": "Восстанавливается только ключ идентичности. История сообщений и настройки требуют ZIP-архив резервной копии базы данных из раздела «О программе».",
+        "switch_after_restore_confirm": "Переключиться на восстановленную идентичность \"{name}\" сейчас?",
+        "identity_restore_empty_file": "Файл идентичности пуст.",
+        "identity_restore_file_too_large": "Файл идентичности слишком большой."
     },
     "contacts": {
         "title": "Контакты",
@@ -1901,10 +1901,10 @@
         "forwarding_to": "Пересылка на: {hash}",
         "source_filter_display": "Фильтр источника: {hash}",
         "delete_confirm": "Вы уверены, что хотите удалить это правило?",
-        "invalid_hash": "Forward-to hash must be a 32-character hex value",
-        "send_failed": "Could not send forwarding update (websocket disconnected)",
-        "rule_added": "Forwarding rule added",
-        "rule_deleted": "Forwarding rule deleted"
+        "invalid_hash": "Хеш пересылки должен быть 32-значным шестнадцатеричным значением",
+        "send_failed": "Не удалось отправить обновление пересылки (WebSocket отключён)",
+        "rule_added": "Правило пересылки добавлено",
+        "rule_deleted": "Правило пересылки удалено"
     },
     "archives": {
         "description": "Поиск страниц Nomad, сохранённых в локальном архиве.",
@@ -2036,10 +2036,10 @@
             "purge_confirm": "Очистить все очереди объявлений? Это действие необратимо.",
             "queues_purged": "Очереди объявлений очищены",
             "failed_purge": "Не удалось очистить очереди",
-            "path_requested": "Path requested for {hash}...",
-            "drop_confirm": "Are you sure you want to drop the path to {hash}?",
-            "drop_via_confirm": "Drop ALL paths via {hash}?",
-            "invalid_hops": "Hops filter must be a number"
+            "path_requested": "Путь запрошен для {hash}...",
+            "drop_confirm": "Удалить путь к {hash}?",
+            "drop_via_confirm": "Удалить ВСЕ пути через {hash}?",
+            "invalid_hops": "Фильтр шагов должен быть числом"
         },
         "rnpath_trace": {
             "title": "RNS Трассировка пути",
@@ -2067,10 +2067,10 @@
         "propagation_nodes": {
             "title": "Узлы распространения",
             "description": "Выбор предпочтительных узлов распространения, просмотр статистики в реальном времени и быстрая проверка маршрутов.",
-            "load_failed": "Failed to load propagation nodes",
-            "local_restarted": "Local propagation node restarted",
-            "local_stopped": "Local propagation node stopped",
-            "local_started": "Local propagation node started"
+            "load_failed": "Не удалось загрузить узлы распространения",
+            "local_restarted": "Локальный узел распространения перезапущен",
+            "local_stopped": "Локальный узел распространения остановлен",
+            "local_started": "Локальный узел распространения запущен"
         },
         "sieve_filters": {
             "title": "Сито-фильтры",
@@ -2686,9 +2686,9 @@
         "outgoing_announces": "Исходящие анонсы",
         "airtime": "Эфирное время",
         "channel_load": "Загрузка канала",
-        "blackhole_label": "Blackhole: {state}",
-        "blackhole_publishing": "Publishing",
-        "blackhole_inactive": "Inactive"
+        "blackhole_label": "Чёрная дыра: {state}",
+        "blackhole_publishing": "Публикация",
+        "blackhole_inactive": "Неактивно"
     },
     "translator": {
         "text_translation": "Перевод текста",
@@ -3038,13 +3038,13 @@
         "propagation_enable_auto": "Включить автонастройку",
         "propagation_skip_auto": "Ручная настройка",
         "auto_propagation_enabled": "Авторетрансляция включена",
-        "identity_import_empty_file": "Identity file is empty.",
-        "identity_import_file_too_large": "Identity file is too large.",
-        "identity_import_key_only_hint": "This imports your identity key only. To restore messages and settings, use About → Restore from File with a database backup zip.",
-        "identity_file_overrides_base32": "A selected file will be used instead of the pasted base32 key.",
-        "identity_import_pending_activate": "You imported an identity but have not activated it yet. Activate it now?",
-        "identity_import_pending_kept": "Imported identity was saved but not activated. Switch to it later from Identities.",
-        "identity_default_delete_failed": "Imported identity is active, but the default identity could not be removed."
+        "identity_import_empty_file": "Файл идентичности пуст.",
+        "identity_import_file_too_large": "Файл идентичности слишком большой.",
+        "identity_import_key_only_hint": "Импортируется только ключ идентичности. Для восстановления сообщений и настроек используйте «О программе» → «Восстановить из файла» с ZIP-архивом резервной копии базы данных.",
+        "identity_file_overrides_base32": "Выбранный файл будет использован вместо вставленного ключа base32.",
+        "identity_import_pending_activate": "Вы импортировали идентичность, но ещё не активировали её. Активировать сейчас?",
+        "identity_import_pending_kept": "Импортированная идентичность сохранена, но не активирована. Переключитесь на неё позже в разделе «Идентичности».",
+        "identity_default_delete_failed": "Импортированная идентичность активна, но идентичность по умолчанию не может быть удалена."
     },
     "command_palette": {
         "search_placeholder": "Команды, маршруты или узлы",

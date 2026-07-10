@@ -972,10 +972,10 @@
         "identity_restore_failed": "La recuperación de identidad falló",
         "no_identity_available": "No hay identidad disponible",
         "message_count": "Mensajes{count}",
-        "import_key_only_hint": "This restores the identity key only. Message history and settings require a database backup zip from About.",
-        "switch_after_restore_confirm": "Switch to restored identity \"{name}\" now?",
-        "identity_restore_empty_file": "Identity file is empty.",
-        "identity_restore_file_too_large": "Identity file is too large."
+        "import_key_only_hint": "Esto restaura solo la clave de identidad. El historial de mensajes y la configuración requieren una copia ZIP de la base de datos desde Acerca de.",
+        "switch_after_restore_confirm": "¿Cambiar a la identidad restaurada \"{name}\" ahora?",
+        "identity_restore_empty_file": "El archivo de identidad está vacío.",
+        "identity_restore_file_too_large": "El archivo de identidad es demasiado grande."
     },
     "about": {
         "title": "Acerca de",
@@ -2018,10 +2018,10 @@
         "forwarding_to": "Hacia:{hash}",
         "source_filter_display": "Filtro fuente:{hash}",
         "delete_confirm": "¿Estás seguro de querer borrar esta regla?",
-        "invalid_hash": "Forward-to hash must be a 32-character hex value",
-        "send_failed": "Could not send forwarding update (websocket disconnected)",
-        "rule_added": "Forwarding rule added",
-        "rule_deleted": "Forwarding rule deleted"
+        "invalid_hash": "El hash de reenvío debe ser un valor hexadecimal de 32 caracteres",
+        "send_failed": "No se pudo enviar la actualización de reenvío (WebSocket desconectado)",
+        "rule_added": "Regla de reenvío añadida",
+        "rule_deleted": "Regla de reenvío eliminada"
     },
     "archives": {
         "description": "Buscar páginas Nomad Network almacenadas en su archivo local.",
@@ -2153,10 +2153,10 @@
             "purge_confirm": "¿Purge anuncian colas? Esto no puede ser deshecho.",
             "queues_purged": "Anuncio queues purged",
             "failed_purge": "Error al purgar colas",
-            "path_requested": "Path requested for {hash}...",
-            "drop_confirm": "Are you sure you want to drop the path to {hash}?",
-            "drop_via_confirm": "Drop ALL paths via {hash}?",
-            "invalid_hops": "Hops filter must be a number"
+            "path_requested": "Ruta solicitada para {hash}...",
+            "drop_confirm": "¿Eliminar la ruta a {hash}?",
+            "drop_via_confirm": "¿Eliminar TODAS las rutas a través de {hash}?",
+            "invalid_hops": "El filtro de saltos debe ser un número"
         },
         "rnpath_trace": {
             "title": "RNS Path Trace",
@@ -2184,10 +2184,10 @@
         "propagation_nodes": {
             "title": "Nodos de propagación",
             "description": "Elija nodos de propagación preferidos, vea estadísticas en vivo y compruebe rutas.",
-            "load_failed": "Failed to load propagation nodes",
-            "local_restarted": "Local propagation node restarted",
-            "local_stopped": "Local propagation node stopped",
-            "local_started": "Local propagation node started"
+            "load_failed": "Error al cargar nodos de propagación",
+            "local_restarted": "Nodo de propagación local reiniciado",
+            "local_stopped": "Nodo de propagación local detenido",
+            "local_started": "Nodo de propagación local iniciado"
         },
         "sieve_filters": {
             "title": "Filtros tamiz",
@@ -2803,9 +2803,9 @@
         "outgoing_announces": "Anuncios salientes",
         "airtime": "Horas aéreas",
         "channel_load": "Carga de Canal",
-        "blackhole_label": "Blackhole: {state}",
-        "blackhole_publishing": "Publishing",
-        "blackhole_inactive": "Inactive"
+        "blackhole_label": "Agujero negro: {state}",
+        "blackhole_publishing": "Publicando",
+        "blackhole_inactive": "Inactivo"
     },
     "translator": {
         "text_translation": "Traducción de texto",
@@ -3207,13 +3207,13 @@
         "propagation_enable_auto": "Activar la configuración automática",
         "propagation_skip_auto": "Configurar manualmente / Saltar",
         "auto_propagation_enabled": "Autopropagación habilitada",
-        "identity_import_empty_file": "Identity file is empty.",
-        "identity_import_file_too_large": "Identity file is too large.",
-        "identity_import_key_only_hint": "This imports your identity key only. To restore messages and settings, use About → Restore from File with a database backup zip.",
-        "identity_file_overrides_base32": "A selected file will be used instead of the pasted base32 key.",
-        "identity_import_pending_activate": "You imported an identity but have not activated it yet. Activate it now?",
-        "identity_import_pending_kept": "Imported identity was saved but not activated. Switch to it later from Identities.",
-        "identity_default_delete_failed": "Imported identity is active, but the default identity could not be removed."
+        "identity_import_empty_file": "El archivo de identidad está vacío.",
+        "identity_import_file_too_large": "El archivo de identidad es demasiado grande.",
+        "identity_import_key_only_hint": "Esto importa solo tu clave de identidad. Para restaurar mensajes y configuración, usa Acerca de → Restaurar desde archivo con un ZIP de copia de seguridad de la base de datos.",
+        "identity_file_overrides_base32": "Un archivo seleccionado se usará en lugar de la clave base32 pegada.",
+        "identity_import_pending_activate": "Importaste una identidad pero aún no la has activado. ¿Activar ahora?",
+        "identity_import_pending_kept": "La identidad importada se guardó pero no se activó. Cambia a ella más tarde desde Identidades.",
+        "identity_default_delete_failed": "La identidad importada está activa, pero la identidad predeterminada no se pudo eliminar."
     },
     "command_palette": {
         "search_placeholder": "Buscar comandos, rutas o pares",
