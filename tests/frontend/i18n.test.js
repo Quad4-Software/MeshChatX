@@ -112,4 +112,26 @@ describe("i18n Localization Tests", () => {
         // We expect some false positives if keys are constructed dynamically.
         expect(nonDynamicMissing.length).toBe(0);
     });
+
+    it("keeps docs upload/share keys present in every locale", () => {
+        const required = [
+            "docs.btn_share",
+            "docs.error",
+            "docs.failed_upload_docs",
+            "docs.upload_success",
+            "common.prompt_title",
+        ];
+        for (const key of required) {
+            const parts = key.split(".");
+            for (const [code, data] of Object.entries(allLocales)) {
+                let current = data;
+                for (const part of parts) {
+                    expect(current?.[part], `${code} missing ${key}`).toBeDefined();
+                    current = current[part];
+                }
+                expect(typeof current).toBe("string");
+                expect(current.length).toBeGreaterThan(0);
+            }
+        }
+    });
 });

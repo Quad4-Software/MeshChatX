@@ -70,6 +70,9 @@ async def test_csp_header_logic(mock_rns_minimal, tmp_path):
         assert "wasm-unsafe-eval" in csp
         m = re.search(r"script-src([^;]+);", csp)
         assert m is not None and "blob:" in m.group(1)
+        script_src = m.group(1)
+        assert "'unsafe-inline'" not in script_src
+        assert "'self'" in script_src
 
 
 @pytest.mark.asyncio
@@ -221,3 +224,62 @@ async def test_csp_privacy_mode_strips_external_sources(mock_rns_minimal, tmp_pa
         assert "api.example.com" not in csp
         assert "tiles.example.com" not in csp
         assert "connect-src 'self'" in csp
+
+
+def _script_src_directive(csp: str) -> str:
+    m = re.search(r"script-src([^;]+);", csp)
+    assert m is not None
+    return m.group(1)
+
+
+async def _csp_for_path(app_instance, path: str) -> str:
+    request = MagicMock(spec=web.Request)
+    request.path = path
+    request.app = {}
+
+    async def mock_handler(req):
+        return web.Response(text="test")
+
+    routes = web.RouteTableDef()
+    _, _, security_middleware, _, _ = app_instance._define_routes(routes)
+    response = await security_middleware(request, mock_handler)
+    return response.headers.get("Content-Security-Policy", "")
+
+
+@pytest.mark.asyncio
+async def test_main_app_csp_rejects_inline_scripts(mock_rns_minimal, tmp_path):
+    """Main UI CSP must not allow unsafe-inline scripts (boot theme is external)."""
+    storage_dir = str(tmp_path / "storage")
+    config_dir = str(tmp_path / "config")
+
+    with patch("meshchatx.meshchat.generate_ssl_certificate"):
+        app_instance = ReticulumMeshChat(
+            identity=mock_rns_minimal,
+            storage_dir=storage_dir,
+            reticulum_config_dir=config_dir,
+        )
+        for path in ("/", "/index.html", "/boot-theme.js"):
+            csp = await _csp_for_path(app_instance, path)
+            script_src = _script_src_directive(csp)
+            assert "'unsafe-inline'" not in script_src, path
+            assert "'unsafe-eval'" not in script_src, path
+            assert "'self'" in script_src
+            assert "blob:" in script_src
+            assert "wasm-unsafe-eval" in script_src
+
+
+@pytest.mark.asyncio
+async def test_rnode_flasher_csp_allows_inline_and_eval(mock_rns_minimal, tmp_path):
+    storage_dir = str(tmp_path / "storage")
+    config_dir = str(tmp_path / "config")
+
+    with patch("meshchatx.meshchat.generate_ssl_certificate"):
+        app_instance = ReticulumMeshChat(
+            identity=mock_rns_minimal,
+            storage_dir=storage_dir,
+            reticulum_config_dir=config_dir,
+        )
+        csp = await _csp_for_path(app_instance, "/rnode-flasher/index.html")
+        script_src = _script_src_directive(csp)
+        assert "'unsafe-inline'" in script_src
+        assert "'unsafe-eval'" in script_src
