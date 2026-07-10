@@ -183,6 +183,10 @@ public class MainActivity extends AppCompatActivity {
         loadingLogo = findViewById(R.id.loadingLogo);
         loadingText = findViewById(R.id.loadingText);
         errorText = findViewById(R.id.errorText);
+        // Match MeshChatX canvas so WebView never flashes default white during Chaquopy boot.
+        int canvasColor = getResources().getColor(R.color.meshchat_canvas, getTheme());
+        getWindow().getDecorView().setBackgroundColor(canvasColor);
+        webView.setBackgroundColor(canvasColor);
         webView.setVisibility(android.view.View.INVISIBLE);
         showLoading("Starting MeshChatX…");
 
@@ -419,9 +423,38 @@ public class MainActivity extends AppCompatActivity {
                     chooserIntent.setType("*/*");
                 }
                 if (fileChooserParams != null && fileChooserParams.getAcceptTypes() != null) {
-                    chooserIntent.putExtra(Intent.EXTRA_MIME_TYPES, fileChooserParams.getAcceptTypes());
+                    String[] acceptTypes = fileChooserParams.getAcceptTypes();
+                    ArrayList<String> mimeTypes = new ArrayList<>();
+                    for (String acceptType : acceptTypes) {
+                        if (acceptType == null || acceptType.isEmpty()) {
+                            continue;
+                        }
+                        String trimmed = acceptType.trim();
+                        if (trimmed.startsWith(".")) {
+                            // Extension filters are not valid MIME types for EXTRA_MIME_TYPES.
+                            // Use octet-stream so identity backups without a MIME mapping remain selectable.
+                            if (!mimeTypes.contains("application/octet-stream")) {
+                                mimeTypes.add("application/octet-stream");
+                            }
+                            if (!mimeTypes.contains("*/*")) {
+                                mimeTypes.add("*/*");
+                            }
+                        } else if (!mimeTypes.contains(trimmed)) {
+                            mimeTypes.add(trimmed);
+                        }
+                    }
+                    if (!mimeTypes.isEmpty()) {
+                        chooserIntent.putExtra(
+                            Intent.EXTRA_MIME_TYPES,
+                            mimeTypes.toArray(new String[0])
+                        );
+                    } else {
+                        chooserIntent.setType("*/*");
+                    }
                 }
-                chooserIntent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+                boolean allowMultiple = fileChooserParams != null && fileChooserParams.getMode()
+                    == WebChromeClient.FileChooserParams.MODE_OPEN_MULTIPLE;
+                chooserIntent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, allowMultiple);
 
                 try {
                     filePickerLauncher.launch(chooserIntent);
@@ -1093,6 +1126,19 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @JavascriptInterface
+        public String getSidebandPluginsDefaultPath() {
+            try {
+                File dir = new File(activity.getFilesDir(), "meshchatx/sideband-plugins");
+                if (!dir.isDirectory() && !dir.mkdirs()) {
+                    return activity.getFilesDir().getAbsolutePath();
+                }
+                return dir.getAbsolutePath();
+            } catch (Exception e) {
+                return "";
+            }
+        }
+
+        @JavascriptInterface
         public void shareApk() {
             activity.runOnUiThread(() -> {
                 try {
@@ -1186,7 +1232,7 @@ public class MainActivity extends AppCompatActivity {
 
         @JavascriptInterface
         public boolean hasUsbPermissions() {
-            // WebUSB / Web Serial polyfill drives the device picker; from the
+            // WebUSB / Web Serial polyfill drives the device picker. from the
             // Android manifest standpoint USB host access is granted as soon as
             // the user accepts the per-device dialog. Surface true when we
             // have a UsbManager so the JS layer can short-circuit prompts.
