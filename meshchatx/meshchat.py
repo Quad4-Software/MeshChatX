@@ -6233,8 +6233,9 @@ class ReticulumMeshChat:
                     if _is_chaquopy_android():
                         message = (
                             "This RNode connection type is not available on this device. "
-                            "On Android, USB serial and Bluetooth need usbserial4a and jnius "
-                            "(see MeshChatX issue #6); RNode over IP (TCP) is unaffected."
+                            "On Android, USB serial and classic Bluetooth need the bundled "
+                            "USB host stack, and BLE needs the bundled able stack. "
+                            "RNode over IP (TCP) is unaffected."
                         )
                     else:
                         message = (

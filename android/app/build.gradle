@@ -257,9 +257,9 @@ chaquopy {
                 throw new org.gradle.api.GradleException("Missing patched RNS wheel at ${rnsPatchedWheel}")
             }
             // Patched so RNS's Android RNodeInterface never calls RNS.panic() (os._exit)
-            // when usbserial4a/jnius are missing. RNode over TCP needs neither and always
-            // works; serial/BLE/classic-Bluetooth now fail gracefully instead of crashing
-            // the app. See scripts/build-android-wheels-local.sh.
+            // when usbserial4a/jnius are missing. MeshChatX also ships a Chaquopy jnius
+            // shim, usb4a context bridge, and able BLE stack so USB/BT/BLE RNode can
+            // run. RNode over TCP needs neither native module and always works.
             install rnsPatchedWheel.absolutePath
             install "lxmf>=1.0.1"
             install "numpy==1.26.2"
