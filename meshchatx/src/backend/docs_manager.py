@@ -7,10 +7,6 @@ import logging
 import os
 import re
 import shutil
-import time
-import urllib.error
-import urllib.parse
-import urllib.request
 import zipfile
 
 from meshchatx.src.backend.markdown_renderer import MarkdownRenderer
@@ -18,16 +14,6 @@ from meshchatx.src.backend.markdown_renderer import MarkdownRenderer
 BUNDLED_DOCS_SUBDIR = os.path.join("reticulum-docs-bundled", "current")
 MANIFEST_FILENAME = "manifest.json"
 DOC_FILE_SUFFIXES = (".md", ".txt")
-RETICULUM_DOCS_GITHUB_URL = (
-    "https://github.com/markqvist/reticulum_website/archive/refs/heads/main.zip"
-)
-RETICULUM_DOCS_ALLOWED_HOSTS = frozenset(
-    {
-        "github.com",
-        "codeload.github.com",
-        "objects.githubusercontent.com",
-    }
-)
 
 
 class DocsManager:
@@ -37,9 +23,8 @@ class DocsManager:
     ``<public_dir>/reticulum-docs-bundled/current``. Users may upload a
     replacement archive which is extracted into ``<storage_dir>/reticulum-docs``
     and takes precedence at request time. Removing the user upload restores the
-    bundled copy. Users can also pull the latest upstream ZIP from GitHub at
-    runtime (blocked when privacy mode is enabled). Build-time staging still
-    uses ``scripts/build/fetch_reticulum_manual.py``.
+    bundled copy. There is no runtime download path. Fresh manuals are staged at
+    build time with ``scripts/build/fetch_reticulum_manual.py`` (``pnpm run build-docs``).
     """
 
     def __init__(self, config, public_dir, project_root=None, storage_dir=None):
@@ -837,50 +822,6 @@ class DocsManager:
             self.upload_status = "error"
             logging.exception(f"Failed to upload docs: {e}")
             return False
-
-    @staticmethod
-    def _resolve_docs_source_url(source_url=None):
-        url = (
-            source_url
-            or os.environ.get("MESHCHATX_RETICULUM_DOCS_URL")
-            or RETICULUM_DOCS_GITHUB_URL
-        ).strip()
-        if not url.lower().startswith("https://"):
-            raise ValueError("docs source URL must be https")
-        host = urllib.parse.urlparse(url).hostname or ""
-        host = host.lower()
-        if host not in RETICULUM_DOCS_ALLOWED_HOSTS and not host.endswith(
-            ".githubusercontent.com"
-        ):
-            raise ValueError(f"docs source host not allowed: {host}")
-        return url
-
-    def update_from_github(self, version=None, source_url=None, timeout=120.0):
-        """Download the Reticulum website docs ZIP and install it as a version."""
-        url = self._resolve_docs_source_url(source_url)
-        if not version:
-            version = f"github-{time.strftime('%Y%m%d-%H%M%S')}"
-
-        self.upload_status = "downloading"
-        self.upload_progress = 0
-        self.last_error = None
-
-        try:
-            req = urllib.request.Request(
-                url,
-                headers={"User-Agent": "MeshChatX-docs-update"},
-            )
-            with urllib.request.urlopen(req, timeout=timeout) as response:
-                zip_bytes = response.read()
-            if not zip_bytes:
-                raise ValueError("downloaded archive is empty")
-            success = self.upload_zip(zip_bytes, version)
-            return success, version
-        except Exception as e:
-            self.last_error = str(e)
-            self.upload_status = "error"
-            logging.exception(f"Failed to update docs from GitHub: {e}")
-            raise
 
     def _extract_docs(self, zip_path, version):
         safe_version = os.path.basename(version)

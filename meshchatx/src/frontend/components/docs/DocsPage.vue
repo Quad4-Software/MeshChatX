@@ -186,22 +186,6 @@
                     <MaterialDesignIcon icon-name="download" class="w-4 h-4 md:w-5 md:h-5" />
                 </button>
 
-                <!-- Update from GitHub -->
-                <button
-                    type="button"
-                    class="p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-                    :class="{ 'opacity-50 pointer-events-none': docsBusy }"
-                    :title="$t('docs.btn_update_github')"
-                    :disabled="docsBusy"
-                    @click="updateFromGithub"
-                >
-                    <MaterialDesignIcon
-                        :icon-name="docsBusy ? 'loading' : 'update'"
-                        :class="{ 'animate-spin': docsBusy }"
-                        class="w-4 h-4 md:w-5 md:h-5"
-                    />
-                </button>
-
                 <!-- Share Reticulum Manual (re-uploadable ZIP) -->
                 <button
                     v-if="status.has_docs"
@@ -214,16 +198,22 @@
 
                 <!-- Upload Custom Manual -->
                 <label
-                    :class="{ 'opacity-50 pointer-events-none': docsBusy }"
+                    :class="{ 'opacity-50 pointer-events-none': status.status === 'extracting' }"
                     class="p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer"
                     :title="$t('docs.btn_upload')"
                 >
                     <MaterialDesignIcon
-                        :icon-name="docsBusy ? 'loading' : 'upload'"
-                        :class="{ 'animate-spin': docsBusy }"
+                        :icon-name="status.status === 'extracting' ? 'loading' : 'upload'"
+                        :class="{ 'animate-spin': status.status === 'extracting' }"
                         class="w-4 h-4 md:w-5 md:h-5"
                     />
-                    <input type="file" accept=".zip" class="hidden" :disabled="docsBusy" @change="handleZipUpload" />
+                    <input
+                        type="file"
+                        accept=".zip"
+                        class="hidden"
+                        :disabled="status.status === 'extracting'"
+                        @change="handleZipUpload"
+                    />
                 </label>
 
                 <!-- Open External -->
@@ -301,7 +291,10 @@
         </div>
 
         <!-- Progress Bar -->
-        <div v-if="docsBusy" class="w-full h-1 bg-gray-200 dark:bg-zinc-800 overflow-hidden relative">
+        <div
+            v-if="status.status === 'extracting'"
+            class="w-full h-1 bg-gray-200 dark:bg-zinc-800 overflow-hidden relative"
+        >
             <div class="bg-blue-500 h-full transition-all duration-300" :style="{ width: status.progress + '%' }"></div>
             <div class="absolute inset-0 bg-blue-500/30 animate-pulse"></div>
         </div>
@@ -422,7 +415,7 @@
             </div>
 
             <div
-                v-if="docsBusy"
+                v-if="status.status === 'extracting'"
                 class="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md"
             >
                 <div class="relative w-24 h-24 mb-6">
@@ -434,13 +427,13 @@
                     ></div>
                     <div class="absolute inset-0 flex items-center justify-center">
                         <MaterialDesignIcon
-                            :icon-name="status.status === 'downloading' ? 'cloud-download' : 'folder-zip-outline'"
+                            icon-name="folder-zip-outline"
                             class="w-10 h-10 text-blue-600 animate-bounce"
                         />
                     </div>
                 </div>
                 <h3 class="text-lg font-bold text-gray-900 dark:text-zinc-100 mb-1">
-                    {{ status.status === "downloading" ? $t("docs.status_downloading") : $t("docs.status_extracting") }}
+                    {{ $t("docs.status_extracting") }}
                 </h3>
                 <p class="text-sm text-gray-500 dark:text-zinc-400">
                     {{ $t("docs.complete_percent", { percent: status.progress }) }}
@@ -617,7 +610,9 @@
             ></iframe>
 
             <div
-                v-else-if="activeTab === 'reticulum' && !status.has_docs && !docsBusy && !searchQuery"
+                v-else-if="
+                    activeTab === 'reticulum' && !status.has_docs && status.status !== 'extracting' && !searchQuery
+                "
                 class="h-full flex flex-col items-center justify-center p-8 text-center space-y-4"
             >
                 <div class="w-16 h-16 bg-gray-50 dark:bg-zinc-800/50 rounded-full flex items-center justify-center">
@@ -631,24 +626,13 @@
                         {{ $t("docs.empty_state_hint") }}
                     </p>
                 </div>
-                <div class="flex flex-col sm:flex-row gap-2">
-                    <button
-                        type="button"
-                        class="px-6 py-2 bg-blue-600 text-white rounded-full text-xs font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
-                        :disabled="docsBusy"
-                        @click="updateFromGithub"
-                    >
-                        <MaterialDesignIcon icon-name="update" class="w-3.5 h-3.5" />
-                        <span>{{ $t("docs.btn_update_github") }}</span>
-                    </button>
-                    <label
-                        class="px-6 py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-full text-xs font-bold hover:opacity-90 transition-opacity cursor-pointer flex items-center justify-center gap-2"
-                    >
-                        <MaterialDesignIcon icon-name="upload" class="w-3.5 h-3.5" />
-                        <span>{{ $t("docs.btn_upload") }}</span>
-                        <input type="file" accept=".zip" class="hidden" @change="handleZipUpload" />
-                    </label>
-                </div>
+                <label
+                    class="px-6 py-2 bg-blue-600 text-white rounded-full text-xs font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 cursor-pointer flex items-center gap-2"
+                >
+                    <MaterialDesignIcon icon-name="upload" class="w-3.5 h-3.5" />
+                    <span>{{ $t("docs.btn_upload") }}</span>
+                    <input type="file" accept=".zip" class="hidden" @change="handleZipUpload" />
+                </label>
             </div>
         </div>
     </div>
@@ -699,7 +683,7 @@ export default {
             selectedDocPath: null,
             selectedDocContent: null,
             selectedReticulumPath: null,
-            githubUpdatePending: false,
+            reticulumDocsCacheBust: 0,
             languages: {
                 en: "English",
                 de: "Deutsch",
@@ -719,10 +703,17 @@ export default {
             return this.$i18n.locale;
         },
         localDocsUrl() {
+            let path;
             if (this.selectedReticulumPath) {
-                return `/reticulum-docs/${this.selectedReticulumPath}`;
+                path = `/reticulum-docs/${this.selectedReticulumPath}`;
+            } else {
+                path = bundledReticulumDocsUrl(this.currentLang);
             }
-            return bundledReticulumDocsUrl(this.currentLang);
+            if (this.reticulumDocsCacheBust) {
+                const sep = path.includes("?") ? "&" : "?";
+                return `${path}${sep}v=${this.reticulumDocsCacheBust}`;
+            }
+            return path;
         },
         allLanguages() {
             return Object.entries(this.languages).map(([code, name]) => ({
@@ -736,11 +727,6 @@ export default {
         },
         reticulumDocsQueryParam() {
             return this.$route?.query?.reticulum;
-        },
-        docsBusy() {
-            return (
-                this.githubUpdatePending || this.status.status === "downloading" || this.status.status === "extracting"
-            );
         },
         visibleDocSections() {
             const lang = this.meshchatxDocsLang;
@@ -963,42 +949,12 @@ export default {
                     }
                 );
                 this.fetchStatus();
+                this.reticulumDocsCacheBust = Date.now();
                 ToastUtils.success(this.$t("docs.upload_success"));
             } catch (error) {
                 console.error("Failed to upload docs zip:", error);
                 const message = error.response?.data?.error || error.message || "";
                 DialogUtils.alert(this.$t("docs.failed_upload_alert", { message }), "error");
-            }
-        },
-        async updateFromGithub() {
-            if (this.docsBusy) {
-                return;
-            }
-            this.githubUpdatePending = true;
-            this.status = {
-                ...this.status,
-                status: "downloading",
-                progress: 0,
-                last_error: null,
-            };
-            try {
-                const response = await window.api.post("/api/v1/docs/update-from-github");
-                const version = response.data?.version;
-                await this.fetchStatus();
-                this.activeTab = "reticulum";
-                this.selectedReticulumPath = null;
-                ToastUtils.success(
-                    version
-                        ? this.$t("docs.update_github_success_version", { version })
-                        : this.$t("docs.update_github_success")
-                );
-            } catch (error) {
-                console.error("Failed to update docs from GitHub:", error);
-                const message = error.response?.data?.error || error.message || "";
-                DialogUtils.alert(this.$t("docs.failed_update_github", { message }), "error");
-                await this.fetchStatus();
-            } finally {
-                this.githubUpdatePending = false;
             }
         },
         async exportDocs() {

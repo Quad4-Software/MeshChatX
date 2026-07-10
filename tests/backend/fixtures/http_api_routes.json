@@ -269,10 +269,6 @@
             "path": "/api/v1/docs/upload"
         },
         {
-            "method": "POST",
-            "path": "/api/v1/docs/update-from-github"
-        },
-        {
             "method": "DELETE",
             "path": "/api/v1/docs/version/{version}"
         },

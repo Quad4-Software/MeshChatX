@@ -39,7 +39,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 DEFAULT_SOURCES = (
-    "https://github.com/markqvist/reticulum_website/archive/refs/heads/main.zip",
+    "https://codeload.github.com/markqvist/reticulum_website/zip/refs/heads/master",
 )
 
 DEFAULT_DEST = (
