@@ -275,11 +275,21 @@ class MarkdownRenderer:
 
         text = "\n".join(processed_parts)
 
-        # Restore inline code then fenced blocks (fenced last so IC inside CB is fine).
-        for i, code_html in enumerate(inline_codes):
-            text = text.replace(f"[[IC{i}]]", code_html)
-        for i, code_html in enumerate(code_blocks):
-            text = text.replace(f"[[CB{i}]]", code_html)
+        # Restore inline code then fenced blocks in one pass each (avoid O(n*m) loops).
+        def _restore_inline(match):
+            idx = int(match.group(1))
+            if 0 <= idx < len(inline_codes):
+                return inline_codes[idx]
+            return match.group(0)
+
+        def _restore_fenced(match):
+            idx = int(match.group(1))
+            if 0 <= idx < len(code_blocks):
+                return code_blocks[idx]
+            return match.group(0)
+
+        text = re.sub(r"\[\[IC(\d+)\]\]", _restore_inline, text)
+        text = re.sub(r"\[\[CB(\d+)\]\]", _restore_fenced, text)
 
         return text
 

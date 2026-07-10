@@ -61,13 +61,9 @@ export default class MarkdownRenderer {
         // Links
         text = LinkUtils.renderAllLinks(text);
 
-        // Restore inline code then fenced blocks
-        for (let i = 0; i < inline_codes.length; i++) {
-            text = text.replace(`[[IC${i}]]`, inline_codes[i]);
-        }
-        for (let i = 0; i < code_blocks.length; i++) {
-            text = text.replace(`[[CB${i}]]`, code_blocks[i]);
-        }
+        // Restore inline code then fenced blocks (single pass; avoid O(n*m) replace loops)
+        text = text.replace(/\[\[IC(\d+)\]\]/g, (_m, idx) => inline_codes[Number(idx)] ?? _m);
+        text = text.replace(/\[\[CB(\d+)\]\]/g, (_m, idx) => code_blocks[Number(idx)] ?? _m);
 
         // Paragraphs - double newline to p tag
         const parts = text.split(/\n\n+/);
