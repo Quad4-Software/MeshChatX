@@ -2,8 +2,6 @@
 
 MeshChatX exposes a generic Reticulum Link transport over the main WebSocket (`/ws`) so external apps and plugins can open links, run request/response exchanges, send packets, and tear links down without going through NomadNet-specific helpers.
 
-This is the surface used by microReticulum management consoles that treat MeshChatX as an RNS transport.
-
 ## Auth
 
 When password auth is enabled, all `rns.link.*` client messages require an authenticated session (same rule as other WebSocket mutators).

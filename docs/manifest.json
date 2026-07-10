@@ -59,6 +59,16 @@
                     "path": "en/identity-and-security.md",
                     "lang": "en",
                     "title": { "en": "Identities, privacy, and security" }
+                },
+                {
+                    "path": "en/plugins.md",
+                    "lang": "en",
+                    "title": { "en": "Plugins" }
+                },
+                {
+                    "path": "en/rns-link-api.md",
+                    "lang": "en",
+                    "title": { "en": "RNS Link API" }
                 }
             ]
         },

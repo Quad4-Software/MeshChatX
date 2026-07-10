@@ -138,7 +138,7 @@ Practical extension paths today:
 - Frontend pages wired through registries
 - New settings via `ConfigManager` and CLI or environment variables
 - Database schema changes through migrations
-- Generic RNS Link transport over WebSocket (`rns.link.*`) for external consoles and plugins (see **RNS Link API**)
+- Generic RNS Link transport over WebSocket (`rns.link.*`) for external consoles and plugins (see [RNS Link API](rns-link-api.md))
 
 Granted plugin manager capabilities include `destinationPath.read`, `debugLog.read`, `bugReport.*`, and `rnsLink.open` / `identify` / `request` / `send` / `close`. Hooks include `announce.received` and `rns.link.event`. Storage (`storage:isolated`) and outbound HTTP (`network:fetch`) are also grantable; install preview scans plugin files for external URLs and stores the user-selected grant subset.
 
@@ -152,4 +152,5 @@ The Nomad browser and Mesh Server (page nodes) share a rendering pipeline for Mi
 
 - **Getting started** for UI navigation and first steps.
 - **LXMF messaging**, **Audio calls**, and **Reticulum interfaces** for feature behaviour.
+- [Plugins](plugins.md) for extension architecture and security.
 - The **Reticulum** tab in Documentation for protocol reference.
