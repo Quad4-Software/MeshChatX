@@ -5,6 +5,7 @@
         class="interface-card min-w-0 transition-all duration-300"
         :class="{
             'opacity-60 grayscale-[0.5]': !isInterfaceEnabled(iface) || iface._restart_required || !isReticulumRunning,
+            'border-amber-500 ring-amber-500 ring-2': iface._restart_required && showRestartBanner && isReticulumRunning,
         }"
     >
         <div class="flex flex-col sm:flex-row gap-4 sm:items-start relative pt-11 sm:pt-0">
@@ -91,7 +92,7 @@
                 </div>
             </div>
             <div
-                class="absolute top-2 right-2 z-20 flex flex-row items-center gap-1 sm:static sm:z-auto sm:flex sm:flex-row sm:gap-2 sm:items-center sm:shrink-0 sm:justify-end"
+                class="flex flex-row items-center gap-1 sm:relative sm:z-auto sm:flex sm:flex-row sm:gap-2 sm:items-center sm:shrink-0 sm:justify-end mt-4 sm:mt-0"
             >
                 <button
                     v-if="isInterfaceEnabled(iface)"
