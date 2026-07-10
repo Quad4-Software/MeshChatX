@@ -1,5 +1,7 @@
 package org.able;
 
+import android.Manifest;
+import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
@@ -19,14 +21,22 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.util.Log;
+
+import androidx.core.content.ContextCompat;
 
 import java.util.List;
 
 /**
  * Android BLE helper used by MeshChatX's Chaquopy able package.
  * Context is injected from MainActivity instead of Kivy PythonActivity.
+ *
+ * Runtime BLUETOOTH_SCAN / BLUETOOTH_CONNECT checks gate every privileged call.
+ * SuppressLint covers lint's MissingPermission analysis, which does not always
+ * follow those helpers across API-level branches.
  */
+@SuppressLint("MissingPermission")
 public class BLE {
     private static final String TAG = "BLE-meshchatx";
 
@@ -77,13 +87,38 @@ public class BLE {
         );
     }
 
+    private boolean hasConnectPermission() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            return true;
+        }
+        return ContextCompat.checkSelfPermission(mContext, Manifest.permission.BLUETOOTH_CONNECT)
+            == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private boolean hasScanPermission() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            return true;
+        }
+        return ContextCompat.checkSelfPermission(mContext, Manifest.permission.BLUETOOTH_SCAN)
+            == PackageManager.PERMISSION_GRANTED;
+    }
+
     public BluetoothAdapter getAdapter(int enableBtCode) {
         if (mBluetoothAdapter == null) {
             showError("Device does not support Bluetooth Low Energy.");
             return null;
         }
-        if (!mBluetoothAdapter.isEnabled()) {
-            showError("BLE adapter is not enabled");
+        if (!hasConnectPermission()) {
+            showError("Bluetooth connect permission is not granted.");
+            return null;
+        }
+        try {
+            if (!mBluetoothAdapter.isEnabled()) {
+                showError("BLE adapter is not enabled");
+                return null;
+            }
+        } catch (SecurityException e) {
+            showError("Bluetooth connect permission is not granted.");
             return null;
         }
         return mBluetoothAdapter;
@@ -99,30 +134,49 @@ public class BLE {
 
     public void startScan(int enableBtCode, List<ScanFilter> filters, ScanSettings settings) {
         Log.d(TAG, "startScan");
+        if (!hasScanPermission()) {
+            showError("Bluetooth scan permission is not granted.");
+            mPython.on_scan_started(false);
+            return;
+        }
         BluetoothAdapter adapter = getAdapter(enableBtCode);
         if (adapter == null) {
             return;
         }
-        if (mBluetoothLeScanner == null) {
-            mBluetoothLeScanner = adapter.getBluetoothLeScanner();
-        }
-        if (mBluetoothLeScanner != null) {
-            mScanning = false;
-            mBluetoothLeScanner.startScan(filters, settings, mScanCallback);
-        } else {
-            showError("Could not get BLE Scanner object.");
+        try {
+            if (mBluetoothLeScanner == null) {
+                mBluetoothLeScanner = adapter.getBluetoothLeScanner();
+            }
+            if (mBluetoothLeScanner != null) {
+                mScanning = false;
+                mBluetoothLeScanner.startScan(filters, settings, mScanCallback);
+            } else {
+                showError("Could not get BLE Scanner object.");
+                mPython.on_scan_started(false);
+            }
+        } catch (SecurityException e) {
+            showError("Bluetooth scan permission is not granted.");
             mPython.on_scan_started(false);
         }
     }
 
     public void stopScan() {
-        if (mBluetoothLeScanner != null) {
+        if (mBluetoothLeScanner == null) {
+            return;
+        }
+        if (!hasScanPermission()) {
+            showError("Bluetooth scan permission is not granted.");
+            return;
+        }
+        try {
             Log.d(TAG, "stopScan");
             mBluetoothLeScanner.stopScan(mScanCallback);
             if (mScanning) {
                 mScanning = false;
                 mPython.on_scan_completed();
             }
+        } catch (SecurityException e) {
+            showError("Bluetooth scan permission is not granted.");
         }
     }
 
@@ -155,13 +209,21 @@ public class BLE {
 
     public void connectGatt(BluetoothDevice device, boolean autoConnect) {
         Log.d(TAG, "connectGatt");
+        if (!hasConnectPermission()) {
+            showError("Bluetooth connect permission is not granted.");
+            return;
+        }
         if (mBluetoothGatt == null) {
-            mBluetoothGatt = device.connectGatt(
-                mContext,
-                autoConnect,
-                mGattCallback,
-                BluetoothDevice.TRANSPORT_LE
-            );
+            try {
+                mBluetoothGatt = device.connectGatt(
+                    mContext,
+                    autoConnect,
+                    mGattCallback,
+                    BluetoothDevice.TRANSPORT_LE
+                );
+            } catch (SecurityException e) {
+                showError("Bluetooth connect permission is not granted.");
+            }
         } else {
             Log.d(TAG, "BluetoothGatt exists, call closeGatt() before reconnecting");
         }
@@ -169,9 +231,18 @@ public class BLE {
 
     public void closeGatt() {
         Log.d(TAG, "closeGatt");
-        if (mBluetoothGatt != null) {
+        if (mBluetoothGatt == null) {
+            return;
+        }
+        if (!hasConnectPermission()) {
+            showError("Bluetooth connect permission is not granted.");
+            return;
+        }
+        try {
             mBluetoothGatt.close();
             mBluetoothGatt = null;
+        } catch (SecurityException e) {
+            showError("Bluetooth connect permission is not granted.");
         }
     }
 
@@ -273,20 +344,44 @@ public class BLE {
         byte[] data,
         int writeType
     ) {
-        if (characteristic.setValue(data)) {
-            if (writeType != 0) {
-                characteristic.setWriteType(writeType);
-            }
-            return mBluetoothGatt != null && mBluetoothGatt.writeCharacteristic(characteristic);
+        if (!hasConnectPermission() || mBluetoothGatt == null) {
+            return false;
         }
-        return false;
+        if (!characteristic.setValue(data)) {
+            return false;
+        }
+        if (writeType != 0) {
+            characteristic.setWriteType(writeType);
+        }
+        try {
+            return mBluetoothGatt.writeCharacteristic(characteristic);
+        } catch (SecurityException e) {
+            showError("Bluetooth connect permission is not granted.");
+            return false;
+        }
     }
 
     public boolean readCharacteristic(BluetoothGattCharacteristic characteristic) {
-        return mBluetoothGatt != null && mBluetoothGatt.readCharacteristic(characteristic);
+        if (!hasConnectPermission() || mBluetoothGatt == null) {
+            return false;
+        }
+        try {
+            return mBluetoothGatt.readCharacteristic(characteristic);
+        } catch (SecurityException e) {
+            showError("Bluetooth connect permission is not granted.");
+            return false;
+        }
     }
 
     public boolean readRemoteRssi() {
-        return mBluetoothGatt != null && mBluetoothGatt.readRemoteRssi();
+        if (!hasConnectPermission() || mBluetoothGatt == null) {
+            return false;
+        }
+        try {
+            return mBluetoothGatt.readRemoteRssi();
+        } catch (SecurityException e) {
+            showError("Bluetooth connect permission is not granted.");
+            return false;
+        }
     }
 }
