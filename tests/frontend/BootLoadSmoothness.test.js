@@ -24,11 +24,14 @@ describe("boot and load smoothness", () => {
 
     it("index.html uses canvas-colored body instead of gray-100 flash", () => {
         const html = readFileSync(resolve(ROOT, "meshchatx/src/frontend/index.html"), "utf8");
+        const bootTheme = readFileSync(resolve(ROOT, "meshchatx/src/frontend/public/boot-theme.js"), "utf8");
         expect(html).not.toMatch(/body class="bg-gray-100"/);
         expect(html).toContain("background-color: #f8fafc");
         expect(html).toContain("background-color: #09090b");
-        expect(html).toContain("meshchatx_ui_theme");
-        expect(html).toContain("getPreferredUiTheme");
+        expect(html).toContain('src="/boot-theme.js"');
+        expect(html).not.toMatch(/<script(?![^>]*\bsrc=)[^>]*>/);
+        expect(bootTheme).toContain("meshchatx_ui_theme");
+        expect(bootTheme).toContain("getPreferredUiTheme");
         expect(html).toContain('id="meshchatx-boot-splash"');
         expect(html).toContain('id="app"');
     });
