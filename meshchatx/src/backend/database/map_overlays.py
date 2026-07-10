@@ -110,7 +110,7 @@ class MapOverlaysDAO:
                 now,
             ),
         )
-        return int(cur.lastrowid)
+        return int(cur.lastrowid or 0)
 
     def update_fields(self, overlay_id: int, **fields) -> None:
         if not fields:
