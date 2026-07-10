@@ -31,14 +31,21 @@ class DialogUtils {
         });
     }
 
-    static async prompt(message) {
-        if (window.electron) {
-            // running inside electron, use ipc prompt
-            return await window.electron.prompt(message);
-        } else {
-            // running inside normal browser, use browser prompt
-            return window.prompt(message);
+    static async prompt(message, defaultValue = "") {
+        if (window.electron && typeof window.electron.prompt === "function") {
+            try {
+                return await window.electron.prompt(message, defaultValue);
+            } catch {
+                // Fall through to in-app dialog when IPC prompt fails.
+            }
         }
+        return new Promise((resolve) => {
+            GlobalEmitter.emit("prompt", {
+                message,
+                defaultValue: defaultValue == null ? "" : String(defaultValue),
+                resolve,
+            });
+        });
     }
 }
 

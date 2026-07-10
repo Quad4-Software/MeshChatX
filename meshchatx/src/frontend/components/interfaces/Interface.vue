@@ -5,7 +5,8 @@
         class="interface-card min-w-0 transition-all duration-300"
         :class="{
             'opacity-60 grayscale-[0.5]': !isInterfaceEnabled(iface) || iface._restart_required || !isReticulumRunning,
-            'border-amber-500 ring-amber-500 ring-2': iface._restart_required && showRestartBanner && isReticulumRunning,
+            'border-amber-500 ring-amber-500 ring-2':
+                iface._restart_required && showRestartBanner && isReticulumRunning,
         }"
     >
         <div class="flex flex-col sm:flex-row gap-4 sm:items-start relative pt-11 sm:pt-0">

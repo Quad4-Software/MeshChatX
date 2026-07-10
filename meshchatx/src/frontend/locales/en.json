@@ -521,7 +521,8 @@
         "invalid_address": "Invalid Address",
         "loading": "Loading...",
         "ok": "OK",
-        "clear": "Clear"
+        "clear": "Clear",
+        "prompt_title": "Enter a value"
     },
     "stickers": {
         "settings_title": "Stickers",
@@ -2086,10 +2087,16 @@
         "status_available": "Offline Manual Available",
         "status_not_available": "Manual Not Available",
         "btn_upload": "Upload Manual",
+        "btn_update_github": "Update from GitHub",
         "btn_share": "Share Reticulum manual as a re-uploadable ZIP",
-        "empty_state_hint": "Upload a Reticulum manual ZIP to view it offline. Custom or updated documentation is supported.",
+        "empty_state_hint": "Pull the latest Reticulum manual from GitHub, or upload a ZIP to view it offline.",
         "error": "Error",
         "failed_upload_docs": "Failed to upload documentation",
+        "upload_success": "Documentation uploaded",
+        "update_github_success": "Reticulum manual updated from GitHub",
+        "update_github_success_version": "Reticulum manual updated ({version})",
+        "failed_update_github": "Failed to update from GitHub: {message}",
+        "status_downloading": "Downloading Documentation...",
         "docs_link_copied": "Documentation link copied to clipboard",
         "failed_copy_link": "Failed to copy link",
         "load_list_failed": "Could not load the guide list. Try again in a moment.",
