@@ -221,6 +221,65 @@ describe("IdentitiesPage.vue", () => {
         }
     });
 
+    it("restores identity from base32 with whitespace normalization and offers switch", async () => {
+        const ToastUtils = (await import("@/js/ToastUtils")).default;
+        const DialogUtils = (await import("@/js/DialogUtils")).default;
+        DialogUtils.confirm.mockResolvedValue(false);
+        axiosMock.post.mockImplementation((url, body) => {
+            if (url === "/api/v1/identity/restore") {
+                expect(body).toEqual({ base32: "ABCD1234" });
+                return Promise.resolve({
+                    data: {
+                        message: "Identity restored. Restart app to use the new identity.",
+                        identity: { hash: "restored_hash", display_name: "Restored" },
+                    },
+                });
+            }
+            return Promise.resolve({ data: { hotswapped: true } });
+        });
+
+        const wrapper = mountPage();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+        wrapper.vm.showImportModal = true;
+        wrapper.vm.identityRestoreBase32 = "AB CD\n1234";
+        await wrapper.vm.restoreIdentityBase32();
+
+        expect(ToastUtils.success).toHaveBeenCalled();
+        expect(DialogUtils.confirm).toHaveBeenCalled();
+        expect(wrapper.vm.showImportModal).toBe(false);
+        expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/identities");
+    });
+
+    it("rejects empty identity restore files with toast", async () => {
+        const ToastUtils = (await import("@/js/ToastUtils")).default;
+        const wrapper = mountPage();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+        wrapper.vm.showImportModal = true;
+        const empty = new File([], "identity.bin", { type: "application/octet-stream" });
+        wrapper.vm.onIdentityRestoreFileChange({ target: { files: [empty], value: "x" } });
+        expect(wrapper.vm.identityRestoreFile).toBeNull();
+        expect(ToastUtils.error).toHaveBeenCalledWith("identities.identity_restore_empty_file");
+        expect(wrapper.vm.showImportModal).toBe(true);
+    });
+
+    it("keeps import modal open and surfaces API error on file restore failure", async () => {
+        const ToastUtils = (await import("@/js/ToastUtils")).default;
+        axiosMock.post.mockRejectedValue({
+            response: { data: { message: "Identity file is empty" } },
+        });
+        const wrapper = mountPage();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+        wrapper.vm.showImportModal = true;
+        wrapper.vm.identityRestoreFile = new File([new Uint8Array([1, 2, 3])], "identity.bin");
+        await wrapper.vm.restoreIdentityFile();
+        expect(wrapper.vm.identityRestoreError).toBe("Identity file is empty");
+        expect(ToastUtils.error).toHaveBeenCalledWith("Identity file is empty");
+        expect(wrapper.vm.showImportModal).toBe(true);
+    });
+
     it("performance: measures identity list rendering for many identities", async () => {
         const numIdentities = 500;
         const identities = Array.from({ length: numIdentities }, (_, i) => ({

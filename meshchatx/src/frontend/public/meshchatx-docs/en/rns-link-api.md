@@ -60,9 +60,9 @@ Example manifest fragment:
 
 ## Implementation
 
-- `meshchatx/src/backend/rns_link_manager.py` — link cache, open/identify/request/send/close
-- `meshchatx/meshchat.py` — WebSocket dispatch and per-client task tracking
-- `meshchatx/src/backend/plugin_manager.py` — capability wrappers and hook fan-out
+- `meshchatx/src/backend/rns_link_manager.py` - link cache, open/identify/request/send/close
+- `meshchatx/meshchat.py` - WebSocket dispatch and per-client task tracking
+- `meshchatx/src/backend/plugin_manager.py` - capability wrappers and hook fan-out
 
 ## Related
 

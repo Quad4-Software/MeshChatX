@@ -304,6 +304,56 @@ class ConfigManager:
             "map_nominatim_api_url",
             "https://nominatim.openstreetmap.org",
         )
+        self.map_overlay_max_bytes = self.IntConfig(
+            self,
+            "map_overlay_max_bytes",
+            8 * 1024 * 1024,
+        )
+        self.map_overlay_max_features = self.IntConfig(
+            self,
+            "map_overlay_max_features",
+            50_000,
+        )
+        self.map_overlay_max_kmz_uncompressed_bytes = self.IntConfig(
+            self,
+            "map_overlay_max_kmz_uncompressed_bytes",
+            16 * 1024 * 1024,
+        )
+        self.map_overlay_max_sources = self.IntConfig(
+            self,
+            "map_overlay_max_sources",
+            64,
+        )
+        self.map_overlay_max_concurrent_jobs = self.IntConfig(
+            self,
+            "map_overlay_max_concurrent_jobs",
+            2,
+        )
+        self.map_overlay_path_timeout_seconds = self.IntConfig(
+            self,
+            "map_overlay_path_timeout_seconds",
+            30,
+        )
+        self.map_overlay_transfer_timeout_seconds = self.IntConfig(
+            self,
+            "map_overlay_transfer_timeout_seconds",
+            120,
+        )
+        self.map_overlay_job_timeout_seconds = self.IntConfig(
+            self,
+            "map_overlay_job_timeout_seconds",
+            300,
+        )
+        self.map_overlay_max_retries = self.IntConfig(
+            self,
+            "map_overlay_max_retries",
+            3,
+        )
+        self.map_overlay_retry_delay_seconds = self.IntConfig(
+            self,
+            "map_overlay_retry_delay_seconds",
+            2,
+        )
 
         # telemetry config
         self.telemetry_enabled = self.BoolConfig(self, "telemetry_enabled", False)

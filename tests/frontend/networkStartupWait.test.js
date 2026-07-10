@@ -32,6 +32,22 @@ describe("networkStartupWait", () => {
         });
     });
 
+    it("interpretStartupStatus marks degraded when ui_ready", () => {
+        expect(
+            interpretStartupStatus({
+                status: "failed",
+                error: "RNS died",
+                stage: "failed",
+                ui_ready: true,
+                network_degraded: true,
+            })
+        ).toEqual({
+            kind: "degraded",
+            stage: "failed",
+            error: "RNS died",
+        });
+    });
+
     it("interpretStartupStatus maps starting stages to labels", () => {
         for (const stage of Object.keys(STARTUP_STAGE_LABELS)) {
             if (stage === "ready" || stage === "failed") {
@@ -71,7 +87,7 @@ describe("networkStartupWait", () => {
             timeoutMs: 5000,
             onLine: (text) => lines.push(text),
         });
-        expect(ready).toBe(true);
+        expect(ready).toBe("ready");
         expect(lines).toContain(STARTUP_STAGE_LABELS.rns);
         expect(fetchImpl).toHaveBeenCalled();
     });
@@ -92,6 +108,27 @@ describe("networkStartupWait", () => {
         expect(errors).toEqual(["error"]);
     });
 
+    it("waitForNetworkReady returns degraded when ui_ready", async () => {
+        const degraded = [];
+        const ready = await waitForNetworkReady({
+            fetchImpl: async () => ({
+                ok: true,
+                json: async () => ({
+                    status: "failed",
+                    error: "I2P brick",
+                    ui_ready: true,
+                    network_degraded: true,
+                }),
+            }),
+            sleep: async () => {},
+            timeoutMs: 1000,
+            onLine: () => {},
+            onDegraded: (error) => degraded.push(error),
+        });
+        expect(ready).toBe("degraded");
+        expect(degraded).toEqual(["I2P brick"]);
+    });
+
     it("waitForNetworkReady keeps polling through fetch errors", async () => {
         let calls = 0;
         const lines = [];
@@ -110,7 +147,7 @@ describe("networkStartupWait", () => {
             timeoutMs: 5000,
             onLine: (text) => lines.push(text),
         });
-        expect(ready).toBe(true);
+        expect(ready).toBe("ready");
         expect(lines).toContain("Still starting…");
     });
 

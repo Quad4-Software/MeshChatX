@@ -81,3 +81,16 @@ def repair_unparseable_reticulum_config(config_path: str, *, write_default) -> b
 
     write_default(config_path)
     return True
+
+
+def ensure_safe_reticulum_runtime_flags(config_path: str) -> bool:
+    """Force runtime flags that keep MeshChatX alive when interfaces fail.
+
+    Currently forces ``panic_on_interface_error = No`` so RNS does not call
+    ``os._exit`` on interface faults.
+    """
+    from meshchatx.src.backend.rns_startup_recovery import (
+        ensure_panic_on_interface_error_disabled,
+    )
+
+    return ensure_panic_on_interface_error_disabled(config_path)

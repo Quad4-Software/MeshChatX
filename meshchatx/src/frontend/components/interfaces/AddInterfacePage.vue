@@ -2122,9 +2122,7 @@ export default {
             return this.reticulumInstance.enable_transport === true;
         },
         hasExistingI2PInterface() {
-            return Object.values(this.existingInterfaces || {}).some(
-                (iface) => iface && iface.type === "I2PInterface"
-            );
+            return Object.values(this.existingInterfaces || {}).some((iface) => iface && iface.type === "I2PInterface");
         },
         canAddI2PInterface() {
             if (this.isEditingInterface && this.newInterfaceType === "I2PInterface") {

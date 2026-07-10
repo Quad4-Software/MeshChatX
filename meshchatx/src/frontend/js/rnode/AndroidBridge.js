@@ -112,6 +112,13 @@ export default class AndroidBridge {
         return safeCall(() => this.bridge.getPlatform(), null);
     }
 
+    getSidebandPluginsDefaultPath() {
+        if (!this.bridge || typeof this.bridge.getSidebandPluginsDefaultPath !== "function") {
+            return null;
+        }
+        return safeCall(() => this.bridge.getSidebandPluginsDefaultPath(), null);
+    }
+
     /**
      * Opens the system share sheet with the installed APK (Bluetooth, Nearby Share, etc.).
      * No-op when bridge or method is missing.

@@ -219,9 +219,18 @@ class DocsManager:
             logging.exception(f"Failed to populate MeshChatX docs: {e}")
 
     def _sync_docs_tree(self, src_docs, dest_dir):
-        """Copy manifest, markdown, and text files from src_docs into dest_dir."""
-        for root, _, files in os.walk(src_docs):
+        """Copy manifest, markdown, and text files from src_docs into dest_dir.
+
+        Skips ``agents/`` (contributor and automated-agent guidance, not
+        end-user documentation).
+        """
+        for root, dirnames, files in os.walk(src_docs):
             rel_root = os.path.relpath(root, src_docs)
+            if rel_root == ".":
+                dirnames[:] = [d for d in dirnames if d != "agents"]
+            elif rel_root == "agents" or rel_root.startswith(f"agents{os.sep}"):
+                dirnames[:] = []
+                continue
             target_root = (
                 dest_dir if rel_root == "." else os.path.join(dest_dir, rel_root)
             )

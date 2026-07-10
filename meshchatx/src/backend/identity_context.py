@@ -24,6 +24,7 @@ from meshchatx.src.backend.integrity_manager import (
     select_critical_integrity_issues,
 )
 from meshchatx.src.backend.map_manager import MapManager
+from meshchatx.src.backend.map_overlay_manager import MapOverlayManager
 from meshchatx.src.backend.meshchat_utils import create_lxmf_router
 from meshchatx.src.backend.message_handler import MessageHandler
 from meshchatx.src.backend.nomadnet_utils import NomadNetworkManager
@@ -80,6 +81,7 @@ class IdentityContext:
         self.announce_manager = None
         self.archiver_manager = None
         self.map_manager = None
+        self.map_overlay_manager = None
         self.docs_manager = None
         self.repository_server_manager = None
         self.nomadnet_manager = None
@@ -192,6 +194,18 @@ class IdentityContext:
         self.announce_manager = AnnounceManager(self.database, self.config)
         self.archiver_manager = ArchiverManager(self.database)
         self.map_manager = MapManager(self.config, self.app.storage_dir)
+        self.map_overlay_manager = MapOverlayManager(
+            self.config,
+            self.database,
+            self.storage_path,
+            reticulum_config_dir=getattr(self.app, "reticulum_config_dir", None),
+            identity=self.identity,
+            reticulum=getattr(self.app, "reticulum", None),
+        )
+        try:
+            self.map_overlay_manager.start_scheduler()
+        except Exception:
+            pass
         self.docs_manager = DocsManager(
             self.config,
             self.app.get_public_path(),
@@ -767,6 +781,12 @@ class IdentityContext:
         if self.archiver_manager:
             self.archiver_manager = None
 
+        if self.map_overlay_manager:
+            try:
+                self.map_overlay_manager.cleanup()
+            except Exception:
+                pass
+            self.map_overlay_manager = None
         if self.map_manager:
             self.map_manager = None
 

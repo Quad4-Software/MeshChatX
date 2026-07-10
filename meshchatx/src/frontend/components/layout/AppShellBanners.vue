@@ -45,6 +45,31 @@
         >
             {{ wsReconnectedLabel }}
         </div>
+        <div
+            v-if="showNetworkDegraded"
+            class="relative z-100 bg-amber-700 text-white px-4 py-3 text-center text-sm font-medium shadow-md border-b border-amber-800/80"
+            role="status"
+            aria-live="polite"
+        >
+            <p>{{ networkDegradedLabel }}</p>
+            <div class="mt-2 flex flex-wrap items-center justify-center gap-2">
+                <button
+                    type="button"
+                    class="rounded-md bg-white/15 px-3 py-1 text-xs font-semibold hover:bg-white/25 disabled:opacity-60"
+                    :disabled="networkRecovering"
+                    @click="$emit('recover-network')"
+                >
+                    {{ recoverNetworkLabel }}
+                </button>
+                <button
+                    type="button"
+                    class="rounded-md bg-white/10 px-3 py-1 text-xs font-semibold hover:bg-white/20"
+                    @click="$emit('open-interfaces')"
+                >
+                    {{ openInterfacesLabel }}
+                </button>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -95,7 +120,27 @@ export default {
             type: String,
             default: "",
         },
+        showNetworkDegraded: {
+            type: Boolean,
+            default: false,
+        },
+        networkDegradedLabel: {
+            type: String,
+            default: "",
+        },
+        networkRecovering: {
+            type: Boolean,
+            default: false,
+        },
+        recoverNetworkLabel: {
+            type: String,
+            default: "",
+        },
+        openInterfacesLabel: {
+            type: String,
+            default: "",
+        },
     },
-    emits: ["restart-backend", "view-backend-logs"],
+    emits: ["restart-backend", "view-backend-logs", "recover-network", "open-interfaces"],
 };
 </script>

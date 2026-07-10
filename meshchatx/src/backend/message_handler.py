@@ -71,6 +71,33 @@ class MessageHandler:
         params = [like_term, like_term, like_term, limit]
         return self.db.provider.fetchall(query, params)
 
+    # Keep conversation-list payloads small. Full ``fields`` often embeds
+    # multi-MB base64 attachments and must never be loaded into the list API.
+    _CONVERSATION_CONTENT_PREVIEW_CHARS = 240
+    _FIELDS_HAS_IMAGE_SQL = (
+        "(m1.fields IS NOT NULL AND m1.fields != '' AND m1.fields != '{}' "
+        "AND (instr(m1.fields, '\"image\"') > 0 OR instr(m1.fields, '\"0x05\"') > 0))"
+    )
+    _FIELDS_HAS_AUDIO_SQL = (
+        "(m1.fields IS NOT NULL AND m1.fields != '' AND m1.fields != '{}' "
+        "AND (instr(m1.fields, '\"audio\"') > 0 OR instr(m1.fields, '\"0x06\"') > 0))"
+    )
+    _FIELDS_HAS_FILES_SQL = (
+        "(m1.fields IS NOT NULL AND m1.fields != '' AND m1.fields != '{}' "
+        "AND (instr(m1.fields, '\"file_attachments\"') > 0 "
+        "OR instr(m1.fields, '\"0x07\"') > 0))"
+    )
+    _FIELDS_HAS_REACTION_SQL = (
+        "(m1.fields IS NOT NULL AND m1.fields != '' AND m1.fields != '{}' "
+        "AND (instr(m1.fields, '\"reaction\"') > 0 OR instr(m1.fields, '\"0x40\"') > 0))"
+    )
+    _FIELDS_HAS_TELEMETRY_SQL = (
+        "(m1.fields IS NOT NULL AND m1.fields != '' AND m1.fields != '{}' "
+        "AND (instr(m1.fields, '\"telemetry\"') > 0 OR instr(m1.fields, '\"0x08\"') > 0 "
+        "OR instr(m1.fields, '\"telemetry_stream\"') > 0))"
+    )
+    _FIELDS_HAS_ATTACHMENTS_SQL = f"({_FIELDS_HAS_IMAGE_SQL} OR {_FIELDS_HAS_AUDIO_SQL} OR {_FIELDS_HAS_FILES_SQL})"
+
     def get_conversations(
         self,
         local_hash,
@@ -82,13 +109,22 @@ class MessageHandler:
         limit=500,
         offset=0,
     ):
-        query = """
+        preview_chars = self._CONVERSATION_CONTENT_PREVIEW_CHARS
+        query = f"""
             SELECT 
                 m1.id, m1.hash, m1.source_hash, m1.destination_hash,
                 m1.peer_hash, m1.state, m1.progress, m1.is_incoming,
-                m1.title, m1.content, m1.fields, m1.timestamp,
+                m1.title,
+                substr(COALESCE(m1.content, ''), 1, {preview_chars}) as content,
+                m1.timestamp,
                 m1.is_spam, m1.reply_to_hash,
                 m1.created_at, m1.updated_at,
+                CASE WHEN {self._FIELDS_HAS_IMAGE_SQL} THEN 1 ELSE 0 END as has_image,
+                CASE WHEN {self._FIELDS_HAS_AUDIO_SQL} THEN 1 ELSE 0 END as has_audio,
+                CASE WHEN {self._FIELDS_HAS_FILES_SQL} THEN 1 ELSE 0 END as has_files,
+                CASE WHEN {self._FIELDS_HAS_REACTION_SQL} THEN 1 ELSE 0 END as has_reaction,
+                CASE WHEN {self._FIELDS_HAS_TELEMETRY_SQL} THEN 1 ELSE 0 END as has_telemetry,
+                CASE WHEN {self._FIELDS_HAS_ATTACHMENTS_SQL} THEN 1 ELSE 0 END as has_attachments,
                 a.app_data as peer_app_data, 
                 c.display_name as custom_display_name,
                 con.custom_image as contact_image,
@@ -139,9 +175,7 @@ class MessageHandler:
             where_clauses.append("m1.state = 'failed'")
 
         if filter_has_attachments:
-            where_clauses.append(
-                "(m1.fields IS NOT NULL AND m1.fields != '{}' AND m1.fields != '')",
-            )
+            where_clauses.append(self._FIELDS_HAS_ATTACHMENTS_SQL)
 
         if search:
             search = _strip_utf16_surrogates(search) or ""

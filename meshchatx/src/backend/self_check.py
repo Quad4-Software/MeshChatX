@@ -706,7 +706,7 @@ def check_plugins_runtime(app: Any) -> dict[str, str]:
     plugins_enabled = bool(getattr(app, "plugins_enabled", True))
     if not plugins_enabled:
         return _status(True)
-    bundled_id = "com.meshchatx.mesh-observatory"
+    bundled_id = "com.meshchatx.mcx-bugs"
     if any(isinstance(item, dict) and item.get("id") == bundled_id for item in plugins):
         return _status(True)
     try:

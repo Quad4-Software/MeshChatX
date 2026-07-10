@@ -46,11 +46,64 @@ def mock_app():
 async def test_send_message_no_path_identity_recall_fails(mock_app):
     destination_hash = "aa" * 16
     mock_app.recall_identity = MagicMock(return_value=None)
-    with pytest.raises(Exception, match="Could not find path to destination"):
+    with pytest.raises(LookupError, match="Could not recall destination identity"):
         await mock_app.send_message(
             destination_hash=destination_hash,
             content="hi",
         )
+
+
+@pytest.mark.asyncio
+async def test_send_message_blocks_when_path_unavailable(mock_app):
+    destination_hash = "aa" * 16
+    fake_identity = MagicMock()
+    mock_app.recall_identity = MagicMock(return_value=fake_identity)
+    mock_app._await_transport_path = AsyncMock(
+        return_value=OutboundPathOutcome(False, "new_path_requested", True),
+    )
+    with pytest.raises(TimeoutError, match="No path to destination"):
+        await mock_app.send_message(
+            destination_hash=destination_hash,
+            content="hi",
+            delivery_method="direct",
+        )
+    mock_app.message_router.handle_outbound.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_send_message_propagated_allows_missing_peer_path(mock_app):
+    destination_hash = "aa" * 16
+    fake_identity = MagicMock()
+    mock_app.recall_identity = MagicMock(return_value=fake_identity)
+    mock_app._await_transport_path = AsyncMock(
+        return_value=OutboundPathOutcome(False, "new_path_requested", True),
+    )
+    mock_app.config.auto_send_failed_messages_to_propagation_node.get.return_value = (
+        False
+    )
+    mock_app.config.include_display_name_with_message.get.return_value = False
+    mock_app.config.include_icon_with_message.get.return_value = False
+    mock_app.config.include_signature_with_message.get.return_value = False
+    mock_msg = MagicMock()
+    mock_msg.hash = b"\x01" * 16
+    mock_msg.fields = {}
+    with (
+        patch("meshchatx.meshchat.RNS.Destination", return_value=MagicMock()),
+        patch("meshchatx.meshchat.LXMF.LXMessage", return_value=mock_msg),
+        patch("meshchatx.meshchat.RNS.Identity.current_ratchet_id", return_value=None),
+        patch(
+            "meshchatx.meshchat.convert_lxmf_message_to_dict",
+            return_value={"hash": "01" * 16, "state": "outbound"},
+        ),
+    ):
+        result = await mock_app.send_message(
+            destination_hash=destination_hash,
+            content="hi",
+            delivery_method="propagated",
+        )
+    assert result is mock_msg
+    mock_app.message_router.handle_outbound.assert_called_once()
+    mock_app._await_transport_path.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -244,11 +297,11 @@ async def test_send_message_await_path_timeout(mock_app):
         return_value=OutboundPathOutcome(False, "new_path_requested", True),
     )
     destination_hash = "aa" * 16
+    fake_identity = MagicMock()
+    mock_app.recall_identity = MagicMock(return_value=fake_identity)
 
-    # Even if _await_transport_path returns False, it continues to recall identity
-    with patch("meshchatx.meshchat.RNS.Identity.recall", return_value=None):
-        with pytest.raises(Exception, match="Could not find path to destination"):
-            await mock_app.send_message(
-                destination_hash=destination_hash,
-                content="hi",
-            )
+    with pytest.raises(TimeoutError, match="No path to destination"):
+        await mock_app.send_message(
+            destination_hash=destination_hash,
+            content="hi",
+        )

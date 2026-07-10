@@ -36,7 +36,18 @@ const mountPage = () =>
 describe("AddInterfacePage.vue interface options", () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        mockAxios.get.mockResolvedValue({ data: {} });
+        mockAxios.get.mockImplementation(async (url) => {
+            if (String(url).includes("/api/v1/config")) {
+                return { data: { config: { is_transport_enabled: true } } };
+            }
+            if (String(url).includes("/api/v1/reticulum/instance")) {
+                return { data: { instance: { enable_transport: true } } };
+            }
+            if (String(url).includes("/api/v1/reticulum/interfaces")) {
+                return { data: { interfaces: {} } };
+            }
+            return { data: {} };
+        });
         mockAxios.post.mockResolvedValue({ data: { message: "ok" } });
     });
 
@@ -256,6 +267,12 @@ describe("AddInterfacePage.vue interface options", () => {
         wrapper.vm.newInterfaceType = "I2PInterface";
         wrapper.vm.I2PSettings.newInterfacePeers = ["abcdef.b32.i2p"];
         wrapper.vm.newInterfaceConnectable = false;
+        wrapper.vm.config = { ...(wrapper.vm.config || {}), is_transport_enabled: true };
+        wrapper.vm.reticulumInstance = {
+            ...(wrapper.vm.reticulumInstance || {}),
+            enable_transport: true,
+        };
+        wrapper.vm.existingInterfaces = {};
 
         await wrapper.vm.saveInterface();
 

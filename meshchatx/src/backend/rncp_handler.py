@@ -27,6 +27,7 @@ class RNCPHandler:
         self._listener_fetch_registered = False
         self._listener_fetch_allowed = False
         self.on_receive_completed = None
+        self._cancelled_transfers: set[str] = set()
 
     def _emit_receive_event(self, payload):
         if self.on_receive_completed:
@@ -34,6 +35,30 @@ class RNCPHandler:
                 self.on_receive_completed(payload)
             except Exception:
                 pass
+
+    def _default_fetch_save_dir(self) -> str:
+        path = os.path.join(self.storage_dir, "rncp", "downloads")
+        os.makedirs(path, exist_ok=True)
+        return path
+
+    def cancel_transfer(self, transfer_id: str | None = None) -> dict:
+        """Mark one or all active transfers as cancelled."""
+        if transfer_id:
+            self._cancelled_transfers.add(transfer_id)
+            transfer = self.active_transfers.get(transfer_id)
+            if transfer is not None:
+                transfer["status"] = "cancelled"
+            return {"cancelled": [transfer_id]}
+        ids = list(self.active_transfers.keys())
+        for tid in ids:
+            self._cancelled_transfers.add(tid)
+            self.active_transfers[tid]["status"] = "cancelled"
+        return {"cancelled": ids}
+
+    def _is_cancelled(self, transfer_id: str | None) -> bool:
+        if transfer_id and transfer_id in self._cancelled_transfers:
+            return True
+        return False
 
     def teardown_receive_destination(self):
         if self.receive_destination is None:
@@ -351,6 +376,13 @@ class RNCPHandler:
                 pass
 
         while resource.status < RNS.Resource.COMPLETE:
+            if self._is_cancelled(transfer_id):
+                with contextlib.suppress(Exception):
+                    link.teardown()
+                if transfer_id in self.active_transfers:
+                    self.active_transfers[transfer_id]["status"] = "cancelled"
+                msg = "Transfer cancelled"
+                raise InterruptedError(msg)
             await asyncio.sleep(0.1)
             if resource.status > RNS.Resource.COMPLETE:
                 msg = "File was not accepted by destination"
@@ -455,51 +487,54 @@ class RNCPHandler:
             resource_status = "started"
 
         saved_filename = None
+        save_error = None
+        effective_save_path = (
+            os.path.abspath(os.path.expanduser(save_path))
+            if isinstance(save_path, str) and save_path.strip()
+            else self._default_fetch_save_dir()
+        )
 
         def fetch_resource_concluded(resource):
-            nonlocal resource_resolved, resource_status, saved_filename
-            if resource.status == RNS.Resource.COMPLETE:
-                if resource.metadata:
-                    try:
-                        filename = os.path.basename(
-                            resource.metadata["name"].decode("utf-8"),
-                        )
-                        if save_path:
-                            save_dir = os.path.abspath(os.path.expanduser(save_path))
+            nonlocal resource_resolved, resource_status, saved_filename, save_error
+            try:
+                if resource.status == RNS.Resource.COMPLETE:
+                    if resource.metadata:
+                        try:
+                            filename = os.path.basename(
+                                resource.metadata["name"].decode("utf-8"),
+                            )
+                            save_dir = effective_save_path
                             os.makedirs(save_dir, exist_ok=True)
                             saved_filename = os.path.join(save_dir, filename)
-                        else:
-                            saved_filename = filename
 
-                        counter = 0
-                        if allow_overwrite:
-                            if os.path.isfile(saved_filename):
-                                try:
-                                    os.unlink(saved_filename)
-                                except OSError:
-                                    # Failed to delete existing file, which is fine,
-                                    # we'll just fall through to the naming loop
-                                    pass
+                            counter = 0
+                            if allow_overwrite:
+                                if os.path.isfile(saved_filename):
+                                    try:
+                                        os.unlink(saved_filename)
+                                    except OSError:
+                                        pass
 
-                        while os.path.isfile(saved_filename):
-                            counter += 1
-                            base, ext = os.path.splitext(filename)
-                            saved_filename = os.path.join(
-                                os.path.dirname(saved_filename) if save_path else ".",
-                                f"{base}.{counter}{ext}",
-                            )
+                            while os.path.isfile(saved_filename):
+                                counter += 1
+                                base, ext = os.path.splitext(filename)
+                                saved_filename = os.path.join(
+                                    save_dir,
+                                    f"{base}.{counter}{ext}",
+                                )
 
-                        shutil.move(resource.data.name, saved_filename)
-                        resource_status = "completed"
-                    except Exception as e:
+                            shutil.move(resource.data.name, saved_filename)
+                            resource_status = "completed"
+                        except Exception as e:
+                            resource_status = "error"
+                            save_error = str(e)
+                    else:
                         resource_status = "error"
-                        raise e
+                        save_error = "missing resource metadata"
                 else:
-                    resource_status = "error"
-            else:
-                resource_status = "failed"
-
-            resource_resolved = True
+                    resource_status = "failed"
+            finally:
+                resource_resolved = True
 
         link.set_resource_strategy(RNS.Link.ACCEPT_ALL)
         link.set_resource_started_callback(fetch_resource_started)
@@ -532,6 +567,13 @@ class RNCPHandler:
             raise Exception(msg)
 
         while not resource_resolved:
+            if current_resource is not None and hasattr(current_resource, "hash"):
+                tid = getattr(current_resource, "hash", None)
+                if tid is not None and self._is_cancelled(tid.hex()):
+                    with contextlib.suppress(Exception):
+                        link.teardown()
+                    msg = "Transfer cancelled"
+                    raise InterruptedError(msg)
             await asyncio.sleep(0.1)
 
         if resource_status == "completed":
@@ -541,7 +583,10 @@ class RNCPHandler:
                 "file_path": saved_filename,
             }
         link.teardown()
-        msg = f"Transfer failed: {resource_status}"
+        if save_error:
+            msg = f"Transfer failed: {resource_status}: {save_error}"
+        else:
+            msg = f"Transfer failed: {resource_status}"
         raise Exception(msg)
 
     def get_transfer_status(self, transfer_id: str):

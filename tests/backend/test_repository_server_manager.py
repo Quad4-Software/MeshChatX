@@ -2,6 +2,7 @@
 
 import time
 import urllib.request
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -215,6 +216,36 @@ def test_refresh_bundled_wheels_fails_when_pypi_unavailable(
     out = mgr.refresh_bundled_wheels()
     assert out["ok"] is False
     assert not out["downloaded"]
+
+
+@patch(
+    "meshchatx.src.backend.repository_server_manager.stage_local_meshchatx_wheel_into_bundled_dir",
+    return_value=None,
+)
+@patch("meshchatx.src.backend.repository_server_manager._download_wheel_via_pypi_index")
+def test_refresh_preserves_existing_wheels_when_pypi_fails(
+    mock_pypi, _mock_stage, tmp_path, monkeypatch
+):
+    monkeypatch.setenv("MESHCHAT_REPOSITORY_EXTRA_PIP", "")
+    mock_pypi.return_value = (False, "offline")
+    mgr = RepositoryServerManager(str(tmp_path))
+    keep = Path(mgr.bundled_dir) / "keep-me.whl"
+    keep.write_bytes(b"wheel")
+    out = mgr.refresh_bundled_wheels()
+    assert out["ok"] is False
+    assert keep.exists()
+    assert keep.read_bytes() == b"wheel"
+
+
+def test_refresh_rejects_concurrent_calls(tmp_path):
+    mgr = RepositoryServerManager(str(tmp_path))
+    assert mgr._refresh_lock.acquire(blocking=False)
+    try:
+        out = mgr.refresh_bundled_wheels()
+        assert out["ok"] is False
+        assert out.get("error") == "refresh_already_running"
+    finally:
+        mgr._refresh_lock.release()
 
 
 def test_http_start_stop_and_status(tmp_path):

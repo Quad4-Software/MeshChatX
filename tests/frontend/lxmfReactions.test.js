@@ -145,4 +145,44 @@ describe("mergeLxmfReactionRowsIntoMessages", () => {
         const out = mergeLxmfReactionRowsIntoMessages(incoming);
         expect(out[0].reactions.length).toBe(200);
     });
+
+    it("skips null rows and empty emoji without throwing", () => {
+        const parentHash = "a".repeat(32);
+        const out = mergeLxmfReactionRowsIntoMessages([
+            null,
+            undefined,
+            { hash: parentHash, content: "x", is_reaction: false },
+            {
+                hash: "r1",
+                is_reaction: true,
+                reaction_to: parentHash,
+                reaction_emoji: "",
+                reaction_sender: "e".repeat(32),
+            },
+            {
+                hash: "r2",
+                is_reaction: true,
+                reaction_to: parentHash,
+                reaction_emoji: null,
+                reaction_sender: "f".repeat(32),
+            },
+            {
+                hash: "r3",
+                is_reaction: true,
+                reaction_to: parentHash,
+                reaction_emoji: "\u{1F44D}",
+                reaction_sender: "Aa".repeat(16),
+            },
+            {
+                hash: "r4",
+                is_reaction: true,
+                reaction_to: parentHash,
+                reaction_emoji: "\u{1F44D}",
+                reaction_sender: "aa".repeat(16),
+            },
+        ]);
+        expect(out).toHaveLength(1);
+        expect(out[0].reactions).toHaveLength(1);
+        expect(out[0].reactions[0].emoji).toBe("\u{1F44D}");
+    });
 });

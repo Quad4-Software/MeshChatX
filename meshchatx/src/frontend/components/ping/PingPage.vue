@@ -197,7 +197,7 @@ export default {
             }
 
             // simple check to ensure destination hash is valid
-            if (this.timeout == null || this.timeout < 0) {
+            if (this.timeout == null || this.timeout < 1) {
                 DialogUtils.alert(this.$t("ping.timeout_must_be_number"));
                 return;
             }

@@ -285,6 +285,14 @@
             "path": "/api/v1/favourites/import"
         },
         {
+            "method": "GET",
+            "path": "/api/v1/favourites/layout"
+        },
+        {
+            "method": "PUT",
+            "path": "/api/v1/favourites/layout"
+        },
+        {
             "method": "DELETE",
             "path": "/api/v1/favourites/{destination_hash}"
         },
@@ -602,6 +610,46 @@
         },
         {
             "method": "GET",
+            "path": "/api/v1/map/overlays"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/map/overlays"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/map/overlays/export"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/map/overlays/jobs/{job_id}"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/map/overlays/jobs/{job_id}/cancel"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/map/overlays/{overlay_id}"
+        },
+        {
+            "method": "PATCH",
+            "path": "/api/v1/map/overlays/{overlay_id}"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/map/overlays/{overlay_id}/content"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/map/overlays/{overlay_id}/export"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/map/overlays/{overlay_id}/refresh"
+        },
+        {
+            "method": "GET",
             "path": "/api/v1/map/tiles/{z}/{x}/{y}"
         },
         {
@@ -886,7 +934,15 @@
         },
         {
             "method": "POST",
+            "path": "/api/v1/reticulum/recover"
+        },
+        {
+            "method": "POST",
             "path": "/api/v1/reticulum/reload"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rncp/cancel"
         },
         {
             "method": "POST",
@@ -1243,6 +1299,10 @@
         {
             "method": "GET",
             "path": "/api/v1/telephone/call/{identity_hash}"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/telephone/codec2/status"
         },
         {
             "method": "GET",

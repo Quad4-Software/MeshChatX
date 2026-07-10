@@ -47,6 +47,34 @@
   ::file-selector-button {
     border-color: var(--color-gray-200, currentcolor);
   }
+
+  html,
+  body {
+    margin: 0;
+    min-height: 100%;
+    background-color: var(--mc-canvas, #f8fafc);
+  }
+
+  #app {
+    min-height: 100dvh;
+    background-color: var(--mc-canvas, #f8fafc);
+  }
+
+  .dark #app,
+  html.dark,
+  html.dark body {
+    background-color: var(--mc-canvas, #09090b);
+  }
+}
+
+.route-view-fade-enter-active,
+.route-view-fade-leave-active {
+  transition: opacity 120ms ease;
+}
+
+.route-view-fade-enter-from,
+.route-view-fade-leave-to {
+  opacity: 0;
 }
 
 * {

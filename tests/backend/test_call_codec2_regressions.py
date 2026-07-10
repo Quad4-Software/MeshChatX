@@ -146,9 +146,7 @@ class TestContactsOnlyIdentityVsLxmfRegression:
                 return {"id": 1, "name": "Friend", "remote_identity_hash": LXMF}
             return None
 
-        app.current_context.database.contacts.get_contact_by_identity_hash.side_effect = (
-            lookup
-        )
+        app.current_context.database.contacts.get_contact_by_identity_hash.side_effect = lookup
         caller = _caller_identity()
 
         with patch("meshchatx.meshchat.AsyncUtils") as async_utils:

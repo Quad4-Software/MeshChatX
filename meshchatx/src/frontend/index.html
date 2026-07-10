@@ -71,9 +71,25 @@
                 opacity: 0.85;
                 font-size: 0.875rem;
             }
+            html,
+            body {
+                margin: 0;
+                min-height: 100%;
+                background-color: #f8fafc;
+            }
+            @media (prefers-color-scheme: dark) {
+                html,
+                body {
+                    background-color: #09090b;
+                }
+            }
+            #app {
+                min-height: 100dvh;
+                background-color: inherit;
+            }
         </style>
     </head>
-    <body class="bg-gray-100">
+    <body>
         <noscript>
             <div
                 style="

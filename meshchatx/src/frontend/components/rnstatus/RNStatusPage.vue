@@ -58,7 +58,13 @@
                             class="rounded-xl border border-purple-200/80 bg-purple-50/90 p-4 text-purple-900 dark:border-purple-800/50 dark:bg-purple-950/30 dark:text-purple-100"
                         >
                             <div class="flex flex-wrap items-center justify-between gap-2 font-semibold">
-                                <span>Blackhole: {{ blackholeEnabled ? "Publishing" : "Active" }}</span>
+                                <span>{{
+                                    $t("rnstatus.blackhole_label", {
+                                        state: blackholeEnabled
+                                            ? $t("rnstatus.blackhole_publishing")
+                                            : $t("rnstatus.blackhole_inactive"),
+                                    })
+                                }}</span>
                                 <span class="text-sm font-normal opacity-90">
                                     {{ formatInt(blackholeCount) }} Identities
                                 </span>

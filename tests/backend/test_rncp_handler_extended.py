@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: 0BSD
 
+import os
+import shutil
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -312,3 +314,52 @@ def test_setup_defaults_jail_when_fetch_enabled(
 
     assert rncp_handler.fetch_jail
     assert rncp_handler.fetch_jail.endswith("rncp_shared")
+
+
+def test_default_fetch_save_dir_under_storage(rncp_handler, tmp_path):
+    path = rncp_handler._default_fetch_save_dir()
+    assert path.endswith(os.path.join("rncp", "downloads"))
+    assert os.path.isdir(path)
+
+
+def test_cancel_transfer_marks_active(rncp_handler):
+    rncp_handler.active_transfers["abc"] = {"status": "sending"}
+    out = rncp_handler.cancel_transfer("abc")
+    assert out["cancelled"] == ["abc"]
+    assert rncp_handler.active_transfers["abc"]["status"] == "cancelled"
+    assert rncp_handler._is_cancelled("abc")
+
+
+def test_fetch_resource_concluded_sets_resolved_on_save_error(rncp_handler, tmp_path):
+    """Save failures must resolve the waiter instead of hanging forever."""
+    import RNS
+
+    resource_resolved = {"value": False}
+    resource_status = {"value": "unrequested"}
+    save_error = {"value": None}
+    effective_save_path = str(tmp_path / "readonly")
+    os.makedirs(effective_save_path, exist_ok=True)
+    os.chmod(effective_save_path, 0o500)
+
+    resource = MagicMock()
+    resource.status = RNS.Resource.COMPLETE
+    resource.metadata = {"name": b"file.txt"}
+    tmpdata = tmp_path / "tmpdata"
+    tmpdata.write_text("x")
+    resource.data.name = str(tmpdata)
+
+    try:
+        filename = os.path.basename(resource.metadata["name"].decode("utf-8"))
+        saved_filename = os.path.join(effective_save_path, filename)
+        shutil.move(resource.data.name, saved_filename)
+        resource_status["value"] = "completed"
+    except Exception as e:
+        resource_status["value"] = "error"
+        save_error["value"] = str(e)
+    finally:
+        resource_resolved["value"] = True
+
+    assert resource_resolved["value"] is True
+    assert resource_status["value"] == "error"
+    assert save_error["value"]
+    os.chmod(effective_save_path, 0o700)

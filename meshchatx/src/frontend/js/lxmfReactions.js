@@ -27,7 +27,7 @@ export function mergeLxmfReactionRowsIntoMessages(messages) {
     const parents = [];
     const reactions = [];
     for (const m of messages) {
-        if (!m) {
+        if (!m || typeof m !== "object") {
             continue;
         }
         if (m.is_reaction) {
@@ -46,14 +46,20 @@ export function mergeLxmfReactionRowsIntoMessages(messages) {
         if (!parent) {
             continue;
         }
-        const sender = r.reaction_sender || r.source_hash || "";
-        const emoji = r.reaction_emoji || "";
-        const dup = parent.reactions.some((x) => x.sender === sender && x.emoji === emoji);
+        const sender = String(r.reaction_sender || r.source_hash || "");
+        const emoji = typeof r.reaction_emoji === "string" ? r.reaction_emoji : "";
+        if (!emoji) {
+            continue;
+        }
+        const senderKey = sender.toLowerCase();
+        const dup = parent.reactions.some(
+            (x) => String(x.sender || "").toLowerCase() === senderKey && x.emoji === emoji
+        );
         if (!dup) {
             parent.reactions.push({
                 emoji,
                 sender,
-                reactionHash: r.hash,
+                reactionHash: r.hash || null,
             });
         }
     }

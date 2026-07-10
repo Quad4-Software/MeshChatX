@@ -19,7 +19,7 @@ def _validate_identifier(name: str, label: str = "identifier") -> str:
 
 
 class DatabaseSchema:
-    LATEST_VERSION = 49
+    LATEST_VERSION = 50
 
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -439,6 +439,36 @@ class DatabaseSchema:
                     data TEXT,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """,
+            "map_overlay_sources": """
+                CREATE TABLE IF NOT EXISTS map_overlay_sources (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    identity_hash TEXT NOT NULL,
+                    kind TEXT NOT NULL,
+                    destination_hash TEXT NOT NULL,
+                    path_or_repo_path TEXT NOT NULL,
+                    ref TEXT NOT NULL DEFAULT 'HEAD',
+                    group_name TEXT,
+                    repository TEXT,
+                    name TEXT NOT NULL,
+                    enabled INTEGER NOT NULL DEFAULT 1,
+                    visible INTEGER NOT NULL DEFAULT 1,
+                    refresh_interval_seconds INTEGER NOT NULL DEFAULT 0,
+                    status TEXT NOT NULL DEFAULT 'pending',
+                    last_error TEXT,
+                    last_fetched_at DATETIME,
+                    next_refresh_at DATETIME,
+                    content_sha256 TEXT,
+                    resolved_ref TEXT,
+                    format TEXT,
+                    byte_size INTEGER,
+                    cache_relpath TEXT,
+                    job_id TEXT,
+                    generation INTEGER NOT NULL DEFAULT 0,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(identity_hash, kind, destination_hash, path_or_repo_path, ref)
                 )
             """,
             "user_stickers": """
@@ -1318,3 +1348,43 @@ class DatabaseSchema:
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             """)
+
+        if current_version < 50:
+            self._safe_execute("""
+                CREATE TABLE IF NOT EXISTS map_overlay_sources (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    identity_hash TEXT NOT NULL,
+                    kind TEXT NOT NULL,
+                    destination_hash TEXT NOT NULL,
+                    path_or_repo_path TEXT NOT NULL,
+                    ref TEXT NOT NULL DEFAULT 'HEAD',
+                    group_name TEXT,
+                    repository TEXT,
+                    name TEXT NOT NULL,
+                    enabled INTEGER NOT NULL DEFAULT 1,
+                    visible INTEGER NOT NULL DEFAULT 1,
+                    refresh_interval_seconds INTEGER NOT NULL DEFAULT 0,
+                    status TEXT NOT NULL DEFAULT 'pending',
+                    last_error TEXT,
+                    last_fetched_at DATETIME,
+                    next_refresh_at DATETIME,
+                    content_sha256 TEXT,
+                    resolved_ref TEXT,
+                    format TEXT,
+                    byte_size INTEGER,
+                    cache_relpath TEXT,
+                    job_id TEXT,
+                    generation INTEGER NOT NULL DEFAULT 0,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(identity_hash, kind, destination_hash, path_or_repo_path, ref)
+                )
+            """)
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_map_overlay_sources_identity "
+                "ON map_overlay_sources(identity_hash)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_map_overlay_sources_refresh "
+                "ON map_overlay_sources(enabled, next_refresh_at)",
+            )

@@ -234,18 +234,7 @@ class AutoPropagationManager:
                 )
             return
 
-        # None of the candidates worked.  If the previously-selected node is
-        # still unreachable, clear it rather than restoring a broken node.
-        if previous_hex:
-            try:
-                previous_dest = bytes.fromhex(previous_hex)
-                if RNS.Transport.has_path(previous_dest):
-                    self.app.set_active_propagation_node(
-                        previous_hex, context=self.context
-                    )
-                    return
-            except Exception:
-                pass
-            self.app.remove_active_propagation_node(context=self.context)
-        else:
-            self.app.remove_active_propagation_node(context=self.context)
+        # None of the candidates worked (including the previous node if it was
+        # probed). Clear the active node rather than restoring a sync-broken one
+        # just because a transport path still exists.
+        self.app.remove_active_propagation_node(context=self.context)

@@ -338,7 +338,7 @@ describe("WebSocketConnection module", () => {
         const { default: WebSocketConnection } = await import("../../meshchatx/src/frontend/js/WebSocketConnection.js");
 
         expect(WebSocketConnection.ws).toBeNull();
-        expect(() => WebSocketConnection.send("hello")).not.toThrow();
+        expect(WebSocketConnection.send("hello")).toBe(false);
         expect(() => WebSocketConnection.ping()).not.toThrow();
     });
 

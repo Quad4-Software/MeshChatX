@@ -117,7 +117,7 @@
         </div>
 
         <div class="ml-auto flex items-center gap-0.5 sm:gap-1.5 min-w-0 shrink-0">
-            <DropDownMenu class="shrink-0">
+            <DropDownMenu v-if="!compactPeerActions" class="shrink-0" data-testid="conversation-path-ops">
                 <template #button>
                     <IconButton
                         :title="$t('nomadnet.path_finder')"
@@ -151,6 +151,7 @@
                 :peer="selectedPeer"
                 :compact="compactPeerActions"
                 :has-failed-messages="hasFailedOrCancelledMessages"
+                :pathfinder-in-progress="pathfinderInProgress"
                 @conversation-deleted="$emit('conversation-deleted')"
                 @set-custom-display-name="$emit('edit-display-name')"
                 @popout="$emit('popout')"
@@ -158,6 +159,9 @@
                 @open-telemetry-history="$emit('open-telemetry-history')"
                 @start-call="$emit('start-call')"
                 @share-contact="$emit('share-contact')"
+                @path-finder-quick="$emit('path-finder-quick')"
+                @path-finder-force="$emit('path-finder-force')"
+                @path-finder-drop="$emit('path-finder-drop')"
             />
 
             <IconButton title="Close" class="shrink-0" @click="$emit('close')">

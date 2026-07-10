@@ -359,6 +359,31 @@ def test_populate_meshchatx_docs_generates_index_html(tmp_path):
     assert "Intro" in content
 
 
+def test_populate_meshchatx_docs_skips_agents_tree(tmp_path):
+    public_dir = tmp_path / "public"
+    public_dir.mkdir()
+    docs_dir = tmp_path / "docs"
+    docs_dir.mkdir()
+    en_dir = docs_dir / "en"
+    en_dir.mkdir()
+    (en_dir / "intro.md").write_text("# Hello\n")
+    agents_dir = docs_dir / "agents"
+    agents_dir.mkdir()
+    (agents_dir / "overview.md").write_text("# Agent only\n")
+    (docs_dir / "manifest.json").write_text(
+        '{"version":1,"default_language":"en","languages":[{"code":"en","name":"English"}],'
+        '"sections":[{"id":"main","order":1,"title":{"en":"Main"},"items":'
+        '[{"path":"en/intro.md","lang":"en","title":{"en":"Intro"}}]}]}',
+    )
+
+    config = MagicMock()
+    dm = DocsManager(config, str(public_dir), project_root=str(tmp_path))
+    dm.populate_meshchatx_docs()
+
+    assert os.path.isfile(os.path.join(dm.meshchatx_docs_dir, "en", "intro.md"))
+    assert not os.path.exists(os.path.join(dm.meshchatx_docs_dir, "agents"))
+
+
 def test_get_meshchatx_docs_list_with_manifest(tmp_path):
     public_dir = tmp_path / "public"
     public_dir.mkdir()

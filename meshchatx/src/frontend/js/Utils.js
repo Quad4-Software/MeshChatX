@@ -2,9 +2,13 @@ import dayjs from "dayjs";
 
 class Utils {
     static formatDestinationHash(destinationHashHex) {
+        if (destinationHashHex == null || destinationHashHex === "") {
+            return "<>";
+        }
+        const hex = String(destinationHashHex);
         const bytesPerSide = 4;
-        const leftSide = destinationHashHex.substring(0, bytesPerSide * 2);
-        const rightSide = destinationHashHex.substring(destinationHashHex.length - bytesPerSide * 2);
+        const leftSide = hex.substring(0, bytesPerSide * 2);
+        const rightSide = hex.substring(Math.max(0, hex.length - bytesPerSide * 2));
         return `<${leftSide}...${rightSide}>`;
     }
 

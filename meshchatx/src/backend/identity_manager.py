@@ -185,20 +185,40 @@ class IdentityManager:
 
         new_provider.close_all()
 
-        # Save metadata
-        metadata = {
-            "display_name": display_name,
-            "icon_name": None,
-            "icon_foreground_colour": None,
-            "icon_background_colour": None,
-        }
+        # Preserve icon/address metadata when re-importing an existing identity.
         metadata_path = os.path.join(identity_dir, "metadata.json")
+        existing_metadata = {}
+        if os.path.exists(metadata_path):
+            with contextlib.suppress(Exception), open(metadata_path) as f:
+                loaded = json.load(f)
+                if isinstance(loaded, dict):
+                    existing_metadata = loaded
+
+        resolved_name = (
+            (display_name or "").strip()
+            or existing_metadata.get("display_name")
+            or "Anonymous Peer"
+        )
+        metadata = {
+            "display_name": resolved_name,
+            "icon_name": existing_metadata.get("icon_name"),
+            "icon_foreground_colour": existing_metadata.get(
+                "icon_foreground_colour",
+            ),
+            "icon_background_colour": existing_metadata.get(
+                "icon_background_colour",
+            ),
+        }
+        for key in ("lxmf_address", "lxst_address"):
+            if key in existing_metadata:
+                metadata[key] = existing_metadata[key]
+
         with open(metadata_path, "w") as f:
             json.dump(metadata, f)
 
         return {
             "hash": identity_hash,
-            "display_name": display_name,
+            "display_name": resolved_name,
         }
 
     def update_metadata_cache(self, identity_hash: str, metadata: dict):
@@ -229,11 +249,17 @@ class IdentityManager:
             return True
         return False
 
+    _MAX_IDENTITY_BYTES = 65536
+
     def restore_identity_from_bytes(
         self,
         identity_bytes: bytes,
         display_name: str | None = None,
     ) -> dict:
+        if not identity_bytes:
+            raise ValueError("Identity file is empty")
+        if len(identity_bytes) > self._MAX_IDENTITY_BYTES:
+            raise ValueError("Identity file is too large")
         try:
             # We use RNS.Identity.from_bytes to validate and get the hash
             identity = RNS.Identity.from_bytes(identity_bytes)
@@ -242,6 +268,8 @@ class IdentityManager:
 
             name = (display_name or "").strip() or "Restored Identity"
             return self._save_new_identity(identity, name)
+        except ValueError:
+            raise
         except Exception as exc:
             raise ValueError(f"Failed to restore identity: {exc}") from exc
 
@@ -250,11 +278,16 @@ class IdentityManager:
         base32_value: str,
         display_name: str | None = None,
     ) -> dict:
+        if base32_value is None:
+            raise ValueError("base32 value is required")
+        normalized = "".join(str(base32_value).split())
+        if not normalized:
+            raise ValueError("base32 value is required")
         try:
-            identity_bytes = base64.b32decode(base32_value, casefold=True)
-            return self.restore_identity_from_bytes(
-                identity_bytes, display_name=display_name
-            )
+            identity_bytes = base64.b32decode(normalized, casefold=True)
         except Exception as exc:
             msg = f"Invalid base32 identity: {exc}"
             raise ValueError(msg) from exc
+        return self.restore_identity_from_bytes(
+            identity_bytes, display_name=display_name
+        )

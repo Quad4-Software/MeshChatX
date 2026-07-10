@@ -20,6 +20,13 @@ vi.mock("../../meshchatx/src/frontend/js/ToastUtils", () => ({
         success: vi.fn(),
         error: vi.fn(),
         warning: vi.fn(),
+        info: vi.fn(),
+    },
+}));
+
+vi.mock("../../meshchatx/src/frontend/js/DialogUtils", () => ({
+    default: {
+        confirm: vi.fn().mockResolvedValue(true),
     },
 }));
 
@@ -743,6 +750,193 @@ describe("TutorialModal getting started migration", () => {
         expect(wrapper.vm.visible).toBe(true);
         expect(axiosMock.delete).not.toHaveBeenCalled();
         expect(ToastUtils.error).toHaveBeenCalledWith("switch failed");
+        wrapper.unmount();
+    });
+
+    it("identity file import posts multipart and clears stale hash on re-pick", async () => {
+        axiosMock.get.mockImplementation(discoveryApiHandlers({ show_choice: false }));
+        axiosMock.post.mockImplementation((url) => {
+            if (url === "/api/v1/identity/restore") {
+                return Promise.resolve({
+                    data: { identity: { hash: "file_hash" }, message: "ok" },
+                });
+            }
+            return Promise.resolve({ data: {} });
+        });
+
+        const router = createRouter({
+            history: createWebHashHistory(),
+            routes: [{ path: "/", name: "home", component: { template: "<div/>" } }],
+        });
+        await router.push("/");
+        await router.isReady();
+
+        const wrapper = mount(TutorialModal, {
+            attachTo: document.body,
+            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+        });
+
+        await wrapper.vm.show();
+        await flushPromises();
+        wrapper.vm.currentStep = 2;
+        wrapper.vm.identityMode = "import";
+        wrapper.vm.identityName = "File User";
+        wrapper.vm.identityImportedHash = "stale_hash";
+        const file = new File([new Uint8Array([1, 2, 3, 4])], "identity.bin", {
+            type: "application/octet-stream",
+        });
+        wrapper.vm.onIdentityImportFileChange({ target: { files: [file], value: "x" } });
+        expect(wrapper.vm.identityImportedHash).toBeNull();
+        expect(wrapper.vm.identityImportFile).toBe(file);
+
+        await wrapper.vm.handlePrimaryAction();
+        expect(wrapper.vm.identityImportedHash).toBe("file_hash");
+        expect(axiosMock.post).toHaveBeenCalledWith(
+            "/api/v1/identity/restore",
+            expect.any(FormData),
+            expect.objectContaining({
+                headers: { "Content-Type": "multipart/form-data" },
+            })
+        );
+        wrapper.unmount();
+    });
+
+    it("rejects empty identity import files", async () => {
+        axiosMock.get.mockImplementation(discoveryApiHandlers({ show_choice: false }));
+        const router = createRouter({
+            history: createWebHashHistory(),
+            routes: [{ path: "/", name: "home", component: { template: "<div/>" } }],
+        });
+        await router.push("/");
+        await router.isReady();
+
+        const wrapper = mount(TutorialModal, {
+            attachTo: document.body,
+            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+        });
+        await wrapper.vm.show();
+        await flushPromises();
+
+        const empty = new File([], "identity.bin", { type: "application/octet-stream" });
+        wrapper.vm.onIdentityImportFileChange({ target: { files: [empty], value: "x" } });
+        expect(wrapper.vm.identityImportFile).toBeNull();
+        expect(wrapper.vm.identityImportError).toBe(en.tutorial.identity_import_empty_file);
+        wrapper.unmount();
+    });
+
+    it("normalizes whitespace in base32 before restore", async () => {
+        axiosMock.get.mockImplementation(discoveryApiHandlers({ show_choice: false }));
+        axiosMock.post.mockImplementation((url, body) => {
+            if (url === "/api/v1/identity/restore") {
+                expect(body.base32).toBe("ABCD1234");
+                return Promise.resolve({
+                    data: { identity: { hash: "ws_hash" }, message: "ok" },
+                });
+            }
+            return Promise.resolve({ data: {} });
+        });
+
+        const router = createRouter({
+            history: createWebHashHistory(),
+            routes: [{ path: "/", name: "home", component: { template: "<div/>" } }],
+        });
+        await router.push("/");
+        await router.isReady();
+
+        const wrapper = mount(TutorialModal, {
+            attachTo: document.body,
+            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+        });
+        await wrapper.vm.show();
+        await flushPromises();
+        wrapper.vm.currentStep = 2;
+        wrapper.vm.identityMode = "import";
+        wrapper.vm.identityImportBase32 = "AB CD\n1234";
+        await wrapper.vm.handlePrimaryAction();
+        expect(wrapper.vm.identityImportedHash).toBe("ws_hash");
+        wrapper.unmount();
+    });
+
+    it("finishTutorial warns but continues when default identity delete fails", async () => {
+        axiosMock.get.mockImplementation(discoveryApiHandlers({ show_choice: false }));
+        axiosMock.post.mockImplementation((url) => {
+            if (url === "/api/v1/identities/switch") {
+                return Promise.resolve({ data: { hotswapped: true } });
+            }
+            if (url === "/api/v1/app/tutorial/seen") {
+                return Promise.resolve({ data: {} });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        axiosMock.delete = vi.fn().mockRejectedValue({ response: { data: { message: "delete failed" } } });
+
+        const router = createRouter({
+            history: createWebHashHistory(),
+            routes: [{ path: "/", name: "home", component: { template: "<div/>" } }],
+        });
+        await router.push("/");
+        await router.isReady();
+
+        const wrapper = mount(TutorialModal, {
+            attachTo: document.body,
+            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+        });
+        await wrapper.vm.show();
+        await flushPromises();
+        wrapper.vm.visible = true;
+        wrapper.vm.currentStep = wrapper.vm.totalSteps;
+        wrapper.vm.identityImportedHash = "imported_hash";
+        wrapper.vm.originalIdentityHash = "default_identity";
+        await wrapper.vm.finishTutorial();
+        await flushPromises();
+
+        expect(wrapper.vm.visible).toBe(false);
+        expect(ToastUtils.warning).toHaveBeenCalledWith(en.tutorial.identity_default_delete_failed);
+        expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/app/tutorial/seen");
+        wrapper.unmount();
+    });
+
+    it("finishTutorial is race-safe against double clicks", async () => {
+        axiosMock.get.mockImplementation(discoveryApiHandlers({ show_choice: false }));
+        let switchCalls = 0;
+        axiosMock.post.mockImplementation((url) => {
+            if (url === "/api/v1/identities/switch") {
+                switchCalls += 1;
+                return new Promise((resolve) => {
+                    setTimeout(() => resolve({ data: { hotswapped: true } }), 20);
+                });
+            }
+            if (url === "/api/v1/app/tutorial/seen") {
+                return Promise.resolve({ data: {} });
+            }
+            return Promise.resolve({ data: {} });
+        });
+        axiosMock.delete = vi.fn().mockResolvedValue({ data: {} });
+
+        const router = createRouter({
+            history: createWebHashHistory(),
+            routes: [{ path: "/", name: "home", component: { template: "<div/>" } }],
+        });
+        await router.push("/");
+        await router.isReady();
+
+        const wrapper = mount(TutorialModal, {
+            attachTo: document.body,
+            global: { plugins: [router, vuetify, i18n], stubs: dialogStubs },
+        });
+        await wrapper.vm.show();
+        await flushPromises();
+        wrapper.vm.visible = true;
+        wrapper.vm.currentStep = wrapper.vm.totalSteps;
+        wrapper.vm.identityImportedHash = "imported_hash";
+        wrapper.vm.originalIdentityHash = "default_identity";
+
+        const first = wrapper.vm.finishTutorial();
+        const second = wrapper.vm.finishTutorial();
+        await Promise.all([first, second]);
+        await flushPromises();
+
+        expect(switchCalls).toBe(1);
         wrapper.unmount();
     });
 });

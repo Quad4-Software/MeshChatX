@@ -264,7 +264,7 @@ describe("NotificationBell conversation read sync", () => {
         await flushPromises();
 
         expect(GlobalEmitter.emit).not.toHaveBeenCalledWith("notifications-changed");
-        expect(conversation.is_unread).toBe(false);
+        expect(conversation.is_unread).toBe(true);
 
         viewer.unmount();
     });

@@ -299,10 +299,10 @@ const router = createRouter({
             component: () => import("./components/call/CallPage.vue"),
         },
         {
-            name: "plugin-mesh-observatory",
-            path: "/plugins/com.meshchatx.mesh-observatory",
+            name: "plugin-mcx-bugs",
+            path: "/plugins/com.meshchatx.mcx-bugs",
             component: () => import("./components/plugins/PluginPage.vue"),
-            props: { pluginId: "com.meshchatx.mesh-observatory" },
+            props: { pluginId: "com.meshchatx.mcx-bugs" },
         },
         {
             name: "changelog",
@@ -348,8 +348,15 @@ function markBootSplashError() {
 const networkReady = await waitForNetworkReady({
     onLine: setBootSplashLine,
     onErrorState: markBootSplashError,
+    onDegraded: (error) => {
+        GlobalState.networkDegraded = true;
+        GlobalState.networkDegradedError = error || "Mesh network unavailable";
+    },
 });
 if (networkReady) {
+    if (networkReady === "degraded") {
+        GlobalState.networkDegraded = true;
+    }
     try {
         await fetchCsrfToken(window.api);
     } catch {
@@ -413,6 +420,26 @@ if (networkReady) {
         });
     }
 
+    function removeBootSplash(splash) {
+        if (!splash || !splash.isConnected) {
+            return;
+        }
+        splash.setAttribute("aria-busy", "false");
+        splash.style.transition = "opacity 140ms ease";
+        splash.style.opacity = "0";
+        window.setTimeout(() => {
+            if (splash.isConnected) {
+                splash.remove();
+            }
+        }, 160);
+    }
+
+    function preloadCriticalRouteChunks() {
+        void import("./components/messages/MessagesPage.vue");
+        void import("./components/contacts/ContactsPage.vue");
+        void import("./components/interfaces/InterfacesPage.vue");
+    }
+
     function bootstrap() {
         registerMeshchatServiceWorker();
         const splash = typeof document !== "undefined" ? document.getElementById("meshchatx-boot-splash") : null;
@@ -429,11 +456,22 @@ if (networkReady) {
             }
             return;
         }
-        if (splash) {
-            splash.remove();
-        }
+        // Keep splash until the first painted frame so WebView does not flash white.
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                removeBootSplash(splash);
+            });
+        });
+        preloadCriticalRouteChunks();
         void startCodec2ScriptsBackgroundLoad();
         void loadPluginsIfEnabled();
+        if (GlobalState.networkDegraded) {
+            try {
+                router.replace({ name: "interfaces" });
+            } catch {
+                // Route may not exist yet during early boot; banner still guides the user.
+            }
+        }
     }
 
     async function loadPluginsIfEnabled() {

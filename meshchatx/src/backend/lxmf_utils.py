@@ -7,7 +7,7 @@ import LXMF
 
 from meshchatx.src.backend.telemetry_utils import Telemeter
 
-# MeshChatX app extensions (field 16); not used for LXMF-standard reactions.
+# MeshChatX app extensions (field 16). not used for LXMF-standard reactions.
 LXMF_APP_EXTENSIONS_FIELD = 16
 
 # LXMF reply / reaction field standards (see LXMF.py FIELD_REPLY_* / FIELD_REACTION)
@@ -256,27 +256,34 @@ def _lxmf_sidebar_actor_label(
     )
 
 
+def _row_flag_true(row: dict, *keys) -> bool:
+    for key in keys:
+        value = row.get(key)
+        if value in (1, True, "1"):
+            return True
+    return False
+
+
 def lxmf_sidebar_preview_for_conversation_latest_row(
     row: dict,
     *,
     local_hash: str,
     peer_display_name: str,
 ) -> str:
-    """Single-line preview for conversation list APIs (reactions and some media have empty body)."""
+    """Single-line preview for conversation list APIs (reactions and some media have empty body).
+
+    Conversation list rows may omit full ``fields`` (to avoid loading multi-MB
+    attachment blobs). In that case SQL-derived flags such as ``has_image`` /
+    ``has_reaction`` are used instead.
+    """
     content = row.get("content")
     if content is not None and str(content).strip():
-        return str(content)
-
-    fields_raw = row.get("fields")
-    try:
-        if isinstance(fields_raw, str):
-            fields = json.loads(fields_raw) if fields_raw else {}
-        elif isinstance(fields_raw, dict):
-            fields = fields_raw
-        else:
-            fields = {}
-    except (json.JSONDecodeError, TypeError):
-        fields = {}
+        # List queries may already truncate content. keep previews bounded.
+        text = str(content)
+        stripped = text.strip()
+        if len(stripped) <= 240:
+            return text if len(text) <= 240 else stripped[:237] + "..."
+        return stripped[:237] + "..."
 
     actor = _lxmf_sidebar_actor_label(
         row,
@@ -285,55 +292,88 @@ def lxmf_sidebar_preview_for_conversation_latest_row(
     )
     incoming = bool(row.get("is_incoming"))
 
-    emoji = _reaction_emoji_from_parsed_lxmf_fields(fields)
-    if emoji:
-        return f"{actor} reacted {emoji}"
+    fields_raw = row.get("fields")
+    fields = {}
+    if fields_raw is not None:
+        try:
+            if isinstance(fields_raw, str):
+                # Never json.loads multi-MB attachment blobs for a sidebar line.
+                if len(fields_raw) > 16384:
+                    fields = {}
+                else:
+                    fields = json.loads(fields_raw) if fields_raw else {}
+            elif isinstance(fields_raw, dict):
+                fields = fields_raw
+        except (json.JSONDecodeError, TypeError):
+            fields = {}
 
-    telemetry = fields.get("telemetry")
-    if isinstance(telemetry, dict):
-        loc = telemetry.get("location")
-        if isinstance(loc, dict) and loc:
+    if fields:
+        emoji = _reaction_emoji_from_parsed_lxmf_fields(fields)
+        if emoji:
+            return f"{actor} reacted {emoji}"
+
+        telemetry = fields.get("telemetry")
+        if isinstance(telemetry, dict):
+            loc = telemetry.get("location")
+            if isinstance(loc, dict) and loc:
+                if actor == "You":
+                    return "You shared your location"
+                return f"{actor} shared their location"
+
+        ts = fields.get("telemetry_stream")
+        if isinstance(ts, list) and len(ts) > 0:
+            return f"{actor} sent a telemetry stream"
+
+        if isinstance(telemetry, dict) and len(telemetry) > 0:
+            return f"{actor} sent telemetry"
+
+        commands = fields.get("commands")
+        if isinstance(commands, list):
+            for cmd in commands:
+                if isinstance(cmd, dict) and "0x01" in cmd:
+                    if incoming:
+                        return f"{actor} requested your location"
+                    return f"{actor} sent a location request"
+
+        image = fields.get("image")
+        if isinstance(image, dict) and image:
             if actor == "You":
-                return "You shared your location"
-            return f"{actor} shared their location"
+                return "You sent an image"
+            return f"{actor} sent an image"
 
-    ts = fields.get("telemetry_stream")
-    if isinstance(ts, list) and len(ts) > 0:
-        return f"{actor} sent a telemetry stream"
+        audio = fields.get("audio")
+        if isinstance(audio, dict) and audio:
+            if actor == "You":
+                return "You sent a voice note"
+            return f"{actor} sent a voice note"
 
-    if isinstance(telemetry, dict) and len(telemetry) > 0:
-        return f"{actor} sent telemetry"
+        file_attachments = fields.get("file_attachments")
+        if isinstance(file_attachments, list) and len(file_attachments) > 0:
+            n = len(file_attachments)
+            if n == 1:
+                if actor == "You":
+                    return "You sent a file"
+                return f"{actor} sent a file"
+            if actor == "You":
+                return f"You sent {n} files"
+            return f"{actor} sent {n} files"
 
-    commands = fields.get("commands")
-    if isinstance(commands, list):
-        for cmd in commands:
-            if isinstance(cmd, dict) and "0x01" in cmd:
-                if incoming:
-                    return f"{actor} requested your location"
-                return f"{actor} sent a location request"
-
-    image = fields.get("image")
-    if isinstance(image, dict) and image:
+    if _row_flag_true(row, "has_reaction"):
+        return f"{actor} reacted"
+    if _row_flag_true(row, "has_image"):
         if actor == "You":
             return "You sent an image"
         return f"{actor} sent an image"
-
-    audio = fields.get("audio")
-    if isinstance(audio, dict) and audio:
+    if _row_flag_true(row, "has_audio"):
         if actor == "You":
             return "You sent a voice note"
         return f"{actor} sent a voice note"
-
-    file_attachments = fields.get("file_attachments")
-    if isinstance(file_attachments, list) and len(file_attachments) > 0:
-        n = len(file_attachments)
-        if n == 1:
-            if actor == "You":
-                return "You sent a file"
-            return f"{actor} sent a file"
+    if _row_flag_true(row, "has_files"):
         if actor == "You":
-            return f"You sent {n} files"
-        return f"{actor} sent {n} files"
+            return "You sent a file"
+        return f"{actor} sent a file"
+    if _row_flag_true(row, "has_telemetry"):
+        return f"{actor} sent telemetry"
 
     return str(content or "")
 
@@ -811,7 +851,7 @@ def compute_lxmf_conversation_unread_from_latest_row(row, *, require_user_facing
     """Return whether the conversation row should appear as unread.
 
     Uses ``lxmf_conversation_read_state.last_read_at`` only. The latest message
-    must be incoming; outbound-only threads are not unread (matches
+    must be incoming. outbound-only threads are not unread (matches
     ``filter_unread`` in ``MessageHandler.get_conversations``).
 
     When ``require_user_facing`` is True, the row's latest message must also be
@@ -823,16 +863,32 @@ def compute_lxmf_conversation_unread_from_latest_row(row, *, require_user_facing
 
     if not row.get("is_incoming"):
         return False
-    if require_user_facing and not is_user_facing_lxmf_payload(
-        row.get("fields"),
-        row.get("content"),
-        row.get("title"),
-    ):
-        return False
+    if require_user_facing:
+        if row.get("fields") is not None:
+            if not is_user_facing_lxmf_payload(
+                row.get("fields"),
+                row.get("content"),
+                row.get("title"),
+            ):
+                return False
+        elif _row_flag_true(row, "has_reaction") and not (
+            (row.get("content") and str(row.get("content")).strip())
+            or (row.get("title") and str(row.get("title")).strip())
+            or _row_flag_true(
+                row, "has_image", "has_audio", "has_files", "has_attachments"
+            )
+        ):
+            return False
     last_read_at_raw = row.get("last_read_at")
     if not last_read_at_raw:
         return True
-    last_read_at = datetime.fromisoformat(last_read_at_raw)
+    try:
+        last_read_at = datetime.fromisoformat(str(last_read_at_raw))
+    except (TypeError, ValueError):
+        return True
     if last_read_at.tzinfo is None:
         last_read_at = last_read_at.replace(tzinfo=UTC)
-    return row["timestamp"] > last_read_at.timestamp()
+    try:
+        return float(row["timestamp"]) > last_read_at.timestamp()
+    except (TypeError, ValueError, KeyError):
+        return False

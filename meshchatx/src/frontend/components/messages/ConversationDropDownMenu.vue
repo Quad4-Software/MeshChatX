@@ -20,6 +20,34 @@
                 <MaterialDesignIcon icon-name="notebook-outline" class="size-5" />
                 <span>{{ $t("messages.share_contact") }}</span>
             </DropDownMenuItem>
+            <DropDownMenuItem v-if="isMeshChatXAndroid" @click="onShareApk">
+                <MaterialDesignIcon icon-name="share-variant" class="size-5" />
+                <span>{{ $t("messages.share_apk") }}</span>
+            </DropDownMenuItem>
+            <DropDownMenuItem
+                data-testid="path-finder-quick"
+                :class="{ 'opacity-40 pointer-events-none': pathfinderInProgress }"
+                @click="$emit('path-finder-quick')"
+            >
+                <MaterialDesignIcon icon-name="flash" class="size-5" />
+                <span>{{ $t("nomadnet.path_finder_quick_request") }}</span>
+            </DropDownMenuItem>
+            <DropDownMenuItem
+                data-testid="path-finder-force"
+                :class="{ 'opacity-40 pointer-events-none': pathfinderInProgress }"
+                @click="$emit('path-finder-force')"
+            >
+                <MaterialDesignIcon icon-name="map-marker-radius" class="size-5" />
+                <span>{{ $t("nomadnet.path_finder_force_find") }}</span>
+            </DropDownMenuItem>
+            <DropDownMenuItem
+                data-testid="path-finder-drop"
+                :class="{ 'opacity-40 pointer-events-none': pathfinderInProgress }"
+                @click="$emit('path-finder-drop')"
+            >
+                <MaterialDesignIcon icon-name="reload-alert" class="size-5" />
+                <span>{{ $t("nomadnet.path_finder_drop_and_request") }}</span>
+            </DropDownMenuItem>
             <DropDownMenuItem @click="onPingDestination">
                 <MaterialDesignIcon icon-name="flash" class="size-5" />
                 <span>Ping Destination</span>
@@ -46,16 +74,9 @@
 
             <div class="border-t border-gray-100 dark:border-zinc-800" />
 
-            <!-- set custom display name button -->
             <DropDownMenuItem @click="onSetCustomDisplayName">
                 <MaterialDesignIcon icon-name="account-edit" class="size-5" />
                 <span>Set Custom Display Name</span>
-            </DropDownMenuItem>
-
-            <!-- popout button -->
-            <DropDownMenuItem @click="$emit('popout')">
-                <MaterialDesignIcon icon-name="open-in-new" class="size-5" />
-                <span>{{ $t("messages.pop_out_chat") }}</span>
             </DropDownMenuItem>
 
             <!-- block/unblock button -->
@@ -94,6 +115,9 @@
         <IconButton :title="$t('messages.share_contact')" class="shrink-0" @click="$emit('share-contact')">
             <MaterialDesignIcon icon-name="notebook-outline" class="size-5" />
         </IconButton>
+        <IconButton v-if="isMeshChatXAndroid" :title="$t('messages.share_apk')" class="shrink-0" @click="onShareApk">
+            <MaterialDesignIcon icon-name="share-variant" class="size-5" />
+        </IconButton>
         <IconButton title="Ping Destination" class="shrink-0" @click="onPingDestination">
             <MaterialDesignIcon icon-name="flash" class="size-5" />
         </IconButton>
@@ -115,7 +139,12 @@
         <IconButton :title="$t('messages.custom_display_name')" class="shrink-0" @click="onSetCustomDisplayName">
             <MaterialDesignIcon icon-name="account-edit" class="size-5" />
         </IconButton>
-        <IconButton :title="$t('messages.pop_out_chat')" class="shrink-0" @click="$emit('popout')">
+        <IconButton
+            data-testid="conversation-popout"
+            :title="$t('messages.pop_out_chat')"
+            class="shrink-0"
+            @click="$emit('popout')"
+        >
             <MaterialDesignIcon icon-name="open-in-new" class="size-5" />
         </IconButton>
         <IconButton v-if="!isBlocked" title="Banish User" class="shrink-0" @click="onBlockDestination">
@@ -139,6 +168,7 @@ import DialogUtils from "../../js/DialogUtils";
 import GlobalState from "../../js/GlobalState";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import ToastUtils from "../../js/ToastUtils";
+import AndroidBridge from "../../js/rnode/AndroidBridge.js";
 
 export default {
     name: "ConversationDropDownMenu",
@@ -161,6 +191,10 @@ export default {
             type: Boolean,
             default: true,
         },
+        pathfinderInProgress: {
+            type: Boolean,
+            default: false,
+        },
     },
     emits: [
         "conversation-deleted",
@@ -172,6 +206,9 @@ export default {
         "open-telemetry-history",
         "start-call",
         "share-contact",
+        "path-finder-quick",
+        "path-finder-force",
+        "path-finder-drop",
     ],
     data() {
         return {
@@ -186,6 +223,15 @@ export default {
                 return false;
             }
             return GlobalState.blockedDestinations.some((b) => b.destination_hash === this.peer.destination_hash);
+        },
+        isMeshChatXAndroid() {
+            return (
+                typeof window !== "undefined" &&
+                window.MeshChatXAndroid &&
+                typeof window.MeshChatXAndroid.getPlatform === "function" &&
+                window.MeshChatXAndroid.getPlatform() === "android" &&
+                typeof window.MeshChatXAndroid.shareApk === "function"
+            );
         },
     },
     watch: {
@@ -203,6 +249,12 @@ export default {
         GlobalEmitter.off("contact-updated", this.onContactUpdated);
     },
     methods: {
+        onShareApk() {
+            const bridge = new AndroidBridge();
+            if (!bridge.shareApk()) {
+                ToastUtils.error(this.$t("messages.share_apk_failed"));
+            }
+        },
         onContactUpdated(data) {
             if (this.peer?.destination_hash === data.remote_identity_hash) {
                 this.fetchContact();

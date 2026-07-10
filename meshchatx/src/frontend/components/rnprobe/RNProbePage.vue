@@ -42,7 +42,7 @@
                         </div>
                         <div>
                             <label class="glass-label">{{ $t("rnprobe.number_of_probes") }}</label>
-                            <input v-model="probes" type="number" min="1" max="100" class="input-field" />
+                            <input v-model="probes" type="number" min="1" max="50" class="input-field" />
                         </div>
                         <div>
                             <label class="glass-label">{{ $t("rnprobe.wait_between_probes") }}</label>

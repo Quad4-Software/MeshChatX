@@ -22,9 +22,13 @@ class DatabaseProvider:
         self._local = threading.local()
         self._all_locals.add(self._local)
         self._memory_connection = None
+        # Per-connection default. Worker threads opened via asyncio.to_thread
+        # never see Database._tune_sqlite_pragmas(), so this must be set here.
+        # FILE temp under Landlock often fails with "unable to open database file"
+        # when SQLite spills sort/hash work for large conversation queries.
+        self.prefer_temp_store_file = False
 
-    @staticmethod
-    def _configure_connection(connection):
+    def _configure_connection(self, connection):
         if connection is None:
             return
         try:
@@ -33,6 +37,21 @@ class DatabaseProvider:
             pass
         try:
             connection.execute("PRAGMA journal_mode=WAL")
+        except sqlite3.OperationalError:
+            pass
+        try:
+            if self.prefer_temp_store_file:
+                connection.execute("PRAGMA temp_store=FILE")
+                connection.execute("PRAGMA cache_size=-2000")
+                connection.execute("PRAGMA mmap_size=0")
+            else:
+                connection.execute("PRAGMA temp_store=MEMORY")
+                connection.execute("PRAGMA cache_size=-8000")
+                connection.execute("PRAGMA mmap_size=67108864")
+        except sqlite3.OperationalError:
+            pass
+        try:
+            connection.execute("PRAGMA synchronous=NORMAL")
         except sqlite3.OperationalError:
             pass
 
