@@ -7,5 +7,7 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="meshchat_canvas">#FFF8FAFC</color>
+    <color name="meshchat_canvas_dark">#FF09090B</color>
 </resources>
 
