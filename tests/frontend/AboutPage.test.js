@@ -118,8 +118,9 @@ describe("AboutPage.vue", () => {
         expect(wrapper.text()).toContain("hash2");
 
         expect(wrapper.text()).toContain("about.dependency_chain");
-        expect(wrapper.text()).toContain("about.dep_lxmf_subtitle");
-        expect(wrapper.text()).toContain("about.dep_rns_subtitle");
+        expect(wrapper.text()).toContain("LXMFy");
+        expect(wrapper.text()).toContain("LXMF");
+        expect(wrapper.text()).toContain("RNS");
 
         expect(wrapper.text()).toContain("about.backend_stack");
         expect(wrapper.text()).toContain("aiohttp");
