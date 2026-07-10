@@ -7275,6 +7275,9 @@ class ReticulumMeshChat:
                 max_msg_size=50 * 1024 * 1024,
             )
             await websocket_response.prepare(request)
+            # aiohttp WebSocketResponse does not expose .request; keep it for
+            # session checks on authenticated mutators (nomadnet downloads, etc).
+            websocket_response._meshchatx_request = request
 
             # add client to connected clients list
             self.websocket_clients.append(websocket_response)
@@ -17784,7 +17787,9 @@ class ReticulumMeshChat:
     async def _websocket_session_authorized(self, client) -> bool:
         if not self.auth_enabled:
             return True
-        request = getattr(client, "request", None)
+        request = getattr(client, "_meshchatx_request", None)
+        if request is None:
+            request = getattr(client, "request", None)
         if request is None:
             return False
         try:
