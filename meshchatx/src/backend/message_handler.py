@@ -183,11 +183,11 @@ class MessageHandler:
                 like_term = f"%{search}%"
                 # Search in latest message info OR search across ALL messages for this peer
                 where_clauses.append("""
-                    (m1.title LIKE ? OR m1.content LIKE ? OR m1.peer_hash LIKE ? OR c.display_name LIKE ?
+                    (m1.title LIKE ? OR m1.content LIKE ? OR m1.peer_hash LIKE ? OR c.display_name LIKE ? OR con.name LIKE ?
                      OR m1.peer_hash IN (SELECT peer_hash FROM lxmf_messages WHERE title LIKE ? OR content LIKE ?))
                 """)
                 params.extend(
-                    [like_term, like_term, like_term, like_term, like_term, like_term],
+                    [like_term, like_term, like_term, like_term, like_term, like_term, like_term],
                 )
 
         if where_clauses:
