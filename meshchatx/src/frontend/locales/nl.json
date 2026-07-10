@@ -971,7 +971,11 @@
         "identity_restored": "Identiteit geïmporteerd.",
         "identity_restore_failed": "Identiteitsherstel is mislukt",
         "no_identity_available": "Geen identiteit beschikbaar",
-        "message_count": "{count}-berichten"
+        "message_count": "{count}-berichten",
+        "import_key_only_hint": "This restores the identity key only. Message history and settings require a database backup zip from About.",
+        "switch_after_restore_confirm": "Switch to restored identity \"{name}\" now?",
+        "identity_restore_empty_file": "Identity file is empty.",
+        "identity_restore_file_too_large": "Identity file is too large."
     },
     "about": {
         "title": "Info",
@@ -2013,7 +2017,11 @@
         "disabled": "Uitgeschakeld",
         "forwarding_to": "Doorsturen naar:{hash}",
         "source_filter_display": "Bronfilter:{hash}",
-        "delete_confirm": "Weet u zeker dat u deze regel wilt verwijderen?"
+        "delete_confirm": "Weet u zeker dat u deze regel wilt verwijderen?",
+        "invalid_hash": "Forward-to hash must be a 32-character hex value",
+        "send_failed": "Could not send forwarding update (websocket disconnected)",
+        "rule_added": "Forwarding rule added",
+        "rule_deleted": "Forwarding rule deleted"
     },
     "archives": {
         "description": "Zoek Nomad Network pagina's opgeslagen in uw lokale archief.",
@@ -2144,7 +2152,11 @@
             "failed_drop_paths": "Kan paden niet neerzetten",
             "purge_confirm": "Alle rijen wissen? Dit kan niet ongedaan worden gemaakt.",
             "queues_purged": "Aankondigen wachtrijen gewist",
-            "failed_purge": "Kon wachtrijen niet wissen"
+            "failed_purge": "Kon wachtrijen niet wissen",
+            "path_requested": "Path requested for {hash}...",
+            "drop_confirm": "Are you sure you want to drop the path to {hash}?",
+            "drop_via_confirm": "Drop ALL paths via {hash}?",
+            "invalid_hops": "Hops filter must be a number"
         },
         "rnpath_trace": {
             "title": "RNS-padspoor",
@@ -2171,7 +2183,11 @@
         },
         "propagation_nodes": {
             "title": "Propagatienodes",
-            "description": "Kies voorkeurs-propagatienodes, bekijk live statistieken en voer snelle padcontroles uit."
+            "description": "Kies voorkeurs-propagatienodes, bekijk live statistieken en voer snelle padcontroles uit.",
+            "load_failed": "Failed to load propagation nodes",
+            "local_restarted": "Local propagation node restarted",
+            "local_stopped": "Local propagation node stopped",
+            "local_started": "Local propagation node started"
         },
         "sieve_filters": {
             "title": "Zeeffilters",
@@ -2786,7 +2802,10 @@
         "incoming_announces": "Inkomend bericht",
         "outgoing_announces": "Uitgaande mededelingen",
         "airtime": "Luchttijd",
-        "channel_load": "Kanaal laden"
+        "channel_load": "Kanaal laden",
+        "blackhole_label": "Blackhole: {state}",
+        "blackhole_publishing": "Publishing",
+        "blackhole_inactive": "Inactive"
     },
     "translator": {
         "text_translation": "Tekstvertaling",
@@ -3187,7 +3206,14 @@
         "propagation_manual_desc": "U kunt een propagatieknooppunt later handmatig instellen in de instellingen, of het leeg laten als u er geen wilt gebruiken.",
         "propagation_enable_auto": "Auto-configuratie inschakelen",
         "propagation_skip_auto": "Handmatig instellen / overslaan",
-        "auto_propagation_enabled": "Auto-propagatie ingeschakeld"
+        "auto_propagation_enabled": "Auto-propagatie ingeschakeld",
+        "identity_import_empty_file": "Identity file is empty.",
+        "identity_import_file_too_large": "Identity file is too large.",
+        "identity_import_key_only_hint": "This imports your identity key only. To restore messages and settings, use About → Restore from File with a database backup zip.",
+        "identity_file_overrides_base32": "A selected file will be used instead of the pasted base32 key.",
+        "identity_import_pending_activate": "You imported an identity but have not activated it yet. Activate it now?",
+        "identity_import_pending_kept": "Imported identity was saved but not activated. Switch to it later from Identities.",
+        "identity_default_delete_failed": "Imported identity is active, but the default identity could not be removed."
     },
     "command_palette": {
         "search_placeholder": "Zoekopdrachten, routes of collega's",

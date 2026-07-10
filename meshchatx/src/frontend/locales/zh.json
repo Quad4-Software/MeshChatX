@@ -971,7 +971,11 @@
         "identity_restored": "身份已恢复。",
         "identity_restore_failed": "身份恢复失败",
         "no_identity_available": "无可用身份",
-        "message_count": "{count} 条消息"
+        "message_count": "{count} 条消息",
+        "import_key_only_hint": "This restores the identity key only. Message history and settings require a database backup zip from About.",
+        "switch_after_restore_confirm": "Switch to restored identity \"{name}\" now?",
+        "identity_restore_empty_file": "Identity file is empty.",
+        "identity_restore_file_too_large": "Identity file is too large."
     },
     "about": {
         "title": "关于",
@@ -2013,7 +2017,11 @@
         "disabled": "已禁用",
         "forwarding_to": "转发至:{hash}",
         "source_filter_display": "源过滤器:{hash}",
-        "delete_confirm": "您确定要删除此规则吗 ?"
+        "delete_confirm": "您确定要删除此规则吗 ?",
+        "invalid_hash": "Forward-to hash must be a 32-character hex value",
+        "send_failed": "Could not send forwarding update (websocket disconnected)",
+        "rule_added": "Forwarding rule added",
+        "rule_deleted": "Forwarding rule deleted"
     },
     "archives": {
         "description": "搜索游牧网络页面存储在您的本地档案中 。",
@@ -2144,7 +2152,11 @@
             "failed_drop_paths": "丢弃路径失败",
             "purge_confirm": "清除全部宣布队列吗 ? 这一点是无法消除的。",
             "queues_purged": "宣布队列已清除",
-            "failed_purge": "清除队列失败"
+            "failed_purge": "清除队列失败",
+            "path_requested": "Path requested for {hash}...",
+            "drop_confirm": "Are you sure you want to drop the path to {hash}?",
+            "drop_via_confirm": "Drop ALL paths via {hash}?",
+            "invalid_hops": "Hops filter must be a number"
         },
         "rnpath_trace": {
             "title": "RNS 路径",
@@ -2171,7 +2183,11 @@
         },
         "propagation_nodes": {
             "title": "传播节点",
-            "description": "选择偏好的传播节点，查看实时统计数据并快速检查路径。"
+            "description": "选择偏好的传播节点，查看实时统计数据并快速检查路径。",
+            "load_failed": "Failed to load propagation nodes",
+            "local_restarted": "Local propagation node restarted",
+            "local_stopped": "Local propagation node stopped",
+            "local_started": "Local propagation node started"
         },
         "sieve_filters": {
             "title": "筛选规则",
@@ -2786,7 +2802,10 @@
         "incoming_announces": "入站广播",
         "outgoing_announces": "出站广播",
         "airtime": "占用时长",
-        "channel_load": "信道负载"
+        "channel_load": "信道负载",
+        "blackhole_label": "Blackhole: {state}",
+        "blackhole_publishing": "Publishing",
+        "blackhole_inactive": "Inactive"
     },
     "translator": {
         "text_translation": "文本翻译",
@@ -3187,7 +3206,14 @@
         "propagation_manual_desc": "您可以稍后在设置中手动配置传播节点，如果不需要也可以留空。",
         "propagation_enable_auto": "启用自动配置",
         "propagation_skip_auto": "手动配置/跳过",
-        "auto_propagation_enabled": "已启用自动传播"
+        "auto_propagation_enabled": "已启用自动传播",
+        "identity_import_empty_file": "Identity file is empty.",
+        "identity_import_file_too_large": "Identity file is too large.",
+        "identity_import_key_only_hint": "This imports your identity key only. To restore messages and settings, use About → Restore from File with a database backup zip.",
+        "identity_file_overrides_base32": "A selected file will be used instead of the pasted base32 key.",
+        "identity_import_pending_activate": "You imported an identity but have not activated it yet. Activate it now?",
+        "identity_import_pending_kept": "Imported identity was saved but not activated. Switch to it later from Identities.",
+        "identity_default_delete_failed": "Imported identity is active, but the default identity could not be removed."
     },
     "command_palette": {
         "search_placeholder": "搜索命令、路径或端点",
