@@ -48,6 +48,7 @@
             @delete-folder="onDeleteFolder"
             @move-to-folder="onMoveToFolder"
             @bulk-mark-as-read="onBulkMarkAsRead"
+            @mark-all-as-read="onMarkAllAsRead"
             @bulk-delete="onBulkDelete"
             @export-folders="onExportFolders"
             @import-folders="onImportFolders"
@@ -1063,6 +1064,18 @@ export default {
                 GlobalEmitter.emit("notifications-changed");
                 await this.getConversations();
                 ToastUtils.success(this.$t("messages.marked_read"));
+            } catch {
+                ToastUtils.error(this.$t("messages.failed_mark_read"));
+            }
+        },
+        async onMarkAllAsRead() {
+            try {
+                await window.api.post("/api/v1/lxmf/conversations/bulk-mark-as-read", {
+                    mark_all: true,
+                });
+                GlobalEmitter.emit("notifications-changed");
+                await this.getConversations();
+                ToastUtils.success(this.$t("messages.marked_all_read"));
             } catch {
                 ToastUtils.error(this.$t("messages.failed_mark_read"));
             }

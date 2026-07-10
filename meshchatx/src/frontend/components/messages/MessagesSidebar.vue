@@ -538,7 +538,11 @@
                         >
                             <ContextMenuItem @click="bulkMarkAsRead">
                                 <MaterialDesignIcon icon-name="email-open-outline" class="size-4 text-gray-400" />
-                                Mark as Read
+                                {{ $t("messages.mark_as_read") }}
+                            </ContextMenuItem>
+                            <ContextMenuItem @click="markAllAsRead">
+                                <MaterialDesignIcon icon-name="email-check-outline" class="size-4 text-gray-400" />
+                                {{ $t("messages.mark_all_as_read") }}
                             </ContextMenuItem>
                             <ContextMenuItem v-if="contextMenu.targetHash" @click="togglePinFromContextMenu">
                                 <MaterialDesignIcon
@@ -918,6 +922,7 @@ export default {
         "delete-folder",
         "move-to-folder",
         "bulk-mark-as-read",
+        "mark-all-as-read",
         "bulk-delete",
         "export-folders",
         "import-folders",
@@ -1311,6 +1316,12 @@ export default {
             this.moveMenu.show = false;
             this.folderMenu.show = false;
             if (this.selectionMode) this.toggleSelectionMode();
+        },
+        markAllAsRead() {
+            this.$emit("mark-all-as-read");
+            this.contextMenu.show = false;
+            this.moveMenu.show = false;
+            this.folderMenu.show = false;
         },
         bulkDelete() {
             const hashes = this.selectionMode ? Array.from(this.selectedHashes) : [this.contextMenu.targetHash];

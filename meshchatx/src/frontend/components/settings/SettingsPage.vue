@@ -5074,8 +5074,7 @@ export default {
         async exportMessages() {
             try {
                 const response = await window.api.get("/api/v1/maintenance/messages/export");
-                const messages = response.data.messages;
-                const dataStr = JSON.stringify({ messages }, null, 2);
+                const dataStr = JSON.stringify(response.data, null, 2);
                 const blob = new Blob([dataStr], { type: "application/json" });
                 const exportFileDefaultName = `meshchat_messages_${new Date().toISOString().slice(0, 10)}.json`;
                 await DownloadUtils.downloadFile(exportFileDefaultName, blob);

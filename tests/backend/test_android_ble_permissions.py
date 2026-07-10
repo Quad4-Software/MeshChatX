@@ -36,5 +36,7 @@ def test_android_optional_import_typings_exist_for_basedpyright():
         TYPINGS / "able" / "__init__.pyi",
         TYPINGS / "jnius" / "__init__.pyi",
     )
-    missing = [str(path.relative_to(REPO_ROOT)) for path in required if not path.is_file()]
+    missing = [
+        str(path.relative_to(REPO_ROOT)) for path in required if not path.is_file()
+    ]
     assert missing == []

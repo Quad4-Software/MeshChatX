@@ -191,6 +191,11 @@ class AnnounceDAO:
             (destination_hash,),
         )
 
+    def get_all_custom_display_names(self):
+        return self.provider.fetchall(
+            "SELECT destination_hash, display_name FROM custom_destination_display_names",
+        )
+
     # Favourites
     def upsert_favourite(self, destination_hash, display_name, aspect):
         from meshchatx.src.backend.favourite_display_names import (
