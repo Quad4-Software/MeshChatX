@@ -87,8 +87,6 @@ Optional **Sideband-compatible** plugins load flat `*.py` files from a configure
 
 Sign packages with `scripts/sign-plugin.py` (`sign|verify` for `-dir|-zip|-wasm|-py`) using a Reticulum identity (`rnid` or in-process `RNS.Identity`). MeshChatX plugin signing uses signature file `meshchatx.plugin.rsg` and WASM custom sections `meshchatx.plugin` / `meshchatx.files` / `meshchatx.signature`.
 
-Plugins that need a generic Reticulum Link transport (for example a microReticulum node management UI) can request `rnsLink.*` manager capabilities and the `rns.link.event` hook. External web apps can use the same transport over `/ws` without installing a plugin. See **RNS Link API**.
-
 Disable packaged plugins at startup with `--disable-plugins` if you need a minimal surface.
 
 ## Command palette
@@ -112,4 +110,5 @@ Want offline Python packages     Repository server
 
 - **Reticulum interfaces** for transport setup
 - **LXMF messaging** and **Nomad Network** for feature-specific workflows
+- [Plugins](plugins.md) for extending MeshChatX functionality
 - **Documentation** for offline manuals
