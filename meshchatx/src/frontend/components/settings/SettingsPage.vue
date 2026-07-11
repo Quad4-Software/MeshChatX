@@ -1392,6 +1392,22 @@
                                     </span>
                                 </label>
 
+                                <label v-if="config.rrc_enabled" class="setting-toggle">
+                                    <Toggle
+                                        id="rrc-unread-badges"
+                                        v-model="config.rrc_unread_badges_enabled"
+                                        @update:model-value="onRrcUnreadBadgesEnabledChange"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{
+                                            $t("app.rrc_unread_badges_enabled")
+                                        }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("app.rrc_unread_badges_enabled_description")
+                                        }}</span>
+                                    </span>
+                                </label>
+
                                 <div class="pt-1">
                                     <button
                                         type="button"
@@ -3361,6 +3377,7 @@ export default {
                 messages_multi_pane_enabled: true,
                 nomad_tabs_enabled: true,
                 rrc_enabled: true,
+                rrc_unread_badges_enabled: true,
                 message_icon_size: 28,
                 ui_transparency: 0,
                 ui_glass_enabled: true,
@@ -4273,6 +4290,14 @@ export default {
                     rrc_enabled: this.config.rrc_enabled,
                 },
                 "rrc_enabled"
+            );
+        },
+        async onRrcUnreadBadgesEnabledChange() {
+            await this.updateConfig(
+                {
+                    rrc_unread_badges_enabled: this.config.rrc_unread_badges_enabled,
+                },
+                "rrc_unread_badges_enabled"
             );
         },
         async resetAppearanceDefaults() {

@@ -96,7 +96,7 @@
                                 :class="statusIconColor(hub.status)"
                             />
                             <span
-                                v-if="hubTotalUnread(hub) > 0"
+                                v-if="showUnreadBadges && hubTotalUnread(hub) > 0"
                                 class="absolute -top-0.5 -right-0.5 min-w-[14px] rounded-full bg-red-500 px-0.5 text-[9px] font-bold leading-tight text-white"
                             >
                                 {{ formatUnreadBadge(hubTotalUnread(hub)) }}
@@ -154,7 +154,7 @@
                                     </div>
                                 </div>
                                 <span
-                                    v-if="hubTotalUnread(hub) > 0"
+                                    v-if="showUnreadBadges && hubTotalUnread(hub) > 0"
                                     class="shrink-0 min-w-[1.25rem] rounded-full bg-red-500 px-1.5 py-0.5 text-center text-xs font-bold text-white"
                                 >
                                     {{ formatUnreadBadge(hubTotalUnread(hub)) }}
@@ -165,6 +165,15 @@
                                 v-show="isExpanded(hub.hub_hash)"
                                 class="border-t border-sem-border/50 px-2 py-2 space-y-2"
                             >
+                                <button
+                                    type="button"
+                                    class="flex w-full items-center gap-1.5 px-1 font-mono text-xs text-sem-fg-muted hover:text-sem-accent"
+                                    :title="$t('relay_chat.copy_hash')"
+                                    @click.stop="copyHash(hub.hub_hash)"
+                                >
+                                    <MaterialDesignIcon icon-name="content-copy" class="size-3.5 shrink-0" />
+                                    <span class="truncate">{{ formatHash(hub.hub_hash) }}</span>
+                                </button>
                                 <div class="flex items-center gap-1.5">
                                     <button
                                         v-if="!hub.connected"
@@ -229,7 +238,7 @@
                                             <span class="truncate">{{ roomName }}</span>
                                         </span>
                                         <span
-                                            v-if="roomUnreadCount(hub, roomName) > 0"
+                                            v-if="showUnreadBadges && roomUnreadCount(hub, roomName) > 0"
                                             class="shrink-0 min-w-[1.125rem] rounded-full bg-red-500 px-1 text-center text-[10px] font-bold leading-4 text-white"
                                         >
                                             {{ formatUnreadBadge(roomUnreadCount(hub, roomName)) }}
@@ -781,6 +790,33 @@
                                 </div>
                                 <div class="flex shrink-0 items-center gap-1.5">
                                     <button
+                                        v-if="!isHubAdded(hub.dest_hash)"
+                                        type="button"
+                                        :class="btnIcon"
+                                        :title="$t('relay_chat.host_join_as_client')"
+                                        :disabled="!hub.running || !hub.dest_hash"
+                                        @click="joinHostedAsClient(hub)"
+                                    >
+                                        <MaterialDesignIcon icon-name="login" class="size-4" />
+                                    </button>
+                                    <button
+                                        v-else
+                                        type="button"
+                                        :class="btnIcon"
+                                        :title="$t('relay_chat.host_leave_as_client')"
+                                        @click="leaveHostedAsClient(hub)"
+                                    >
+                                        <MaterialDesignIcon icon-name="logout" class="size-4" />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        :class="btnIcon"
+                                        :title="$t('relay_chat.share_hub')"
+                                        @click="shareHubLink({ hub_hash: hub.dest_hash, name: hub.name })"
+                                    >
+                                        <MaterialDesignIcon icon-name="share-variant" class="size-4" />
+                                    </button>
+                                    <button
                                         v-if="!hub.running"
                                         type="button"
                                         :class="[btnSecondary, '!px-2.5 !py-1.5 !text-xs']"
@@ -1046,16 +1082,32 @@
                                 class="input-field"
                             />
                         </div>
-                        <div class="space-y-1.5">
-                            <label class="block text-sm font-semibold text-sem-fg-secondary">{{
-                                $t("relay_chat.dest_name")
-                            }}</label>
-                            <input
-                                v-model="addHubForm.dest_name"
-                                type="text"
-                                placeholder="rrc.hub"
-                                class="input-field font-mono"
-                            />
+                        <div class="rounded-lg border border-sem-border/70">
+                            <button
+                                type="button"
+                                class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-sem-fg-secondary transition-colors hover:bg-sem-surface/40"
+                                @click="addHubAdvancedOpen = !addHubAdvancedOpen"
+                            >
+                                <MaterialDesignIcon
+                                    :icon-name="addHubAdvancedOpen ? 'chevron-down' : 'chevron-right'"
+                                    class="size-4 shrink-0"
+                                />
+                                {{ $t("relay_chat.advanced") }}
+                            </button>
+                            <div
+                                v-show="addHubAdvancedOpen"
+                                class="space-y-1.5 border-t border-sem-border/70 px-3 py-3"
+                            >
+                                <label class="block text-sm font-semibold text-sem-fg-secondary">{{
+                                    $t("relay_chat.dest_name")
+                                }}</label>
+                                <input
+                                    v-model="addHubForm.dest_name"
+                                    type="text"
+                                    placeholder="rrc.hub"
+                                    class="input-field font-mono"
+                                />
+                            </div>
                         </div>
                         <div class="flex justify-end gap-2 pt-1">
                             <button type="button" :class="btnSecondary" @click="showAddHub = false">
@@ -1198,6 +1250,12 @@
                     >
                         {{ $t("relay_chat.ctx_disconnect_hub") }}
                     </ContextMenuItem>
+                    <ContextMenuItem @click="copyHubAddressFromMenu">
+                        {{ $t("relay_chat.ctx_copy_hub_address") }}
+                    </ContextMenuItem>
+                    <ContextMenuItem @click="shareHubFromMenu">
+                        {{ sidebarMenu.room ? $t("relay_chat.ctx_share_room") : $t("relay_chat.ctx_share_hub") }}
+                    </ContextMenuItem>
                     <ContextMenuItem @click="openSettingsFromMenu">
                         {{ $t("relay_chat.ctx_hub_settings") }}
                     </ContextMenuItem>
@@ -1266,6 +1324,7 @@ import { MIN_VIRTUAL_RELAY_ENTRIES } from "./relayMessageListVirtual.js";
 import { loadRelayLayout, saveRelayLayout } from "../../js/relayLayoutStore.js";
 import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed } from "../../js/browserLayoutStore.js";
 import { RELAY_HOST_MODAL_OVERLAY, RELAY_HOST_MODAL_PANEL_COMPACT } from "../../js/relayHostModalClasses.js";
+import { buildRelayShareMessage } from "../../js/relayLinkUtils.js";
 import {
     ANNOUNCE_SLIDER_POS_MAX,
     announceMinutesToSliderPos,
@@ -1420,6 +1479,7 @@ export default {
             sending: false,
             joinRoomName: "",
             showAddHub: false,
+            addHubAdvancedOpen: false,
             addHubForm: {
                 hub_hash: "",
                 name: "",
@@ -1448,6 +1508,9 @@ export default {
     computed: {
         rrcEnabled() {
             return GlobalState.config?.rrc_enabled !== false;
+        },
+        showUnreadBadges() {
+            return GlobalState.config?.rrc_unread_badges_enabled !== false;
         },
         isPopoutMode() {
             return Boolean(this.$route?.meta?.isPopout);
@@ -2047,6 +2110,27 @@ export default {
                 this.openSettings(hub);
             }
         },
+        copyHubAddressFromMenu() {
+            const hub = this.sidebarMenu.hub;
+            this.closeSidebarMenu();
+            if (hub?.hub_hash) {
+                this.copyHash(hub.hub_hash);
+            }
+        },
+        shareHubFromMenu() {
+            const hub = this.sidebarMenu.hub;
+            const room = this.sidebarMenu.room;
+            this.closeSidebarMenu();
+            if (!hub) {
+                return;
+            }
+            this.shareHubLink({
+                hub_hash: hub.hub_hash,
+                name: this.hubDisplayName(hub),
+                room: room || "",
+                aspect: hub.dest_name || "",
+            });
+        },
         async leaveRoomFromMenu() {
             const hub = this.sidebarMenu.hub;
             const room = this.sidebarMenu.room;
@@ -2580,6 +2664,7 @@ export default {
         },
         openAddHub() {
             this.addHubForm = { hub_hash: "", name: "", dest_name: "" };
+            this.addHubAdvancedOpen = false;
             this.showAddHub = true;
         },
         async addHub() {
@@ -2898,6 +2983,60 @@ export default {
             } catch {
                 // clipboard may be unavailable
             }
+        },
+        async shareHubLink({ hub_hash, name = "", room = "", aspect = "" } = {}) {
+            const text = buildRelayShareMessage({
+                hub: hub_hash,
+                name,
+                room,
+                aspect,
+            });
+            if (!text) {
+                ToastUtils.error(this.$t("relay_chat.action_failed"));
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(text);
+                ToastUtils.success(this.$t("relay_chat.share_copied"));
+            } catch {
+                ToastUtils.error(this.$t("relay_chat.action_failed"));
+            }
+        },
+        async joinHostedAsClient(hub) {
+            if (!hub?.dest_hash) {
+                return;
+            }
+            try {
+                const response = await window.api.post("/api/v1/rrc/hubs", {
+                    hub_hash: hub.dest_hash,
+                    name: hub.name || undefined,
+                    dest_name: "rrc.hub",
+                    connect: true,
+                });
+                ToastUtils.success(this.$t("relay_chat.host_joined_as_client"));
+                await this.fetchHubs();
+                const added = response.data?.hub;
+                if (added) {
+                    this.selectedHubHash = added.hub_hash;
+                    this.expandedHubs[added.hub_hash] = true;
+                } else {
+                    this.selectedHubHash = hub.dest_hash;
+                    this.expandedHubs[hub.dest_hash] = true;
+                }
+                this.view = "chat";
+            } catch (e) {
+                ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.action_failed"));
+            }
+        },
+        async leaveHostedAsClient(hub) {
+            if (!hub?.dest_hash) {
+                return;
+            }
+            const clientHub = this.hubs.find((h) => h.hub_hash === hub.dest_hash);
+            if (!clientHub) {
+                return;
+            }
+            await this.removeHub(clientHub);
         },
         onWebsocketMessage(message) {
             let json;

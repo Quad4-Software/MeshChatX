@@ -30,12 +30,12 @@
             >
                 <span class="min-w-0 flex-1 truncate text-left">{{ tabTitle(tab) }}</span>
                 <span
-                    class="shrink-0 rounded p-0.5 text-sem-fg-muted hover:bg-sem-surface hover:text-sem-fg"
+                    class="shrink-0 rounded p-0.5 text-sem-fg-muted opacity-0 transition-opacity hover:bg-sem-surface hover:text-sem-fg group-hover:opacity-100 group-focus-within:opacity-100"
                     :title="$t('common.cancel')"
                     draggable="false"
                     @click.stop="closeTab(tab.id)"
                 >
-                    <MaterialDesignIcon icon-name="close" class="size-3.5" />
+                    <MaterialDesignIcon icon-name="close" class="size-4" />
                 </span>
             </button>
             <button

@@ -22,9 +22,6 @@ vi.mock("../../meshchatx/src/frontend/js/Utils", () => ({
 
 import Utils from "../../meshchatx/src/frontend/js/Utils";
 
-const MaterialDesignIcon = { template: '<div class="mdi"></div>', props: ["iconName"] };
-const LxmfUserIcon = { template: '<div class="lxmf-icon"></div>' };
-
 function defaultProps(overrides = {}) {
     return {
         peers: {},
@@ -36,6 +33,7 @@ function defaultProps(overrides = {}) {
         isLoadingMore: false,
         hasMoreConversations: false,
         isLoadingMoreAnnounces: false,
+        isSearchingAnnounces: false,
         hasMoreAnnounces: false,
         totalPeersCount: 0,
         ...overrides,
@@ -46,9 +44,15 @@ function mountSidebar(props = {}, options = {}) {
     return mount(MessagesSidebar, {
         props: defaultProps(props),
         global: {
-            components: { MaterialDesignIcon, LxmfUserIcon },
             mocks: { $t: (key) => key },
             directives: { "click-outside": { mounted: () => {}, unmounted: () => {} } },
+            stubs: {
+                MaterialDesignIcon: {
+                    template: '<div class="mdi" :data-icon-name="iconName"></div>',
+                    props: ["iconName"],
+                },
+                LxmfUserIcon: { template: '<div class="lxmf-icon"></div>' },
+            },
         },
         ...options,
     });
@@ -235,5 +239,56 @@ describe("MessagesSidebar UI", () => {
         expect(clearIntervalSpy).toHaveBeenCalledWith(999);
         setIntervalSpy.mockRestore();
         clearIntervalSpy.mockRestore();
+    });
+
+    async function openAnnouncesTab(wrapper) {
+        const tabs = wrapper.findAll("div.flex.w-full.cursor-pointer.border-b-2");
+        await tabs[1].trigger("click");
+        await wrapper.vm.$nextTick();
+    }
+
+    it("shows a spinner next to the search input while an announce search is in progress", async () => {
+        const wrapper = mountSidebar({ isSearchingAnnounces: true });
+        await openAnnouncesTab(wrapper);
+
+        const spinner = wrapper.find('[data-icon-name="loading"]');
+        expect(spinner.exists()).toBe(true);
+    });
+
+    it("does not show a search spinner when isSearchingAnnounces is false", async () => {
+        const wrapper = mountSidebar({ isSearchingAnnounces: false });
+        await openAnnouncesTab(wrapper);
+
+        const spinner = wrapper.find('[data-icon-name="loading"]');
+        expect(spinner.exists()).toBe(false);
+    });
+
+    it("shows a searching placeholder instead of the empty state while search results are still loading", async () => {
+        const wrapper = mountSidebar({
+            peers: {},
+            totalPeersCount: 0,
+            peersSearchTerm: "nonexistent",
+            isSearchingAnnounces: true,
+        });
+        await openAnnouncesTab(wrapper);
+
+        expect(wrapper.text()).toContain("messages.searching_announces");
+        expect(wrapper.text()).not.toContain("messages.no_peers_discovered");
+        expect(wrapper.text()).not.toContain("messages.no_search_results_peers");
+    });
+
+    it("shows the no-results-for-search message once a search finishes with no matches", async () => {
+        const wrapper = mountSidebar({
+            peers: {},
+            totalPeersCount: 0,
+            peersSearchTerm: "nonexistent",
+            isSearchingAnnounces: false,
+        });
+        await openAnnouncesTab(wrapper);
+
+        expect(wrapper.text()).toContain("messages.no_search_results");
+        expect(wrapper.text()).toContain("messages.no_search_results_peers");
+        expect(wrapper.text()).not.toContain("messages.searching_announces");
+        expect(wrapper.text()).not.toContain("messages.no_peers_discovered");
     });
 });

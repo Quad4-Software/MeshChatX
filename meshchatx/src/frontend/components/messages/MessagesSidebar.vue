@@ -678,13 +678,23 @@
             >
                 <!-- search -->
                 <div class="p-1 border-b border-gray-200 dark:border-zinc-800">
-                    <input
-                        :value="peersSearchTerm"
-                        type="text"
-                        :placeholder="$t('messages.search_placeholder_announces', { count: totalPeersCount })"
-                        class="input-field"
-                        @input="onPeersSearchInput"
-                    />
+                    <div class="relative">
+                        <input
+                            :value="peersSearchTerm"
+                            type="text"
+                            :placeholder="$t('messages.search_placeholder_announces', { count: totalPeersCount })"
+                            class="input-field w-full"
+                            :class="{ 'pr-7': isSearchingAnnounces }"
+                            @input="onPeersSearchInput"
+                        />
+                        <span
+                            v-if="isSearchingAnnounces"
+                            class="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400"
+                            :title="$t('messages.searching_announces')"
+                        >
+                            <MaterialDesignIcon icon-name="loading" class="size-4 animate-spin" />
+                        </span>
+                    </div>
                 </div>
 
                 <!-- peers -->
@@ -774,26 +784,33 @@
                             <MaterialDesignIcon icon-name="loading" class="size-6 animate-spin text-gray-400" />
                         </div>
                     </div>
-                    <div v-else class="mx-auto my-auto text-center leading-5">
-                        <!-- no peers at all -->
-                        <div v-if="peersCount === 0" class="flex flex-col text-gray-900 dark:text-gray-100">
+                    <div
+                        v-else-if="isSearchingAnnounces && peersSearchTerm.trim() !== ''"
+                        class="mx-auto my-auto text-center leading-5"
+                    >
+                        <div class="flex flex-col text-gray-900 dark:text-gray-100">
                             <div class="mx-auto mb-1 text-gray-500">
-                                <MaterialDesignIcon icon-name="account-search-outline" class="size-6" />
+                                <MaterialDesignIcon icon-name="loading" class="size-6 animate-spin" />
                             </div>
-                            <div class="font-semibold">{{ $t("messages.no_peers_discovered") }}</div>
-                            <div>{{ $t("messages.waiting_for_announce") }}</div>
+                            <div class="font-semibold">{{ $t("messages.searching_announces") }}</div>
                         </div>
-
-                        <!-- is searching, but no results -->
-                        <div
-                            v-if="peersSearchTerm !== '' && peersCount > 0"
-                            class="flex flex-col text-gray-900 dark:text-gray-100"
-                        >
+                    </div>
+                    <div v-else-if="peersSearchTerm.trim() !== ''" class="mx-auto my-auto text-center leading-5">
+                        <div class="flex flex-col text-gray-900 dark:text-gray-100">
                             <div class="mx-auto mb-1 text-gray-500">
                                 <MaterialDesignIcon icon-name="account-off-outline" class="size-6" />
                             </div>
                             <div class="font-semibold">{{ $t("messages.no_search_results") }}</div>
                             <div>{{ $t("messages.no_search_results_peers") }}</div>
+                        </div>
+                    </div>
+                    <div v-else class="mx-auto my-auto text-center leading-5">
+                        <div class="flex flex-col text-gray-900 dark:text-gray-100">
+                            <div class="mx-auto mb-1 text-gray-500">
+                                <MaterialDesignIcon icon-name="account-search-outline" class="size-6" />
+                            </div>
+                            <div class="font-semibold">{{ $t("messages.no_peers_discovered") }}</div>
+                            <div>{{ $t("messages.waiting_for_announce") }}</div>
                         </div>
                     </div>
                 </div>
@@ -877,6 +894,10 @@ export default {
             default: false,
         },
         isLoadingMoreAnnounces: {
+            type: Boolean,
+            default: false,
+        },
+        isSearchingAnnounces: {
             type: Boolean,
             default: false,
         },

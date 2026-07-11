@@ -571,6 +571,33 @@ describe("RelayChatPage.vue", () => {
         );
     });
 
+    it("joins a hosted hub as a client from the host card action", async () => {
+        axiosMock.post.mockResolvedValue({
+            data: { hub: makeHub({ hub_hash: "aabbccddeeff00112233445566778899" }) },
+        });
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.serverHubs.length).toBe(1));
+        const hosted = wrapper.vm.serverHubs[0];
+        await wrapper.vm.joinHostedAsClient(hosted);
+        expect(axiosMock.post).toHaveBeenCalledWith(
+            "/api/v1/rrc/hubs",
+            expect.objectContaining({
+                hub_hash: hosted.dest_hash,
+                connect: true,
+            })
+        );
+        expect(wrapper.vm.view).toBe("chat");
+        expect(wrapper.vm.selectedHubHash).toBe(hosted.dest_hash);
+    });
+
+    it("keeps destination aspect collapsed in the add-hub dialog by default", async () => {
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+        wrapper.vm.openAddHub();
+        expect(wrapper.vm.showAddHub).toBe(true);
+        expect(wrapper.vm.addHubAdvancedOpen).toBe(false);
+    });
+
     it("loads hosted hub members when opening the moderation page", async () => {
         const wrapper = mountPage();
         await vi.waitFor(() => expect(wrapper.vm.serverHubs.length).toBe(1));
