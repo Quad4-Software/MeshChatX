@@ -40,6 +40,7 @@ const globalState = reactive({
         messages_multi_pane_enabled: true,
         nomad_tabs_enabled: true,
         rrc_enabled: true,
+        rrc_unread_badges_enabled: true,
     },
 });
 

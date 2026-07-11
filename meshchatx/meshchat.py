@@ -17500,6 +17500,10 @@ class ReticulumMeshChat:
             )
         if "rrc_enabled" in data:
             self.config.rrc_enabled.set(self._parse_bool(data["rrc_enabled"]))
+        if "rrc_unread_badges_enabled" in data:
+            self.config.rrc_unread_badges_enabled.set(
+                self._parse_bool(data["rrc_unread_badges_enabled"]),
+            )
 
         if "message_outbound_bubble_color" in data:
             self.config.message_outbound_bubble_color.set(
@@ -19369,6 +19373,7 @@ class ReticulumMeshChat:
             "messages_multi_pane_enabled": ctx.config.messages_multi_pane_enabled.get(),
             "nomad_tabs_enabled": ctx.config.nomad_tabs_enabled.get(),
             "rrc_enabled": ctx.config.rrc_enabled.get(),
+            "rrc_unread_badges_enabled": ctx.config.rrc_unread_badges_enabled.get(),
             "message_icon_size": ctx.config.message_icon_size.get(),
             "ui_transparency": ctx.config.ui_transparency.get(),
             "ui_glass_enabled": ctx.config.ui_glass_enabled.get(),

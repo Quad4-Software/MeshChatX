@@ -121,6 +121,82 @@ describe("MessagesPage.vue", () => {
         vi.useRealTimers();
     });
 
+    it("tracks isSearchingAnnounces while the debounce and request are pending, clearing it once resolved", async () => {
+        vi.useFakeTimers();
+        axiosMock.isCancel = vi.fn(() => false);
+
+        let resolveAnnounces;
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/config")
+                return Promise.resolve({ data: { config: { lxmf_address_hash: "my-hash" } } });
+            if (url === "/api/v1/lxmf/conversations") return Promise.resolve({ data: { conversations: [] } });
+            if (url === "/api/v1/announces") {
+                return new Promise((resolve) => {
+                    resolveAnnounces = resolve;
+                });
+            }
+            return Promise.resolve({ data: {} });
+        });
+
+        const wrapper = mountMessagesPage();
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.isSearchingAnnounces).toBe(false);
+
+        wrapper.vm.onPeersSearchChanged("peerq");
+        expect(wrapper.vm.isSearchingAnnounces).toBe(true);
+
+        await vi.advanceTimersByTimeAsync(500);
+        expect(wrapper.vm.isSearchingAnnounces).toBe(true);
+
+        resolveAnnounces({ data: { announces: [], total_count: 0 } });
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.isSearchingAnnounces).toBe(false);
+
+        vi.useRealTimers();
+    });
+
+    it("does not clear isSearchingAnnounces for a stale request superseded by a newer search", async () => {
+        vi.useFakeTimers();
+        axiosMock.isCancel = vi.fn((e) => e?.isCancelled === true);
+
+        const pending = [];
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/config")
+                return Promise.resolve({ data: { config: { lxmf_address_hash: "my-hash" } } });
+            if (url === "/api/v1/lxmf/conversations") return Promise.resolve({ data: { conversations: [] } });
+            if (url === "/api/v1/announces") {
+                return new Promise((resolve, reject) => {
+                    pending.push({ resolve, reject });
+                });
+            }
+            return Promise.resolve({ data: {} });
+        });
+
+        const wrapper = mountMessagesPage();
+        await wrapper.vm.$nextTick();
+
+        wrapper.vm.onPeersSearchChanged("first");
+        await vi.advanceTimersByTimeAsync(500);
+        expect(pending.length).toBe(1);
+
+        wrapper.vm.onPeersSearchChanged("second");
+        await vi.advanceTimersByTimeAsync(500);
+        expect(pending.length).toBe(2);
+        pending[0].reject({ isCancelled: true });
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.vm.isSearchingAnnounces).toBe(true);
+
+        pending[1].resolve({ data: { announces: [], total_count: 0 } });
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+        expect(wrapper.vm.isSearchingAnnounces).toBe(false);
+
+        vi.useRealTimers();
+    });
+
     it("does not prematurely clear isLoadingConversations when a superseded request aborts", async () => {
         vi.useFakeTimers();
         axiosMock.isCancel = vi.fn((e) => e?.isCancelled === true);

@@ -580,6 +580,11 @@ class ConfigManager:
             True,
         )
         self.rrc_enabled = self.BoolConfig(self, "rrc_enabled", True)
+        self.rrc_unread_badges_enabled = self.BoolConfig(
+            self,
+            "rrc_unread_badges_enabled",
+            True,
+        )
         self.nomad_micron_wasm_enabled = self.BoolConfig(
             self,
             "nomad_micron_wasm_enabled",

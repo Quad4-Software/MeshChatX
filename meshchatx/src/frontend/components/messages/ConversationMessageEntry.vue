@@ -646,6 +646,7 @@
                             chatItem.lxmf_message.content &&
                             !cv.getParsedItems(chatItem)?.isOnlyPaperMessage &&
                             !cv.getParsedItems(chatItem)?.isOnlyMapLink &&
+                            !cv.getParsedItems(chatItem)?.isOnlyRelayLink &&
                             !cv.shouldHideAutoImageCaption(chatItem) &&
                             cv.isMessageBodyTooLargeForDisplay(chatItem)
                         "
@@ -679,6 +680,7 @@
                             chatItem.lxmf_message.content &&
                             !cv.getParsedItems(chatItem)?.isOnlyPaperMessage &&
                             !cv.getParsedItems(chatItem)?.isOnlyMapLink &&
+                            !cv.getParsedItems(chatItem)?.isOnlyRelayLink &&
                             !cv.shouldHideAutoImageCaption(chatItem)
                         "
                         class="min-w-0"
@@ -962,6 +964,49 @@
                                 @click="cv.copyMapShareUri(cv.getParsedItems(chatItem).mapLink.uri)"
                             >
                                 {{ $t("messages.map_link_copy_uri") }}
+                            </button>
+                        </div>
+
+                        <div
+                            v-if="cv.getParsedItems(chatItem).relayLink"
+                            class="flex flex-col gap-2 p-3 rounded-xl bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800/50"
+                        >
+                            <div class="flex items-center gap-2 text-violet-800 dark:text-violet-300">
+                                <MaterialDesignIcon icon-name="forum-outline" class="size-5" />
+                                <span class="text-sm font-bold">{{
+                                    cv.getParsedItems(chatItem).relayLink.parsed.room
+                                        ? $t("messages.relay_link_room_title")
+                                        : $t("messages.relay_link_hub_title")
+                                }}</span>
+                            </div>
+                            <div
+                                v-if="cv.getParsedItems(chatItem).relayLink.parsed.name"
+                                class="text-xs font-semibold text-violet-900/90 dark:text-violet-200/90 truncate"
+                            >
+                                {{ cv.getParsedItems(chatItem).relayLink.parsed.name }}
+                            </div>
+                            <div
+                                v-if="cv.getParsedItems(chatItem).relayLink.parsed.room"
+                                class="text-xs text-violet-900/80 dark:text-violet-200/90"
+                            >
+                                #{{ cv.getParsedItems(chatItem).relayLink.parsed.room }}
+                            </div>
+                            <div class="text-[10px] font-mono text-violet-900/80 dark:text-violet-200/90 break-all">
+                                {{ cv.getParsedItems(chatItem).relayLink.parsed.hub }}
+                            </div>
+                            <button
+                                type="button"
+                                class="w-full py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-xs font-bold transition-colors shadow-xs"
+                                @click="cv.openRelayShareFromParsed(cv.getParsedItems(chatItem).relayLink.parsed)"
+                            >
+                                {{ $t("messages.relay_link_join") }}
+                            </button>
+                            <button
+                                type="button"
+                                class="w-full py-2 bg-white dark:bg-zinc-900 border border-violet-200 dark:border-violet-800 text-violet-800 dark:text-violet-200 rounded-lg text-xs font-bold"
+                                @click="cv.copyRelayShareUri(cv.getParsedItems(chatItem).relayLink.uri)"
+                            >
+                                {{ $t("messages.relay_link_copy_uri") }}
                             </button>
                         </div>
                     </div>

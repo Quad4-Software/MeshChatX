@@ -608,6 +608,7 @@ import ToneGenerator from "../js/ToneGenerator";
 import { listNavItems } from "../js/registries/navRegistry.js";
 import { onWsEvent, offWsEvent } from "../js/registries/wsEventRegistry.js";
 import { handleLxmIngestUriResult } from "../js/ingestUriResultNavigation.js";
+import { applyRelayShareLink, parseMeshchatRelayUri } from "../js/relayLinkUtils.js";
 import logoUrl from "../assets/images/logo.png";
 import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed } from "../js/browserLayoutStore";
 
@@ -2083,6 +2084,10 @@ export default {
                     );
                     return;
                 }
+                if (/^(meshchatx|meshchat):\/\/relay\b/i.test(normalizedUrl)) {
+                    this.openRelayShareLink(normalizedUrl);
+                    return;
+                }
                 if (/^lxm(a|f)?:\/\//i.test(normalizedUrl)) {
                     WebSocketConnection.send(
                         JSON.stringify({
@@ -2106,6 +2111,30 @@ export default {
                 }
             } catch (e) {
                 console.error("Failed to handle protocol link:", e);
+            }
+        },
+        async openRelayShareLink(uri) {
+            const parsed = parseMeshchatRelayUri(uri);
+            if (!parsed) {
+                ToastUtils.error(this.$t("messages.relay_link_invalid"));
+                return;
+            }
+            if (GlobalState.config?.rrc_enabled === false) {
+                ToastUtils.warning(this.$t("messages.relay_link_disabled"));
+                return;
+            }
+            try {
+                const result = await applyRelayShareLink(parsed);
+                await this.$router.push({
+                    name: "relay-chat",
+                    query: {
+                        hub: result.hub_hash,
+                        ...(result.room ? { room: result.room } : {}),
+                    },
+                });
+                ToastUtils.success(this.$t("messages.relay_link_opened"));
+            } catch (e) {
+                ToastUtils.error(e.response?.data?.message || this.$t("messages.relay_link_failed"));
             }
         },
         handleKeyboardShortcut(action) {

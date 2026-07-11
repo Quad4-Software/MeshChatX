@@ -29,6 +29,7 @@
             :is-loading-more="isLoadingMore"
             :has-more-conversations="hasMoreConversations"
             :is-loading-more-announces="isLoadingMoreAnnounces"
+            :is-searching-announces="isSearchingAnnounces"
             :has-more-announces="hasMoreAnnounces"
             :peers-search-term="peersSearchTerm"
             :total-peers-count="totalPeersCount"
@@ -398,6 +399,7 @@ export default {
 
             hasMoreAnnounces: true,
             isLoadingMoreAnnounces: false,
+            isSearchingAnnounces: false,
             totalPeersCount: 0,
             peersSearchTerm: "",
             lxmfDeliveryAnnounces: [],
@@ -702,6 +704,9 @@ export default {
             if (!append) {
                 this.announcesLoaded = true;
             }
+            // capture the controller that belongs to *this* call so a later,
+            // superseding call can't have its own finally block clear the
+            // loading state for an in-flight search out from under it.
             let myController = this.announcesAbortController;
             try {
                 if (!append) {
@@ -710,6 +715,7 @@ export default {
                     }
                     this.announcesAbortController = new AbortController();
                     myController = this.announcesAbortController;
+                    this.isSearchingAnnounces = true;
                 } else if (!this.announcesAbortController) {
                     this.announcesAbortController = new AbortController();
                     myController = this.announcesAbortController;
@@ -743,6 +749,9 @@ export default {
             } finally {
                 if (this.announcesAbortController === myController) {
                     this.isLoadingMoreAnnounces = false;
+                    if (!append) {
+                        this.isSearchingAnnounces = false;
+                    }
                 }
             }
         },
@@ -1585,6 +1594,7 @@ export default {
         },
         onPeersSearchChanged(term) {
             this.peersSearchTerm = term;
+            this.isSearchingAnnounces = true;
             if (this.peersRefreshTimeout) {
                 clearTimeout(this.peersRefreshTimeout);
             }

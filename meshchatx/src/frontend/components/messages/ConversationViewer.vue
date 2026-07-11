@@ -1816,6 +1816,7 @@ import GlobalState from "../../js/GlobalState";
 import MarkdownRenderer from "../../js/MarkdownRenderer";
 import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
 import { findMapUriInContent, mapLinkKindFromMessage, parseMeshchatMapUri } from "../../js/mapLinkUtils.js";
+import { applyRelayShareLink, findRelayUriInContent, parseMeshchatRelayUri } from "../../js/relayLinkUtils.js";
 import { LXMF_REACTION_EMOJIS, mergeLxmfReactionRowsIntoMessages } from "../../js/lxmfReactions";
 import { createOutboundQueue } from "../../js/outboundSendQueue";
 import emojiPickerEnDataUrl from "emoji-picker-element-data/en/emojibase/data.json?url";
@@ -2655,6 +2656,9 @@ export default {
             if (this.getParsedItems(chatItem)?.isOnlyMapLink) {
                 return false;
             }
+            if (this.getParsedItems(chatItem)?.isOnlyRelayLink) {
+                return false;
+            }
             if (this.shouldHideAutoImageCaption(chatItem)) {
                 return false;
             }
@@ -3390,6 +3394,22 @@ export default {
                     items.mapLink = { uri: mapUri, parsed, kind };
                     if (t === "") {
                         items.isOnlyMapLink = true;
+                    }
+                }
+            }
+
+            const relayUri = findRelayUriInContent(content);
+            if (relayUri && !items.paperMessage && !items.mapLink) {
+                const parsed = parseMeshchatRelayUri(relayUri);
+                if (parsed) {
+                    let t = content.trim().replace(relayUri, "").trim();
+                    t = t
+                        .replace(/^MeshChatX\s+relay\s+room:\s*/i, "")
+                        .replace(/^MeshChatX\s+relay:\s*/i, "")
+                        .trim();
+                    items.relayLink = { uri: relayUri, parsed };
+                    if (t === "") {
+                        items.isOnlyRelayLink = true;
                     }
                 }
             }
@@ -6130,6 +6150,39 @@ export default {
             const ok = await copyTextToClipboard(uri);
             if (ok) {
                 ToastUtils.success(this.$t("messages.map_link_copied"));
+            } else {
+                ToastUtils.error(this.$t("messages.clipboard_write_unavailable"));
+            }
+        },
+        async openRelayShareFromParsed(parsed) {
+            if (!parsed) {
+                return;
+            }
+            if (GlobalState.config?.rrc_enabled === false) {
+                ToastUtils.warning(this.$t("messages.relay_link_disabled"));
+                return;
+            }
+            try {
+                const result = await applyRelayShareLink(parsed);
+                await this.$router.push({
+                    name: "relay-chat",
+                    query: {
+                        hub: result.hub_hash,
+                        ...(result.room ? { room: result.room } : {}),
+                    },
+                });
+                ToastUtils.success(this.$t("messages.relay_link_opened"));
+            } catch (e) {
+                ToastUtils.error(e.response?.data?.message || this.$t("messages.relay_link_failed"));
+            }
+        },
+        async copyRelayShareUri(uri) {
+            if (!uri) {
+                return;
+            }
+            const ok = await copyTextToClipboard(uri);
+            if (ok) {
+                ToastUtils.success(this.$t("messages.relay_link_copied"));
             } else {
                 ToastUtils.error(this.$t("messages.clipboard_write_unavailable"));
             }
