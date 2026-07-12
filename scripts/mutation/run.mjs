@@ -62,7 +62,7 @@ function parseArgs(argv) {
 }
 
 function printHelp() {
-    process.stdout.write(`MeshMut — in-repo JavaScript mutation testing
+    process.stdout.write(`MeshMut - in-repo JavaScript mutation testing
 
 Usage:
   node scripts/mutation/run.mjs [options]

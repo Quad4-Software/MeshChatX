@@ -6,7 +6,7 @@ Runs as a daemon thread on a 5-minute interval, reading in-memory
 metrics (log entropy, error rate, memory) and emitting WebSocket
 warnings when anomalous trends are detected.
 
-No database queries are made in the monitor loop — all reads come
+No database queries are made in the monitor loop - all reads come
 from in-memory deques kept by PersistentLogHandler and psutil.
 """
 
