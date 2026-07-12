@@ -2,6 +2,14 @@
 
 ...and questions that will likely be asked at some point.
 
+**Do you use AI?**
+
+Yes, but I apply my own judgment and guidance to LLMs. I mostly use local or open-weight models with a custom harness and tooling. If I use external providers for more complex tasks, I choose open-weight models and zero-retention, zero-training providers that are in my jurisdiction and can be held accountable in court if necessary. I also use linting, SAST, DAST, and tests to ensure LLM code is properly validated, implemented, and follows best practices.
+
+I do my own security and privacy research, like how many open-source software projects use Landlock LSM for linux? LLM did not come up with that idea.
+
+This is not a vibe coded project and will never be.
+
 **Why can't I reach you over LXMF all the time?**
 
 Grow some patience, send it to a propagation node, and chill. Sometimes I go offline or travel for a few hours, days, or maybe a week. Your message will make it to me; just be patient.
@@ -22,14 +30,10 @@ No. Until the day I stop maintaining MeshChatX, it will remain under Quad4 contr
 
 GitHub is a mirror to use CI and push out releases only. Submitting a patch over LXMF is also a filter for the low-effort and purely vibe-coded crap that people submit these days. It has actually been working quite well, especially for low-effort social engineering.
 
-**Do you use AI?**
-
-In some places of the codebase, yes, but I apply my own judgment. I mostly use local models with some custom tooling. If I use external providers for more complex tasks, I choose open-weight models and zero-retention, zero-training providers that are in my jurisdiction and can be held accountable in court if necessary. I also use linting, SAST, DAST, and tests to ensure LLM code is properly validated, implemented, and follows best practices.
-
 **Will MeshChatX support legacy systems?**
 
 Electron has to be kept up-to-date with a stable release cycle in order to get any CVE fixes for the bundled Chromium or other Electron-related security and performance fixes. You can use the Python wheels if your system supports Python 3.11. I would like to support all systems, but that is just not possible with Electron and the values of this project (security).
 
 **Can you make it so MeshChatX uses system RNS/LXMF packages?**
 
-The Python wheels can use system RNS/LXMF, and you can update them easily. With Docker, you can grab the Dockerfile, update it, and build manually. You can also build from source. As for Electron builds, there is not much that can be done right now, but I will keep exploring options.
+The Python wheels can use system RNS/LXMF, and you can update them easily. With Docker, you can grab the Dockerfile, update it, and build manually. You can also build from source. As for Electron builds you can install RNS via pip and use via shared instance.
