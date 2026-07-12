@@ -126,13 +126,47 @@ CLI flags override environment variables when both are set.
 
 ## Reticulum manual bundle
 
-The Reticulum HTML manual is fetched from the upstream website **master** branch at build time. There is no in-app clearnet refresh. After cloning the repository, or before packaging a release, run:
+The Reticulum HTML manual is fetched from the upstream website **master** branch at build time by default (clearnet ZIP). There is no in-app clearnet refresh. After cloning the repository, or before packaging a release, run:
 
 ```bash
 pnpm run build-docs
 ```
 
-That command always re-fetches (`--force`) into `meshchatx/public/reticulum-docs-bundled/current/`. CI release builds run the same step. Without a bundled copy the Reticulum tab may show an upload prompt until you build docs or upload a manual ZIP offline.
+CI release builds use the clearnet path. Without a bundled copy the Reticulum tab may show an upload prompt until you build docs or upload a manual ZIP offline.
+
+## Advanced: Optional RNS-only installation (pip-rns)
+
+MeshChatX includes optional tooling to pull `rns`, `lxmf`, `lxst`, and the Reticulum manual from markqvist's rngit remotes over the mesh instead of clearnet.
+
+**Note:** Installing Python packages over RNS is significantly slower than PyPI and is intended for use in environments with mesh access but restricted clearnet. PyPI remains the default and recommended path for CI and standard development.
+
+| Remote                                                       | Purpose               |
+| ------------------------------------------------------------ | --------------------- |
+| `rns://7649a50d84610232d1416b41d2896aff/reticulum/reticulum` | RNS package           |
+| `rns://7649a50d84610232d1416b41d2896aff/reticulum/lxmf`      | LXMF package          |
+| `rns://7649a50d84610232d1416b41d2896aff/reticulum/lxst`      | LXST package          |
+| `rns://7649a50d84610232d1416b41d2896aff/reticulum/website`   | Manual / website HTML |
+
+This uses [pip-rns](https://github.com/Quad4-Software/pip-rns) for the Python packages and `git` + `git-remote-rns` for the docs tree. Default aliases live in `scripts/pip-rns/aliases`.
+
+**Bootstrap note:** pip-rns needs a working Reticulum stack to reach the remotes. Install `rns` once from PyPI, a wheel, or an existing environment, then use the mesh path for updates.
+
+```bash
+# Optional: Install/update rns, lxmf, lxst into the uv environment over RNS
+task deps:backend:rns
+
+# Optional: Bundle the Reticulum manual from the rngit website remote
+task docs:rns
+```
+
+Equivalent direct commands:
+
+```bash
+bash scripts/pip-rns-deps.sh
+python scripts/build/fetch_reticulum_manual.py --force --via-rns
+```
+
+Set `PIP_RNS_CONFIG` to point at another aliases directory if needed. `MESHCHATX_RETICULUM_DOCS_URL=rns://...` also works for a custom website remote.
 
 ## Identity bootstrap
 

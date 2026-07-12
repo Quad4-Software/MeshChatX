@@ -4,14 +4,14 @@ This page shows how to run **`meshchatx`** under **Firejail** or **Bubblewrap** 
 
 These tools do **not** replace a full virtual machine or hardware-enforced boundary. They reduce exposure of your home directory and other paths the process can write to, when you configure them with tight whitelists or bind mounts.
 
-**Containers:** If you already run MeshChatX with Docker or Podman, that is a different isolation model; this document is aimed at **host-installed** `meshchatx` (or `meshchat`).
+**Containers:** If you already run MeshChatX with Docker or Podman, that is a different isolation model, this document is aimed at **host-installed** `meshchatx` (or `meshchat`).
 
 ## Prerequisites
 
 Install one or both from your distribution:
 
 - **Firejail:** package name is usually `firejail`.
-- **Bubblewrap:** package name is usually `bubblewrap`; the binary is `bwrap`.
+- **Bubblewrap:** package name is usually `bubblewrap`, the binary is `bwrap`.
 
 You need a working **`meshchatx`** on your `PATH` (for example after `pipx install`, `pip install --user`, or a distro package). The **`meshchat`** command is the same binary if both entry points are installed.
 
@@ -113,7 +113,7 @@ exec bwrap \
 
 Notes:
 
-- If `meshchatx` lives only inside a venv that is **not** under `$DATA`, the read-only root still allows **reading** that path; you do not have to bind-mount the venv separately unless you also need writes there.
+- If `meshchatx` lives only inside a venv that is **not** under `$DATA`, the read-only root still allows **reading** that path, you do not have to bind-mount the venv separately unless you also need writes there.
 - Distributions that merge `/` and `/usr` (merged-usr) still work with `--ro-bind / /` on typical glibc setups. If `bwrap` fails with missing library paths, add the extra `--ro-bind` lines your distro documents (for example `/lib64`).
 
 ### From source with UV

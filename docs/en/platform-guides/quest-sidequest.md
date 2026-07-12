@@ -15,7 +15,7 @@ MeshChatX opens as a **2D panel** inside your VR environment. It is not a native
 
 Download the latest signed Android APK from the [MeshChatX releases page](https://github.com/Quad4-Software/MeshChatX/releases). Release assets are named like `meshchatx-*-release-signed.apk`.
 
-You can also build the APK yourself; see [`android/README.md`](../android/README.md).
+You can also build the APK yourself, see [`android/README.md`](../android/README.md).
 
 ## Enable Developer Mode
 
