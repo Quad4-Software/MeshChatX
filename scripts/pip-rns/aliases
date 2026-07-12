@@ -1,0 +1,7 @@
+# MeshChatX default pip-rns aliases for upstream Reticulum packages over rngit.
+# Format: name=identity_hex/group/repo
+# Override with PIP_RNS_CONFIG pointing at another directory that contains aliases.
+rns=7649a50d84610232d1416b41d2896aff/reticulum/reticulum
+lxmf=7649a50d84610232d1416b41d2896aff/reticulum/lxmf
+lxst=7649a50d84610232d1416b41d2896aff/reticulum/lxst
+website=7649a50d84610232d1416b41d2896aff/reticulum/website

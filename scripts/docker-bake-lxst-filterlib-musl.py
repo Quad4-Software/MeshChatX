@@ -29,7 +29,7 @@ def main() -> int:
     ext_suffix = sysconfig.get_config_var("EXT_SUFFIX") or ""
     target = pkg / f"filterlib{ext_suffix}"
 
-    import LXST.Filters  # noqa: F401 — triggers cffi verify when needed
+    import LXST.Filters  # noqa: F401 - triggers cffi verify when needed
 
     candidates = sorted(
         pkg.glob("__pycache__/_cffi__*.cpython-*-linux-musl.so"),

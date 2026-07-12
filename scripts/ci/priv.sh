@@ -1,5 +1,5 @@
 # shellcheck shell=sh
-# Sourced by scripts/ci/*.sh — run commands as root when sudo is missing (e.g. Docker, act).
+# Sourced by scripts/ci/*.sh - run commands as root when sudo is missing (e.g. Docker, act).
 # Usage: . "$(dirname "$0")/priv.sh"
 
 run_priv() {
