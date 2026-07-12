@@ -86,7 +86,7 @@ Policy:
 - Unsigned packages are allowed
 - Present but invalid signatures hard-block install
 - Valid signers can be added to a user trusted-publishers list (ignored if the list file is tampered outside MeshChatX)
-- Installed plugin trees get an integrity hash; on-disk changes disable the plugin as tampered
+- Installed plugin trees get an integrity hash, on-disk changes disable the plugin as tampered
 
 Sideband Python plugins are opt-in via a master danger switch. They are not ZIP-permission gated. Optional per-file `.py.rsg` signatures are verified over script bytes.
 

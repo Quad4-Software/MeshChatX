@@ -109,6 +109,13 @@ task run
 task dev
 ```
 
+Optional RNS/rngit tooling (requires mesh reachability, can sometimes be significantly slower than PyPI):
+
+```bash
+task deps:backend:rns
+task docs:rns
+```
+
 Useful focused commands:
 
 ```bash
