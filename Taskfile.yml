@@ -96,6 +96,22 @@ tasks:
             - 'uv sync --group dev{{if ne .UV_SYNC_FLAGS ""}} {{.UV_SYNC_FLAGS}}{{end}}'
             - uv run python scripts/patch_lxst_pyogg_ogg_ctypes.py
 
+    deps:backend:rns:
+        aliases: [deps:be:rns, pip-rns]
+        desc: Install rns/lxmf/lxst over RNS via pip-rns (Optional, slow, PyPI is default)
+        cmds:
+            - echo "Warning - Installing packages over RNS via pip-rns is slow. Use for mesh-only environments."
+            - bash scripts/pip-rns-deps.sh {{.CLI_ARGS}}
+
+    docs:rns:
+        aliases: [build-docs:rns]
+        desc: Fetch Reticulum manual from rngit website remote over RNS
+        cmds:
+            - >-
+                uv run python scripts/build/fetch_reticulum_manual.py
+                --force --via-rns
+                {{.CLI_ARGS}}
+
     setup:be:
         desc: Full backend environment setup
         cmds:
@@ -186,12 +202,12 @@ tasks:
         deps: [test:backend, test:frontend, test:lang]
 
     test:e2e:
-        desc: Playwright E2E (starts MeshChat backend + Vite; requires uv, curl, pnpm exec playwright install chromium)
+        desc: Playwright E2E (starts MeshChat backend + Vite, requires uv, curl, pnpm exec playwright install chromium)
         cmds:
             - "{{.NPM}} run test:e2e"
 
     test:quick:
-        desc: Fast dev loop — regression subset (set E2E=1 to include Playwright smoke)
+        desc: Fast dev loop - regression subset (set E2E=1 to include Playwright smoke)
         cmds:
             - task: test:quick:be
             - task: test:quick:fe
@@ -232,7 +248,7 @@ tasks:
 
     test:backend:
         aliases: [test:be, test:be:full]
-        desc: Run Python tests (pytest; includes perf/memory profiling — same as GitHub CI)
+        desc: Run Python tests (pytest, includes perf/memory profiling, same as GitHub CI)
         cmds:
             - uv run pytest tests/backend -n auto --cov=meshchatx/src/backend
 
@@ -247,7 +263,7 @@ tasks:
             - uv run pytest tests/backend/test_performance_hotpaths.py tests/backend/test_performance_bottlenecks.py
 
     test:mutation:
-        desc: Mutation testing (backend mutmut + frontend MeshMut; slow; optional)
+        desc: Mutation testing (backend mutmut + frontend MeshMut, slow, optional)
         cmds:
             - task test:mutation:backend
             - task test:mutation:frontend
@@ -269,7 +285,7 @@ tasks:
 
     test:frontend:
         aliases: [test:fe]
-        desc: Run frontend + Electron shell unit tests (vitest; excludes i18n — see test:lang; excludes LoadTimePerformance — use test:fe:loadtime locally)
+        desc: Run frontend + Electron shell unit tests (vitest, excludes i18n, see test:lang, excludes LoadTimePerformance, use test:fe:loadtime locally)
         cmds:
             - "{{.NPM}} exec vitest run --exclude tests/frontend/LoadTimePerformance.test.js --exclude tests/frontend/i18n.test.js"
             - "{{.NPM}} exec vitest run --config vitest.electron.config.js"
@@ -318,7 +334,7 @@ tasks:
             - "uv run pytest tests/backend/test_translator_handler.py"
 
     bench:
-        desc: Default benchmark run (backend comprehensive suite; same as bench:be)
+        desc: Default benchmark run (backend comprehensive suite, same as bench:be)
         cmds:
             - task: bench:be
 
@@ -573,7 +589,7 @@ tasks:
                     --abis "{{.ANDROID_WHEEL_ABIS}}"
 
     android:build:
-        desc: Build Debug APK (universal ABI packaging; arm64-v8a only unless overridden)
+        desc: Build Debug APK (universal ABI packaging, arm64-v8a only unless overridden)
         deps: [android:prepare]
         vars:
             MESHCHATX_ABIS: '{{.MESHCHATX_ABIS | default "arm64-v8a"}}'

@@ -16,6 +16,7 @@
         "build-frontend": "vite build",
         "build-backend": "node scripts/build-backend.js",
         "build-docs": "python3 scripts/build/fetch_reticulum_manual.py --force",
+        "build-docs:rns": "python3 scripts/build/fetch_reticulum_manual.py --force --via-rns",
         "build-repository-wheels": "python3 scripts/build/fetch_repository_wheels.py",
         "version:sync": "node scripts/sync_version.js",
         "build": "pnpm run version:sync && pnpm run build-frontend && pnpm run build-docs && pnpm run build-repository-wheels && pnpm run build-backend",
