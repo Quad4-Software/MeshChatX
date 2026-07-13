@@ -290,3 +290,21 @@ async def fetch_api_csrf_headers(client):
 def extend_meshchat_middlewares(aio_app, middlewares):
     auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw = middlewares
     aio_app.middlewares.extend([auth_mw, mime_mw, sec_mw, csrf_mw, ip_mw])
+
+
+def pytest_collection_modifyitems(session, config, items):
+    shard_index = os.environ.get("PYTEST_SHARD_INDEX")
+    total_shards = os.environ.get("PYTEST_TOTAL_SHARDS")
+    if shard_index is not None and total_shards is not None:
+        try:
+            shard_index = int(shard_index)
+            total_shards = int(total_shards)
+            if total_shards > 1 and 0 <= shard_index < total_shards:
+                items.sort(key=lambda item: item.nodeid)
+                items[:] = [
+                    item for i, item in enumerate(items)
+                    if i % total_shards == shard_index
+                ]
+        except ValueError:
+            pass
+

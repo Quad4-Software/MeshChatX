@@ -99,11 +99,15 @@ jobs:
                   esac
 
     backend-tests:
-        name: Backend tests (Python 3.14)
+        name: Backend tests (Python 3.14) - Shard ${{ matrix.shard }} / 4
         runs-on: ubuntu-latest
-        timeout-minutes: 60
+        timeout-minutes: 20
         permissions:
             contents: read
+        strategy:
+            fail-fast: false
+            matrix:
+                shard: [0, 1, 2, 3]
         steps:
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
@@ -117,6 +121,9 @@ jobs:
                   pnpm-version: ${{ env.PNPM_VERSION }}
 
             - name: Run backend tests
+              env:
+                  PYTEST_SHARD_INDEX: ${{ matrix.shard }}
+                  PYTEST_TOTAL_SHARDS: 4
               run: task test:backend
 
     build-check:
