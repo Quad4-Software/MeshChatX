@@ -348,7 +348,7 @@ class MapOverlayManager:
         max_conc = self._cfg_int("map_overlay_max_concurrent_jobs")
         if self._job_semaphore is None:
             self._job_semaphore = asyncio.Semaphore(max_conc)
-        # Resize not supported mid-flight; new semaphore if limit changed and idle
+        # Resize not supported mid-flight. Create a new semaphore if limit changed and idle.
         async with self._job_semaphore:
             job = self._jobs[job_id]
             try:

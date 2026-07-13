@@ -199,7 +199,7 @@ class WebSocketConnection {
         });
 
         this.ws.addEventListener("error", () => {
-            // close event will follow; reconnect scheduled there
+            // close event will follow, and reconnect is scheduled there
         });
 
         this.ws.onmessage = (message) => {

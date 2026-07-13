@@ -231,7 +231,7 @@ def _collect_read_roots() -> list[str]:
         "/etc",
         "/bin",
         "/sbin",
-        # RNS get_interface_stats() uses psutil for rss; psutil reads /proc/self.
+        # RNS get_interface_stats() uses psutil for rss, and psutil reads /proc/self.
         "/proc",
     }
     for path in sys.path:
@@ -247,7 +247,7 @@ def _collect_read_roots() -> list[str]:
     if existing:
         roots.add(existing)
     # Allow execve of the running interpreter (uv-managed CPython lives outside
-    # /usr; bots / self-check / rnsh re-spawn sys.executable under Landlock).
+    # /usr, and bots, self-check, or rnsh re-spawn sys.executable under Landlock).
     for candidate in (sys.executable, os.path.realpath(sys.executable)):
         if not candidate:
             continue

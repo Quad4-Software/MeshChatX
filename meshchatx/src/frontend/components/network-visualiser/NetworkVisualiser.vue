@@ -208,7 +208,7 @@ export default {
             this.refreshPhysicsEnabled();
         },
         searchQuery() {
-            // Debounce full rebuilds while typing; filter still runs on existing data.
+            // Debounce full rebuilds while typing, as the filter still runs on existing data.
             if (this.searchDebounceTimer) clearTimeout(this.searchDebounceTimer);
             this.searchDebounceTimer = setTimeout(() => {
                 this.searchDebounceTimer = null;
@@ -623,7 +623,7 @@ export default {
                     interaction: {
                         tooltipDelay: 100,
                         hover: true,
-                        // Hide edges while dragging/zooming — biggest win vs upstream
+                        // Hide edges while dragging/zooming, which is the biggest win vs upstream
                         // for large graphs (upstream redraws every edge every frame).
                         hideEdgesOnDrag: true,
                         hideEdgesOnZoom: true,
@@ -636,7 +636,7 @@ export default {
                         enabled: this.enablePhysics,
                         solver: "barnesHut",
                         barnesHut: {
-                            // Match upstream gravity; avoidOverlap is O(n) per tick
+                            // Match upstream gravity, as avoidOverlap is O(n) per tick
                             // and is the main reason we felt slower than MeshChat.
                             gravitationalConstant: -5000,
                             springConstant: 0.04,
@@ -669,7 +669,7 @@ export default {
                             strokeColor: isDarkMode ? "rgba(9, 9, 11, 0.95)" : "rgba(255, 255, 255, 0.95)",
                         },
                         // Canvas shadows are by far the most expensive per-node
-                        // operation in vis-network. Disable globally; the borders
+                        // operation in vis-network. Disable globally, as the borders
                         // and circular-image rendering remain visually distinct.
                         shadow: false,
                     },
@@ -1059,7 +1059,7 @@ export default {
                               color: isDarkMode ? "#f87171" : "#ef4444",
                               opacity: 1,
                           },
-                    // Solid wider stroke (no arrows) — arrows are redrawn every
+                    // Solid wider stroke (no arrows), since arrows are redrawn every
                     // physics frame and dominate canvas cost on large meshes.
                     width: 3,
                     length: 200,
@@ -1362,8 +1362,8 @@ export default {
                         id: edgeId,
                         from: entry.interface,
                         to: entry.hash,
-                        // Direct = brighter/thicker; multi-hop = cooler/thinner.
-                        // No dashes/arrows — both force expensive per-frame path work.
+                        // Direct = brighter/thicker, and multi-hop = cooler/thinner.
+                        // No dashes/arrows, as both force expensive per-frame path work.
                         color: directHop ? this.directEdgeColor(isDarkMode) : this.multiHopEdgeColor(isDarkMode),
                         width: directHop ? 2.5 : 1,
                         hidden: false,

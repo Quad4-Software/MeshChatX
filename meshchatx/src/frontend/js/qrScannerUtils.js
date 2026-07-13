@@ -91,7 +91,7 @@ export async function startCameraStream() {
             try {
                 await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] });
             } catch {
-                // Optional; some WebViews reject advanced focus constraints.
+                // Optional, as some WebViews reject advanced focus constraints.
             }
         }
     }

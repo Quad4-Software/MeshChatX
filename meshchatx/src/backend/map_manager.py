@@ -216,7 +216,7 @@ class MapManager:
         # bbox: [min_lon, min_lat, max_lon, max_lat]
         min_lon, min_lat, max_lon, max_lat = bbox
 
-        # collect all tiles to download (unique keys; bbox can span tile seams)
+        # collect all tiles to download (unique keys, since bbox can span tile seams)
         tiles_to_download = []
         seen = set()
         zoom_levels = range(min_zoom, max_zoom + 1)

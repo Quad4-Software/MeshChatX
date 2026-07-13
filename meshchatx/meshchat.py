@@ -4912,7 +4912,7 @@ class ReticulumMeshChat:
                     {"enabled": False, "message": "Pass --memory-diag to enable"},
                 )
             # tracemalloc.snapshot() + gc.get_objects() are CPU-bound and
-            # block the event loop for tens of seconds; run off-loop.
+            # block the event loop for tens of seconds, so run off-loop.
             report = await asyncio.to_thread(self._mem_diag.report)
             return web.json_response(report)
 
@@ -7104,7 +7104,7 @@ class ReticulumMeshChat:
 
                 # parse interfaces from config
                 interfaces = InterfaceConfigParser.parse(config)
-                # I2P must not be imported from files; hide it from the picker.
+                # I2P must not be imported from files, so hide it from the picker.
                 interfaces = [
                     iface
                     for iface in interfaces
@@ -7279,7 +7279,7 @@ class ReticulumMeshChat:
                 max_msg_size=50 * 1024 * 1024,
             )
             await websocket_response.prepare(request)
-            # aiohttp WebSocketResponse does not expose .request; keep it for
+            # aiohttp WebSocketResponse does not expose .request, so keep it for
             # session checks on authenticated mutators (nomadnet downloads, etc).
             websocket_response._meshchatx_request = request
 
@@ -7320,7 +7320,7 @@ class ReticulumMeshChat:
             )
             await websocket_response.prepare(request)
 
-            # Chaquopy Android has no LXST host audio device; always allow the websocket bridge.
+            # Chaquopy Android has no LXST host audio device, so always allow the websocket bridge.
             web_audio_allowed = (
                 self.web_audio_bridge.config_enabled() or _is_chaquopy_android()
             )
@@ -7392,7 +7392,7 @@ class ReticulumMeshChat:
 
                     return _N()
 
-            # psutil often raises on Android (restricted /proc); never fail the whole payload.
+            # psutil often raises on Android (restricted /proc), so never fail the whole payload.
             memory_info = _safe_memory_info()
             net_io = _safe_net_io()
 
@@ -7886,7 +7886,7 @@ class ReticulumMeshChat:
 
             return web.json_response(content)
 
-        # repository server (wheels + uploads; optional in-process plain HTTP)
+        # repository server (wheels + uploads, and optional in-process plain HTTP)
         @routes.get("/api/v1/repository-server/status")
         async def repository_server_status(_request):
             mgr = self.repository_server_manager
@@ -8735,7 +8735,7 @@ class ReticulumMeshChat:
                 if disc_val is False or str(disc_val).lower() in ("false", "no", "0"):
                     reticulum_config.pop("autoconnect_discovered_interfaces", None)
 
-            # default_bootstrap_only is a MeshChatX-only setting; do NOT write it
+            # default_bootstrap_only is a MeshChatX-only setting, so do NOT write it
             # to Reticulum config so discovered/auto-connected interfaces are
             # never affected. Clean up any stale value in Reticulum config.
             reticulum_config.pop("default_bootstrap_only", None)
@@ -9872,7 +9872,7 @@ class ReticulumMeshChat:
                                 active_call["path_interface"] = iface_name.strip()
                                 break
 
-                # Try multiple destination hashes; depending on LXST state, the
+                # Try multiple destination hashes. Depending on LXST state, the
                 # active call hash is not always the route-resolvable destination.
                 for candidate_hex in [
                     remote_telephony_hash,
@@ -11611,7 +11611,7 @@ class ReticulumMeshChat:
             if router is not None:
                 try:
                     state = router.propagation_transfer_state
-                    # COMPLETE is terminal; expose idle so the UI does not keep
+                    # COMPLETE is terminal, so expose idle so the UI does not keep
                     # looking "busy" after a finished auto/manual sync.
                     if state == router.PR_COMPLETE:
                         router.propagation_transfer_state = router.PR_IDLE
@@ -11983,7 +11983,7 @@ class ReticulumMeshChat:
                 },
             )
 
-        # proactively ask Reticulum to resolve or refresh path (non-blocking HTTP; discovery runs in background)
+        # proactively ask Reticulum to resolve or refresh path (non-blocking HTTP, and discovery runs in background)
         @routes.post("/api/v1/destination/{destination_hash}/request-path")
         async def destination_request_path_fire(request):
             destination_hash = request.match_info.get("destination_hash", "")
@@ -16310,7 +16310,7 @@ class ReticulumMeshChat:
                 response.headers["Access-Control-Allow-Origin"] = "*"
                 response.headers["Cross-Origin-Resource-Policy"] = "cross-origin"
             if path.startswith("/rnode-flasher/"):
-                # Standalone RNode Flasher uses Vue in-DOM templates; compileToFunction
+                # Standalone RNode Flasher uses Vue in-DOM templates. The compileToFunction
                 # relies on new Function(), which requires unsafe-eval.
                 script_sources = [
                     "'self'",
@@ -16328,7 +16328,7 @@ class ReticulumMeshChat:
                     "blob:",
                 ]
             else:
-                # wasm-unsafe-eval: Codec2 / sox Emscripten WASM; blob: worklets from object URLs
+                # wasm-unsafe-eval: Codec2 / sox Emscripten WASM, and blob: worklets from object URLs
                 script_sources = ["'self'", "'wasm-unsafe-eval'", "blob:"]
             style_sources = ["'self'", "'unsafe-inline'"]
 
@@ -16655,7 +16655,7 @@ class ReticulumMeshChat:
 
         # Serve Reticulum docs from user-uploaded storage with a fallback to the
         # bundled offline copy shipped under <public>/reticulum-docs-bundled/current.
-        # No remote network fallback exists; users supply replacements via upload.
+        # No remote network fallback exists, so users supply replacements via upload.
         async def reticulum_docs_handler(request):
             dm = self.docs_manager
             if dm is None:
@@ -16913,7 +16913,7 @@ class ReticulumMeshChat:
             return True
 
         # Kick off the LXMF request on a worker thread. Identity.recall and link
-        # setup can block on multiprocessing pipes; running inline would stall the
+        # setup can block on multiprocessing pipes. Running inline would stall the
         # HTTP handler and race with cancel_propagation_node_requests (EOFError).
         asyncio.create_task(self._request_propagation_node_messages(context=ctx))
 
@@ -17065,7 +17065,7 @@ class ReticulumMeshChat:
             value = self._coerce_int(data["lxmf_inbound_stamp_cost"])
             if value is None:
                 value = self.config.lxmf_inbound_stamp_cost.get()
-            # 0 disables inbound stamps; otherwise clamp to 1-254 (LXMF/LXMRouter)
+            # 0 disables inbound stamps, and otherwise clamp to 1-254 (LXMF/LXMRouter)
             if value < 0:
                 value = 0
             elif value >= 255:
@@ -18951,7 +18951,7 @@ class ReticulumMeshChat:
                 },
             )
             return
-        # data_b64 is msgpack-encoded request payload; decode to a native value
+        # data_b64 is msgpack-encoded request payload. Decode to a native value
         # so RNS.Link.request embeds it in the wire envelope correctly.
         data_b64 = data.get("data_b64")
         try:
@@ -19195,7 +19195,7 @@ class ReticulumMeshChat:
                 plugin_manager.on_rns_link_event(payload)
 
     async def websocket_broadcast(self, data):
-        # Serialize: concurrent callers must not interleave; the second snapshot must run
+        # Serialize: concurrent callers must not interleave. The second snapshot must run
         # only after the first broadcast has finished mutating the live client list.
         async with self._websocket_broadcast_lock:
             dead = []
@@ -21219,8 +21219,8 @@ class ReticulumMeshChat:
                 False, "skipped_for_propagated", False
             )
         else:
-            # Reticulum keeps a live path table; entries expire when peers move or links drop.
-            # We cannot replay "old" paths from the app layer — Transport.request_path refreshes discovery.
+            # Reticulum keeps a live path table, and entries expire when peers move or links drop.
+            # We cannot replay "old" paths from the app layer. Transport.request_path refreshes discovery.
             path_outcome = await self._await_transport_path(destination_hash_bytes)
 
         destination_identity = self.recall_identity(destination_hash)

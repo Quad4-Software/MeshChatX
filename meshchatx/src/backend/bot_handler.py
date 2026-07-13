@@ -405,7 +405,7 @@ class BotHandler:
                             proc.wait(timeout=2)
                     if self._is_pid_alive(pid):
                         taskkill = shutil.which("taskkill") or "taskkill"
-                        # Process may already have exited; suppress "not found" noise.
+                        # Process may already have exited, so suppress "not found" noise.
                         subprocess.run(
                             [taskkill, "/PID", str(pid), "/T", "/F"],
                             check=False,
@@ -612,7 +612,7 @@ class BotHandler:
             os.kill(pid, 0)
         except OSError:
             return False
-        # Reaped children are gone; unreaped zombies still answer kill(0).
+        # Reaped children are gone, but unreaped zombies still answer kill(0).
         if sys.platform.startswith("linux"):
             try:
                 with open(f"/proc/{pid}/status", encoding="utf-8") as f:

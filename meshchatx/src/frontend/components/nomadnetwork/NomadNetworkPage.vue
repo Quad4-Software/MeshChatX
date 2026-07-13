@@ -1815,7 +1815,7 @@ export default {
                 return;
             }
 
-            // update current route (skipped while embedded; the browser shell owns routing)
+            // update current route (skipped while embedded, as the browser shell owns routing)
             if (this.embedded) {
                 this.$emit("navigate", {
                     destinationHash: destinationHash,

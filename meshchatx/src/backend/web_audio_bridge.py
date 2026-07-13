@@ -32,18 +32,18 @@ class WebAudioSource(LocalSource):
         self.bitdepth = 16
 
     def start(self):
-        # Nothing to start; frames are pushed from the websocket thread.
+        # Nothing to start, as frames are pushed from the websocket thread.
         pass
 
     def stop(self):
-        # Nothing to stop; kept for interface compatibility.
+        # Nothing to stop, but kept for interface compatibility.
         pass
 
     def can_receive(self, from_source=None):
         return True
 
     def handle_frame(self, frame, source=None):
-        # Not used; frames are pushed via push_pcm.
+        # Not used, as frames are pushed via push_pcm.
         pass
 
     def push_pcm(self, pcm_bytes: bytes):

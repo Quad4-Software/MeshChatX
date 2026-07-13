@@ -2686,7 +2686,7 @@ export default {
                 return;
             }
 
-            // Real PCM levels are preferred; this is a fallback when bridge/native
+            // Real PCM levels are preferred, and this is a fallback when bridge/native
             // audio telemetry is unavailable but link stats are present.
             if (this.audioWs || this.useAndroidNativeTelephone) {
                 this.prevCallTxBytes = Number(newCall.tx_bytes || 0);
@@ -4248,7 +4248,7 @@ export default {
             }
 
             let hashToCall = identityHash.trim();
-            // Accept lxmf:// URIs or pasted text; RNS truncated hashes are 32 hex chars
+            // Accept lxmf:// URIs or pasted text, and RNS truncated hashes are 32 hex chars
             const hexMatch = hashToCall.match(/[0-9a-fA-F]{32,64}/);
             if (hexMatch) {
                 hashToCall = hexMatch[0].slice(0, 32);
