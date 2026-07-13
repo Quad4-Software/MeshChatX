@@ -25,7 +25,7 @@ The installer guides you through:
 - Optional **cosign** attestation: if a `*.whl.cosign.bundle` is published
   next to the wheel, you can verify it. The script uses `cosign` on `PATH` if
   present, or downloads a **checksum-verified** official Linux binary to `/tmp`
-  (the Sigstore bundle format is not reimplemented in shell; you still use the
+  (the Sigstore bundle format is not reimplemented in shell, so you still use the
   real `cosign` to verify, without installing a distro package)
 - Storage and Reticulum directories
 - Bind host and port (with availability check)

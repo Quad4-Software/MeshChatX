@@ -53,7 +53,7 @@ firejail --noprofile --whitelist="$DATA" \
     --reticulum-config-dir="$DATA/.reticulum"
 ```
 
-`--noprofile` disables many Firejail restrictions; treat it as a stepping stone, not the final hardening.
+`--noprofile` disables many Firejail restrictions. Treat it as a stepping stone, not the final hardening.
 
 ### From source with UV
 
@@ -89,7 +89,7 @@ Use the device nodes your system actually exposes (`dmesg`, `ls /dev/tty*`).
 
 ## Bubblewrap (`bwrap`)
 
-Bubblewrap does not ship profiles; you list every mount and option. The pattern below keeps the **whole root filesystem read-only**, mounts a **writable tmpfs** on `/tmp`, and makes **only** your data directory writable at its normal path. **Network namespaces are not changed**, so Reticulum and TCP/UDP behave like an unsandboxed process unless you add `--unshare-net` (which usually breaks mesh networking).
+Bubblewrap does not ship profiles, so you must list every mount and option. The pattern below keeps the **whole root filesystem read-only**, mounts a **writable tmpfs** on `/tmp`, and makes **only** your data directory writable at its normal path. **Network namespaces are not changed**, so Reticulum and TCP/UDP behave like an unsandboxed process unless you add `--unshare-net` (which usually breaks mesh networking).
 
 ### Installed `meshchatx`
 
