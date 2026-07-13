@@ -2,7 +2,7 @@
 # pre-commit: keep meshchatx.rsm in sync with the staged tree inventory.
 #
 # Enable once per clone:
-#   task hooks:install
+#   make hooks-install
 #   # or: sh scripts/ci/install-git-hooks.sh
 #
 # Skip for one commit:
@@ -53,7 +53,7 @@ fi
 
 if [ -z "$ID_PATH" ] || [ ! -f "$ID_PATH" ]; then
 	echo "pre-commit: staged inventory paths changed but no signing identity found." >&2
-	echo "pre-commit: set RNS_ID_PATH or run: task tree-rsm-sign" >&2
+	echo "pre-commit: set RNS_ID_PATH or run: make tree-rsm-sign" >&2
 	echo "pre-commit: or skip with SKIP_TREE_RSM_HOOK=1" >&2
 	exit 0
 fi
