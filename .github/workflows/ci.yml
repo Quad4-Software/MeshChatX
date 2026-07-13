@@ -36,6 +36,7 @@ env:
     NODE_VERSION: "24"
     UV_VERSION: "0.11.15"
     PNPM_VERSION: "11.1.2"
+    RNS_REQUIRED_SIGNER: e46112d44649266d71fe2193e00a4710
 
 jobs:
     frontend:
@@ -98,6 +99,9 @@ jobs:
                       ;;
                   esac
 
+            - name: Verify workspace clean
+              uses: ./.github/actions/verify-workspace-clean
+
     backend-tests:
         name: Backend tests (Python 3.14) - Shard ${{ matrix.shard }} / 4
         runs-on: ubuntu-latest
@@ -125,6 +129,9 @@ jobs:
                   PYTEST_SHARD_INDEX: ${{ matrix.shard }}
                   PYTEST_TOTAL_SHARDS: 4
               run: task test:backend
+
+            - name: Verify workspace clean
+              uses: ./.github/actions/verify-workspace-clean
 
     build-check:
         name: Linux build check
@@ -161,6 +168,9 @@ jobs:
 
             - name: Verify bleak bundled in frozen backend
               run: bash scripts/ci/github-verify-frozen-bleak.sh build/exe
+
+            - name: Verify workspace clean
+              uses: ./.github/actions/verify-workspace-clean
 
             - name: Upload Linux build-check artifacts
               uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
