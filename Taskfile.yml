@@ -250,7 +250,7 @@ tasks:
         aliases: [test:be, test:be:full]
         desc: Run Python tests (pytest, includes perf/memory profiling, same as GitHub CI)
         cmds:
-            - uv run pytest tests/backend -n auto --cov=meshchatx/src/backend
+            - uv run pytest tests/backend -n auto {{.PYTEST_ARGS | default ""}}
 
     test:be:cov:
         desc: Run Python tests with detailed coverage (includes performance and memory profiling tests)
