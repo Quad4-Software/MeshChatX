@@ -302,9 +302,9 @@ def pytest_collection_modifyitems(session, config, items):
             if total_shards > 1 and 0 <= shard_index < total_shards:
                 items.sort(key=lambda item: item.nodeid)
                 items[:] = [
-                    item for i, item in enumerate(items)
+                    item
+                    for i, item in enumerate(items)
                     if i % total_shards == shard_index
                 ]
         except ValueError:
             pass
-
