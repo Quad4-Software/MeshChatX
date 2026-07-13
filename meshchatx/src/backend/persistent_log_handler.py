@@ -36,7 +36,7 @@ class PersistentLogHandler(logging.Handler):
         self.known_ips = set()
         self.known_uas = set()
 
-        # Entropy tracking — level counts over a sliding 60s window
+        # Entropy tracking: level counts over a sliding 60s window
         self._level_events = collections.deque(maxlen=10000)
         self._error_events = collections.deque(maxlen=10000)
 

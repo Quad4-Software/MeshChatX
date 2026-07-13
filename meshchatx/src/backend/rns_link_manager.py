@@ -14,16 +14,16 @@ from meshchatx.src.backend.reticulum_pathfinding import ReticulumLike
 
 
 # Cache of established RNS Links keyed by (aspect_str, destination_hash_bytes).
-# Kept separate from nomadnet_downloader.nomadnet_cached_links — the two caches
+# Kept separate from nomadnet_downloader.nomadnet_cached_links, as the two caches
 # may merge in the future if NomadNet is ported onto this generic Links API.
 rns_cached_links: dict[tuple[str, bytes], "RNS.Link"] = {}
 _rns_link_last_used: dict[tuple[str, bytes], float] = {}
 _rns_links_lock = threading.Lock()
 
 # Per-cache-key count of consecutive RNS.Link request failures. Reset on
-# successful response; cleared whenever the cached link at the key is
-# replaced or evicted. Guarded by _rns_links_lock (same lock as the cache —
-# the two are mutated together).
+# successful response, and cleared whenever the cached link at the key is
+# replaced or evicted. Guarded by _rns_links_lock (same lock as the cache,
+# as the two are mutated together).
 _link_failure_counts: dict[tuple[str, bytes], int] = {}
 
 # Number of consecutive request failures on a cached link that triggers a
@@ -283,7 +283,7 @@ class RnsLinkManager:
                 ):
                     await asyncio.sleep(_POLL_INTERVAL_S)
             except asyncio.CancelledError:
-                # No link object yet — nothing to tear down. Just propagate.
+                # No link object yet, so there is nothing to tear down. Just propagate.
                 raise
         if not RNS.Transport.has_path(destination_hash):
             return None, False, "no_path_to_destination"
@@ -408,7 +408,7 @@ class RnsLinkManager:
         def _wrapped_failed(receipt=None, _cb=failed_callback, _key=key):
             _count, recycled = _record_failure_and_maybe_recycle(_key)
             if recycled:
-                # The cached link has been torn down and evicted; the next
+                # The cached link has been torn down and evicted, so the next
                 # rns.link.request to this destination will re-establish.
                 # The existing link_closed event already fires from
                 # _on_link_closed via link.teardown(), so clients that watch
@@ -417,7 +417,7 @@ class RnsLinkManager:
                 # Future enhancement (option B from design): broadcast a
                 # dedicated rns.link.event with
                 # event="link_recycled_after_failures", failures=_count,
-                # destination_hash=_key[1].hex(), aspect=_key[0] — useful
+                # destination_hash=_key[1].hex(), aspect=_key[0], which is useful
                 # for UIs that want to surface "link reset after N failures"
                 # diagnostics distinct from a plain link_closed.
                 pass

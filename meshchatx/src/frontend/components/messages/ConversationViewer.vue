@@ -2497,7 +2497,7 @@ export default {
         // fetch contacts for suggestions
         this.fetchContacts();
 
-        // Propagation sync chrome lives in App; this page only triggers it.
+        // Propagation sync chrome lives in App, and this page only triggers it.
         this.propagationStatusInterval = null;
 
         this._scheduleOutboundSendStatusTick();
@@ -3242,7 +3242,7 @@ export default {
         },
         async loadPrevious() {
             // Pagination requests must not overlap. Initial page loads (empty thread) must still run
-            // if a previous peer's fetch or a scroll load left isLoadingPrevious true; otherwise
+            // if a previous peer's fetch or a scroll load left isLoadingPrevious true, otherwise
             // initialLoad clears chatItems and loadPrevious returns without fetching (empty UI).
             if (this.isLoadingPrevious && this.oldestMessageId != null) {
                 return;
@@ -7157,7 +7157,7 @@ export default {
                 return;
             }
 
-            // Optimistic UI update; roll back if the server call fails.
+            // Optimistic UI update, and roll back if the server call fails.
             conversation.is_unread = false;
 
             try {

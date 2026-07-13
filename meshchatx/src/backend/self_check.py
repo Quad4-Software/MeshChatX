@@ -217,7 +217,7 @@ def _check_storage_lock_soft_fallback(lock_dir: str) -> dict[str, str]:
     from meshchatx.src.backend.storage_lock import StorageLock, StorageLockError
 
     if sys.platform == "win32":
-        # Windows uses msvcrt; soft fallback is Unix-only. Still verify a second
+        # Windows uses msvcrt, so soft fallback is Unix-only. Still verify a second
         # native holder is rejected (covered above) and return ok here.
         return _status(True)
 
@@ -782,7 +782,7 @@ async def _probe_rns_link_api(ws: Any, *, timeout: float = 10.0) -> dict[str, st
             status = payload.get("status")
             if status not in ("success", "failure"):
                 return _status(False, f"unexpected status={status!r}")
-            # No cached link is expected in self-check; failure is the normal path.
+            # No cached link is expected in self-check, so failure is the normal path.
             if status == "failure" and payload.get("failure_reason") not in (
                 None,
                 "no_active_link",
@@ -1006,7 +1006,7 @@ async def _run_web_api_probes(app: Any) -> dict[str, dict[str, str]]:
                                 "ws closed without first message",
                             )
                         else:
-                            # Connection works; first push may be absent under test doubles.
+                            # Connection works, and first push may be absent under test doubles.
                             results["websocket_good"] = _status(True)
                     else:
                         if msg.type not in (WSMsgType.TEXT, WSMsgType.BINARY):

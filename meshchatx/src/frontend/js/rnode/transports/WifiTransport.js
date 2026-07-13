@@ -92,7 +92,7 @@ export default class WifiTransport extends Transport {
     }
 
     async open() {
-        // No persistent stream; OTA upload is one-shot. Kept to keep API symmetric.
+        // No persistent stream, as OTA upload is one-shot. Kept to keep API symmetric.
         this.opened = true;
     }
 

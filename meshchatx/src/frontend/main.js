@@ -469,7 +469,7 @@ if (networkReady) {
             try {
                 router.replace({ name: "interfaces" });
             } catch {
-                // Route may not exist yet during early boot; banner still guides the user.
+                // Route may not exist yet during early boot, but the banner still guides the user.
             }
         }
     }

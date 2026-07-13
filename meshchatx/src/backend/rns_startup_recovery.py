@@ -297,7 +297,7 @@ def apply_startup_recovery_step(
 
     if attempt <= 0:
         if i2p_support.disable_all_i2p_in_config(config_path):
-            # Names unknown here; report a synthetic marker for logs/tests.
+            # Names unknown here, so report a synthetic marker for logs/tests.
             disabled.append("__i2p__")
         return disabled
 

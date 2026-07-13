@@ -238,7 +238,7 @@ async function flushPendingSave(api) {
         }
         try {
             const response = await api.put("/api/v1/favourites/layout", { layout });
-            // A newer save may have arrived while this PUT was in flight; prefer that.
+            // A newer save may have arrived while this PUT was in flight, so prefer that.
             if (pendingSaveLayout) {
                 continue;
             }

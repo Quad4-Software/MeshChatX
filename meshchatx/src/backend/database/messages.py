@@ -602,7 +602,7 @@ class MessageDAO:
             """,
         )
 
-        # Only outbound messages can get stuck mid-send; incoming messages are
+        # Only outbound messages can get stuck mid-send, as incoming messages are
         # never failed (we already received them).
         self.provider.execute(
             """
