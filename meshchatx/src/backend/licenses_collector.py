@@ -361,6 +361,7 @@ def _try_pnpm_licenses(repo_root: Path) -> list[dict[str, Any]] | None:
             text=True,
             timeout=120,
             check=False,
+            stdin=subprocess.DEVNULL,
         )
     except (subprocess.TimeoutExpired, OSError):
         return None

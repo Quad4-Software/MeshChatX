@@ -55,13 +55,29 @@ def mock_rns_minimal():
 
 @pytest.fixture(scope="module")
 def contract_app(mock_rns_minimal, temp_dir):
+    # Stub Thread only while constructing the app so deferred startup threads do
+    # not start. Leave real Thread available afterward so asyncio.to_thread works
+    # (licenses, memory diag, etc.). Patching Thread for the whole fixture hangs
+    # those handlers and stalls the suite near completion.
     with (
         patch("meshchatx.meshchat.generate_ssl_certificate"),
         patch("psutil.Process") as mock_process,
         patch("psutil.net_io_counters") as mock_net_io,
         patch("importlib.metadata.version", return_value="1.2.3"),
         patch("meshchatx.meshchat.LXST") as mock_lxst,
-        patch("threading.Thread"),
+        patch(
+            "meshchatx.src.backend.licenses_collector.build_licenses_payload",
+            return_value={
+                "backend": [{"name": "rns", "version": "1.0", "license": "MIT"}],
+                "frontend": [{"name": "vue", "version": "3.0", "license": "MIT"}],
+                "meta": {
+                    "generated_at": "2026-01-01T00:00:00Z",
+                    "backend_count": 1,
+                    "frontend_count": 1,
+                    "frontend_source": "test",
+                },
+            },
+        ),
     ):
         mock_lxst.__version__ = "1.2.3"
         mock_proc_instance = mock_process.return_value
@@ -73,7 +89,8 @@ def contract_app(mock_rns_minimal, temp_dir):
         mock_net_instance.bytes_recv = 0
         mock_net_instance.packets_sent = 0
         mock_net_instance.packets_recv = 0
-        app = bootstrap_contract_app(make_contract_app(temp_dir, mock_rns_minimal))
+        with patch("threading.Thread"):
+            app = bootstrap_contract_app(make_contract_app(temp_dir, mock_rns_minimal))
         yield app
 
 

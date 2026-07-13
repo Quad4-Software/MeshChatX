@@ -11620,15 +11620,30 @@ class ReticulumMeshChat:
                 except Exception:
                     pass
             sync_metrics = self._collect_propagation_sync_metrics()
+            progress_raw = getattr(
+                self.message_router,
+                "propagation_transfer_progress",
+                0.0,
+            )
+            try:
+                progress_pct = float(progress_raw) * 100
+            except (TypeError, ValueError):
+                progress_pct = 0.0
+            last_result = getattr(
+                self.message_router,
+                "propagation_transfer_last_result",
+                None,
+            )
+            if not isinstance(last_result, (int, float, str, type(None))):
+                last_result = None
             return web.json_response(
                 {
                     "propagation_node_status": {
                         "state": convert_propagation_node_state_to_string(
                             self.message_router.propagation_transfer_state,
                         ),
-                        "progress": self.message_router.propagation_transfer_progress
-                        * 100,  # convert to percentage
-                        "messages_received": self.message_router.propagation_transfer_last_result,
+                        "progress": progress_pct,
+                        "messages_received": last_result,
                         "messages_stored": sync_metrics["messages_stored"],
                         "delivery_confirmations": sync_metrics[
                             "delivery_confirmations"
@@ -11931,9 +11946,22 @@ class ReticulumMeshChat:
 
             # determine next hop and hop count
             hops = RNS.Transport.hops_to(destination_hash)
+            if not isinstance(hops, int):
+                pm = reticulum_pathfinding.path_metadata_for_api(destination_hash)
+                return web.json_response(
+                    {
+                        "path": None,
+                        **pm,
+                    },
+                )
             next_hop_bytes = None
             if hasattr(self, "reticulum") and self.reticulum:
                 next_hop_bytes = self.reticulum.get_next_hop(destination_hash)
+            if next_hop_bytes is not None and not isinstance(
+                next_hop_bytes,
+                (bytes, bytearray),
+            ):
+                next_hop_bytes = None
 
             # ensure next hop provided
             if next_hop_bytes is None:

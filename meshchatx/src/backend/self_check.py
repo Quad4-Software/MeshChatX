@@ -350,6 +350,7 @@ def check_meshchatx_run_module() -> dict[str, str]:
             timeout=45,
             check=False,
             env=env,
+            stdin=subprocess.DEVNULL,
         )
         if result.returncode != 0:
             detail = (result.stderr or result.stdout or "").strip()[-500:]
@@ -406,6 +407,7 @@ def check_subprocess_spawn() -> dict[str, str]:
             timeout=30,
             check=False,
             env=env,
+            stdin=subprocess.DEVNULL,
         )
         if result.returncode != 0:
             return _status(
