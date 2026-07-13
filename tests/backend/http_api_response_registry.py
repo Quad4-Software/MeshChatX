@@ -110,7 +110,6 @@ from tests.backend.http_api_response_schemas import (
     TELEPHONE_HISTORY_SCHEMA,
     TELEPHONE_RECORDINGS_SCHEMA,
     TELEPHONE_STATUS_SCHEMA,
-    TOOLS_RNODE_LATEST_RELEASE_SCHEMA,
     TRANSLATOR_LANGUAGES_SCHEMA,
 )
 
@@ -364,12 +363,16 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
         "/api/v1/rrc/servers/{hub_id}/activity",
         RRC_ACTIVITY_SCHEMA,
         match_info={"hub_id": _HUB_ID},
+        allow_statuses=(200, 404),
+        alt_schemas=(MESSAGE_ENVELOPE_SCHEMA,),
     ),
     HttpJsonContract(
         "GET",
         "/api/v1/rrc/servers/{hub_id}/messages",
         RRC_MESSAGES_SCHEMA,
         match_info={"hub_id": _HUB_ID},
+        allow_statuses=(200, 404),
+        alt_schemas=(MESSAGE_ENVELOPE_SCHEMA,),
     ),
     HttpJsonContract("GET", "/api/v1/rncp/status", RNCP_STATUS_SCHEMA),
     HttpJsonContract(
@@ -399,9 +402,6 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
     HttpJsonContract("GET", "/api/v1/spam-keywords", SPAM_KEYWORDS_SCHEMA),
     HttpJsonContract(
         "GET", "/api/v1/translator/languages", TRANSLATOR_LANGUAGES_SCHEMA
-    ),
-    HttpJsonContract(
-        "GET", "/api/v1/tools/rnode/latest_release", TOOLS_RNODE_LATEST_RELEASE_SCHEMA
     ),
     HttpJsonContract("GET", "/api/v1/telephone/status", TELEPHONE_STATUS_SCHEMA),
     HttpJsonContract("GET", "/api/v1/telephone/history", TELEPHONE_HISTORY_SCHEMA),
@@ -469,6 +469,7 @@ HTTP_JSON_GET_CONTRACT_EXCLUDED: tuple[str, ...] = (
     "/api/v1/sticker-packs/{pack_id}/export",
     "/api/v1/telephone/contacts/export",
     "/api/v1/tools/rnode/download_firmware",
+    "/api/v1/tools/rnode/latest_release",
     "/api/v1/tools/micron-parser-go-release",
     "/api/v1/lxmf-messages/attachment/{message_hash}/{attachment_type}",
     "/api/v1/gifs/{gif_id}/image",

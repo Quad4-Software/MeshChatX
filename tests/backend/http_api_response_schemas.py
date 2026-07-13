@@ -363,10 +363,8 @@ FAVOURITES_SCHEMA: dict = {
 }
 
 PAGE_NODES_LIST_SCHEMA: dict = {
-    "type": "object",
-    "required": ["nodes"],
-    "properties": {"nodes": _ARRAY},
-    "additionalProperties": True,
+    "type": "array",
+    "items": _OBJECT,
 }
 
 PAGE_NODE_DETAIL_SCHEMA: dict = {
@@ -490,8 +488,8 @@ RRC_HUBS_SCHEMA: dict = {
 
 RRC_SERVERS_SCHEMA: dict = {
     "type": "object",
-    "required": ["servers"],
-    "properties": {"servers": _ARRAY},
+    "required": ["hubs"],
+    "properties": {"hubs": _ARRAY},
     "additionalProperties": True,
 }
 
