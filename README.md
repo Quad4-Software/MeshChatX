@@ -430,6 +430,9 @@ task build
 | `make lint`    | `task lint`    | ESLint, vue-tsc, knip, Ruff, and basedpyright |
 | `make test`    | `task test`    | Run frontend and backend tests                |
 | `make clean`   | `task clean`   | Remove build artifacts and node_modules       |
+| `make tree-rsm-verify` | (shell) | Verify `meshchatx.rsm` signature and hashes |
+| `make tree-rsm-sign` | (shell) | Sign tree inventory (requires `RNS_ID_PATH`) |
+| `make hooks-install` | (shell) | Enable tracked pre-commit RSM resign hook |
 
 ## Versioning
 
