@@ -191,14 +191,16 @@ def should_rediscover_path(destination_hash: bytes) -> bool:
 
 def path_metadata_for_api(destination_hash: bytes) -> dict[str, bool]:
     has = RNS.Transport.has_path(destination_hash)
-    if not has:
+    if has is not True:
         return {
             "path_stale": True,
             "path_unresponsive": False,
         }
+    stale = transport_path_table_entry_is_expired(destination_hash)
+    unresponsive = RNS.Transport.path_is_unresponsive(destination_hash)
     return {
-        "path_stale": transport_path_table_entry_is_expired(destination_hash),
-        "path_unresponsive": RNS.Transport.path_is_unresponsive(destination_hash),
+        "path_stale": stale if isinstance(stale, bool) else True,
+        "path_unresponsive": unresponsive if isinstance(unresponsive, bool) else False,
     }
 
 

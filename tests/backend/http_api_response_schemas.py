@@ -98,8 +98,8 @@ INTERFACES_LIST_SCHEMA: dict = {
 
 COMMUNITY_INTERFACES_SCHEMA: dict = {
     "type": "object",
-    "required": ["entries"],
-    "properties": {"entries": _ARRAY},
+    "required": ["interfaces"],
+    "properties": {"interfaces": _ARRAY},
     "additionalProperties": True,
 }
 
@@ -112,8 +112,12 @@ IDENTITIES_LIST_SCHEMA: dict = {
 
 LICENSES_ENVELOPE_SCHEMA: dict = {
     "type": "object",
-    "required": ["licenses"],
-    "properties": {"licenses": _ARRAY},
+    "required": ["backend", "frontend", "meta"],
+    "properties": {
+        "backend": _ARRAY,
+        "frontend": _ARRAY,
+        "meta": _OBJECT,
+    },
     "additionalProperties": True,
 }
 
@@ -147,8 +151,8 @@ MESHCHATX_DOCS_CONTENT_SCHEMA: dict = {
 
 DATABASE_HEALTH_SCHEMA: dict = {
     "type": "object",
-    "required": ["healthy"],
-    "properties": {"healthy": _BOOLEAN},
+    "required": ["database"],
+    "properties": {"database": _OBJECT},
     "additionalProperties": True,
 }
 
@@ -199,20 +203,8 @@ MEMORY_DIAGNOSTICS_DISABLED_SCHEMA: dict = {
 
 DISCOVERY_CONFIG_SCHEMA: dict = {
     "type": "object",
-    "required": [
-        "discover_interfaces",
-        "interface_discovery_sources",
-        "interface_discovery_whitelist",
-        "interface_discovery_blacklist",
-        "required_discovery_value",
-    ],
-    "properties": {
-        "discover_interfaces": {},
-        "interface_discovery_sources": {},
-        "interface_discovery_whitelist": {},
-        "interface_discovery_blacklist": {},
-        "required_discovery_value": {},
-    },
+    "required": ["discovery"],
+    "properties": {"discovery": _OBJECT},
     "additionalProperties": True,
 }
 
@@ -264,15 +256,18 @@ RETICULUM_CONFIG_RAW_SCHEMA: dict = {
 
 BLACKHOLE_STATUS_SCHEMA: dict = {
     "type": "object",
-    "required": ["enabled"],
-    "properties": {"enabled": _BOOLEAN},
+    "required": ["blackholed_identities"],
+    "properties": {
+        "blackholed_identities": {"type": ["object", "array"]},
+        "enabled": _BOOLEAN,
+    },
     "additionalProperties": True,
 }
 
 INTERFACE_STATS_SCHEMA: dict = {
     "type": "object",
-    "required": ["interfaces"],
-    "properties": {"interfaces": _ARRAY},
+    "required": ["interface_stats"],
+    "properties": {"interface_stats": _OBJECT},
     "additionalProperties": True,
 }
 
@@ -294,16 +289,14 @@ LXMF_CONVERSATIONS_SCHEMA: dict = {
 }
 
 LXMF_FOLDERS_SCHEMA: dict = {
-    "type": "object",
-    "required": ["folders"],
-    "properties": {"folders": _ARRAY},
-    "additionalProperties": True,
+    "type": "array",
+    "items": _OBJECT,
 }
 
 LXMF_CONVERSATION_PINS_SCHEMA: dict = {
     "type": "object",
-    "required": ["pins"],
-    "properties": {"pins": _ARRAY},
+    "required": ["peer_hashes"],
+    "properties": {"peer_hashes": _ARRAY, "pins": _ARRAY},
     "additionalProperties": True,
 }
 
@@ -336,15 +329,13 @@ LXMF_MESSAGE_BLOCKLIST_SCHEMA: dict = {
 
 LXMF_PROPAGATION_NODES_SCHEMA: dict = {
     "type": "object",
-    "required": ["nodes"],
-    "properties": {"nodes": _ARRAY},
+    "required": ["lxmf_propagation_nodes"],
+    "properties": {"lxmf_propagation_nodes": _ARRAY, "nodes": _ARRAY},
     "additionalProperties": True,
 }
 
 LXMF_PROPAGATION_STATUS_SCHEMA: dict = {
     "type": "object",
-    "required": ["status"],
-    "properties": {"status": _STRING},
     "additionalProperties": True,
 }
 
@@ -432,29 +423,27 @@ MAP_DRAWINGS_SCHEMA: dict = {
 
 MAP_OFFLINE_SCHEMA: dict = {
     "type": "object",
-    "required": ["tiles"],
-    "properties": {"tiles": _ARRAY},
+    "required": ["loaded"],
+    "properties": {"loaded": _BOOLEAN, "tiles": _ARRAY},
     "additionalProperties": True,
 }
 
 MAP_MBTILES_SCHEMA: dict = {
-    "type": "object",
-    "required": ["mbtiles"],
-    "properties": {"mbtiles": _ARRAY},
-    "additionalProperties": True,
+    "type": "array",
+    "items": _OBJECT,
 }
 
 TELEMETRY_PEERS_SCHEMA: dict = {
     "type": "object",
-    "required": ["peers"],
-    "properties": {"peers": _ARRAY},
+    "required": ["telemetry"],
+    "properties": {"telemetry": _ARRAY, "peers": _ARRAY},
     "additionalProperties": True,
 }
 
 TELEMETRY_TRACKING_SCHEMA: dict = {
     "type": "object",
-    "required": ["tracking"],
-    "properties": {"tracking": _ARRAY},
+    "required": ["tracked_peers"],
+    "properties": {"tracked_peers": _ARRAY, "tracking": _ARRAY},
     "additionalProperties": True,
 }
 
@@ -474,8 +463,8 @@ TELEMETRY_LATEST_SCHEMA: dict = {
 
 TELEMETRY_HISTORY_SCHEMA: dict = {
     "type": "object",
-    "required": ["history"],
-    "properties": {"history": _ARRAY},
+    "required": ["telemetry"],
+    "properties": {"telemetry": _ARRAY, "history": _ARRAY},
     "additionalProperties": True,
 }
 
@@ -516,8 +505,6 @@ RRC_ACTIVITY_SCHEMA: dict = {
 
 RNCP_STATUS_SCHEMA: dict = {
     "type": "object",
-    "required": ["status"],
-    "properties": {"status": _STRING},
     "additionalProperties": True,
 }
 
@@ -544,8 +531,6 @@ RNPATH_RATES_SCHEMA: dict = {
 
 RNPATH_TRACE_SCHEMA: dict = {
     "type": "object",
-    "required": ["trace"],
-    "properties": {"trace": _ARRAY},
     "additionalProperties": True,
 }
 
@@ -572,8 +557,6 @@ RNSTATUS_SCHEMA: dict = {
 
 BOTS_STATUS_SCHEMA: dict = {
     "type": "object",
-    "required": ["bots"],
-    "properties": {"bots": _ARRAY},
     "additionalProperties": True,
 }
 
@@ -586,8 +569,8 @@ BOTS_SUBPROCESS_LOG_SCHEMA: dict = {
 
 SPAM_KEYWORDS_SCHEMA: dict = {
     "type": "object",
-    "required": ["keywords"],
-    "properties": {"keywords": _ARRAY},
+    "required": ["spam_keywords"],
+    "properties": {"spam_keywords": _ARRAY, "keywords": _ARRAY},
     "additionalProperties": True,
 }
 
@@ -625,16 +608,17 @@ REPOSITORY_SERVER_STATUS_SCHEMA: dict = {
 }
 
 REPOSITORY_SERVER_LIST_SCHEMA: dict = {
-    "type": "object",
-    "required": ["entries"],
-    "properties": {"entries": _ARRAY},
-    "additionalProperties": True,
+    "type": "array",
+    "items": _OBJECT,
 }
 
 ANNOUNCE_SINGLE_SCHEMA: dict = {
     "type": "object",
-    "required": ["announce"],
-    "properties": {"announce": {"type": ["object", "null"]}},
+    "required": ["message"],
+    "properties": {
+        "message": _STRING,
+        "announce": {"type": ["object", "null"]},
+    },
     "additionalProperties": True,
 }
 
@@ -678,15 +662,18 @@ DESTINATION_STAMP_INFO_SCHEMA: dict = {
 
 DESTINATION_SIGNAL_METRICS_SCHEMA: dict = {
     "type": "object",
-    "required": ["metrics"],
-    "properties": {"metrics": {"type": ["object", "null"]}},
+    "required": ["signal_metrics"],
+    "properties": {
+        "signal_metrics": {"type": ["object", "null"]},
+        "metrics": {"type": ["object", "null"]},
+    },
     "additionalProperties": True,
 }
 
 LXMF_CONVERSATION_MESSAGES_SCHEMA: dict = {
     "type": "object",
-    "required": ["messages"],
-    "properties": {"messages": _ARRAY},
+    "required": ["lxmf_messages"],
+    "properties": {"lxmf_messages": _ARRAY, "messages": _ARRAY},
     "additionalProperties": True,
 }
 
@@ -713,15 +700,13 @@ CHANGELOG_SCHEMA: dict = {
 
 TELEPHONE_STATUS_SCHEMA: dict = {
     "type": "object",
-    "required": ["status"],
-    "properties": {"status": _INTEGER},
     "additionalProperties": True,
 }
 
 TELEPHONE_HISTORY_SCHEMA: dict = {
     "type": "object",
-    "required": ["history"],
-    "properties": {"history": _ARRAY},
+    "required": ["call_history"],
+    "properties": {"call_history": _ARRAY, "history": _ARRAY},
     "additionalProperties": True,
 }
 
@@ -756,7 +741,5 @@ TELEPHONE_CODEC2_STATUS_SCHEMA: dict = {
 
 TELEPHONE_CALL_SCHEMA: dict = {
     "type": "object",
-    "required": ["call"],
-    "properties": {"call": {"type": ["object", "null"]}},
     "additionalProperties": True,
 }
