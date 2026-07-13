@@ -34,7 +34,7 @@ Official release binaries and packages are built in **automation on GitHub**, no
 
 ### Source tree integrity (`.rsm`)
 
-The repository root includes a signed rnid message file, `meshchatx.rsm`. It embeds a SHA-256 inventory of every git-tracked file (except itself). CI verifies the signature against the required signer identity `e46112d44649266d71fe2193e00a4710`, then re-hashes file bytes. Jobs also recheck the inventory at the end so a compromised runner cannot silently add or modify tracked files.
+The repository root includes a signed rnid message file, `meshchatx.rsm`. It embeds a SHA-256 inventory of git-tracked files except itself and paths under any `vendor/` tree. CI verifies the signature against the required signer identity `e46112d44649266d71fe2193e00a4710`, then re-hashes file bytes. Jobs also recheck the inventory at the end so a compromised runner cannot silently add or modify tracked files.
 
 Verify locally:
 
