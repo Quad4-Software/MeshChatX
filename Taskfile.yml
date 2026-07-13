@@ -612,7 +612,6 @@ tasks:
             - cd "{{.ANDROID_DIR}}" && ./gradlew clean
             - rm -rf "{{.PYTHON_SRC_DIR}}/meshchatx" "{{.ANDROID_DIR}}/app/src/main/python/meshchatx"
 
-
     tree-manifest:
         desc: Print SHA-256 inventory of git-tracked files (excludes meshchatx.rsm)
         cmds:
