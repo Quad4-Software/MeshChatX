@@ -126,8 +126,9 @@ class RNStatusHandler:
         except Exception as e:
             # We can't do much here if the reticulum instance fails
             print(f"Failed to get interface stats: {e}")
+            stats = None
 
-        if stats is None:
+        if not isinstance(stats, dict):
             return {
                 "interfaces": [],
                 "link_count": link_count,
@@ -151,6 +152,8 @@ class RNStatusHandler:
                 blackhole_count = len(self.reticulum.get_blackholed_identities())
 
         interfaces = stats.get("interfaces", [])
+        if not isinstance(interfaces, list):
+            interfaces = []
 
         if sorting and isinstance(sorting, str):
             sorting = sorting.lower()

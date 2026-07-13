@@ -174,6 +174,31 @@ def adaptive_alert_ratio(baseline_ms):
     return 1.5
 
 
+class MemoryTracker:
+    """Context manager that records process RSS delta for memory profiling tests."""
+
+    def __init__(self, name: str):
+        self.name = name
+        self.mem_start = 0.0
+        self.mem_end = 0.0
+        self.mem_delta = 0.0
+
+    def __enter__(self):
+        gc.collect()
+        self.mem_start = get_memory_usage_mb()
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        gc.collect()
+        self.mem_end = get_memory_usage_mb()
+        self.mem_delta = self.mem_end - self.mem_start
+        print(
+            f"MEMORY: {self.name}: delta={self.mem_delta:.2f} MB "
+            f"(start={self.mem_start:.2f}, end={self.mem_end:.2f})",
+        )
+        return False
+
+
 def should_alert_regression(
     current_ms,
     previous_ms,

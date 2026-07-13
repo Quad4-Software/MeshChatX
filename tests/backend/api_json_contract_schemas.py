@@ -187,6 +187,8 @@ API_V1_STATUS_SCHEMA: dict = {
             "enum": ["http", "starting", "rns", "identity", "ready", "failed"],
         },
         "network_ready": {"type": "boolean"},
+        "network_degraded": {"type": "boolean"},
+        "ui_ready": {"type": "boolean"},
         "error": {"type": "string"},
         **_SERVER_BIND_STATUS_SCHEMA,
     },

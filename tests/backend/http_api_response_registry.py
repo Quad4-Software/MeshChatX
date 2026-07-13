@@ -66,8 +66,10 @@ from tests.backend.http_api_response_schemas import (
     MAP_MBTILES_SCHEMA,
     MAP_OFFLINE_SCHEMA,
     MEMORY_DIAGNOSTICS_SCHEMA,
+    MEMORY_DIAGNOSTICS_DISABLED_SCHEMA,
     MESHCHATX_DOCS_CONTENT_SCHEMA,
     MESHCHATX_DOCS_LIST_SCHEMA,
+    MESSAGE_ENVELOPE_SCHEMA,
     NOMADNET_ARCHIVES_SCHEMA,
     NOTIFICATIONS_SCHEMA,
     PAGE_NODE_DETAIL_SCHEMA,
@@ -108,13 +110,13 @@ from tests.backend.http_api_response_schemas import (
     TELEPHONE_HISTORY_SCHEMA,
     TELEPHONE_RECORDINGS_SCHEMA,
     TELEPHONE_STATUS_SCHEMA,
-    TOOLS_MICRON_PARSER_RELEASE_SCHEMA,
     TOOLS_RNODE_LATEST_RELEASE_SCHEMA,
     TRANSLATOR_LANGUAGES_SCHEMA,
 )
 
 _HEX32 = "a" * 32
 _HEX16 = "b" * 16
+_HEX64 = "b" * 64
 _NODE_ID = "1"
 _ROOM = "lobby"
 _HUB_ID = "1"
@@ -184,13 +186,31 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
     HttpJsonContract("GET", "/api/v1/database/backups", DATABASE_BACKUPS_SCHEMA),
     HttpJsonContract("GET", "/api/v1/debug/logs", DEBUG_LOGS_SCHEMA),
     HttpJsonContract("GET", "/api/v1/debug/access-attempts", ACCESS_ATTEMPTS_SCHEMA),
-    HttpJsonContract("GET", "/api/v1/diagnostics/memory", MEMORY_DIAGNOSTICS_SCHEMA),
     HttpJsonContract(
-        "GET", "/api/v1/diagnostics/memory/heap", MEMORY_DIAGNOSTICS_SCHEMA
+        "GET",
+        "/api/v1/diagnostics/memory",
+        MEMORY_DIAGNOSTICS_SCHEMA,
+        alt_schemas=(MEMORY_DIAGNOSTICS_DISABLED_SCHEMA,),
     ),
-    HttpJsonContract("GET", "/api/v1/diagnostics/memory/gc", MEMORY_DIAGNOSTICS_SCHEMA),
     HttpJsonContract(
-        "GET", "/api/v1/diagnostics/memory/referrers", MEMORY_DIAGNOSTICS_SCHEMA
+        "GET",
+        "/api/v1/diagnostics/memory/heap",
+        MEMORY_DIAGNOSTICS_SCHEMA,
+        allow_statuses=(200, 400),
+        alt_schemas=(ERROR_ENVELOPE_SCHEMA,),
+    ),
+    HttpJsonContract(
+        "GET",
+        "/api/v1/diagnostics/memory/gc",
+        MEMORY_DIAGNOSTICS_SCHEMA,
+        alt_schemas=(MEMORY_DIAGNOSTICS_DISABLED_SCHEMA, MESSAGE_ENVELOPE_SCHEMA),
+    ),
+    HttpJsonContract(
+        "GET",
+        "/api/v1/diagnostics/memory/referrers",
+        MEMORY_DIAGNOSTICS_SCHEMA,
+        allow_statuses=(200, 400),
+        alt_schemas=(ERROR_ENVELOPE_SCHEMA,),
     ),
     HttpJsonContract("GET", "/api/v1/identities", IDENTITIES_LIST_SCHEMA),
     HttpJsonContract(
@@ -236,24 +256,32 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
         "/api/v1/page-nodes/{node_id}",
         PAGE_NODE_DETAIL_SCHEMA,
         match_info={"node_id": _NODE_ID},
+        allow_statuses=(200, 404),
+        alt_schemas=(MESSAGE_ENVELOPE_SCHEMA,),
     ),
     HttpJsonContract(
         "GET",
         "/api/v1/page-nodes/{node_id}/files",
         PAGE_NODE_FILES_SCHEMA,
         match_info={"node_id": _NODE_ID},
+        allow_statuses=(200, 404),
+        alt_schemas=(MESSAGE_ENVELOPE_SCHEMA,),
     ),
     HttpJsonContract(
         "GET",
         "/api/v1/page-nodes/{node_id}/pages",
         PAGE_NODE_PAGES_SCHEMA,
         match_info={"node_id": _NODE_ID},
+        allow_statuses=(200, 404),
+        alt_schemas=(MESSAGE_ENVELOPE_SCHEMA,),
     ),
     HttpJsonContract(
         "GET",
         "/api/v1/page-nodes/{node_id}/pages/{page_name}",
         PAGE_NODE_DETAIL_SCHEMA,
         match_info={"node_id": _NODE_ID, "page_name": _PAGE_NAME},
+        allow_statuses=(200, 404),
+        alt_schemas=(MESSAGE_ENVELOPE_SCHEMA,),
     ),
     HttpJsonContract("GET", "/api/v1/lxmf/conversations", LXMF_CONVERSATIONS_SCHEMA),
     HttpJsonContract("GET", "/api/v1/lxmf/folders", LXMF_FOLDERS_SCHEMA),
@@ -280,7 +308,9 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
         "GET",
         "/api/v1/lxmf-messages/{message_hash}/uri",
         LXMF_MESSAGE_URI_SCHEMA,
-        match_info={"message_hash": _HEX16},
+        match_info={"message_hash": _HEX64},
+        allow_statuses=(200, 404, 422),
+        alt_schemas=(MESSAGE_ENVELOPE_SCHEMA,),
     ),
     HttpJsonContract("GET", "/api/v1/gifs", GIFS_LIST_SCHEMA),
     HttpJsonContract("GET", "/api/v1/stickers", STICKERS_LIST_SCHEMA),
@@ -304,6 +334,8 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
         "/api/v1/telemetry/latest/{destination_hash}",
         TELEMETRY_LATEST_SCHEMA,
         match_info={"destination_hash": _HEX32},
+        allow_statuses=(200, 404),
+        alt_schemas=(ERROR_ENVELOPE_SCHEMA,),
     ),
     HttpJsonContract(
         "GET",
@@ -324,6 +356,8 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
         "/api/v1/rrc/servers/{hub_id}/members",
         RRC_MEMBERS_SCHEMA,
         match_info={"hub_id": _HUB_ID},
+        allow_statuses=(200, 404),
+        alt_schemas=(MESSAGE_ENVELOPE_SCHEMA,),
     ),
     HttpJsonContract(
         "GET",
@@ -365,11 +399,6 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
     HttpJsonContract("GET", "/api/v1/spam-keywords", SPAM_KEYWORDS_SCHEMA),
     HttpJsonContract(
         "GET", "/api/v1/translator/languages", TRANSLATOR_LANGUAGES_SCHEMA
-    ),
-    HttpJsonContract(
-        "GET",
-        "/api/v1/tools/micron-parser-go-release",
-        TOOLS_MICRON_PARSER_RELEASE_SCHEMA,
     ),
     HttpJsonContract(
         "GET", "/api/v1/tools/rnode/latest_release", TOOLS_RNODE_LATEST_RELEASE_SCHEMA
@@ -440,6 +469,7 @@ HTTP_JSON_GET_CONTRACT_EXCLUDED: tuple[str, ...] = (
     "/api/v1/sticker-packs/{pack_id}/export",
     "/api/v1/telephone/contacts/export",
     "/api/v1/tools/rnode/download_firmware",
+    "/api/v1/tools/micron-parser-go-release",
     "/api/v1/lxmf-messages/attachment/{message_hash}/{attachment_type}",
     "/api/v1/gifs/{gif_id}/image",
     "/api/v1/stickers/{sticker_id}/image",

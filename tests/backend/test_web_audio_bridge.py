@@ -297,6 +297,7 @@ def test_attach_client_success_wires_telephony_and_dedupes_client(mock_pipeline_
     tele_mgr.telephone = tele
     tele_mgr.is_voicemail_session_active = False
     bridge = WebAudioBridge(tele_mgr, MagicMock())
+    bridge._loop = asyncio.new_event_loop()
     client = MagicMock()
 
     assert bridge.attach_client(client) is True
@@ -316,6 +317,7 @@ def test_attach_client_success_wires_telephony_and_dedupes_client(mock_pipeline_
     assert bridge.attach_client(client) is True
     assert len(bridge.clients) == 1
     mock_pipeline_cls.assert_called_once()
+    bridge._loop.close()
 
 
 @patch("meshchatx.src.backend.web_audio_bridge.Pipeline")
@@ -335,10 +337,12 @@ def test_attach_rx_tee_includes_base_sink_when_audio_output_exists(mock_pipeline
     tele_mgr.telephone = tele
     tele_mgr.is_voicemail_session_active = False
     bridge = WebAudioBridge(tele_mgr, MagicMock())
+    bridge._loop = asyncio.new_event_loop()
     assert bridge.attach_client(MagicMock()) is True
     assert len(bridge.rx_tee.sinks) == 2
     assert bridge.rx_tee.sinks[0] is base_out
     assert bridge.rx_tee.sinks[1] is bridge.rx_sink
+    bridge._loop.close()
 
 
 @patch("meshchatx.src.backend.web_audio_bridge.Pipeline")
@@ -357,9 +361,11 @@ def test_attach_rx_tee_single_sink_when_no_base_audio_output(mock_pipeline_cls):
     tele_mgr.telephone = tele
     tele_mgr.is_voicemail_session_active = False
     bridge = WebAudioBridge(tele_mgr, MagicMock())
+    bridge._loop = asyncio.new_event_loop()
     assert bridge.attach_client(MagicMock()) is True
     assert len(bridge.rx_tee.sinks) == 1
     assert bridge.rx_tee.sinks[0] is bridge.rx_sink
+    bridge._loop.close()
 
 
 def test_attach_client_returns_false_when_telephone_is_none():

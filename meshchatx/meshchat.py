@@ -13706,6 +13706,11 @@ class ReticulumMeshChat:
             lxmf_outbound_ticket_expiry = (
                 self.message_router.get_outbound_ticket_expiry(destination_hash_bytes)
             )
+            if lxmf_outbound_ticket_expiry is not None and not isinstance(
+                lxmf_outbound_ticket_expiry,
+                (int, float),
+            ):
+                lxmf_outbound_ticket_expiry = None
 
             return web.json_response(
                 {
