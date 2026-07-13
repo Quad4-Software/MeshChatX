@@ -1,0 +1,65 @@
+#!/bin/sh
+# pre-commit: keep meshchatx.rsm in sync with the staged tree inventory.
+#
+# Enable once per clone:
+#   task hooks:install
+#   # or: sh scripts/ci/install-git-hooks.sh
+#
+# Skip for one commit:
+#   SKIP_TREE_RSM_HOOK=1 git commit ...
+#
+# Without RNS_ID_PATH (or a default identity file) the hook warns and exits 0
+# so forks without the release identity are not blocked.
+set -eu
+
+if [ "${SKIP_TREE_RSM_HOOK:-0}" = "1" ]; then
+	exit 0
+fi
+
+ROOT="$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
+
+need_resign=0
+while IFS= read -r path; do
+	[ -n "$path" ] || continue
+	case "$path" in
+	meshchatx.rsm) continue ;;
+	vendor | vendor/* | */vendor | */vendor/*) continue ;;
+	*)
+		need_resign=1
+		break
+		;;
+	esac
+done <<EOF
+$(git diff --cached --name-only --diff-filter=ACMR)
+EOF
+
+if [ "$need_resign" -eq 0 ]; then
+	exit 0
+fi
+
+ID_PATH="${RNS_ID_PATH:-}"
+if [ -z "$ID_PATH" ]; then
+	for candidate in \
+		"$HOME/.local/share/reticulum-go/reticulum-go-release.rid" \
+		"$HOME/.rngit/client_identity"
+	do
+		if [ -f "$candidate" ]; then
+			ID_PATH="$candidate"
+			break
+		fi
+	done
+fi
+
+if [ -z "$ID_PATH" ] || [ ! -f "$ID_PATH" ]; then
+	echo "pre-commit: staged inventory paths changed but no signing identity found." >&2
+	echo "pre-commit: set RNS_ID_PATH or run: task tree-rsm-sign" >&2
+	echo "pre-commit: or skip with SKIP_TREE_RSM_HOOK=1" >&2
+	exit 0
+fi
+
+export RNS_ID_PATH="$ID_PATH"
+
+echo "pre-commit: resigning meshchatx.rsm"
+sh "$ROOT/scripts/ci/sign-tree-rsm.sh"
+git add -- "$ROOT/meshchatx.rsm"

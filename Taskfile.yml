@@ -613,7 +613,7 @@ tasks:
             - rm -rf "{{.PYTHON_SRC_DIR}}/meshchatx" "{{.ANDROID_DIR}}/app/src/main/python/meshchatx"
 
     tree-manifest:
-        desc: Print SHA-256 inventory of git-tracked files (excludes meshchatx.rsm)
+        desc: Print SHA-256 inventory of git-tracked files (excludes meshchatx.rsm and vendor/)
         cmds:
             - sh scripts/ci/tree-manifest.sh generate
 
@@ -626,6 +626,11 @@ tasks:
         desc: Verify meshchatx.rsm signature and byte-level file hashes
         cmds:
             - sh scripts/ci/verify-tree-rsm.sh
+
+    hooks:install:
+        desc: Enable tracked .githooks (pre-commit resigns meshchatx.rsm)
+        cmds:
+            - sh scripts/ci/install-git-hooks.sh
 
     tree-workspace-clean:
         desc: Recheck inventory and fail on unexpected workspace changes
