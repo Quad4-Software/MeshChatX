@@ -6,77 +6,31 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- **pip-rns / rngit tooling**: Optional ``task deps:backend:rns`` (``scripts/pip-rns-deps.sh`` + ``scripts/pip-rns/aliases``) installs ``rns`` / ``lxmf`` / ``lxst`` into the uv environment over markqvist rngit remotes via [pip-rns](https://github.com/Quad4-Software/pip-rns). ``task docs:rns`` and ``fetch_reticulum_manual.py --via-rns`` can sparse-clone the website remote for the offline manual. Clearnet ``uv sync`` / ``pnpm run build-docs`` remain the default.
-- **Map / remote overlays**: Import KMZ/KML/GeoJSON overlays from NomadNet ``hash:/file/...`` links and sparse RNGit ``rns://hash/group/repo`` fetches (specific paths at branch/tag/commit). Managed overlay sources with backend cache, refresh/autorefresh, retries with backoff, path requests, atomic writes, SHA256 skip, re-export (GeoJSON/KML/KMZ), and Settings → Map limits/timeouts. APIs under ``/api/v1/map/overlays*``.
-- **Plugins / security**: MeshChatX plugin signing with RSG verification (`plugin_rsg.py`), canonical ZIP/dir payloads, trusted publishers with digest tamper detection, post-install integrity hashing, and heuristic security findings. Invalid signatures hard-block install. Preview/install expose signature and findings. Trusted publisher APIs under `/api/v1/plugins/trusted-publishers`.
-- **Plugins / WASM bundles**: Single-file `.wasm` install with embedded `meshchatx.plugin` / `meshchatx.files` / `meshchatx.signature` custom sections (`plugin_wasm_bundle.py`). Preview/install accept `.wasm` as well as ZIP. Signing CLI `scripts/sign-plugin.py` for dir/zip/wasm/py.
-- **Plugins / Python backend**: ZIP/WASM-unpacked `backend.type: "python"` runtime (`plugin_python_runtime.py`) with permission-checked host, hooks/invoke, and Python badge in settings.
-- **Plugins / Sideband**: Sideband-compatible loader (`sideband_plugins.py`, `sideband_plugin_loader.py`, `sideband_host_adapter.py`) with `PLUGIN_COMMAND` (`0x00`) LXMF dispatch, telemetry refresh loop, config/settings/API (`/api/v1/sideband-plugins/*`), danger confirm, and optional `.py.rsg` per script.
-- **Settings / Reticulum**: Controls under **Settings → Network → Transport** for **Share Reticulum Instance**, **Obfuscate Hops** (RNS ``local_hops_delta``), **Respond to Probes**, **Remote Management**, shared-instance type/name, and **Copy RPC Config** (``shared_instance_type`` + ``rpc_key`` snippet). Backed by ``GET/PATCH /api/v1/reticulum/instance``. Covered by unit/Hypothesis fuzz tests, HTTP contract schema, Settings behavior contract, and headless self-check probe ``http_reticulum_instance_good`` (CI matrix: Ubuntu / macOS / Windows).
-- **Desktop**: Window close can **ask**, **quit**, or **keep running in background** (tray hide / taskbar minimize), with a remember-my-choice prompt and Settings → Desktop controls for tray integration and close behavior.
-- **Nomad Network / favourites**: Favourite section layout (custom sections and membership) is stored per identity in the database via ``GET/PUT /api/v1/favourites/layout``, with one-time migration from localStorage. Layout payloads are size-capped (sections/hashes/JSON bytes), prototype-pollution keys are rejected, saves coalesce and skip no-ops, and slow layout loads cannot overwrite newer local edits.
-- **Plugins**: JS/WASM plugin system with capability-based permissions, Worker-sandboxed frontend runtime, wasmtime-backed backend runtime, generic `/api/v1/plugins/*` API, and plugin management under **Settings → Maintenance** (drag-and-drop ZIP install, enable/disable, remove with confirmation, UI/WASM badges, empty state).
-- **Plugins**: Contribution-point registries for sidebar navigation, tools catalog, command palette, settings sections, and typed WebSocket event dispatch. Core UI surfaces are data-driven instead of hardcoded per component.
-- **Plugins**: **Bundled i18n**. Plugins ship `locales/{locale}.json` in the package. The host loads labels from plugin assets so third-party plugins do not need changes to MeshChatX main locale files.
-- **Plugins**: Declarative UI slot vocabulary in `PluginSlotRenderer` / `PluginSlotNode` for sections, action button rows, badges, card lists, grid rows, and text variants on plugin tool pages.
-- **Plugins**: Bundled **Bug Reports** plugin (`com.meshchatx.mcx-bugs`) with sender and collector modes over aspect ``mcx-bugs-v1``, selectable log redaction, and Tools/nav contribution. Host capabilities ``debugLog.read`` and ``bugReport.*`` plus checkbox/textarea plugin UI slots.
-- **Plugins**: Security guardrails in `plugin_guard.py` for ZIP size/magic validation, zip-slip protection, asset path normalization, WASM size/magic checks, invoke payload limits, and an error budget that auto-disables misbehaving plugins after repeated failures.
-- **Plugins**: `POST /api/v1/plugins/{id}/report-failure` for frontend worker crash reporting. Kill-switch broadcasts over WebSocket when a plugin is auto-disabled.
-- **Dependencies**: Added **wasmtime** for backend WASM plugin execution.
-- **Plugins**: `--disable-plugins` CLI flag and `MESHCHAT_DISABLE_PLUGINS` environment variable to disable the plugin system entirely at runtime.
-- **RNS Link API**: Generic WebSocket Link transport (`rns.link.open` / `identify` / `request` / `send` / `close` plus `rns.link.event` broadcasts) so external apps can use MeshChatX as an RNS transport. Based on contributions from [attermann/api_extensions](https://github.com/attermann/MeshChatX/tree/api_extensions). Auth-gated when password auth is enabled. In-flight open/request tasks cancel on client disconnect.
-- **Plugins / RNS Link**: Manager capabilities `rnsLink.open`, `rnsLink.identify`, `rnsLink.request`, `rnsLink.send`, `rnsLink.close` and hook `rns.link.event` for embedding transport-node tools (for example microReticulum management) as MeshChatX plugins.
-- **Tests / RNS Link**: Unit, edge-case, Hypothesis fuzz/property, plugin capability, WS auth, smoke, behavior-contract, and self-check coverage for the generic Link API (`websocket_rns_link_good` probe).
-- **Plugins / install consent**: ZIP install previews via `POST /api/v1/plugins/preview`, then a confirmation dialog listing requested permissions and scanned/declared external HTTP endpoints. Users can deny individual grants. Runtime enforces declared+granted hooks/managers/storage/`network:fetch`.
-- **Vendored LXMFy**: Refreshed `vendor/lxmfy` to upstream **1.6.5** (`d92cfe0`) with Landlock LSM sandbox for bot processes and external cogs, propagation-node init fix, cog permission fix, and dependency alignment with RNS 1.3.5+ / LXMF 1.0.1+.
-- **Mutation testing**: Backend uses **mutmut** (`task test:mutation:backend`). Frontend uses in-repo **MeshMut** (`task test:mutation:frontend`) with regex-based mutators and Vitest for pure JS modules. Optional `mutation.yml` workflow for manual or scheduled runs.
+- Plugin system: ZIP/WASM install, signed packages (RSG), Python and Sideband backends, install consent, and Settings management
+- Bundled Bug Reports plugin and plugin i18n / UI slots / contribution registries
+- Map overlays from NomadNet and RNGit (KMZ/KML/GeoJSON) with cache and refresh
+- RNS Link WebSocket API for external apps (and plugin capabilities)
+- Settings: Reticulum instance/share controls, tabbed Settings nav, desktop close/tray behavior
+- Nomad favourites: per-identity section layout in the database
+- Optional pip-rns / rngit install path for RNS packages and docs
+- LXMFy 1.6.5 vendor refresh, wasmtime, mutation test tasks
 
 ### Changed
 
-- **CI benchmarks**: Suite runs **3 times** and reports **median of medians** with MAD/CV in the JSON extra field. A smart gate replaces flat ratio alerts: noise floor (0.5 ms), minimum absolute delta (1.5 ms), and adaptive ratio thresholds that widen for tiny/noisy baselines. The previous ``Trim Announces`` 2.57x false positive (0.177→0.455 ms) is ignored. That bench now re-seeds before each sample so it measures a real DELETE. ``actions/cache`` bumped to **v5** (Node 24).
-- **Startup**: HTTP server binds before Reticulum/identity setup. RNS and identity context initialize on a background thread while Electron can open the UI shell. `/api/v1/status` reports `starting`/`ok` with `stage` and `network_ready`, and the Vue boot splash waits until the network stack is ready. CLI one-shots (`--self-check`, backup/restore, etc.) still initialize synchronously. Off-main-thread RNS construction skips ``signal.signal`` registration (Python restriction) and reinstalls SIGINT/SIGTERM handlers on the main loop once ready.
-- **Relay Chat**: Collapsed sidebar add control is a plain plus (no dashed border). Available Rooms can collapse and the state is remembered in localStorage. Discover hub list spacing is tighter and the search placeholder shows the heard hub count. Hub create/settings support announce interval (slider + minutes input). Hosted hub cards show human-readable uptime, label connected peers as users, and expose settings to rename or change/disable announces. Consecutive join/leave/connection system lines auto-collapse into a summary that can be expanded. Auto-rejoin after reconnect records ``You rejoined #room``. Link drops/manual disconnect/reconnect also write ``Connection lost`` / ``Disconnected from hub`` / ``Reconnected to hub`` into joined room timelines.
-
-- **Dependencies**: pnpm overrides bump transitive **minimist** to **>=1.2.8** and **fast-uri** to **>=3.1.2** (prototype pollution / URI normalization advisories via electron-builder tooling).
-- **Settings**: Settings section search keywords moved into `settingsSectionRegistry` for reuse by plugins and core sections.
-- **App shell**: WebSocket handling in `App.vue` migrated to typed per-event handlers via `wsEventRegistry`.
-- **Locales**: Main app locale files retain only **Settings → Plugins** UI strings. Per-plugin copy lives in each plugin bundle.
+- UI opens sooner: HTTP binds first, Reticulum starts in the background
+- Relay Chat: denser hub UI, announce interval, collapsed system lines, reconnect notices
+- CI benches use median-of-medians and quieter regression gates
+- Plugin strings live in plugin bundles, not main locale files
 
 ### Fixed
 
-- **Settings**: RPC key is hidden by default (star/bullet mask) and reveals on click/tap. Failed self-test rows expand to show the failure reason. Plugins moved to their own Settings tab. Notification sound enable toggle no longer crowds the description. Community Interfaces settings include a refresh control that fetches from ``directory.rns.recipes`` submitted + discovered online listings (updated default URLs).
-- **Android / startup**: Loading screen no longer shows attempt counters like ``(12/120)``. Copy uses short friendly phases, splash uses a full uncropped logo, and the adaptive launcher foreground is padded so corners are not clipped by the circular/squircle mask.
-- **Android**: Nightly/APK boot no longer crashes with ``ModuleNotFoundError: No module named 'lxmfy'``. Gradle syncs vendored ``vendor/lxmfy/lxmfy`` into Chaquopy ``src/main/python/lxmfy`` (desktop already got it via setuptools, Android pip never installed it).
-- **Android**: Backend boot no longer exits with ``SystemExit: 1`` when ``fcntl.flock`` is unimplemented (common on Android). ``StorageLock`` falls back to a PID soft lock, and the Chaquopy wrapper clears a stale ``.meshchatx.lock`` before ``main()``.
-- **CI / Android**: Nightly and ``workflow_dispatch`` emulator smoke (``.github/workflows/android-emulator-smoke.yml``) builds an x86_64 debug APK, installs it on an AVD, launches ``MainActivity``, and requires on-device ``/api/v1/status`` to return ok (catches Chaquopy boot failures that ``assembleDebug`` alone misses).
-- **Network visualiser**: Physics and canvas draw cost brought below upstream MeshChat for large meshes - disabled Barnes-Hut ``avoidOverlap``, matched upstream gravity, dropped per-edge arrows/dashes (direct vs multi-hop still distinguished by color/width), hide edges while zooming, larger adaptive build chunks with sync path for small graphs, debounced search rebuilds, cheaper LOD updates, and removed toolbar/legend backdrop-blur compositing over the canvas.
-- **Relay Chat**: Message list no longer stacks or duplicates text. Keys prefer message ``seq``, websocket/history loads dedupe, and room loads merge live websocket arrivals instead of wiping them.
-- **Nomad Network / favourites**: Favourite names no longer become **Unknown Node** when a path or announce is missing. Resolution falls back to the stored favourite name (and announce cache), and unknown/localized placeholders no longer overwrite real names on re-add or bulk-add.
-- **Nomad Network / sections**: Moving favourites into custom named sections now persists across reload and identity switches (DB-backed). Layout reconciliation no longer wipes storage while favourites are still loading.
-- **Bots / macOS**: Creating or starting LXMFy bots from a frozen desktop build no longer re-launches a second MeshChatX instance (and hit the storage lock). Bot subprocesses re-enter ``bot_process`` via ``--meshchatx-run-module``.
-- **Self-Test**: Diagnostics now include a live **bot create / start / stop / delete** check (also covered by ``--self-check`` CI and E2E smoke).
-- **Self-Test**: Expanded cross-platform checks for identity, critical imports, storage lock (native flock/msvcrt plus forced soft ENOSYS fallback), temp filesystem, public assets, LXMF router, subprocess spawn, ``--meshchatx-run-module`` re-entry, SQLite roundtrip, identity file roundtrip, loopback TCP, unicode path I/O, RNode support helpers, bot launcher argv, HTTP status/config/database-health/auth-csrf/bots-status/server-security/interfaces/reticulum-instance/identities/favourites/telephone APIs, and WebSocket ``/ws``. CI ``self-check`` matrix (Ubuntu / macOS / Windows) asserts the Storage Lock row passes.
-- **CI**: Backend test job runs once on Python **3.14** (dropped the duplicate 3.11 matrix entry).
-- **RNSh / Windows**: Frozen desktop builds no longer launch rnsh via ``python -m`` (``sys.executable`` is MeshChatX itself and rejects ``-m``). Sessions re-enter the bundled rnsh module with ``--meshchatx-run-module``.
-- **CI / nightly**: Daily ``nightly-YYYY.MM.DD-<sha>`` tags from ``dev`` now explicitly ``workflow_dispatch`` ``build-release.yml`` after tagging so full release assets are produced.
-- **CI / nightly**: Release upload creates nightlies and previews as **drafts**, attaches all assets, then publishes as prereleases so immutable-release repos can still receive binaries.
-- **Plugins**: Plugin worker `postRequest` Promise wrapper, plugin locale loading at boot, cached UI on page open, and slot renderer recursion for nested column/list/row children.
-- **Plugins**: Removed the Mesh Observatory example plugin.
-- **RNode / Android**: Hardened `rnode_support` startup guards. Desktop TCP RNode no longer incorrectly requires pyserial. Desktop BLE now checks for bleak instead of pyserial. Whitespace-only Bluetooth ports classify correctly. Invalid `tcp:///` hosts are no longer backfilled. `RNodeIPInterface` entries get `tcp_host` backfill on Android. RNodeMulti sibling sub-interfaces with invalid TX power are detected and disabled. Txpower guard honors both `enabled` and `interface_enabled` keys.
-- **RNode / desktop**: Added **bleak** as a core dependency and a desktop startup guard that disables unsupported RNode interfaces before Reticulum starts, fixing backend crashes when RNode over BLE is configured on Windows without bleak installed ([#46](https://github.com/Quad4-Software/MeshChatX/issues/46)).
-- **CI / tests**: Dependency contract test for bleak, startup integration test for the desktop RNode guard, and cx_Freeze build verification that bleak is bundled.
-- **Reticulum config**: Startup repair helpers validate required sections and parseability before applying default config (`reticulum_config_guard.py`).
-- **WebSocket / security**: Config mutators over WebSocket are restricted. Sensitive settings (e.g. `auth_enabled`, `auth_password_hash`) must use CSRF-protected HTTP endpoints (`websocket_config_guard.py`).
-- **Settings**: Tabbed settings navigation with section-to-tab mapping, search across tabs, and `SettingsNav` component.
-- **Settings**: Plugin settings search no longer treats `index.mu` / `index.html` literals as missing i18n keys.
-
-### Tests
-
-- **Startup**: Deferred RNS/identity init covered by unit, middleware (503 vs status/auth/csrf), concurrent status reads, failure/idempotency edge cases, Hypothesis fuzz of status payloads, Vue ``networkStartupWait`` polls, and Electron ``loadingStatusProbe`` accept/reject rules for ``starting``/``ok``/``failed``.
-- **Relay Chat / Nomad Network / Desktop**: Coverage for RRC message dedupe and room-load races, favourite unknown-name sentinels (including localized placeholders), favourite section layout persistence (including DB layout API, localStorage migration, size caps, prototype-pollution rejection, save coalescing, and load/edit races), announce-aware favourite display, and Electron close-behavior persistence / re-entrancy guards.
-- **Plugins**: Registry, manifest, plugin labels, WebSocket event router, `PluginManager`, and `plugin_guard` unit tests (including zip-slip rejection and fuzzed invalid install payloads). HTTP API contract updated for plugin routes.
-- **Tests**: Expanded `rnode_support` coverage (67 tests, including hypothesis fuzzing and full startup repair sequence). Settings tabs contract tests, i18n key validation, and `SettingsNav` component tests.
-- **Security**: `test_websocket_config_security.py` and `test_reticulum_config_guard.py` for WebSocket config denylist and Reticulum config repair behavior.
+- Android: lxmfy packaging, flock soft-lock, splash/logo clipping, emulator smoke
+- RNode BLE on desktop needs bleak ([#46](https://github.com/Quad4-Software/MeshChatX/issues/46)); startup disables unsupported interfaces
+- Nomad favourites: no more Unknown Node / lost custom sections
+- Relay Chat message dedupe; network visualiser faster on large meshes
+- Bots and RNSh work in frozen macOS/Windows builds (`--meshchatx-run-module`)
+- Sensitive config no longer mutable over WebSocket; Reticulum config repair on startup
+- Nightly releases and broader self-test / CI coverage
 
 ## [4.7.2] - 2026-07-06
 
