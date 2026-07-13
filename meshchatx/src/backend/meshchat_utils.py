@@ -260,6 +260,94 @@ def hex_identifier_to_bytes(value: str | None) -> bytes | None:
         return None
 
 
+_LXMF_CONTENT_HASH_HEX_LEN = 64
+
+
+def normalized_meshchat_lxmf_message_hash_hex(value: str | None) -> str:
+    """Return a canonical 64-char lowercase LXMF content hash, or empty if invalid."""
+    if not value or not isinstance(value, str):
+        return ""
+    raw = value.strip()
+    if "://" in raw:
+        raw = raw.split("://", 1)[1]
+    if "@" in raw:
+        raw = raw.split("@", 1)[1]
+    if ":" in raw:
+        raw = raw.split(":", 1)[0]
+    h = normalize_hex_identifier(raw)
+    if len(h) != _LXMF_CONTENT_HASH_HEX_LEN:
+        return ""
+    if hex_identifier_to_bytes(h) is None:
+        return ""
+    return h
+
+
+def _lxm_matches_content_hash(lxm, content_hash_bytes: bytes) -> bool:
+    h = getattr(lxm, "hash", None)
+    if isinstance(h, bytes) and h == content_hash_bytes:
+        return True
+    mid = getattr(lxm, "message_id", None)
+    return isinstance(mid, bytes) and mid == content_hash_bytes
+
+
+def find_lxm_by_content_hash_for_paper_uri(
+    message_router,
+    content_hash_bytes: bytes,
+):
+    """Return a live ``LXMessage`` from router outbound queues, or ``None``.
+
+    Paper URI generation needs packed bytes that only exist while the message is
+    still in ``pending_outbound`` or ``pending_deferred_stamps``.
+    """
+    if not message_router or not content_hash_bytes:
+        return None
+    for lxm in getattr(message_router, "pending_outbound", ()) or ():
+        if _lxm_matches_content_hash(lxm, content_hash_bytes):
+            return lxm
+    deferred = getattr(message_router, "pending_deferred_stamps", None) or {}
+    for lxm in deferred.values():
+        if _lxm_matches_content_hash(lxm, content_hash_bytes):
+            return lxm
+    return None
+
+
+def lxmf_message_try_paper_uri_string(lxm) -> tuple[str | None, str | None]:
+    """Build an ``lxm://`` Paper URI from a live message without mutating it.
+
+    Returns ``(uri, None)`` on success, or ``(None, detail)`` on failure.
+    """
+    if lxm is None:
+        return None, "No message"
+    try:
+        import copy
+
+        dest = lxm.get_destination()
+        src = lxm.get_source()
+        if dest is None or src is None:
+            return None, "Message is missing source or destination"
+        fields = copy.deepcopy(lxm.get_fields() or {})
+        content = lxm.content
+        if not isinstance(content, (bytes, bytearray)):
+            content = lxm.content_as_string() or ""
+        title = lxm.title
+        if not isinstance(title, (bytes, bytearray)):
+            title = lxm.title_as_string() or ""
+        paper = LXMF.LXMessage(
+            dest,
+            src,
+            content,
+            title=title,
+            fields=fields,
+            desired_method=LXMF.LXMessage.PAPER,
+        )
+        uri = paper.as_uri(finalise=False)
+        return uri, None
+    except TypeError as exc:
+        return None, str(exc)
+    except Exception as exc:
+        return None, str(exc)
+
+
 def interval_action_due(
     enabled: bool,
     last_at: int | None,

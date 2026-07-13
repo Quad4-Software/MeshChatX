@@ -92,7 +92,7 @@ COMPORTS_ENVELOPE_SCHEMA: dict = {
 INTERFACES_LIST_SCHEMA: dict = {
     "type": "object",
     "required": ["interfaces"],
-    "properties": {"interfaces": _ARRAY},
+    "properties": {"interfaces": {"type": ["object", "array"]}},
     "additionalProperties": True,
 }
 
@@ -187,6 +187,16 @@ MEMORY_DIAGNOSTICS_SCHEMA: dict = {
     "additionalProperties": True,
 }
 
+MEMORY_DIAGNOSTICS_DISABLED_SCHEMA: dict = {
+    "type": "object",
+    "required": ["enabled"],
+    "properties": {
+        "enabled": _BOOLEAN,
+        "message": _STRING,
+    },
+    "additionalProperties": True,
+}
+
 DISCOVERY_CONFIG_SCHEMA: dict = {
     "type": "object",
     "required": [
@@ -244,9 +254,12 @@ DISCOVERED_INTERFACES_SCHEMA: dict = {
 
 RETICULUM_CONFIG_RAW_SCHEMA: dict = {
     "type": "object",
-    "required": ["config"],
-    "properties": {"config": _STRING},
-    "additionalProperties": False,
+    "required": ["content"],
+    "properties": {
+        "content": _STRING,
+        "path": _STRING,
+    },
+    "additionalProperties": True,
 }
 
 BLACKHOLE_STATUS_SCHEMA: dict = {
@@ -265,8 +278,11 @@ INTERFACE_STATS_SCHEMA: dict = {
 
 PATH_TABLE_SCHEMA: dict = {
     "type": "object",
-    "required": ["paths"],
-    "properties": {"paths": _ARRAY},
+    "required": ["path_table"],
+    "properties": {
+        "path_table": _ARRAY,
+        "total_count": _INTEGER,
+    },
     "additionalProperties": True,
 }
 
@@ -300,8 +316,21 @@ LXMF_SIEVE_FILTERS_SCHEMA: dict = {
 
 LXMF_MESSAGE_BLOCKLIST_SCHEMA: dict = {
     "type": "object",
-    "required": ["entries"],
-    "properties": {"entries": _ARRAY},
+    "required": ["enabled", "blocklist"],
+    "properties": {
+        "enabled": _BOOLEAN,
+        "blocklist": {
+            "type": "object",
+            "required": ["entries"],
+            "properties": {
+                "entries": _ARRAY,
+                "scope": _STRING,
+                "match_peer_fields": _BOOLEAN,
+                "match_message": _BOOLEAN,
+            },
+            "additionalProperties": True,
+        },
+    },
     "additionalProperties": True,
 }
 
@@ -634,8 +663,18 @@ DESTINATION_DISPLAY_NAME_SCHEMA: dict = {
 
 DESTINATION_STAMP_INFO_SCHEMA: dict = {
     "type": "object",
-    "required": ["stamp_info"],
-    "properties": {"stamp_info": {"type": ["object", "null"]}},
+    "required": ["lxmf_stamp_info"],
+    "properties": {
+        "lxmf_stamp_info": {
+            "type": "object",
+            "required": ["stamp_cost", "outbound_ticket_expiry"],
+            "properties": {
+                "stamp_cost": {"type": ["integer", "null"]},
+                "outbound_ticket_expiry": {"type": ["number", "null"]},
+            },
+            "additionalProperties": True,
+        },
+    },
     "additionalProperties": True,
 }
 
@@ -662,8 +701,8 @@ LXMF_MESSAGE_URI_SCHEMA: dict = {
 
 IDENTITY_BACKUP_BASE32_SCHEMA: dict = {
     "type": "object",
-    "required": ["base32"],
-    "properties": {"base32": _STRING},
+    "required": ["identity_base32"],
+    "properties": {"identity_base32": _STRING},
     "additionalProperties": True,
 }
 
@@ -697,8 +736,11 @@ TELEPHONE_RECORDINGS_SCHEMA: dict = {
 
 TELEPHONE_AUDIO_PROFILES_SCHEMA: dict = {
     "type": "object",
-    "required": ["profiles"],
-    "properties": {"profiles": _ARRAY},
+    "required": ["audio_profiles"],
+    "properties": {
+        "audio_profiles": _ARRAY,
+        "default_audio_profile_id": _INTEGER,
+    },
     "additionalProperties": True,
 }
 
