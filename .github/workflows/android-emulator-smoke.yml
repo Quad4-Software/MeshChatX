@@ -183,6 +183,9 @@ jobs:
                   if-no-files-found: error
                   retention-days: 7
 
+            # android-emulator-runner runs each script line via `sh -c` (dash on
+            # Ubuntu). Keep this a single POSIX line and put bashisms in the
+            # smoke script (shebang + set -euo pipefail).
             - name: Run emulator smoke
               uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
               with:
@@ -193,9 +196,4 @@ jobs:
                   force-avd-creation: false
                   emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
                   disable-animations: true
-                  script: |
-                      set -euo pipefail
-                      APK="$(ls -1 android/app/build/outputs/apk/debug/*.apk | head -n 1)"
-                      echo "Using APK: ${APK}"
-                      chmod +x scripts/ci/android-emulator-smoke.sh
-                      MESHCHATX_SMOKE_TIMEOUT_SEC=180 bash scripts/ci/android-emulator-smoke.sh "${APK}"
+                  script: MESHCHATX_SMOKE_TIMEOUT_SEC=180 bash scripts/ci/android-emulator-smoke.sh "$(ls -1 android/app/build/outputs/apk/debug/*.apk | head -n 1)"
