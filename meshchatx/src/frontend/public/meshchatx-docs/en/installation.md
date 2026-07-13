@@ -136,16 +136,16 @@ CI release builds use the clearnet path. Without a bundled copy the Reticulum ta
 
 ## Advanced: Optional RNS-only installation (pip-rns)
 
-MeshChatX includes optional tooling to pull `rns`, `lxmf`, `lxst`, and the Reticulum manual from markqvist's rngit remotes over the mesh instead of clearnet. 
+MeshChatX includes optional tooling to pull `rns`, `lxmf`, `lxst`, and the Reticulum manual from markqvist's rngit remotes over the mesh instead of clearnet.
 
 **Note:** Installing Python packages over RNS is significantly slower than PyPI and is intended for use in environments with mesh access but restricted clearnet. PyPI remains the default and recommended path for CI and standard development.
 
-| Remote | Purpose |
-| ------ | ------- |
-| `rns://7649a50d84610232d1416b41d2896aff/reticulum/reticulum` | RNS package |
-| `rns://7649a50d84610232d1416b41d2896aff/reticulum/lxmf` | LXMF package |
-| `rns://7649a50d84610232d1416b41d2896aff/reticulum/lxst` | LXST package |
-| `rns://7649a50d84610232d1416b41d2896aff/reticulum/website` | Manual / website HTML |
+| Remote                                                       | Purpose               |
+| ------------------------------------------------------------ | --------------------- |
+| `rns://7649a50d84610232d1416b41d2896aff/reticulum/reticulum` | RNS package           |
+| `rns://7649a50d84610232d1416b41d2896aff/reticulum/lxmf`      | LXMF package          |
+| `rns://7649a50d84610232d1416b41d2896aff/reticulum/lxst`      | LXST package          |
+| `rns://7649a50d84610232d1416b41d2896aff/reticulum/website`   | Manual / website HTML |
 
 This uses [pip-rns](https://github.com/Quad4-Software/pip-rns) for the Python packages and `git` + `git-remote-rns` for the docs tree. Default aliases live in `scripts/pip-rns/aliases`.
 

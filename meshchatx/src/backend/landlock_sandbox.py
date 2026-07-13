@@ -129,9 +129,19 @@ def _syscall_numbers():
 
 def _libc():
     name = ctypes.util.find_library("c")
-    if not name:
+    try:
+        if name:
+            libc = ctypes.CDLL(name, use_errno=True)
+        else:
+            # On some systems (like Alpine/musl) find_library("c") fails.
+            # Loading None gives us access to symbols already in the process.
+            libc = ctypes.CDLL(None, use_errno=True)
+    except OSError:
         return None
-    libc = ctypes.CDLL(name, use_errno=True)
+
+    if not hasattr(libc, "syscall"):
+        return None
+
     libc.syscall.restype = ctypes.c_long
     return libc
 

@@ -140,7 +140,7 @@ Practical extension paths today:
 - Database schema changes through migrations
 - Generic RNS Link transport over WebSocket (`rns.link.*`) for external consoles and plugins (see [RNS Link API](rns-link-api.md))
 
-Granted plugin manager capabilities include `destinationPath.read`, `debugLog.read`, `bugReport.*`, and `rnsLink.open` / `identify` / `request` / `send` / `close`. Hooks include `announce.received` and `rns.link.event`. Storage (`storage:isolated`) and outbound HTTP (`network:fetch`) are also grantable; install preview scans plugin files for external URLs and stores the user-selected grant subset.
+Granted plugin manager capabilities include `destinationPath.read`, `debugLog.read`, `bugReport.*`, and `rnsLink.open` / `identify` / `request` / `send` / `close`. Hooks include `announce.received` and `rns.link.event`. Storage (`storage:isolated`) and outbound HTTP (`network:fetch`) are also grantable. The installation preview scans plugin files for external URLs and stores the user-selected grant subset.
 
 When adding features, prefer identity-scoped state, explicit migrations, endpoint tests, and narrowly declared plugin permissions.
 
