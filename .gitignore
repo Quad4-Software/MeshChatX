@@ -160,3 +160,9 @@ electron/backend-manifest.json
 scripts/private/
 
 *.exe
+# Local identity and rnid-style artifacts
+*.rid
+*.rsg
+*.rsm
+*.rfe
+!/meshchatx.rsm

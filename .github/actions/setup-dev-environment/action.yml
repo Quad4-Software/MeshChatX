@@ -24,6 +24,10 @@ inputs:
         description: Install go-task for Taskfile.yml targets
         required: false
         default: "true"
+    skip_tree_verify:
+        description: Set to true to skip meshchatx.rsm byte-level verify
+        required: false
+        default: "false"
 
 runs:
     using: composite
@@ -48,3 +52,11 @@ runs:
           if: inputs.install-task == 'true'
           shell: bash
           run: sh scripts/ci/setup-task.sh "${{ inputs.task-version }}"
+
+        - name: Verify tree RSM
+          if: inputs.skip_tree_verify != 'true'
+          shell: bash
+          env:
+              RNS_REQUIRED_SIGNER: e46112d44649266d71fe2193e00a4710
+              RNS_INVENTORY_OUT: ${{ runner.temp }}/meshchatx-tree-inventory.txt
+          run: sh scripts/ci/verify-tree-rsm.sh
