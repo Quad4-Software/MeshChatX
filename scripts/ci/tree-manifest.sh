@@ -6,6 +6,8 @@
 #   <sha256-hex>  <path>
 #
 # meshchatx.rsm is excluded from the inventory (avoids a self-hash cycle).
+# Paths under any vendor/ directory are excluded (vendored trees are not
+# first-party inventory).
 #
 # Paths are listed via newline-delimited git ls-files (POSIX sh / dash safe).
 # Do not use read -d or sort -z (bash/GNU-only).
@@ -21,6 +23,18 @@ cd "$ROOT"
 
 MANIFEST_HEADER="# meshchatx tree manifest v1"
 EXCLUDE_RSM="meshchatx.rsm"
+
+# True when path is the root RSM or lives under a vendor directory.
+is_excluded_path() {
+	f="$1"
+	[ "$f" = "$EXCLUDE_RSM" ] && return 0
+	case "$f" in
+	vendor | vendor/* | */vendor | */vendor/*)
+		return 0
+		;;
+	esac
+	return 1
+}
 
 file_sha256_stream() {
 	if command -v sha256sum >/dev/null 2>&1; then
@@ -52,7 +66,9 @@ generate() {
 	printf '%s\n' "$MANIFEST_HEADER"
 	tracked_paths | while IFS= read -r f; do
 		[ -n "$f" ] || continue
-		[ "$f" = "$EXCLUDE_RSM" ] && continue
+		if is_excluded_path "$f"; then
+			continue
+		fi
 		if ! git cat-file -e ":$f" 2>/dev/null; then
 			continue
 		fi
@@ -117,7 +133,9 @@ verify() {
 		: >"$tmp_tracked"
 		tracked_paths | while IFS= read -r f; do
 			[ -n "$f" ] || continue
-			[ "$f" = "$EXCLUDE_RSM" ] && continue
+			if is_excluded_path "$f"; then
+				continue
+			fi
 			[ -f "$f" ] || continue
 			[ -L "$f" ] && continue
 			printf '%s\n' "$f"

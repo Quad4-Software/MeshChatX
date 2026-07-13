@@ -34,6 +34,9 @@ is_allowed() {
 		esac
 	done
 	case "$p" in
+	vendor | vendor/* | */vendor | */vendor/*)
+		return 0
+		;;
 	*.log | *.tmp | *.swp | *.egg-info | *.pyc)
 		return 0
 		;;
