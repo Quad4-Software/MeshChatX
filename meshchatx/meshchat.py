@@ -11608,23 +11608,22 @@ class ReticulumMeshChat:
         @routes.get("/api/v1/lxmf/propagation-node/status")
         async def propagation_node_status(request):
             router = self.message_router
+            current_state = None
+            current_progress = 0.0
             if router is not None:
                 try:
-                    state = router.propagation_transfer_state
-                    # COMPLETE is terminal, so expose idle so the UI does not keep
+                    current_state = router.propagation_transfer_state
+                    current_progress = router.propagation_transfer_progress
+                    # COMPLETE is terminal, so reset to idle so the UI does not keep
                     # looking "busy" after a finished auto/manual sync.
-                    if state == router.PR_COMPLETE:
-                        router.propagation_transfer_state = router.PR_IDLE
+                    if current_state == router.PR_COMPLETE:
                         with contextlib.suppress(Exception):
+                            router.propagation_transfer_state = router.PR_IDLE
                             router.propagation_transfer_progress = 0.0
                 except Exception:
                     pass
             sync_metrics = self._collect_propagation_sync_metrics()
-            progress_raw = getattr(
-                self.message_router,
-                "propagation_transfer_progress",
-                0.0,
-            )
+            progress_raw = current_progress
             try:
                 progress_pct = float(progress_raw) * 100
             except (TypeError, ValueError):
@@ -11636,11 +11635,13 @@ class ReticulumMeshChat:
             )
             if not isinstance(last_result, (int, float, str, type(None))):
                 last_result = None
+            if current_state is None:
+                current_state = 0
             return web.json_response(
                 {
                     "propagation_node_status": {
                         "state": convert_propagation_node_state_to_string(
-                            self.message_router.propagation_transfer_state,
+                            current_state,
                         ),
                         "progress": progress_pct,
                         "messages_received": last_result,
