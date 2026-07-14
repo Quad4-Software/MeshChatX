@@ -114,7 +114,7 @@ def test_all_telephony_settings_persist(db):
     config.do_not_disturb_enabled.set(True)
     config.telephone_allow_calls_from_contacts_only.set(False)
     config.telephone_announce_enabled.set(True)
-    config.telephone_audio_profile_id.set(5)
+    config.telephone_audio_profile_id.set(96)
     config.telephone_web_audio_enabled.set(True)
     config.telephone_web_audio_allow_fallback.set(False)
     config.call_recording_enabled.set(True)
@@ -152,7 +152,7 @@ def test_all_telephony_settings_persist(db):
     assert config2.do_not_disturb_enabled.get() is True
     assert config2.telephone_allow_calls_from_contacts_only.get() is False
     assert config2.telephone_announce_enabled.get() is True
-    assert config2.telephone_audio_profile_id.get() == 5
+    assert config2.telephone_audio_profile_id.get() == 96
     assert config2.telephone_web_audio_enabled.get() is True
     assert config2.telephone_web_audio_allow_fallback.get() is False
     assert config2.call_recording_enabled.get() is True

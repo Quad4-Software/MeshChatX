@@ -116,6 +116,8 @@ async def test_lxm_ingest_uri_lxma_adds_contact(mock_app):
     fake_identity.hash = bytes.fromhex("bb" * 16)
     fake_identity.load_public_key.return_value = True
 
+    mock_app.config.auth_enabled.get.return_value = False
+
     with (
         patch(
             "meshchatx.meshchat.AsyncUtils.run_async",
@@ -163,6 +165,8 @@ async def test_lxm_ingest_uri_lxma_accepts_128_hex_public_key(mock_app):
         return len(key_bytes) == 64
 
     fake_identity.load_public_key.side_effect = load_public_key
+
+    mock_app.config.auth_enabled.get.return_value = False
 
     with (
         patch(

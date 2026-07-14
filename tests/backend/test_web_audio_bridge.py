@@ -467,6 +467,7 @@ def test_ensure_rx_tee_swallows_web_audio_sink_init_failure(mock_log):
     tele.receive_pipeline = None
     bridge = WebAudioBridge(MagicMock(), MagicMock())
     bridge.rx_sink = None
+    bridge._loop = object()
     with patch(
         "meshchatx.src.backend.web_audio_bridge.WebAudioSink",
         side_effect=RuntimeError("sink init failed"),
