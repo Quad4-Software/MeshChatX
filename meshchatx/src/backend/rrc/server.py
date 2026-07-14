@@ -401,7 +401,8 @@ class RRCHubServer:
             )
             return
         if not sess.welcomed:
-            self._handle_hello(link, sess, env, outgoing)
+            if t == proto.T_HELLO:
+                self._handle_hello(link, sess, env, outgoing)
             return
         if not self._refill_and_take(sess):
             outgoing.append(
