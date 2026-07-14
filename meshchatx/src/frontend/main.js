@@ -50,6 +50,10 @@ const vuetify = createVuetify({
     },
 });
 
+if (!window.location.hash || window.location.hash === "#") {
+    history.replaceState(null, "", "#/messages");
+}
+
 const router = createRouter({
     history: createWebHashHistory(),
     routes: [

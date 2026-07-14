@@ -201,7 +201,13 @@ public class MainActivity extends AppCompatActivity {
         showLoading("Starting MeshChatX…");
 
         if (!Python.isStarted()) {
-            Python.start(new AndroidPlatform(this));
+            try {
+                Python.start(new AndroidPlatform(this));
+            } catch (Exception e) {
+                backendFailed = true;
+                showStartupError("MeshChatX Python runtime failed to start:", toStackTrace(e));
+                return;
+            }
         }
         try {
             org.able.BLE.setAppContext(this);
