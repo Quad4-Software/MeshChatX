@@ -186,6 +186,13 @@ jobs:
             # android-emulator-runner runs each script line via `sh -c` (dash on
             # Ubuntu). Keep this a single POSIX line and put bashisms in the
             # smoke script (shebang + set -euo pipefail).
+            #
+            # The action itself also invokes `sh -c` internally with bash-only
+            # options (`set -euo pipefail`), which fails on runners where /bin/sh
+            # is dash. Force /bin/sh to bash for the duration of this job.
+            - name: Use bash as /bin/sh for emulator runner
+              run: sudo ln -sf /bin/bash /bin/sh
+
             - name: Run emulator smoke
               uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
               with:
