@@ -693,7 +693,7 @@
                         </div>
                         <div v-else>
                             <div
-                                class="leading-relaxed wrap-break-word [word-break:break-word] min-w-0 markdown-content"
+                                class="leading-relaxed break-words min-w-0 markdown-content"
                                 :class="{
                                     'markdown-content--outbound-theme':
                                         chatItem.is_outbound && cv.isThemeOutboundBubble(chatItem),
