@@ -202,6 +202,16 @@ def mock_app(db, tmp_path, temp_db):
             patch("meshchatx.src.backend.identity_context.AnnounceManager"),
         )
         stack.enter_context(patch("threading.Thread"))
+        # threading.Thread is mocked to prevent background threads, but that also
+        # breaks asyncio.to_thread (used by the HTTP layer for DB queries). Run
+        # those calls synchronously so integration tests do not hang waiting for a
+        # MagicMock thread that never starts.
+        stack.enter_context(
+            patch(
+                "asyncio.to_thread",
+                side_effect=lambda fn, *args, **kwargs: fn(*args, **kwargs),
+            ),
+        )
 
         mock_id = MockIdentityClass()
         mock_id.get_private_key = MagicMock(return_value=b"test_private_key")

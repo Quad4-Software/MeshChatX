@@ -756,10 +756,10 @@ class TestNotificationsGetUserFacingFilter:
 class TestNotificationsMarkReadSync:
     """Reading a conversation must clear the bell without opening the dropdown."""
 
-    async def _get(self, app, **params):
+    async def _get(self, app, path="/api/v1/notifications", **params):
         aio_app = _build_aio_app(app)
         async with TestClient(TestServer(aio_app)) as client:
-            resp = await client.get("/api/v1/notifications", params=params)
+            resp = await client.get(path, params=params)
             assert resp.status == 200
             return await resp.json()
 
@@ -831,32 +831,23 @@ class TestNotificationsMarkReadSync:
                 timestamp=1_700_000_000,
             ),
         )
-        aio_app = _build_aio_app(bell_app)
-        async with TestClient(TestServer(aio_app)) as client:
-            conv_before = await client.get(
-                "/api/v1/lxmf/conversations",
-                params={"filter_unread": "true"},
-            )
-            assert conv_before.status == 200
-            assert len((await conv_before.json())["conversations"]) == 1
 
-            await client.post(f"/api/v1/lxmf/conversations/{PEER_HASH}/mark-as-read")
+        conv_before = await self._get(
+            bell_app, path="/api/v1/lxmf/conversations", filter_unread="true"
+        )
+        assert len(conv_before["conversations"]) == 1
 
-            conv_after = await client.get(
-                "/api/v1/lxmf/conversations",
-                params={"filter_unread": "true"},
-            )
-            bell_after = await client.get(
-                "/api/v1/notifications",
-                params={"unread": "true", "limit": 10},
-            )
-            assert conv_after.status == 200
-            assert bell_after.status == 200
-            conv_body = await conv_after.json()
-            bell_body = await bell_after.json()
-            assert conv_body["conversations"] == []
-            assert bell_body["unread_count"] == 0
-            assert bell_body["notifications"] == []
+        await self._post(
+            bell_app, f"/api/v1/lxmf/conversations/{PEER_HASH}/mark-as-read"
+        )
+
+        conv_after = await self._get(
+            bell_app, path="/api/v1/lxmf/conversations", filter_unread="true"
+        )
+        bell_after = await self._get(bell_app, unread="true", limit=10)
+        assert conv_after["conversations"] == []
+        assert bell_after["unread_count"] == 0
+        assert bell_after["notifications"] == []
 
     async def test_read_conversation_with_reaction_latest_stays_clear(self, bell_app):
         bell_app.database.messages.upsert_lxmf_message(
