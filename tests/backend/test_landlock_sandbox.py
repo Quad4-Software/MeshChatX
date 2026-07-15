@@ -71,6 +71,16 @@ def test_landlock_auto_off_when_kernel_unsupported(monkeypatch):
         assert ll.landlock_auto_enabled() is False
 
 
+def test_landlock_kernel_supported_false_on_android(monkeypatch):
+    """Android seccomp blocks Landlock syscalls with SIGSYS."""
+    monkeypatch.delenv("MESHCHAT_LANDLOCK", raising=False)
+    ll._landlock_support_cached = None
+    with patch.object(ll, "sys") as mock_sys:
+        mock_sys.platform = "linux"
+        mock_sys.getandroidapilevel = lambda: 34
+        assert ll.landlock_kernel_supported() is False
+
+
 @pytest.mark.skipif(sys.platform != "linux", reason="Landlock probe requires Linux")
 def test_landlock_kernel_supported_on_linux():
     ll._landlock_support_cached = None

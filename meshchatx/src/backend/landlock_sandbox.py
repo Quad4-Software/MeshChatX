@@ -170,11 +170,24 @@ def _probe_landlock_create_ruleset() -> bool:
     return abi >= 1
 
 
+def _is_android() -> bool:
+    """Return True when running under Android/Chaquopy.
+
+    Android kernels may expose Landlock, but the app seccomp filter blocks
+    the syscalls and raises SIGSYS. Landlock must never be enabled there.
+    """
+    return hasattr(sys, "getandroidapilevel")
+
+
 def landlock_kernel_supported() -> bool:
     global _landlock_support_cached
     if _landlock_support_cached is not None:
         return _landlock_support_cached
     if sys.platform != "linux":
+        _landlock_support_cached = False
+        return False
+    if _is_android():
+        # Android seccomp blocks Landlock syscalls with SIGSYS.
         _landlock_support_cached = False
         return False
     if not _kernel_version_meets_minimum():
