@@ -327,10 +327,14 @@ def lxmf_message_try_paper_uri_string(lxm) -> tuple[str | None, str | None]:
             return None, "Message is missing source or destination"
         fields = copy.deepcopy(lxm.get_fields() or {})
         content = lxm.content
-        if not isinstance(content, (bytes, bytearray)):
+        if isinstance(content, (bytes, bytearray)):
+            content = content.decode("utf-8", errors="replace")
+        elif not isinstance(content, str):
             content = lxm.content_as_string() or ""
         title = lxm.title
-        if not isinstance(title, (bytes, bytearray)):
+        if isinstance(title, (bytes, bytearray)):
+            title = title.decode("utf-8", errors="replace")
+        elif not isinstance(title, str):
             title = lxm.title_as_string() or ""
         paper = LXMF.LXMessage(
             dest,
