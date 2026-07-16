@@ -312,7 +312,7 @@ meshchatx --restore-db /path/to/backup.zip
 Before finishing work in these areas, verify the matching invariants:
 
 1. **Identity import / tutorial** - key-only vs zip restore copy is correct, picker accepts real exports, activate-on-finish / skip paths do not orphan imports.
-2. **Conversations / notifications DB** - slim queries, MEMORY temp under Landlock, 503 on retryable SQLite errors.
+2. **Conversations / notifications DB** - slim queries, MEMORY temp under Landlock, 503 on retryable SQLite errors. Sidebar unread pills (messages, relay mentions, missed calls) stay in sync with read/viewed state. No header notification bell.
 3. **Auth / CSRF / WS config** - no new unauthenticated mutating surfaces, no sensitive settings over open WS mutators.
 4. **Plugins** - permissions declared, install preview/consent preserved, signatures/integrity not bypassed.
 5. **Android bridges** - MIME mapping, storage paths, and WebView navigation guards remain correct.

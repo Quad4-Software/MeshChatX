@@ -483,6 +483,11 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
     HttpJsonContract("GET", "/api/v1/telephone/status", TELEPHONE_STATUS_SCHEMA),
     HttpJsonContract("GET", "/api/v1/telephone/history", TELEPHONE_HISTORY_SCHEMA),
     HttpJsonContract(
+        "POST",
+        "/api/v1/telephone/missed-calls/mark-viewed",
+        {"type": "object", "additionalProperties": True},
+    ),
+    HttpJsonContract(
         "GET",
         "/api/v1/telephone/recordings",
         TELEPHONE_RECORDINGS_SCHEMA,

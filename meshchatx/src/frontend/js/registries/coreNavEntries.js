@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: 0BSD
 
-/** @typedef {'unreadConversationsCount' | 'relayChatUnreadCount'} NavBadgeSource */
+/** @typedef {'unreadConversationsCount' | 'relayChatUnreadCount' | 'missedCallsCount'} NavBadgeSource */
 
 /**
  * @typedef {Object} NavEntry
@@ -28,6 +28,7 @@ export const CORE_NAV_ENTRIES = [
         route: { name: "call" },
         icon: "phone",
         labelKey: "app.audio_calls",
+        badge: { source: "missedCallsCount", pill: true, cap: 99 },
     },
     {
         id: "contacts",

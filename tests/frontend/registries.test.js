@@ -116,4 +116,9 @@ describe("registerCoreContributions", () => {
         expect(listNavItems()).toHaveLength(CORE_NAV_ENTRIES.length);
         expect(listTools()).toHaveLength(CORE_TOOLS_ENTRIES.length);
     });
+
+    it("calls nav entry has a missed-calls pill badge", () => {
+        const call = CORE_NAV_ENTRIES.find((entry) => entry.id === "call");
+        expect(call?.badge).toEqual({ source: "missedCallsCount", pill: true, cap: 99 });
+    });
 });

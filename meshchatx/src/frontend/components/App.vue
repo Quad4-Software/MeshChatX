@@ -122,11 +122,17 @@
                             </button>
                             <button
                                 type="button"
-                                class="rounded-full p-1.5 sm:p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                                class="relative rounded-full p-1.5 sm:p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
                                 :title="$t('app.audio_calls')"
                                 @click="$router.push({ name: 'call' })"
                             >
                                 <MaterialDesignIcon icon-name="phone" class="w-5 h-5 sm:w-6 sm:h-6" />
+                                <span
+                                    v-if="missedCallsCount > 0"
+                                    class="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white"
+                                >
+                                    {{ missedCallsCount > 99 ? "99+" : missedCallsCount }}
+                                </span>
                             </button>
                             <button
                                 type="button"
@@ -731,6 +737,9 @@ export default {
         relayChatUnreadCount() {
             return GlobalState.relayChatUnreadCount;
         },
+        missedCallsCount() {
+            return GlobalState.missedCallsCount;
+        },
         rrcEnabled() {
             return GlobalState.config?.rrc_enabled !== false;
         },
@@ -906,6 +915,9 @@ export default {
             }
             if (item.badge.source === "relayChatUnreadCount") {
                 return this.relayChatUnreadCount;
+            }
+            if (item.badge.source === "missedCallsCount") {
+                return this.missedCallsCount;
             }
             return 0;
         },
@@ -1242,10 +1254,12 @@ export default {
             ToastUtils.success(this.$t("identities.switched"));
 
             GlobalState.unreadConversationsCount = 0;
+            GlobalState.missedCallsCount = 0;
 
             await this.getConfig();
             await this.updateRingtonePlayer();
             await this.getAppInfo();
+            this.updateTelephoneStatus();
 
             this.isSwitchingIdentity = false;
 
@@ -1409,6 +1423,7 @@ export default {
                     NotificationUtils.showMissedCallNotification(
                         json.remote_identity_name || json.remote_identity_hash
                     );
+                    this.updateTelephoneStatus();
                 },
                 telephone_initiation_status: (json) => {
                     this.initiationStatus = json.status;
@@ -1926,6 +1941,7 @@ export default {
                 this.initiationStatus = response.data.initiation_status;
                 this.initiationTargetHash = response.data.initiation_target_hash;
                 this.initiationTargetName = response.data.initiation_target_name;
+                GlobalState.missedCallsCount = response.data?.missed_calls_unread_count ?? 0;
 
                 // Update call ended state if needed
                 const justEnded = oldCall != null && this.activeCall == null;

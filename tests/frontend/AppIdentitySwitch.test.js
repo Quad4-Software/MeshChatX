@@ -29,6 +29,7 @@ function makeCtx() {
         getConfig: vi.fn().mockResolvedValue(undefined),
         updateRingtonePlayer: vi.fn().mockResolvedValue(undefined),
         getAppInfo: vi.fn().mockResolvedValue(undefined),
+        updateTelephoneStatus: vi.fn(),
         $t: (key) => key,
     };
 }
@@ -37,10 +38,12 @@ describe("App.vue applyIdentitySwitched", () => {
     beforeEach(() => {
         vi.clearAllMocks();
         GlobalState.unreadConversationsCount = 3;
+        GlobalState.missedCallsCount = 2;
     });
 
     afterEach(() => {
         GlobalState.unreadConversationsCount = 0;
+        GlobalState.missedCallsCount = 0;
         vi.useRealTimers();
     });
 
@@ -52,9 +55,11 @@ describe("App.vue applyIdentitySwitched", () => {
         });
         expect(ToastUtils.success).toHaveBeenCalledWith("identities.switched");
         expect(GlobalState.unreadConversationsCount).toBe(0);
+        expect(GlobalState.missedCallsCount).toBe(0);
         expect(ctx.getConfig).toHaveBeenCalledTimes(1);
         expect(ctx.updateRingtonePlayer).toHaveBeenCalledTimes(1);
         expect(ctx.getAppInfo).toHaveBeenCalledTimes(1);
+        expect(ctx.updateTelephoneStatus).toHaveBeenCalledTimes(1);
         expect(ctx.isSwitchingIdentity).toBe(false);
         expect(GlobalEmitter.emit).toHaveBeenCalledWith(
             "identity-switched",

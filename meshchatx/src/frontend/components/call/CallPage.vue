@@ -2566,9 +2566,11 @@ export default {
         this.getVoicemailStatus();
         this.getRingtones();
         this.getRingtoneStatus();
+        this.markMissedCallsViewed();
 
         GlobalEmitter.on("telephone-history-updated", this.getHistory);
         GlobalEmitter.on("telephone-history-updated", this.getVoicemails);
+        GlobalEmitter.on("telephone-history-updated", this.markMissedCallsViewed);
 
         // poll for status
         this.statusInterval = setInterval(() => {
@@ -2604,6 +2606,7 @@ export default {
     beforeUnmount() {
         GlobalEmitter.off("telephone-history-updated", this.getHistory);
         GlobalEmitter.off("telephone-history-updated", this.getVoicemails);
+        GlobalEmitter.off("telephone-history-updated", this.markMissedCallsViewed);
 
         if (this.statusInterval) clearInterval(this.statusInterval);
         if (this.historyInterval) clearInterval(this.historyInterval);
@@ -3742,10 +3745,19 @@ export default {
             try {
                 await window.api.delete("/api/v1/telephone/history");
                 this.callHistory = [];
+                await this.markMissedCallsViewed();
                 ToastUtils.success(this.$t("call.call_history_cleared"));
             } catch (e) {
                 console.error(e);
                 ToastUtils.error(this.$t("call.failed_to_clear_call_history"));
+            }
+        },
+        async markMissedCallsViewed() {
+            try {
+                await window.api.post("/api/v1/telephone/missed-calls/mark-viewed");
+                GlobalState.missedCallsCount = 0;
+            } catch (e) {
+                console.error(e);
             }
         },
         async blockIdentity(hash) {
