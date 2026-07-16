@@ -81,6 +81,23 @@ describe("behavior contracts: user-visible wiring must stay connected", () => {
             expect(src).toContain("persistMeshchatDownload");
             expect(src).toContain("MeshChatXAndroidBridge");
         });
+
+        it("Android MainActivity supports opt-in screenshot and clipboard privacy", () => {
+            const src = readSource("android/app/src/main/java/com/meshchatx/MainActivity.java");
+            expect(src).toContain("FLAG_SECURE");
+            expect(src).toContain("PREF_BLOCK_SCREENSHOTS");
+            expect(src).toContain("setBlockScreenshots");
+            expect(src).toContain("PREF_CLEAR_CLIPBOARD_ON_BACKGROUND");
+            expect(src).toContain("setClearClipboardOnBackground");
+            expect(src).toContain("setFilterTouchesWhenObscured");
+            expect(src).toMatch(/getBoolean\(\s*PREF_BLOCK_SCREENSHOTS\s*,\s*false\s*\)/);
+            expect(src).toMatch(/getBoolean\(\s*PREF_CLEAR_CLIPBOARD_ON_BACKGROUND\s*,\s*false\s*\)/);
+        });
+
+        it("Android backup of app data is disabled", () => {
+            const src = readSource("android/app/src/main/AndroidManifest.xml");
+            expect(src).toMatch(/android:allowBackup\s*=\s*"false"/);
+        });
     });
 
     describe("nomad mesh file upload", () => {

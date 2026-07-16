@@ -919,11 +919,43 @@
                             <header class="settings-section__header">
                                 <div>
                                     <div class="settings-section__eyebrow">Android</div>
-                                    <h2>{{ $t("settings.share_apk_heading") }}</h2>
-                                    <p>{{ $t("settings.share_apk_desc") }}</p>
+                                    <h2>{{ $t("settings.android_privacy_heading") }}</h2>
+                                    <p>{{ $t("settings.android_privacy_desc") }}</p>
                                 </div>
                             </header>
                             <div class="settings-section__body space-y-4">
+                                <label class="setting-toggle">
+                                    <input
+                                        v-model="androidShellPrivacy.blockScreenshots"
+                                        type="checkbox"
+                                        class="rounded-sm"
+                                        @change="saveAndroidBlockScreenshots"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{
+                                            $t("settings.android_block_screenshots")
+                                        }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("settings.android_block_screenshots_desc")
+                                        }}</span>
+                                    </span>
+                                </label>
+                                <label class="setting-toggle">
+                                    <input
+                                        v-model="androidShellPrivacy.clearClipboardOnBackground"
+                                        type="checkbox"
+                                        class="rounded-sm"
+                                        @change="saveAndroidClearClipboardOnBackground"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{
+                                            $t("settings.android_clear_clipboard_on_background")
+                                        }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("settings.android_clear_clipboard_on_background_desc")
+                                        }}</span>
+                                    </span>
+                                </label>
                                 <button
                                     type="button"
                                     class="btn-maintenance border-blue-200 dark:border-blue-900/30 text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/10 hover:bg-blue-100 dark:hover:bg-blue-900/20"
@@ -3827,6 +3859,10 @@ export default {
                 closeBehavior: "ask",
                 trayEnabled: true,
             },
+            androidShellPrivacy: {
+                blockScreenshots: false,
+                clearClipboardOnBackground: false,
+            },
             reticulumInstance: {
                 share_instance: true,
                 local_hops_delta: false,
@@ -4068,6 +4104,7 @@ export default {
         this.loadBatteryInterfaceRows();
         this.loadDesktopCloseSettings();
         this.loadReticulumInstanceSettings();
+        this.loadAndroidShellPrivacy();
     },
     methods: {
         loadBatterySaverPrefsFromStorage() {
@@ -4449,6 +4486,44 @@ export default {
             if (!bridge.shareApk()) {
                 ToastUtils.error(this.$t("settings.share_apk_failed"));
             }
+        },
+        loadAndroidShellPrivacy() {
+            if (!this.isMeshChatXAndroid) {
+                return;
+            }
+            const bridge = new AndroidBridge();
+            this.androidShellPrivacy = {
+                blockScreenshots: bridge.getBlockScreenshots(),
+                clearClipboardOnBackground: bridge.getClearClipboardOnBackground(),
+            };
+        },
+        saveAndroidBlockScreenshots() {
+            const bridge = new AndroidBridge();
+            const enabled = Boolean(this.androidShellPrivacy.blockScreenshots);
+            if (!bridge.setBlockScreenshots(enabled)) {
+                this.androidShellPrivacy.blockScreenshots = !enabled;
+                ToastUtils.error(this.$t("settings.android_privacy_save_failed"));
+                return;
+            }
+            ToastUtils.success(
+                enabled
+                    ? this.$t("settings.android_block_screenshots_on")
+                    : this.$t("settings.android_block_screenshots_off")
+            );
+        },
+        saveAndroidClearClipboardOnBackground() {
+            const bridge = new AndroidBridge();
+            const enabled = Boolean(this.androidShellPrivacy.clearClipboardOnBackground);
+            if (!bridge.setClearClipboardOnBackground(enabled)) {
+                this.androidShellPrivacy.clearClipboardOnBackground = !enabled;
+                ToastUtils.error(this.$t("settings.android_privacy_save_failed"));
+                return;
+            }
+            ToastUtils.success(
+                enabled
+                    ? this.$t("settings.android_clear_clipboard_on_background_on")
+                    : this.$t("settings.android_clear_clipboard_on_background_off")
+            );
         },
         matchesSearch(...texts) {
             return matchesSettingSearch(texts, (k) => this.$t(k), this.searchQuery);

@@ -4,6 +4,7 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.ActivityNotFoundException;
 import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
@@ -23,6 +24,7 @@ import android.os.PowerManager;
 import android.content.IntentFilter;
 import android.provider.MediaStore;
 import android.provider.Settings;
+import android.view.WindowManager;
 import android.webkit.CookieManager;
 import android.webkit.GeolocationPermissions;
 import android.webkit.PermissionRequest;
@@ -71,6 +73,8 @@ import org.json.JSONObject;
 public class MainActivity extends AppCompatActivity {
     private static final String SHELL_PREFS = "meshchatx_shell";
     private static final String PREF_UI_THEME = "ui_theme";
+    private static final String PREF_BLOCK_SCREENSHOTS = "block_screenshots";
+    private static final String PREF_CLEAR_CLIPBOARD_ON_BACKGROUND = "clear_clipboard_on_background";
     private static final String THEME_DARK = "dark";
     private static final String THEME_LIGHT = "light";
 
@@ -190,6 +194,9 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         WindowCompat.setDecorFitsSystemWindows(getWindow(), true);
         setContentView(R.layout.activity_main);
+        // Mitigate overlay tapjacking without changing user-visible behavior.
+        getWindow().getDecorView().setFilterTouchesWhenObscured(true);
+        applyBlockScreenshots(isBlockScreenshotsEnabled());
 
         webView = findViewById(R.id.webView);
         progressBar = findViewById(R.id.progressBar);
@@ -533,6 +540,9 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onStop() {
+        if (isClearClipboardOnBackgroundEnabled()) {
+            clearPrimaryClipboard();
+        }
         if (!isFinishing() && !backendFailed) {
             ContextCompat.startForegroundService(this, new Intent(this, MeshChatForegroundService.class));
         }
@@ -891,6 +901,56 @@ public class MainActivity extends AppCompatActivity {
                 : AppCompatDelegate.MODE_NIGHT_NO;
         if (getDelegate().getLocalNightMode() != desired) {
             getDelegate().setLocalNightMode(desired);
+        }
+    }
+
+    private boolean isBlockScreenshotsEnabled() {
+        return getSharedPreferences(SHELL_PREFS, MODE_PRIVATE)
+            .getBoolean(PREF_BLOCK_SCREENSHOTS, false);
+    }
+
+    private void setBlockScreenshotsEnabled(boolean enabled) {
+        getSharedPreferences(SHELL_PREFS, MODE_PRIVATE)
+            .edit()
+            .putBoolean(PREF_BLOCK_SCREENSHOTS, enabled)
+            .apply();
+        applyBlockScreenshots(enabled);
+    }
+
+    private void applyBlockScreenshots(boolean enabled) {
+        if (enabled) {
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+        } else {
+            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
+        }
+    }
+
+    private boolean isClearClipboardOnBackgroundEnabled() {
+        return getSharedPreferences(SHELL_PREFS, MODE_PRIVATE)
+            .getBoolean(PREF_CLEAR_CLIPBOARD_ON_BACKGROUND, false);
+    }
+
+    private void setClearClipboardOnBackgroundEnabled(boolean enabled) {
+        getSharedPreferences(SHELL_PREFS, MODE_PRIVATE)
+            .edit()
+            .putBoolean(PREF_CLEAR_CLIPBOARD_ON_BACKGROUND, enabled)
+            .apply();
+    }
+
+    private void clearPrimaryClipboard() {
+        try {
+            ClipboardManager clipboard =
+                (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+            if (clipboard == null) {
+                return;
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                clipboard.clearPrimaryClip();
+            } else {
+                clipboard.setPrimaryClip(ClipData.newPlainText("", ""));
+            }
+        } catch (Exception ignored) {
+            // Clipboard access can fail on locked devices or OEM builds.
         }
     }
 
@@ -1268,6 +1328,26 @@ public class MainActivity extends AppCompatActivity {
         @JavascriptInterface
         public void setUiTheme(String theme) {
             activity.runOnUiThread(() -> activity.setUiThemeFromBridge(theme));
+        }
+
+        @JavascriptInterface
+        public boolean getBlockScreenshots() {
+            return activity.isBlockScreenshotsEnabled();
+        }
+
+        @JavascriptInterface
+        public void setBlockScreenshots(boolean enabled) {
+            activity.runOnUiThread(() -> activity.setBlockScreenshotsEnabled(enabled));
+        }
+
+        @JavascriptInterface
+        public boolean getClearClipboardOnBackground() {
+            return activity.isClearClipboardOnBackgroundEnabled();
+        }
+
+        @JavascriptInterface
+        public void setClearClipboardOnBackground(boolean enabled) {
+            activity.runOnUiThread(() -> activity.setClearClipboardOnBackgroundEnabled(enabled));
         }
 
         @JavascriptInterface
