@@ -14344,10 +14344,28 @@ class ReticulumMeshChat:
                     offset=offset,
                 )
 
-                conversations = []
+                row_dicts = []
+                peer_hashes = []
                 for row in db_conversations:
                     if not isinstance(row, dict):
                         row = dict(row)
+                    other_user_hash = row["peer_hash"]
+                    if self._lxmf_sieve_hides_peer(
+                        other_user_hash,
+                        message_title=row.get("title"),
+                        message_content=row.get("content"),
+                    ):
+                        continue
+                    row_dicts.append(row)
+                    peer_hashes.append(other_user_hash)
+
+                tracking_states = await asyncio.to_thread(
+                    self.database.telemetry.get_tracking_states,
+                    peer_hashes,
+                )
+
+                conversations = []
+                for row in row_dicts:
                     other_user_hash = row["peer_hash"]
 
                     display_name = None
@@ -14360,13 +14378,6 @@ class ReticulumMeshChat:
                         display_name = row["contact_name"]
                     if not display_name:
                         display_name = "Anonymous Peer"
-
-                    if self._lxmf_sieve_hides_peer(
-                        other_user_hash,
-                        message_title=row.get("title"),
-                        message_content=row.get("content"),
-                    ):
-                        continue
 
                     # user icon
                     user_icon = None
@@ -14410,9 +14421,7 @@ class ReticulumMeshChat:
                             "contact_image": contact_image,
                             "destination_hash": other_user_hash,
                             "is_unread": is_unread,
-                            "is_tracking": self.database.telemetry.is_tracking(
-                                other_user_hash,
-                            ),
+                            "is_tracking": tracking_states.get(other_user_hash, False),
                             "failed_messages_count": row["failed_count"],
                             "has_attachments": has_attachments,
                             "latest_message_title": row["title"],

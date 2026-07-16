@@ -13,6 +13,26 @@ class MessageHandler:
     def __init__(self, db: Database):
         self.db = db
 
+    # Columns needed by convert_db_lxmf_message_to_dict / ConversationViewer.
+    # Prefer fields_meta (no attachment bytes). Fall back to small fields only.
+    _CONVERSATION_MESSAGE_COLUMNS = """
+            id, hash, source_hash, destination_hash, peer_hash, state, progress,
+            is_incoming, method, delivery_attempts, next_delivery_attempt_at,
+            title, content, timestamp, rssi, snr, quality, is_spam, reply_to_hash,
+            attachments_stripped, path_hops_at_send, path_interface_at_send,
+            path_finding_measure, path_row_hash_hex, created_at, updated_at,
+            COALESCE(has_image, 0) as has_image,
+            COALESCE(has_audio, 0) as has_audio,
+            COALESCE(has_files, 0) as has_files,
+            COALESCE(has_reaction, 0) as has_reaction,
+            COALESCE(has_telemetry, 0) as has_telemetry,
+            CASE
+                WHEN fields_meta IS NOT NULL AND fields_meta != '' THEN fields_meta
+                WHEN length(COALESCE(fields, '')) <= 16384 THEN fields
+                ELSE NULL
+            END as fields
+    """
+
     def get_conversation_messages(
         self,
         local_hash,
@@ -22,8 +42,9 @@ class MessageHandler:
         after_id=None,
         before_id=None,
     ):
-        query = """
-            SELECT * FROM lxmf_messages 
+        query = f"""
+            SELECT {self._CONVERSATION_MESSAGE_COLUMNS}
+            FROM lxmf_messages
             WHERE peer_hash = ?
         """
         params = [destination_hash]
@@ -73,30 +94,29 @@ class MessageHandler:
 
     # Keep conversation-list payloads small. Full ``fields`` often embeds
     # multi-MB base64 attachments and must never be loaded into the list API.
+    # Prefer persisted has_* columns (schema v51+). Fall back to instr only
+    # when flags were never backfilled (NULL) on filter paths.
     _CONVERSATION_CONTENT_PREVIEW_CHARS = 240
-    _FIELDS_HAS_IMAGE_SQL = (
-        "(m1.fields IS NOT NULL AND m1.fields != '' AND m1.fields != '{}' "
-        "AND (instr(m1.fields, '\"image\"') > 0 OR instr(m1.fields, '\"0x05\"') > 0))"
+    _FIELDS_HAS_IMAGE_SQL = "COALESCE(m1.has_image, 0)"
+    _FIELDS_HAS_AUDIO_SQL = "COALESCE(m1.has_audio, 0)"
+    _FIELDS_HAS_FILES_SQL = "COALESCE(m1.has_files, 0)"
+    _FIELDS_HAS_REACTION_SQL = "COALESCE(m1.has_reaction, 0)"
+    _FIELDS_HAS_TELEMETRY_SQL = "COALESCE(m1.has_telemetry, 0)"
+    _FIELDS_HAS_ATTACHMENTS_SQL = (
+        f"({_FIELDS_HAS_IMAGE_SQL} = 1 OR {_FIELDS_HAS_AUDIO_SQL} = 1 "
+        f"OR {_FIELDS_HAS_FILES_SQL} = 1)"
     )
-    _FIELDS_HAS_AUDIO_SQL = (
-        "(m1.fields IS NOT NULL AND m1.fields != '' AND m1.fields != '{}' "
-        "AND (instr(m1.fields, '\"audio\"') > 0 OR instr(m1.fields, '\"0x06\"') > 0))"
+    # Filter path: prefer columns so filter_has_attachments does not scan blobs.
+    _FILTER_HAS_ATTACHMENTS_SQL = (
+        "(COALESCE(m1.has_image, 0) = 1 OR COALESCE(m1.has_audio, 0) = 1 "
+        "OR COALESCE(m1.has_files, 0) = 1 OR "
+        "(m1.has_image IS NULL AND m1.has_audio IS NULL AND m1.has_files IS NULL "
+        "AND m1.fields IS NOT NULL AND m1.fields != '' AND m1.fields != '{}' "
+        "AND (instr(m1.fields, '\"image\"') > 0 OR instr(m1.fields, '\"0x05\"') > 0 "
+        "OR instr(m1.fields, '\"audio\"') > 0 OR instr(m1.fields, '\"0x06\"') > 0 "
+        "OR instr(m1.fields, '\"file_attachments\"') > 0 "
+        "OR instr(m1.fields, '\"0x07\"') > 0)))"
     )
-    _FIELDS_HAS_FILES_SQL = (
-        "(m1.fields IS NOT NULL AND m1.fields != '' AND m1.fields != '{}' "
-        "AND (instr(m1.fields, '\"file_attachments\"') > 0 "
-        "OR instr(m1.fields, '\"0x07\"') > 0))"
-    )
-    _FIELDS_HAS_REACTION_SQL = (
-        "(m1.fields IS NOT NULL AND m1.fields != '' AND m1.fields != '{}' "
-        "AND (instr(m1.fields, '\"reaction\"') > 0 OR instr(m1.fields, '\"0x40\"') > 0))"
-    )
-    _FIELDS_HAS_TELEMETRY_SQL = (
-        "(m1.fields IS NOT NULL AND m1.fields != '' AND m1.fields != '{}' "
-        "AND (instr(m1.fields, '\"telemetry\"') > 0 OR instr(m1.fields, '\"0x08\"') > 0 "
-        "OR instr(m1.fields, '\"telemetry_stream\"') > 0))"
-    )
-    _FIELDS_HAS_ATTACHMENTS_SQL = f"({_FIELDS_HAS_IMAGE_SQL} OR {_FIELDS_HAS_AUDIO_SQL} OR {_FIELDS_HAS_FILES_SQL})"
 
     def get_conversations(
         self,
@@ -111,7 +131,7 @@ class MessageHandler:
     ):
         preview_chars = self._CONVERSATION_CONTENT_PREVIEW_CHARS
         query = f"""
-            SELECT 
+            SELECT
                 m1.id, m1.hash, m1.source_hash, m1.destination_hash,
                 m1.peer_hash, m1.state, m1.progress, m1.is_incoming,
                 m1.title,
@@ -119,13 +139,13 @@ class MessageHandler:
                 m1.timestamp,
                 m1.is_spam, m1.reply_to_hash,
                 m1.created_at, m1.updated_at,
-                CASE WHEN {self._FIELDS_HAS_IMAGE_SQL} THEN 1 ELSE 0 END as has_image,
-                CASE WHEN {self._FIELDS_HAS_AUDIO_SQL} THEN 1 ELSE 0 END as has_audio,
-                CASE WHEN {self._FIELDS_HAS_FILES_SQL} THEN 1 ELSE 0 END as has_files,
-                CASE WHEN {self._FIELDS_HAS_REACTION_SQL} THEN 1 ELSE 0 END as has_reaction,
-                CASE WHEN {self._FIELDS_HAS_TELEMETRY_SQL} THEN 1 ELSE 0 END as has_telemetry,
+                ({self._FIELDS_HAS_IMAGE_SQL}) as has_image,
+                ({self._FIELDS_HAS_AUDIO_SQL}) as has_audio,
+                ({self._FIELDS_HAS_FILES_SQL}) as has_files,
+                ({self._FIELDS_HAS_REACTION_SQL}) as has_reaction,
+                ({self._FIELDS_HAS_TELEMETRY_SQL}) as has_telemetry,
                 CASE WHEN {self._FIELDS_HAS_ATTACHMENTS_SQL} THEN 1 ELSE 0 END as has_attachments,
-                a.app_data as peer_app_data, 
+                a.app_data as peer_app_data,
                 c.display_name as custom_display_name,
                 con.custom_image as contact_image,
                 con.name as contact_name,
@@ -133,8 +153,7 @@ class MessageHandler:
                 r.last_read_at,
                 f.id as folder_id,
                 fn.name as folder_name,
-                (SELECT COUNT(*) FROM lxmf_messages m_failed 
-                 WHERE m_failed.peer_hash = m1.peer_hash AND m_failed.state = 'failed') as failed_count,
+                COALESCE(fc.failed_count, 0) as failed_count,
                 CASE WHEN con.id IS NOT NULL THEN 1 ELSE 0 END as is_contact
             FROM lxmf_messages m1
             INNER JOIN (
@@ -143,11 +162,17 @@ class MessageHandler:
                 WHERE peer_hash IS NOT NULL
                 GROUP BY peer_hash
             ) m2 ON m1.peer_hash = m2.peer_hash AND m1.id = m2.max_id
+            LEFT JOIN (
+                SELECT peer_hash, COUNT(*) as failed_count
+                FROM lxmf_messages
+                WHERE state = 'failed'
+                GROUP BY peer_hash
+            ) fc ON fc.peer_hash = m1.peer_hash
             LEFT JOIN announces a ON a.destination_hash = m1.peer_hash
             LEFT JOIN custom_destination_display_names c ON c.destination_hash = m1.peer_hash
             LEFT JOIN contacts con ON (
-                con.remote_identity_hash = m1.peer_hash OR 
-                con.lxmf_address = m1.peer_hash OR 
+                con.remote_identity_hash = m1.peer_hash OR
+                con.lxmf_address = m1.peer_hash OR
                 con.lxst_address = m1.peer_hash
             )
             LEFT JOIN lxmf_user_icons i ON i.destination_hash = m1.peer_hash
@@ -175,7 +200,7 @@ class MessageHandler:
             where_clauses.append("m1.state = 'failed'")
 
         if filter_has_attachments:
-            where_clauses.append(self._FIELDS_HAS_ATTACHMENTS_SQL)
+            where_clauses.append(self._FILTER_HAS_ATTACHMENTS_SQL)
 
         if search:
             search = _strip_utf16_surrogates(search) or ""

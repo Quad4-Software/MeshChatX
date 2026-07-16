@@ -754,6 +754,7 @@ class TestPerformanceHotPaths(unittest.TestCase):
             "idx_lxmf_messages_state_peer",
             "idx_lxmf_messages_peer_hash",
             "idx_lxmf_messages_peer_ts",
+            "idx_lxmf_messages_peer_id",
             "idx_announces_updated_at",
             "idx_announces_aspect",
         ]
@@ -793,7 +794,11 @@ class TestPerformanceHotPaths(unittest.TestCase):
         )
         plan = " ".join(str(r["detail"]) for r in rows)
         print(f"  {plan}")
-        self.assertIn("idx_lxmf_messages_peer_hash", plan.lower())
+        self.assertTrue(
+            "idx_lxmf_messages_peer_hash" in plan.lower()
+            or "idx_lxmf_messages_peer_id" in plan.lower(),
+            f"Expected peer_hash or peer_id index, got: {plan}",
+        )
 
     def test_query_plan_announces_by_aspect(self):
         """Announce filtering by aspect should use the aspect index."""

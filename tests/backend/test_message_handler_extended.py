@@ -22,6 +22,8 @@ def test_get_conversation_messages(mock_db):
     query, params = args
     assert "peer_hash = ?" in query
     assert "LIMIT ? OFFSET ?" in query
+    assert "SELECT *" not in query
+    assert "fields_meta" in query
     assert params == ["peer", 50, 10]
 
 
@@ -72,6 +74,7 @@ def test_get_conversations_base(mock_db):
     assert "substr(COALESCE(m1.content, ''), 1," in query
     assert "has_image" in query
     assert "has_attachments" in query
+    assert "failed_count" in query
     # Full attachment blobs must never be selected into the list API.
     assert ", m1.fields," not in query
     assert ", m1.content," not in query
@@ -93,5 +96,5 @@ def test_get_conversations_with_filters(mock_db):
     # Check if any part of the query matches search or filters
     assert "m1.peer_hash" in query
     assert "m1.state = 'failed'" in query
-    assert "instr(m1.fields" in query
+    assert "COALESCE(m1.has_image" in query or "has_image" in query
     assert "%test%" in params

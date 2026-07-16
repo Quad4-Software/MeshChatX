@@ -19,7 +19,7 @@ def _validate_identifier(name: str, label: str = "identifier") -> str:
 
 
 class DatabaseSchema:
-    LATEST_VERSION = 50
+    LATEST_VERSION = 51
 
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -221,6 +221,12 @@ class DatabaseSchema:
                     title TEXT,
                     content TEXT,
                     fields TEXT,
+                    fields_meta TEXT,
+                    has_image INTEGER,
+                    has_audio INTEGER,
+                    has_files INTEGER,
+                    has_reaction INTEGER,
+                    has_telemetry INTEGER,
                     timestamp REAL,
                     rssi INTEGER,
                     snr REAL,
@@ -573,6 +579,9 @@ class DatabaseSchema:
                 )
                 self._safe_execute(
                     "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_peer_ts ON lxmf_messages(peer_hash, timestamp)",
+                )
+                self._safe_execute(
+                    "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_peer_id ON lxmf_messages(peer_hash, id DESC)",
                 )
                 self._safe_execute(
                     "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_reply_to_hash ON lxmf_messages(reply_to_hash)",
@@ -1387,4 +1396,118 @@ class DatabaseSchema:
             self._safe_execute(
                 "CREATE INDEX IF NOT EXISTS idx_map_overlay_sources_refresh "
                 "ON map_overlay_sources(enabled, next_refresh_at)",
+            )
+
+        if current_version < 51:
+            # Slim conversation list/thread loads: persist attachment flags and
+            # fields_meta (fields without base64 payloads) so queries never need
+            # to instr()/SELECT multi-MB fields blobs on the hot path.
+            self._ensure_column("lxmf_messages", "fields_meta", "TEXT")
+            self._ensure_column("lxmf_messages", "has_image", "INTEGER")
+            self._ensure_column("lxmf_messages", "has_audio", "INTEGER")
+            self._ensure_column("lxmf_messages", "has_files", "INTEGER")
+            self._ensure_column("lxmf_messages", "has_reaction", "INTEGER")
+            self._ensure_column("lxmf_messages", "has_telemetry", "INTEGER")
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_messages_peer_id "
+                "ON lxmf_messages(peer_hash, id DESC)",
+            )
+            # Backfill flags for the latest message of each conversation only.
+            # That is the row the sidebar query reads. Full-table instr would be
+            # too expensive on large histories.
+            self._safe_execute(
+                """
+                UPDATE lxmf_messages SET
+                    has_image = CASE
+                        WHEN fields IS NOT NULL AND fields != '' AND fields != '{}'
+                         AND (instr(fields, '"image"') > 0 OR instr(fields, '"0x05"') > 0)
+                        THEN 1 ELSE 0 END,
+                    has_audio = CASE
+                        WHEN fields IS NOT NULL AND fields != '' AND fields != '{}'
+                         AND (instr(fields, '"audio"') > 0 OR instr(fields, '"0x06"') > 0)
+                        THEN 1 ELSE 0 END,
+                    has_files = CASE
+                        WHEN fields IS NOT NULL AND fields != '' AND fields != '{}'
+                         AND (instr(fields, '"file_attachments"') > 0
+                              OR instr(fields, '"0x07"') > 0)
+                        THEN 1 ELSE 0 END,
+                    has_reaction = CASE
+                        WHEN fields IS NOT NULL AND fields != '' AND fields != '{}'
+                         AND (instr(fields, '"reaction"') > 0 OR instr(fields, '"0x40"') > 0)
+                        THEN 1 ELSE 0 END,
+                    has_telemetry = CASE
+                        WHEN fields IS NOT NULL AND fields != '' AND fields != '{}'
+                         AND (instr(fields, '"telemetry"') > 0
+                              OR instr(fields, '"0x08"') > 0
+                              OR instr(fields, '"telemetry_stream"') > 0)
+                        THEN 1 ELSE 0 END
+                WHERE id IN (
+                    SELECT MAX(id) FROM lxmf_messages
+                    WHERE peer_hash IS NOT NULL
+                    GROUP BY peer_hash
+                )
+                """,
+            )
+            # Also flag oversized fields rows (almost always attachments). This keeps
+            # heavy conversation opens from SELECT-ing multi-MB blobs without meta.
+            self._safe_execute(
+                """
+                UPDATE lxmf_messages SET
+                    has_image = CASE
+                        WHEN fields IS NOT NULL AND fields != '' AND fields != '{}'
+                         AND (instr(fields, '"image"') > 0 OR instr(fields, '"0x05"') > 0)
+                        THEN 1 ELSE 0 END,
+                    has_audio = CASE
+                        WHEN fields IS NOT NULL AND fields != '' AND fields != '{}'
+                         AND (instr(fields, '"audio"') > 0 OR instr(fields, '"0x06"') > 0)
+                        THEN 1 ELSE 0 END,
+                    has_files = CASE
+                        WHEN fields IS NOT NULL AND fields != '' AND fields != '{}'
+                         AND (instr(fields, '"file_attachments"') > 0
+                              OR instr(fields, '"0x07"') > 0)
+                        THEN 1 ELSE 0 END,
+                    has_reaction = CASE
+                        WHEN fields IS NOT NULL AND fields != '' AND fields != '{}'
+                         AND (instr(fields, '"reaction"') > 0 OR instr(fields, '"0x40"') > 0)
+                        THEN 1 ELSE 0 END,
+                    has_telemetry = CASE
+                        WHEN fields IS NOT NULL AND fields != '' AND fields != '{}'
+                         AND (instr(fields, '"telemetry"') > 0
+                              OR instr(fields, '"0x08"') > 0
+                              OR instr(fields, '"telemetry_stream"') > 0)
+                        THEN 1 ELSE 0 END
+                WHERE has_image IS NULL
+                  AND length(COALESCE(fields, '')) > 16384
+                """,
+            )
+            # Small fields can be copied as-is into fields_meta for thread loads.
+            self._safe_execute(
+                """
+                UPDATE lxmf_messages
+                SET fields_meta = fields
+                WHERE (fields_meta IS NULL OR fields_meta = '')
+                  AND fields IS NOT NULL AND fields != ''
+                  AND length(fields) <= 16384
+                """,
+            )
+            # Large attachment blobs: store a tiny synthetic meta from flags.
+            self._safe_execute(
+                """
+                UPDATE lxmf_messages
+                SET fields_meta = CASE
+                    WHEN COALESCE(has_image, 0) = 1 THEN
+                        '{"image":{"image_type":"png","image_size":0,"image_bytes":null}}'
+                    WHEN COALESCE(has_audio, 0) = 1 THEN
+                        '{"audio":{"audio_mode":0,"audio_size":0,"audio_bytes":null}}'
+                    WHEN COALESCE(has_files, 0) = 1 THEN
+                        '{"file_attachments":[{"file_name":"attachment","file_size":0,"file_bytes":null}]}'
+                    WHEN COALESCE(has_reaction, 0) = 1 THEN
+                        '{"reaction":{}}'
+                    WHEN COALESCE(has_telemetry, 0) = 1 THEN
+                        '{"telemetry":{}}'
+                    ELSE '{}'
+                END
+                WHERE (fields_meta IS NULL OR fields_meta = '')
+                  AND fields IS NOT NULL AND length(fields) > 16384
+                """,
             )
