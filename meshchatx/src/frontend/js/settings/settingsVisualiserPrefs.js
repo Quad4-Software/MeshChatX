@@ -6,8 +6,13 @@ const KEY_DISABLED = "meshchatx.visualiser.showDisabledInterfaces";
 const KEY_DISCOVERED = "meshchatx.visualiser.showDiscoveredInterfaces";
 const KEY_LIVE_LAYOUT = "meshchatx.visualiser.enablePhysics";
 const KEY_AUTO_RELOAD = "meshchatx.visualiser.autoReload";
+const KEY_RENDERER = "meshchatx.visualiser.renderer";
 
 export const VISUALISER_DISPLAY_PREFS_CHANGED = "visualiser-display-prefs-changed";
+
+/** @typedef {"auto" | "webgl" | "vis"} VisualiserRendererPref */
+
+export const VISUALISER_RENDERER_OPTIONS = ["auto", "webgl", "vis"];
 
 /**
  * @param {string} key
@@ -43,11 +48,37 @@ function writeBool(key, val) {
 }
 
 /**
+ * @param {unknown} raw
+ * @returns {VisualiserRendererPref}
+ */
+export function normalizeVisualiserRenderer(raw) {
+    if (raw === "webgl" || raw === "vis" || raw === "auto") {
+        return raw;
+    }
+    return "auto";
+}
+
+/**
+ * @returns {VisualiserRendererPref}
+ */
+function readRenderer() {
+    try {
+        if (typeof localStorage === "undefined") {
+            return "auto";
+        }
+        return normalizeVisualiserRenderer(localStorage.getItem(KEY_RENDERER));
+    } catch {
+        return "auto";
+    }
+}
+
+/**
  * @returns {{
  *   showDisabledInterfaces: boolean,
  *   showDiscoveredInterfaces: boolean,
  *   enablePhysics: boolean,
  *   autoReload: boolean,
+ *   renderer: VisualiserRendererPref,
  * }}
  */
 export function loadVisualiserDisplayPrefs() {
@@ -57,6 +88,7 @@ export function loadVisualiserDisplayPrefs() {
         // Live Layout defaults on when never set.
         enablePhysics: readBool(KEY_LIVE_LAYOUT, true),
         autoReload: readBool(KEY_AUTO_RELOAD, false),
+        renderer: readRenderer(),
     };
 }
 
@@ -93,6 +125,24 @@ export function persistVisualiserLiveLayout(val, opts = {}) {
  */
 export function persistVisualiserAutoReload(val, opts = {}) {
     writeBool(KEY_AUTO_RELOAD, val === true);
+    if (opts.emit !== false) {
+        GlobalEmitter.emit(VISUALISER_DISPLAY_PREFS_CHANGED);
+    }
+}
+
+/**
+ * @param {unknown} val
+ * @param {{ emit?: boolean }} [opts]
+ */
+export function persistVisualiserRenderer(val, opts = {}) {
+    const next = normalizeVisualiserRenderer(val);
+    try {
+        if (typeof localStorage !== "undefined") {
+            localStorage.setItem(KEY_RENDERER, next);
+        }
+    } catch {
+        /* ignore */
+    }
     if (opts.emit !== false) {
         GlobalEmitter.emit(VISUALISER_DISPLAY_PREFS_CHANGED);
     }

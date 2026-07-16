@@ -2015,7 +2015,13 @@
         "search_nodes_placeholder": "Cerca nodi ({count})...",
         "clear_search": "Cancella ricerca",
         "engine_webgl": "WebGL",
-        "engine_webgl_hint": "Grafo, layout e buffer di disegno in Go WebAssembly. Pixel con WebGL2"
+        "engine_webgl_hint": "Grafo, layout e buffer di disegno in Go WebAssembly. Pixel con WebGL2",
+        "renderer_title": "Renderer",
+        "renderer_desc": "Auto preferisce WebGL con WASM quando disponibile, poi passa a vis-network. Forza un percorso per debug o GPU datate.",
+        "renderer_option_auto": "Auto (WebGL se disponibile)",
+        "renderer_option_webgl": "WebGL + WASM",
+        "renderer_option_vis": "vis-network (canvas)",
+        "renderer_webgl_unavailable": "Renderer WebGL non disponibile. Uso fallback vis-network."
     },
     "banishment": {
         "title": "Esiliati",

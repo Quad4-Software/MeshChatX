@@ -8,6 +8,7 @@
 #   actions/setup-python@v6.2.0        a309ff8b426b58ec0e2a45f0f869d46889d02405
 #   actions/setup-node@v6.1.0          395ad3262231945c25e8478fd5baf05154b1d79f
 #   actions/upload-artifact@v5.0.0     330a01c490aca151604b8cf639adc76d48f6c5d4
+#   actions/setup-go@v7.0.0            b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
 
 name: Frontend build
 
@@ -89,6 +90,11 @@ jobs:
               with:
                   node-version: ${{ inputs.node_version }}
                   pnpm-version: ${{ inputs.pnpm_version }}
+
+            - name: Set up Go (visualiser-wasm)
+              uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+              with:
+                  go-version: "1.24.x"
 
             - name: Install frontend dependencies
               run: pnpm install --frozen-lockfile

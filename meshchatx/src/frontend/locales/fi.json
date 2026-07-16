@@ -1963,7 +1963,13 @@
         "search_nodes_placeholder": "Hae solmuja ({count})...",
         "clear_search": "Tyhjennä haku",
         "engine_webgl": "WebGL",
-        "engine_webgl_hint": "Kaavio, asettelu ja piirtopuskurit Go WebAssemblyssa. Pikselit WebGL2:lla"
+        "engine_webgl_hint": "Kaavio, asettelu ja piirtopuskurit Go WebAssemblyssa. Pikselit WebGL2:lla",
+        "renderer_title": "Renderöijä",
+        "renderer_desc": "Auto suosii WebGL+WASM:ia kun saatavilla ja palaa sitten vis-networkiin. Pakota polku debuggaukseen tai vanhoille GPU:ille.",
+        "renderer_option_auto": "Auto (WebGL jos saatavilla)",
+        "renderer_option_webgl": "WebGL + WASM",
+        "renderer_option_vis": "vis-network (canvas)",
+        "renderer_webgl_unavailable": "WebGL-renderöijä ei ole saatavilla. Käytetään vis-network-varausta."
     },
     "banishment": {
         "title": "Karkotus",

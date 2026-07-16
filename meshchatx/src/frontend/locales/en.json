@@ -1895,6 +1895,12 @@
     "visualiser": {
         "title": "Network Visualiser",
         "description": "Graph of discovered nodes and links.",
+        "renderer_title": "Renderer",
+        "renderer_desc": "Auto prefers WebGL with WASM when available, then falls back to vis-network. Force a path for debugging or older GPUs.",
+        "renderer_option_auto": "Auto (WebGL when available)",
+        "renderer_option_webgl": "WebGL + WASM",
+        "renderer_option_vis": "vis-network (canvas)",
+        "renderer_webgl_unavailable": "WebGL renderer unavailable. Using vis-network fallback.",
         "reticulum_mesh": "Reticulum Mesh",
         "network_visualizer": "Network Visualizer",
         "node_info": "Node Info",

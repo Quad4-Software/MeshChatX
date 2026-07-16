@@ -95,6 +95,7 @@ import {
     persistVisualiserLiveLayout,
     VISUALISER_DISPLAY_PREFS_CHANGED,
 } from "../../js/settings/settingsVisualiserPrefs.js";
+import ToastUtils from "../../js/ToastUtils";
 
 const HOP_MAX_FILTER_STORAGE_KEY = "meshchatx.visualiser.maxHops";
 
@@ -186,6 +187,7 @@ export default {
             isUpdating: false,
             isLoading: false,
             enablePhysics: displayPrefs.enablePhysics,
+            preferredRenderer: displayPrefs.renderer || "auto",
             showDisabledInterfaces: displayPrefs.showDisabledInterfaces,
             showDiscoveredInterfaces: displayPrefs.showDiscoveredInterfaces,
             loadingStatus: "Initializing...",
@@ -366,9 +368,14 @@ export default {
             this.isShowingControls = false;
         }
 
-        this._visualiserPrefsHandler = () => {
+        this._visualiserPrefsHandler = async () => {
+            const prevRenderer = this.preferredRenderer;
             this.loadVisualiserDisplayPrefs();
             this.applyBatterySaverVisualiserPrefs();
+            if (this.preferredRenderer !== prevRenderer) {
+                await this.reinitRenderer();
+                return;
+            }
             if (this.hasRenderer) {
                 this.processVisualization();
             }
@@ -805,6 +812,54 @@ export default {
             this.showDiscoveredInterfaces = p.showDiscoveredInterfaces;
             this.enablePhysics = p.enablePhysics;
             this.autoReload = p.autoReload;
+            this.preferredRenderer = p.renderer || "auto";
+        },
+        destroyActiveRenderer() {
+            this.hoverTooltip = null;
+            if (this.webglEngine) {
+                this.webglEngine.destroy();
+                this.webglEngine = null;
+            }
+            if (this.network) {
+                this.network.destroy();
+                this.network = null;
+            }
+            try {
+                this.nodes.clear();
+                this.edges.clear();
+            } catch {
+                /* ignore */
+            }
+            this.rendererMode = "vis";
+        },
+        async reinitRenderer() {
+            this.destroyActiveRenderer();
+            await this.init({ skipWarm: true });
+        },
+        async tryStartWebGL() {
+            const canvas = this.$refs.webglCanvas;
+            if (!canvas || !canUseVisualiserWebGL()) {
+                return false;
+            }
+            try {
+                this.webglEngine = createVisualiserWebGLEngine(canvas, {
+                    getLiveLayout: () => this.enablePhysics === true,
+                    isDark: () => document.documentElement.classList.contains("dark"),
+                    onNodeActivate: (id, meta) => this.onWebGLNodeActivate(id, meta),
+                    onHover: (id, meta, x, y) => this.onWebGLHover(id, meta, x, y),
+                });
+                this.rendererMode = "webgl";
+                this.engineMode = "webgl";
+                return true;
+            } catch (e) {
+                console.warn("WebGL visualiser failed:", e);
+                if (this.webglEngine) {
+                    this.webglEngine.destroy();
+                    this.webglEngine = null;
+                }
+                this.rendererMode = "vis";
+                return false;
+            }
         },
         refreshPhysicsEnabled() {
             if (this.webglEngine) {
@@ -892,30 +947,26 @@ export default {
             posById[id] = { x: v.x, y: v.y };
             return v;
         },
-        async init() {
-            await warmVisualiserWasm();
-            const canvas = this.$refs.webglCanvas;
-            if (canvas && canUseVisualiserWebGL(canvas)) {
-                try {
-                    this.webglEngine = createVisualiserWebGLEngine(canvas, {
-                        getLiveLayout: () => this.enablePhysics === true,
-                        isDark: () => document.documentElement.classList.contains("dark"),
-                        onNodeActivate: (id, meta) => this.onWebGLNodeActivate(id, meta),
-                        onHover: (id, meta, x, y) => this.onWebGLHover(id, meta, x, y),
-                    });
-                    this.rendererMode = "webgl";
-                    this.engineMode = "webgl";
-                    await this.manualUpdate();
-                    this.restartAutoReloadInterval();
-                    return;
-                } catch (e) {
-                    console.warn("WebGL visualiser failed, falling back to vis-network:", e);
-                    if (this.webglEngine) {
-                        this.webglEngine.destroy();
-                        this.webglEngine = null;
-                    }
-                    this.rendererMode = "vis";
-                }
+        async init(opts = {}) {
+            if (!opts.skipWarm) {
+                await warmVisualiserWasm();
+            }
+            const preferred = this.preferredRenderer || loadVisualiserDisplayPrefs().renderer || "auto";
+
+            if (preferred === "vis") {
+                await this.initVisNetwork();
+                return;
+            }
+
+            const started = await this.tryStartWebGL();
+            if (started) {
+                await this.manualUpdate();
+                this.restartAutoReloadInterval();
+                return;
+            }
+
+            if (preferred === "webgl") {
+                ToastUtils.warning(this.$t("visualiser.renderer_webgl_unavailable"));
             }
             await this.initVisNetwork();
         },

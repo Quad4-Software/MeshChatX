@@ -910,6 +910,10 @@
         },
         {
             "method": "POST",
+            "path": "/api/v1/reticulum/interfaces/bitrates"
+        },
+        {
+            "method": "POST",
             "path": "/api/v1/reticulum/interfaces/delete"
         },
         {

@@ -3367,7 +3367,13 @@
         "search_nodes_placeholder": "Knoten suchen ({count})...",
         "clear_search": "Suche leeren",
         "engine_webgl": "WebGL",
-        "engine_webgl_hint": "Graph, Layout und Zeichenpuffer laufen in Go-WebAssembly. Pixelzeichnung mit WebGL2"
+        "engine_webgl_hint": "Graph, Layout und Zeichenpuffer laufen in Go-WebAssembly. Pixelzeichnung mit WebGL2",
+        "renderer_title": "Renderer",
+        "renderer_desc": "Auto bevorzugt WebGL mit WASM und fällt sonst auf vis-network zurück. Erzwingen Sie einen Pfad zum Debuggen oder für ältere GPUs.",
+        "renderer_option_auto": "Auto (WebGL wenn verfügbar)",
+        "renderer_option_webgl": "WebGL + WASM",
+        "renderer_option_vis": "vis-network (Canvas)",
+        "renderer_webgl_unavailable": "WebGL-Renderer nicht verfügbar. Nutze vis-network-Fallback."
     },
     "banishment": {
         "title": "Verbannt",

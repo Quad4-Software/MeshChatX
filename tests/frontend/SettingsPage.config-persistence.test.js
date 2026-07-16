@@ -542,6 +542,14 @@ describe("SettingsPage — visualiser display prefs (localStorage + emitter)", (
         expect(GlobalEmitter.emit).toHaveBeenCalledWith("visualiser-display-prefs-changed");
     });
 
+    it("onVisualiserRendererChange persists renderer and emits", async () => {
+        const w = await mountSettingsPage(api);
+        w.vm.visualiserRenderer = "webgl";
+        w.vm.onVisualiserRendererChange();
+        expect(localStorage.getItem("meshchatx.visualiser.renderer")).toBe("webgl");
+        expect(GlobalEmitter.emit).toHaveBeenCalledWith("visualiser-display-prefs-changed");
+    });
+
     it("onDetailedOutboundSendStatusChange updates GlobalState and localStorage", async () => {
         localStorage.removeItem("meshchatx_detailed_outbound_send_status");
         const w = await mountSettingsPage(api);

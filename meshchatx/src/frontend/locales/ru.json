@@ -3367,7 +3367,13 @@
         "search_nodes_placeholder": "Поиск узлов ({count})...",
         "clear_search": "Очистить поиск",
         "engine_webgl": "WebGL",
-        "engine_webgl_hint": "Граф, раскладка и буферы отрисовки в Go WebAssembly. Пиксели через WebGL2"
+        "engine_webgl_hint": "Граф, раскладка и буферы отрисовки в Go WebAssembly. Пиксели через WebGL2",
+        "renderer_title": "Рендерер",
+        "renderer_desc": "Auto предпочитает WebGL с WASM при наличии, иначе vis-network. Принудительный выбор для отладки или старых GPU.",
+        "renderer_option_auto": "Auto (WebGL если доступен)",
+        "renderer_option_webgl": "WebGL + WASM",
+        "renderer_option_vis": "vis-network (canvas)",
+        "renderer_webgl_unavailable": "WebGL-рендерер недоступен. Используется запасной vis-network."
     },
     "banishment": {
         "title": "Забаненные",

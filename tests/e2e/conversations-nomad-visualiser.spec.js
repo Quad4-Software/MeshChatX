@@ -60,12 +60,14 @@ test.describe("Network visualiser", () => {
         await prepareE2eSession(request);
     });
 
-    test("shows mesh header, graph container, and node search", async ({ page }) => {
+    test("shows mesh header, graph hosts, and node search", async ({ page }) => {
         await page.goto("/#/network-visualiser");
         await expect(page).toHaveURL(/#\/network-visualiser/);
         await expect(page.getByText("Reticulum Mesh", { exact: true })).toBeVisible({ timeout: 30000 });
         await expect(page.locator("#network")).toBeAttached();
+        await expect(page.locator("#network-webgl")).toBeAttached();
         await expect(page.getByPlaceholder(/Search nodes \(\d+\)/)).toBeVisible({ timeout: 30000 });
+        await expect(page.getByText(/WebGL|WASM|JS fallback|Checking/)).toBeVisible({ timeout: 30000 });
     });
 
     test("collapses and expands control panel via header", async ({ page }) => {

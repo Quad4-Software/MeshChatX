@@ -5,6 +5,8 @@ import {
     persistVisualiserAutoReload,
     persistVisualiserShowDisabled,
     persistVisualiserShowDiscovered,
+    persistVisualiserRenderer,
+    normalizeVisualiserRenderer,
 } from "@/js/settings/settingsVisualiserPrefs.js";
 
 describe("settingsVisualiserPrefs", () => {
@@ -12,12 +14,13 @@ describe("settingsVisualiserPrefs", () => {
         localStorage.clear();
     });
 
-    it("defaults live layout on and auto-reload off", () => {
+    it("defaults live layout on, auto-reload off, renderer auto", () => {
         expect(loadVisualiserDisplayPrefs()).toEqual({
             showDisabledInterfaces: false,
             showDiscoveredInterfaces: false,
             enablePhysics: true,
             autoReload: false,
+            renderer: "auto",
         });
     });
 
@@ -31,6 +34,7 @@ describe("settingsVisualiserPrefs", () => {
             showDiscoveredInterfaces: true,
             enablePhysics: false,
             autoReload: true,
+            renderer: "auto",
         });
         persistVisualiserLiveLayout(true);
         expect(loadVisualiserDisplayPrefs().enablePhysics).toBe(true);
@@ -41,5 +45,13 @@ describe("settingsVisualiserPrefs", () => {
         expect(loadVisualiserDisplayPrefs().enablePhysics).toBe(false);
         persistVisualiserAutoReload(true, { emit: false });
         expect(loadVisualiserDisplayPrefs().autoReload).toBe(true);
+    });
+
+    it("normalizes and persists renderer preference", () => {
+        expect(normalizeVisualiserRenderer("nope")).toBe("auto");
+        persistVisualiserRenderer("webgl");
+        expect(loadVisualiserDisplayPrefs().renderer).toBe("webgl");
+        persistVisualiserRenderer("vis", { emit: false });
+        expect(loadVisualiserDisplayPrefs().renderer).toBe("vis");
     });
 });

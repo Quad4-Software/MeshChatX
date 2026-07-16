@@ -16,7 +16,7 @@ const GO_MOD_DIR = path.join(REPO_ROOT, "visualiser-wasm");
 const OUT_DIR = path.join(REPO_ROOT, "meshchatx", "src", "frontend", "public", "vendor", "visualiser-wasm");
 const WASM_NAME = "visualiser.wasm";
 const EXEC_NAME = "wasm_exec.js";
-const VERSION = "1.0.0";
+const VERSION = "1.2.0";
 
 function computeSri(buf) {
     return `sha384-${crypto.createHash("sha384").update(buf).digest("base64")}`;

@@ -9,6 +9,7 @@
 #   actions/setup-python@v6.2.0        a309ff8b426b58ec0e2a45f0f869d46889d02405
 #   actions/upload-artifact@v5.0.0     330a01c490aca151604b8cf639adc76d48f6c5d4
 #   actions/download-artifact@v5.0.0   634f93cb2916e3fdff6788551b99b062d0335ce0
+#   actions/setup-go@v7.0.0            b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
 
 name: CI
 
@@ -36,6 +37,7 @@ env:
     NODE_VERSION: "24"
     UV_VERSION: "0.11.15"
     PNPM_VERSION: "11.1.2"
+    GO_VERSION: "1.24.x"
     RNS_REQUIRED_SIGNER: e46112d44649266d71fe2193e00a4710
 
 jobs:
@@ -101,6 +103,44 @@ jobs:
 
             - name: Verify workspace clean
               uses: ./.github/actions/verify-workspace-clean
+
+    visualiser-wasm:
+        name: Visualiser WASM (Go)
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        permissions:
+            contents: read
+        steps:
+            - name: Checkout
+              uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
+
+            - name: Set up Go
+              uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+              with:
+                  go-version: ${{ env.GO_VERSION }}
+
+            - name: Setup Task
+              run: sh scripts/ci/setup-task.sh 3.49.1
+
+            - name: Run visualiser-wasm tests
+              run: task test:visualiser-wasm
+
+            - name: Build visualiser-wasm artifacts
+              run: task build:visualiser-wasm
+
+            - name: Verify integrity.json stamped
+              run: |
+                  set -euo pipefail
+                  test -f meshchatx/src/frontend/public/vendor/visualiser-wasm/integrity.json
+                  python3 - <<'PY'
+                  import json
+                  from pathlib import Path
+                  data = json.loads(Path("meshchatx/src/frontend/public/vendor/visualiser-wasm/integrity.json").read_text())
+                  assert data.get("version") == "1.2.0", data
+                  assert str(data.get("wasm", "")).startswith("sha384-"), data
+                  assert str(data.get("wasmExec", "")).startswith("sha384-"), data
+                  print("visualiser-wasm integrity OK", data["version"])
+                  PY
 
     backend-tests:
         name: Backend tests (Python 3.14) - Shard ${{ matrix.shard }} / 4
