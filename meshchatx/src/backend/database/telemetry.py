@@ -75,6 +75,27 @@ class TelemetryDAO:
         )
         return bool(row["is_tracking"]) if row else False
 
+    def get_tracking_states(self, destination_hashes):
+        """Batch lookup of tracking flags for conversation list rows."""
+        if not destination_hashes:
+            return {}
+        unique = []
+        seen = set()
+        for destination_hash in destination_hashes:
+            if not destination_hash or destination_hash in seen:
+                continue
+            seen.add(destination_hash)
+            unique.append(destination_hash)
+        if not unique:
+            return {}
+        placeholders = ", ".join(["?"] * len(unique))
+        rows = self.provider.fetchall(
+            f"SELECT destination_hash, is_tracking FROM telemetry_tracking "
+            f"WHERE destination_hash IN ({placeholders})",
+            tuple(unique),
+        )
+        return {row["destination_hash"]: bool(row["is_tracking"]) for row in rows}
+
     def toggle_tracking(self, destination_hash, is_tracking=None):
         if is_tracking is None:
             is_tracking = not self.is_tracking(destination_hash)

@@ -19,6 +19,12 @@ _LXMF_UPSERT_FIELDS = (
     "title",
     "content",
     "fields",
+    "fields_meta",
+    "has_image",
+    "has_audio",
+    "has_files",
+    "has_reaction",
+    "has_telemetry",
     "timestamp",
     "rssi",
     "snr",
@@ -31,8 +37,25 @@ _LXMF_UPSERT_FIELDS = (
     "path_finding_measure",
     "path_row_hash_hex",
 )
-_LXMF_OPTIONAL_UPSERT_FIELDS = frozenset({"attachments_stripped"})
+_LXMF_OPTIONAL_UPSERT_FIELDS = frozenset(
+    {
+        "attachments_stripped",
+        "fields_meta",
+        "has_image",
+        "has_audio",
+        "has_files",
+        "has_reaction",
+        "has_telemetry",
+    },
+)
 _LXMF_EXPORT_ONLY_KEYS = frozenset({"id", "lxmf_icon"})
+_LXMF_ATTACHMENT_FLAG_KEYS = (
+    "has_image",
+    "has_audio",
+    "has_files",
+    "has_reaction",
+    "has_telemetry",
+)
 
 
 class MessageDAO:
@@ -96,7 +119,12 @@ class MessageDAO:
                 except json.JSONDecodeError:
                     pass
 
-        for key in ("is_incoming", "is_spam", "attachments_stripped"):
+        for key in (
+            "is_incoming",
+            "is_spam",
+            "attachments_stripped",
+            *_LXMF_ATTACHMENT_FLAG_KEYS,
+        ):
             if key in row and isinstance(row[key], bool):
                 row[key] = int(row[key])
 
@@ -104,6 +132,41 @@ class MessageDAO:
             row["progress"] = 0.0
 
         return row
+
+    @staticmethod
+    def _enrich_lxmf_message_list_cache(data: dict) -> dict:
+        """Fill fields_meta and has_* so list/thread APIs avoid reading fields blobs."""
+        from meshchatx.src.backend.lxmf_utils import (
+            lxmf_fields_attachment_flags,
+            lxmf_fields_without_attachment_bytes,
+        )
+
+        fields_value = data.get("fields")
+        fields_dict = None
+        if isinstance(fields_value, dict):
+            fields_dict = fields_value
+        elif isinstance(fields_value, str) and fields_value.strip():
+            try:
+                parsed = json.loads(fields_value)
+                if isinstance(parsed, dict):
+                    fields_dict = parsed
+            except json.JSONDecodeError:
+                fields_dict = None
+
+        if fields_dict is None:
+            fields_dict = {}
+
+        flags = lxmf_fields_attachment_flags(fields_dict)
+        for key, value in flags.items():
+            if data.get(key) is None:
+                data[key] = value
+
+        if not data.get("fields_meta"):
+            data["fields_meta"] = json.dumps(
+                lxmf_fields_without_attachment_bytes(fields_dict),
+            )
+
+        return data
 
     def import_lxmf_messages(self, messages):
         imported = 0
@@ -141,6 +204,8 @@ class MessageDAO:
         if not isinstance(data, dict):
             data = dict(data)
 
+        data = self._enrich_lxmf_message_list_cache(data)
+
         fields = self._lxmf_upsert_field_names()
 
         columns = ", ".join(fields)
@@ -169,7 +234,7 @@ class MessageDAO:
         params = []
         for field in fields:
             val = data.get(field)
-            if field == "fields" and isinstance(val, dict):
+            if field in ("fields", "fields_meta") and isinstance(val, dict):
                 val = json.dumps(val)
             params.append(val)
 

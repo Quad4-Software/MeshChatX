@@ -264,6 +264,155 @@ def _row_flag_true(row: dict, *keys) -> bool:
     return False
 
 
+def _b64_payload_size(b64_bytes) -> int:
+    if not b64_bytes or not isinstance(b64_bytes, str):
+        return 0
+    size = (len(b64_bytes) * 3) // 4
+    if b64_bytes.endswith("=="):
+        size -= 2
+    elif b64_bytes.endswith("="):
+        size -= 1
+    return max(0, size)
+
+
+def lxmf_fields_without_attachment_bytes(fields) -> dict:
+    """Return fields with image/audio/file byte payloads removed.
+
+    Used for ``fields_meta`` storage and conversation-list/thread APIs so
+    multi-MB base64 blobs are never re-parsed on every load.
+    """
+    if not isinstance(fields, dict):
+        return {}
+
+    out = dict(fields)
+
+    image = out.get("image")
+    if isinstance(image, dict):
+        image_size = image.get("image_size") or 0
+        b64_bytes = image.get("image_bytes")
+        if not image_size and b64_bytes:
+            image_size = _b64_payload_size(b64_bytes)
+        out["image"] = {
+            "image_type": image.get("image_type"),
+            "image_size": image_size,
+            "image_bytes": None,
+        }
+
+    audio = out.get("audio")
+    if isinstance(audio, dict):
+        audio_size = audio.get("audio_size") or 0
+        b64_bytes = audio.get("audio_bytes")
+        if not audio_size and b64_bytes:
+            audio_size = _b64_payload_size(b64_bytes)
+        out["audio"] = {
+            "audio_mode": audio.get("audio_mode"),
+            "audio_size": audio_size,
+            "audio_bytes": None,
+        }
+
+    file_attachments = out.get("file_attachments")
+    if isinstance(file_attachments, list):
+        slim_files = []
+        for item in file_attachments:
+            if not isinstance(item, dict):
+                continue
+            file_size = item.get("file_size") or 0
+            b64_bytes = item.get("file_bytes")
+            if not file_size and b64_bytes:
+                file_size = _b64_payload_size(b64_bytes)
+            slim_files.append(
+                {
+                    "file_name": item.get("file_name"),
+                    "file_size": file_size,
+                    "file_bytes": None,
+                },
+            )
+        out["file_attachments"] = slim_files
+
+    return out
+
+
+def lxmf_fields_attachment_flags(fields) -> dict:
+    """Derive cheap boolean flags from a parsed LXMF fields dict."""
+    if not isinstance(fields, dict):
+        return {
+            "has_image": 0,
+            "has_audio": 0,
+            "has_files": 0,
+            "has_reaction": 0,
+            "has_telemetry": 0,
+        }
+
+    has_image = (
+        1 if isinstance(fields.get("image"), dict) and fields.get("image") else 0
+    )
+    has_audio = (
+        1 if isinstance(fields.get("audio"), dict) and fields.get("audio") else 0
+    )
+    file_attachments = fields.get("file_attachments")
+    has_files = (
+        1 if isinstance(file_attachments, list) and len(file_attachments) > 0 else 0
+    )
+    has_reaction = 1 if isinstance(fields.get("reaction"), dict) else 0
+    has_telemetry = 0
+    telemetry = fields.get("telemetry")
+    if isinstance(telemetry, dict) and telemetry:
+        has_telemetry = 1
+    elif isinstance(fields.get("telemetry_stream"), list) and fields.get(
+        "telemetry_stream",
+    ):
+        has_telemetry = 1
+    # Also accept raw LXMF hex-style keys that may appear in stored JSON.
+    if not has_image and ("0x05" in fields):
+        has_image = 1
+    if not has_audio and ("0x06" in fields):
+        has_audio = 1
+    if not has_files and ("0x07" in fields):
+        has_files = 1
+    if not has_reaction and ("0x40" in fields):
+        has_reaction = 1
+    if not has_telemetry and ("0x08" in fields):
+        has_telemetry = 1
+
+    return {
+        "has_image": has_image,
+        "has_audio": has_audio,
+        "has_files": has_files,
+        "has_reaction": has_reaction,
+        "has_telemetry": has_telemetry,
+    }
+
+
+def synthesize_fields_from_attachment_flags(row: dict) -> dict:
+    """Build minimal fields when full JSON was omitted from a list/thread query."""
+    fields = {}
+    if _row_flag_true(row, "has_image"):
+        fields["image"] = {
+            "image_type": "png",
+            "image_size": 0,
+            "image_bytes": None,
+        }
+    if _row_flag_true(row, "has_audio"):
+        fields["audio"] = {
+            "audio_mode": 0,
+            "audio_size": 0,
+            "audio_bytes": None,
+        }
+    if _row_flag_true(row, "has_files"):
+        fields["file_attachments"] = [
+            {
+                "file_name": "attachment",
+                "file_size": 0,
+                "file_bytes": None,
+            },
+        ]
+    if _row_flag_true(row, "has_reaction"):
+        fields["reaction"] = {}
+    if _row_flag_true(row, "has_telemetry"):
+        fields["telemetry"] = {}
+    return fields
+
+
 def lxmf_sidebar_preview_for_conversation_latest_row(
     row: dict,
     *,
@@ -696,14 +845,34 @@ def convert_db_lxmf_message_to_dict(
     db_lxmf_message,
     include_attachments: bool = False,
 ):
+    fields = {}
+    fields_raw = db_lxmf_message.get("fields")
+    if fields_raw is None or fields_raw == "":
+        fields_raw = db_lxmf_message.get("fields_meta")
     try:
-        fields_str = db_lxmf_message.get("fields", "{}")
-        fields = json.loads(fields_str) if fields_str else {}
+        if isinstance(fields_raw, dict):
+            fields = fields_raw
+        elif fields_raw:
+            fields = json.loads(fields_raw)
+        else:
+            fields = {}
     except (json.JSONDecodeError, TypeError):
         fields = {}
 
     if not isinstance(fields, dict):
         fields = {}
+
+    if not fields and (
+        _row_flag_true(
+            db_lxmf_message,
+            "has_image",
+            "has_audio",
+            "has_files",
+            "has_reaction",
+            "has_telemetry",
+        )
+    ):
+        fields = synthesize_fields_from_attachment_flags(db_lxmf_message)
 
     is_reaction = False
     reaction_to = None
@@ -754,53 +923,7 @@ def convert_db_lxmf_message_to_dict(
 
     # strip attachments if requested
     if not include_attachments:
-        if "image" in fields:
-            # keep type but strip bytes
-            image_size = fields["image"].get("image_size") or 0
-            b64_bytes = fields["image"].get("image_bytes")
-            if not image_size and b64_bytes:
-                # Optimized size calculation without full decoding
-                image_size = (len(b64_bytes) * 3) // 4
-                if b64_bytes.endswith("=="):
-                    image_size -= 2
-                elif b64_bytes.endswith("="):
-                    image_size -= 1
-            fields["image"] = {
-                "image_type": fields["image"].get("image_type"),
-                "image_size": image_size,
-                "image_bytes": None,
-            }
-        if "audio" in fields:
-            # keep mode but strip bytes
-            audio_size = fields["audio"].get("audio_size") or 0
-            b64_bytes = fields["audio"].get("audio_bytes")
-            if not audio_size and b64_bytes:
-                audio_size = (len(b64_bytes) * 3) // 4
-                if b64_bytes.endswith("=="):
-                    audio_size -= 2
-                elif b64_bytes.endswith("="):
-                    audio_size -= 1
-            fields["audio"] = {
-                "audio_mode": fields["audio"].get("audio_mode"),
-                "audio_size": audio_size,
-                "audio_bytes": None,
-            }
-        if "file_attachments" in fields:
-            # keep file names but strip bytes
-            for i in range(len(fields["file_attachments"])):
-                file_size = fields["file_attachments"][i].get("file_size") or 0
-                b64_bytes = fields["file_attachments"][i].get("file_bytes")
-                if not file_size and b64_bytes:
-                    file_size = (len(b64_bytes) * 3) // 4
-                    if b64_bytes.endswith("=="):
-                        file_size -= 2
-                    elif b64_bytes.endswith("="):
-                        file_size -= 1
-                fields["file_attachments"][i] = {
-                    "file_name": fields["file_attachments"][i].get("file_name"),
-                    "file_size": file_size,
-                    "file_bytes": None,
-                }
+        fields = lxmf_fields_without_attachment_bytes(fields)
 
     # ensure created_at and updated_at have Z suffix for UTC if they don't have a timezone
     created_at = str(db_lxmf_message["created_at"])

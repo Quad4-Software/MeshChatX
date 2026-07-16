@@ -220,7 +220,7 @@
                         <section v-show="showSection('banishment')" class="settings-section break-inside-avoid">
                             <header class="settings-section__header">
                                 <div>
-                                    <div class="settings-section__eyebrow">Visuals</div>
+                                    <div class="settings-section__eyebrow">{{ $t("app.privacy_eyebrow") }}</div>
                                     <h2>{{ $t("app.banishment") }}</h2>
                                     <p>{{ $t("app.banishment_description") }}</p>
                                 </div>
@@ -2178,21 +2178,6 @@
 
                                 <label class="setting-toggle">
                                     <Toggle
-                                        id="obfuscate-hops"
-                                        v-model="reticulumInstance.local_hops_delta"
-                                        :disabled="reticulumInstanceSaving"
-                                        @update:model-value="onLocalHopsDeltaChange"
-                                    />
-                                    <span class="setting-toggle__label">
-                                        <span class="setting-toggle__title">{{ $t("app.obfuscate_hops") }}</span>
-                                        <span class="setting-toggle__description">{{
-                                            $t("app.obfuscate_hops_description")
-                                        }}</span>
-                                    </span>
-                                </label>
-
-                                <label class="setting-toggle">
-                                    <Toggle
                                         id="respond-to-probes"
                                         v-model="reticulumInstance.respond_to_probes"
                                         :disabled="reticulumInstanceSaving"
@@ -2461,6 +2446,21 @@
                                         <span class="setting-toggle__title">{{ $t("app.privacy_mode_enabled") }}</span>
                                         <span class="setting-toggle__description">{{
                                             $t("app.privacy_mode_description")
+                                        }}</span>
+                                    </span>
+                                </label>
+
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="obfuscate-hops"
+                                        v-model="reticulumInstance.local_hops_delta"
+                                        :disabled="reticulumInstanceSaving"
+                                        @update:model-value="onLocalHopsDeltaChange"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{ $t("app.obfuscate_hops") }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("app.obfuscate_hops_description")
                                         }}</span>
                                     </span>
                                 </label>

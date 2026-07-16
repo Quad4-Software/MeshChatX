@@ -66,10 +66,14 @@ describe("settingsTabs", () => {
 
     it("maps sections to tabs", () => {
         expect(settingsTabForSection("appearance")).toBe("general");
+        expect(settingsTabForSection("location")).toBe("general");
         expect(settingsTabForSection("messages")).toBe("messages");
         expect(settingsTabForSection("archiver")).toBe("nomad");
         expect(settingsTabForSection("plugins")).toBe("plugins");
+        expect(settingsTabForSection("telephony")).toBe("network");
+        expect(settingsTabForSection("banishment")).toBe("privacy");
         expect(settingsTabForSection("selftest")).toBe("maintenance");
+        expect(settingsTabForSection("infrastructure")).toBe("maintenance");
         expect(settingsTabForSection("unknown-section")).toBeNull();
     });
 
