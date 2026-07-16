@@ -115,6 +115,17 @@ function isReady() {
     );
 }
 
+/** True when WASM scene exports for the WebGL renderer are registered. */
+export function isVisualiserWebGLSceneReady() {
+    return (
+        isReady() &&
+        typeof globalThis.meshchatxVisualiserSceneSet === "function" &&
+        typeof globalThis.meshchatxVisualiserSceneGetDrawBuffers === "function" &&
+        typeof globalThis.meshchatxVisualiserSceneTick === "function" &&
+        typeof globalThis.meshchatxVisualiserScenePick === "function"
+    );
+}
+
 async function instantiateOnce() {
     if (typeof WebAssembly === "undefined") {
         throw new Error("Visualiser WASM: WebAssembly is not available");

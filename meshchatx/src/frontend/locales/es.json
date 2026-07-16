@@ -1961,7 +1961,9 @@
         "online": "En linea",
         "offline": "Fuera",
         "search_nodes_placeholder": "Buscar nodos ({count})...",
-        "clear_search": "Borrar busqueda"
+        "clear_search": "Borrar busqueda",
+        "engine_webgl": "WebGL",
+        "engine_webgl_hint": "Grafo, layout y buffers de dibujo en Go WebAssembly. Pixels con WebGL2"
     },
     "banishment": {
         "title": "Desterrados",

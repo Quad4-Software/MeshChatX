@@ -3,6 +3,7 @@ import {
     isVisualiserWasmBundled,
     preloadVisualiserWasm,
     isVisualiserWasmReady,
+    isVisualiserWebGLSceneReady,
     callVisualiserWasmJson,
 } from "@/js/VisualiserWasmLoader.js";
 
@@ -53,5 +54,9 @@ describe("VisualiserWasmLoader", () => {
     it("callVisualiserWasmJson returns null on export error object", () => {
         globalThis.meshchatxVisualiserPathHashes = () => ({ ok: false, error: "bad" });
         expect(callVisualiserWasmJson("meshchatxVisualiserPathHashes", "[]")).toBeNull();
+    });
+
+    it("isVisualiserWebGLSceneReady is false without scene exports", () => {
+        expect(isVisualiserWebGLSceneReady()).toBe(false);
     });
 });

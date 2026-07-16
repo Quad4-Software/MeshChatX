@@ -2013,7 +2013,9 @@
         "online": "Online",
         "offline": "Offline",
         "search_nodes_placeholder": "Cerca nodi ({count})...",
-        "clear_search": "Cancella ricerca"
+        "clear_search": "Cancella ricerca",
+        "engine_webgl": "WebGL",
+        "engine_webgl_hint": "Grafo, layout e buffer di disegno in Go WebAssembly. Pixel con WebGL2"
     },
     "banishment": {
         "title": "Esiliati",

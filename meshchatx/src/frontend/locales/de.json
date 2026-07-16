@@ -3365,7 +3365,9 @@
         "online": "Online",
         "offline": "Offline",
         "search_nodes_placeholder": "Knoten suchen ({count})...",
-        "clear_search": "Suche leeren"
+        "clear_search": "Suche leeren",
+        "engine_webgl": "WebGL",
+        "engine_webgl_hint": "Graph, Layout und Zeichenpuffer laufen in Go-WebAssembly. Pixelzeichnung mit WebGL2"
     },
     "banishment": {
         "title": "Verbannt",

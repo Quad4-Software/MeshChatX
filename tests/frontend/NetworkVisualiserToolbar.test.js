@@ -40,6 +40,12 @@ describe("NetworkVisualiserToolbar", () => {
         expect(wrapper.text()).toContain("--");
     });
 
+    it("shows WebGL engine label", () => {
+        const wrapper = mountToolbar({ engineMode: "webgl", fps: 60 });
+        expect(wrapper.text()).toContain("visualiser.engine_webgl");
+        expect(wrapper.text()).toContain("60");
+    });
+
     it("uses MDI magnify for search and refresh for update button", () => {
         const wrapper = mountToolbar({ isUpdating: false, isLoading: false });
         const icons = wrapper.findAll(".mdi-stub").map((n) => n.attributes("data-icon"));

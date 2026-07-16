@@ -3365,7 +3365,9 @@
         "online": "Онлайн",
         "offline": "Офлайн",
         "search_nodes_placeholder": "Поиск узлов ({count})...",
-        "clear_search": "Очистить поиск"
+        "clear_search": "Очистить поиск",
+        "engine_webgl": "WebGL",
+        "engine_webgl_hint": "Граф, раскладка и буферы отрисовки в Go WebAssembly. Пиксели через WebGL2"
     },
     "banishment": {
         "title": "Забаненные",

@@ -2,8 +2,22 @@
 
 <template>
     <div class="flex-1 h-full min-w-0 relative dark:bg-zinc-950 overflow-hidden">
-        <!-- network -->
-        <div id="network" class="w-full h-full"></div>
+        <!-- vis-network fallback canvas host -->
+        <div id="network" class="w-full h-full" :class="{ hidden: rendererMode === 'webgl' }"></div>
+        <!-- WebGL + WASM scene (preferred when available) -->
+        <canvas
+            id="network-webgl"
+            ref="webglCanvas"
+            class="w-full h-full absolute inset-0"
+            :class="{ hidden: rendererMode !== 'webgl' }"
+        ></canvas>
+        <div
+            v-if="rendererMode === 'webgl' && hoverTooltip"
+            class="pointer-events-none absolute z-20 max-w-xs rounded-xl border border-zinc-600/50 bg-zinc-950/90 px-3 py-2 text-xs font-medium text-zinc-100 shadow-lg whitespace-pre-line"
+            :style="{ left: `${hoverTooltip.x + 12}px`, top: `${hoverTooltip.y + 12}px` }"
+        >
+            {{ hoverTooltip.text }}
+        </div>
 
         <NetworkVisualiserLoadingOverlay
             :is-loading="isLoading"
@@ -21,8 +35,8 @@
             :auto-reload="autoReload"
             :enable-physics="enablePhysics"
             :hop-max-filter="hopMaxFilter"
-            :node-count="nodes.length"
-            :edge-count="edges.length"
+            :node-count="displayNodeCount"
+            :edge-count="displayEdgeCount"
             :online-interface-count="onlineInterfaces.length"
             :offline-interface-count="offlineInterfaces.length"
             :search-query="searchQuery"
@@ -67,6 +81,7 @@ import {
     warmVisualiserWasm,
 } from "../../js/networkVisualiserPerf.js";
 import { isVisualiserWasmReady } from "../../js/VisualiserWasmLoader.js";
+import { canUseVisualiserWebGL, createVisualiserWebGLEngine } from "../../js/networkVisualiserWebGLEngine.js";
 import { loadVisualiserCache, saveVisualiserCache } from "../../js/networkVisualiserCache.js";
 import {
     BATTERY_SAVER_CHANGED_EVENT,
@@ -187,6 +202,11 @@ export default {
             conversations: {},
 
             network: null,
+            webglEngine: null,
+            rendererMode: "vis",
+            graphNodeCount: 0,
+            graphEdgeCount: 0,
+            hoverTooltip: null,
             nodes: new DataSet(),
             edges: new DataSet(),
             iconCache: {},
@@ -227,6 +247,17 @@ export default {
         },
         hopFilterMax() {
             return this.hopMaxFilter;
+        },
+        displayNodeCount() {
+            if (this.rendererMode === "webgl") return this.graphNodeCount;
+            return this.nodes.length;
+        },
+        displayEdgeCount() {
+            if (this.rendererMode === "webgl") return this.graphEdgeCount;
+            return this.edges.length;
+        },
+        hasRenderer() {
+            return Boolean(this.network || this.webglEngine);
         },
     },
     watch: {
@@ -300,6 +331,10 @@ export default {
             this.lodRafId = null;
         }
         this.stopFpsMeter();
+        if (this.webglEngine) {
+            this.webglEngine.destroy();
+            this.webglEngine = null;
+        }
         if (this.network) {
             this.network.destroy();
         }
@@ -334,7 +369,7 @@ export default {
         this._visualiserPrefsHandler = () => {
             this.loadVisualiserDisplayPrefs();
             this.applyBatterySaverVisualiserPrefs();
-            if (this.network) {
+            if (this.hasRenderer) {
                 this.processVisualization();
             }
         };
@@ -344,7 +379,7 @@ export default {
             this.batterySaverPrefs = prefs || loadBatterySaverPrefs();
             this.applyBatterySaverVisualiserPrefs();
             this.restartAutoReloadInterval();
-            if (this.network) {
+            if (this.hasRenderer) {
                 this.processVisualization();
             }
         };
@@ -392,9 +427,17 @@ export default {
         resolveEngineMode() {
             warmVisualiserWasm()
                 .then((ok) => {
+                    if (this.rendererMode === "webgl") {
+                        this.engineMode = "webgl";
+                        return;
+                    }
                     this.engineMode = ok && isVisualiserWasmReady() ? "wasm" : "fallback";
                 })
                 .catch(() => {
+                    if (this.rendererMode === "webgl") {
+                        this.engineMode = "webgl";
+                        return;
+                    }
                     this.engineMode = "fallback";
                 });
         },
@@ -409,8 +452,12 @@ export default {
                     this.fps = Math.round((this.fpsFrameCount * 1000) / elapsed);
                     this.fpsFrameCount = 0;
                     this.fpsLastSampleMs = now;
-                    if (this.engineMode === "checking" && isVisualiserWasmReady()) {
-                        this.engineMode = "wasm";
+                    if (this.engineMode === "checking") {
+                        if (this.rendererMode === "webgl") {
+                            this.engineMode = "webgl";
+                        } else if (isVisualiserWasmReady()) {
+                            this.engineMode = "wasm";
+                        }
                     }
                 }
                 this.fpsRafId = requestAnimationFrame(tick);
@@ -424,6 +471,16 @@ export default {
             }
         },
         snapshotNodePositions() {
+            if (this.webglEngine) {
+                const snap = this.webglEngine.getPositions() || {};
+                const out = {};
+                for (const [id, p] of Object.entries(snap)) {
+                    if (p && Number.isFinite(p.x) && Number.isFinite(p.y)) {
+                        out[id] = { x: p.x, y: p.y };
+                    }
+                }
+                return out;
+            }
             const out = {};
             if (!this.network || typeof this.network.getPositions !== "function") {
                 return out;
@@ -750,6 +807,14 @@ export default {
             this.autoReload = p.autoReload;
         },
         refreshPhysicsEnabled() {
+            if (this.webglEngine) {
+                this.webglEngine.setLiveLayout(this.enablePhysics);
+                if (!this.enablePhysics) {
+                    const snap = this.webglEngine.getPositions() || {};
+                    this.cachedPositions = { ...this.cachedPositions, ...snap };
+                }
+                return;
+            }
             if (!this.network) return;
             if (this.physicsPausedForDrag) return;
             // Freeze current coordinates before stopping the solver so peers
@@ -828,8 +893,75 @@ export default {
             return v;
         },
         async init() {
+            await warmVisualiserWasm();
+            const canvas = this.$refs.webglCanvas;
+            if (canvas && canUseVisualiserWebGL(canvas)) {
+                try {
+                    this.webglEngine = createVisualiserWebGLEngine(canvas, {
+                        getLiveLayout: () => this.enablePhysics === true,
+                        isDark: () => document.documentElement.classList.contains("dark"),
+                        onNodeActivate: (id, meta) => this.onWebGLNodeActivate(id, meta),
+                        onHover: (id, meta, x, y) => this.onWebGLHover(id, meta, x, y),
+                    });
+                    this.rendererMode = "webgl";
+                    this.engineMode = "webgl";
+                    await this.manualUpdate();
+                    this.restartAutoReloadInterval();
+                    return;
+                } catch (e) {
+                    console.warn("WebGL visualiser failed, falling back to vis-network:", e);
+                    if (this.webglEngine) {
+                        this.webglEngine.destroy();
+                        this.webglEngine = null;
+                    }
+                    this.rendererMode = "vis";
+                }
+            }
+            await this.initVisNetwork();
+        },
+        onWebGLNodeActivate(id, meta) {
+            const announce = meta?.announce;
+            if (!announce) return;
+            this.openAnnounceDestination(announce, id);
+        },
+        openAnnounceDestination(announce, fallbackHash = "") {
+            if (!announce) return;
+            const destinationHash = (announce.destination_hash || announce.destinationHash || fallbackHash || "")
+                .toString()
+                .trim();
+            if (!destinationHash) return;
+
+            if (announce.aspect === "lxmf.delivery") {
+                this.$router.push({
+                    name: "messages",
+                    params: { destinationHash },
+                });
+                return;
+            }
+            if (announce.aspect === "nomadnetwork.node") {
+                // Navigate directly. Do not rely on nomad-open-node: that listener
+                // only exists while NomadNetworkBrowser is mounted (keep-alive).
+                this.$router
+                    .push({
+                        name: "nomadnetwork",
+                        params: { destinationHash },
+                        query: { newTab: "1" },
+                    })
+                    .catch(() => {});
+            }
+        },
+        onWebGLHover(id, meta, x, y) {
+            if (!id || !meta) {
+                this.hoverTooltip = null;
+                return;
+            }
+            const text = meta.title || meta.label || id;
+            this.hoverTooltip = { x, y, text };
+        },
+        async initVisNetwork() {
             const container = document.getElementById("network");
             const isDarkMode = document.documentElement.classList.contains("dark");
+            this.rendererMode = "vis";
 
             this.network = new Network(
                 container,
@@ -909,18 +1041,7 @@ export default {
                 const node = this.nodes.get(clickedNodeId);
                 if (!node || !node._announce) return;
 
-                const announce = node._announce;
-                if (announce.aspect === "lxmf.delivery") {
-                    this.$router.push({
-                        name: "messages",
-                        params: { destinationHash: announce.destination_hash },
-                    });
-                } else if (announce.aspect === "nomadnetwork.node") {
-                    GlobalEmitter.emit("nomad-open-node", {
-                        destinationHash: announce.destination_hash,
-                        forceNewTab: true,
-                    });
-                }
+                this.openAnnounceDestination(node._announce, clickedNodeId);
             });
 
             this.refreshPhysicsEnabled();
@@ -1155,6 +1276,10 @@ export default {
                 await this._processVisualizationGraph(runId);
             } finally {
                 if (runId === this.vizRunGeneration) {
+                    if (this.webglEngine) {
+                        this.webglEngine.setLiveLayout(this.enablePhysics);
+                        this.webglEngine.requestRedraw();
+                    }
                     if (this.network && !this.didDisableStabilization) {
                         this.didDisableStabilization = true;
                         this.network.setOptions({
@@ -1186,7 +1311,14 @@ export default {
                 }
             }
             const existingNodeIds = this.nodes.getIds();
-            if (this.network) {
+            if (this.webglEngine) {
+                const snap = this.webglEngine.getPositions() || {};
+                for (const [id, p] of Object.entries(snap)) {
+                    if (p && Number.isFinite(p.x) && Number.isFinite(p.y)) {
+                        posById[id] = { x: p.x, y: p.y };
+                    }
+                }
+            } else if (this.network) {
                 const snap = this.network.getPositions(existingNodeIds);
                 if (snap) {
                     for (const id of existingNodeIds) {
@@ -1483,6 +1615,23 @@ export default {
             const chunkSize = this.vizChunkSize;
             this.totalBatches = Math.max(1, Math.ceil(Math.max(graphNodes.length, graphEdges.length) / chunkSize));
             this.currentBatch = 0;
+
+            if (this.webglEngine && this.rendererMode === "webgl") {
+                this.loadingStatus = "Uploading scene...";
+                this.webglEngine.setGraph(graphNodes, graphEdges);
+                const counts = this.webglEngine.getCounts();
+                this.graphNodeCount = counts.nodes;
+                this.graphEdgeCount = counts.edges;
+                const snap = this.webglEngine.getPositions() || {};
+                this.cachedPositions = { ...this.cachedPositions, ...snap };
+                this.loadedNodesCount = this.pathTable.length;
+                this.totalNodesToLoad = 0;
+                this.loadedNodesCount = 0;
+                this.currentBatch = 0;
+                this.totalBatches = 0;
+                return;
+            }
+
             const applyLimit = Math.max(graphNodes.length, graphEdges.length);
             for (let i = 0; i < applyLimit; i += chunkSize) {
                 if (!isCurrentRun()) return;
@@ -1504,6 +1653,8 @@ export default {
             const edgesToRemove = this.edges.getIds().filter((id) => !processedEdgeIds.has(id));
             if (edgesToRemove.length > 0) this.edges.remove(edgesToRemove);
 
+            this.graphNodeCount = this.nodes.length;
+            this.graphEdgeCount = this.edges.length;
             this.totalNodesToLoad = 0;
             this.loadedNodesCount = 0;
             this.currentBatch = 0;
@@ -1593,13 +1744,15 @@ export default {
     pointer-events: none !important;
 }
 
-#network {
+#network,
+#network-webgl {
     background-color: #f8fafc;
     background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
     background-size: 32px 32px;
 }
 
-.dark #network {
+.dark #network,
+.dark #network-webgl {
     background-color: #09090b;
     background-image: radial-gradient(#18181b 1px, transparent 1px);
     background-size: 32px 32px;
