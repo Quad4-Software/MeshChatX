@@ -233,6 +233,100 @@ class TestCompareBenchmarks(unittest.TestCase):
             )
             self.assertEqual(code, 1)
 
+    def test_full_suite_fails_when_required_bench_missing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            current = os.path.join(tmp, "current.json")
+            previous = os.path.join(tmp, "previous.json")
+            # Full-suite signal without the new required conversation benches.
+            self._write(
+                previous,
+                [
+                    {
+                        "name": "Database Initialization",
+                        "unit": "ms",
+                        "value": 20.0,
+                    },
+                    {
+                        "name": "Get 100 Conversations List",
+                        "unit": "ms",
+                        "value": 5.0,
+                    },
+                ],
+            )
+            self._write(
+                current,
+                [
+                    {
+                        "name": "Database Initialization",
+                        "unit": "ms",
+                        "value": 21.0,
+                    },
+                    {
+                        "name": "Get 100 Conversations List",
+                        "unit": "ms",
+                        "value": 5.1,
+                    },
+                ],
+            )
+            code, rows = compare(current, previous)
+            by_name = {r["name"]: r for r in rows}
+            self.assertEqual(code, 1)
+            self.assertEqual(
+                by_name["Get Conversations Slim List (handler)"]["status"],
+                "MISSING",
+            )
+
+    def test_full_suite_fails_when_bench_removed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            current = os.path.join(tmp, "current.json")
+            previous = os.path.join(tmp, "previous.json")
+            self._write(
+                previous,
+                [
+                    {
+                        "name": "Database Initialization",
+                        "unit": "ms",
+                        "value": 20.0,
+                    },
+                    {
+                        "name": "Extra Optional Bench",
+                        "unit": "ms",
+                        "value": 1.0,
+                    },
+                ],
+            )
+            # Current only has init: required benches missing + optional removed.
+            self._write(
+                current,
+                [
+                    {
+                        "name": "Database Initialization",
+                        "unit": "ms",
+                        "value": 20.0,
+                    },
+                ],
+            )
+            code, rows = compare(current, previous)
+            by_name = {r["name"]: r for r in rows}
+            self.assertEqual(code, 1)
+            self.assertEqual(by_name["Extra Optional Bench"]["status"], "REMOVED")
+
+    def test_toy_fixture_does_not_enforce_required_coverage(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            current = os.path.join(tmp, "current.json")
+            previous = os.path.join(tmp, "previous.json")
+            self._write(
+                current,
+                [{"name": "Toy Bench", "unit": "ms", "value": 1.0}],
+            )
+            self._write(
+                previous,
+                [{"name": "Toy Bench", "unit": "ms", "value": 1.0}],
+            )
+            code, rows = compare(current, previous)
+            self.assertEqual(code, 0)
+            self.assertEqual(rows[0]["status"], "ok")
+
 
 if __name__ == "__main__":
     unittest.main()

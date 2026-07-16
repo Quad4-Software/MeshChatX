@@ -29,6 +29,32 @@ from tests.backend.benchmarking_utils import (  # noqa: E402
     should_alert_regression,
 )
 
+# Must stay present in comprehensive suite runs. Gate fails if a full-suite
+# baseline is missing any of these from the current JSON.
+REQUIRED_BENCHES = frozenset(
+    {
+        "Database Initialization",
+        "Message Upsert (Batch of 100)",
+        "Get 100 Conversations List",
+        "Get Conversations Slim List (handler)",
+        "Get Conversations Unread Filter (handler)",
+        "Mark Conversation As Read",
+        "Get Messages for Conversation (offset 500)",
+        "Log Telephone Call",
+        "Get Call History List",
+        "Notification Add + Unread Count",
+        "Missed Call Unread Count by Type",
+        "Dismiss Missed Call Notifications",
+        "Config Get (50 keys)",
+        "Get Contacts List",
+    },
+)
+
+
+def _is_full_suite_baseline(previous):
+    """True when previous looks like the comprehensive suite, not a unit fixture."""
+    return "Database Initialization" in previous
+
 
 def _load_entries(path):
     with open(path, encoding="utf-8") as f:
@@ -91,6 +117,8 @@ def compare(
     alerts = []
     improvements = []
     skipped = []
+    coverage_alerts = []
+    enforce_coverage = _is_full_suite_baseline(previous)
 
     for name in sorted(current):
         cur = current[name]
@@ -153,23 +181,55 @@ def compare(
         )
 
     missing = sorted(set(previous) - set(current))
+    coverage_seen = set()
     for name in missing:
+        detail = "present in baseline only"
+        status = "removed"
+        if enforce_coverage:
+            coverage_alerts.append(name)
+            coverage_seen.add(name)
+            if name in REQUIRED_BENCHES:
+                status = "MISSING"
+                detail = "required bench absent from current suite"
+            else:
+                status = "REMOVED"
+                detail = "dropped from suite vs full baseline"
         rows.append(
             {
                 "name": name,
                 "current": None,
                 "previous": _value_ms(previous[name]),
                 "ratio": None,
-                "status": "removed",
-                "detail": "present in baseline only",
+                "status": status,
+                "detail": detail,
             },
         )
+
+    check_required = enforce_coverage or (
+        not previous and "Database Initialization" in current
+    )
+    if check_required:
+        for name in sorted(REQUIRED_BENCHES - set(current) - coverage_seen):
+            coverage_alerts.append(name)
+            rows.append(
+                {
+                    "name": name,
+                    "current": None,
+                    "previous": (
+                        _value_ms(previous[name]) if name in previous else None
+                    ),
+                    "ratio": None,
+                    "status": "MISSING",
+                    "detail": "required bench absent from current suite",
+                },
+            )
 
     lines = [
         "MeshChatX Backend Benchmark Gate",
         f"Current:  {current_path}",
         f"Previous: {previous_path or '(none)'}",
         f"Noise floor: {noise_floor_ms} ms | Min abs delta: {min_abs_delta_ms} ms",
+        f"Coverage enforce: {'yes' if check_required else 'no'}",
         "",
         f"{'Benchmark':42} {'Curr':>10} {'Prev':>10} {'Ratio':>8}  Status",
         "-" * 90,
@@ -182,17 +242,23 @@ def compare(
             f"{row['name'][:42]:42} {cur_s:>10} {prev_s:>10} {ratio_s:>8}  "
             f"{row['status']}",
         )
-        if row["status"] == "REGRESSION":
+        if row["status"] in {"REGRESSION", "REMOVED", "MISSING"}:
             lines.append(f"  -> {row['detail']}")
 
     lines.append("-" * 90)
     lines.append(
         f"Regressions: {len(alerts)} | Improvements: {len(improvements)} | "
         f"Noise-skipped: {len(skipped)} | New: "
-        f"{sum(1 for r in rows if r['status'] == 'new')}",
+        f"{sum(1 for r in rows if r['status'] == 'new')} | "
+        f"Coverage: {len(coverage_alerts)}",
     )
-    if alerts:
-        lines.append("ALERT: " + ", ".join(alerts))
+    if alerts or coverage_alerts:
+        parts = []
+        if alerts:
+            parts.append("regressions: " + ", ".join(alerts))
+        if coverage_alerts:
+            parts.append("coverage: " + ", ".join(coverage_alerts))
+        lines.append("ALERT: " + " | ".join(parts))
     else:
         lines.append("No actionable regressions.")
 
@@ -210,7 +276,7 @@ def compare(
                 f.write(text)
                 f.write("```\n")
 
-    return 1 if alerts else 0, rows
+    return 1 if (alerts or coverage_alerts) else 0, rows
 
 
 def update_baseline(
