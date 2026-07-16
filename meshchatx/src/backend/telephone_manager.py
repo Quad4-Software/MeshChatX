@@ -99,6 +99,15 @@ class TelephoneManager:
     def codec2_available() -> bool:
         """Return whether LXST can construct Codec2 codecs (pycodec2 + libcodec2)."""
         try:
+            from meshchatx import android_codec2
+
+            if android_codec2._is_chaquopy_android():
+                ok, _err = android_codec2.probe_pycodec2()
+                if not ok:
+                    return False
+        except Exception:
+            pass
+        try:
             from LXST.Codecs import Codec2
 
             if Codec2 is None:

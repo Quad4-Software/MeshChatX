@@ -104,8 +104,20 @@ tasks.register("syncCodec2JniLibs", Exec) {
         "${projectDir}/src/main/jniLibs",
         abiArg
     )
-    onlyIf {
-        vendorWheelDir.isDirectory() && vendorWheelDir.list()?.any { it.startsWith("chaquopy_libcodec2-") }
+    doFirst {
+        if (!vendorWheelDir.isDirectory()) {
+            throw new org.gradle.api.GradleException(
+                "Missing android/vendor directory at ${vendorWheelDir}. " +
+                    "Run: bash scripts/build-android-wheels-local.sh"
+            )
+        }
+        def wheels = vendorWheelDir.list()?.toList() ?: []
+        if (!wheels.any { it.startsWith("chaquopy_libcodec2-") }) {
+            throw new org.gradle.api.GradleException(
+                "Missing chaquopy_libcodec2 wheels in ${vendorWheelDir}. " +
+                    "Run: bash scripts/build-android-wheels-local.sh"
+            )
+        }
     }
 }
 
@@ -128,6 +140,25 @@ tasks.register("verifyVendorWheels") {
                     )
                 }
             }
+            if (!wheels.any { it.startsWith("pycodec2-") && it.contains("android_24_${abiTag}") }) {
+                throw new org.gradle.api.GradleException(
+                    "Missing pycodec2 wheel for ${abi} in ${vendorWheelDir}. " +
+                        "Run: bash scripts/build-android-wheels-local.sh"
+                )
+            }
+            if (!wheels.any { it.startsWith("chaquopy_libcodec2-") && it.contains("android_24_${abiTag}") }) {
+                throw new org.gradle.api.GradleException(
+                    "Missing chaquopy_libcodec2 wheel for ${abi} in ${vendorWheelDir}. " +
+                        "Run: bash scripts/build-android-wheels-local.sh"
+                )
+            }
+            def jniLib = file("${projectDir}/src/main/jniLibs/${abi}/libcodec2.so")
+            if (!jniLib.isFile() || jniLib.length() < 100_000) {
+                throw new org.gradle.api.GradleException(
+                    "Missing or tiny jniLibs/${abi}/libcodec2.so after sync. " +
+                        "Expected a real Codec2 shared library for Android calls."
+                )
+            }
         }
     }
 }
@@ -142,13 +173,33 @@ tasks.register("repackAndroidPycodec2Wheels", Exec) {
     workingDir = repoRoot
     def pyExe = (System.getenv("MESHCHATX_REPACK_PYTHON") ?: "python3")
     commandLine(pyExe, "scripts/repack-android-pycodec2-wheels.py", "--vendor-dir", vendorWheelDir.absolutePath)
-    onlyIf {
-        vendorWheelDir.isDirectory() && vendorWheelDir.list()?.any { it.startsWith("pycodec2-") && it.endsWith(".whl") }
+    doFirst {
+        if (!vendorWheelDir.isDirectory()) {
+            throw new org.gradle.api.GradleException(
+                "Missing android/vendor directory at ${vendorWheelDir}"
+            )
+        }
+        def wheels = vendorWheelDir.list()?.toList() ?: []
+        if (!wheels.any { it.startsWith("pycodec2-") && it.endsWith(".whl") }) {
+            throw new org.gradle.api.GradleException(
+                "Missing pycodec2 wheels in ${vendorWheelDir}. " +
+                    "Run: bash scripts/build-android-wheels-local.sh"
+            )
+        }
+        if (!wheels.any { it.startsWith("chaquopy_libcodec2-") && it.endsWith(".whl") }) {
+            throw new org.gradle.api.GradleException(
+                "Missing chaquopy_libcodec2 wheels needed to repack pycodec2 in ${vendorWheelDir}"
+            )
+        }
     }
 }
 
 tasks.named("syncCodec2JniLibs").configure {
     dependsOn(tasks.named("repackAndroidPycodec2Wheels"))
+}
+
+tasks.named("verifyVendorWheels").configure {
+    dependsOn(tasks.named("syncCodec2JniLibs"))
 }
 
 tasks.register("fetchRepositoryBundledWheels", Exec) {

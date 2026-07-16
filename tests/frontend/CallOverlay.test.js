@@ -157,4 +157,34 @@ describe("CallOverlay.vue", () => {
         expect(wrapper.text()).toContain("5 GB");
         expect(wrapper.text()).toContain("500 MB");
     });
+
+    it("navigates to Call phone tab after answering", async () => {
+        const push = vi.fn().mockResolvedValue(undefined);
+        global.api = { get: vi.fn().mockResolvedValue({}) };
+        const wrapper = mount(CallOverlay, {
+            props: {
+                ...defaultProps,
+                activeCall: {
+                    ...defaultProps.activeCall,
+                    is_incoming: true,
+                    status: 4,
+                },
+            },
+            global: {
+                mocks: {
+                    $t: (key) => key,
+                    $router: { push },
+                    $route: { name: "messages", query: {} },
+                },
+                stubs: {
+                    MaterialDesignIcon: true,
+                    LxmfUserIcon: true,
+                    AudioWaveformPlayer: true,
+                },
+            },
+        });
+        await wrapper.vm.answerCall();
+        expect(global.api.get).toHaveBeenCalledWith("/api/v1/telephone/answer");
+        expect(push).toHaveBeenCalledWith({ name: "call", query: { tab: "phone" } });
+    });
 });

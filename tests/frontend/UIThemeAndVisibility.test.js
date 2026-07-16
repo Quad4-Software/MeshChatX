@@ -6,7 +6,6 @@ import SettingsPage from "../../meshchatx/src/frontend/components/settings/Setti
 import Toggle from "../../meshchatx/src/frontend/components/forms/Toggle.vue";
 import ConfirmDialog from "../../meshchatx/src/frontend/components/ConfirmDialog.vue";
 import ChangelogModal from "../../meshchatx/src/frontend/components/ChangelogModal.vue";
-import NotificationBell from "../../meshchatx/src/frontend/components/NotificationBell.vue";
 import LanguageSelector from "../../meshchatx/src/frontend/components/LanguageSelector.vue";
 
 vi.mock("vuetify", () => ({
@@ -119,7 +118,6 @@ describe("Theme Switching", () => {
                     RouterLink: createRouterLinkStub(),
                     MaterialDesignIcon: { template: "<div></div>" },
                     LanguageSelector: { template: "<div></div>" },
-                    NotificationBell: { template: "<div></div>" },
                     SidebarLink: {
                         template: '<div><slot name="icon"></slot><slot name="text"></slot></div>',
                         props: ["to", "isCollapsed"],
@@ -149,7 +147,6 @@ describe("Theme Switching", () => {
                     RouterLink: createRouterLinkStub(),
                     MaterialDesignIcon: { template: "<div></div>" },
                     LanguageSelector: { template: "<div></div>" },
-                    NotificationBell: { template: "<div></div>" },
                     SidebarLink: {
                         template: '<div><slot name="icon"></slot><slot name="text"></slot></div>',
                         props: ["to", "isCollapsed"],
@@ -179,7 +176,6 @@ describe("Theme Switching", () => {
                     RouterLink: createRouterLinkStub(),
                     MaterialDesignIcon: { template: "<div></div>" },
                     LanguageSelector: { template: "<div></div>" },
-                    NotificationBell: { template: "<div></div>" },
                     SidebarLink: {
                         template: '<div><slot name="icon"></slot><slot name="text"></slot></div>',
                         props: ["to", "isCollapsed"],
@@ -224,7 +220,6 @@ describe("Theme Switching", () => {
                     RouterLink: createRouterLinkStub(),
                     MaterialDesignIcon: { template: "<div></div>" },
                     LanguageSelector: { template: "<div></div>" },
-                    NotificationBell: { template: "<div></div>" },
                     SidebarLink: {
                         template: '<div><slot name="icon"></slot><slot name="text"></slot></div>',
                         props: ["to", "isCollapsed"],
@@ -270,7 +265,6 @@ describe("Theme Switching", () => {
                         props: ["iconName"],
                     },
                     LanguageSelector: { template: "<div></div>" },
-                    NotificationBell: { template: "<div></div>" },
                     SidebarLink: {
                         template: '<div><slot name="icon"></slot><slot name="text"></slot></div>',
                         props: ["to", "isCollapsed"],
@@ -501,7 +495,6 @@ describe("Conditional Rendering", () => {
                     RouterLink: createRouterLinkStub(),
                     MaterialDesignIcon: { template: "<div></div>" },
                     LanguageSelector: { template: "<div></div>" },
-                    NotificationBell: { template: "<div></div>" },
                     SidebarLink: {
                         template: '<div><slot name="icon"></slot><slot name="text"></slot></div>',
                         props: ["to", "isCollapsed"],
@@ -529,7 +522,6 @@ describe("Conditional Rendering", () => {
                     RouterLink: createRouterLinkStub(),
                     MaterialDesignIcon: { template: "<div></div>" },
                     LanguageSelector: { template: "<div></div>" },
-                    NotificationBell: { template: "<div></div>" },
                     SidebarLink: {
                         template: '<div><slot name="icon"></slot><slot name="text"></slot></div>',
                         props: ["to", "isCollapsed"],
@@ -557,7 +549,6 @@ describe("Conditional Rendering", () => {
                     RouterLink: createRouterLinkStub(),
                     MaterialDesignIcon: { template: "<div></div>" },
                     LanguageSelector: { template: "<div></div>" },
-                    NotificationBell: { template: "<div></div>" },
                     SidebarLink: {
                         template: '<div><slot name="icon"></slot><slot name="text"></slot></div>',
                         props: ["to", "isCollapsed"],
@@ -583,7 +574,6 @@ describe("Conditional Rendering", () => {
                     RouterLink: createRouterLinkStub(),
                     MaterialDesignIcon: { template: '<div data-icon-name="{{ iconName }}"></div>' },
                     LanguageSelector: { template: "<div></div>" },
-                    NotificationBell: { template: "<div></div>" },
                     SidebarLink: {
                         template: '<div><slot name="icon"></slot><slot name="text"></slot></div>',
                         props: ["to", "isCollapsed"],
@@ -614,7 +604,6 @@ describe("Dark Mode Class Application", () => {
                     RouterLink: createRouterLinkStub(),
                     MaterialDesignIcon: { template: "<div></div>" },
                     LanguageSelector: { template: "<div></div>" },
-                    NotificationBell: { template: "<div></div>" },
                     SidebarLink: {
                         template: '<div><slot name="icon"></slot><slot name="text"></slot></div>',
                         props: ["to", "isCollapsed"],

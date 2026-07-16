@@ -88,9 +88,6 @@
         "show_qr": "Mostra Codice QR",
         "failed_announce": "impossibile annunciare",
         "announce_sent": "Annuncio inviato",
-        "notifications_no_new": "Nessuna nuova notifica",
-        "notifications_empty_history": "Nessuna cronologia notifiche",
-        "notifications_history_title": "Cronologia notifiche recenti",
         "notifications": "Notifiche",
         "notification_sound_settings": "Suono di notifica messaggi",
         "notification_sound_settings_description": "Riproduce un suono personalizzato quando ricevi un nuovo messaggio mentre MeshChat è aperto. Carica prima un file audio, poi abilita la riproduzione.",
@@ -1829,7 +1826,9 @@
         "conversation_files_other": "{name} ha inviato {count} file",
         "message_not_found_in_cache": "Messaggio non trovato nella cache",
         "failed_to_send": "Impossibile inviare il messaggio",
-        "failed_to_send_image": "Impossibile inviare l'immagine {index}: {detail}"
+        "failed_to_send_image": "Impossibile inviare l'immagine {index}: {detail}",
+        "unknown_meshchatx_link": "Unknown meshchatx link ({host})",
+        "unknown_meshchatx_link_generic": "Unknown or invalid meshchatx link"
     },
     "settings": {
         "shortcut_saved": "Scorciatoia salvata",
@@ -3220,7 +3219,9 @@
         "failed_to_send_to_voicemail": "Impossibile inviare la chiamata alla segreteria",
         "failed_load_audio_edit": "Impossibile caricare l'audio per la modifica",
         "ringtone_saved": "Suoneria salvata con successo",
-        "failed_save_ringtone": "Impossibile salvare la suoneria modificata"
+        "failed_save_ringtone": "Impossibile salvare la suoneria modificata",
+        "codec2_unavailable": "Codec2 is not available on this device. Low-bandwidth call profiles are hidden.",
+        "codec2_profile_remapped": "Codec2 is unavailable so the call profile was switched to Opus."
     },
     "tutorial": {
         "title": "Guida Introduttiva",

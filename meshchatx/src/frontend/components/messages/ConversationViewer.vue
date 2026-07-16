@@ -3611,8 +3611,11 @@ export default {
             });
 
             const conversation = this.findConversation(this.selectedPeer.destination_hash);
-            if (conversation) {
-                this.markConversationAsRead(conversation);
+            const target = conversation || this.selectedPeer;
+            if (target) {
+                // Force mark even when local is_unread is still false. Delivery bumps the
+                // nav badge from the server before the conversation list refreshes.
+                this.markConversationAsRead(target, { force: true });
             }
 
             if (this.autoScrollOnNewMessage) {
@@ -7151,9 +7154,13 @@ export default {
                 return conversation.destination_hash === destinationHash;
             });
         },
-        async markConversationAsRead(conversation) {
+        async markConversationAsRead(conversation, { force = false } = {}) {
+            if (!conversation?.destination_hash) {
+                return;
+            }
+
             const wasUnread = conversation.is_unread === true;
-            if (!wasUnread) {
+            if (!wasUnread && !force) {
                 return;
             }
 
@@ -7163,11 +7170,11 @@ export default {
             try {
                 await window.api.post(`/api/v1/lxmf/conversations/${conversation.destination_hash}/mark-as-read`);
                 GlobalEmitter.emit("notifications-changed");
-                if (GlobalState.unreadConversationsCount > 0) {
+                if (wasUnread && GlobalState.unreadConversationsCount > 0) {
                     GlobalState.unreadConversationsCount -= 1;
                 }
             } catch (e) {
-                conversation.is_unread = true;
+                conversation.is_unread = wasUnread;
                 console.log(e);
             }
         },

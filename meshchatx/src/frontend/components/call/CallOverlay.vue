@@ -419,6 +419,12 @@ export default {
         async answerCall() {
             try {
                 await window.api.get("/api/v1/telephone/answer");
+                // Native Android audio (and desktop web-audio) only attach from
+                // CallPage. Overlay accept must open the phone tab or the call
+                // stays silent after answer.
+                if (this.$route?.name !== "call" || this.$route?.query?.tab !== "phone") {
+                    await this.$router.push({ name: "call", query: { tab: "phone" } });
+                }
             } catch {
                 ToastUtils.error(this.$t("call.failed_to_answer_call"));
             }

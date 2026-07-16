@@ -1394,10 +1394,14 @@ class ReticulumMeshChat:
         ensure_safe_reticulum_runtime_flags(config_path)
 
     def _set_startup_stage(self, stage: str, error: str | None = None) -> None:
+        previous = getattr(self, "_startup_stage", None)
         self._startup_stage = stage
         if error is not None:
             self._startup_error = error
-        print(f"Startup stage: {stage}", flush=True)
+        # Same stage can be set from both the network-setup wrapper and
+        # setup_identity. Only log transitions to keep console noise down.
+        if previous != stage or error is not None:
+            print(f"Startup stage: {stage}", flush=True)
 
     def _mark_network_ready(self) -> None:
         self._network_ready = True
@@ -1533,7 +1537,6 @@ class ReticulumMeshChat:
             self._set_startup_stage("failed", "No identity available for network setup")
             return
         try:
-            self._set_startup_stage("rns")
             self.setup_identity(identity)
             if self.config is not None and getattr(self, "session_secret_key", None):
                 try:
@@ -1603,7 +1606,6 @@ class ReticulumMeshChat:
                 loglevel=rns_loglevel,
             )
             _restore_rns_console_logging_after_reticulum_init(self)
-            self._set_startup_stage("identity")
             self.page_node_manager.load_nodes()
             self.page_node_manager.start_all()
             self.plugin_manager.set_app(self)
@@ -10572,10 +10574,13 @@ class ReticulumMeshChat:
                     int(profile_id),
                 )
                 self.config.telephone_audio_profile_id.set(resolved)
+                requested = int(profile_id)
                 return web.json_response(
                     {
                         "message": f"Switched to profile {resolved}",
                         "profile_id": resolved,
+                        "requested_profile_id": requested,
+                        "remapped": requested != resolved,
                     },
                 )
             except Exception as e:
@@ -10586,17 +10591,25 @@ class ReticulumMeshChat:
         async def telephone_codec2_status(request):
             from meshchatx import android_codec2
 
-            available = await asyncio.to_thread(
-                self.telephone_manager.codec2_available,
-            )
-            return web.json_response(
-                {
+            def _status():
+                probe_ok, probe_error = android_codec2.probe_pycodec2()
+                lxst_ok = self.telephone_manager.codec2_available()
+                available = bool(probe_ok and lxst_ok)
+                return {
                     "codec2_available": available,
                     "preload_error": android_codec2.codec2_preload_error(),
+                    "probe_error": None if probe_ok else probe_error,
+                    "platform": (
+                        "android"
+                        if android_codec2._is_chaquopy_android()
+                        else "desktop"
+                    ),
                     "preferred_profile_id": self.telephone_manager.preferred_profile_id,
                     "resolved_profile_id": self.telephone_manager.resolve_audio_profile_id(),
-                },
-            )
+                }
+
+            payload = await asyncio.to_thread(_status)
+            return web.json_response(payload)
 
         # initiate a telephone call
         # initiate outgoing telephone call
@@ -10664,22 +10677,37 @@ class ReticulumMeshChat:
         @routes.get("/api/v1/telephone/audio-profiles")
         async def telephone_audio_profiles(request):
             from LXST.Primitives.Telephony import Profiles
+            from meshchatx import android_codec2
 
-            # get audio profiles
-            audio_profiles = [
-                {
-                    "id": available_profile,
-                    "name": Profiles.profile_name(available_profile),
+            def _profiles():
+                probe_ok, _probe_err = android_codec2.probe_pycodec2()
+                codec2_ok = bool(probe_ok and self.telephone_manager.codec2_available())
+                codec2_ids = {
+                    Profiles.BANDWIDTH_ULTRA_LOW,
+                    Profiles.BANDWIDTH_VERY_LOW,
+                    Profiles.BANDWIDTH_LOW,
                 }
-                for available_profile in Profiles.available_profiles()
-            ]
-
-            return web.json_response(
-                {
-                    "default_audio_profile_id": Profiles.DEFAULT_PROFILE,
+                audio_profiles = []
+                for profile_id in Profiles.available_profiles():
+                    entry = {
+                        "id": profile_id,
+                        "name": Profiles.profile_name(profile_id),
+                        "available": True,
+                    }
+                    if profile_id in codec2_ids and not codec2_ok:
+                        entry["available"] = False
+                        entry["unavailable_reason"] = "codec2"
+                    audio_profiles.append(entry)
+                return {
+                    "default_audio_profile_id": self.telephone_manager.resolve_audio_profile_id(
+                        Profiles.DEFAULT_PROFILE,
+                    ),
+                    "codec2_available": codec2_ok,
                     "audio_profiles": audio_profiles,
-                },
-            )
+                }
+
+            payload = await asyncio.to_thread(_profiles)
+            return web.json_response(payload)
 
         # voicemail status
         @routes.get("/api/v1/telephone/voicemail/status")
@@ -19312,6 +19340,28 @@ class ReticulumMeshChat:
                         )
                         return
 
+                    # Known hosts (map/docs) are handled above. Relay and app
+                    # deep links are frontend-routed. Anything else must not
+                    # fall through to LXMF ingest.
+                    AsyncUtils.run_async(
+                        client.send_str(
+                            json.dumps(
+                                {
+                                    "type": "lxm.ingest_uri.result",
+                                    "status": "error",
+                                    "message": (
+                                        f"Unknown or unsupported meshchatx link host "
+                                        f"'{_host or '(empty)'}'. "
+                                        "Supported hosts include map, docs, relay, and app."
+                                    ),
+                                    "ingest_type": "unknown_meshchatx",
+                                    "host": _host,
+                                },
+                            ),
+                        ),
+                    )
+                    return
+
                 # LXMA contact sharing URI:
                 # lxma://<destination_hash_hex>:<public_key_hex>
                 if uri.lower().startswith("lxma://"):
@@ -19337,18 +19387,13 @@ class ReticulumMeshChat:
                     bytes.fromhex(destination_hash_hex)
                     raw_bytes = bytes.fromhex(public_key_hex)
 
-                    identity = RNS.Identity(create_keys=False)
-                    loaded = False
-                    for candidate in (
-                        raw_bytes,
-                        raw_bytes[:32] if len(raw_bytes) > 32 else None,
-                    ):
-                        if not candidate:
-                            continue
-                        if identity.load_public_key(candidate):
-                            loaded = True
-                            break
-                    if not loaded:
+                    # RNS Identity.load_public_key docs say True/False but the
+                    # implementation returns None on success. Prefer full 64-byte
+                    # keys; truncated 32-byte material is not a valid RNS pubkey.
+                    identity = self._identity_from_public_key_bytes(raw_bytes)
+                    if identity is None and len(raw_bytes) > 32:
+                        identity = self._identity_from_public_key_bytes(raw_bytes[:32])
+                    if identity is None:
                         raise ValueError("Invalid LXMA public key")
 
                     remote_identity_hash = identity.hash.hex()
@@ -19368,6 +19413,20 @@ class ReticulumMeshChat:
                         remote_identity_hash,
                         lxmf_address=destination_hash_hex,
                     )
+
+                    # Persist pubkey so outbound LXMF works before any announce.
+                    try:
+                        RNS.Identity.remember(
+                            None,
+                            bytes.fromhex(destination_hash_hex),
+                            identity.get_public_key(),
+                            None,
+                        )
+                    except Exception as remember_exc:
+                        print(
+                            f"LXMA remember failed for {destination_hash_hex}: "
+                            f"{type(remember_exc).__name__}: {remember_exc!r}",
+                        )
 
                     AsyncUtils.run_async(
                         client.send_str(
@@ -20368,14 +20427,35 @@ class ReticulumMeshChat:
 
             if announce and announce.get("identity_public_key"):
                 public_key = base64.b64decode(announce["identity_public_key"])
-                identity = RNS.Identity(create_keys=False)
-                if identity.load_public_key(public_key):
+                identity = self._identity_from_public_key_bytes(public_key)
+                if identity is not None:
                     return identity
 
         except Exception as e:
             print(f"Error recalling identity for {hash_hex}: {type(e).__name__}: {e!r}")
 
         return None
+
+    @staticmethod
+    def _identity_from_public_key_bytes(public_key: bytes) -> RNS.Identity | None:
+        """Load an RNS Identity from raw public-key bytes.
+
+        ``Identity.load_public_key`` is documented as returning True/False, but
+        current RNS releases return ``None`` on both success and failure. Treat
+        a non-None ``identity.pub`` (and a computed hash) as success.
+        """
+        if not public_key:
+            return None
+        identity = RNS.Identity(create_keys=False)
+        try:
+            identity.load_public_key(public_key)
+        except Exception:
+            return None
+        if getattr(identity, "pub", None) is None:
+            return None
+        if not getattr(identity, "hash", None):
+            return None
+        return identity
 
     # convert an lxmf message to a dictionary, for sending over websocket
 
@@ -20546,9 +20626,7 @@ class ReticulumMeshChat:
                     if not identity and announce.get("identity_public_key"):
                         # Try to load from public key if recall failed
                         public_key = base64.b64decode(announce["identity_public_key"])
-                        identity = RNS.Identity(create_keys=False)
-                        if not identity.load_public_key(public_key):
-                            identity = None
+                        identity = self._identity_from_public_key_bytes(public_key)
 
                     if identity:
                         try:

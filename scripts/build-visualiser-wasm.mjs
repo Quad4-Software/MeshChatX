@@ -50,8 +50,17 @@ function main() {
         process.exit(0);
     }
 
+    const requireWasm =
+        process.env.MESHCHATX_REQUIRE_VISUALISER_WASM === "1" ||
+        process.env.MESHCHATX_REQUIRE_VISUALISER_WASM === "true";
+
     if (!fs.existsSync(path.join(GO_MOD_DIR, "go.mod"))) {
-        console.warn("build-visualiser-wasm: visualiser-wasm/go.mod missing, skipping.");
+        const msg = "build-visualiser-wasm: visualiser-wasm/go.mod missing, skipping.";
+        if (requireWasm) {
+            console.error(msg);
+            process.exit(1);
+        }
+        console.warn(msg);
         process.exit(0);
     }
 
@@ -67,7 +76,12 @@ function main() {
             console.error("build-visualiser-wasm: MESHCHATX_OFFLINE_BUILD=1 but artifacts missing and go unavailable.");
             process.exit(1);
         }
-        console.warn("build-visualiser-wasm: go not found, skipping (JS fallback will be used).");
+        const msg = "build-visualiser-wasm: go not found, skipping (JS fallback will be used).";
+        if (requireWasm) {
+            console.error(msg);
+            process.exit(1);
+        }
+        console.warn(msg);
         process.exit(0);
     }
 

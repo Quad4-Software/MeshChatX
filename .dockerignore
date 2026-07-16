@@ -140,6 +140,10 @@ scripts/ci/
 meshchatx/src/frontend/public/vendor/micron-parser-go/micron-parser-go.wasm
 meshchatx/src/frontend/public/vendor/micron-parser-go/wasm_exec.js
 
+# Host-built visualiser WASM (Docker builds with Go from visualiser-wasm/)
+meshchatx/src/frontend/public/vendor/visualiser-wasm/visualiser.wasm
+meshchatx/src/frontend/public/vendor/visualiser-wasm/wasm_exec.js
+
 .hypothesis
 .hypothesis/
 

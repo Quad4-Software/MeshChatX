@@ -1,11 +1,7 @@
 const { test, expect } = require("@playwright/test");
 const { prepareE2eSession } = require("./helpers");
 
-function topChrome(page) {
-    return page.locator("div.sticky.top-0.z-\\[100\\]").first();
-}
-
-test.describe("Shell: sidebar, theme, notifications, call, search", () => {
+test.describe("Shell: sidebar, theme, call, search", () => {
     test.beforeEach(async ({ request }) => {
         await prepareE2eSession(request);
     });
@@ -32,23 +28,6 @@ test.describe("Shell: sidebar, theme, notifications, call, search", () => {
         await expect.poll(async () => shell.evaluate((el) => el.classList.contains("dark"))).not.toBe(initialDark);
         await themeBtn.click();
         await expect.poll(async () => shell.evaluate((el) => el.classList.contains("dark"))).toBe(initialDark);
-    });
-
-    test("notification bell opens panel and closes from header", async ({ page }) => {
-        await page.goto("/#/messages");
-        await topChrome(page)
-            .locator("button")
-            .filter({ has: page.locator('svg[aria-label="bell"]') })
-            .click();
-        await expect(page.getByRole("heading", { name: "Notifications", exact: true })).toBeVisible({
-            timeout: 15000,
-        });
-        await expect(page.getByText("No new notifications", { exact: true })).toBeVisible({ timeout: 10000 });
-        const panel = page.locator("div.fixed").filter({ hasText: "Notifications" }).first();
-        await panel.locator('svg[aria-label="close"]').click();
-        await expect(page.getByRole("heading", { name: "Notifications", exact: true })).toBeHidden({
-            timeout: 5000,
-        });
     });
 
     test("call route shows Phone tab", async ({ page }) => {

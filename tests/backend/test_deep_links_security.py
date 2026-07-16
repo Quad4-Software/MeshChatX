@@ -367,7 +367,9 @@ async def test_lxm_ingest_docs_hostname_spoof_not_docs_view(mock_app):
 
     payload = json.loads(mock_client.send_str.call_args[0][0])
     assert payload.get("ingest_type") != "docs_view"
-    mock_app.message_router.ingest_lxm_uri.assert_called()
+    assert payload.get("ingest_type") == "unknown_meshchatx"
+    assert payload.get("status") == "error"
+    mock_app.message_router.ingest_lxm_uri.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -441,6 +443,30 @@ def test_meshchatx_docs_query_tail_fuzzing(mock_app, tail):
     assert payload["type"] == "lxm.ingest_uri.result"
     assert payload["status"] == "success"
     assert payload["ingest_type"] == "docs_view"
+
+
+@pytest.mark.asyncio
+async def test_unknown_meshchatx_host_does_not_fall_through_to_lxmf(mock_app):
+    mock_client = MagicMock()
+    mock_client.send_str = MagicMock(return_value=asyncio.sleep(0))
+    mock_app.message_router.ingest_lxm_uri = MagicMock()
+
+    with patch(
+        "meshchatx.meshchat.AsyncUtils.run_async",
+        side_effect=lambda coro: asyncio.create_task(coro),
+    ):
+        await mock_app.on_websocket_data_received(
+            mock_client,
+            {"type": "lxm.ingest_uri", "uri": "meshchatx://not-a-real-host?x=1"},
+        )
+        await asyncio.sleep(0)
+
+    mock_app.message_router.ingest_lxm_uri.assert_not_called()
+    payload = json.loads(mock_client.send_str.call_args[0][0])
+    assert payload["type"] == "lxm.ingest_uri.result"
+    assert payload["status"] == "error"
+    assert payload["ingest_type"] == "unknown_meshchatx"
+    assert payload["host"] == "not-a-real-host"
 
 
 def test_telemetry_pack_location_xss_like_strings_return_none():

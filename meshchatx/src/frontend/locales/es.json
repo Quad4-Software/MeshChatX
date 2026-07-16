@@ -88,9 +88,6 @@
         "show_qr": "Mostrar código QR",
         "failed_announce": "anuncio fallido",
         "announce_sent": "Anuncio enviado",
-        "notifications_no_new": "No hay nuevas notificaciones",
-        "notifications_empty_history": "No hay historial de notificación",
-        "notifications_history_title": "Historial de notificación reciente",
         "notifications": "Notificaciones",
         "notification_sound_settings": "Sonido de notificación de mensajes",
         "notification_sound_settings_description": "Reproduce un sonido personalizado cuando recibes un mensaje nuevo mientras MeshChat está abierto. Sube primero un archivo de audio y luego activa la reproducción.",
@@ -1777,7 +1774,9 @@
         "conversation_files_other": "{name} envió {count} archivos",
         "message_not_found_in_cache": "Mensaje no encontrado en caché",
         "failed_to_send": "Error al enviar el mensaje",
-        "failed_to_send_image": "Error al enviar la imagen {index}: {detail}"
+        "failed_to_send_image": "Error al enviar la imagen {index}: {detail}",
+        "unknown_meshchatx_link": "Unknown meshchatx link ({host})",
+        "unknown_meshchatx_link_generic": "Unknown or invalid meshchatx link"
     },
     "settings": {
         "shortcut_saved": "Guardado a mano",
@@ -3168,7 +3167,9 @@
         "failed_to_send_to_voicemail": "Error al enviar la llamada al buzón de voz",
         "failed_load_audio_edit": "No se puede cargar audio para editar",
         "ringtone_saved": "Ringtone se salvó con éxito",
-        "failed_save_ringtone": "Error al guardar el tono editado"
+        "failed_save_ringtone": "Error al guardar el tono editado",
+        "codec2_unavailable": "Codec2 is not available on this device. Low-bandwidth call profiles are hidden.",
+        "codec2_profile_remapped": "Codec2 is unavailable so the call profile was switched to Opus."
     },
     "contacts": {
         "title": "Contactos",

@@ -751,6 +751,8 @@ TELEPHONE_CODEC2_STATUS_SCHEMA: dict = {
     "properties": {
         "codec2_available": {"type": "boolean"},
         "preload_error": {"type": ["string", "null"]},
+        "probe_error": {"type": ["string", "null"]},
+        "platform": {"type": "string"},
         "preferred_profile_id": {"type": ["integer", "null"]},
         "resolved_profile_id": {"type": ["integer", "null"]},
     },

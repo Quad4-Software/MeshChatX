@@ -120,7 +120,6 @@ describe("App.vue Modals", () => {
                 stubs: {
                     MaterialDesignIcon: true,
                     LxmfUserIcon: true,
-                    NotificationBell: true,
                     LanguageSelector: true,
                     CallOverlay: true,
                     CommandPalette: true,
@@ -181,7 +180,6 @@ describe("App.vue Modals", () => {
                 stubs: {
                     MaterialDesignIcon: true,
                     LxmfUserIcon: true,
-                    NotificationBell: true,
                     LanguageSelector: true,
                     CallOverlay: true,
                     CommandPalette: true,
@@ -216,7 +214,6 @@ describe("App.vue Modals", () => {
                 stubs: {
                     MaterialDesignIcon: true,
                     LxmfUserIcon: true,
-                    NotificationBell: true,
                     LanguageSelector: true,
                     CallOverlay: true,
                     CommandPalette: true,
@@ -262,7 +259,6 @@ describe("App.vue Modals", () => {
                 stubs: {
                     MaterialDesignIcon: true,
                     LxmfUserIcon: true,
-                    NotificationBell: true,
                     LanguageSelector: true,
                     CallOverlay: true,
                     CommandPalette: true,

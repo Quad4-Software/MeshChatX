@@ -21,7 +21,7 @@ export const CORE_NAV_ENTRIES = [
         route: { name: "messages" },
         icon: "message-text",
         labelKey: "app.messages",
-        badge: { source: "unreadConversationsCount" },
+        badge: { source: "unreadConversationsCount", pill: true, cap: 99 },
     },
     {
         id: "call",

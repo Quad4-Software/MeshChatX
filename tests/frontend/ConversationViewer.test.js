@@ -122,6 +122,44 @@ describe("ConversationViewer.vue", () => {
         expect(wrapper.emitted("reload-conversations")).toBeFalsy();
     });
 
+    it("markConversationAsRead force marks read even when local conversation looks already read", async () => {
+        const wrapper = mountConversationViewer();
+        await flushPromises();
+        axiosMock.post.mockClear();
+        GlobalEmitter.emit.mockClear();
+
+        const conversation = { destination_hash: "open-hash", is_unread: false };
+        await wrapper.vm.markConversationAsRead(conversation, { force: true });
+        await flushPromises();
+
+        expect(conversation.is_unread).toBe(false);
+        const markCalls = axiosMock.post.mock.calls.filter((c) => String(c[0]).includes("/mark-as-read"));
+        expect(markCalls).toHaveLength(1);
+        expect(GlobalEmitter.emit).toHaveBeenCalledWith("notifications-changed");
+    });
+
+    it("onLxmfMessageReceived force marks the open conversation as read", async () => {
+        const conversations = [{ destination_hash: "open-peer", is_unread: false }];
+        const wrapper = mountConversationViewer({
+            selectedPeer: { destination_hash: "open-peer", display_name: "Open" },
+            conversations,
+        });
+        await flushPromises();
+        axiosMock.post.mockClear();
+
+        wrapper.vm.onLxmfMessageReceived({
+            source_hash: "open-peer",
+            hash: "msg-1",
+            content: "hello",
+            timestamp: 1,
+        });
+        await flushPromises();
+
+        const markCalls = axiosMock.post.mock.calls.filter((c) => String(c[0]).includes("/mark-as-read"));
+        expect(markCalls).toHaveLength(1);
+        expect(conversations[0].is_unread).toBe(false);
+    });
+
     it("markConversationAsRead marks read without reloading conversations when conversation is unread", async () => {
         const wrapper = mountConversationViewer();
         await flushPromises();
