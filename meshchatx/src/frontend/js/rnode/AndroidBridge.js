@@ -143,6 +143,48 @@ export default class AndroidBridge {
             return true;
         }, false);
     }
+
+    /**
+     * Whether FLAG_SECURE is enabled (blocks screenshots and recent-app previews).
+     * Defaults to false when the bridge method is missing.
+     */
+    getBlockScreenshots() {
+        if (!this.bridge || typeof this.bridge.getBlockScreenshots !== "function") {
+            return false;
+        }
+        return safeCall(() => Boolean(this.bridge.getBlockScreenshots()), false);
+    }
+
+    setBlockScreenshots(enabled) {
+        if (!this.bridge || typeof this.bridge.setBlockScreenshots !== "function") {
+            return false;
+        }
+        return safeCall(() => {
+            this.bridge.setBlockScreenshots(Boolean(enabled));
+            return true;
+        }, false);
+    }
+
+    /**
+     * Whether the primary clipboard is cleared when the app goes to the background.
+     * Defaults to false when the bridge method is missing.
+     */
+    getClearClipboardOnBackground() {
+        if (!this.bridge || typeof this.bridge.getClearClipboardOnBackground !== "function") {
+            return false;
+        }
+        return safeCall(() => Boolean(this.bridge.getClearClipboardOnBackground()), false);
+    }
+
+    setClearClipboardOnBackground(enabled) {
+        if (!this.bridge || typeof this.bridge.setClearClipboardOnBackground !== "function") {
+            return false;
+        }
+        return safeCall(() => {
+            this.bridge.setClearClipboardOnBackground(Boolean(enabled));
+            return true;
+        }, false);
+    }
 }
 
 AndroidBridge.PERM_BLUETOOTH = PERM_BLUETOOTH;

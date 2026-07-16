@@ -90,4 +90,28 @@ describe("AndroidBridge", () => {
         const ab = new AndroidBridge(null, env);
         expect(ab.isAvailable()).toBe(true);
     });
+
+    it("privacy helpers default to false when methods are missing", () => {
+        const ab = new AndroidBridge({}, {});
+        expect(ab.getBlockScreenshots()).toBe(false);
+        expect(ab.getClearClipboardOnBackground()).toBe(false);
+        expect(ab.setBlockScreenshots(true)).toBe(false);
+        expect(ab.setClearClipboardOnBackground(true)).toBe(false);
+    });
+
+    it("privacy helpers delegate to the bridge", () => {
+        const bridge = {
+            getBlockScreenshots: vi.fn().mockReturnValue(true),
+            setBlockScreenshots: vi.fn(),
+            getClearClipboardOnBackground: vi.fn().mockReturnValue(false),
+            setClearClipboardOnBackground: vi.fn(),
+        };
+        const ab = new AndroidBridge(bridge, {});
+        expect(ab.getBlockScreenshots()).toBe(true);
+        expect(ab.getClearClipboardOnBackground()).toBe(false);
+        expect(ab.setBlockScreenshots(true)).toBe(true);
+        expect(ab.setClearClipboardOnBackground(true)).toBe(true);
+        expect(bridge.setBlockScreenshots).toHaveBeenCalledWith(true);
+        expect(bridge.setClearClipboardOnBackground).toHaveBeenCalledWith(true);
+    });
 });
