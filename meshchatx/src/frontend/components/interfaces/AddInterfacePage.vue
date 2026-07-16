@@ -1306,7 +1306,9 @@
                                             <div
                                                 class="rounded-xl border border-amber-200/80 dark:border-amber-900/40 bg-amber-50/40 dark:bg-amber-950/20 p-3 space-y-2"
                                             >
-                                                <p class="text-xs text-amber-900 dark:text-amber-200/90 leading-relaxed">
+                                                <p
+                                                    class="text-xs text-amber-900 dark:text-amber-200/90 leading-relaxed"
+                                                >
                                                     {{ $t("interfaces.custom_external_install_intro") }}
                                                 </p>
                                                 <p
@@ -1332,7 +1334,9 @@
                                                     >
                                                         {{ $t("interfaces.custom_external_install_button") }}
                                                     </button>
-                                                    <label class="flex items-center gap-1.5 text-[10px] text-gray-600 dark:text-zinc-400">
+                                                    <label
+                                                        class="flex items-center gap-1.5 text-[10px] text-gray-600 dark:text-zinc-400"
+                                                    >
                                                         <input
                                                             v-model="interfaceModuleOverwrite"
                                                             type="checkbox"
@@ -1368,10 +1372,7 @@
                                                         </button>
                                                     </li>
                                                 </ul>
-                                                <p
-                                                    v-else
-                                                    class="text-[10px] text-gray-500 dark:text-zinc-500"
-                                                >
+                                                <p v-else class="text-[10px] text-gray-500 dark:text-zinc-500">
                                                     {{ $t("interfaces.custom_external_modules_empty") }}
                                                 </p>
                                             </div>
@@ -2248,9 +2249,7 @@ export default {
             try {
                 const response = await window.api.get("/api/v1/reticulum/interface-modules");
                 this.interfaceModulesPath = response.data?.interfacepath || "";
-                this.installedInterfaceModules = Array.isArray(response.data?.modules)
-                    ? response.data.modules
-                    : [];
+                this.installedInterfaceModules = Array.isArray(response.data?.modules) ? response.data.modules : [];
             } catch (e) {
                 console.log(e);
                 this.interfaceModulesPath = "";
@@ -2281,13 +2280,10 @@ export default {
                 if (typeName) {
                     this.customExternalTypeName = typeName;
                 }
-                ToastUtils.success(
-                    response.data?.message || this.$t("interfaces.custom_external_install_success")
-                );
+                ToastUtils.success(response.data?.message || this.$t("interfaces.custom_external_install_success"));
                 await this.loadInstalledInterfaceModules();
             } catch (e) {
-                const message =
-                    e?.response?.data?.message || this.$t("interfaces.custom_external_install_failed");
+                const message = e?.response?.data?.message || this.$t("interfaces.custom_external_install_failed");
                 ToastUtils.error(message);
             } finally {
                 this.interfaceModuleBusy = false;
@@ -2305,9 +2301,7 @@ export default {
                 const response = await window.api.delete(
                     `/api/v1/reticulum/interface-modules/${encodeURIComponent(typeName)}`
                 );
-                ToastUtils.success(
-                    response.data?.message || this.$t("interfaces.custom_external_module_deleted")
-                );
+                ToastUtils.success(response.data?.message || this.$t("interfaces.custom_external_module_deleted"));
                 if (this.customExternalTypeName === typeName) {
                     this.customExternalTypeName = "";
                 }
