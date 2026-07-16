@@ -18,6 +18,10 @@ updates:
       schedule:
           interval: weekly
       open-pull-requests-limit: 10
+      # Keep slsa-github-generator on a release tag (@vX.Y.Z). Dependabot SHA
+      # pins break its prebuilt download path unless compile-generator is true.
+      ignore:
+          - dependency-name: "slsa-framework/slsa-github-generator"
       groups:
           actions:
               patterns:
@@ -27,4 +31,3 @@ updates:
                   - sigstore/*
                   - pypa/*
                   - benchmark-action/*
-                  - slsa-framework/*

@@ -36,6 +36,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- SLSA provenance jobs compile the generic generator from source so attest no longer fails with a missing slsa-generator-generic-linux-amd64 binary
 - Android: lxmfy packaging, flock soft-lock, splash/logo clipping, emulator smoke, Landlock skipped on Android
 - Android RNode BLE/USB via Chaquopy
 - Startup check and disable unsupported interfaces
