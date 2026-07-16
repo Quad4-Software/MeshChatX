@@ -1600,6 +1600,292 @@
                             </div>
                         </section>
 
+                        <!-- Battery saver -->
+                        <section v-show="showSection('battery')" class="settings-section break-inside-avoid">
+                            <header class="settings-section__header">
+                                <div>
+                                    <div class="settings-section__eyebrow">{{ $t("settings.battery.eyebrow") }}</div>
+                                    <h2>{{ $t("settings.battery.title") }}</h2>
+                                    <p>{{ $t("settings.battery.description") }}</p>
+                                </div>
+                            </header>
+                            <div class="settings-section__body space-y-4">
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="settings-battery-saver-enabled"
+                                        v-model="batterySaver.enabled"
+                                        @update:model-value="onBatterySaverEnabledChange"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{ $t("settings.battery.enabled") }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("settings.battery.enabled_desc")
+                                        }}</span>
+                                    </span>
+                                </label>
+
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100 pt-2">
+                                    {{ $t("settings.battery.options_heading") }}
+                                </div>
+
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="settings-battery-viz-discovery"
+                                        v-model="batterySaver.disableVisualiserDiscovery"
+                                        @update:model-value="
+                                            (v) => patchBatterySaver({ disableVisualiserDiscovery: v })
+                                        "
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{
+                                            $t("settings.battery.disable_visualiser_discovery")
+                                        }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("settings.battery.disable_visualiser_discovery_desc")
+                                        }}</span>
+                                    </span>
+                                </label>
+
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="settings-battery-hide-offline"
+                                        v-model="batterySaver.hideOfflineInterfaces"
+                                        @update:model-value="(v) => patchBatterySaver({ hideOfflineInterfaces: v })"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{
+                                            $t("settings.battery.hide_offline_interfaces")
+                                        }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("settings.battery.hide_offline_interfaces_desc")
+                                        }}</span>
+                                    </span>
+                                </label>
+
+                                <div class="space-y-2">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("settings.battery.max_visualiser_interfaces") }}
+                                    </div>
+                                    <p class="text-xs text-gray-500 dark:text-zinc-400">
+                                        {{ $t("settings.battery.max_visualiser_interfaces_desc") }}
+                                    </p>
+                                    <input
+                                        v-model.number="batterySaver.maxVisualiserInterfaces"
+                                        type="number"
+                                        min="0"
+                                        max="128"
+                                        class="input-field"
+                                        @change="
+                                            patchBatterySaver({
+                                                maxVisualiserInterfaces: batterySaver.maxVisualiserInterfaces,
+                                            })
+                                        "
+                                    />
+                                </div>
+
+                                <div class="space-y-2">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("settings.battery.visualiser_reload_seconds") }}
+                                    </div>
+                                    <p class="text-xs text-gray-500 dark:text-zinc-400">
+                                        {{ $t("settings.battery.visualiser_reload_seconds_desc") }}
+                                    </p>
+                                    <input
+                                        v-model.number="batterySaver.visualiserReloadSeconds"
+                                        type="number"
+                                        min="0"
+                                        max="600"
+                                        class="input-field"
+                                        @change="
+                                            patchBatterySaver({
+                                                visualiserReloadSeconds: batterySaver.visualiserReloadSeconds,
+                                            })
+                                        "
+                                    />
+                                </div>
+
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="settings-battery-live-layout"
+                                        v-model="batterySaver.disableVisualiserLiveLayout"
+                                        @update:model-value="
+                                            (v) => patchBatterySaver({ disableVisualiserLiveLayout: v })
+                                        "
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{
+                                            $t("settings.battery.disable_visualiser_live_layout")
+                                        }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("settings.battery.disable_visualiser_live_layout_desc")
+                                        }}</span>
+                                    </span>
+                                </label>
+
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="settings-battery-bg-poll"
+                                        v-model="batterySaver.reduceBackgroundPolling"
+                                        @update:model-value="(v) => patchBatterySaver({ reduceBackgroundPolling: v })"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{
+                                            $t("settings.battery.reduce_background_polling")
+                                        }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("settings.battery.reduce_background_polling_desc")
+                                        }}</span>
+                                    </span>
+                                </label>
+
+                                <div class="space-y-2">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("settings.battery.background_poll_multiplier") }}
+                                    </div>
+                                    <p class="text-xs text-gray-500 dark:text-zinc-400">
+                                        {{ $t("settings.battery.background_poll_multiplier_desc") }}
+                                    </p>
+                                    <input
+                                        v-model.number="batterySaver.backgroundPollMultiplier"
+                                        type="number"
+                                        min="2"
+                                        max="10"
+                                        class="input-field"
+                                        @change="
+                                            patchBatterySaver({
+                                                backgroundPollMultiplier: batterySaver.backgroundPollMultiplier,
+                                            })
+                                        "
+                                    />
+                                </div>
+
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="settings-battery-ifaces-discovery"
+                                        v-model="batterySaver.reduceInterfacesDiscovery"
+                                        @update:model-value="(v) => patchBatterySaver({ reduceInterfacesDiscovery: v })"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{
+                                            $t("settings.battery.reduce_interfaces_discovery")
+                                        }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("settings.battery.reduce_interfaces_discovery_desc")
+                                        }}</span>
+                                    </span>
+                                </label>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div class="space-y-2">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            {{ $t("settings.battery.interfaces_stats_poll_seconds") }}
+                                        </div>
+                                        <input
+                                            v-model.number="batterySaver.interfacesStatsPollSeconds"
+                                            type="number"
+                                            min="1"
+                                            max="120"
+                                            class="input-field"
+                                            @change="
+                                                patchBatterySaver({
+                                                    interfacesStatsPollSeconds: batterySaver.interfacesStatsPollSeconds,
+                                                })
+                                            "
+                                        />
+                                    </div>
+                                    <div class="space-y-2">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                            {{ $t("settings.battery.interfaces_discovery_poll_seconds") }}
+                                        </div>
+                                        <input
+                                            v-model.number="batterySaver.interfacesDiscoveryPollSeconds"
+                                            type="number"
+                                            min="5"
+                                            max="300"
+                                            class="input-field"
+                                            @change="
+                                                patchBatterySaver({
+                                                    interfacesDiscoveryPollSeconds:
+                                                        batterySaver.interfacesDiscoveryPollSeconds,
+                                                })
+                                            "
+                                        />
+                                    </div>
+                                </div>
+
+                                <label class="setting-toggle">
+                                    <Toggle
+                                        id="settings-battery-bitrate-limits"
+                                        v-model="batterySaver.applyInterfaceBitrateLimits"
+                                        @update:model-value="
+                                            (v) => patchBatterySaver({ applyInterfaceBitrateLimits: v === true })
+                                        "
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{
+                                            $t("settings.battery.apply_interface_bitrate_limits")
+                                        }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("settings.battery.apply_interface_bitrate_limits_desc")
+                                        }}</span>
+                                    </span>
+                                </label>
+
+                                <div v-if="batterySaver.applyInterfaceBitrateLimits" class="space-y-3">
+                                    <p class="text-xs text-gray-500 dark:text-zinc-400">
+                                        {{ $t("settings.battery.interface_bitrate_limits_help") }}
+                                    </p>
+                                    <div
+                                        v-if="batteryInterfaceRows.length === 0"
+                                        class="text-xs text-gray-500 dark:text-zinc-400"
+                                    >
+                                        {{ $t("settings.battery.interface_bitrate_limits_empty") }}
+                                    </div>
+                                    <div
+                                        v-for="row in batteryInterfaceRows"
+                                        :key="row.name"
+                                        class="grid grid-cols-1 sm:grid-cols-[1fr_10rem] gap-2 items-center"
+                                    >
+                                        <div
+                                            class="text-sm text-gray-900 dark:text-gray-100 truncate"
+                                            :title="row.name"
+                                        >
+                                            {{ row.name }}
+                                            <span class="text-xs text-gray-500 dark:text-zinc-400">
+                                                ({{ row.type || "?" }})
+                                            </span>
+                                        </div>
+                                        <input
+                                            v-model.number="batterySaver.interfaceBitrateLimits[row.name]"
+                                            type="number"
+                                            min="0"
+                                            class="input-field"
+                                            :placeholder="$t('settings.battery.interface_bitrate_placeholder')"
+                                            @change="onBatteryBitrateLimitChange(row.name)"
+                                        />
+                                    </div>
+                                    <div class="flex flex-wrap gap-2">
+                                        <button
+                                            type="button"
+                                            class="secondary-button text-sm"
+                                            :disabled="batteryBitrateBusy"
+                                            @click="applyBatteryBitrateLimitsNow"
+                                        >
+                                            {{ $t("settings.battery.apply_bitrates_reload") }}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="secondary-button text-sm"
+                                            :disabled="batteryBitrateBusy"
+                                            @click="restoreBatteryBitrateLimitsNow"
+                                        >
+                                            {{ $t("settings.battery.restore_bitrates_reload") }}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
                         <!-- Network Visualiser -->
                         <section v-show="showSection('visualiser')" class="settings-section break-inside-avoid">
                             <header class="settings-section__header">
@@ -3296,6 +3582,11 @@ import {
     persistVisualiserShowDisabled,
     persistVisualiserShowDiscovered,
 } from "../../js/settings/settingsVisualiserPrefs";
+import { loadBatterySaverPrefs, saveBatterySaverPrefs } from "../../js/settings/batterySaverPrefs.js";
+import {
+    applyBatterySaverBitrateLimits,
+    restoreBatterySaverBitrateLimits,
+} from "../../js/settings/batterySaverBitrateApply.js";
 import {
     incomingDeliveryBytesFromCustom,
     incomingDeliveryBytesFromPresetKey,
@@ -3461,6 +3752,9 @@ export default {
             gifImportReplaceDuplicates: false,
             visualiserShowDisabledInterfaces: false,
             visualiserShowDiscoveredInterfaces: false,
+            batterySaver: loadBatterySaverPrefs(),
+            batteryInterfaceRows: [],
+            batteryBitrateBusy: false,
             selfTestRunning: false,
             selfTestResults: null,
             selfTestExpandedReasons: {},
@@ -3703,10 +3997,108 @@ export default {
         this.loadStickerCount();
         this.loadGifCount();
         this.loadVisualiserDisplayPrefsFromStorage();
+        this.loadBatterySaverPrefsFromStorage();
+        this.loadBatteryInterfaceRows();
         this.loadDesktopCloseSettings();
         this.loadReticulumInstanceSettings();
     },
     methods: {
+        loadBatterySaverPrefsFromStorage() {
+            this.batterySaver = loadBatterySaverPrefs();
+            if (!this.batterySaver.interfaceBitrateLimits) {
+                this.batterySaver.interfaceBitrateLimits = {};
+            }
+        },
+        async loadBatteryInterfaceRows() {
+            try {
+                const response = await window.api.get("/api/v1/reticulum/interfaces");
+                const interfaces = response?.data?.interfaces || {};
+                this.batteryInterfaceRows = Object.entries(interfaces)
+                    .map(([name, iface]) => ({
+                        name,
+                        type: iface?.type || "",
+                        bitrate: iface?.bitrate ?? null,
+                    }))
+                    .sort((a, b) => a.name.localeCompare(b.name));
+                for (const row of this.batteryInterfaceRows) {
+                    if (this.batterySaver.interfaceBitrateLimits[row.name] == null && row.bitrate != null) {
+                        const n = Number(row.bitrate);
+                        if (Number.isFinite(n) && n >= 0) {
+                            // leave unset so empty means "no forced limit"
+                        }
+                    }
+                }
+            } catch {
+                this.batteryInterfaceRows = [];
+            }
+        },
+        patchBatterySaver(patch) {
+            this.batterySaver = saveBatterySaverPrefs(patch);
+            if (!this.batterySaver.interfaceBitrateLimits) {
+                this.batterySaver.interfaceBitrateLimits = {};
+            }
+        },
+        onBatterySaverEnabledChange(val) {
+            const enabled = val === true;
+            this.patchBatterySaver({ enabled });
+            if (enabled && this.batterySaver.applyInterfaceBitrateLimits) {
+                this.applyBatteryBitrateLimitsNow();
+            } else if (!enabled && Object.keys(this.batterySaver.interfaceBitratePrevious || {}).length > 0) {
+                this.restoreBatteryBitrateLimitsNow();
+            }
+        },
+        onBatteryBitrateLimitChange(name) {
+            const limits = { ...(this.batterySaver.interfaceBitrateLimits || {}) };
+            const raw = limits[name];
+            if (raw === "" || raw == null || Number.isNaN(Number(raw))) {
+                delete limits[name];
+            } else {
+                limits[name] = Math.max(0, Math.round(Number(raw)));
+            }
+            this.patchBatterySaver({ interfaceBitrateLimits: limits });
+        },
+        async applyBatteryBitrateLimitsNow() {
+            if (this.batteryBitrateBusy) return;
+            this.batteryBitrateBusy = true;
+            try {
+                this.patchBatterySaver({
+                    applyInterfaceBitrateLimits: true,
+                    interfaceBitrateLimits: { ...(this.batterySaver.interfaceBitrateLimits || {}) },
+                });
+                const result = await applyBatterySaverBitrateLimits({ reload: true });
+                this.loadBatterySaverPrefsFromStorage();
+                if (result.updated.length === 0) {
+                    ToastUtils.error(this.$t("settings.battery.bitrates_none_applied"));
+                } else {
+                    ToastUtils.success(this.$t("settings.battery.bitrates_applied", { count: result.updated.length }));
+                }
+                await this.loadBatteryInterfaceRows();
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error(this.$t("settings.battery.bitrates_apply_failed"));
+            } finally {
+                this.batteryBitrateBusy = false;
+            }
+        },
+        async restoreBatteryBitrateLimitsNow() {
+            if (this.batteryBitrateBusy) return;
+            this.batteryBitrateBusy = true;
+            try {
+                const result = await restoreBatterySaverBitrateLimits({ reload: true });
+                this.loadBatterySaverPrefsFromStorage();
+                if (result.updated.length === 0) {
+                    ToastUtils.error(this.$t("settings.battery.bitrates_none_restored"));
+                } else {
+                    ToastUtils.success(this.$t("settings.battery.bitrates_restored", { count: result.updated.length }));
+                }
+                await this.loadBatteryInterfaceRows();
+            } catch (e) {
+                console.error(e);
+                ToastUtils.error(this.$t("settings.battery.bitrates_restore_failed"));
+            } finally {
+                this.batteryBitrateBusy = false;
+            }
+        },
         async loadReticulumInstanceSettings() {
             try {
                 const instance = await fetchReticulumInstanceSettings(window.api);

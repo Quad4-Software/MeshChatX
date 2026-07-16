@@ -390,9 +390,66 @@ tasks:
     build:frontend:
         aliases: [build:fe]
         desc: Build frontend assets
-        deps: [deps:frontend]
+        deps: [deps:frontend, build:visualiser-wasm]
         cmds:
             - "{{.NPM}} run build-frontend"
+
+    build:visualiser-wasm:
+        aliases: [build:viz-wasm]
+        desc: Build Go network visualiser WASM into frontend public vendor/
+        cmds:
+            - node scripts/build-visualiser-wasm.mjs
+
+    test:visualiser-wasm:
+        aliases: [test:viz-wasm]
+        desc: Run Go unit tests for visualiser-wasm
+        dir: visualiser-wasm
+        env:
+            GOCACHE: ../.gocache
+            GOTMPDIR: ../.gotmp
+        cmds:
+            - mkdir -p ../.gocache ../.gotmp
+            - go test ./internal/...
+
+    test:visualiser-wasm:race:
+        aliases: [test:viz-wasm:race]
+        desc: Run visualiser-wasm tests with the race detector
+        dir: visualiser-wasm
+        env:
+            GOCACHE: ../.gocache
+            GOTMPDIR: ../.gotmp
+            CGO_ENABLED: "1"
+        cmds:
+            - mkdir -p ../.gocache ../.gotmp
+            - go test -race -count=1 ./internal/...
+
+    test:visualiser-wasm:fuzz:
+        aliases: [test:viz-wasm:fuzz]
+        desc: Run short visualiser-wasm fuzz targets
+        dir: visualiser-wasm
+        env:
+            GOCACHE: ../.gocache
+            GOTMPDIR: ../.gotmp
+        cmds:
+            - mkdir -p ../.gocache ../.gotmp
+            - go test ./internal/hashpos -fuzz=FuzzAngle01 -fuzztime=5s
+            - go test ./internal/filter -fuzz=FuzzPathHashesWithinHopFilter -fuzztime=5s
+            - go test ./internal/filter -fuzz=FuzzMatchesSearch -fuzztime=3s
+            - go test ./internal/icon -fuzz=FuzzDedupeQueueEntries -fuzztime=5s
+            - go test ./internal/lod -fuzz=FuzzLevelFromScale -fuzztime=3s
+            - go test ./internal/lod -fuzz=FuzzComputeUpdates -fuzztime=5s
+            - go test ./internal/graph -fuzz=FuzzBuildPathGraph -fuzztime=8s
+
+    bench:visualiser-wasm:
+        aliases: [bench:viz-wasm]
+        desc: Run visualiser-wasm benchmarks with allocation reporting
+        dir: visualiser-wasm
+        env:
+            GOCACHE: ../.gocache
+            GOTMPDIR: ../.gotmp
+        cmds:
+            - mkdir -p ../.gocache ../.gotmp
+            - go test ./internal/... -run='^$' -bench=. -benchmem -count=1
 
     build:wheel:
         desc: Build Python wheel package

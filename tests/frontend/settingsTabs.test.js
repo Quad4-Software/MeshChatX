@@ -26,6 +26,7 @@ const KNOWN_SECTIONS_FROM_SETTINGS_PAGE = [
     "nomadRenderer",
     "crawler",
     "appearance",
+    "battery",
     "visualiser",
     "location",
     "language",
@@ -66,6 +67,7 @@ describe("settingsTabs", () => {
 
     it("maps sections to tabs", () => {
         expect(settingsTabForSection("appearance")).toBe("general");
+        expect(settingsTabForSection("battery")).toBe("general");
         expect(settingsTabForSection("location")).toBe("general");
         expect(settingsTabForSection("messages")).toBe("messages");
         expect(settingsTabForSection("archiver")).toBe("nomad");

@@ -42,8 +42,41 @@ const backendUsesHttps = !envBool(process.env.MESHCHAT_NO_HTTPS);
 const e2eBackendOrigin = backendUsesHttps
     ? `https://127.0.0.1:${e2eBackendPort}`
     : `http://127.0.0.1:${e2eBackendPort}`;
-const e2eBackendWs = backendUsesHttps ? `wss://127.0.0.1:${e2eBackendPort}` : `ws://127.0.0.1:${e2eBackendPort}`;
+// http-proxy expects an http(s) target for WS upgrades (ws: true). Using wss://
+// here has caused noisy write EPIPE / reconnect loops under Vite 8.
 const backendProxyTls = backendUsesHttps ? { secure: false } : {};
+
+/**
+ * Attach quiet handlers for expected proxy disconnects (browser refresh,
+ * client reconnect, peer closed before proxy flush).
+ * @param {import('http-proxy').Server} proxy
+ */
+function configureQuietProxyErrors(proxy) {
+    proxy.on("error", (err, _req, res) => {
+        const code = err && err.code;
+        if (code === "EPIPE" || code === "ECONNRESET" || code === "ECONNREFUSED") {
+            if (res && !res.headersSent && typeof res.writeHead === "function") {
+                try {
+                    res.writeHead(502);
+                    res.end("Bad gateway");
+                } catch {
+                    /* already closed */
+                }
+            }
+            return;
+        }
+        console.error("[vite] proxy error:", err);
+    });
+    proxy.on("proxyReqWs", (_proxyReq, _req, socket) => {
+        socket.on("error", (err) => {
+            const code = err && err.code;
+            if (code === "EPIPE" || code === "ECONNRESET") {
+                return;
+            }
+            console.error("[vite] ws proxy socket error:", err);
+        });
+    });
+}
 
 const appBuildTimeIso = new Date().toISOString();
 
@@ -61,7 +94,22 @@ function isMicronWasmBundledResolved() {
     }
 }
 
+function isVisualiserWasmBundledResolved() {
+    const wasmDir = path.join(__dirname, "meshchatx", "src", "frontend", "public", "vendor", "visualiser-wasm");
+    const wasmFile = path.join(wasmDir, "visualiser.wasm");
+    const execFile = path.join(wasmDir, "wasm_exec.js");
+    try {
+        if (!fs.existsSync(wasmFile) || !fs.existsSync(execFile)) {
+            return false;
+        }
+        return fs.statSync(wasmFile).size >= 8192 && fs.statSync(execFile).size >= 1024;
+    } catch {
+        return false;
+    }
+}
+
 const micronWasmBundled = isMicronWasmBundledResolved();
+const visualiserWasmBundled = isVisualiserWasmBundledResolved();
 
 function loadMicronWasmIntegrity() {
     if (!micronWasmBundled) return null;
@@ -84,15 +132,39 @@ function loadMicronWasmIntegrity() {
     }
 }
 
+function loadVisualiserWasmIntegrity() {
+    if (!visualiserWasmBundled) return null;
+    const integrityPath = path.join(
+        __dirname,
+        "meshchatx",
+        "src",
+        "frontend",
+        "public",
+        "vendor",
+        "visualiser-wasm",
+        "integrity.json"
+    );
+    try {
+        return JSON.parse(fs.readFileSync(integrityPath, "utf-8"));
+    } catch {
+        console.warn("vite: could not load visualiser-wasm integrity.json");
+        return null;
+    }
+}
+
 const micronWasmIntegrity = loadMicronWasmIntegrity();
+const visualiserWasmIntegrity = loadVisualiserWasmIntegrity();
 
 export default defineConfig({
     define: {
         __APP_BUILD_TIME__: JSON.stringify(appBuildTimeIso),
         "import.meta.env.VITE_MICRON_WASM_BUNDLED": JSON.stringify(micronWasmBundled ? "true" : "false"),
         "import.meta.env.VITE_MICRON_PARSER_GO_RELEASE": JSON.stringify(MICRON_PARSER_GO_RELEASE_TAG),
+        "import.meta.env.VITE_VISUALISER_WASM_BUNDLED": JSON.stringify(visualiserWasmBundled ? "true" : "false"),
         __MICRON_WASM_SRI_WASM__: JSON.stringify(micronWasmIntegrity?.wasm || ""),
         __MICRON_WASM_SRI_EXEC__: JSON.stringify(micronWasmIntegrity?.wasmExec || ""),
+        __VISUALISER_WASM_SRI_WASM__: JSON.stringify(visualiserWasmIntegrity?.wasm || ""),
+        __VISUALISER_WASM_SRI_EXEC__: JSON.stringify(visualiserWasmIntegrity?.wasmExec || ""),
     },
     plugins: [
         tailwindcss(),
@@ -109,11 +181,39 @@ export default defineConfig({
     server: {
         port: 5173,
         proxy: {
-            "/api": { target: e2eBackendOrigin, changeOrigin: true, ...backendProxyTls },
-            "/ws": { target: e2eBackendWs, ws: true, ...backendProxyTls },
-            "/ws/telephone/audio": { target: e2eBackendWs, ws: true, ...backendProxyTls },
-            "/reticulum-docs": { target: e2eBackendOrigin, changeOrigin: true, ...backendProxyTls },
-            "/meshchatx-docs": { target: e2eBackendOrigin, changeOrigin: true, ...backendProxyTls },
+            "/api": {
+                target: e2eBackendOrigin,
+                changeOrigin: true,
+                configure: configureQuietProxyErrors,
+                ...backendProxyTls,
+            },
+            // More specific WS path before the /ws prefix match.
+            "/ws/telephone/audio": {
+                target: e2eBackendOrigin,
+                ws: true,
+                changeOrigin: true,
+                configure: configureQuietProxyErrors,
+                ...backendProxyTls,
+            },
+            "/ws": {
+                target: e2eBackendOrigin,
+                ws: true,
+                changeOrigin: true,
+                configure: configureQuietProxyErrors,
+                ...backendProxyTls,
+            },
+            "/reticulum-docs": {
+                target: e2eBackendOrigin,
+                changeOrigin: true,
+                configure: configureQuietProxyErrors,
+                ...backendProxyTls,
+            },
+            "/meshchatx-docs": {
+                target: e2eBackendOrigin,
+                changeOrigin: true,
+                configure: configureQuietProxyErrors,
+                ...backendProxyTls,
+            },
         },
     },
 

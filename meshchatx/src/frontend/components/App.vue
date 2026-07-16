@@ -611,6 +611,11 @@ import { handleLxmIngestUriResult } from "../js/ingestUriResultNavigation.js";
 import { applyRelayShareLink, parseMeshchatRelayUri } from "../js/relayLinkUtils.js";
 import logoUrl from "../assets/images/logo.png";
 import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed } from "../js/browserLayoutStore";
+import {
+    applyBackgroundPollInterval,
+    BATTERY_SAVER_CHANGED_EVENT,
+    loadBatterySaverPrefs,
+} from "../js/settings/batterySaverPrefs.js";
 
 export default {
     name: "App",
@@ -961,19 +966,47 @@ export default {
             this.updateTelephoneStatus();
             this.updatePropagationNodeStatus();
 
-            this.reloadInterval = setInterval(() => {
-                this.updateTelephoneStatus();
-                this.updatePropagationNodeStatus();
-            }, 1000);
-            this.appInfoInterval = setInterval(() => {
-                this.getAppInfo();
-            }, 15000);
-            this.unreadCountInterval = setInterval(() => {
-                this.updateUnreadConversationsCount();
-                this.updateRelayChatUnreadCount();
-            }, 5000);
+            GlobalEmitter.on(BATTERY_SAVER_CHANGED_EVENT, this.onBatterySaverPrefsChangedShell);
+            this.startShellPollIntervals();
             this.updateUnreadConversationsCount();
             this.updateRelayChatUnreadCount();
+        },
+        startShellPollIntervals() {
+            clearInterval(this.reloadInterval);
+            clearInterval(this.appInfoInterval);
+            clearInterval(this.unreadCountInterval);
+            this.reloadInterval = null;
+            this.appInfoInterval = null;
+            this.unreadCountInterval = null;
+            if (!this.shellRunning) {
+                return;
+            }
+            const prefs = loadBatterySaverPrefs();
+            this.reloadInterval = setInterval(
+                () => {
+                    this.updateTelephoneStatus();
+                    this.updatePropagationNodeStatus();
+                },
+                applyBackgroundPollInterval(1000, prefs)
+            );
+            this.appInfoInterval = setInterval(
+                () => {
+                    this.getAppInfo();
+                },
+                applyBackgroundPollInterval(15000, prefs)
+            );
+            this.unreadCountInterval = setInterval(
+                () => {
+                    this.updateUnreadConversationsCount();
+                    this.updateRelayChatUnreadCount();
+                },
+                applyBackgroundPollInterval(5000, prefs)
+            );
+        },
+        onBatterySaverPrefsChangedShell() {
+            if (this.shellRunning) {
+                this.startShellPollIntervals();
+            }
         },
         stopShell() {
             if (!this.shellRunning) {
@@ -986,6 +1019,7 @@ export default {
             this.appInfoInterval = null;
             clearInterval(this.unreadCountInterval);
             this.unreadCountInterval = null;
+            GlobalEmitter.off(BATTERY_SAVER_CHANGED_EVENT, this.onBatterySaverPrefsChangedShell);
             WebSocketConnection.off("disconnected", this.onWsShellDisconnected);
             WebSocketConnection.off("connected", this.onWsShellConnected);
             this.unregisterShellWsHandlers();

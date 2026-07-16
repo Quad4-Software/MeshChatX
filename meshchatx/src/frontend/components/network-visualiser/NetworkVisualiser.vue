@@ -26,6 +26,8 @@
             :online-interface-count="onlineInterfaces.length"
             :offline-interface-count="offlineInterfaces.length"
             :search-query="searchQuery"
+            :engine-mode="engineMode"
+            :fps="fps"
             @update:is-showing-controls="isShowingControls = $event"
             @update:auto-reload="autoReload = $event"
             @update:enable-physics="enablePhysics = $event"
@@ -55,10 +57,29 @@ import {
     VIZ_ANNOUNCE_ASPECTS,
     VIZ_ANNOUNCE_SOFT_CAP,
     VIZ_PATH_TABLE_SOFT_CAP,
+    buildFullGraph,
+    computeLodUpdates,
     dedupeIconQueueEntries,
+    lodLevelFromScale,
     pathHashesWithinHopFilter,
     pickAdaptiveFetchConcurrency,
+    settleLayout,
+    warmVisualiserWasm,
 } from "../../js/networkVisualiserPerf.js";
+import { isVisualiserWasmReady } from "../../js/VisualiserWasmLoader.js";
+import { loadVisualiserCache, saveVisualiserCache } from "../../js/networkVisualiserCache.js";
+import {
+    BATTERY_SAVER_CHANGED_EVENT,
+    effectiveVisualiserReloadMs,
+    loadBatterySaverPrefs,
+    saveBatterySaverPrefs,
+} from "../../js/settings/batterySaverPrefs.js";
+import {
+    loadVisualiserDisplayPrefs,
+    persistVisualiserAutoReload,
+    persistVisualiserLiveLayout,
+    VISUALISER_DISPLAY_PREFS_CHANGED,
+} from "../../js/settings/settingsVisualiserPrefs.js";
 
 const HOP_MAX_FILTER_STORAGE_KEY = "meshchatx.visualiser.maxHops";
 
@@ -140,17 +161,18 @@ export default {
         NetworkVisualiserLegend,
     },
     data() {
+        const displayPrefs = loadVisualiserDisplayPrefs();
         return {
             reticulumLogoPath: "/assets/images/reticulum_logo_512.png",
             config: null,
-            autoReload: false,
+            autoReload: displayPrefs.autoReload,
             reloadInterval: null,
             isShowingControls: true,
             isUpdating: false,
             isLoading: false,
-            enablePhysics: true,
-            showDisabledInterfaces: false,
-            showDiscoveredInterfaces: false,
+            enablePhysics: displayPrefs.enablePhysics,
+            showDisabledInterfaces: displayPrefs.showDisabledInterfaces,
+            showDiscoveredInterfaces: displayPrefs.showDiscoveredInterfaces,
             loadingStatus: "Initializing...",
             loadedNodesCount: 0,
             totalNodesToLoad: 0,
@@ -185,6 +207,15 @@ export default {
             lodRafId: null,
             vizRunGeneration: 0,
             physicsPausedForDrag: false,
+            engineMode: "checking",
+            fps: 0,
+            fpsRafId: null,
+            fpsFrameCount: 0,
+            fpsLastSampleMs: 0,
+            cachedPositions: {},
+            batterySaverPrefs: loadBatterySaverPrefs(),
+            suppressLiveLayoutPersist: false,
+            suppressAutoReloadPersist: false,
         };
     },
     computed: {
@@ -200,11 +231,30 @@ export default {
     },
     watch: {
         autoReload(val) {
+            if (!this.suppressAutoReloadPersist) {
+                // Silent persist: do not rebuild the graph for toggle-only changes.
+                persistVisualiserAutoReload(val === true, { emit: false });
+            }
             if (val) {
                 this.manualUpdate();
             }
+            this.restartAutoReloadInterval();
         },
-        enablePhysics() {
+        enablePhysics(val) {
+            if (!this.suppressLiveLayoutPersist) {
+                // Silent persist: emitting prefs-changed would reprocess the graph
+                // and re-settle node positions (looks like a reset).
+                persistVisualiserLiveLayout(val === true, { emit: false });
+                // Explicit Live Layout on should win over battery-saver override.
+                if (val === true) {
+                    const prefs = loadBatterySaverPrefs();
+                    if (prefs.enabled && prefs.disableVisualiserLiveLayout) {
+                        this.batterySaverPrefs = saveBatterySaverPrefs({
+                            disableVisualiserLiveLayout: false,
+                        });
+                    }
+                }
+            }
             this.refreshPhysicsEnabled();
         },
         searchQuery() {
@@ -231,7 +281,10 @@ export default {
         this.iconQueue = [];
         this.iconQueueGeneration += 1;
         if (this._visualiserPrefsHandler) {
-            GlobalEmitter.off("visualiser-display-prefs-changed", this._visualiserPrefsHandler);
+            GlobalEmitter.off(VISUALISER_DISPLAY_PREFS_CHANGED, this._visualiserPrefsHandler);
+        }
+        if (this._batterySaverPrefsHandler) {
+            GlobalEmitter.off(BATTERY_SAVER_CHANGED_EVENT, this._batterySaverPrefsHandler);
         }
         clearInterval(this.reloadInterval);
         if (this.hopFilterDebounceTimer) {
@@ -246,6 +299,7 @@ export default {
             cancelAnimationFrame(this.lodRafId);
             this.lodRafId = null;
         }
+        this.stopFpsMeter();
         if (this.network) {
             this.network.destroy();
         }
@@ -279,16 +333,126 @@ export default {
 
         this._visualiserPrefsHandler = () => {
             this.loadVisualiserDisplayPrefs();
+            this.applyBatterySaverVisualiserPrefs();
             if (this.network) {
                 this.processVisualization();
             }
         };
-        GlobalEmitter.on("visualiser-display-prefs-changed", this._visualiserPrefsHandler);
+        GlobalEmitter.on(VISUALISER_DISPLAY_PREFS_CHANGED, this._visualiserPrefsHandler);
+
+        this._batterySaverPrefsHandler = (prefs) => {
+            this.batterySaverPrefs = prefs || loadBatterySaverPrefs();
+            this.applyBatterySaverVisualiserPrefs();
+            this.restartAutoReloadInterval();
+            if (this.network) {
+                this.processVisualization();
+            }
+        };
+        GlobalEmitter.on(BATTERY_SAVER_CHANGED_EVENT, this._batterySaverPrefsHandler);
 
         this.loadVisualiserDisplayPrefs();
+        this.applyBatterySaverVisualiserPrefs();
+        this.resolveEngineMode();
+        this.startFpsMeter();
         this.init();
     },
     methods: {
+        applyBatterySaverVisualiserPrefs() {
+            const prefs = this.batterySaverPrefs || loadBatterySaverPrefs();
+            if (!prefs.enabled) {
+                return;
+            }
+            if (prefs.disableVisualiserDiscovery) {
+                this.showDiscoveredInterfaces = false;
+            }
+            if (prefs.hideOfflineInterfaces) {
+                this.showDisabledInterfaces = false;
+            }
+            if (prefs.disableVisualiserLiveLayout) {
+                // Session override only. Do not overwrite the stored Live Layout pref.
+                this.suppressLiveLayoutPersist = true;
+                this.enablePhysics = false;
+                this.suppressLiveLayoutPersist = false;
+            }
+            if (prefs.visualiserReloadSeconds === 0) {
+                this.suppressAutoReloadPersist = true;
+                this.autoReload = false;
+                this.suppressAutoReloadPersist = false;
+            }
+        },
+        restartAutoReloadInterval() {
+            clearInterval(this.reloadInterval);
+            this.reloadInterval = null;
+            const ms = effectiveVisualiserReloadMs(15000, this.batterySaverPrefs || loadBatterySaverPrefs());
+            if (ms == null) {
+                return;
+            }
+            this.reloadInterval = setInterval(this.onAutoReload, ms);
+        },
+        resolveEngineMode() {
+            warmVisualiserWasm()
+                .then((ok) => {
+                    this.engineMode = ok && isVisualiserWasmReady() ? "wasm" : "fallback";
+                })
+                .catch(() => {
+                    this.engineMode = "fallback";
+                });
+        },
+        startFpsMeter() {
+            this.stopFpsMeter();
+            this.fpsFrameCount = 0;
+            this.fpsLastSampleMs = performance.now();
+            const tick = (now) => {
+                this.fpsFrameCount += 1;
+                const elapsed = now - this.fpsLastSampleMs;
+                if (elapsed >= 1000) {
+                    this.fps = Math.round((this.fpsFrameCount * 1000) / elapsed);
+                    this.fpsFrameCount = 0;
+                    this.fpsLastSampleMs = now;
+                    if (this.engineMode === "checking" && isVisualiserWasmReady()) {
+                        this.engineMode = "wasm";
+                    }
+                }
+                this.fpsRafId = requestAnimationFrame(tick);
+            };
+            this.fpsRafId = requestAnimationFrame(tick);
+        },
+        stopFpsMeter() {
+            if (this.fpsRafId != null) {
+                cancelAnimationFrame(this.fpsRafId);
+                this.fpsRafId = null;
+            }
+        },
+        snapshotNodePositions() {
+            const out = {};
+            if (!this.network || typeof this.network.getPositions !== "function") {
+                return out;
+            }
+            const ids = this.nodes.getIds();
+            const snap = this.network.getPositions(ids);
+            if (!snap) return out;
+            for (const id of ids) {
+                const p = snap[id];
+                if (p && Number.isFinite(p.x) && Number.isFinite(p.y)) {
+                    out[id] = { x: p.x, y: p.y };
+                }
+            }
+            return out;
+        },
+        async persistVisualiserCache() {
+            const identityHash = this.config?.identity_hash;
+            if (!identityHash) return;
+            const positions = this.snapshotNodePositions();
+            this.cachedPositions = { ...this.cachedPositions, ...positions };
+            await saveVisualiserCache({
+                identityHash,
+                pathTable: this.pathTable,
+                announces: this.announces,
+                positions: this.cachedPositions,
+                pathSoftCap: VIZ_PATH_TABLE_SOFT_CAP,
+                announceSoftCap: VIZ_ANNOUNCE_SOFT_CAP,
+            });
+        },
         onUserHopMaxFilterChange(v) {
             this.hopMaxFilter = v;
             writeStoredHopMaxFilter(v);
@@ -413,7 +577,7 @@ export default {
                 this.loadingStatus = "Loading announces...";
                 await this.fetchAnnouncesForHashes(missing);
             }
-            if (reset && needed.length > 0) {
+            if (needed.length > 0) {
                 const neededSet = new Set(needed);
                 for (const hash of Object.keys(this.announces)) {
                     if (!neededSet.has(hash)) {
@@ -579,26 +743,80 @@ export default {
             return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="${foregroundColor}" d="${iconPath}"/></svg>`;
         },
         loadVisualiserDisplayPrefs() {
-            try {
-                if (typeof localStorage !== "undefined") {
-                    if (localStorage.getItem("meshchatx.visualiser.showDisabledInterfaces") === "true") {
-                        this.showDisabledInterfaces = true;
-                    }
-                    if (localStorage.getItem("meshchatx.visualiser.showDiscoveredInterfaces") === "true") {
-                        this.showDiscoveredInterfaces = true;
-                    }
-                }
-            } catch {
-                /* localStorage unavailable */
-            }
+            const p = loadVisualiserDisplayPrefs();
+            this.showDisabledInterfaces = p.showDisabledInterfaces;
+            this.showDiscoveredInterfaces = p.showDiscoveredInterfaces;
+            this.enablePhysics = p.enablePhysics;
+            this.autoReload = p.autoReload;
         },
         refreshPhysicsEnabled() {
             if (!this.network) return;
             if (this.physicsPausedForDrag) return;
+            // Freeze current coordinates before stopping the solver so peers
+            // stay where the live layout left them.
+            if (!this.enablePhysics) {
+                this.snapshotNetworkPositions();
+            }
             this.network.setOptions({
                 physics: { enabled: this.enablePhysics },
                 edges: { smooth: VIZ_EDGE_SMOOTH },
             });
+        },
+        snapshotNetworkPositions() {
+            if (!this.network || typeof this.network.getPositions !== "function") return;
+            const ids = this.nodes.getIds();
+            if (!ids.length) return;
+            const snap = this.network.getPositions(ids) || {};
+            const updates = [];
+            for (const id of ids) {
+                const p = snap[id];
+                if (p && Number.isFinite(p.x) && Number.isFinite(p.y)) {
+                    this.cachedPositions[id] = { x: p.x, y: p.y };
+                    updates.push({ id, x: p.x, y: p.y });
+                }
+            }
+            if (updates.length > 0) {
+                this.nodes.update(updates);
+            }
+        },
+        resettleLayoutFromNetwork() {
+            if (!this.network || typeof this.network.getPositions !== "function") return;
+            const ids = this.nodes.getIds();
+            if (!ids.length) return;
+            const snap = this.network.getPositions(ids) || {};
+            const layoutNodes = [];
+            for (const id of ids) {
+                const node = this.nodes.get(id);
+                const p = snap[id] || {};
+                layoutNodes.push({
+                    id,
+                    x: Number.isFinite(p.x) ? p.x : node?.x || 0,
+                    y: Number.isFinite(p.y) ? p.y : node?.y || 0,
+                    mass: id === "me" ? 4 : node?.group === "interface" ? 2.5 : 1,
+                    fixed: id === "me",
+                });
+            }
+            const layoutEdges = this.edges.get().map((e) => ({
+                from: e.from,
+                to: e.to,
+                length: e.width >= 2.5 ? 150 : 180,
+            }));
+            const settled = settleLayout({ nodes: layoutNodes, edges: layoutEdges, iterations: 0 });
+            const positions = settled?.positions || {};
+            const updates = [];
+            for (const id of ids) {
+                const p = positions[id];
+                if (p && Number.isFinite(p.x) && Number.isFinite(p.y)) {
+                    updates.push({ id, x: p.x, y: p.y });
+                    this.cachedPositions[id] = { x: p.x, y: p.y };
+                }
+            }
+            if (updates.length > 0) {
+                this.nodes.update(updates);
+            }
+            if (this.enablePhysics) {
+                this.refreshPhysicsEnabled();
+            }
         },
         pickStablePosition(id, posById, initialFn) {
             const prev = posById[id];
@@ -730,8 +948,8 @@ export default {
 
             await this.manualUpdate();
 
-            // auto reload
-            this.reloadInterval = setInterval(this.onAutoReload, 15000);
+            // auto reload (interval respects battery saver)
+            this.restartAutoReloadInterval();
         },
         async manualUpdate() {
             if (this.isLoading) return;
@@ -766,30 +984,15 @@ export default {
             if (!this.network) return;
             if (typeof this.network.getScale !== "function") return;
             const scale = this.network.getScale();
-            let newLOD = "high";
-            if (scale < 0.2) {
-                newLOD = "low";
-            } else if (scale < 0.5) {
-                newLOD = "medium";
-            }
+            const newLOD = lodLevelFromScale(scale);
 
             if (this.currentLOD === newLOD) return;
             this.currentLOD = newLOD;
 
             // Only mutate nodes whose LOD props actually change (avoids O(N)
             // DataSet churn + full redraw when zooming across thresholds).
-            const allNodes = this.nodes.get();
-            const updates = [];
-            for (const node of allNodes) {
-                const next = this.getNodeLODProps(node, newLOD);
-                const shapeChanged = next.shape != null && next.shape !== node.shape;
-                const sizeChanged = next.size != null && next.size !== node.size;
-                const fontSize = next.font?.size;
-                const fontChanged = fontSize != null && fontSize !== (node.font?.size ?? null);
-                if (shapeChanged || sizeChanged || fontChanged) {
-                    updates.push(next);
-                }
-            }
+            const isDarkMode = document.documentElement.classList.contains("dark");
+            const updates = computeLodUpdates(this.nodes.get(), newLOD, isDarkMode);
             if (updates.length > 0) {
                 this.nodes.update(updates);
             }
@@ -878,21 +1081,43 @@ export default {
             this.currentBatch = 0;
             this.totalBatches = 0;
 
-            await Promise.all([
-                this.getConfig(),
-                this.getInterfaceStats(),
-                this.getConversations(),
-                this.getDiscoveredInterfaces(),
-            ]);
+            await this.getConfig();
             if (this.abortController.signal.aborted) return;
+
+            const identityHash = this.config?.identity_hash;
+            let paintedFromCache = false;
+            if (identityHash) {
+                const cached = await loadVisualiserCache(identityHash);
+                if (cached?.pathTable?.length) {
+                    this.pathTable = cached.pathTable;
+                    this.announces = { ...(cached.announces || {}) };
+                    this.cachedPositions = { ...(cached.positions || {}) };
+                    paintedFromCache = true;
+                }
+            }
+
+            await Promise.all([this.getInterfaceStats(), this.getConversations(), this.getDiscoveredInterfaces()]);
+            if (this.abortController.signal.aborted) return;
+
+            if (paintedFromCache && this.pathTable.length > 0) {
+                this.loadingStatus = "Restoring cached graph...";
+                await this.processVisualization();
+                if (this.abortController.signal.aborted) return;
+            }
 
             this.loadingStatus = "Fetching network data...";
             await this.getPathTableBatch();
             if (this.abortController.signal.aborted) return;
-            await this.ensureAnnouncesForPathHashes({ reset: true });
+            /*
+             * Keep cached announces for known hashes and only fetch missing ones
+             * so reopen stays fast while still picking up newly seen nodes.
+             */
+            await this.ensureAnnouncesForPathHashes({ reset: false });
             if (this.abortController.signal.aborted) return;
 
             await this.processVisualization();
+            if (this.abortController.signal.aborted) return;
+            await this.persistVisualiserCache();
         },
         async processVisualization() {
             await new Promise((r) => {
@@ -914,14 +1139,12 @@ export default {
             this.iconQueue = [];
 
             /*
-             * Pause physics for the duration of the bulk update. Running the
-             * force-directed solver between chunks just churns the layout for
-             * a partial graph and pegs the main thread on slow CPUs. We
-             * restore the user's physics preference at the end so the final
-             * layout still settles naturally.
+             * Pause vis-network physics for the bulk update. WASM may settle
+             * starting positions, then Live Layout re-enables JS physics so the
+             * graph keeps moving without requiring a drag.
              */
             const physicsWasOn = this.network && this.enablePhysics;
-            if (physicsWasOn) {
+            if (this.network) {
                 this.network.setOptions({
                     physics: { enabled: false },
                     edges: { smooth: VIZ_EDGE_SMOOTH },
@@ -939,9 +1162,9 @@ export default {
                             edges: { smooth: VIZ_EDGE_SMOOTH },
                         });
                     }
-                    if (physicsWasOn && this.network && !this.physicsPausedForDrag) {
+                    if (this.network && !this.physicsPausedForDrag) {
                         this.network.setOptions({
-                            physics: { enabled: this.enablePhysics },
+                            physics: { enabled: Boolean(physicsWasOn || this.enablePhysics) },
                             edges: { smooth: VIZ_EDGE_SMOOTH },
                         });
                     }
@@ -957,7 +1180,11 @@ export default {
             const processedEdgeIds = new Set();
 
             const posById = {};
-
+            for (const [id, p] of Object.entries(this.cachedPositions || {})) {
+                if (p && Number.isFinite(p.x) && Number.isFinite(p.y)) {
+                    posById[id] = { x: p.x, y: p.y };
+                }
+            }
             const existingNodeIds = this.nodes.getIds();
             if (this.network) {
                 const snap = this.network.getPositions(existingNodeIds);
@@ -972,169 +1199,79 @@ export default {
             }
 
             const isDarkMode = document.documentElement.classList.contains("dark");
-            const fontColor = isDarkMode ? "#ffffff" : "#000000";
+            this.totalNodesToLoad = this.pathTable.length;
+            this.loadedNodesCount = 0;
+            this.loadingStatus = "Building graph...";
+
+            const announcePayload = {};
+            for (const [hash, announce] of Object.entries(this.announces || {})) {
+                if (!announce) continue;
+                announcePayload[hash] = {
+                    destination_hash: announce.destination_hash,
+                    aspect: announce.aspect,
+                    display_name: announce.display_name,
+                    custom_display_name: announce.custom_display_name,
+                    identity_hash: announce.identity_hash,
+                    last_seen: announce.updated_at
+                        ? Utils.convertDateTimeToLocalDateTimeString(new Date(announce.updated_at))
+                        : "",
+                };
+            }
+            const conversationPayload = {};
+            for (const [hash, conv] of Object.entries(this.conversations || {})) {
+                if (!conv?.lxmf_user_icon) continue;
+                conversationPayload[hash] = { lxmf_user_icon: conv.lxmf_user_icon };
+            }
 
             const searchLower = this.searchQuery.toLowerCase();
             const matchesSearch = (text) => !this.searchQuery || (text && text.toLowerCase().includes(searchLower));
 
-            const meLabel = this.config?.display_name ?? "Local Node";
-            if (matchesSearch(meLabel) || matchesSearch(this.config?.identity_hash)) {
-                const mp = this.pickStablePosition("me", posById, () => ({ x: 0, y: 0 }));
-                let meNode = {
-                    id: "me",
-                    group: "me",
-                    size: 50,
-                    _originalSize: 50,
-                    shape: "circularImage",
-                    _originalShape: "circularImage",
-                    image: this.reticulumLogoPath,
-                    label: meLabel,
-                    title: `Local Node: ${meLabel}\nIdentity: ${this.config?.identity_hash ?? "Unknown"}`,
-                    color: this.nodeColor("#3b82f6", isDarkMode ? "#1e40af" : "#eff6ff"),
-                    font: { color: fontColor, size: 16, bold: true },
-                    x: mp.x,
-                    y: mp.y,
-                };
-                meNode = { ...meNode, ...this.getNodeLODProps(meNode, this.currentLOD) };
-                this.nodes.update([meNode]);
-                processedNodeIds.add("me");
-            }
-
-            const interfaceNodes = [];
-            const interfaceEdges = [];
-            const ifaceEntries = [];
-            const radius = 400;
-
-            for (let idx = 0; idx < this.interfaces.length; idx++) {
-                const entry = this.interfaces[idx];
-                if (!this.showDisabledInterfaces && !entry.status) {
-                    continue;
-                }
+            const interfacesPayload = [];
+            for (const entry of this.interfaces) {
+                if (!this.showDisabledInterfaces && !entry.status) continue;
                 let label = entry.interface_name ?? entry.name;
                 if (entry.type === "LocalServerInterface" || entry.parent_interface_name != null) {
                     label = entry.name;
                 }
-                if (matchesSearch(label) || matchesSearch(entry.name)) {
-                    ifaceEntries.push({ entry, label });
-                }
-            }
-
-            const nIface = ifaceEntries.length;
-            for (let j = 0; j < nIface; j++) {
-                const { entry, label } = ifaceEntries[j];
-                const angle = nIface > 0 ? (j / nIface) * 2 * Math.PI : 0;
-                const initialX = Math.cos(angle) * radius;
-                const initialY = Math.sin(angle) * radius;
-                const pos = this.pickStablePosition(entry.name, posById, () => ({ x: initialX, y: initialY }));
-
-                let interfaceNode = {
-                    id: entry.name,
-                    group: "interface",
-                    label: label,
-                    title: `${entry.name}\nState: ${entry.status ? "Online" : "Offline"}\nBitrate: ${Utils.formatBitsPerSecond(entry.bitrate)}\nTX: ${Utils.formatBytes(entry.txb)}\nRX: ${Utils.formatBytes(entry.rxb)}`,
-                    size: 35,
-                    _originalSize: 35,
-                    shape: "circularImage",
-                    _originalShape: "circularImage",
-                    image: entry.status
-                        ? "/assets/images/network-visualiser/interface_connected.png"
-                        : "/assets/images/network-visualiser/interface_disconnected.png",
-                    color: this.nodeColor(entry.status ? "#10b981" : "#ef4444", isDarkMode ? "#064e3b" : "#ecfdf5"),
-                    font: { color: fontColor, size: 12, bold: true },
-                    x: pos.x,
-                    y: pos.y,
-                };
-                interfaceNode = { ...interfaceNode, ...this.getNodeLODProps(interfaceNode, this.currentLOD) };
-                interfaceNodes.push(interfaceNode);
-                processedNodeIds.add(entry.name);
-
-                const edgeId = `me~${entry.name}`;
-                interfaceEdges.push({
-                    id: edgeId,
-                    from: "me",
-                    to: entry.name,
-                    color: entry.status
-                        ? this.directEdgeColor(isDarkMode)
-                        : {
-                              color: isDarkMode ? "#f87171" : "#ef4444",
-                              opacity: 1,
-                          },
-                    // Solid wider stroke (no arrows), since arrows are redrawn every
-                    // physics frame and dominate canvas cost on large meshes.
-                    width: 3,
-                    length: 200,
-                    hidden: false,
-                });
-                processedEdgeIds.add(edgeId);
-            }
-
-            /*
-             * interface-stats can be empty while the path table still names
-             * interfaces on every hop. vis-network drops any edge whose from/to
-             * node does not exist, so synthesize interface nodes from the path
-             * table whenever stats did not already create them.
-             */
-            const pathOnlyInterfaces = [...this.pathTableInterfaceNames()].filter(
-                (name) => !processedNodeIds.has(name)
-            );
-            const nPathIface = pathOnlyInterfaces.length;
-            for (let j = 0; j < nPathIface; j++) {
-                const ifaceName = pathOnlyInterfaces[j];
-                if (!matchesSearch(ifaceName) && !matchesSearch(this.interfaceDisplayLabel(ifaceName))) {
-                    continue;
-                }
-                const angle = nPathIface > 0 ? (j / nPathIface) * 2 * Math.PI : 0;
-                const initialX = Math.cos(angle) * radius;
-                const initialY = Math.sin(angle) * radius;
-                const pos = this.pickStablePosition(ifaceName, posById, () => ({ x: initialX, y: initialY }));
-                const label = this.interfaceDisplayLabel(ifaceName);
-                let pathIfaceNode = {
-                    id: ifaceName,
-                    group: "interface",
+                if (!matchesSearch(label) && !matchesSearch(entry.name)) continue;
+                interfacesPayload.push({
+                    name: entry.name,
                     label,
-                    title: `${ifaceName}\nState: Active (path table)\nUsed as next-hop for known routes`,
-                    size: 35,
-                    _originalSize: 35,
-                    shape: "circularImage",
-                    _originalShape: "circularImage",
-                    image: "/assets/images/network-visualiser/interface_connected.png",
-                    color: this.nodeColor("#10b981", isDarkMode ? "#064e3b" : "#ecfdf5"),
-                    font: { color: fontColor, size: 12, bold: true },
-                    x: pos.x,
-                    y: pos.y,
-                };
-                pathIfaceNode = { ...pathIfaceNode, ...this.getNodeLODProps(pathIfaceNode, this.currentLOD) };
-                interfaceNodes.push(pathIfaceNode);
-                processedNodeIds.add(ifaceName);
-
-                if (processedNodeIds.has("me")) {
-                    const edgeId = `me~${ifaceName}`;
-                    interfaceEdges.push({
-                        id: edgeId,
-                        from: "me",
-                        to: ifaceName,
-                        color: this.directEdgeColor(isDarkMode),
-                        width: 3,
-                        length: 200,
-                        hidden: false,
-                    });
-                    processedEdgeIds.add(edgeId);
-                }
+                    title: `${entry.name}\nState: ${entry.status ? "Online" : "Offline"}\nBitrate: ${Utils.formatBitsPerSecond(entry.bitrate)}\nTX: ${Utils.formatBytes(entry.txb)}\nRX: ${Utils.formatBytes(entry.rxb)}`,
+                    online: !!entry.status,
+                });
             }
 
-            if (interfaceNodes.length > 0) this.nodes.update(interfaceNodes);
-            if (interfaceEdges.length > 0) this.edges.update(interfaceEdges);
+            const saver = this.batterySaverPrefs || loadBatterySaverPrefs();
+            if (
+                saver.enabled &&
+                saver.maxVisualiserInterfaces > 0 &&
+                interfacesPayload.length > saver.maxVisualiserInterfaces
+            ) {
+                interfacesPayload.sort((a, b) => Number(b.online) - Number(a.online));
+                interfacesPayload.length = saver.maxVisualiserInterfaces;
+            }
 
-            const discoveredNodes = [];
-            const discoveredEdges = [];
+            const seenIface = new Set(interfacesPayload.map((i) => i.name));
+            const pathOnlyPayload = [];
+            for (const name of this.pathTableInterfaceNames()) {
+                if (seenIface.has(name)) continue;
+                if (!matchesSearch(name) && !matchesSearch(this.interfaceDisplayLabel(name))) continue;
+                pathOnlyPayload.push({
+                    name,
+                    label: this.interfaceDisplayLabel(name),
+                    title: `${name}\nState: Active (path table)\nUsed as next-hop for known routes`,
+                    online: true,
+                });
+            }
+
+            const discoveredPayload = [];
             if (this.showDiscoveredInterfaces) {
                 const activeEndpoints = new Set();
                 for (const a of this.discoveredActive) {
                     const aHost = a.target_host || a.remote || a.listen_ip;
                     const aPort = a.target_port || a.listen_port;
-                    if (aHost && aPort != null) {
-                        activeEndpoints.add(`${aHost}:${aPort}`);
-                    }
+                    if (aHost && aPort != null) activeEndpoints.add(`${aHost}:${aPort}`);
                 }
                 for (const disc of this.discoveredInterfaces) {
                     const discId = `discovered~${disc.discovery_hash || disc.name}`;
@@ -1146,254 +1283,224 @@ export default {
                     ) {
                         continue;
                     }
-
-                    if (this.hopFilterMax != null && disc.hops != null && disc.hops > this.hopFilterMax) {
-                        continue;
-                    }
-
                     const isConnected =
                         disc.reachable_on != null &&
                         disc.port != null &&
                         activeEndpoints.has(`${disc.reachable_on}:${disc.port}`);
-
-                    const angle = Math.random() * 2 * Math.PI;
-                    const dist = 800 + Math.random() * 200;
-                    const dp = this.pickStablePosition(discId, posById, () => ({
-                        x: Math.cos(angle) * dist,
-                        y: Math.sin(angle) * dist,
-                    }));
-                    let discNode = {
+                    discoveredPayload.push({
                         id: discId,
-                        group: "discovered",
                         label: discLabel,
                         title: `Discovered: ${discLabel}\nType: ${disc.type || "Unknown"}\nHops: ${disc.hops ?? "?"}\nStatus: ${isConnected ? "Connected" : disc.status || "Available"}${disc.reachable_on ? `\nAddress: ${disc.reachable_on}:${disc.port}` : ""}`,
-                        size: 25,
-                        _originalSize: 25,
-                        shape: "circularImage",
-                        _originalShape: "circularImage",
-                        image: isConnected
-                            ? "/assets/images/network-visualiser/interface_connected.png"
-                            : "/assets/images/network-visualiser/interface_disconnected.png",
-                        color: this.nodeColor(
-                            isConnected ? "#06b6d4" : "#64748b",
-                            isDarkMode ? (isConnected ? "#164e63" : "#1e293b") : isConnected ? "#ecfeff" : "#f1f5f9"
-                        ),
-                        font: { color: fontColor, size: 10 },
-                        x: dp.x,
-                        y: dp.y,
-                    };
-                    discNode = { ...discNode, ...this.getNodeLODProps(discNode, this.currentLOD) };
-                    discoveredNodes.push(discNode);
-                    processedNodeIds.add(discId);
-
-                    const edgeId = `me~${discId}`;
-                    discoveredEdges.push({
-                        id: edgeId,
-                        from: "me",
-                        to: discId,
-                        color: {
-                            color: isDarkMode ? "#155e75" : "#06b6d4",
-                            opacity: 0.35,
-                        },
-                        width: 1,
-                        hidden: false,
+                        connected: isConnected,
+                        hops: disc.hops ?? null,
                     });
-                    processedEdgeIds.add(edgeId);
                 }
             }
-            if (discoveredNodes.length > 0) this.nodes.update(discoveredNodes);
-            if (discoveredEdges.length > 0) this.edges.update(discoveredEdges);
 
+            const meLabel = this.config?.display_name ?? "Local Node";
+            const fullReq = {
+                me_label: meLabel,
+                me_title: `Local Node: ${meLabel}\nIdentity: ${this.config?.identity_hash ?? "Unknown"}`,
+                me_image: this.reticulumLogoPath,
+                identity_hash: this.config?.identity_hash ?? "",
+                interfaces: interfacesPayload,
+                path_only_interfaces: pathOnlyPayload,
+                discovered: discoveredPayload,
+                path_table: this.pathTable,
+                announces: announcePayload,
+                conversations: conversationPayload,
+                icon_cache: this.iconCache,
+                positions: posById,
+                hop_max: this.hopFilterMax,
+                search: this.searchQuery,
+                dark_mode: isDarkMode,
+                lod: this.currentLOD,
+                aspects: VIZ_ANNOUNCE_ASPECTS,
+                queue_icons: this.currentLOD !== "low",
+                icon_generation: this.iconQueueGeneration,
+                show_discovered: this.showDiscoveredInterfaces,
+            };
+
+            let graph;
+            if (isVisualiserWasmReady()) {
+                graph = buildFullGraph(fullReq);
+            } else {
+                // JS fallback keeps the previous path-only WASM/JS builder plus local shells.
+                graph = buildFullGraph(fullReq);
+                if (!graph.nodes?.some((n) => n.id === "me")) {
+                    // buildFullGraph JS fallback only emits path nodes when WASM is down
+                }
+            }
             if (!isCurrentRun()) return;
 
-            // Process path table in batches to prevent UI block
-            this.totalNodesToLoad = this.pathTable.length;
-            this.loadedNodesCount = 0;
+            let graphNodes = Array.isArray(graph.nodes) ? graph.nodes : [];
+            let graphEdges = Array.isArray(graph.edges) ? graph.edges : [];
 
-            const aspectsToShow = ["lxmf.delivery", "nomadnetwork.node"];
-
-            /*
-             * Chunk size is adaptive to hardwareConcurrency. Smaller chunks
-             * on weak hardware mean more frequent yields, which keeps the
-             * loading overlay animating and keeps input responsive at the
-             * cost of slightly higher total work due to extra event-loop
-             * round-trips. The trade-off massively favours smoothness on
-             * ARM SBCs.
-             */
-            const chunkSize = this.vizChunkSize;
-            this.totalBatches = Math.ceil(this.pathTable.length / chunkSize);
-            this.currentBatch = 0;
-
-            for (let i = 0; i < this.pathTable.length; i += chunkSize) {
-                if (!isCurrentRun()) return;
-                this.currentBatch++;
-                const chunk = this.pathTable.slice(i, i + chunkSize);
-                const batchNodes = [];
-                const batchEdges = [];
-
-                for (const entry of chunk) {
-                    this.loadedNodesCount++;
-                    if (entry.hops == null) continue;
-                    if (this.hopFilterMax != null && entry.hops > this.hopFilterMax) continue;
-
-                    const announce = this.announces[entry.hash];
-                    if (!announce || !aspectsToShow.includes(announce.aspect)) continue;
-
-                    const displayName = announce.custom_display_name ?? announce.display_name;
-                    if (
-                        !matchesSearch(displayName) &&
-                        !matchesSearch(announce.destination_hash) &&
-                        !matchesSearch(announce.identity_hash)
-                    ) {
-                        continue;
-                    }
-
-                    const conversation = this.conversations[announce.destination_hash];
-                    const ip = posById[entry.interface];
-                    let initX = 0;
-                    let initY = 0;
-
-                    if (ip && Number.isFinite(ip.x) && Number.isFinite(ip.y)) {
-                        const angle = Math.random() * 2 * Math.PI;
-                        const dist = 150 + Math.random() * 150;
-                        initX = ip.x + Math.cos(angle) * dist;
-                        initY = ip.y + Math.sin(angle) * dist;
-                    } else {
-                        const angle = Math.random() * 2 * Math.PI;
-                        const dist = 600 + Math.random() * 200;
-                        initX = Math.cos(angle) * dist;
-                        initY = Math.sin(angle) * dist;
-                    }
-
-                    const targetXY = this.pickStablePosition(entry.hash, posById, () => ({ x: initX, y: initY }));
-                    const edgeId = `${entry.interface}~${entry.hash}`;
-
-                    let node = {
-                        id: entry.hash,
-                        group: "announce",
-                        size: 25,
-                        _originalSize: 25,
-                        _announce: announce,
-                        _parentInterface: entry.interface,
-                        font: { color: fontColor, size: 11 },
-                        x: targetXY.x,
-                        y: targetXY.y,
+            // When WASM full-graph is unavailable, synthesize me/ifaces/discovered in JS.
+            if (!isVisualiserWasmReady()) {
+                const localNodes = [];
+                const localEdges = [];
+                if (matchesSearch(meLabel) || matchesSearch(this.config?.identity_hash)) {
+                    const mp = this.pickStablePosition("me", posById, () => ({ x: 0, y: 0 }));
+                    let meNode = {
+                        id: "me",
+                        group: "me",
+                        size: 50,
+                        _originalSize: 50,
+                        shape: "circularImage",
+                        _originalShape: "circularImage",
+                        image: this.reticulumLogoPath,
+                        label: meLabel,
+                        title: fullReq.me_title,
+                        color: this.nodeColor("#3b82f6", isDarkMode ? "#1e40af" : "#eff6ff"),
+                        font: { color: isDarkMode ? "#ffffff" : "#000000", size: 16, bold: true },
+                        x: mp.x,
+                        y: mp.y,
                     };
-
-                    node.label = displayName;
-                    node.title = `${displayName}\nAspect: ${announce.aspect}\nHops: ${entry.hops}\nVia: ${entry.interface}\nLast Seen: ${Utils.convertDateTimeToLocalDateTimeString(new Date(announce.updated_at))}`;
-
-                    if (announce.aspect === "lxmf.delivery") {
-                        if (conversation?.lxmf_user_icon) {
-                            node.shape = "circularImage";
-                            node._originalShape = "circularImage";
-                            const cacheKey = `${conversation.lxmf_user_icon.icon_name}-${conversation.lxmf_user_icon.foreground_colour}-${conversation.lxmf_user_icon.background_colour}-64`;
-                            if (this.iconCache[cacheKey]) {
-                                node.image = this.iconCache[cacheKey];
-                            } else {
-                                /*
-                                 * Defer custom-icon generation. Painting the
-                                 * canvas + decoding the SVG inline used to
-                                 * serialise every chunk and was the dominant
-                                 * cause of the visualiser freezing on slow ARM
-                                 * CPUs. Use a sensible placeholder (the same
-                                 * default user image we use for icon-less lxmf
-                                 * nodes) and queue the real icon for async
-                                 * generation once all chunks are processed.
-                                 */
-                                node.image = this.isDirectPathHop(entry.hops)
-                                    ? "/assets/images/network-visualiser/user_1hop.png"
-                                    : "/assets/images/network-visualiser/user.png";
-                                if (this.currentLOD !== "low") {
-                                    this.iconQueue.push({
-                                        nodeId: node.id,
-                                        cacheKey,
-                                        iconName: conversation.lxmf_user_icon.icon_name,
-                                        fg: conversation.lxmf_user_icon.foreground_colour,
-                                        bg: conversation.lxmf_user_icon.background_colour,
-                                        size: 64,
-                                        generation: this.iconQueueGeneration,
-                                    });
-                                }
-                            }
-                            node.size = 30;
-                            node._originalSize = 30;
-                        } else {
-                            node.shape = "circularImage";
-                            node._originalShape = "circularImage";
-                            node.image = this.isDirectPathHop(entry.hops)
-                                ? "/assets/images/network-visualiser/user_1hop.png"
-                                : "/assets/images/network-visualiser/user.png";
-                        }
-                        node.color = this.nodeColor(
-                            this.isDirectPathHop(entry.hops) ? "#10b981" : "#3b82f6",
-                            this.isDirectPathHop(entry.hops)
-                                ? isDarkMode
-                                    ? "#064e3b"
-                                    : "#ecfdf5"
-                                : isDarkMode
-                                  ? "#1e40af"
-                                  : "#eff6ff"
-                        );
-                    } else if (announce.aspect === "nomadnetwork.node") {
-                        node.shape = "circularImage";
-                        node._originalShape = "circularImage";
-                        node.image = this.isDirectPathHop(entry.hops)
-                            ? "/assets/images/network-visualiser/server_1hop.png"
-                            : "/assets/images/network-visualiser/server.png";
-                        node.color = this.nodeColor(
-                            this.isDirectPathHop(entry.hops) ? "#10b981" : "#8b5cf6",
-                            this.isDirectPathHop(entry.hops)
-                                ? isDarkMode
-                                    ? "#064e3b"
-                                    : "#ecfdf5"
-                                : isDarkMode
-                                  ? "#4c1d95"
-                                  : "#f5f3ff"
-                        );
-                    }
-
-                    node = { ...node, ...this.getNodeLODProps(node, this.currentLOD) };
-                    batchNodes.push(node);
-                    processedNodeIds.add(node.id);
-
-                    const directHop = this.isDirectPathHop(entry.hops);
-                    batchEdges.push({
-                        id: edgeId,
-                        from: entry.interface,
-                        to: entry.hash,
-                        // Direct = brighter/thicker, and multi-hop = cooler/thinner.
-                        // No dashes/arrows, as both force expensive per-frame path work.
-                        color: directHop ? this.directEdgeColor(isDarkMode) : this.multiHopEdgeColor(isDarkMode),
-                        width: directHop ? 2.5 : 1,
+                    meNode = { ...meNode, ...this.getNodeLODProps(meNode, this.currentLOD) };
+                    localNodes.push(meNode);
+                }
+                for (const entry of interfacesPayload) {
+                    const pos = this.pickStablePosition(entry.name, posById, () => ({ x: 400, y: 0 }));
+                    let n = {
+                        id: entry.name,
+                        group: "interface",
+                        label: entry.label,
+                        title: entry.title,
+                        size: 35,
+                        _originalSize: 35,
+                        shape: "circularImage",
+                        _originalShape: "circularImage",
+                        image: entry.online
+                            ? "/assets/images/network-visualiser/interface_connected.png"
+                            : "/assets/images/network-visualiser/interface_disconnected.png",
+                        color: this.nodeColor(entry.online ? "#10b981" : "#ef4444", isDarkMode ? "#064e3b" : "#ecfdf5"),
+                        font: { color: isDarkMode ? "#ffffff" : "#000000", size: 12, bold: true },
+                        x: pos.x,
+                        y: pos.y,
+                    };
+                    n = { ...n, ...this.getNodeLODProps(n, this.currentLOD) };
+                    localNodes.push(n);
+                    localEdges.push({
+                        id: `me~${entry.name}`,
+                        from: "me",
+                        to: entry.name,
+                        color: entry.online
+                            ? this.directEdgeColor(isDarkMode)
+                            : { color: isDarkMode ? "#f87171" : "#ef4444", opacity: 1 },
+                        width: 3,
                         hidden: false,
                     });
-                    processedEdgeIds.add(edgeId);
                 }
+                for (const entry of pathOnlyPayload) {
+                    const pos = this.pickStablePosition(entry.name, posById, () => ({ x: 400, y: 0 }));
+                    let n = {
+                        id: entry.name,
+                        group: "interface",
+                        label: entry.label,
+                        title: entry.title,
+                        size: 35,
+                        _originalSize: 35,
+                        shape: "circularImage",
+                        _originalShape: "circularImage",
+                        image: "/assets/images/network-visualiser/interface_connected.png",
+                        color: this.nodeColor("#10b981", isDarkMode ? "#064e3b" : "#ecfdf5"),
+                        font: { color: isDarkMode ? "#ffffff" : "#000000", size: 12, bold: true },
+                        x: pos.x,
+                        y: pos.y,
+                    };
+                    n = { ...n, ...this.getNodeLODProps(n, this.currentLOD) };
+                    localNodes.push(n);
+                    localEdges.push({
+                        id: `me~${entry.name}`,
+                        from: "me",
+                        to: entry.name,
+                        color: this.directEdgeColor(isDarkMode),
+                        width: 3,
+                        hidden: false,
+                    });
+                }
+                graphNodes = [...localNodes, ...graphNodes];
+                graphEdges = [...localEdges, ...graphEdges];
+                graph.layout_nodes = graphNodes.map((n) => ({
+                    id: n.id,
+                    x: n.x,
+                    y: n.y,
+                    mass: n.group === "me" ? 4 : n.group === "interface" ? 2.5 : 1,
+                    fixed: n.id === "me",
+                }));
+                graph.layout_edges = graphEdges.map((e) => ({
+                    from: e.from,
+                    to: e.to,
+                    length: e.width >= 2.5 ? 150 : 180,
+                }));
+            }
 
+            this.loadingStatus = "Settling layout...";
+            const layoutNodes = Array.isArray(graph.layout_nodes) ? graph.layout_nodes : [];
+            const layoutEdges = Array.isArray(graph.layout_edges) ? graph.layout_edges : [];
+            // With Live Layout off, keep existing coordinates. Only settle when
+            // physics is on, or when nodes still lack cached positions.
+            const missingPositions = layoutNodes.some((n) => {
+                const p = posById[n.id];
+                return !(p && Number.isFinite(p.x) && Number.isFinite(p.y));
+            });
+            const shouldSettle =
+                layoutNodes.length > 0 && (this.enablePhysics || (isVisualiserWasmReady() && missingPositions));
+            if (shouldSettle) {
+                const settled = settleLayout({
+                    nodes: layoutNodes,
+                    edges: layoutEdges,
+                    iterations: 0,
+                });
+                const positions = settled?.positions || {};
+                for (const node of graphNodes) {
+                    const p = positions[node.id];
+                    if (p && Number.isFinite(p.x) && Number.isFinite(p.y)) {
+                        node.x = p.x;
+                        node.y = p.y;
+                        posById[node.id] = { x: p.x, y: p.y };
+                    }
+                }
+                this.cachedPositions = { ...this.cachedPositions, ...posById };
+            }
+            if (!isCurrentRun()) return;
+
+            for (const node of graphNodes) {
+                const announce = this.announces[node.id];
+                if (announce) node._announce = announce;
+            }
+            if (Array.isArray(graph.icon_queue) && graph.icon_queue.length > 0) {
+                this.iconQueue.push(...graph.icon_queue);
+            }
+            for (const node of graphNodes) {
+                if (node?.id) processedNodeIds.add(node.id);
+            }
+            for (const edge of graphEdges) {
+                if (edge?.id) processedEdgeIds.add(edge.id);
+            }
+
+            const chunkSize = this.vizChunkSize;
+            this.totalBatches = Math.max(1, Math.ceil(Math.max(graphNodes.length, graphEdges.length) / chunkSize));
+            this.currentBatch = 0;
+            const applyLimit = Math.max(graphNodes.length, graphEdges.length);
+            for (let i = 0; i < applyLimit; i += chunkSize) {
+                if (!isCurrentRun()) return;
+                this.currentBatch++;
+                const batchNodes = graphNodes.slice(i, i + chunkSize);
+                const batchEdges = graphEdges.slice(i, i + chunkSize);
                 if (batchNodes.length > 0) this.nodes.update(batchNodes);
                 if (batchEdges.length > 0) this.edges.update(batchEdges);
-
+                this.loadedNodesCount = Math.min(this.pathTable.length, i + chunkSize);
                 this.loadingStatus = `Processing Batch ${this.currentBatch} / ${this.totalBatches}...`;
-
-                /*
-                 * Yield between chunks on large graphs so the overlay can paint.
-                 * Small graphs finish in one/few chunks — skip yields so we beat
-                 * upstream wall-clock on typical meshes.
-                 */
                 if (this.pathTable.length > VIZ_SYNC_PATH_THRESHOLD) {
                     await yieldToMain();
                 }
-
-                if (!isCurrentRun()) return;
             }
-
             if (!isCurrentRun()) return;
 
-            // Cleanup: remove nodes/edges that are no longer in the network
             const nodesToRemove = this.nodes.getIds().filter((id) => !processedNodeIds.has(id));
             if (nodesToRemove.length > 0) this.nodes.remove(nodesToRemove);
-
             const edgesToRemove = this.edges.getIds().filter((id) => !processedEdgeIds.has(id));
             if (edgesToRemove.length > 0) this.edges.remove(edgesToRemove);
 
@@ -1401,7 +1508,6 @@ export default {
             this.loadedNodesCount = 0;
             this.currentBatch = 0;
             this.totalBatches = 0;
-
             this.scheduleIconQueue();
         },
         scheduleIconQueue() {
