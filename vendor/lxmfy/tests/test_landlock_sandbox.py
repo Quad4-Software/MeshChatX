@@ -95,3 +95,33 @@ def test_landlock_status_dict():
     assert status["landlock_active"] is True
     assert "landlock_kernel_supported" in status
     assert "landlock_requested" in status
+    assert "landlock_abi_version" in status
+
+
+def test_handled_access_fs_for_abi_gates_new_rights():
+    abi1 = ll._handled_access_fs_for_abi(1)
+    assert abi1 & ll._LANDLOCK_ACCESS_FS_REFER == 0
+    assert abi1 & ll._LANDLOCK_ACCESS_FS_TRUNCATE == 0
+    assert abi1 & ll._LANDLOCK_ACCESS_FS_IOCTL_DEV == 0
+
+    abi5 = ll._handled_access_fs_for_abi(5)
+    assert abi5 & ll._LANDLOCK_ACCESS_FS_REFER
+    assert abi5 & ll._LANDLOCK_ACCESS_FS_TRUNCATE
+    assert abi5 & ll._LANDLOCK_ACCESS_FS_IOCTL_DEV
+    assert abi5 == ll._handled_access_fs_for_abi(10)
+
+
+def test_rw_access_grants_new_rights_when_handled():
+    handled = ll._handled_access_fs_for_abi(5)
+    rw_access = ll._rw_access_for_handled(handled)
+    read_access = ll._read_access_for_handled(handled)
+    assert read_access & ll._LANDLOCK_ACCESS_FS_TRUNCATE == 0
+    assert rw_access & ll._LANDLOCK_ACCESS_FS_TRUNCATE
+    assert rw_access & ll._LANDLOCK_ACCESS_FS_IOCTL_DEV
+    assert rw_access & ll._LANDLOCK_ACCESS_FS_REFER
+
+
+def test_ruleset_attr_size_matches_abi():
+    assert ll._ruleset_attr_size(1) == 8
+    assert ll._ruleset_attr_size(4) == 16
+    assert ll._ruleset_attr_size(6) == 24

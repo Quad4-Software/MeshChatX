@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import ctypes
 import ctypes.util
-import errno
 import logging
 import os
 import site
@@ -28,18 +27,39 @@ _LANDLOCK_ACCESS_FS_MAKE_SOCK = 1 << 9
 _LANDLOCK_ACCESS_FS_MAKE_FIFO = 1 << 10
 _LANDLOCK_ACCESS_FS_MAKE_BLOCK = 1 << 11
 _LANDLOCK_ACCESS_FS_MAKE_SYM = 1 << 12
+_LANDLOCK_ACCESS_FS_REFER = 1 << 13
+_LANDLOCK_ACCESS_FS_TRUNCATE = 1 << 14
+_LANDLOCK_ACCESS_FS_IOCTL_DEV = 1 << 15
 
 _LANDLOCK_CREATE_RULESET_VERSION = 1 << 0
 _LANDLOCK_RULE_PATH_BENEATH = 1
 
 _PR_SET_NO_NEW_PRIVS = 38
 
-_READ_ACCESS = (
+# ABI v1 filesystem rights. Newer rights are added only when the running ABI
+# supports them, and only granted on paths that already need write or /dev.
+_FS_ACCESS_ABI1 = (
+    _LANDLOCK_ACCESS_FS_EXECUTE
+    | _LANDLOCK_ACCESS_FS_WRITE_FILE
+    | _LANDLOCK_ACCESS_FS_READ_FILE
+    | _LANDLOCK_ACCESS_FS_READ_DIR
+    | _LANDLOCK_ACCESS_FS_REMOVE_DIR
+    | _LANDLOCK_ACCESS_FS_REMOVE_FILE
+    | _LANDLOCK_ACCESS_FS_MAKE_CHAR
+    | _LANDLOCK_ACCESS_FS_MAKE_DIR
+    | _LANDLOCK_ACCESS_FS_MAKE_REG
+    | _LANDLOCK_ACCESS_FS_MAKE_SOCK
+    | _LANDLOCK_ACCESS_FS_MAKE_FIFO
+    | _LANDLOCK_ACCESS_FS_MAKE_BLOCK
+    | _LANDLOCK_ACCESS_FS_MAKE_SYM
+)
+
+_READ_ACCESS_BASE = (
     _LANDLOCK_ACCESS_FS_READ_FILE
     | _LANDLOCK_ACCESS_FS_READ_DIR
     | _LANDLOCK_ACCESS_FS_EXECUTE
 )
-_RW_ACCESS = _READ_ACCESS | (
+_RW_ACCESS_BASE = _READ_ACCESS_BASE | (
     _LANDLOCK_ACCESS_FS_WRITE_FILE
     | _LANDLOCK_ACCESS_FS_REMOVE_DIR
     | _LANDLOCK_ACCESS_FS_REMOVE_FILE
@@ -74,6 +94,7 @@ class _LandlockPathBeneathAttr(ctypes.Structure):
         ("parent_fd", ctypes.c_int32),
     ]
     _pack_ = 1
+    _layout_ = "ms"
 
 
 def _parse_kernel_version(release: str) -> tuple[int, int, int]:
@@ -118,6 +139,7 @@ def _landlock_env_override() -> bool | None:
 
 
 _landlock_support_cached: bool | None = None
+_landlock_abi_cached: int | None = None
 
 
 def _syscall_numbers():
@@ -155,19 +177,74 @@ def _syscall(libc, nr: int, *args):
     return rc
 
 
-def _probe_landlock_create_ruleset() -> bool:
+def _handled_access_fs_for_abi(abi: int) -> int:
+    """Return handled FS rights for a best-effort sandbox on this ABI.
+
+    Intentionally omits network port rules and IPC scoping so mesh traffic,
+    Unix sockets, and signals keep working. Omits RESOLVE_UNIX for the same
+    reason. Rights we do handle are also granted on RW roots (including /dev).
+    """
+    if abi < 1:
+        return 0
+    handled = _FS_ACCESS_ABI1
+    if abi >= 2:
+        handled |= _LANDLOCK_ACCESS_FS_REFER
+    if abi >= 3:
+        handled |= _LANDLOCK_ACCESS_FS_TRUNCATE
+    if abi >= 5:
+        handled |= _LANDLOCK_ACCESS_FS_IOCTL_DEV
+    return handled
+
+
+def _ruleset_attr_size(abi: int) -> int:
+    """Bytes of landlock_ruleset_attr the running ABI understands."""
+    if abi >= 6:
+        return ctypes.sizeof(_LandlockRulesetAttr)
+    if abi >= 4:
+        return ctypes.sizeof(ctypes.c_uint64) * 2
+    return ctypes.sizeof(ctypes.c_uint64)
+
+
+def _read_access_for_handled(handled: int) -> int:
+    return _READ_ACCESS_BASE & handled
+
+
+def _rw_access_for_handled(handled: int) -> int:
+    access = _RW_ACCESS_BASE
+    if handled & _LANDLOCK_ACCESS_FS_REFER:
+        access |= _LANDLOCK_ACCESS_FS_REFER
+    if handled & _LANDLOCK_ACCESS_FS_TRUNCATE:
+        access |= _LANDLOCK_ACCESS_FS_TRUNCATE
+    if handled & _LANDLOCK_ACCESS_FS_IOCTL_DEV:
+        access |= _LANDLOCK_ACCESS_FS_IOCTL_DEV
+    return access & handled
+
+
+def _probe_landlock_abi() -> int:
+    """Return the Landlock ABI version, or 0 when unavailable."""
+    global _landlock_abi_cached
+    if _landlock_abi_cached is not None:
+        return _landlock_abi_cached
     libc = _libc()
     nums = _syscall_numbers()
     if libc is None or nums is None:
-        return False
+        _landlock_abi_cached = 0
+        return 0
     create_nr, _, _ = nums
     try:
-        abi = _syscall(libc, create_nr, 0, 0, _LANDLOCK_CREATE_RULESET_VERSION)
-    except OSError as exc:
-        if exc.errno in (errno.ENOSYS, errno.EOPNOTSUPP):
-            return False
-        return False
-    return abi >= 1
+        abi = int(_syscall(libc, create_nr, 0, 0, _LANDLOCK_CREATE_RULESET_VERSION))
+    except OSError:
+        _landlock_abi_cached = 0
+        return 0
+    if abi < 1:
+        _landlock_abi_cached = 0
+        return 0
+    _landlock_abi_cached = abi
+    return abi
+
+
+def _probe_landlock_create_ruleset() -> bool:
+    return _probe_landlock_abi() >= 1
 
 
 def _is_android() -> bool:
@@ -177,6 +254,15 @@ def _is_android() -> bool:
     the syscalls and raises SIGSYS. Landlock must never be enabled there.
     """
     return hasattr(sys, "getandroidapilevel")
+
+
+def landlock_abi_version() -> int:
+    """Return the probed Landlock ABI version, or 0 if unsupported."""
+    if sys.platform != "linux" or _is_android():
+        return 0
+    if not _kernel_version_meets_minimum():
+        return 0
+    return _probe_landlock_abi()
 
 
 def landlock_kernel_supported() -> bool:
@@ -296,20 +382,34 @@ def _collect_rw_roots(
     return paths
 
 
+def _file_access_from_dir_access(access: int, handled: int) -> int:
+    """Map a directory access mask to rights valid on a non-directory path."""
+    file_bits = _LANDLOCK_ACCESS_FS_READ_FILE | _LANDLOCK_ACCESS_FS_WRITE_FILE
+    if access & _LANDLOCK_ACCESS_FS_EXECUTE:
+        file_bits |= _LANDLOCK_ACCESS_FS_EXECUTE
+    if access & _LANDLOCK_ACCESS_FS_TRUNCATE:
+        file_bits |= _LANDLOCK_ACCESS_FS_TRUNCATE
+    if access & _LANDLOCK_ACCESS_FS_IOCTL_DEV:
+        file_bits |= _LANDLOCK_ACCESS_FS_IOCTL_DEV
+    return file_bits & access & handled
+
+
 def _add_path_beneath_rule(
     libc,
     add_rule_nr: int,
     ruleset_fd: int,
     path: str,
     access: int,
+    handled: int,
 ) -> None:
     if not path or not os.path.exists(path):
         return
-    effective_access = access
     if not os.path.isdir(path):
-        effective_access = (
-            _LANDLOCK_ACCESS_FS_READ_FILE | _LANDLOCK_ACCESS_FS_WRITE_FILE
-        )
+        effective_access = _file_access_from_dir_access(access, handled)
+    else:
+        effective_access = access & handled
+    if effective_access == 0:
+        return
     open_flags = os.O_PATH | os.O_CLOEXEC | os.O_RDONLY
     try:
         fd = os.open(path, open_flags)
@@ -353,13 +453,21 @@ def apply_landlock_sandbox(
         logger.warning("Landlock disabled: %s", exc)
         return False
 
-    attr = _LandlockRulesetAttr(handled_access_fs=_RW_ACCESS)
+    abi = _probe_landlock_abi()
+    if abi < 1:
+        logger.warning("Landlock disabled: ABI probe failed")
+        return False
+
+    handled = _handled_access_fs_for_abi(abi)
+    read_access = _read_access_for_handled(handled)
+    rw_access = _rw_access_for_handled(handled)
+    attr = _LandlockRulesetAttr(handled_access_fs=handled)
     try:
         ruleset_fd = _syscall(
             libc,
             create_nr,
             ctypes.byref(attr),
-            ctypes.sizeof(attr),
+            _ruleset_attr_size(abi),
             0,
         )
     except OSError as exc:
@@ -368,13 +476,17 @@ def apply_landlock_sandbox(
 
     try:
         for root in _collect_read_roots():
-            _add_path_beneath_rule(libc, add_rule_nr, ruleset_fd, root, _READ_ACCESS)
+            _add_path_beneath_rule(
+                libc, add_rule_nr, ruleset_fd, root, read_access, handled
+            )
         rw_roots = _collect_rw_roots(storage_dir, reticulum_config_dir, log_dir)
         public_existing = _existing_dir(public_dir)
         if public_existing and public_existing not in rw_roots:
             rw_roots.append(public_existing)
         for root in rw_roots:
-            _add_path_beneath_rule(libc, add_rule_nr, ruleset_fd, root, _RW_ACCESS)
+            _add_path_beneath_rule(
+                libc, add_rule_nr, ruleset_fd, root, rw_access, handled
+            )
         _syscall(libc, restrict_nr, ruleset_fd, 0)
     except OSError as exc:
         logger.warning("Landlock disabled while adding rules: %s", exc)
@@ -390,7 +502,10 @@ def apply_landlock_sandbox(
         pass
 
     if landlock_auto_enabled():
-        logger.info("Landlock filesystem sandbox enabled (auto-detected on Linux)")
+        logger.info(
+            "Landlock filesystem sandbox enabled (auto-detected on Linux, ABI %s)",
+            abi,
+        )
     else:
-        logger.info("Landlock filesystem sandbox enabled")
+        logger.info("Landlock filesystem sandbox enabled (ABI %s)", abi)
     return True
