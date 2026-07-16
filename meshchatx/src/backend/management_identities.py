@@ -45,7 +45,10 @@ def _identity_info(path: str, name: str) -> dict[str, Any] | None:
     if identity is None:
         return None
     try:
-        identity_hash = bytes(identity.hash).hex()
+        identity_hash_raw = identity.hash
+        if identity_hash_raw is None:
+            return None
+        identity_hash = bytes(identity_hash_raw).hex()
     except Exception:
         return None
     return {

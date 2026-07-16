@@ -490,7 +490,11 @@
         "battery_unavailable": "Batterijstatus niet beschikbaar",
         "battery_level_title": "Batterij {percent}",
         "battery_charging_title": "Opladen {percent}",
-        "battery_discharging_title": "Op batterij {percent}"
+        "battery_discharging_title": "Op batterij {percent}",
+        "remote_management_allowed": "Remote management allow-list",
+        "remote_management_allowed_description": "Identity hashes allowed to query this instance remotely with rnstatus/rnpath. One 32-character hex hash per line.",
+        "remote_management_allowed_placeholder": "9fb6d773498fb3feda407ed8ef2c3229",
+        "remote_management_allowed_save": "Save allow-list"
     },
     "common": {
         "open": "Openen",
@@ -2940,7 +2944,14 @@
         "blackhole_publishing": "Publiceren",
         "blackhole_inactive": "Inactief",
         "failed_refresh": "RNStatus vernieuwen mislukt",
-        "reloading": "RNS opnieuw laden..."
+        "reloading": "RNS opnieuw laden...",
+        "remote_query": "Remote query",
+        "remote_query_hint": "Query a remote transport instance that has remote management enabled and your management identity on its allow-list.",
+        "remote_transport_hash": "Remote transport identity hash",
+        "remote_transport_placeholder": "32-character hex hash",
+        "remote_timeout": "Timeout (seconds)",
+        "remote_active": "Showing remote status for {hash}",
+        "use_local": "Use local instance"
     },
     "translator": {
         "text_translation": "Tekstvertaling",
@@ -3686,6 +3697,20 @@
         "failed_to_copy_address": "Adres kopiëren mislukt",
         "config_dir": "Reticulum-configuratiemap",
         "config_dir_placeholder": "Standaard: Reticulum-config van de app",
-        "config_dir_hint": "Laat leeg om de MeshChatX-Reticulum-instantie te delen. Overschrijf alleen om een aparte Reticulum-configuratiemap te gebruiken."
+        "config_dir_hint": "Laat leeg om de MeshChatX-Reticulum-instantie te delen. Overschrijf alleen om een aparte Reticulum-configuratiemap te gebruiken.",
+        "interactive": "Interactive mode (-x)",
+        "timeout": "Connect timeout (seconds)",
+        "result_timeout": "Result download timeout (seconds)",
+        "stdout_limit": "Stdout limit (bytes)",
+        "stderr_limit": "Stderr limit (bytes)"
+    },
+    "remote_mgmt": {
+        "management_identity": "Management identity",
+        "select_identity": "Select identity file",
+        "create_identity": "Create",
+        "create_identity_prompt": "Name for the new management identity file",
+        "identity_created": "Management identity created",
+        "failed_load_identities": "Failed to load management identities",
+        "failed_create_identity": "Failed to create management identity"
     }
 }

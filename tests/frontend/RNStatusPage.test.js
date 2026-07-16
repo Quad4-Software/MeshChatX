@@ -52,6 +52,9 @@ describe("RNStatusPage.vue", () => {
                     },
                 });
             }
+            if (url === "/api/v1/reticulum/management-identities") {
+                return Promise.resolve({ data: { identities: [] } });
+            }
             return Promise.resolve({ data: {} });
         });
     });
@@ -83,14 +86,22 @@ describe("RNStatusPage.vue", () => {
     });
 
     it("labels disabled blackhole as Inactive", async () => {
-        axiosMock.get.mockResolvedValueOnce({
-            data: {
-                interfaces: [],
-                link_count: 0,
-                blackhole_enabled: false,
-                blackhole_count: 0,
-                blackhole_sources: [],
-            },
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/rnstatus") {
+                return Promise.resolve({
+                    data: {
+                        interfaces: [],
+                        link_count: 0,
+                        blackhole_enabled: false,
+                        blackhole_count: 0,
+                        blackhole_sources: [],
+                    },
+                });
+            }
+            if (url === "/api/v1/reticulum/management-identities") {
+                return Promise.resolve({ data: { identities: [] } });
+            }
+            return Promise.resolve({ data: {} });
         });
         const wrapper = mountRNStatusPage();
         await vi.waitFor(() => expect(wrapper.vm.isLoading).toBe(false));
@@ -123,12 +134,19 @@ describe("RNStatusPage.vue", () => {
     });
 
     it("toasts on refresh failure", async () => {
-        axiosMock.get.mockRejectedValueOnce({
-            response: { data: { message: "RNS stack is reloading" }, status: 503 },
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/rnstatus") {
+                return Promise.reject({
+                    response: { data: { message: "RNS stack is reloading" }, status: 503 },
+                });
+            }
+            if (url === "/api/v1/reticulum/management-identities") {
+                return Promise.resolve({ data: { identities: [] } });
+            }
+            return Promise.resolve({ data: {} });
         });
         const wrapper = mountRNStatusPage();
-        await vi.waitFor(() => expect(wrapper.vm.isLoading).toBe(false));
-        expect(ToastUtils.error).toHaveBeenCalled();
+        await vi.waitFor(() => expect(ToastUtils.error).toHaveBeenCalled());
         const msg = ToastUtils.error.mock.calls[0][0];
         expect(msg).toContain("Failed to refresh RNStatus");
         expect(msg).toContain("RNS stack is reloading");
