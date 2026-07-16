@@ -53,6 +53,7 @@ All notable changes to this project will be documented in this file.
 - Unread badge stays circular and remains visible when the sidebar is collapsed
 - Open conversations mark as read when a new message arrives without needing to reselect the thread
 - Startup stage logs no longer print the same stage twice
+- Ctrl+C shutdown no longer floods reentrant logging errors from RNS.exit containment
 
 ## [4.7.2] - 2026-07-06
 
