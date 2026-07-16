@@ -1303,6 +1303,78 @@
                                             <p class="text-xs text-gray-600 dark:text-zinc-400 leading-relaxed">
                                                 {{ $t("interfaces.custom_external_intro") }}
                                             </p>
+                                            <div
+                                                class="rounded-xl border border-amber-200/80 dark:border-amber-900/40 bg-amber-50/40 dark:bg-amber-950/20 p-3 space-y-2"
+                                            >
+                                                <p class="text-xs text-amber-900 dark:text-amber-200/90 leading-relaxed">
+                                                    {{ $t("interfaces.custom_external_install_intro") }}
+                                                </p>
+                                                <p
+                                                    v-if="interfaceModulesPath"
+                                                    class="text-[10px] font-mono text-amber-800/80 dark:text-amber-200/70 break-all"
+                                                >
+                                                    {{ $t("interfaces.custom_external_interfacepath_label") }}:
+                                                    {{ interfaceModulesPath }}
+                                                </p>
+                                                <div class="flex flex-wrap items-center gap-2">
+                                                    <input
+                                                        ref="interface-module-file-input"
+                                                        type="file"
+                                                        accept=".py,text/x-python,text/plain"
+                                                        class="hidden"
+                                                        @change="onInterfaceModuleFileSelected"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        class="secondary-chip py-1.5! px-3! text-[10px]!"
+                                                        :disabled="interfaceModuleBusy"
+                                                        @click="pickInterfaceModuleFile"
+                                                    >
+                                                        {{ $t("interfaces.custom_external_install_button") }}
+                                                    </button>
+                                                    <label class="flex items-center gap-1.5 text-[10px] text-gray-600 dark:text-zinc-400">
+                                                        <input
+                                                            v-model="interfaceModuleOverwrite"
+                                                            type="checkbox"
+                                                            class="rounded-sm"
+                                                        />
+                                                        {{ $t("interfaces.custom_external_install_overwrite") }}
+                                                    </label>
+                                                </div>
+                                                <ul
+                                                    v-if="installedInterfaceModules.length"
+                                                    class="text-[10px] font-mono text-gray-600 dark:text-zinc-400 space-y-1"
+                                                >
+                                                    <li
+                                                        v-for="mod in installedInterfaceModules"
+                                                        :key="mod.filename"
+                                                        class="flex items-center justify-between gap-2"
+                                                    >
+                                                        <button
+                                                            type="button"
+                                                            class="text-left hover:underline"
+                                                            @click="customExternalTypeName = mod.type"
+                                                        >
+                                                            {{ mod.filename }}
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            class="text-red-500 hover:text-red-600 shrink-0"
+                                                            :disabled="interfaceModuleBusy"
+                                                            :title="$t('interfaces.custom_external_module_delete')"
+                                                            @click="deleteInstalledInterfaceModule(mod.type)"
+                                                        >
+                                                            {{ $t("interfaces.custom_external_module_delete") }}
+                                                        </button>
+                                                    </li>
+                                                </ul>
+                                                <p
+                                                    v-else
+                                                    class="text-[10px] text-gray-500 dark:text-zinc-500"
+                                                >
+                                                    {{ $t("interfaces.custom_external_modules_empty") }}
+                                                </p>
+                                            </div>
                                             <div>
                                                 <FormLabel class="glass-label">{{
                                                     $t("interfaces.custom_external_type_label")
@@ -1893,6 +1965,10 @@ export default {
             customExternalTypeName: "",
             customExternalOptionsJson: "{}",
             docsReticulumInterfacesOverview: RETICULUM_MANUAL_INTERFACES_OVERVIEW_REL,
+            interfaceModulesPath: "",
+            installedInterfaceModules: [],
+            interfaceModuleOverwrite: false,
+            interfaceModuleBusy: false,
 
             config: null,
 
@@ -2137,6 +2213,11 @@ export default {
         newInterfaceCodingRate: "updateRNodeCalculations",
         newInterfaceTxpower: "updateRNodeCalculations",
         "RNodeInterfaceLoRaParameters.antennaGain": "updateRNodeCalculations",
+        newInterfaceType(value) {
+            if (value === "__external__") {
+                this.loadInstalledInterfaceModules();
+            }
+        },
     },
     mounted() {
         this.getConfig();
@@ -2146,6 +2227,9 @@ export default {
         this.loadComports();
         this.loadHostKernelInterfaces();
         this.loadCommunityInterfaces();
+        if (this.newInterfaceType === "__external__") {
+            this.loadInstalledInterfaceModules();
+        }
 
         // check if we are editing an interface
         const interfaceName = this.$route.query.interface_name;
@@ -2160,6 +2244,82 @@ export default {
         }
     },
     methods: {
+        async loadInstalledInterfaceModules() {
+            try {
+                const response = await window.api.get("/api/v1/reticulum/interface-modules");
+                this.interfaceModulesPath = response.data?.interfacepath || "";
+                this.installedInterfaceModules = Array.isArray(response.data?.modules)
+                    ? response.data.modules
+                    : [];
+            } catch (e) {
+                console.log(e);
+                this.interfaceModulesPath = "";
+                this.installedInterfaceModules = [];
+            }
+        },
+        pickInterfaceModuleFile() {
+            const input = this.$refs["interface-module-file-input"];
+            if (input) {
+                input.value = "";
+                input.click();
+            }
+        },
+        async onInterfaceModuleFileSelected(event) {
+            const file = event?.target?.files?.[0];
+            if (!file) {
+                return;
+            }
+            this.interfaceModuleBusy = true;
+            try {
+                const formData = new FormData();
+                formData.append("file", file, file.name);
+                if (this.interfaceModuleOverwrite) {
+                    formData.append("overwrite", "1");
+                }
+                const response = await window.api.post("/api/v1/reticulum/interface-modules", formData);
+                const typeName = response.data?.type;
+                if (typeName) {
+                    this.customExternalTypeName = typeName;
+                }
+                ToastUtils.success(
+                    response.data?.message || this.$t("interfaces.custom_external_install_success")
+                );
+                await this.loadInstalledInterfaceModules();
+            } catch (e) {
+                const message =
+                    e?.response?.data?.message || this.$t("interfaces.custom_external_install_failed");
+                ToastUtils.error(message);
+            } finally {
+                this.interfaceModuleBusy = false;
+                if (event?.target) {
+                    event.target.value = "";
+                }
+            }
+        },
+        async deleteInstalledInterfaceModule(typeName) {
+            if (!typeName || this.interfaceModuleBusy) {
+                return;
+            }
+            this.interfaceModuleBusy = true;
+            try {
+                const response = await window.api.delete(
+                    `/api/v1/reticulum/interface-modules/${encodeURIComponent(typeName)}`
+                );
+                ToastUtils.success(
+                    response.data?.message || this.$t("interfaces.custom_external_module_deleted")
+                );
+                if (this.customExternalTypeName === typeName) {
+                    this.customExternalTypeName = "";
+                }
+                await this.loadInstalledInterfaceModules();
+            } catch (e) {
+                const message =
+                    e?.response?.data?.message || this.$t("interfaces.custom_external_module_delete_failed");
+                ToastUtils.error(message);
+            } finally {
+                this.interfaceModuleBusy = false;
+            }
+        },
         async getConfig() {
             try {
                 const response = await window.api.get(`/api/v1/config`);

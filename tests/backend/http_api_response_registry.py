@@ -148,6 +148,19 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
     HttpJsonContract("GET", "/api/v1/reticulum/interfaces", INTERFACES_LIST_SCHEMA),
     HttpJsonContract(
         "GET",
+        "/api/v1/reticulum/interface-modules",
+        {
+            "type": "object",
+            "required": ["interfacepath", "modules"],
+            "properties": {
+                "interfacepath": {"type": "string"},
+                "modules": {"type": "array"},
+            },
+            "additionalProperties": True,
+        },
+    ),
+    HttpJsonContract(
+        "GET",
         "/api/v1/community-interfaces",
         COMMUNITY_INTERFACES_SCHEMA,
     ),

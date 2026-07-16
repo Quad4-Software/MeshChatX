@@ -43,12 +43,31 @@ describe("AddInterfacePage.vue interface options", () => {
             if (String(url).includes("/api/v1/reticulum/instance")) {
                 return { data: { instance: { enable_transport: true } } };
             }
+            if (String(url).includes("/api/v1/reticulum/interface-modules")) {
+                return {
+                    data: {
+                        interfacepath: "/tmp/meshchatx/reticulum/interfaces",
+                        modules: [{ type: "ExampleInterface", filename: "ExampleInterface.py", size: 12 }],
+                    },
+                };
+            }
             if (String(url).includes("/api/v1/reticulum/interfaces")) {
                 return { data: { interfaces: {} } };
             }
             return { data: {} };
         });
         mockAxios.post.mockResolvedValue({ data: { message: "ok" } });
+    });
+
+    it("loads installed interface modules for custom external type", async () => {
+        const wrapper = mountPage();
+        wrapper.vm.newInterfaceType = "__external__";
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.loadInstalledInterfaceModules();
+        expect(mockAxios.get).toHaveBeenCalledWith("/api/v1/reticulum/interface-modules");
+        expect(wrapper.vm.interfaceModulesPath).toContain("interfaces");
+        expect(wrapper.vm.installedInterfaceModules).toHaveLength(1);
+        expect(wrapper.text()).toContain("interfaces.custom_external_install_button");
     });
 
     it("sends AutoInterface group/discovery/data port settings", async () => {
