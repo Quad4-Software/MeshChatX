@@ -1963,7 +1963,13 @@
         "search_nodes_placeholder": "Zoek knooppunten ({count})...",
         "clear_search": "Zoekopdracht wissen",
         "engine_webgl": "WebGL",
-        "engine_webgl_hint": "Grafiek, layout en tekenbuffers in Go WebAssembly. Pixels met WebGL2"
+        "engine_webgl_hint": "Grafiek, layout en tekenbuffers in Go WebAssembly. Pixels met WebGL2",
+        "renderer_title": "Renderer",
+        "renderer_desc": "Auto prefereert WebGL met WASM indien beschikbaar, anders vis-network. Forceer een pad voor debug of oudere GPU's.",
+        "renderer_option_auto": "Auto (WebGL indien beschikbaar)",
+        "renderer_option_webgl": "WebGL + WASM",
+        "renderer_option_vis": "vis-network (canvas)",
+        "renderer_webgl_unavailable": "WebGL-renderer niet beschikbaar. Gebruik vis-network-fallback."
     },
     "banishment": {
         "title": "Verbannen",

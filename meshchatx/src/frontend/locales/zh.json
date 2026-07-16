@@ -1963,7 +1963,13 @@
         "search_nodes_placeholder": "搜索节点 ({count})...",
         "clear_search": "清除搜索",
         "engine_webgl": "WebGL",
-        "engine_webgl_hint": "图构建、布局与绘制缓冲在 Go WebAssembly 中运行。像素由 WebGL2 绘制"
+        "engine_webgl_hint": "图构建、布局与绘制缓冲在 Go WebAssembly 中运行。像素由 WebGL2 绘制",
+        "renderer_title": "渲染器",
+        "renderer_desc": "自动在可用时优先使用 WebGL+WASM，否则回退到 vis-network。可强制选择以便调试或兼容旧 GPU。",
+        "renderer_option_auto": "自动（可用时使用 WebGL）",
+        "renderer_option_webgl": "WebGL + WASM",
+        "renderer_option_vis": "vis-network（canvas）",
+        "renderer_webgl_unavailable": "WebGL 渲染器不可用。已回退到 vis-network。"
     },
     "banishment": {
         "title": "放逐",

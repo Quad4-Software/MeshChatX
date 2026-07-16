@@ -160,6 +160,7 @@ describe("NetworkVisualiser.vue", () => {
                             "visualiser.nodes": "Nodes",
                             "visualiser.links": "Links",
                             "visualiser.engine_wasm": "WASM",
+                            "visualiser.engine_webgl": "WebGL",
                             "visualiser.engine_fallback": "JS fallback",
                             "visualiser.engine_checking": "Checking",
                         };

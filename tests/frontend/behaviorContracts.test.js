@@ -260,4 +260,21 @@ describe("behavior contracts: network visualiser performance", () => {
         expect(perf).toContain("dedupeIconQueueEntries");
         expect(perf).toContain("pickAdaptiveFetchConcurrency");
     });
+
+    it("prefers WebGL with WASM scene and keeps vis-network fallback", () => {
+        const src = readSource("meshchatx/src/frontend/components/network-visualiser/NetworkVisualiser.vue");
+        expect(src).toContain("tryStartWebGL");
+        expect(src).toContain("initVisNetwork");
+        expect(src).toContain("preferredRenderer");
+        expect(src).toContain('name: "nomadnetwork"');
+        expect(src).toContain("openAnnounceDestination");
+        const engine = readSource("meshchatx/src/frontend/js/networkVisualiserWebGLEngine.js");
+        expect(engine).toContain("meshchatxVisualiserSceneSet");
+        expect(engine).toContain("createVisualiserWebGLEngine");
+        const prefs = readSource("meshchatx/src/frontend/js/settings/settingsVisualiserPrefs.js");
+        expect(prefs).toContain("persistVisualiserRenderer");
+        expect(prefs).toContain('"auto"');
+        expect(prefs).toContain('"webgl"');
+        expect(prefs).toContain('"vis"');
+    });
 });

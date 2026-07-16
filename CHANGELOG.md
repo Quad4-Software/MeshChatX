@@ -18,6 +18,7 @@ All notable changes to this project will be documented in this file.
 - RSM signing and verification for meshchatx.rsm (CI and pre-commit resign)
 - Notification sound settings
 - LXMFy 1.6.5 vendor refresh, wasmtime, mutation test tasks
+- Network visualiser WebGL + WASM renderer (vis-network fallback) and Settings renderer preference
 
 ### Changed
 

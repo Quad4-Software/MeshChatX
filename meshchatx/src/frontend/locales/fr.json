@@ -1963,7 +1963,13 @@
         "search_nodes_placeholder": "Rechercher des noeuds ({count})...",
         "clear_search": "Effacer la recherche",
         "engine_webgl": "WebGL",
-        "engine_webgl_hint": "Graphe, layout et buffers de dessin en Go WebAssembly. Pixels via WebGL2"
+        "engine_webgl_hint": "Graphe, layout et buffers de dessin en Go WebAssembly. Pixels via WebGL2",
+        "renderer_title": "Moteur de rendu",
+        "renderer_desc": "Auto préfère WebGL avec WASM puis revient à vis-network. Forcez un chemin pour le débogage ou les anciens GPU.",
+        "renderer_option_auto": "Auto (WebGL si disponible)",
+        "renderer_option_webgl": "WebGL + WASM",
+        "renderer_option_vis": "vis-network (canvas)",
+        "renderer_webgl_unavailable": "Rendu WebGL indisponible. Repli sur vis-network."
     },
     "banishment": {
         "title": "Interdit",

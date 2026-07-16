@@ -1896,6 +1896,24 @@
                                 </div>
                             </header>
                             <div class="settings-section__body space-y-4">
+                                <div class="space-y-2">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("visualiser.renderer_title") }}
+                                    </div>
+                                    <p class="text-xs text-gray-600 dark:text-gray-400">
+                                        {{ $t("visualiser.renderer_desc") }}
+                                    </p>
+                                    <select
+                                        id="settings-visualiser-renderer"
+                                        v-model="visualiserRenderer"
+                                        class="input-field"
+                                        @change="onVisualiserRendererChange"
+                                    >
+                                        <option value="auto">{{ $t("visualiser.renderer_option_auto") }}</option>
+                                        <option value="webgl">{{ $t("visualiser.renderer_option_webgl") }}</option>
+                                        <option value="vis">{{ $t("visualiser.renderer_option_vis") }}</option>
+                                    </select>
+                                </div>
                                 <label class="setting-toggle">
                                     <Toggle
                                         id="settings-visualiser-offline"
@@ -3581,6 +3599,7 @@ import {
     loadVisualiserDisplayPrefs,
     persistVisualiserShowDisabled,
     persistVisualiserShowDiscovered,
+    persistVisualiserRenderer,
 } from "../../js/settings/settingsVisualiserPrefs";
 import { loadBatterySaverPrefs, saveBatterySaverPrefs } from "../../js/settings/batterySaverPrefs.js";
 import {
@@ -3752,6 +3771,7 @@ export default {
             gifImportReplaceDuplicates: false,
             visualiserShowDisabledInterfaces: false,
             visualiserShowDiscoveredInterfaces: false,
+            visualiserRenderer: "auto",
             batterySaver: loadBatterySaverPrefs(),
             batteryInterfaceRows: [],
             batteryBitrateBusy: false,
@@ -4307,6 +4327,7 @@ export default {
             const p = loadVisualiserDisplayPrefs();
             this.visualiserShowDisabledInterfaces = p.showDisabledInterfaces;
             this.visualiserShowDiscoveredInterfaces = p.showDiscoveredInterfaces;
+            this.visualiserRenderer = p.renderer || "auto";
         },
         onVisualiserShowDisabledChange(val) {
             this.visualiserShowDisabledInterfaces = val;
@@ -4315,6 +4336,9 @@ export default {
         onVisualiserShowDiscoveredChange(val) {
             this.visualiserShowDiscoveredInterfaces = val;
             persistVisualiserShowDiscovered(val);
+        },
+        onVisualiserRendererChange() {
+            persistVisualiserRenderer(this.visualiserRenderer);
         },
         async getTrustedTelemetryPeers() {
             try {
