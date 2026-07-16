@@ -278,16 +278,19 @@ export default {
             return String(this.hopMaxFilter);
         },
         engineModeLabel() {
+            if (this.engineMode === "webgl") return this.$t("visualiser.engine_webgl");
             if (this.engineMode === "wasm") return this.$t("visualiser.engine_wasm");
             if (this.engineMode === "fallback") return this.$t("visualiser.engine_fallback");
             return this.$t("visualiser.engine_checking");
         },
         engineModeTitle() {
+            if (this.engineMode === "webgl") return this.$t("visualiser.engine_webgl_hint");
             if (this.engineMode === "wasm") return this.$t("visualiser.engine_wasm_hint");
             if (this.engineMode === "fallback") return this.$t("visualiser.engine_fallback_hint");
             return this.$t("visualiser.engine_checking_hint");
         },
         engineModeClass() {
+            if (this.engineMode === "webgl") return "text-sky-600 dark:text-sky-400";
             if (this.engineMode === "wasm") return "text-emerald-600 dark:text-emerald-400";
             if (this.engineMode === "fallback") return "text-amber-600 dark:text-amber-400";
             return "text-gray-500 dark:text-zinc-400";

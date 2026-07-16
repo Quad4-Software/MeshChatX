@@ -1961,7 +1961,9 @@
         "online": "Online",
         "offline": "Offline",
         "search_nodes_placeholder": "Zoek knooppunten ({count})...",
-        "clear_search": "Zoekopdracht wissen"
+        "clear_search": "Zoekopdracht wissen",
+        "engine_webgl": "WebGL",
+        "engine_webgl_hint": "Grafiek, layout en tekenbuffers in Go WebAssembly. Pixels met WebGL2"
     },
     "banishment": {
         "title": "Verbannen",

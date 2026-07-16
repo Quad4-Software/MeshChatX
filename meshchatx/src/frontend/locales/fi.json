@@ -1961,7 +1961,9 @@
         "online": "Online",
         "offline": "Offline",
         "search_nodes_placeholder": "Hae solmuja ({count})...",
-        "clear_search": "Tyhjennä haku"
+        "clear_search": "Tyhjennä haku",
+        "engine_webgl": "WebGL",
+        "engine_webgl_hint": "Kaavio, asettelu ja piirtopuskurit Go WebAssemblyssa. Pikselit WebGL2:lla"
     },
     "banishment": {
         "title": "Karkotus",
