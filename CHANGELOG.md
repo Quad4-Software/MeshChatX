@@ -24,6 +24,7 @@ All notable changes to this project will be documented in this file.
 
 - UI opens sooner: HTTP binds first, Reticulum starts in the background
 - Conversations load faster: slim list and thread queries via fields_meta and attachment flags
+- Schema v51 message-flag backfill skips empty databases so fresh init stays fast
 - Relay Chat: denser hub UI, announce interval, collapsed system lines, reconnect notices
 - Low-memory cleanup and SQLite pragmas under memory pressure
 - CI benches use median-of-medians and quieter regression gates

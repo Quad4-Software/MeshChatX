@@ -13,6 +13,7 @@ Bump schema versions correctly, keep backups and snapshots safe, and never confl
 - Engine is SQLite with explicit SQL. No ORM.
 - Bump `LATEST_VERSION` in `meshchatx/src/backend/database/schema.py` and add a migration path.
 - Test upgrade from an older version when the change is non-trivial.
+- Heavy data backfills in migrations should skip when the target table is empty. Fresh `Database Initialization` benches create empty DBs and still run every migration step.
 
 ## Backup and snapshot rules
 
