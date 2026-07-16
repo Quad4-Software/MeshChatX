@@ -65,6 +65,7 @@ COPY --from=build-frontend /src/meshchatx/public ./meshchatx/public
 RUN pip install --no-cache-dir . && \
     python scripts/patch_lxst_pyogg_ogg_ctypes.py && \
     python scripts/docker-bake-lxst-filterlib-musl.py && \
+    rm -rf /opt/venv/lib/python*/site-packages/LXST/Platforms/android && \
     find /opt/venv -type d -name "tests" -exec rm -rf {} + && \
     find /opt/venv -type d -name "test" -exec rm -rf {} + && \
     find /opt/venv -type d -name "__pycache__" -exec rm -rf {} + && \

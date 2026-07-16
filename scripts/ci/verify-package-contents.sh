@@ -49,17 +49,24 @@ record_hit() {
 # Shared denylist patterns (grep -E against relative paths).
 # Bytecode (__pycache__) is denied for frozen/wheel/dir but not docker:
 # Dockerfiles run compileall on purpose for faster cold start.
+#
+# Do not use a bare /(^|/)android(/|$)/ pattern: LXST ships
+# LXST/Platforms/android for mobile hosts. That path must remain allowed in
+# APKs and must not false-fail Docker scans of site-packages.
 COMMON_DENY_RE='(^|/)\.git(/|$)|(^|/)node_modules(/|$)|(^|/)\.pnpm-store(/|$)|(^|/)\.venv(/|$)|(^|/)vendor/offline(/|$)|(^|/)vendor/lxmfy/tests(/|$)|(^|/)vendor/lxmfy/docs(/|$)|(^|/)vendor/lxmfy/docker(/|$)|(^|/)\.github(/|$)|(^|/)docs/agents(/|$)|(^|/)screenshots(/|$)|(^|/)\.pytest_cache(/|$)|(^|/)mutants(/|$)|(^|/)coverage(/|$)'
 
 BYTECODE_DENY_RE='(^|/)__pycache__(/|$)'
 
+# MeshChatX Android app sources (gradle/app tree), not LXST.Platforms.android.
+ANDROID_APP_DENY_RE='(^|/)android/(app|gradle)(/|$)|(^|/)android/[^/]+\.(gradle|kts|properties)$|(^)android(/|$)'
+
 FROZEN_DENY_RE="${COMMON_DENY_RE}|${BYTECODE_DENY_RE}|(^|/)lib/meshchatx/public(/|$)|(^|/)lib/meshchatx/src/frontend/.+\.vue$|(^|/)lib/meshchatx/src/frontend/.+\.css$|(^|/)lib/setuptools(/|$)|(^|/)lib/pydoc_data(/|$)|(^|/)lib/numpy/.*/tests(/|$)|(^|/)lib/numpy/tests(/|$)"
 
-DOCKER_DENY_RE="${COMMON_DENY_RE}|(^|/)meshchatx/src/frontend/.+\.vue$|(^|/)meshchatx/src/frontend/.+\.css$|(^|/)tests(/|$)|(^|/)electron(/|$)|(^|/)android(/|$)"
+DOCKER_DENY_RE="${COMMON_DENY_RE}|${ANDROID_APP_DENY_RE}|(^|/)meshchatx/src/frontend/.+\.vue$|(^|/)meshchatx/src/frontend/.+\.css$|(^|/)tests(/|$)|(^|/)electron(/|$)|(^|/)LXST/Platforms/android(/|$)"
 
 WHEEL_DENY_RE="${COMMON_DENY_RE}|${BYTECODE_DENY_RE}|(^|/)meshchatx/src/frontend/.+\.vue$|(^|/)meshchatx/src/frontend/.+\.css$|(^|/)tests(/|$)"
 
-APK_DENY_RE="${COMMON_DENY_RE}|${BYTECODE_DENY_RE}|(^|/)tests(/|$)|(^|/)electron(/|$)|(^|/)\.github(/|$)"
+APK_DENY_RE="${COMMON_DENY_RE}|${BYTECODE_DENY_RE}|${ANDROID_APP_DENY_RE}|(^|/)tests(/|$)|(^|/)electron(/|$)|(^|/)\.github(/|$)"
 
 DIR_DENY_RE="${COMMON_DENY_RE}|${BYTECODE_DENY_RE}"
 
