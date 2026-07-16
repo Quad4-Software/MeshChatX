@@ -7,9 +7,9 @@ import time
 import RNS
 from LXMF.LXMRouter import LXMRouter
 
+from meshchatx.src.backend import reticulum_pathfinding
 from meshchatx.src.backend.async_utils import AsyncUtils
 from meshchatx.src.backend.meshchat_utils import parse_lxmf_propagation_node_app_data
-from meshchatx.src.backend import reticulum_pathfinding
 
 _PROP_FAILURE_STATES = frozenset(
     {

@@ -63,9 +63,7 @@ class RoomRegistry:
                 base["invited"] = dict(invited)
             for key in ("ops", "voiced", "bans"):
                 val = base.get(key)
-                if isinstance(val, set):
-                    base[key] = set(val)
-                elif isinstance(val, list):
+                if isinstance(val, set) or isinstance(val, list):
                     base[key] = set(val)
                 else:
                     base[key] = set()
@@ -177,7 +175,7 @@ class RoomRegistry:
         st = self.ensure_state(room)
         founder = st.get("founder")
         if isinstance(founder, (bytes, bytearray)) and bytes(founder) == bytes(
-            peer_hash
+            peer_hash,
         ):
             return True
         ops = st.get("ops")

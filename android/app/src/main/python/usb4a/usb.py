@@ -40,7 +40,7 @@ def get_context():
     if context is None:
         raise RuntimeError(
             "USB context is not set. MeshChatX must pass the Activity into "
-            "meshchat_wrapper.start_server before opening RNode USB ports."
+            "meshchat_wrapper.start_server before opening RNode USB ports.",
         )
     return context
 

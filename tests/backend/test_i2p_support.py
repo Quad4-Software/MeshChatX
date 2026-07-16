@@ -248,7 +248,7 @@ async def test_add_i2p_requires_transport(temp_dir):
         {
             "reticulum": {"enable_transport": "False"},
             "interfaces": {},
-        }
+        },
     )
     async with make_app(temp_dir, config) as app:
         handler = await find_route_handler(
@@ -262,8 +262,8 @@ async def test_add_i2p_requires_transport(temp_dir):
                     "name": "I2POut",
                     "type": "I2PInterface",
                     "peers": ["abcdef.b32.i2p"],
-                }
-            )
+                },
+            ),
         )
         body = json.loads(response.body)
         assert response.status == 422
@@ -282,7 +282,7 @@ async def test_add_second_i2p_rejected(temp_dir):
                     "peers": ["aaa.b32.i2p"],
                 },
             },
-        }
+        },
     )
     async with make_app(temp_dir, config) as app:
         handler = await find_route_handler(
@@ -296,8 +296,8 @@ async def test_add_second_i2p_rejected(temp_dir):
                     "name": "I2P2",
                     "type": "I2PInterface",
                     "peers": ["bbb.b32.i2p"],
-                }
-            )
+                },
+            ),
         )
         body = json.loads(response.body)
         assert response.status == 422
@@ -312,7 +312,7 @@ async def test_add_i2p_is_placed_last(temp_dir):
             "interfaces": {
                 "A": {"type": "AutoInterface", "interface_enabled": "true"},
             },
-        }
+        },
     )
     async with make_app(temp_dir, config) as app:
         handler = await find_route_handler(
@@ -326,8 +326,8 @@ async def test_add_i2p_is_placed_last(temp_dir):
                     "name": "I2POut",
                     "type": "I2PInterface",
                     "peers": ["abcdef.b32.i2p"],
-                }
-            )
+                },
+            ),
         )
         body = json.loads(response.body)
         assert response.status == 200, body
@@ -340,7 +340,7 @@ async def test_import_rejects_i2p(temp_dir):
         {
             "reticulum": {"enable_transport": "True"},
             "interfaces": {},
-        }
+        },
     )
     async with make_app(temp_dir, config) as app:
         handler = await find_route_handler(
@@ -356,8 +356,8 @@ type = I2PInterface
 peers = aaa.b32.i2p
 """,
                     "selected_interface_names": ["I2POut"],
-                }
-            )
+                },
+            ),
         )
         body = json.loads(response.body)
         assert response.status == 422
@@ -384,8 +384,8 @@ target_port = 4242
 type = I2PInterface
 peers = aaa.b32.i2p
 """,
-                }
-            )
+                },
+            ),
         )
         body = json.loads(response.body)
         assert response.status == 200, body
@@ -405,7 +405,7 @@ enable_transport = True
 [[A]]
 type = AutoInterface
 interface_enabled = true
-"""
+""",
         )
     config = ConfigDict(
         {
@@ -413,7 +413,7 @@ interface_enabled = true
             "interfaces": {
                 "A": {"type": "AutoInterface", "interface_enabled": "true"},
             },
-        }
+        },
     )
     async with make_app(temp_dir, config) as app:
         handler = await find_route_handler(
@@ -435,8 +435,8 @@ type = I2PInterface
 interface_enabled = true
 peers = aaa.b32.i2p
 """,
-                }
-            )
+                },
+            ),
         )
         body = json.loads(response.body)
         assert response.status == 422

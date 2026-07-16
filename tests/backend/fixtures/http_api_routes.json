@@ -937,6 +937,14 @@
             "path": "/api/v1/reticulum/interfaces/import-preview"
         },
         {
+            "method": "GET",
+            "path": "/api/v1/reticulum/management-identities"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/reticulum/management-identities"
+        },
+        {
             "method": "POST",
             "path": "/api/v1/reticulum/recover"
         },
@@ -1043,6 +1051,42 @@
         {
             "method": "GET",
             "path": "/api/v1/rnstatus"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/rnx/sessions"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rnx/sessions"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/rnx/sessions/{session_id}"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rnx/sessions/{session_id}/clear"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rnx/sessions/{session_id}/input"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/rnx/sessions/{session_id}/output"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rnx/sessions/{session_id}/resize"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rnx/sessions/{session_id}/start"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/rnx/sessions/{session_id}/stop"
         },
         {
             "method": "GET",

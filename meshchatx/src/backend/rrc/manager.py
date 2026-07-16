@@ -391,10 +391,9 @@ class RRCHub:
             self._stop_hello.wait(timeout=3.0)
         if not self.welcomed and not self._stop_hello.is_set():
             self._set_status(RRCHub.STATUS_FAILED, "WELCOME timeout")
-            with contextlib.suppress(Exception):
-                with self._lock:
-                    if self.link is not None:
-                        self.link.teardown()
+            with contextlib.suppress(Exception), self._lock:
+                if self.link is not None:
+                    self.link.teardown()
 
     def _send_hello(self, link):
         body = {
@@ -806,7 +805,8 @@ class RRCHub:
                             break
             except OSError as ex:
                 self._log(
-                    "history load failed for #" + room + ": " + str(ex), RNS.LOG_ERROR
+                    "history load failed for #" + room + ": " + str(ex),
+                    RNS.LOG_ERROR,
                 )
                 continue
             if decode_error is not None:

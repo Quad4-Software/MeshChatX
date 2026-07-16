@@ -224,6 +224,7 @@ RETICULUM_INSTANCE_SCHEMA: dict = {
                 "local_hops_delta": _BOOLEAN,
                 "respond_to_probes": _BOOLEAN,
                 "enable_remote_management": _BOOLEAN,
+                "remote_management_allowed": _ARRAY,
                 "shared_instance_type": {},
                 "instance_name": {},
                 "rpc_key": {},
@@ -232,7 +233,7 @@ RETICULUM_INSTANCE_SCHEMA: dict = {
                 "enable_transport": _BOOLEAN,
             },
             "additionalProperties": True,
-        }
+        },
     },
     "additionalProperties": True,
 }
@@ -545,6 +546,23 @@ RNSH_OUTPUT_SCHEMA: dict = {
     "type": "object",
     "required": ["output"],
     "properties": {"output": _STRING},
+    "additionalProperties": True,
+}
+
+RNX_SESSIONS_SCHEMA: dict = {
+    "type": "object",
+    "required": ["sessions"],
+    "properties": {"sessions": _ARRAY},
+    "additionalProperties": True,
+}
+
+RNX_OUTPUT_SCHEMA: dict = {
+    "type": "object",
+    "required": ["chunks", "next_cursor"],
+    "properties": {
+        "chunks": _ARRAY,
+        "next_cursor": {"type": "integer"},
+    },
     "additionalProperties": True,
 }
 

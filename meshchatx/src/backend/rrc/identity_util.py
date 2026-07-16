@@ -10,8 +10,7 @@ def parse_identity_hash(value):
     if not isinstance(value, str):
         return None
     s = value.strip().lower()
-    if s.startswith("0x"):
-        s = s[2:]
+    s = s.removeprefix("0x")
     if not s or len(s) % 2 != 0:
         return None
     try:

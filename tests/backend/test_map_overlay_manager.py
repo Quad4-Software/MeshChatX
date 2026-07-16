@@ -14,7 +14,6 @@ from meshchatx.src.backend.map_overlay_manager import (
 )
 from meshchatx.src.backend.map_overlay_sources import OverlaySourceParseError
 
-
 HASH = "b" * 32
 
 

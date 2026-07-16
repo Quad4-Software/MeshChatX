@@ -82,7 +82,9 @@ def lxmf_delivery_notification_text(payload: dict[str, Any]) -> tuple[str, str] 
 
 def _notify_java(title: str, body: str, dedupe_hex: str | None) -> None:
     try:
-        from com.meshchatx import AndroidNotificationBridge  # type: ignore[import-not-found,import-untyped]
+        from com.meshchatx import (
+            AndroidNotificationBridge,  # type: ignore[import-not-found,import-untyped]
+        )
     except Exception as exc:
         logger.debug("Android notification bridge unavailable: %s", exc)
         return
@@ -94,7 +96,9 @@ def _notify_java(title: str, body: str, dedupe_hex: str | None) -> None:
 
 def _notify_incoming_call_java(caller_name: str, dedupe_hex: str | None) -> None:
     try:
-        from com.meshchatx import AndroidNotificationBridge  # type: ignore[import-not-found,import-untyped]
+        from com.meshchatx import (
+            AndroidNotificationBridge,  # type: ignore[import-not-found,import-untyped]
+        )
     except Exception as exc:
         logger.debug("Android notification bridge unavailable: %s", exc)
         return
@@ -106,7 +110,9 @@ def _notify_incoming_call_java(caller_name: str, dedupe_hex: str | None) -> None
 
 def _notify_missed_call_java(title: str, body: str, dedupe_hex: str | None) -> None:
     try:
-        from com.meshchatx import AndroidNotificationBridge  # type: ignore[import-not-found,import-untyped]
+        from com.meshchatx import (
+            AndroidNotificationBridge,  # type: ignore[import-not-found,import-untyped]
+        )
     except Exception as exc:
         logger.debug("Android notification bridge unavailable: %s", exc)
         return
@@ -118,7 +124,9 @@ def _notify_missed_call_java(title: str, body: str, dedupe_hex: str | None) -> N
 
 def _cancel_incoming_call_notification_java() -> None:
     try:
-        from com.meshchatx import AndroidNotificationBridge  # type: ignore[import-not-found,import-untyped]
+        from com.meshchatx import (
+            AndroidNotificationBridge,  # type: ignore[import-not-found,import-untyped]
+        )
     except Exception as exc:
         logger.debug("Android notification bridge unavailable: %s", exc)
         return

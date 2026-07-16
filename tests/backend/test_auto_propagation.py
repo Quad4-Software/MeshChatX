@@ -353,7 +353,8 @@ async def test_probe_propagation_sync_ignores_stale_state():
 
     with (
         patch(
-            "meshchatx.src.backend.auto_propagation_manager.asyncio.sleep", fake_sleep
+            "meshchatx.src.backend.auto_propagation_manager.asyncio.sleep",
+            fake_sleep,
         ),
         patch.object(time, "monotonic", fake_monotonic),
     ):

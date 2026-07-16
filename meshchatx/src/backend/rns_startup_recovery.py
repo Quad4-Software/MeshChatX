@@ -17,7 +17,8 @@ from __future__ import annotations
 import logging
 import os
 import re
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -284,8 +285,8 @@ def apply_startup_recovery_step(
     """
     from meshchatx.src.backend import i2p_support
     from meshchatx.src.backend.rnode_support import (
-        disable_rnode_interfaces_in_config,
         _is_chaquopy_android,
+        disable_rnode_interfaces_in_config,
     )
 
     disabled: list[str] = []

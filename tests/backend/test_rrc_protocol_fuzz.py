@@ -22,7 +22,8 @@ def _envelope_dict_strategy():
             st.binary(min_size=0, max_size=32),
             st.lists(st.binary(min_size=0, max_size=16), max_size=8),
             st.dictionaries(
-                st.integers(min_value=0, max_value=5), st.text(max_size=32)
+                st.integers(min_value=0, max_value=5),
+                st.text(max_size=32),
             ),
         ),
         max_size=12,

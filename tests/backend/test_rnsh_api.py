@@ -142,7 +142,9 @@ async def test_rnsh_send_input_appends_newline(mock_app):
     manager = _DummyManager()
     mock_app.rnsh_manager = manager
     handler = _find_handler(
-        mock_app, "/api/v1/rnsh/sessions/{session_id}/input", "POST"
+        mock_app,
+        "/api/v1/rnsh/sessions/{session_id}/input",
+        "POST",
     )
     assert handler is not None
     response = await handler(
@@ -160,7 +162,9 @@ async def test_rnsh_resize_forwards_dimensions(mock_app):
     manager = _DummyManager()
     mock_app.rnsh_manager = manager
     handler = _find_handler(
-        mock_app, "/api/v1/rnsh/sessions/{session_id}/resize", "POST"
+        mock_app,
+        "/api/v1/rnsh/sessions/{session_id}/resize",
+        "POST",
     )
     assert handler is not None
     response = await handler(
@@ -217,7 +221,9 @@ def test_rnsh_prefers_module_launcher_when_rns_installed(monkeypatch):
     monkeypatch.setattr(rnsh_mod.RNSHSession, "_rnsh_module_available", lambda: True)
     monkeypatch.setattr(rnsh_mod.RNSHSession, "_is_frozen_executable", lambda: False)
     monkeypatch.setattr(
-        rnsh_mod.shutil, "which", lambda _name: "/home/user/.local/bin/rnsh"
+        rnsh_mod.shutil,
+        "which",
+        lambda _name: "/home/user/.local/bin/rnsh",
     )
 
     manager = MagicMock()
@@ -376,7 +382,9 @@ def test_rnsh_missing_module_and_binary_raises_file_not_found(monkeypatch):
 async def test_rnsh_session_not_found_returns_404(mock_app):
     mock_app.rnsh_manager = _DummyManager()
     handler = _find_handler(
-        mock_app, "/api/v1/rnsh/sessions/{session_id}/start", "POST"
+        mock_app,
+        "/api/v1/rnsh/sessions/{session_id}/start",
+        "POST",
     )
     assert handler is not None
     response = await handler(_make_request(match_info={"session_id": "missing"}))

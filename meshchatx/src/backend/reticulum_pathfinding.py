@@ -165,7 +165,9 @@ def clean_rns_announce_cache() -> bool:
     try:
         owner = getattr(RNS.Transport, "owner", None)
         if owner is not None and getattr(
-            owner, "is_connected_to_shared_instance", False
+            owner,
+            "is_connected_to_shared_instance",
+            False,
         ):
             return False
         clean = getattr(RNS.Transport, "clean_cache", None)
@@ -205,7 +207,8 @@ def path_metadata_for_api(destination_hash: bytes) -> dict[str, bool]:
 
 
 def prepare_fresh_path_request(
-    reticulum: Optional["ReticulumLike"], destination_hash: bytes
+    reticulum: Optional["ReticulumLike"],
+    destination_hash: bytes,
 ) -> str:
     """Ensure a path request is in flight if needed.
 

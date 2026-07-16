@@ -101,7 +101,8 @@ async def test_rrc_operations_on_unknown_hub_return_404(mock_app):
 
 @pytest.mark.asyncio
 async def test_rrc_join_room_traversal_name_history_stays_in_storage(
-    mock_app, tmp_path
+    mock_app,
+    tmp_path,
 ):
     await _add_hub(mock_app)
     manager = mock_app.rrc_manager
@@ -193,7 +194,7 @@ async def test_rrc_reorder_ignores_unknown_hashes_without_error(mock_app):
 async def test_rrc_server_create_room_rejects_empty_name(mock_app):
     post = _find_handler(mock_app, "/api/v1/rrc/servers", "POST")
     created = await post(
-        _make_request(json_body={"name": "Host Hub", "enabled": False})
+        _make_request(json_body={"name": "Host Hub", "enabled": False}),
     )
     hub_id = json.loads(created.body)["hub"]["id"]
     create_room = _find_handler(mock_app, "/api/v1/rrc/servers/{hub_id}/rooms", "POST")

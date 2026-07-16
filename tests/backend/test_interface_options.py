@@ -721,7 +721,7 @@ async def test_i2p_connectable_can_be_disabled(temp_dir):
         {
             "reticulum": {"enable_transport": "True"},
             "interfaces": {},
-        }
+        },
     )
 
     async with make_app(temp_dir, config) as handler:

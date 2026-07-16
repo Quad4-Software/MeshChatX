@@ -28,7 +28,7 @@ _PY_SUBPROCESS_RE = re.compile(r"\bsubprocess\b")
 _PY_SOCKET_RE = re.compile(r"\bsocket\b")
 _PY_REQUESTS_RE = re.compile(r"\brequests\b|\burllib\.request\b")
 _SCAN_EXTENSIONS = frozenset(
-    {".js", ".mjs", ".json", ".wasm", ".ts", ".go", ".py", ".wat"}
+    {".js", ".mjs", ".json", ".wasm", ".ts", ".go", ".py", ".wat"},
 )
 
 
@@ -69,7 +69,7 @@ def assess_plugin(
     def add(finding_id: str, severity: str, message: str, points: int) -> None:
         nonlocal score
         findings.append(
-            SecurityFinding(id=finding_id, severity=severity, message=message)
+            SecurityFinding(id=finding_id, severity=severity, message=message),
         )
         score += points
 
@@ -85,7 +85,7 @@ def assess_plugin(
 
     declared = declared_permission_ids(manifest)
     network_mode = normalize_network_mode(
-        (manifest.get("permissions") or {}).get("network")
+        (manifest.get("permissions") or {}).get("network"),
     )
     endpoints = collect_network_endpoints(manifest, directory) if directory else []
     if embedded:
@@ -165,7 +165,7 @@ def assess_sideband_script(
     def add(finding_id: str, severity: str, message: str, points: int) -> None:
         nonlocal score
         findings.append(
-            SecurityFinding(id=finding_id, severity=severity, message=message)
+            SecurityFinding(id=finding_id, severity=severity, message=message),
         )
         score += points
 
@@ -228,7 +228,10 @@ def _scan_suspicious_code(
                 record("py-exec", "high", "plugin Python uses exec()", 25)
             if _PY_SUBPROCESS_RE.search(text):
                 record(
-                    "py-subprocess", "warn", "plugin Python references subprocess", 15
+                    "py-subprocess",
+                    "warn",
+                    "plugin Python references subprocess",
+                    15,
                 )
             if _PY_SOCKET_RE.search(text):
                 record("py-socket", "warn", "plugin Python references socket", 15)

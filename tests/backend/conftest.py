@@ -13,15 +13,15 @@ from unittest.mock import MagicMock, patch
 import pytest
 import RNS
 
-from tests.backend.support.test_temp_dir import (
-    TEST_COVERAGE_DIR,
-    ensure_test_temp_dirs,
-)
 from meshchatx.meshchat import ReticulumMeshChat
 from meshchatx.src.backend.config_manager import ConfigManager
 from meshchatx.src.backend.database import Database
 from meshchatx.src.backend.database.provider import DatabaseProvider
 from meshchatx.src.backend.database.schema import DatabaseSchema
+from tests.backend.support.test_temp_dir import (
+    TEST_COVERAGE_DIR,
+    ensure_test_temp_dirs,
+)
 
 
 def _ensure_coverage_data_dir() -> None:
@@ -44,7 +44,8 @@ def pytest_configure(config):
     if worker:
         os.makedirs(TEST_COVERAGE_DIR, exist_ok=True)
         os.environ["COVERAGE_FILE"] = os.path.join(
-            str(TEST_COVERAGE_DIR), f".coverage.{worker}"
+            str(TEST_COVERAGE_DIR),
+            f".coverage.{worker}",
         )
 
 
@@ -75,7 +76,7 @@ def loopback_available():
 def require_loopback_tcp(loopback_available):
     if not loopback_available:
         pytest.skip(
-            "Loopback TCP is blocked by local firewall/policy; skipping localhost integration test."
+            "Loopback TCP is blocked by local firewall/policy; skipping localhost integration test.",
         )
 
 

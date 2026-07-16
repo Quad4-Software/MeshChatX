@@ -47,7 +47,9 @@ def backup_reticulum_config_file(config_path: str) -> str | None:
         shutil.copy2(config_path, backup_path)
     except OSError as exc:
         logger.warning(
-            "Failed to back up corrupt Reticulum config %s: %s", config_path, exc
+            "Failed to back up corrupt Reticulum config %s: %s",
+            config_path,
+            exc,
         )
         return None
     return backup_path

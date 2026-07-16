@@ -35,7 +35,8 @@ MAX_ANNOUNCE_INTERVAL_SECONDS = 86400
 
 
 def normalize_announce_interval_seconds(
-    value, default=DEFAULT_ANNOUNCE_INTERVAL_SECONDS
+    value,
+    default=DEFAULT_ANNOUNCE_INTERVAL_SECONDS,
 ):
     """Clamp announce interval to a supported range, or 0 to disable periodic announces."""
     if value is None:
@@ -47,7 +48,8 @@ def normalize_announce_interval_seconds(
     if seconds <= 0:
         return 0
     return max(
-        MIN_ANNOUNCE_INTERVAL_SECONDS, min(MAX_ANNOUNCE_INTERVAL_SECONDS, seconds)
+        MIN_ANNOUNCE_INTERVAL_SECONDS,
+        min(MAX_ANNOUNCE_INTERVAL_SECONDS, seconds),
     )
 
 
@@ -397,7 +399,7 @@ class RRCHubServer:
                             body=env.get(proto.K_BODY),
                         ),
                     ),
-                )
+                ),
             )
             return
         if not sess.welcomed:
@@ -415,7 +417,7 @@ class RRCHubServer:
                             body="rate limited",
                         ),
                     ),
-                )
+                ),
             )
             return
         if t == proto.T_HELLO:
@@ -451,10 +453,12 @@ class RRCHubServer:
                 link,
                 proto.encode(
                     proto.make_envelope(
-                        proto.T_WELCOME, src=self.identity.hash, body=body
+                        proto.T_WELCOME,
+                        src=self.identity.hash,
+                        body=body,
                     ),
                 ),
-            )
+            ),
         )
         if self.greeting:
             outgoing.append(
@@ -467,7 +471,7 @@ class RRCHubServer:
                             body=self.greeting,
                         ),
                     ),
-                )
+                ),
             )
 
     def _room_member_hashes(self, room):
@@ -552,7 +556,7 @@ class RRCHubServer:
                         body=self._room_member_hashes(r),
                     ),
                 ),
-            )
+            ),
         )
 
         st = self.rooms.ensure_state(r)
@@ -620,7 +624,7 @@ class RRCHubServer:
                         body=[sess.peer] if sess.peer is not None else None,
                     ),
                 ),
-            )
+            ),
         )
         self.manager._notify_change(self)
 
@@ -741,7 +745,7 @@ class RRCHubServer:
                         body=text,
                     ),
                 ),
-            )
+            ),
         )
 
     def _queue_error(self, outgoing, link, text, room=None):
@@ -756,7 +760,7 @@ class RRCHubServer:
                         body=text,
                     ),
                 ),
-            )
+            ),
         )
 
     def register_room(
@@ -1009,7 +1013,7 @@ class RRCHubServer:
                         "topic_ops_only": bool(st.get("topic_ops_only")),
                         "no_outside_msgs": bool(st.get("no_outside_msgs")),
                         "key": st.get("key"),
-                    }
+                    },
                 )
             policy = self.policy.to_dict()
         return {

@@ -50,7 +50,8 @@ def main() -> int:
             used_url = str(Path(args.source).resolve())
         else:
             out_list, used_url = build_interfaces_from_directory_url(
-                args.url, timeout=60.0
+                args.url,
+                timeout=60.0,
             )
     except OSError as e:
         print(f"Read/fetch failed: {e}", file=sys.stderr)

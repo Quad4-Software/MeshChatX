@@ -38,14 +38,15 @@ def test_declared_permission_ids_and_validation():
 def test_unknown_permission_rejected():
     with pytest.raises(ValueError, match="unknown manager"):
         validate_declared_permissions(
-            {"permissions": {"managers": ["not.a.real.capability"]}}
+            {"permissions": {"managers": ["not.a.real.capability"]}},
         )
 
 
 def test_normalize_granted_subset():
     declared = ["hooks:announce.received", "network:fetch", "storage:isolated"]
     granted = normalize_granted_permissions(
-        declared, ["network:fetch", "hooks:announce.received", "network:fetch", "x"]
+        declared,
+        ["network:fetch", "hooks:announce.received", "network:fetch", "x"],
     )
     assert granted == ["network:fetch", "hooks:announce.received"]
 
@@ -67,7 +68,7 @@ def test_extract_and_collect_network_endpoints(tmp_path):
             "endpoints": [
                 "https://libretranslate.com/",
                 "User-configured LibreTranslate instance URL",
-            ]
+            ],
         },
     }
     endpoints = collect_network_endpoints(manifest, str(plugin_dir))
@@ -140,7 +141,7 @@ def test_storage_denied_without_grant(tmp_path):
                 "version": "1.0.0",
                 "apiVersion": 1,
                 "permissions": {"storage": "isolated"},
-            }
+            },
         ),
         encoding="utf-8",
     )

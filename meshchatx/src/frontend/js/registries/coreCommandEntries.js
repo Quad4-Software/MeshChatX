@@ -87,6 +87,22 @@ export const CORE_COMMAND_ENTRIES = [
         route: { name: "rncp" },
     },
     {
+        id: "nav-rnsh",
+        title: "nav_rnsh",
+        description: "nav_rnsh_desc",
+        icon: "console-network-outline",
+        type: "navigation",
+        route: { name: "rnsh" },
+    },
+    {
+        id: "nav-rnx",
+        title: "nav_rnx",
+        description: "nav_rnx_desc",
+        icon: "console",
+        type: "navigation",
+        route: { name: "rnx" },
+    },
+    {
         id: "nav-rnstatus",
         title: "nav_rnstatus",
         description: "nav_rnstatus_desc",

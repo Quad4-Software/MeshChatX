@@ -12,8 +12,7 @@ JavaException = Exception
 
 try:
     from java import cast as _java_cast
-    from java import dynamic_proxy
-    from java import jclass
+    from java import dynamic_proxy, jclass
 except ImportError as exc:  # pragma: no cover - desktop import path
     raise ImportError("jnius Chaquopy shim requires the Chaquopy java module") from exc
 

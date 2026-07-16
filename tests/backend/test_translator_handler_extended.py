@@ -92,7 +92,8 @@ def test_translate_argos_cli(mock_run):
     mock_run.return_value = mock_result
 
     handler = TranslatorHandler(
-        translator_argos_enabled=True, translator_libretranslate_enabled=False
+        translator_argos_enabled=True,
+        translator_libretranslate_enabled=False,
     )
     handler.has_argos_cli = True
     handler.has_argos = True

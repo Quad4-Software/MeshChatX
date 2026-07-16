@@ -265,6 +265,8 @@ export const CORE_SETTINGS_SECTION_KEYWORDS = {
         "app.respond_to_probes_description",
         "app.enable_remote_management",
         "app.enable_remote_management_description",
+        "app.remote_management_allowed",
+        "app.remote_management_allowed_description",
         "app.shared_instance_type",
         "app.instance_name",
         "app.copy_rpc_config",

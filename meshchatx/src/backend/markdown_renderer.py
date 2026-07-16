@@ -160,7 +160,9 @@ class MarkdownRenderer:
         text = re.sub(r"\*(?!\s)(.+?)(?<!\s)\*", r"<em>\1</em>", text)
         text = re.sub(r"___(.+?)___", r"<strong><em>\1</em></strong>", text)
         text = re.sub(
-            r"(?<!\w)__(?!\s)(.+?)(?<!\s)__(?!\w)", r"<strong>\1</strong>", text
+            r"(?<!\w)__(?!\s)(.+?)(?<!\s)__(?!\w)",
+            r"<strong>\1</strong>",
+            text,
         )
         text = re.sub(r"(?<!\w)_(?!\s)(.+?)(?<!\s)_(?!\w)", r"<em>\1</em>", text)
 

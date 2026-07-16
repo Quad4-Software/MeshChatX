@@ -80,7 +80,7 @@ def test_translate_en_es_via_cli_round_trip():
         ):
             pytest.skip(
                 "Argos CLI could not reach Stanza resources over HTTPS "
-                "(offline, sandbox, or subprocess has no route)"
+                "(offline, sandbox, or subprocess has no route)",
             )
         raise
     assert result["source"] == "argos"

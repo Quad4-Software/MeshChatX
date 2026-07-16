@@ -9,7 +9,7 @@ import time
 import pytest
 
 from meshchatx.src.backend.rrc import protocol as proto
-from meshchatx.src.backend.rrc.manager import RRCManager, RRCHub
+from meshchatx.src.backend.rrc.manager import RRCHub, RRCManager
 from meshchatx.src.backend.rrc.server import RRCHubServer, _Session
 
 HUB_HASH = bytes(range(16))

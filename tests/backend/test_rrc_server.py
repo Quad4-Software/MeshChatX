@@ -5,7 +5,7 @@
 import time
 
 from meshchatx.src.backend.rrc import protocol as proto
-from meshchatx.src.backend.rrc.manager import RRCManager, RRCHub
+from meshchatx.src.backend.rrc.manager import RRCHub, RRCManager
 from meshchatx.src.backend.rrc.server import (
     RRCHubServer,
     RRCServerManager,
@@ -220,7 +220,10 @@ def test_who_command_matches_client_parser():
         link,
         sess,
         proto.make_envelope(
-            proto.T_MSG, src=sess.peer, room="lobby", body="/who lobby"
+            proto.T_MSG,
+            src=sess.peer,
+            room="lobby",
+            body="/who lobby",
         ),
     )
 
@@ -272,7 +275,10 @@ def test_ping_returns_pong():
     sess = add_session(server, link, link._identity.hash, welcomed=False)
 
     out = route(
-        server, link, sess, proto.make_envelope(proto.T_PING, src=sess.peer, body=123)
+        server,
+        link,
+        sess,
+        proto.make_envelope(proto.T_PING, src=sess.peer, body=123),
     )
 
     assert out[0][1][proto.K_T] == proto.T_PONG

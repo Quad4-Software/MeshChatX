@@ -19,8 +19,8 @@ from .map_drawings import MapDrawingsDAO
 from .map_overlays import MapOverlaysDAO
 from .messages import MessageDAO
 from .misc import MiscDAO
-from .provider import DatabaseProvider
 from .notification_sounds import NotificationSoundDAO
+from .provider import DatabaseProvider
 from .ringtones import RingtoneDAO
 from .schema import DatabaseSchema
 from .sticker_packs import UserStickerPacksDAO
@@ -494,7 +494,9 @@ class Database:
 
     @staticmethod
     def _safe_zip_extract_member(
-        zf: zipfile.ZipFile, member: str, target_dir: str
+        zf: zipfile.ZipFile,
+        member: str,
+        target_dir: str,
     ) -> None:
         dest_path = os.path.abspath(os.path.join(target_dir, member))
         abs_target = os.path.abspath(target_dir)

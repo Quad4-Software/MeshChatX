@@ -6,7 +6,6 @@ import pytest
 
 from meshchatx.src.backend.plugin_manager import PluginManager
 
-
 PYTHON_BACKEND = """
 def activate(host):
     host.storage_set("activated", "1")
@@ -42,7 +41,7 @@ def test_python_backend_grants_invoke_hooks(tmp_path):
                     "storage": "isolated",
                     "managers": ["destinationPath.read"],
                 },
-            }
+            },
         ),
         encoding="utf-8",
     )

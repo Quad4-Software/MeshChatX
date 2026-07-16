@@ -177,6 +177,11 @@ const router = createRouter({
             component: () => import("./components/tools/RNSHManagerPage.vue"),
         },
         {
+            name: "rnx",
+            path: "/rnx",
+            component: () => import("./components/tools/RNXManagerPage.vue"),
+        },
+        {
             name: "rnstatus",
             path: "/rnstatus",
             component: () => import("./components/rnstatus/RNStatusPage.vue"),

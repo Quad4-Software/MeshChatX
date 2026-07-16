@@ -36,14 +36,18 @@ def _write_plugin_dir(root, plugin_id="com.example.secure-plugin"):
         json.dump(manifest, handle)
     os.makedirs(os.path.join(root, "frontend"), exist_ok=True)
     with open(
-        os.path.join(root, "frontend", "main.js"), "w", encoding="utf-8"
+        os.path.join(root, "frontend", "main.js"),
+        "w",
+        encoding="utf-8",
     ) as handle:
         handle.write(
-            "export async function activate(api) { api.setUi({ type: 'text', value: 'ok' }); }"
+            "export async function activate(api) { api.setUi({ type: 'text', value: 'ok' }); }",
         )
     os.makedirs(os.path.join(root, "locales"), exist_ok=True)
     with open(
-        os.path.join(root, "locales", "en.json"), "w", encoding="utf-8"
+        os.path.join(root, "locales", "en.json"),
+        "w",
+        encoding="utf-8",
     ) as handle:
         json.dump({"title": "Secure Plugin"}, handle)
 

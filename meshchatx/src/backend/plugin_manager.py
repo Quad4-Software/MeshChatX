@@ -129,7 +129,7 @@ class PluginManager:
           storage_value TEXT NOT NULL,
           PRIMARY KEY (plugin_id, storage_key)
         )
-        """
+        """,
             )
             conn.execute(
                 """
@@ -141,7 +141,7 @@ class PluginManager:
           integrity_hash TEXT,
           tampered INTEGER NOT NULL DEFAULT 0
         )
-        """
+        """,
             )
             columns = {
                 row[1]
@@ -149,13 +149,13 @@ class PluginManager:
             }
             if "granted_permissions" not in columns:
                 conn.execute(
-                    "ALTER TABLE plugin_state ADD COLUMN granted_permissions TEXT"
+                    "ALTER TABLE plugin_state ADD COLUMN granted_permissions TEXT",
                 )
             if "integrity_hash" not in columns:
                 conn.execute("ALTER TABLE plugin_state ADD COLUMN integrity_hash TEXT")
             if "tampered" not in columns:
                 conn.execute(
-                    "ALTER TABLE plugin_state ADD COLUMN tampered INTEGER NOT NULL DEFAULT 0"
+                    "ALTER TABLE plugin_state ADD COLUMN tampered INTEGER NOT NULL DEFAULT 0",
                 )
             conn.execute(
                 """
@@ -163,7 +163,7 @@ class PluginManager:
                   setting_key TEXT PRIMARY KEY,
                   setting_value TEXT NOT NULL
                 )
-                """
+                """,
             )
             conn.commit()
 
@@ -236,7 +236,8 @@ class PluginManager:
                 print(f"Failed to load plugin from {plugin_dir}: {exc}")
 
     def _read_plugin_state(
-        self, plugin_id: str
+        self,
+        plugin_id: str,
     ) -> tuple[bool, str | None, list[str] | None, str | None, bool]:
         with sqlite3.connect(self.state_db_path) as conn:
             row = conn.execute(
@@ -318,7 +319,7 @@ class PluginManager:
             raise ValueError("plugin apiVersion is invalid") from exc
         if parsed_api_version != SUPPORTED_API_VERSION:
             raise ValueError(
-                f"unsupported apiVersion (expected {SUPPORTED_API_VERSION})"
+                f"unsupported apiVersion (expected {SUPPORTED_API_VERSION})",
             )
         backend = manifest.get("backend")
         if backend is not None:
@@ -417,7 +418,7 @@ class PluginManager:
         declared = declared_permission_ids(manifest)
         endpoints = collect_network_endpoints(manifest, source_dir)
         network_mode = normalize_network_mode(
-            (manifest.get("permissions") or {}).get("network")
+            (manifest.get("permissions") or {}).get("network"),
         )
         signature = signature_override or verify_dir_signature(source_dir)
         signature = enrich_signature_with_trust(signature, self._lookup_trusted)
@@ -468,7 +469,8 @@ class PluginManager:
             os.makedirs(extract_dir, exist_ok=True)
             plugin_root = safe_extract_zip(zip_path, extract_dir)
             return self._build_preview_from_directory(
-                plugin_root, signature_override=signature
+                plugin_root,
+                signature_override=signature,
             )
 
     def preview_from_wasm_bytes(self, payload: bytes) -> dict[str, Any]:
@@ -491,7 +493,9 @@ class PluginManager:
         with tempfile.TemporaryDirectory() as tmp:
             write_wasm_bundle(tmp, bundle)
             return self._build_preview_from_directory(
-                tmp, signature_override=signature, embedded=embedded
+                tmp,
+                signature_override=signature,
+                embedded=embedded,
             )
 
     def install_from_directory(
@@ -559,7 +563,8 @@ class PluginManager:
 
         if is_wasm_bytes(payload):
             return self.install_from_wasm_bytes(
-                payload, granted_permissions=granted_permissions
+                payload,
+                granted_permissions=granted_permissions,
             )
         validate_zip_bytes(payload)
         signature = enrich_signature_with_trust(
@@ -637,14 +642,18 @@ class PluginManager:
 
     def _lookup_trusted(self, signer_hex: str) -> tuple[str, bool]:
         return lookup_trusted_publisher_in_storage(
-            signer_hex, self.storage_dir, self.state_db_path
+            signer_hex,
+            self.storage_dir,
+            self.state_db_path,
         )
 
     def list_trusted_publishers(self) -> list[dict[str, str]]:
         return list_trusted_publishers(self.storage_dir, self.state_db_path)
 
     def add_trusted_publisher(
-        self, identity: str, name: str = ""
+        self,
+        identity: str,
+        name: str = "",
     ) -> list[dict[str, str]]:
         add_user_trusted_publisher(self.storage_dir, self.state_db_path, identity, name)
         return self.list_trusted_publishers()
@@ -672,7 +681,9 @@ class PluginManager:
             self._unregister_plugin_hooks(record)
             if reason:
                 self._broadcast_plugin_event(
-                    plugin_id, "plugin.disabled", {"reason": reason}
+                    plugin_id,
+                    "plugin.disabled",
+                    {"reason": reason},
                 )
             return self._public_plugin_view(record)
 
@@ -687,10 +698,12 @@ class PluginManager:
                 shutil.rmtree(target_dir)
             with sqlite3.connect(self.state_db_path) as conn:
                 conn.execute(
-                    "DELETE FROM plugin_state WHERE plugin_id = ?", (plugin_id,)
+                    "DELETE FROM plugin_state WHERE plugin_id = ?",
+                    (plugin_id,),
                 )
                 conn.execute(
-                    "DELETE FROM plugin_storage WHERE plugin_id = ?", (plugin_id,)
+                    "DELETE FROM plugin_storage WHERE plugin_id = ?",
+                    (plugin_id,),
                 )
                 conn.commit()
 
@@ -745,7 +758,9 @@ class PluginManager:
             record.id,
             log=lambda message: print(f"[plugin:{record.id}] {message}"),
             call_manager=lambda capability, args: self.call_manager(
-                record.id, capability, args
+                record.id,
+                capability,
+                args,
             ),
             storage_get=lambda key: self.storage_get(record.id, key),
             storage_set=lambda key, value: self.storage_set(record.id, key, value),
@@ -788,14 +803,19 @@ class PluginManager:
         return data
 
     def report_failure(
-        self, plugin_id: str, reason: str, source: str = "frontend"
+        self,
+        plugin_id: str,
+        reason: str,
+        source: str = "frontend",
     ) -> dict[str, Any] | None:
         with self._lock:
             record = self._plugins.get(plugin_id)
             if not record:
                 return None
             return self._record_plugin_failure(
-                record, f"{source}: {reason}", auto_disable=True
+                record,
+                f"{source}: {reason}",
+                auto_disable=True,
             )
 
     def _require_plugin(self, plugin_id: str) -> PluginRecord:
@@ -865,7 +885,10 @@ class PluginManager:
         return self._network_fetch_allowed(record)
 
     def call_manager(
-        self, plugin_id: str, capability: str, args: dict[str, Any]
+        self,
+        plugin_id: str,
+        capability: str,
+        args: dict[str, Any],
     ) -> Any:
         record = self._require_plugin(plugin_id)
         if not record.enabled:
@@ -1000,7 +1023,7 @@ class PluginManager:
                 dest_hash,
                 aspect,
                 auto_identify=auto_identify,
-            )
+            ),
         )
         if link is None:
             return {
@@ -1036,7 +1059,7 @@ class PluginManager:
             raise ValueError("path is required")
         manager = self._require_rns_link_manager()
         link, _identified, failure_reason = self._await_rns_link_coro(
-            manager.open_link(dest_hash, aspect, auto_identify=False)
+            manager.open_link(dest_hash, aspect, auto_identify=False),
         )
         if link is None:
             return {
@@ -1079,7 +1102,7 @@ class PluginManager:
                 else:
                     raw_to_pack = raw
                 result["body_b64"] = base64.b64encode(
-                    umsgpack.packb(raw_to_pack)
+                    umsgpack.packb(raw_to_pack),
                 ).decode("ascii")
                 result["ok"] = True
             except Exception as exc:
@@ -1226,7 +1249,10 @@ class PluginManager:
         }
 
     def invoke(
-        self, plugin_id: str, method: str, args: dict[str, Any] | None = None
+        self,
+        plugin_id: str,
+        method: str,
+        args: dict[str, Any] | None = None,
     ) -> Any:
         self._require_runtime_enabled()
         record = self._require_plugin(plugin_id)
@@ -1278,7 +1304,10 @@ class PluginManager:
         return wasm_path
 
     def _invoke_wasm(
-        self, record: PluginRecord, method: str, args: dict[str, Any]
+        self,
+        record: PluginRecord,
+        method: str,
+        args: dict[str, Any],
     ) -> Any:
         wasmtime = self._load_wasmtime()
         wasm_path = self._resolve_backend_wasm_path(record)
@@ -1305,7 +1334,7 @@ class PluginManager:
         instance = linker.instantiate(store, module)
         payload = json.dumps({"method": method, "args": args}).encode("utf-8")
         validate_invoke_payload(payload)
-        exports = cast(Any, instance.exports(store))
+        exports = cast("Any", instance.exports(store))
         memory = exports["memory"]
         alloc = exports.get("alloc")
         if alloc:
@@ -1352,7 +1381,9 @@ class PluginManager:
                     )
                 else:
                     self._invoke_wasm(
-                        record, "on_hook", {"hook": hook, "payload": payload}
+                        record,
+                        "on_hook",
+                        {"hook": hook, "payload": payload},
                     )
             self._broadcast_plugin_event(plugin_id, hook, payload)
         except Exception as exc:
@@ -1444,15 +1475,22 @@ class PluginManager:
             return
         hooks = (record.manifest.get("permissions") or {}).get("hooks") or []
         if "announce.received" in hooks and not getattr(
-            self.app, "_plugin_announce_handler_registered", False
+            self.app,
+            "_plugin_announce_handler_registered",
+            False,
         ):
-            from meshchatx.src.backend.announce_handler import AnnounceHandler
             import RNS
+
+            from meshchatx.src.backend.announce_handler import AnnounceHandler
 
             handler = AnnounceHandler(
                 "meshchatx.plugin",
                 lambda aspect, dh, ai, ad, aph: self.on_announce_received(
-                    aspect, dh, ai, ad, aph
+                    aspect,
+                    dh,
+                    ai,
+                    ad,
+                    aph,
                 ),
             )
             RNS.Transport.register_announce_handler(handler)
@@ -1484,12 +1522,16 @@ class PluginManager:
             pass
 
     def _broadcast_plugin_event(
-        self, plugin_id: str, event: str, payload: dict[str, Any]
+        self,
+        plugin_id: str,
+        event: str,
+        payload: dict[str, Any],
     ) -> None:
         if not self.app:
             return
-        from meshchatx.src.backend.async_utils import AsyncUtils
         import json as json_module
+
+        from meshchatx.src.backend.async_utils import AsyncUtils
 
         message = json_module.dumps(
             {
@@ -1497,7 +1539,7 @@ class PluginManager:
                 "plugin_id": plugin_id,
                 "event": event,
                 "payload": payload,
-            }
+            },
         )
         AsyncUtils.run_async(self.app.websocket_broadcast(message))
 
@@ -1533,7 +1575,9 @@ class PluginManager:
         shutil.rmtree(target_dir, onerror=_onerror)
 
     def _bundled_needs_reinstall(
-        self, source_dir: str, manifest: dict[str, Any]
+        self,
+        source_dir: str,
+        manifest: dict[str, Any],
     ) -> bool:
         plugin_id = manifest.get("id")
         if not isinstance(plugin_id, str) or not plugin_id:
@@ -1584,7 +1628,8 @@ class PluginManager:
                     manifest = json.load(handle)
             except Exception as exc:
                 print(
-                    f"Bundled plugin manifest read failed for {name}: {exc}", flush=True
+                    f"Bundled plugin manifest read failed for {name}: {exc}",
+                    flush=True,
                 )
                 continue
             if not isinstance(manifest, dict):

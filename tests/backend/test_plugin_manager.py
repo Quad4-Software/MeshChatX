@@ -55,7 +55,7 @@ class TestPluginManagerInstall:
                         "level": "INFO",
                         "module": "meshchat",
                         "message": "peer aa" + ("bb" * 15) + " at /home/user1/secret",
-                    }
+                    },
                 ]
 
             def get_total_count(self, **_kwargs):
@@ -155,7 +155,7 @@ class TestPluginManagerInstall:
             "hooks:rns.link.event",
         ]
         manager.dispatch_hook = lambda pid, hook, payload: events.append(
-            (pid, hook, payload)
+            (pid, hook, payload),
         )
         manager.on_rns_link_event(
             {
@@ -163,7 +163,7 @@ class TestPluginManagerInstall:
                 "event": "link_closed",
                 "destination_hash": "aa" * 16,
                 "aspect": "microrn.mgmt",
-            }
+            },
         )
         assert events == [
             (
@@ -175,7 +175,7 @@ class TestPluginManagerInstall:
                     "aspect": "microrn.mgmt",
                     "payload_b64": None,
                 },
-            )
+            ),
         ]
 
     def test_manifest_validation_rejects_invalid_id(self, tmp_path):
@@ -183,7 +183,9 @@ class TestPluginManagerInstall:
         plugin_dir = os.path.join(tmp_path, "bad-plugin")
         os.makedirs(plugin_dir, exist_ok=True)
         with open(
-            os.path.join(plugin_dir, "plugin.json"), "w", encoding="utf-8"
+            os.path.join(plugin_dir, "plugin.json"),
+            "w",
+            encoding="utf-8",
         ) as handle:
             json.dump({"id": "bad id", "version": "1.0.0", "apiVersion": 1}, handle)
         with pytest.raises(ValueError):
@@ -204,7 +206,8 @@ class TestPluginManagerInstall:
             manager.install_from_directory(os.path.abspath(source))
 
     def test_bundled_reinstall_skips_unchanged_and_handles_readonly_tree(
-        self, tmp_path
+        self,
+        tmp_path,
     ):
         manager = _make_manager(tmp_path)
         manager.install_bundled_examples()

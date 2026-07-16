@@ -318,7 +318,7 @@ class PageNode:
                 self._register_page_handler(name)
             except Exception as e:
                 raise RuntimeError(
-                    f"Page written but failed to register on mesh: {e}"
+                    f"Page written but failed to register on mesh: {e}",
                 ) from e
         return name
 

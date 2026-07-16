@@ -18,7 +18,6 @@ from meshchatx.src.backend import (
     sticker_utils,
 )
 
-
 _TINY_GIF = (
     b"GIF89a\x01\x00\x01\x00\x80\x00\x00"
     b"\xff\xff\xff\x00\x00\x00!\xf9\x04\x01\x00\x00\x00\x00"

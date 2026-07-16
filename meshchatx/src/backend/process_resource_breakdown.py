@@ -47,7 +47,7 @@ def build_resource_breakdown(process, *, max_children: int = 8) -> list[dict]:
                 "name": label,
                 "rss": rss,
                 "cpu_percent": cpu,
-            }
+            },
         )
 
     add_row("backend", process)

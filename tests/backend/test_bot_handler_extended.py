@@ -113,7 +113,9 @@ def test_get_status_reads_sidecar_lxmf_address(temp_identity_dir):
     os.makedirs(storage, exist_ok=True)
     hx = "a" * 32
     with open(
-        os.path.join(storage, "meshchatx_lxmf_address.txt"), "w", encoding="utf-8"
+        os.path.join(storage, "meshchatx_lxmf_address.txt"),
+        "w",
+        encoding="utf-8",
     ) as f:
         f.write(hx)
     handler.bots_state = [{"id": sid, "template_id": "echo", "storage_dir": storage}]
@@ -215,7 +217,7 @@ def test_request_announce_writes_trigger(mock_alive, temp_identity_dir):
     storage = os.path.join(handler.bots_dir, sid)
     os.makedirs(storage, exist_ok=True)
     handler.bots_state = [
-        {"id": sid, "template_id": "echo", "storage_dir": storage, "pid": 99999}
+        {"id": sid, "template_id": "echo", "storage_dir": storage, "pid": 99999},
     ]
     handler.request_announce(sid)
     req = os.path.join(storage, "meshchatx_request_announce")
@@ -230,7 +232,7 @@ def test_request_announce_not_running(temp_identity_dir):
     storage = os.path.join(handler.bots_dir, sid)
     os.makedirs(storage, exist_ok=True)
     handler.bots_state = [
-        {"id": sid, "template_id": "echo", "storage_dir": storage, "pid": None}
+        {"id": sid, "template_id": "echo", "storage_dir": storage, "pid": None},
     ]
     with pytest.raises(RuntimeError, match="not running"):
         handler.request_announce(sid)
@@ -245,7 +247,7 @@ def test_get_status_subprocess_log_not_shown_as_last_error(temp_identity_dir):
     with open(log_path, "w", encoding="utf-8") as f:
         f.write("[Info] Received SIGTERM, shutting down now!\n")
     handler.bots_state = [
-        {"id": sid, "template_id": "echo", "storage_dir": storage, "pid": None}
+        {"id": sid, "template_id": "echo", "storage_dir": storage, "pid": None},
     ]
     status = handler.get_status()
     assert status["bots"][0]["last_error"] is None
@@ -260,7 +262,7 @@ def test_read_subprocess_log(temp_identity_dir):
     with open(log_path, "w", encoding="utf-8") as f:
         f.write("line1\nline2\n")
     handler.bots_state = [
-        {"id": sid, "template_id": "echo", "storage_dir": storage, "pid": None}
+        {"id": sid, "template_id": "echo", "storage_dir": storage, "pid": None},
     ]
     out = handler.read_subprocess_log(sid)
     assert out["truncated"] is False

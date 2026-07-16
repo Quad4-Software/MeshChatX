@@ -258,7 +258,7 @@ def write_wasm_bundle(dest: str, bundle: WasmBundle) -> None:
     backend_path = os.path.join(dest, backend_entry.replace("\\", "/"))
     os.makedirs(os.path.dirname(backend_path) or dest, exist_ok=True)
     runtime_wasm = _strip_bundle_metadata_sections(
-        wasm_payload_without_signature(bundle.wasm_binary)
+        wasm_payload_without_signature(bundle.wasm_binary),
     )
     with open(backend_path, "wb") as handle:
         handle.write(runtime_wasm)

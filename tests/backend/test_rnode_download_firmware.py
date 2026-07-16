@@ -99,7 +99,7 @@ async def test_download_firmware_returns_zip_for_allowed_url(web_app):
             r = await client.get(
                 "/api/v1/tools/rnode/download_firmware",
                 params={
-                    "url": "https://github.com/owner/repo/releases/download/v1/firmware.zip"
+                    "url": "https://github.com/owner/repo/releases/download/v1/firmware.zip",
                 },
             )
             assert r.status == 200
@@ -125,7 +125,7 @@ async def test_download_firmware_propagates_upstream_error_status(web_app):
             r = await client.get(
                 "/api/v1/tools/rnode/download_firmware",
                 params={
-                    "url": "https://github.com/markqvist/RNode_Firmware/releases/download/v1/firmware.zip"
+                    "url": "https://github.com/markqvist/RNode_Firmware/releases/download/v1/firmware.zip",
                 },
             )
             assert r.status == 404
@@ -145,7 +145,7 @@ async def test_download_firmware_returns_500_on_exception(web_app):
             r = await client.get(
                 "/api/v1/tools/rnode/download_firmware",
                 params={
-                    "url": "https://github.com/owner/repo/releases/download/v1/firmware.zip"
+                    "url": "https://github.com/owner/repo/releases/download/v1/firmware.zip",
                 },
             )
             assert r.status == 500
@@ -260,7 +260,7 @@ async def test_latest_release_returns_proxied_payload(web_app):
             {
                 "name": "rnode_firmware_heltec32v3.zip",
                 "browser_download_url": "https://x/rnode.zip",
-            }
+            },
         ],
     }
     fake_session = _FakeJsonSession(200, payload)
@@ -283,7 +283,8 @@ async def test_latest_release_returns_proxied_payload(web_app):
             )
             assert fake_session.last_headers.get("X-GitHub-Api-Version") == "2022-11-28"
             assert "MeshChatX-RNodeFlasher" in fake_session.last_headers.get(
-                "User-Agent", ""
+                "User-Agent",
+                "",
             )
 
 

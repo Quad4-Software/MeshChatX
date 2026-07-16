@@ -30,15 +30,15 @@ class SidebandHostAdapter:
         self.config = {
             "service_plugins_enabled": bool(
                 getattr(cfg, "service_plugins_enabled", None)
-                and cfg.service_plugins_enabled.get()
+                and cfg.service_plugins_enabled.get(),
             ),
             "command_plugins_enabled": bool(
                 getattr(cfg, "command_plugins_enabled", None)
-                and cfg.command_plugins_enabled.get()
+                and cfg.command_plugins_enabled.get(),
             ),
             "command_plugins_path": path,
             "telemetry_enabled": bool(
-                getattr(cfg, "telemetry_enabled", None) and cfg.telemetry_enabled.get()
+                getattr(cfg, "telemetry_enabled", None) and cfg.telemetry_enabled.get(),
             ),
         }
 

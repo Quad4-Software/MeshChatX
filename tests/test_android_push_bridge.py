@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-import meshchatx.android_push_bridge as android_push_bridge
+from meshchatx import android_push_bridge
 from meshchatx.android_push_bridge import (
     install_websocket_hook,
     lxmf_delivery_notification_text,
@@ -174,7 +174,7 @@ def test_lxmf_delivery_attachment_fields_only():
                 "title": "",
                 "content": "",
                 "fields": {
-                    "file_attachments": [{"file_name": "a.bin", "file_size": 1}]
+                    "file_attachments": [{"file_name": "a.bin", "file_size": 1}],
                 },
             },
         },
@@ -219,7 +219,9 @@ def test_after_websocket_broadcast_incoming_call(monkeypatch):
     inc = []
     cancel = []
     monkeypatch.setattr(
-        android_push_bridge, "_notify_incoming_call_java", lambda *a: inc.append(a)
+        android_push_bridge,
+        "_notify_incoming_call_java",
+        lambda *a: inc.append(a),
     )
     monkeypatch.setattr(
         android_push_bridge,
@@ -249,7 +251,7 @@ def test_after_websocket_broadcast_call_ended_cancels(monkeypatch):
         lambda: cancel.append(1),
     )
     android_push_bridge._after_websocket_broadcast(
-        json.dumps({"type": "telephone_call_ended"})
+        json.dumps({"type": "telephone_call_ended"}),
     )
     assert calls == []
     assert cancel == [1]
@@ -258,7 +260,9 @@ def test_after_websocket_broadcast_call_ended_cancels(monkeypatch):
 def test_after_websocket_broadcast_missed_call(monkeypatch):
     miss = []
     monkeypatch.setattr(
-        android_push_bridge, "_notify_missed_call_java", lambda *a: miss.append(a)
+        android_push_bridge,
+        "_notify_missed_call_java",
+        lambda *a: miss.append(a),
     )
     android_push_bridge._after_websocket_broadcast(
         json.dumps(
@@ -356,7 +360,6 @@ async def test_install_is_idempotent(monkeypatch):
     class Rmc:
         async def websocket_broadcast(self, data):
             invocations.append("orig")
-            return None
 
     unwrapped = Rmc.websocket_broadcast
     install_websocket_hook(Rmc)

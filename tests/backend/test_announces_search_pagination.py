@@ -56,7 +56,8 @@ def _route_handler(app: ReticulumMeshChat, path: str, method: str):
 
 @pytest.mark.asyncio
 async def test_announce_search_finds_match_older_than_page_size(
-    mock_rns_minimal, temp_dir
+    mock_rns_minimal,
+    temp_dir,
 ):
     app_instance = ReticulumMeshChat(
         identity=mock_rns_minimal,
@@ -88,7 +89,7 @@ async def test_announce_search_finds_match_older_than_page_size(
                     "rssi": None,
                     "snr": None,
                     "quality": None,
-                }
+                },
             )
             # oldest updated_at for i == 0 (the target), newest for the
             # highest i, so ordering by updated_at DESC puts the target last.

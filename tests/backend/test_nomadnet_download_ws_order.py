@@ -12,14 +12,15 @@ import meshchatx.meshchat as meshchat_module
 
 @pytest.mark.asyncio
 async def test_nomadnet_page_download_started_before_download_async_scheduled(
-    mock_app, monkeypatch
+    mock_app,
+    monkeypatch,
 ):
     mock_app._try_serve_local_page_node = MagicMock(return_value=None)
 
     events = []
     mock_ws = MagicMock()
     mock_ws.send_str = AsyncMock(
-        side_effect=lambda payload: events.append(("send_str", json.loads(payload)))
+        side_effect=lambda payload: events.append(("send_str", json.loads(payload))),
     )
 
     inner_async_utils = meshchat_module.AsyncUtils
@@ -53,14 +54,15 @@ async def test_nomadnet_page_download_started_before_download_async_scheduled(
 
 @pytest.mark.asyncio
 async def test_nomadnet_file_download_started_before_download_async_scheduled(
-    mock_app, monkeypatch
+    mock_app,
+    monkeypatch,
 ):
     mock_app._try_serve_local_page_node_file = MagicMock(return_value=None)
 
     events = []
     mock_ws = MagicMock()
     mock_ws.send_str = AsyncMock(
-        side_effect=lambda payload: events.append(("send_str", json.loads(payload)))
+        side_effect=lambda payload: events.append(("send_str", json.loads(payload))),
     )
 
     inner_async_utils = meshchat_module.AsyncUtils
@@ -93,7 +95,8 @@ async def test_nomadnet_file_download_started_before_download_async_scheduled(
 
 @pytest.mark.asyncio
 async def test_nomadnet_file_download_with_data_passed_to_downloader(
-    mock_app, monkeypatch
+    mock_app,
+    monkeypatch,
 ):
     """Query-param data from the WS payload must reach NomadnetFileDownloader."""
     mock_app._try_serve_local_page_node_file = MagicMock(return_value=None)
@@ -113,7 +116,9 @@ async def test_nomadnet_file_download_with_data_passed_to_downloader(
         self.data = kwargs.get("data")
 
     monkeypatch.setattr(
-        nomadnet_downloader.NomadnetFileDownloader, "__init__", capturing_init
+        nomadnet_downloader.NomadnetFileDownloader,
+        "__init__",
+        capturing_init,
     )
 
     mock_ws = MagicMock()
@@ -137,5 +142,7 @@ async def test_nomadnet_file_download_with_data_passed_to_downloader(
     assert captured["args"][1] == "/files/report.pdf"
 
     monkeypatch.setattr(
-        nomadnet_downloader.NomadnetFileDownloader, "__init__", orig_init
+        nomadnet_downloader.NomadnetFileDownloader,
+        "__init__",
+        orig_init,
     )

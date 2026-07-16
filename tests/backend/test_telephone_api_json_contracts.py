@@ -74,7 +74,8 @@ class _Query:
 
 @pytest.mark.asyncio
 async def test_api_v1_telephone_voicemail_status_json_contract(
-    mock_rns_minimal, temp_dir
+    mock_rns_minimal,
+    temp_dir,
 ):
     with patch("meshchatx.meshchat.generate_ssl_certificate"):
         app_instance = ReticulumMeshChat(
@@ -83,7 +84,9 @@ async def test_api_v1_telephone_voicemail_status_json_contract(
             reticulum_config_dir=temp_dir,
         )
         handler = _find_handler(
-            app_instance, "/api/v1/telephone/voicemail/status", "GET"
+            app_instance,
+            "/api/v1/telephone/voicemail/status",
+            "GET",
         )
         assert handler is not None
         request = MagicMock()
@@ -111,7 +114,8 @@ async def test_api_v1_telephone_voicemails_json_contract(mock_rns_minimal, temp_
 
 @pytest.mark.asyncio
 async def test_api_v1_telephone_ringtones_list_json_contract(
-    mock_rns_minimal, temp_dir
+    mock_rns_minimal,
+    temp_dir,
 ):
     with patch("meshchatx.meshchat.generate_ssl_certificate"):
         app_instance = ReticulumMeshChat(
@@ -129,7 +133,8 @@ async def test_api_v1_telephone_ringtones_list_json_contract(
 
 @pytest.mark.asyncio
 async def test_api_v1_telephone_ringtones_status_json_contract(
-    mock_rns_minimal, temp_dir
+    mock_rns_minimal,
+    temp_dir,
 ):
     with patch("meshchatx.meshchat.generate_ssl_certificate"):
         app_instance = ReticulumMeshChat(
@@ -138,7 +143,9 @@ async def test_api_v1_telephone_ringtones_status_json_contract(
             reticulum_config_dir=temp_dir,
         )
         handler = _find_handler(
-            app_instance, "/api/v1/telephone/ringtones/status", "GET"
+            app_instance,
+            "/api/v1/telephone/ringtones/status",
+            "GET",
         )
         assert handler is not None
         request = MagicMock()
@@ -167,7 +174,8 @@ async def test_api_v1_telephone_contacts_list_json_contract(mock_rns_minimal, te
 
 @pytest.mark.asyncio
 async def test_api_v1_telephone_contacts_check_json_contract(
-    mock_rns_minimal, temp_dir
+    mock_rns_minimal,
+    temp_dir,
 ):
     with patch("meshchatx.meshchat.generate_ssl_certificate"):
         app_instance = ReticulumMeshChat(

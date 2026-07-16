@@ -33,7 +33,8 @@ def test_start_server_second_call_skips_while_main_blocks(monkeypatch):
     importlib.reload(meshchat_wrapper)
 
     th = threading.Thread(
-        target=lambda: meshchat_wrapper.start_server(8000, None), daemon=True
+        target=lambda: meshchat_wrapper.start_server(8000, None),
+        daemon=True,
     )
     th.start()
     assert entered.wait(timeout=10.0)

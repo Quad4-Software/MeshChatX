@@ -57,6 +57,15 @@ export const CORE_TOOLS_ENTRIES = [
         alpha: true,
     },
     {
+        name: "rnx",
+        route: { name: "rnx" },
+        icon: "console",
+        iconBg: "tool-card__icon bg-teal-50 text-teal-600 dark:bg-teal-900/30 dark:text-teal-200",
+        titleKey: "tools.rnx.title",
+        descriptionKey: "tools.rnx.description",
+        alpha: true,
+    },
+    {
         name: "rnstatus",
         route: { name: "rnstatus" },
         icon: "chart-line",

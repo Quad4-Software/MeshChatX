@@ -68,5 +68,5 @@ async def test_lxmf_cancel_endpoint_loads_updated_message_from_database(web_canc
         assert body["lxmf_message"]["state"] == "cancelled"
 
     web_cancel_app.database.messages.get_lxmf_message_by_hash.assert_called_with(
-        message_hash
+        message_hash,
     )

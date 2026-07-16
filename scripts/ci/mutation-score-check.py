@@ -68,7 +68,7 @@ def main() -> int:
             print(f"Missing mutmut stats: {args.mutmut_stats}", file=sys.stderr)
             return 1
         score = score_from_mutmut(
-            json.loads(args.mutmut_stats.read_text(encoding="utf-8"))
+            json.loads(args.mutmut_stats.read_text(encoding="utf-8")),
         )
         if score is None:
             print("No scored mutmut results.", file=sys.stderr)
@@ -82,7 +82,7 @@ def main() -> int:
             print(f"Missing MeshMut report: {args.meshmut_report}", file=sys.stderr)
             return 1
         score = score_from_meshmut(
-            json.loads(args.meshmut_report.read_text(encoding="utf-8"))
+            json.loads(args.meshmut_report.read_text(encoding="utf-8")),
         )
         if score is None:
             print("No scored MeshMut results.", file=sys.stderr)

@@ -138,7 +138,8 @@ async def test_on_lxmf_sending_failed_updates_state(mock_app):
     ReticulumMeshChat.on_lxmf_sending_failed(mock_app, mock_msg)
 
     mock_app.on_lxmf_sending_state_updated.assert_called_once_with(
-        mock_msg, context=mock_app.current_context
+        mock_msg,
+        context=mock_app.current_context,
     )
 
 
@@ -157,10 +158,12 @@ async def test_propagation_fallback_on_failure(mock_app):
     ReticulumMeshChat.on_lxmf_sending_failed(mock_app, mock_msg)
 
     mock_app.send_failed_message_via_propagation_node.assert_called_once_with(
-        mock_msg, context=mock_app.current_context
+        mock_msg,
+        context=mock_app.current_context,
     )
     mock_app.on_lxmf_sending_state_updated.assert_called_once_with(
-        mock_msg, context=mock_app.current_context
+        mock_msg,
+        context=mock_app.current_context,
     )
 
 
@@ -193,7 +196,9 @@ async def test_handle_lxmf_message_progress_failure_broadcast(mock_app):
         from meshchatx.meshchat import ReticulumMeshChat
 
         await ReticulumMeshChat.handle_lxmf_message_progress(
-            mock_app, mock_msg, context=mock_app.current_context
+            mock_app,
+            mock_msg,
+            context=mock_app.current_context,
         )
 
         # Verify update was called
@@ -239,7 +244,8 @@ async def test_handle_lxmf_message_progress_continues_while_propagation_fallback
 
     with (
         patch(
-            "meshchatx.meshchat.convert_lxmf_state_to_string", side_effect=state_to_str
+            "meshchatx.meshchat.convert_lxmf_state_to_string",
+            side_effect=state_to_str,
         ),
         patch(
             "meshchatx.meshchat.convert_lxmf_method_to_string",
@@ -259,7 +265,9 @@ async def test_handle_lxmf_message_progress_continues_while_propagation_fallback
         from meshchatx.meshchat import ReticulumMeshChat
 
         await ReticulumMeshChat.handle_lxmf_message_progress(
-            mock_app, mock_msg, context=mock_app.current_context
+            mock_app,
+            mock_msg,
+            context=mock_app.current_context,
         )
 
     assert iteration == 2

@@ -185,7 +185,7 @@ class NomadnetDownloader:
                         in self.request_receipt.link.pending_requests
                     ):
                         self.request_receipt.link.pending_requests.remove(
-                            self.request_receipt
+                            self.request_receipt,
                         )
             except Exception as e:
                 print(f"Failed to cancel request: {e}")

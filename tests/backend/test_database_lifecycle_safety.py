@@ -59,7 +59,9 @@ def test_restore_invokes_close_all_before_replace(temp_dir):
     backup_path = os.path.join(temp_dir, "backup.zip")
     db.backup_database(temp_dir, backup_path=backup_path)
     with patch.object(
-        db.provider, "close_all", wraps=db.provider.close_all
+        db.provider,
+        "close_all",
+        wraps=db.provider.close_all,
     ) as mock_close:
         db.restore_database(backup_path)
         assert mock_close.call_count >= 1
@@ -184,7 +186,7 @@ def test_storage_lock_soft_allows_dead_pid(temp_dir, monkeypatch):
         fcntl,
         "flock",
         lambda *_a, **_k: (_ for _ in ()).throw(
-            OSError(errno.ENOSYS, "Function not implemented")
+            OSError(errno.ENOSYS, "Function not implemented"),
         ),
     )
     lock_path = os.path.join(temp_dir, ".meshchatx.lock")
@@ -207,7 +209,7 @@ def test_storage_lock_android_soft_ignores_foreign_pid(temp_dir, monkeypatch):
         fcntl,
         "flock",
         lambda *_a, **_k: (_ for _ in ()).throw(
-            OSError(errno.ENOSYS, "Function not implemented")
+            OSError(errno.ENOSYS, "Function not implemented"),
         ),
     )
     monkeypatch.setenv("ANDROID_ROOT", "/system")

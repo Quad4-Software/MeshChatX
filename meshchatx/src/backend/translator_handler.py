@@ -271,11 +271,11 @@ class TranslatorHandler:
                 msg = str(e)
                 raise ValueError(msg) from e
             api_key_eff = _normalize_optional_libretranslate_api_key(
-                libretranslate_api_key
+                libretranslate_api_key,
             )
             if api_key_eff is None:
                 api_key_eff = _normalize_optional_libretranslate_api_key(
-                    self.libretranslate_api_key
+                    self.libretranslate_api_key,
                 )
             try:
                 return self._translate_libretranslate(

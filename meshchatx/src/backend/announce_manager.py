@@ -247,7 +247,7 @@ class AnnounceManager:
                 params = [aspect, *chunk]
                 if blocked_identity_hashes:
                     blocked_placeholders = ", ".join(
-                        ["?"] * len(blocked_identity_hashes)
+                        ["?"] * len(blocked_identity_hashes),
                     )
                     sql += f" AND a.identity_hash NOT IN ({blocked_placeholders})"
                     params.extend(blocked_identity_hashes)

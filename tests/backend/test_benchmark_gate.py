@@ -17,8 +17,10 @@ from tests.backend.benchmarking_utils import (
 )
 from tests.backend.compare_benchmarks import (
     compare,
-    main as compare_main,
     update_baseline,
+)
+from tests.backend.compare_benchmarks import (
+    main as compare_main,
 )
 
 
@@ -173,7 +175,7 @@ class TestCompareBenchmarks(unittest.TestCase):
                         "unit": "ms",
                         "value": 0.455,
                         "extra": "mad=0.05 cv=0.3 runs=1",
-                    }
+                    },
                 ],
             )
             self._write(
@@ -184,7 +186,7 @@ class TestCompareBenchmarks(unittest.TestCase):
                         "unit": "ms",
                         "value": 0.177,
                         "extra": "mad=0.02 cv=0.2 runs=1",
-                    }
+                    },
                 ],
             )
             code, rows = compare(current, previous)
@@ -227,7 +229,7 @@ class TestCompareBenchmarks(unittest.TestCase):
                     "0.5",
                     "--min-abs-delta-ms",
                     "1.5",
-                ]
+                ],
             )
             self.assertEqual(code, 1)
 

@@ -43,7 +43,7 @@ def _ensure_android_reticulum_config(reticulum_config_dir):
             "  share_instance = No\n"
             "  panic_on_interface_error = No\n"
             "\n"
-            "[interfaces]\n"
+            "[interfaces]\n",
         )
 
 

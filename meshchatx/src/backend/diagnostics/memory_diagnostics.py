@@ -2,7 +2,7 @@ import collections
 import gc
 import sys
 import tracemalloc
-from typing import Any, Optional
+from typing import Any
 
 
 def _obj_size(obj: Any) -> int:
@@ -151,7 +151,7 @@ class MemoryDiagnostics:
         self._nframes = nframes
         self._max_snapshots = max(2, max_snapshots)
         self._enabled = False
-        self._baseline: Optional[tracemalloc.Snapshot] = None
+        self._baseline: tracemalloc.Snapshot | None = None
         self._snapshots: list[tracemalloc.Snapshot] = []
         self._gc_stats: list[dict[str, Any]] = []
         self._total_snapshots = 0
@@ -220,7 +220,7 @@ class MemoryDiagnostics:
     # Snapshots
     # ------------------------------------------------------------------
 
-    def snapshot(self) -> Optional[tracemalloc.Snapshot]:
+    def snapshot(self) -> tracemalloc.Snapshot | None:
         if not self.enabled:
             return None
         snap = tracemalloc.take_snapshot()
@@ -392,7 +392,9 @@ class MemoryDiagnostics:
     # ------------------------------------------------------------------
 
     def find_referrers(
-        self, type_name: str, max_results: int = 20
+        self,
+        type_name: str,
+        max_results: int = 20,
     ) -> list[dict[str, Any]]:
         """Find referrers of objects of a given type — useful to trace who holds references."""
         matches: list[Any] = []
@@ -540,7 +542,7 @@ class MemoryDiagnostics:
 # Module-level convenience
 # ------------------------------------------------------------------
 
-_diag: Optional[MemoryDiagnostics] = None
+_diag: MemoryDiagnostics | None = None
 
 
 def get_diagnostics() -> MemoryDiagnostics:

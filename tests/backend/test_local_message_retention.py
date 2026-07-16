@@ -86,7 +86,8 @@ def test_apply_deletes_and_prunes(_db_path):
     assert n == 1
     assert db.messages.count_lxmf_messages() == 1
     left = db.provider.fetchone(
-        "SELECT 1 AS ok FROM lxmf_messages WHERE hash = ?", ("b" * 32,)
+        "SELECT 1 AS ok FROM lxmf_messages WHERE hash = ?",
+        ("b" * 32,),
     )
     assert left is not None
     rs = db.provider.fetchall(
@@ -147,7 +148,7 @@ def test_prune_clears_read_state_when_conversation_empty(_db_path):
             db.provider.fetchall(
                 "SELECT 1 AS x FROM lxmf_conversation_read_state WHERE destination_hash = ?",
                 (peer,),
-            )
+            ),
         )
         == 0
     )

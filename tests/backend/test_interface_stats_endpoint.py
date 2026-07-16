@@ -39,7 +39,8 @@ def mock_rns_minimal():
 
 @pytest.mark.asyncio
 async def test_interface_stats_serializes_bytes_and_parent_hash_null(
-    mock_rns_minimal, temp_dir
+    mock_rns_minimal,
+    temp_dir,
 ):
     with patch("meshchatx.meshchat.generate_ssl_certificate"):
         app_instance = ReticulumMeshChat(
@@ -94,7 +95,9 @@ async def test_interface_stats_serializes_bytes_and_parent_hash_null(
 
 @pytest.mark.asyncio
 async def test_get_interface_stats_payload_logs_on_failure(
-    mock_rns_minimal, temp_dir, caplog
+    mock_rns_minimal,
+    temp_dir,
+    caplog,
 ):
     import logging
 
@@ -106,7 +109,7 @@ async def test_get_interface_stats_payload_logs_on_failure(
         )
         app_instance.reticulum = MagicMock()
         app_instance.reticulum.get_interface_stats.side_effect = OSError(
-            "Landlock: access denied"
+            "Landlock: access denied",
         )
 
         with caplog.at_level(logging.WARNING):

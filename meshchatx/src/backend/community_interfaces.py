@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: 0BSD
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -81,14 +81,17 @@ class CommunityInterfacesManager:
         return out
 
     def refresh_from_directory(
-        self, url: str | None = None, timeout: float = 60.0
+        self,
+        url: str | None = None,
+        timeout: float = 60.0,
     ) -> dict[str, Any]:
         from meshchatx.src.backend.community_interfaces_directory import (
             build_interfaces_from_directory_url,
         )
 
         interfaces, resolved_url = build_interfaces_from_directory_url(
-            url, timeout=timeout
+            url,
+            timeout=timeout,
         )
         if not interfaces:
             raise ValueError("Directory returned no usable interface presets")
@@ -98,9 +101,7 @@ class CommunityInterfacesManager:
                 "_comment": "MeshChatX cache from in-app directory refresh. Load order is public "
                 "community_interfaces.json, then this cache, then bundled presets.",
                 "_source": resolved_url,
-                "_refreshed_at": datetime.now(timezone.utc)
-                .replace(microsecond=0)
-                .isoformat(),
+                "_refreshed_at": datetime.now(UTC).replace(microsecond=0).isoformat(),
                 "interfaces": interfaces,
             }
             self._cache_path.write_text(

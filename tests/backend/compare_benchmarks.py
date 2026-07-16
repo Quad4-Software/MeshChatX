@@ -19,7 +19,7 @@ import argparse
 import json
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 _REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.insert(0, _REPO_ROOT)
@@ -83,7 +83,7 @@ def compare(
             previous = _index_by_name(_load_entries(previous_path))
         except (OSError, ValueError, json.JSONDecodeError, KeyError, TypeError) as exc:
             print(
-                f"WARNING: could not load previous baseline ({exc}); treating as first run"
+                f"WARNING: could not load previous baseline ({exc}); treating as first run",
             )
             previous = {}
 
@@ -106,7 +106,7 @@ def compare(
                     "ratio": None,
                     "status": "new",
                     "detail": "no previous baseline",
-                }
+                },
             )
             continue
 
@@ -149,7 +149,7 @@ def compare(
                 "ratio": ratio,
                 "status": status,
                 "detail": detail,
-            }
+            },
         )
 
     missing = sorted(set(previous) - set(current))
@@ -162,7 +162,7 @@ def compare(
                 "ratio": None,
                 "status": "removed",
                 "detail": "present in baseline only",
-            }
+            },
         )
 
     lines = [
@@ -180,7 +180,7 @@ def compare(
         ratio_s = f"{row['ratio']:.2f}x" if row["ratio"] is not None else "-"
         lines.append(
             f"{row['name'][:42]:42} {cur_s:>10} {prev_s:>10} {ratio_s:>8}  "
-            f"{row['status']}"
+            f"{row['status']}",
         )
         if row["status"] == "REGRESSION":
             lines.append(f"  -> {row['detail']}")
@@ -189,7 +189,7 @@ def compare(
     lines.append(
         f"Regressions: {len(alerts)} | Improvements: {len(improvements)} | "
         f"Noise-skipped: {len(skipped)} | New: "
-        f"{sum(1 for r in rows if r['status'] == 'new')}"
+        f"{sum(1 for r in rows if r['status'] == 'new')}",
     )
     if alerts:
         lines.append("ALERT: " + ", ".join(alerts))
@@ -214,19 +214,21 @@ def compare(
 
 
 def update_baseline(
-    current_path, baseline_path, suite_name="MeshChatX Backend Benchmarks"
+    current_path,
+    baseline_path,
+    suite_name="MeshChatX Backend Benchmarks",
 ):
     """Write/merge current results into github-action-benchmark external-data JSON."""
     current_entries = _load_entries(current_path)
     os.makedirs(os.path.dirname(baseline_path) or ".", exist_ok=True)
 
     commit = os.environ.get("GITHUB_SHA", "local")
-    date_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+    date_ms = int(datetime.now(UTC).timestamp() * 1000)
     record = {
         "commit": {
             "id": commit,
             "message": os.environ.get("BENCHMARK_COMMIT_MESSAGE", "benchmark run"),
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "url": "",
         },
         "date": date_ms,
@@ -296,7 +298,7 @@ def main(argv=None):
         update_baseline(args.current, args.baseline_out, suite_name=args.suite_name)
     elif args.baseline_out and code != 0:
         print(
-            "Baseline not updated (regressions present). Re-run with --update-baseline to force."
+            "Baseline not updated (regressions present). Re-run with --update-baseline to force.",
         )
 
     return code

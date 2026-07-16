@@ -66,7 +66,7 @@ def _ensure_settings_table(conn: sqlite3.Connection) -> None:
           setting_key TEXT PRIMARY KEY,
           setting_value TEXT NOT NULL
         )
-        """
+        """,
     )
 
 
@@ -104,7 +104,8 @@ def user_trusted_publishers_tampered() -> tuple[bool, str]:
 
 
 def verify_user_trusted_publishers_integrity(
-    state_db_path: str, plugins_root: str
+    state_db_path: str,
+    plugins_root: str,
 ) -> None:
     global _user_tampered, _user_tamper_reason
     path = user_trusted_publishers_path(plugins_root)
@@ -135,7 +136,8 @@ def verify_user_trusted_publishers_integrity(
 
 
 def list_trusted_publishers(
-    plugins_root: str, state_db_path: str
+    plugins_root: str,
+    state_db_path: str,
 ) -> list[dict[str, str]]:
     verify_user_trusted_publishers_integrity(state_db_path, plugins_root)
     seen: set[str] = set()
@@ -156,7 +158,9 @@ def list_trusted_publishers(
 
 
 def lookup_trusted_publisher_in_storage(
-    signer_hex: str, plugins_root: str, state_db_path: str
+    signer_hex: str,
+    plugins_root: str,
+    state_db_path: str,
 ) -> tuple[str, bool]:
     needle = (signer_hex or "").strip().lower()
     if not needle:
@@ -168,7 +172,10 @@ def lookup_trusted_publisher_in_storage(
 
 
 def add_user_trusted_publisher(
-    plugins_root: str, state_db_path: str, identity: str, name: str
+    plugins_root: str,
+    state_db_path: str,
+    identity: str,
+    name: str,
 ) -> None:
     global _user_tampered, _user_tamper_reason
     identity = (identity or "").strip().lower()
@@ -203,7 +210,9 @@ def add_user_trusted_publisher(
 
 
 def remove_user_trusted_publisher(
-    plugins_root: str, state_db_path: str, identity: str
+    plugins_root: str,
+    state_db_path: str,
+    identity: str,
 ) -> bool:
     global _user_tampered, _user_tamper_reason
     identity = (identity or "").strip().lower()
@@ -285,7 +294,8 @@ class TrustedPublishersStore:
 
     def list_publishers(self) -> list[TrustedPublisherRecord]:
         rows = list_trusted_publishers(
-            self.plugins_root, self.settings_store.state_db_path
+            self.plugins_root,
+            self.settings_store.state_db_path,
         )
         return [
             TrustedPublisherRecord(
@@ -312,6 +322,7 @@ class TrustedPublishersStore:
 
     def user_tampered(self) -> tuple[bool, str]:
         verify_user_trusted_publishers_integrity(
-            self.settings_store.state_db_path, self.plugins_root
+            self.settings_store.state_db_path,
+            self.plugins_root,
         )
         return user_trusted_publishers_tampered()

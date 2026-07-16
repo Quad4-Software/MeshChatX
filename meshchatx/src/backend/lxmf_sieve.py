@@ -35,7 +35,7 @@ def _validate_regex_terms(terms: list[str]) -> list[str] | None:
         except re.error:
             return None
         out.append(p)
-    return out if out else None
+    return out or None
 
 
 def _normalize_action(raw: str | None) -> str | None:
@@ -85,9 +85,8 @@ def normalize_lxmf_sieve_filters(filters: list) -> list[dict[str, Any]]:
             if validated is None:
                 continue
             terms = validated
-        else:
-            if not terms:
-                continue
+        elif not terms:
+            continue
 
         folder_id: int | None = None
         if action == "folder":

@@ -478,15 +478,14 @@ class VoicemailManager:
                         remote_name,
                         duration,
                     )
-            else:
-                # Delete short/empty recording
-                if self.recording_filename:
-                    filepath = os.path.join(
-                        self.recordings_dir,
-                        self.recording_filename,
-                    )
-                    if os.path.exists(filepath):
-                        os.remove(filepath)
+            # Delete short/empty recording
+            elif self.recording_filename:
+                filepath = os.path.join(
+                    self.recordings_dir,
+                    self.recording_filename,
+                )
+                if os.path.exists(filepath):
+                    os.remove(filepath)
 
             self.is_recording = False
             self.is_greeting_recording = False

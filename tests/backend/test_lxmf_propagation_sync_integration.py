@@ -141,7 +141,8 @@ async def test_remote_propagation_sync_transitions_path_requested_to_complete(
     with (
         patch("meshchatx.meshchat.RNS.Transport.has_path", side_effect=has_path),
         patch(
-            "meshchatx.meshchat.RNS.Transport.request_path", side_effect=request_path
+            "meshchatx.meshchat.RNS.Transport.request_path",
+            side_effect=request_path,
         ),
     ):
         first_sync = await sync_handler(None)

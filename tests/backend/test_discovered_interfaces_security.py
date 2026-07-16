@@ -35,7 +35,9 @@ def _iface_dict(**kwargs):
     ],
 )
 def test_discovery_filter_candidates_preserves_strings(
-    name, network_name, ifac_netname
+    name,
+    network_name,
+    ifac_netname,
 ):
     iface = _iface_dict(
         name=name,
@@ -101,10 +103,11 @@ def test_discovery_filter_candidates_never_raises(name, typ, host, port, extra):
     iface=st.builds(
         _iface_dict,
         name=st.text(
-            max_size=128, alphabet=st.characters(blacklist_categories=("Cs",))
+            max_size=128,
+            alphabet=st.characters(blacklist_categories=("Cs",)),
         ),
         reachable_on=st.sampled_from(
-            ["10.0.0.1", "192.168.0.1", "peer-abc", "1.2.3.4"]
+            ["10.0.0.1", "192.168.0.1", "peer-abc", "1.2.3.4"],
         ),
         port=st.integers(min_value=1, max_value=65535),
     ),
@@ -128,10 +131,12 @@ def test_matches_discovery_pattern_fuzzing(wl, bl, iface):
         st.builds(
             _iface_dict,
             name=st.text(
-                max_size=500, alphabet=st.characters(blacklist_categories=("Cs",))
+                max_size=500,
+                alphabet=st.characters(blacklist_categories=("Cs",)),
             ),
             reachable_on=st.text(
-                max_size=80, alphabet=st.characters(blacklist_categories=("Cs",))
+                max_size=80,
+                alphabet=st.characters(blacklist_categories=("Cs",)),
             ),
         ),
         max_size=24,

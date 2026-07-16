@@ -6,11 +6,11 @@ import time
 
 from meshchatx.src.backend.rrc import protocol as proto
 from meshchatx.src.backend.rrc.identity_util import (
+    find_session_by_token,
+    find_sessions_by_token,
     format_ambiguous_targets,
     parse_identity_hash,
     resolve_identity_hash,
-    find_session_by_token,
-    find_sessions_by_token,
 )
 from meshchatx.src.backend.rrc.rooms_toml import INVITE_DEFAULT_TTL_S
 
@@ -158,7 +158,10 @@ class HubCommandHandler:
         if len(parts) == 2:
             topic = st.get("topic")
             server._queue_notice(
-                outgoing, link, room, f"topic for {r}: {topic if topic else '(none)'}"
+                outgoing,
+                link,
+                room,
+                f"topic for {r}: {topic or '(none)'}",
             )
             return True
         if not server.rooms.is_room_op(r, peer):
@@ -166,7 +169,7 @@ class HubCommandHandler:
                 server._queue_error(outgoing, link, "not authorized (+t)", room=r)
                 return True
         topic = " ".join(parts[2:]).strip()
-        st["topic"] = topic if topic else None
+        st["topic"] = topic or None
         server.rooms.touch_room(r)
         server.rooms.persist(r)
         for member in list(server._room_members.get(r, set())):
@@ -174,14 +177,17 @@ class HubCommandHandler:
                 outgoing,
                 member,
                 r,
-                f"topic for {r} is now: {topic if topic else '(cleared)'}",
+                f"topic for {r} is now: {topic or '(cleared)'}",
             )
         return True
 
     def _cmd_kick(self, server, link, room, parts, outgoing, peer):
         if len(parts) < 3:
             server._queue_notice(
-                outgoing, link, None, "usage: /kick <room> <nick|hashprefix>"
+                outgoing,
+                link,
+                None,
+                "usage: /kick <room> <nick|hashprefix>",
             )
             return True
         try:
@@ -246,7 +252,10 @@ class HubCommandHandler:
             return True
         if len(parts) < 3:
             server._queue_notice(
-                outgoing, link, None, f"usage: /kline {op} <nick|hashprefix|hash>"
+                outgoing,
+                link,
+                None,
+                f"usage: /kline {op} <nick|hashprefix|hash>",
             )
             return True
         target_hash, _ = resolve_identity_hash(server, parts[2])
@@ -260,19 +269,27 @@ class HubCommandHandler:
             server.policy.save()
             server._disconnect_banned(target_hash, outgoing, "banned (kline)")
             server._queue_notice(
-                outgoing, link, None, f"kline added for {target_hash.hex()}"
+                outgoing,
+                link,
+                None,
+                f"kline added for {target_hash.hex()}",
+            )
+        elif server.policy.is_banned(target_hash):
+            server.policy.remove_ban(target_hash)
+            server.policy.save()
+            server._queue_notice(
+                outgoing,
+                link,
+                None,
+                f"kline removed for {target_hash.hex()}",
             )
         else:
-            if server.policy.is_banned(target_hash):
-                server.policy.remove_ban(target_hash)
-                server.policy.save()
-                server._queue_notice(
-                    outgoing, link, None, f"kline removed for {target_hash.hex()}"
-                )
-            else:
-                server._queue_notice(
-                    outgoing, link, None, f"not klined: {target_hash.hex()}"
-                )
+            server._queue_notice(
+                outgoing,
+                link,
+                None,
+                f"not klined: {target_hash.hex()}",
+            )
         return True
 
     def _cmd_register(self, server, link, sess, room, parts, outgoing, peer):
@@ -286,14 +303,20 @@ class HubCommandHandler:
             return True
         if r not in sess.rooms:
             server._queue_notice(
-                outgoing, link, room, "must be present in the room to register it"
+                outgoing,
+                link,
+                room,
+                "must be present in the room to register it",
             )
             return True
         st = server.rooms.ensure_state(r, founder=peer)
         if st.get("registered") and st.get("founder") not in (None, peer):
             if not server.rooms.is_room_op(r, peer):
                 server._queue_error(
-                    outgoing, link, "only the room founder can register", room=r
+                    outgoing,
+                    link,
+                    "only the room founder can register",
+                    room=r,
                 )
                 return True
         st["registered"] = True
@@ -317,7 +340,10 @@ class HubCommandHandler:
             return True
         if r not in sess.rooms:
             server._queue_notice(
-                outgoing, link, room, "must be present in the room to unregister it"
+                outgoing,
+                link,
+                room,
+                "must be present in the room to unregister it",
             )
             return True
         st = server.rooms.ensure_state(r)
@@ -325,7 +351,10 @@ class HubCommandHandler:
         if founder is not None and peer is not None and bytes(founder) != bytes(peer):
             if not server.policy.is_server_op(peer):
                 server._queue_error(
-                    outgoing, link, "only the room founder can unregister", room=r
+                    outgoing,
+                    link,
+                    "only the room founder can unregister",
+                    room=r,
                 )
                 return True
         if not st.get("registered"):
@@ -340,7 +369,10 @@ class HubCommandHandler:
     def _cmd_op_voice(self, server, link, room, parts, outgoing, peer, cmd):
         if len(parts) < 3:
             server._queue_notice(
-                outgoing, link, None, f"usage: /{cmd} <room> <nick|hashprefix|hash>"
+                outgoing,
+                link,
+                None,
+                f"usage: /{cmd} <room> <nick|hashprefix|hash>",
             )
             return True
         try:
@@ -354,7 +386,10 @@ class HubCommandHandler:
         target_hash, matches = resolve_identity_hash(server, parts[2], room=r)
         if target_hash is None:
             server._queue_notice(
-                outgoing, link, room, format_ambiguous_targets(parts[2], matches)
+                outgoing,
+                link,
+                room,
+                format_ambiguous_targets(parts[2], matches),
             )
             return True
         st = server.rooms.ensure_state(r)
@@ -417,7 +452,10 @@ class HubCommandHandler:
             if flag == "+k":
                 if len(parts) < 4:
                     server._queue_notice(
-                        outgoing, link, room, "usage: /mode <room> +k <key>"
+                        outgoing,
+                        link,
+                        room,
+                        "usage: /mode <room> +k <key>",
                     )
                     return True
                 key = " ".join(parts[3:]).strip()
@@ -429,7 +467,10 @@ class HubCommandHandler:
                 st["key"] = None
         elif flag in ("+r", "-r"):
             server._queue_notice(
-                outgoing, link, room, "use /register or /unregister to change +r"
+                outgoing,
+                link,
+                room,
+                "use /register or /unregister to change +r",
             )
             return True
         elif flag in ("+o", "-o", "+v", "-v"):
@@ -444,7 +485,10 @@ class HubCommandHandler:
             target_hash, matches = resolve_identity_hash(server, parts[3], room=r)
             if target_hash is None:
                 server._queue_notice(
-                    outgoing, link, room, format_ambiguous_targets(parts[3], matches)
+                    outgoing,
+                    link,
+                    room,
+                    format_ambiguous_targets(parts[3], matches),
                 )
                 return True
             founder = st.get("founder")
@@ -503,7 +547,10 @@ class HubCommandHandler:
             else:
                 items = sorted(bytes(x).hex() for x in bans)
                 server._queue_notice(
-                    outgoing, link, room, f"bans in {r}: " + ", ".join(items)
+                    outgoing,
+                    link,
+                    room,
+                    f"bans in {r}: " + ", ".join(items),
                 )
             return True
         if op not in ("add", "del"):
@@ -516,7 +563,10 @@ class HubCommandHandler:
             return True
         if len(parts) < 4:
             server._queue_notice(
-                outgoing, link, room, f"usage: /ban {r} {op} <nick|hashprefix|hash>"
+                outgoing,
+                link,
+                room,
+                f"usage: /ban {r} {op} <nick|hashprefix|hash>",
             )
             return True
         if not server.rooms.is_room_op(r, peer):
@@ -525,7 +575,10 @@ class HubCommandHandler:
         target_hash, matches = resolve_identity_hash(server, parts[3], room=r)
         if target_hash is None:
             server._queue_notice(
-                outgoing, link, room, format_ambiguous_targets(parts[3], matches)
+                outgoing,
+                link,
+                room,
+                format_ambiguous_targets(parts[3], matches),
             )
             return True
         if op == "add":
@@ -539,7 +592,10 @@ class HubCommandHandler:
                         ms.rooms.discard(r)
                         server._room_members[r].discard(member)
                         server._queue_error(
-                            outgoing, member, f"banned from {r}", room=r
+                            outgoing,
+                            member,
+                            f"banned from {r}",
+                            room=r,
                         )
             server._queue_notice(outgoing, link, room, f"ban added in {r}")
         else:
@@ -598,7 +654,10 @@ class HubCommandHandler:
             return True
         if len(parts) < 4:
             server._queue_notice(
-                outgoing, link, room, f"usage: /invite {r} {op} <nick|hashprefix|hash>"
+                outgoing,
+                link,
+                room,
+                f"usage: /invite {r} {op} <nick|hashprefix|hash>",
             )
             return True
         if op == "add":
@@ -616,7 +675,10 @@ class HubCommandHandler:
             ph = tsess.peer if tsess else None
             if not isinstance(ph, (bytes, bytearray)):
                 server._queue_error(
-                    outgoing, link, "invite failed: target not identified", room=r
+                    outgoing,
+                    link,
+                    "invite failed: target not identified",
+                    room=r,
                 )
                 return True
             target_hash = bytes(ph)
@@ -643,13 +705,19 @@ class HubCommandHandler:
                 )
             else:
                 server._queue_notice(
-                    outgoing, link, room, f"invite sent to {parts[3]} for {r}"
+                    outgoing,
+                    link,
+                    room,
+                    f"invite sent to {parts[3]} for {r}",
                 )
             return True
         target_hash, matches = resolve_identity_hash(server, parts[3], room=None)
         if target_hash is None:
             server._queue_notice(
-                outgoing, link, room, format_ambiguous_targets(parts[3], matches)
+                outgoing,
+                link,
+                room,
+                format_ambiguous_targets(parts[3], matches),
             )
             return True
         invited.pop(target_hash, None)

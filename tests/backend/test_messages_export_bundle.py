@@ -80,13 +80,14 @@ def _seed_message(app, *, msg_hash, peer, incoming=1, timestamp=1000.0, content=
             "path_interface_at_send": None,
             "path_finding_measure": None,
             "path_row_hash_hex": None,
-        }
+        },
     )
 
 
 @pytest.mark.asyncio
 async def test_messages_export_includes_contacts_names_and_read_state(
-    mock_rns_minimal, temp_dir
+    mock_rns_minimal,
+    temp_dir,
 ):
     with patch("meshchatx.meshchat.generate_ssl_certificate"):
         app = ReticulumMeshChat(
@@ -130,7 +131,8 @@ async def test_messages_export_includes_contacts_names_and_read_state(
 
 @pytest.mark.asyncio
 async def test_messages_import_restores_contacts_names_and_read_state(
-    mock_rns_minimal, temp_dir
+    mock_rns_minimal,
+    temp_dir,
 ):
     with patch("meshchatx.meshchat.generate_ssl_certificate"):
         app = ReticulumMeshChat(
@@ -221,8 +223,8 @@ async def test_legacy_messages_only_import_still_works(mock_rns_minimal, temp_di
                     "fields": None,
                     "timestamp": 1111.0,
                     "is_spam": 0,
-                }
-            ]
+                },
+            ],
         }
         result = import_messages_export_bundle(app.database, payload)
         assert result["ok"] is True

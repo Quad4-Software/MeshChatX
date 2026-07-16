@@ -221,8 +221,8 @@ async def test_probe_rns_link_api_accepts_no_active_link():
     ws.receive = AsyncMock(
         return_value=FakeMsg(
             '{"type":"rns.link.close","request_id":"self-check-rns-link",'
-            '"status":"failure","failure_reason":"no_active_link"}'
-        )
+            '"status":"failure","failure_reason":"no_active_link"}',
+        ),
     )
     result = await self_check._probe_rns_link_api(ws, timeout=1)
     assert result["status"] == "ok"
@@ -245,8 +245,8 @@ async def test_probe_rns_link_api_rejects_unexpected_failure():
     ws.receive = AsyncMock(
         return_value=FakeMsg(
             '{"type":"rns.link.close","request_id":"self-check-rns-link",'
-            '"status":"failure","failure_reason":"boom"}'
-        )
+            '"status":"failure","failure_reason":"boom"}',
+        ),
     )
     result = await self_check._probe_rns_link_api(ws, timeout=1)
     assert result["status"] == "failed"

@@ -44,7 +44,8 @@ def mock_app():
     )
     app._resolve_location_for_telemetry = (
         ReticulumMeshChat._resolve_location_for_telemetry.__get__(
-            app, ReticulumMeshChat
+            app,
+            ReticulumMeshChat,
         )
     )
 

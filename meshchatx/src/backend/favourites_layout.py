@@ -55,7 +55,7 @@ def normalize_favourites_layout(layout):
                 "id": section_id,
                 "name": name,
                 "collapsed": section.get("collapsed") is True,
-            }
+            },
         )
 
     if not sections:
