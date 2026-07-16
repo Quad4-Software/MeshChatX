@@ -13,12 +13,14 @@ import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.hardware.usb.UsbManager;
 import android.net.Uri;
+import android.os.BatteryManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.PowerManager;
+import android.content.IntentFilter;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.webkit.CookieManager;
@@ -1203,6 +1205,59 @@ public class MainActivity extends AppCompatActivity {
         @JavascriptInterface
         public String getPlatform() {
             return "android";
+        }
+
+        @JavascriptInterface
+        public String getBatteryStatus() {
+            try {
+                int level = -1;
+                boolean charging = false;
+                BatteryManager batteryManager =
+                    (BatteryManager) activity.getSystemService(Context.BATTERY_SERVICE);
+                if (batteryManager != null) {
+                    level = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
+                    // BatteryManager may return Integer.MIN_VALUE when unsupported.
+                    if (level < 0 || level > 100) {
+                        level = -1;
+                    }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        charging = batteryManager.isCharging();
+                    }
+                }
+                IntentFilter filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+                Intent batteryStatus = activity.registerReceiver(null, filter);
+                if (batteryStatus != null) {
+                    if (level < 0) {
+                        int rawLevel = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+                        int scale = batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, 100);
+                        if (rawLevel >= 0 && scale > 0) {
+                            level = Math.round((rawLevel * 100f) / scale);
+                        }
+                    }
+                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+                        int status =
+                            batteryStatus.getIntExtra(
+                                BatteryManager.EXTRA_STATUS,
+                                BatteryManager.BATTERY_STATUS_UNKNOWN);
+                        charging =
+                            status == BatteryManager.BATTERY_STATUS_CHARGING
+                                || status == BatteryManager.BATTERY_STATUS_FULL;
+                    }
+                }
+                if (level < 0) {
+                    return "";
+                }
+                if (level > 100) {
+                    level = 100;
+                }
+                return "{\"level\":"
+                    + level
+                    + ",\"charging\":"
+                    + (charging ? "true" : "false")
+                    + ",\"source\":\"android\"}";
+            } catch (Exception e) {
+                return "";
+            }
         }
 
         @JavascriptInterface

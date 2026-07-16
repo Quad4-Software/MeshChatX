@@ -486,7 +486,11 @@
         "recover_network": "Riprova rete",
         "open_interfaces": "Apri interfacce",
         "network_recovered": "Stack di rete ripristinato",
-        "network_recover_failed": "Impossibile ripristinare lo stack di rete. Controlla le interfacce e riprova."
+        "network_recover_failed": "Impossibile ripristinare lo stack di rete. Controlla le interfacce e riprova.",
+        "battery_unavailable": "Stato batteria non disponibile",
+        "battery_level_title": "Batteria {percent}",
+        "battery_charging_title": "In carica {percent}",
+        "battery_discharging_title": "A batteria {percent}"
     },
     "common": {
         "open": "Apri",
@@ -1181,7 +1185,11 @@
         "tagline_after": ".",
         "tagline_lead": "Piattaforma di comunicazione sicura e resiliente basata su ",
         "tagline_link": "Reticulum Network Stack",
-        "technical_issues_detected": "Modifiche dall'ultima istantanea"
+        "technical_issues_detected": "Modifiche dall'ultima istantanea",
+        "env_battery": "Batteria",
+        "env_battery_unavailable": "Non disponibile su questo dispositivo",
+        "env_battery_charging": "In carica {percent}",
+        "env_battery_on_battery": "A batteria {percent}"
     },
     "interfaces": {
         "title": "Interfacce",

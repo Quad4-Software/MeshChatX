@@ -71,6 +71,20 @@ describe("AndroidBridge", () => {
         expect(ab.getPlatform()).toBe("android");
     });
 
+    it("getBatteryStatus delegates to the bridge", () => {
+        const bridge = {
+            getBatteryStatus: vi.fn().mockReturnValue('{"level":55,"charging":true}'),
+        };
+        const ab = new AndroidBridge(bridge, {});
+        expect(ab.getBatteryStatus()).toBe('{"level":55,"charging":true}');
+        expect(bridge.getBatteryStatus).toHaveBeenCalled();
+    });
+
+    it("getBatteryStatus returns null when method missing", () => {
+        const ab = new AndroidBridge({}, {});
+        expect(ab.getBatteryStatus()).toBe(null);
+    });
+
     it("auto-detects bridge from env.MeshChatXAndroid", () => {
         const env = { MeshChatXAndroid: { hasBluetoothPermissions: () => true } };
         const ab = new AndroidBridge(null, env);

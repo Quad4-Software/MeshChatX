@@ -459,6 +459,22 @@
                                     }}</span>
                                     <span class="font-mono text-xs font-bold">{{ environmentInfo.platform }}</span>
                                 </div>
+                                <div class="flex items-center justify-between gap-3">
+                                    <span class="text-[10px] font-black text-lime-600 uppercase tracking-wider">{{
+                                        $t("about.env_battery")
+                                    }}</span>
+                                    <span
+                                        class="font-mono text-xs font-bold shrink-0 inline-flex items-center gap-1"
+                                        :class="batteryStatusToneClass"
+                                    >
+                                        <v-icon
+                                            v-if="batteryStatus"
+                                            :icon="'mdi-' + batteryStatusIcon"
+                                            size="14"
+                                        ></v-icon>
+                                        {{ batteryStatusLabel }}
+                                    </span>
+                                </div>
                                 <div
                                     v-if="isLinuxHost && appInfo.landlock_requested !== undefined"
                                     class="flex flex-col gap-1"
@@ -1073,6 +1089,7 @@ import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
 import DownloadUtils from "../../js/DownloadUtils";
 import GlobalEmitter from "../../js/GlobalEmitter";
+import { batteryStatusIconName, getDeviceBatteryStatus } from "../../js/deviceBattery.js";
 export default {
     name: "AboutPage",
     components: {},
@@ -1092,6 +1109,7 @@ export default {
             databaseActionInProgress: false,
             healthLoading: false,
             electronMemoryUsage: null,
+            batteryStatus: null,
             backupInProgress: false,
             backupMessage: "",
             backupError: "",
@@ -1160,6 +1178,39 @@ export default {
                 return this.$t("app.landlock_disabled_by_env");
             }
             return this.$t("app.landlock_inactive");
+        },
+        batteryStatusIcon() {
+            return batteryStatusIconName(this.batteryStatus);
+        },
+        batteryStatusLabel() {
+            if (!this.batteryStatus || !this.batteryStatus.supported) {
+                return this.$t("about.env_battery_unavailable");
+            }
+            const level =
+                this.batteryStatus.level != null ? `${this.batteryStatus.level}%` : this.$t("about.path_unknown");
+            if (this.batteryStatus.charging === true) {
+                return this.$t("about.env_battery_charging", { percent: level });
+            }
+            if (this.batteryStatus.charging === false) {
+                return this.$t("about.env_battery_on_battery", { percent: level });
+            }
+            return level;
+        },
+        batteryStatusToneClass() {
+            if (!this.batteryStatus || !this.batteryStatus.supported) {
+                return "opacity-70";
+            }
+            if (this.batteryStatus.charging) {
+                return "text-emerald-600 dark:text-emerald-400";
+            }
+            const level = this.batteryStatus.level;
+            if (level != null && level <= 15) {
+                return "text-red-600 dark:text-red-400";
+            }
+            if (level != null && level <= 30) {
+                return "text-amber-600 dark:text-amber-400";
+            }
+            return "";
         },
         environmentInfo() {
             const ua = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
@@ -1361,8 +1412,16 @@ export default {
                     this.chromeVersion = window.electron.chromeVersion();
                     this.nodeVersion = window.electron.nodeVersion();
                 }
+                await this.refreshBatteryStatus();
             } catch (e) {
                 console.log(e);
+            }
+        },
+        async refreshBatteryStatus() {
+            try {
+                this.batteryStatus = await getDeviceBatteryStatus();
+            } catch {
+                this.batteryStatus = null;
             }
         },
         async acknowledgeIntegrity() {

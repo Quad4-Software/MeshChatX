@@ -486,7 +486,11 @@
         "recover_network": "Netzwerk erneut versuchen",
         "open_interfaces": "Schnittstellen öffnen",
         "network_recovered": "Netzwerkstapel wiederhergestellt",
-        "network_recover_failed": "Netzwerkstapel konnte nicht wiederhergestellt werden. Prüfen Sie die Schnittstellen und versuchen Sie es erneut."
+        "network_recover_failed": "Netzwerkstapel konnte nicht wiederhergestellt werden. Prüfen Sie die Schnittstellen und versuchen Sie es erneut.",
+        "battery_unavailable": "Akkustatus nicht verfügbar",
+        "battery_level_title": "Akku {percent}",
+        "battery_charging_title": "Lädt {percent}",
+        "battery_discharging_title": "Akku {percent}"
     },
     "common": {
         "open": "Öffnen",
@@ -1181,7 +1185,11 @@
         "tagline_after": ".",
         "tagline_lead": "Eine sichere, widerstandsfähige Kommunikationsplattform auf Basis des ",
         "tagline_link": "Reticulum Network Stack",
-        "technical_issues_detected": "Änderungen seit dem letzten Snapshot"
+        "technical_issues_detected": "Änderungen seit dem letzten Snapshot",
+        "env_battery": "Akku",
+        "env_battery_unavailable": "Auf diesem Gerät nicht verfügbar",
+        "env_battery_charging": "Lädt {percent}",
+        "env_battery_on_battery": "Akku {percent}"
     },
     "interfaces": {
         "title": "Schnittstellen",

@@ -13,23 +13,32 @@ All notable changes to this project will be documented in this file.
 - Settings: Reticulum instance/share controls, tabbed Settings nav, desktop close/tray behavior
 - Nomad favourites: per-identity section layout in the database
 - Optional pip-rns / rngit install path for RNS packages and docs
+- Message export and import with contacts and read state
+- Host battery status on About and in the header (Electron, Android, Chromium)
+- RSM signing and verification for meshchatx.rsm (CI and pre-commit resign)
+- Notification sound settings
 - LXMFy 1.6.5 vendor refresh, wasmtime, mutation test tasks
 
 ### Changed
 
 - UI opens sooner: HTTP binds first, Reticulum starts in the background
+- Conversations load faster: slim list and thread queries via fields_meta and attachment flags
 - Relay Chat: denser hub UI, announce interval, collapsed system lines, reconnect notices
+- Low-memory cleanup and SQLite pragmas under memory pressure
 - CI benches use median-of-medians and quieter regression gates
+- Backend tests can run sharded in CI
 - Plugin strings live in plugin bundles, not main locale files
 
 ### Fixed
 
-- Android: lxmfy packaging, flock soft-lock, splash/logo clipping, emulator smoke
-- RNode BLE on desktop needs bleak ([#46](https://github.com/Quad4-Software/MeshChatX/issues/46)); startup disables unsupported interfaces
+- Android: lxmfy packaging, flock soft-lock, splash/logo clipping, emulator smoke, Landlock skipped on Android
+- Android RNode BLE/USB via Chaquopy
+- Startup check and disable unsupported interfaces
 - Nomad favourites: no more Unknown Node / lost custom sections
-- Relay Chat message dedupe; network visualiser faster on large meshes
+- Relay Chat message dedupe. Network visualiser faster on large meshes
 - Bots and RNSh work in frozen macOS/Windows builds (`--meshchatx-run-module`)
-- Sensitive config no longer mutable over WebSocket; Reticulum config repair on startup
+- Sensitive config no longer mutable over WebSocket. Reticulum config repair on startup
+- Paper message URI encoding for non-ASCII title and content
 - Nightly releases and broader self-test / CI coverage
 
 ## [4.7.2] - 2026-07-06

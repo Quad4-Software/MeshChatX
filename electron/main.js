@@ -9,6 +9,7 @@ const {
     Menu,
     Notification,
     powerSaveBlocker,
+    powerMonitor,
     session,
     clipboard,
 } = require("electron");
@@ -358,6 +359,55 @@ ipcMain.handle("set-close-settings", (_event, partial) => {
 
 ipcMain.handle("get-memory-usage", async () => {
     return process.getProcessMemoryInfo();
+});
+
+ipcMain.handle("get-battery-status", async () => {
+    let onBattery = null;
+    try {
+        if (typeof powerMonitor?.isOnBatteryPower === "function") {
+            onBattery = Boolean(powerMonitor.isOnBatteryPower());
+        }
+    } catch {
+        onBattery = null;
+    }
+
+    let level = null;
+    // Linux sysfs: common laptop BAT0/BAT1 capacity files.
+    if (process.platform === "linux") {
+        try {
+            const powerSupplyDir = "/sys/class/power_supply";
+            if (fs.existsSync(powerSupplyDir)) {
+                const entries = fs.readdirSync(powerSupplyDir);
+                for (const name of entries) {
+                    if (!/^BAT\d+$/i.test(name) && name.toUpperCase() !== "BATTERY") {
+                        continue;
+                    }
+                    const capacityPath = path.join(powerSupplyDir, name, "capacity");
+                    if (!fs.existsSync(capacityPath)) {
+                        continue;
+                    }
+                    const raw = fs.readFileSync(capacityPath, "utf8").trim();
+                    const parsed = Number.parseInt(raw, 10);
+                    if (Number.isFinite(parsed) && parsed >= 0 && parsed <= 100) {
+                        level = parsed;
+                        break;
+                    }
+                }
+            }
+        } catch {
+            level = null;
+        }
+    }
+
+    if (level == null && onBattery == null) {
+        return null;
+    }
+    return {
+        level,
+        charging: onBattery == null ? null : !onBattery,
+        on_battery: onBattery,
+        source: "electron",
+    };
 });
 
 // allow showing a file path in os file manager

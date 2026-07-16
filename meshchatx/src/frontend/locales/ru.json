@@ -486,7 +486,11 @@
         "recover_network": "Повторить сеть",
         "open_interfaces": "Открыть интерфейсы",
         "network_recovered": "Сетевой стек восстановлен",
-        "network_recover_failed": "Не удалось восстановить сетевой стек. Проверьте интерфейсы и попробуйте снова."
+        "network_recover_failed": "Не удалось восстановить сетевой стек. Проверьте интерфейсы и попробуйте снова.",
+        "battery_unavailable": "Состояние батареи недоступно",
+        "battery_level_title": "Батарея {percent}",
+        "battery_charging_title": "Зарядка {percent}",
+        "battery_discharging_title": "От батареи {percent}"
     },
     "common": {
         "open": "Открыть",
@@ -1181,7 +1185,11 @@
         "tagline_after": ".",
         "tagline_lead": "Надёжная отказоустойчивая платформа связи на базе ",
         "tagline_link": "Reticulum Network Stack",
-        "technical_issues_detected": "Изменения с последнего снимка"
+        "technical_issues_detected": "Изменения с последнего снимка",
+        "env_battery": "Батарея",
+        "env_battery_unavailable": "Недоступно на этом устройстве",
+        "env_battery_charging": "Зарядка {percent}",
+        "env_battery_on_battery": "От батареи {percent}"
     },
     "interfaces": {
         "title": "Интерфейсы",
