@@ -10209,10 +10209,19 @@ class ReticulumMeshChat:
         async def telephone_status(request):
             # make sure telephone is enabled
             if self.telephone_manager.telephone is None:
+                missed_calls_unread_count = 0
+                if self.database is not None:
+                    with contextlib.suppress(Exception):
+                        missed_calls_unread_count = (
+                            self.database.misc.get_unread_notification_count_by_type(
+                                "telephone_missed_call",
+                            )
+                        )
                 return web.json_response(
                     {
                         "enabled": False,
                         "message": "Telephone is disabled",
+                        "missed_calls_unread_count": missed_calls_unread_count,
                     },
                 )
 
@@ -10374,6 +10383,9 @@ class ReticulumMeshChat:
                     "active_call": active_call,
                     "is_mic_muted": self.telephone_manager.transmit_muted,
                     "is_speaker_muted": self.telephone_manager.receive_muted,
+                    "missed_calls_unread_count": self.database.misc.get_unread_notification_count_by_type(
+                        "telephone_missed_call",
+                    ),
                     "voicemail": {
                         "is_recording": self.voicemail_manager.is_recording,
                         "unread_count": self.database.voicemails.get_unread_count(),
@@ -10414,6 +10426,17 @@ class ReticulumMeshChat:
                     },
                 },
             )
+
+        @routes.post("/api/v1/telephone/missed-calls/mark-viewed")
+        async def telephone_missed_calls_mark_viewed(request):
+            not_ready = self._require_identity_context_ready()
+            if not_ready is not None:
+                return not_ready
+            await asyncio.to_thread(
+                self.database.misc.dismiss_unviewed_notifications,
+                "telephone_missed_call",
+            )
+            return web.json_response({"message": "ok"})
 
         # answer incoming telephone call
         @routes.get("/api/v1/telephone/answer")

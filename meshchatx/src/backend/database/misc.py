@@ -304,6 +304,16 @@ class MiscDAO:
         )
         return row["count"] if row else 0
 
+    def get_unread_notification_count_by_type(self, notification_type):
+        if not notification_type:
+            return 0
+        row = self.provider.fetchone(
+            "SELECT COUNT(*) as count FROM notifications "
+            "WHERE is_viewed = 0 AND type = ?",
+            (notification_type,),
+        )
+        return row["count"] if row else 0
+
     # Keyboard Shortcuts
     def get_keyboard_shortcuts(self, identity_hash):
         return self.provider.fetchall(

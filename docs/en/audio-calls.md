@@ -37,6 +37,8 @@ Voicemail events surface as `new_voicemail` on the WebSocket.
 
 The **Call** area keeps history of placed, received, and missed calls. You can record calls when the feature is enabled and policy allows storage on your device.
 
+Unread missed calls show as a red count on the Calls sidebar icon and the header phone button. Opening the Call page clears that count. Desktop and Android still show a one-shot missed-call notification when the event happens.
+
 ## Ringtones
 
 Upload custom ringtones and assign them per contact. Default sounds are used when no override exists.

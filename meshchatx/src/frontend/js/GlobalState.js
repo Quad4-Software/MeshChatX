@@ -11,6 +11,7 @@ const globalState = reactive({
     messageTimestampGroupingEnabled: true,
     unreadConversationsCount: 0,
     relayChatUnreadCount: 0,
+    missedCallsCount: 0,
     activeCallTab: "phone",
     blockedDestinations: [],
     modifiedInterfaceNames: new Set(),

@@ -444,6 +444,18 @@ def test_random_notification_operations(db, operations):
     assert count >= 0
 
 
+def test_unread_notification_count_by_type(db):
+    db.misc.add_notification("telephone_missed_call", "h1", "Missed Call", "c1")
+    db.misc.add_notification("telephone_missed_call", "h2", "Missed Call", "c2")
+    db.misc.add_notification("other", "h3", "Other", "c3")
+    assert db.misc.get_unread_notification_count_by_type("telephone_missed_call") == 2
+    assert db.misc.get_unread_notification_count_by_type("other") == 1
+    assert db.misc.get_unread_notification_count_by_type("missing") == 0
+    db.misc.dismiss_unviewed_notifications("telephone_missed_call")
+    assert db.misc.get_unread_notification_count_by_type("telephone_missed_call") == 0
+    assert db.misc.get_unread_notification_count_by_type("other") == 1
+
+
 @pytest.mark.asyncio
 @pytest.mark.usefixtures("require_loopback_tcp")
 async def test_auth_middleware_returns_401_for_api_without_session_when_auth_enabled(

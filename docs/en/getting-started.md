@@ -63,7 +63,7 @@ The same backend code powers Docker images, Python wheels, Linux packages, Elect
 | Identities         | `/identities`         | Create, import, or switch identities                  |
 | Documentation      | `/documentation`      | MeshChatX guides and the Reticulum manual             |
 
-Relay chat appears only when `rrc_enabled` is turned on in settings.
+Relay chat appears only when `rrc_enabled` is turned on in settings. When enabled, the Relay chat icon can show a red mention count. Messages shows unread conversation count. Calls shows unread missed-call count.
 
 ## Documentation in the app
 

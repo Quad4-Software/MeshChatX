@@ -48,6 +48,7 @@ All notable changes to this project will be documented in this file.
 - Unknown meshchatx links return a clear error instead of falling through to LXMF
 - NomadNet Micron copy no longer inserts a newline between every character
 - Unread message count is a red pill on the Messages nav icon
+- Missed call count is a red pill on the Calls nav icon
 - Notification bell removed from the header
 - Unread badge stays circular and remains visible when the sidebar is collapsed
 - Open conversations mark as read when a new message arrives without needing to reselect the thread
