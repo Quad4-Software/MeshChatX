@@ -35,4 +35,23 @@ if bash "$SCRIPT" dir "$tmp/dirty"; then
 	exit 1
 fi
 
+mkdir -p "$tmp/lxst-android/lib/python3.14/site-packages/LXST/Platforms/android"
+echo ok >"$tmp/lxst-android/lib/python3.14/site-packages/LXST/Platforms/android/soundcard.py"
+echo "expect LXST Platforms/android paths to pass dir scan (APK-relevant)"
+bash "$SCRIPT" dir "$tmp/lxst-android"
+
+echo "expect MeshChatX android/app denylist to match app tree only"
+if ! printf '%s\n' "android/app/build.gradle" | grep -Eq '(^|/)android/(app|gradle)(/|$)'; then
+	echo "expected android/app denylist match" >&2
+	exit 1
+fi
+if printf '%s\n' "lib/python3.14/site-packages/LXST/Platforms/android/soundcard.py" | grep -Eq '(^|/)android/(app|gradle)(/|$)|(^)android(/|$)'; then
+	echo "LXST Platforms/android must not match ANDROID_APP_DENY_RE" >&2
+	exit 1
+fi
+if ! printf '%s\n' "lib/python3.14/site-packages/LXST/Platforms/android/soundcard.py" | grep -Eq '(^|/)LXST/Platforms/android(/|$)'; then
+	echo "expected LXST Platforms/android docker denylist match" >&2
+	exit 1
+fi
+
 echo "verify-package-contents smoke OK"
