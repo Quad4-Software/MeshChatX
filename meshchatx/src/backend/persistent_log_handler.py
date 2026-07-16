@@ -45,6 +45,11 @@ class PersistentLogHandler(logging.Handler):
             self.database = database
 
     def emit(self, record):
+        # Nested emit (e.g. signal handler during a flush) must not recurse into
+        # SQLite or other handlers via handleError.
+        if getattr(self, "_emitting", False):
+            return
+        self._emitting = True
         try:
             msg = self.format(record)
             timestamp = datetime.now(UTC).timestamp()
@@ -77,7 +82,12 @@ class PersistentLogHandler(logging.Handler):
                 self._flush_to_db()
 
         except Exception:
-            self.handleError(record)
+            try:
+                self.handleError(record)
+            except Exception:
+                pass
+        finally:
+            self._emitting = False
 
     def _detect_access_anomaly(self, message):
         """Detect anomalies in aiohttp access logs."""

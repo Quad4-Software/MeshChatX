@@ -28,6 +28,30 @@ def test_install_rns_panic_containment_raises_instead_of_exit(monkeypatch):
     assert calls["exit"] == 0
 
 
+def test_contained_exit_is_reentrant_safe(monkeypatch):
+    import RNS
+
+    recovery._EXIT_IN_PROGRESS = False
+    assert recovery.install_rns_panic_containment(force=True) is True
+    handler_calls = {"n": 0}
+
+    def counting_exit_handler():
+        handler_calls["n"] += 1
+        # Nested exit must not recurse or raise.
+        RNS.exit(0)
+
+    monkeypatch.setattr(
+        RNS.Reticulum,
+        "exit_handler",
+        staticmethod(counting_exit_handler),
+        raising=False,
+    )
+    RNS.exit(0)
+    assert handler_calls["n"] == 1
+    RNS.exit(0)
+    assert handler_calls["n"] == 1
+
+
 def test_ensure_panic_on_interface_error_disabled(tmp_path):
     config_path = tmp_path / "config"
     config_path.write_text(

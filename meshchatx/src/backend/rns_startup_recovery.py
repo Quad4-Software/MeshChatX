@@ -17,6 +17,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+import contextlib
 from collections.abc import Callable
 from typing import Any
 
@@ -26,6 +27,7 @@ _TRUE_STRINGS = ("true", "yes", "1", "on", "y")
 _PANIC_PATCHED = False
 _ORIGINAL_PANIC = None
 _ORIGINAL_EXIT = None
+_EXIT_IN_PROGRESS = False
 
 # Prefer disabling these types first when init fails without a named culprit.
 _HIGH_RISK_TYPES = (
@@ -51,7 +53,7 @@ def install_rns_panic_containment(*, force: bool = False) -> bool:
     Safe to call multiple times. Returns True when the patch was applied (or
     was already applied).
     """
-    global _PANIC_PATCHED, _ORIGINAL_PANIC, _ORIGINAL_EXIT
+    global _PANIC_PATCHED, _ORIGINAL_PANIC, _ORIGINAL_EXIT, _EXIT_IN_PROGRESS
     if _PANIC_PATCHED and not force:
         return True
     try:
@@ -59,6 +61,9 @@ def install_rns_panic_containment(*, force: bool = False) -> bool:
     except Exception as exc:
         logger.warning("Could not import RNS for panic containment: %s", exc)
         return False
+
+    if force:
+        _EXIT_IN_PROGRESS = False
 
     if _ORIGINAL_PANIC is None:
         _ORIGINAL_PANIC = getattr(RNS, "panic", None)
@@ -69,19 +74,25 @@ def install_rns_panic_containment(*, force: bool = False) -> bool:
         message = "RNS.panic() was called"
         if _args:
             message = f"RNS.panic(): {_args[0]}"
-        logger.error(message)
+        # Avoid logging handlers here. Panic can run under signal context.
         raise RnsPanicError(message)
 
     def _contained_exit(code: int = 0):
-        message = f"RNS.exit({code}) was called"
-        logger.error(message)
+        global _EXIT_IN_PROGRESS
+        # SIGINT/SIGTERM can reenter while logging or SQLite is in flight.
+        # A second RNS.exit must be a no-op or FileHandlers blow up with
+        # "reentrant call inside BufferedWriter".
+        if _EXIT_IN_PROGRESS:
+            return
+        _EXIT_IN_PROGRESS = True
         try:
             if hasattr(RNS, "Reticulum") and hasattr(RNS.Reticulum, "exit_handler"):
-                RNS.Reticulum.exit_handler()
-        except Exception as exc:
-            logger.warning("RNS exit_handler during contained exit failed: %s", exc)
-        if code != 0:
-            raise RnsPanicError(message)
+                with contextlib.suppress(Exception):
+                    RNS.Reticulum.exit_handler()
+        finally:
+            if code != 0:
+                _EXIT_IN_PROGRESS = False
+                raise RnsPanicError(f"RNS.exit({code}) was called")
 
     RNS.panic = _contained_panic
     RNS.exit = _contained_exit
