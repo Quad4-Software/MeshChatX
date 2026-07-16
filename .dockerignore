@@ -6,6 +6,7 @@ screenshots/
 vendor/lxmfy/tests/
 vendor/lxmfy/docs/
 vendor/lxmfy/.gitea/
+vendor/offline/
 
 # Development files
 android/
