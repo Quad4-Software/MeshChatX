@@ -518,13 +518,34 @@ describe("AboutPage.vue", () => {
         expect(wrapper.text()).not.toContain("app.landlock_status");
     });
 
-    it("loads and shows host battery status in environment info", async () => {
-        navigator.getBattery = vi.fn(async () => ({ level: 0.81, charging: true }));
-
+    it("shows MeshChatX usage insights from app info", async () => {
         axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/app/info") {
                 return Promise.resolve({
-                    data: { app_info: { version: "1.0.0", host_platform: "linux" } },
+                    data: {
+                        app_info: {
+                            version: "1.0.0",
+                            host_platform: "linux",
+                            memory_usage: {
+                                rss: 128 * 1024 * 1024,
+                                vms: 256 * 1024 * 1024,
+                                cpu_percent: 2.5,
+                                num_threads: 18,
+                                create_time: Date.now() / 1000 - 125,
+                            },
+                            battery_usage: {
+                                avg_cpu_percent: 4.0,
+                                machine_share_percent: 1.0,
+                                estimated_percent_per_hour: 0.4,
+                                intensity: "low",
+                                confidence: "estimate",
+                                method: "cpu_time",
+                            },
+                            reticulum_stats: {
+                                memory_cleanup: { path_table_size: 42, sqlite_relaxed: false },
+                            },
+                        },
+                    },
                 });
             }
             if (url === "/api/v1/config") return Promise.resolve({ data: { config: {} } });
@@ -536,11 +557,16 @@ describe("AboutPage.vue", () => {
         const wrapper = mountAboutPage();
         await vi.runOnlyPendingTimers();
         await wrapper.vm.$nextTick();
-        await wrapper.vm.refreshBatteryStatus();
+        await wrapper.vm.getAppInfo();
         await wrapper.vm.$nextTick();
 
-        expect(wrapper.text()).toContain("about.env_battery");
-        expect(wrapper.vm.batteryStatus?.level).toBe(81);
-        expect(wrapper.vm.batteryStatusLabel).toContain("81%");
+        expect(wrapper.text()).toContain("about.usage_insights");
+        expect(wrapper.text()).toContain("about.app_battery_use");
+        expect(wrapper.vm.batteryUsageLabel).toContain("0.4%/hr");
+        expect(wrapper.text()).toContain("about.memory_rss");
+        expect(wrapper.text()).toContain("about.process_cpu");
+        expect(wrapper.vm.processUptimeLabel).toMatch(/2m/);
+        expect(wrapper.vm.showHostBattery).toBe(false);
+        expect(wrapper.text()).not.toContain("about.env_battery");
     });
 });
