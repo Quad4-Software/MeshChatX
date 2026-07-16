@@ -147,6 +147,9 @@ jobs:
             - name: Checkout
               uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8
 
+            - name: Smoke-test package bloat checker
+              run: bash scripts/ci/verify-package-contents-smoke.sh
+
             - name: Set up development environment
               uses: ./.github/actions/setup-dev-environment
               with:
@@ -168,6 +171,9 @@ jobs:
 
             - name: Verify bleak bundled in frozen backend
               run: bash scripts/ci/github-verify-frozen-bleak.sh build/exe
+
+            - name: Verify frozen backend has no package bloat
+              run: bash scripts/ci/verify-package-contents.sh frozen build/exe
 
             - name: Verify workspace clean
               uses: ./.github/actions/verify-workspace-clean
@@ -207,6 +213,8 @@ jobs:
                   test -n "$(ls -A .artifacts/linux-build-check/meshchatx/public)"
                   test -n "$(ls -A .artifacts/linux-build-check/build/exe)"
                   bash scripts/ci/github-verify-frozen-bleak.sh \
+                      .artifacts/linux-build-check/build/exe
+                  bash scripts/ci/verify-package-contents.sh frozen \
                       .artifacts/linux-build-check/build/exe
                   echo "Linux build artifact download + content validation passed."
 

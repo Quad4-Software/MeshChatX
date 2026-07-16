@@ -637,6 +637,26 @@ tasks:
         cmds:
             - sh scripts/ci/verify-workspace-clean.sh "${RNS_INVENTORY_OUT:-/tmp/meshchatx-tree-inventory.txt}"
 
+    verify:package:frozen:
+        desc: Fail if frozen backend contains forbidden bloat paths
+        cmds:
+            - bash scripts/ci/verify-package-contents.sh frozen "{{.CLI_ARGS}}"
+
+    verify:package:wheel:
+        desc: Fail if Python wheel contains forbidden bloat paths
+        cmds:
+            - bash scripts/ci/verify-package-contents.sh wheel "{{.CLI_ARGS}}"
+
+    verify:package:docker:
+        desc: Fail if Docker image contains forbidden bloat paths (pass image as CLI_ARGS)
+        cmds:
+            - bash scripts/ci/verify-package-contents.sh docker "{{.CLI_ARGS}}"
+
+    verify:package:smoke:
+        desc: Self-test the package bloat checker with temp trees
+        cmds:
+            - bash scripts/ci/verify-package-contents-smoke.sh
+
     # --- Maintenance ---
 
     dist:
