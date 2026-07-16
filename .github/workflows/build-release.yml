@@ -12,12 +12,12 @@
 #   actions/cache@v4.2.0               1bd1e32a3bdc45362d1e726936510720a7c30a57
 #   actions/setup-java@v4.7.1          c5195efecf7bdfc987ee8bae7a71cb8b11521c00
 #
-# SLSA generator: must be referenced by tag (@vX.Y.Z), not by commit SHA.
-# slsa-verifier can only confirm the reusable workflow ran from a trusted
-# release ref when called this way; a SHA pin makes the generator's own
-# builder-fetch step fail with "Invalid ref: <sha>. Expected ref of the
-# form refs/tags/vX.Y.Z". See slsa-github-generator README "Referencing
-# SLSA builders and generators".
+# SLSA generator: pin by tag (@vX.Y.Z), not by commit SHA.
+# Prefer compile-generator: true. builder-fetch.sh only downloads prebuilts
+# when BUILDER_REF is refs/tags/vX.Y.Z. GitHub OIDC often reports a bare SHA
+# even for tag-pinned callers, so Generate builder fails quietly and attest
+# then exits 127 (slsa-generator-generic-linux-amd64 missing). Compiling from
+# source skips that download path. Upstream: slsa-github-generator#4216 #4503.
 #   slsa-framework/slsa-github-generator/generator_generic_slsa3.yml@v2.1.0
 #                                      (tag v2.1.0 = f7dd8c54c2067bafc12ca7a55595d5ee9b75204a)
 
@@ -473,6 +473,7 @@ jobs:
         with:
             base64-subjects: ${{ needs.collect-linux-slsa-subjects.outputs.hashes }}
             upload-assets: false
+            compile-generator: true
             provenance-name: meshchatx-linux-${{ github.ref_name }}.intoto.jsonl
 
     slsa-provenance-desktop:
@@ -491,6 +492,7 @@ jobs:
         with:
             base64-subjects: ${{ needs.collect-desktop-slsa-subjects.outputs.hashes }}
             upload-assets: false
+            compile-generator: true
             provenance-name: meshchatx-desktop-${{ github.ref_name }}.intoto.jsonl
 
     collect-android-flatpak-slsa-subjects:
@@ -540,6 +542,7 @@ jobs:
         with:
             base64-subjects: ${{ needs.collect-android-flatpak-slsa-subjects.outputs.hashes }}
             upload-assets: false
+            compile-generator: true
             provenance-name: meshchatx-android-flatpak-${{ github.ref_name }}.intoto.jsonl
 
     draft-github-release:
