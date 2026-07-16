@@ -524,6 +524,15 @@ class ReticulumMeshChat:
             broadcast_event=self._on_rns_link_broadcast,
         )
         self.memory_pressure = MemoryPressureManager(app=self)
+        from meshchatx.src.backend.battery_usage_estimate import BatteryUsageTracker
+
+        self.battery_usage = BatteryUsageTracker()
+        try:
+            self._host_process = psutil.Process()
+            # Prime cpu_percent so later non-blocking samples are meaningful.
+            self._host_process.cpu_percent(interval=None)
+        except Exception:
+            self._host_process = None
         # Track long-running rns.link.* handler tasks per WS client so they can
         # be cancelled when the client disconnects.
         self._rns_link_tasks: dict[web.WebSocketResponse, set[asyncio.Task]] = {}
@@ -7366,9 +7375,21 @@ class ReticulumMeshChat:
         # get app info
         @routes.get("/api/v1/app/info")
         async def app_info(request):
-            process = psutil.Process()
+            process = getattr(self, "_host_process", None)
+            if process is None:
+                try:
+                    process = psutil.Process()
+                except Exception:
+                    process = None
 
             def _safe_memory_info():
+                if process is None:
+
+                    class _M:
+                        rss = 0
+                        vms = 0
+
+                    return _M()
                 try:
                     return process.memory_info()
                 except Exception:
@@ -7378,6 +7399,43 @@ class ReticulumMeshChat:
                         vms = 0
 
                     return _M()
+
+            def _safe_process_usage():
+                usage = {
+                    "cpu_percent": None,
+                    "num_threads": None,
+                    "create_time": None,
+                    "cpu_time_seconds": None,
+                }
+                if process is None:
+                    return usage
+                try:
+                    usage["cpu_percent"] = float(process.cpu_percent(interval=None))
+                except Exception:
+                    pass
+                try:
+                    usage["num_threads"] = int(process.num_threads())
+                except Exception:
+                    pass
+                try:
+                    usage["create_time"] = float(process.create_time())
+                except Exception:
+                    pass
+                try:
+                    times = process.cpu_times()
+                    usage["cpu_time_seconds"] = float(times.user) + float(times.system)
+                except Exception:
+                    pass
+                return usage
+
+            def _safe_battery_usage():
+                tracker = getattr(self, "battery_usage", None)
+                if tracker is None:
+                    return None
+                try:
+                    return tracker.snapshot(process)
+                except Exception:
+                    return None
 
             def _safe_net_io():
                 try:
@@ -7394,6 +7452,8 @@ class ReticulumMeshChat:
 
             # psutil often raises on Android (restricted /proc), so never fail the whole payload.
             memory_info = _safe_memory_info()
+            process_usage = _safe_process_usage()
+            battery_usage = _safe_battery_usage()
             net_io = _safe_net_io()
 
             def _safe_database_path():
@@ -7451,26 +7511,31 @@ class ReticulumMeshChat:
                 if is_connected_to_shared_instance:
                     # Try to find the shared instance address from active connections
                     try:
-                        for conn in process.net_connections(kind="all"):
-                            if conn.status == psutil.CONN_ESTABLISHED and conn.raddr:
-                                # Check for common Reticulum shared instance ports or UNIX sockets
+                        if process is not None:
+                            for conn in process.net_connections(kind="all"):
                                 if (
-                                    isinstance(conn.raddr, tuple)
-                                    and conn.raddr[1] == 37428
+                                    conn.status == psutil.CONN_ESTABLISHED
+                                    and conn.raddr
                                 ):
-                                    shared_instance_address = (
-                                        f"{conn.raddr[0]}:{conn.raddr[1]}"
-                                    )
-                                    break
-                                if (
-                                    isinstance(conn.raddr, str)
-                                    and (
-                                        "rns" in conn.raddr or "reticulum" in conn.raddr
-                                    )
-                                    and ".sock" in conn.raddr
-                                ):
-                                    shared_instance_address = conn.raddr
-                                    break
+                                    # Check for common Reticulum shared instance ports or UNIX sockets
+                                    if (
+                                        isinstance(conn.raddr, tuple)
+                                        and conn.raddr[1] == 37428
+                                    ):
+                                        shared_instance_address = (
+                                            f"{conn.raddr[0]}:{conn.raddr[1]}"
+                                        )
+                                        break
+                                    if (
+                                        isinstance(conn.raddr, str)
+                                        and (
+                                            "rns" in conn.raddr
+                                            or "reticulum" in conn.raddr
+                                        )
+                                        and ".sock" in conn.raddr
+                                    ):
+                                        shared_instance_address = conn.raddr
+                                        break
                     except Exception:
                         pass
 
@@ -7612,9 +7677,14 @@ class ReticulumMeshChat:
                             else False
                         ),
                         "memory_usage": {
-                            "rss": memory_info.rss,  # Resident Set Size (bytes)
-                            "vms": memory_info.vms,  # Virtual Memory Size (bytes)
+                            "rss": memory_info.rss,
+                            "vms": memory_info.vms,
+                            "cpu_percent": process_usage.get("cpu_percent"),
+                            "num_threads": process_usage.get("num_threads"),
+                            "create_time": process_usage.get("create_time"),
+                            "cpu_time_seconds": process_usage.get("cpu_time_seconds"),
                         },
+                        "battery_usage": battery_usage,
                         "network_stats": {
                             "bytes_sent": net_io.bytes_sent,
                             "bytes_recv": net_io.bytes_recv,

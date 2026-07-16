@@ -459,21 +459,103 @@
                                     }}</span>
                                     <span class="font-mono text-xs font-bold">{{ environmentInfo.platform }}</span>
                                 </div>
-                                <div class="flex items-center justify-between gap-3">
-                                    <span class="text-[10px] font-black text-lime-600 uppercase tracking-wider">{{
-                                        $t("about.env_battery")
+                                <div
+                                    v-if="appInfo.memory_usage || appInfo.battery_usage"
+                                    class="flex flex-col gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800"
+                                >
+                                    <span class="text-[10px] font-black text-cyan-600 uppercase tracking-wider">{{
+                                        $t("about.usage_insights")
                                     }}</span>
-                                    <span
-                                        class="font-mono text-xs font-bold shrink-0 inline-flex items-center gap-1"
-                                        :class="batteryStatusToneClass"
+                                    <div v-if="batteryUsageLabel" class="flex items-center justify-between gap-3">
+                                        <span class="text-[10px] font-semibold uppercase tracking-wider opacity-70">{{
+                                            $t("about.app_battery_use")
+                                        }}</span>
+                                        <span
+                                            class="font-mono text-xs font-bold tabular-nums shrink-0"
+                                            :class="batteryUsageToneClass"
+                                            :title="$t('about.app_battery_use_hint')"
+                                        >
+                                            {{ batteryUsageLabel }}
+                                        </span>
+                                    </div>
+                                    <div v-if="batteryUsageShareLabel" class="flex items-center justify-between gap-3">
+                                        <span class="text-[10px] font-semibold uppercase tracking-wider opacity-70">{{
+                                            $t("about.app_battery_share")
+                                        }}</span>
+                                        <span class="font-mono text-xs font-bold tabular-nums">{{
+                                            batteryUsageShareLabel
+                                        }}</span>
+                                    </div>
+                                    <div v-if="appInfo.memory_usage" class="flex items-center justify-between gap-3">
+                                        <span class="text-[10px] font-semibold uppercase tracking-wider opacity-70">{{
+                                            $t("about.memory_rss")
+                                        }}</span>
+                                        <span class="font-mono text-xs font-bold tabular-nums">{{
+                                            formatBytes(appInfo.memory_usage.rss || 0)
+                                        }}</span>
+                                    </div>
+                                    <div v-if="appInfo.memory_usage" class="flex items-center justify-between gap-3">
+                                        <span class="text-[10px] font-semibold uppercase tracking-wider opacity-70">{{
+                                            $t("about.virtual_memory")
+                                        }}</span>
+                                        <span class="font-mono text-xs font-bold tabular-nums">{{
+                                            formatBytes(appInfo.memory_usage.vms || 0)
+                                        }}</span>
+                                    </div>
+                                    <div
+                                        v-if="appInfo.memory_usage && appInfo.memory_usage.cpu_percent != null"
+                                        class="flex items-center justify-between gap-3"
                                     >
-                                        <v-icon
-                                            v-if="batteryStatus"
-                                            :icon="'mdi-' + batteryStatusIcon"
-                                            size="14"
-                                        ></v-icon>
-                                        {{ batteryStatusLabel }}
-                                    </span>
+                                        <span class="text-[10px] font-semibold uppercase tracking-wider opacity-70">{{
+                                            $t("about.process_cpu")
+                                        }}</span>
+                                        <span class="font-mono text-xs font-bold tabular-nums">{{
+                                            formatCpuPercent(appInfo.memory_usage.cpu_percent)
+                                        }}</span>
+                                    </div>
+                                    <div
+                                        v-if="appInfo.memory_usage && appInfo.memory_usage.num_threads != null"
+                                        class="flex items-center justify-between gap-3"
+                                    >
+                                        <span class="text-[10px] font-semibold uppercase tracking-wider opacity-70">{{
+                                            $t("about.process_threads")
+                                        }}</span>
+                                        <span class="font-mono text-xs font-bold tabular-nums">{{
+                                            appInfo.memory_usage.num_threads
+                                        }}</span>
+                                    </div>
+                                    <div v-if="processUptimeLabel" class="flex items-center justify-between gap-3">
+                                        <span class="text-[10px] font-semibold uppercase tracking-wider opacity-70">{{
+                                            $t("about.process_uptime")
+                                        }}</span>
+                                        <span class="font-mono text-xs font-bold tabular-nums">{{
+                                            processUptimeLabel
+                                        }}</span>
+                                    </div>
+                                    <div v-if="memoryPressureLabel" class="flex items-center justify-between gap-3">
+                                        <span class="text-[10px] font-semibold uppercase tracking-wider opacity-70">{{
+                                            $t("about.memory_pressure")
+                                        }}</span>
+                                        <span class="font-mono text-xs font-bold tabular-nums">{{
+                                            memoryPressureLabel
+                                        }}</span>
+                                    </div>
+                                    <div v-if="showHostBattery" class="flex items-center justify-between gap-3">
+                                        <span class="text-[10px] font-semibold uppercase tracking-wider opacity-70">{{
+                                            $t("about.env_host_battery")
+                                        }}</span>
+                                        <span
+                                            class="font-mono text-xs font-bold shrink-0 inline-flex items-center gap-1"
+                                            :class="batteryStatusToneClass"
+                                        >
+                                            <v-icon
+                                                v-if="batteryStatus"
+                                                :icon="'mdi-' + batteryStatusIcon"
+                                                size="14"
+                                            ></v-icon>
+                                            {{ batteryStatusLabel }}
+                                        </span>
+                                    </div>
                                 </div>
                                 <div
                                     v-if="isLinuxHost && appInfo.landlock_requested !== undefined"
@@ -1089,7 +1171,15 @@ import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
 import DownloadUtils from "../../js/DownloadUtils";
 import GlobalEmitter from "../../js/GlobalEmitter";
-import { batteryStatusIconName, getDeviceBatteryStatus } from "../../js/deviceBattery.js";
+import {
+    appBatteryUsageToneClass,
+    batteryStatusIconName,
+    formatAppBatteryShareLabel,
+    formatAppBatteryUsageLabel,
+    formatProcessUptime,
+    getDeviceBatteryStatus,
+    isNativeBatteryStatus,
+} from "../../js/deviceBattery.js";
 export default {
     name: "AboutPage",
     components: {},
@@ -1181,6 +1271,35 @@ export default {
         },
         batteryStatusIcon() {
             return batteryStatusIconName(this.batteryStatus);
+        },
+        showHostBattery() {
+            return isNativeBatteryStatus(this.batteryStatus);
+        },
+        batteryUsageLabel() {
+            return formatAppBatteryUsageLabel(this.appInfo?.battery_usage, (key, values) => this.$t(key, values));
+        },
+        batteryUsageShareLabel() {
+            return formatAppBatteryShareLabel(this.appInfo?.battery_usage, (key, values) => this.$t(key, values));
+        },
+        batteryUsageToneClass() {
+            return appBatteryUsageToneClass(this.appInfo?.battery_usage);
+        },
+        processUptimeLabel() {
+            return formatProcessUptime(this.appInfo?.memory_usage?.create_time);
+        },
+        memoryPressureLabel() {
+            const cleanup = this.appInfo?.reticulum_stats?.memory_cleanup;
+            if (!cleanup || typeof cleanup !== "object") {
+                return null;
+            }
+            if (cleanup.sqlite_relaxed) {
+                return this.$t("about.memory_pressure_relaxed");
+            }
+            const pathSize = cleanup.path_table_size;
+            if (pathSize != null) {
+                return this.$t("about.memory_pressure_paths", { count: pathSize });
+            }
+            return null;
         },
         batteryStatusLabel() {
             if (!this.batteryStatus || !this.batteryStatus.supported) {
@@ -1660,6 +1779,13 @@ export default {
         },
         formatBytes: function (bytes) {
             return Utils.formatBytes(bytes);
+        },
+        formatCpuPercent(value) {
+            const n = typeof value === "number" ? value : Number(value);
+            if (!Number.isFinite(n)) {
+                return this.$t("about.path_unknown");
+            }
+            return `${n.toFixed(n >= 10 ? 0 : 1)}%`;
         },
         formatNumber: function (num) {
             return Utils.formatNumber(num);
