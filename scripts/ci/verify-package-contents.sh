@@ -41,24 +41,27 @@ hit_lines=()
 
 record_hit() {
 	hits=$((hits + 1))
-	hit_lines+=("$1")
-	if [ "$hits" -ge "$MAX_HITS" ]; then
-		echo "verify-package-contents.sh: hit cap ($MAX_HITS) reached" >&2
-		return 1
+	if [ "${#hit_lines[@]}" -lt "$MAX_HITS" ]; then
+		hit_lines+=("$1")
 	fi
-	return 0
 }
 
 # Shared denylist patterns (grep -E against relative paths).
-COMMON_DENY_RE='(^|/)\.git(/|$)|(^|/)node_modules(/|$)|(^|/)\.pnpm-store(/|$)|(^|/)\.venv(/|$)|(^|/)vendor/offline(/|$)|(^|/)vendor/lxmfy/tests(/|$)|(^|/)vendor/lxmfy/docs(/|$)|(^|/)vendor/lxmfy/docker(/|$)|(^|/)\.github(/|$)|(^|/)docs/agents(/|$)|(^|/)screenshots(/|$)|(^|/)__pycache__(/|$)|(^|/)\.pytest_cache(/|$)|(^|/)mutants(/|$)|(^|/)coverage(/|$)'
+# Bytecode (__pycache__) is denied for frozen/wheel/dir but not docker:
+# Dockerfiles run compileall on purpose for faster cold start.
+COMMON_DENY_RE='(^|/)\.git(/|$)|(^|/)node_modules(/|$)|(^|/)\.pnpm-store(/|$)|(^|/)\.venv(/|$)|(^|/)vendor/offline(/|$)|(^|/)vendor/lxmfy/tests(/|$)|(^|/)vendor/lxmfy/docs(/|$)|(^|/)vendor/lxmfy/docker(/|$)|(^|/)\.github(/|$)|(^|/)docs/agents(/|$)|(^|/)screenshots(/|$)|(^|/)\.pytest_cache(/|$)|(^|/)mutants(/|$)|(^|/)coverage(/|$)'
 
-FROZEN_DENY_RE="${COMMON_DENY_RE}|(^|/)lib/meshchatx/public(/|$)|(^|/)lib/meshchatx/src/frontend/.+\.vue$|(^|/)lib/meshchatx/src/frontend/.+\.css$|(^|/)lib/setuptools(/|$)|(^|/)lib/pydoc_data(/|$)|(^|/)lib/numpy/.*/tests(/|$)|(^|/)lib/numpy/tests(/|$)"
+BYTECODE_DENY_RE='(^|/)__pycache__(/|$)'
+
+FROZEN_DENY_RE="${COMMON_DENY_RE}|${BYTECODE_DENY_RE}|(^|/)lib/meshchatx/public(/|$)|(^|/)lib/meshchatx/src/frontend/.+\.vue$|(^|/)lib/meshchatx/src/frontend/.+\.css$|(^|/)lib/setuptools(/|$)|(^|/)lib/pydoc_data(/|$)|(^|/)lib/numpy/.*/tests(/|$)|(^|/)lib/numpy/tests(/|$)"
 
 DOCKER_DENY_RE="${COMMON_DENY_RE}|(^|/)meshchatx/src/frontend/.+\.vue$|(^|/)meshchatx/src/frontend/.+\.css$|(^|/)tests(/|$)|(^|/)electron(/|$)|(^|/)android(/|$)"
 
-WHEEL_DENY_RE="${COMMON_DENY_RE}|(^|/)meshchatx/src/frontend/.+\.vue$|(^|/)meshchatx/src/frontend/.+\.css$|(^|/)tests(/|$)"
+WHEEL_DENY_RE="${COMMON_DENY_RE}|${BYTECODE_DENY_RE}|(^|/)meshchatx/src/frontend/.+\.vue$|(^|/)meshchatx/src/frontend/.+\.css$|(^|/)tests(/|$)"
 
-APK_DENY_RE="${COMMON_DENY_RE}|(^|/)tests(/|$)|(^|/)electron(/|$)|(^|/)\.github(/|$)"
+APK_DENY_RE="${COMMON_DENY_RE}|${BYTECODE_DENY_RE}|(^|/)tests(/|$)|(^|/)electron(/|$)|(^|/)\.github(/|$)"
+
+DIR_DENY_RE="${COMMON_DENY_RE}|${BYTECODE_DENY_RE}"
 
 # Read relative paths from stdin. Must not run in a pipe subshell so hits persist.
 scan_path_list() {
@@ -70,9 +73,7 @@ scan_path_list() {
 		"") continue ;;
 		esac
 		if printf '%s\n' "$rel" | grep -Eq "$deny_re"; then
-			if ! record_hit "$rel"; then
-				break
-			fi
+			record_hit "$rel"
 		fi
 	done
 }
@@ -135,7 +136,7 @@ scan_dir() {
 		exit 1
 	}
 	echo "verify-package-contents.sh: scanning dir $root"
-	scan_directory_tree "$root" "$COMMON_DENY_RE"
+	scan_directory_tree "$root" "$DIR_DENY_RE"
 }
 
 scan_wheel() {
@@ -203,29 +204,37 @@ scan_docker() {
 	fi
 	echo "verify-package-contents.sh: scanning docker image $image (/opt/venv)"
 	# Use python (always present) so Alpine and Chainguard/hardened images both work.
+	# Emit paths relative to /opt/venv or /app so denylist matches cleanly.
 	list="$(
 		docker run --rm --user 0 --entrypoint python "$image" -c '
 import os
 roots = [p for p in ("/opt/venv", "/app") if os.path.isdir(p)]
 if not roots:
     roots = ["/"]
-skip = {"/proc", "/sys", "/dev", "/tmp", "/run"}
+skip_top = {"proc", "sys", "dev", "tmp", "run"}
 for root in roots:
     for dirpath, dirnames, filenames in os.walk(root):
         if root == "/":
-            dirnames[:] = [d for d in dirnames if os.path.join(dirpath, d) not in skip]
-        print(dirpath)
+            if dirpath == "/":
+                dirnames[:] = [d for d in dirnames if d not in skip_top]
+            rel_dir = dirpath.lstrip("/") or "."
+        elif dirpath == root:
+            rel_dir = "."
+        else:
+            rel_dir = dirpath[len(root) + 1 :]
+        print(rel_dir)
         for name in filenames:
-            print(os.path.join(dirpath, name))
+            if rel_dir == ".":
+                print(name)
+            else:
+                print(rel_dir + "/" + name)
 ' 2>/dev/null || true
 	)"
 	if [ -z "$list" ]; then
 		echo "verify-package-contents.sh: could not list files in $image" >&2
 		exit 1
 	fi
-	scan_path_list "$DOCKER_DENY_RE" < <(
-		printf '%s\n' "$list" | sed 's|^/opt/venv/||;s|^/app/||;s|^/||'
-	)
+	scan_path_list "$DOCKER_DENY_RE" <<<"$list"
 }
 
 case "$MODE" in
@@ -256,7 +265,8 @@ docker)
 esac
 
 if [ "$hits" -gt 0 ]; then
-	echo "verify-package-contents.sh: FAIL ($hits forbidden path(s))" >&2
+	shown="${#hit_lines[@]}"
+	echo "verify-package-contents.sh: FAIL ($hits forbidden path(s), showing $shown)" >&2
 	for line in "${hit_lines[@]}"; do
 		echo "  - $line" >&2
 	done
