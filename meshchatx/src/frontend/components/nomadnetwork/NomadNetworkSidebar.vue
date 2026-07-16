@@ -1206,6 +1206,9 @@ export default {
             };
             const flush = () => {
                 this._layoutPersistTimer = null;
+                if (typeof window === "undefined" || !window.api) {
+                    return undefined;
+                }
                 return saveNomadFavouritesLayout(window.api, layout);
             };
             if (options.immediate) {

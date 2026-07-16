@@ -45,6 +45,36 @@ describe("SRI (Subresource Integrity) Verification", () => {
         });
     });
 
+    describe("visualiser-wasm", () => {
+        it("has valid integrity.json with matching SRI hashes when built", () => {
+            const integrityPath = path.join(
+                REPO_ROOT,
+                "meshchatx/src/frontend/public/vendor/visualiser-wasm/integrity.json"
+            );
+            const wasmPath = path.join(
+                REPO_ROOT,
+                "meshchatx/src/frontend/public/vendor/visualiser-wasm/visualiser.wasm"
+            );
+            const execPath = path.join(REPO_ROOT, "meshchatx/src/frontend/public/vendor/visualiser-wasm/wasm_exec.js");
+
+            if (!existsSync(integrityPath)) {
+                return;
+            }
+
+            const integrity = JSON.parse(readFileSync(integrityPath, "utf-8"));
+            expect(integrity.version).toBeTruthy();
+            expect(integrity.wasm).toMatch(/^sha384-[A-Za-z0-9+/=]+$/);
+            expect(integrity.wasmExec).toMatch(/^sha384-[A-Za-z0-9+/=]+$/);
+
+            if (existsSync(wasmPath)) {
+                expect(computeSri384(wasmPath)).toBe(integrity.wasm);
+            }
+            if (existsSync(execPath)) {
+                expect(computeSri384(execPath)).toBe(integrity.wasmExec);
+            }
+        });
+    });
+
     describe("Codec2 Emscripten", () => {
         it("has valid integrity.json with all required files", () => {
             const integrityPath = path.join(

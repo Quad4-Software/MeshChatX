@@ -8,7 +8,7 @@ export const SETTINGS_TABS = [
         id: "general",
         labelKey: "settings.tabs.general",
         descriptionKey: "settings.tabs.general_desc",
-        sections: ["language", "appearance", "desktop", "android", "shortcuts", "location"],
+        sections: ["language", "appearance", "battery", "desktop", "android", "shortcuts", "location"],
     },
     {
         id: "messages",

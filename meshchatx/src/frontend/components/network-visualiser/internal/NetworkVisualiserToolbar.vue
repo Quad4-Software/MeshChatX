@@ -23,61 +23,23 @@
                 <div class="flex items-center gap-2">
                     <button
                         type="button"
-                        class="inline-flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white transition-all active:scale-95"
+                        class="inline-flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white transition-all active:scale-95 disabled:opacity-60"
                         :disabled="isUpdating || isLoading"
+                        :aria-label="$t('visualiser.refresh')"
                         @click.stop="$emit('manual-update')"
                     >
-                        <svg
-                            v-if="!isUpdating && !isLoading"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke-width="2"
-                            stroke="currentColor"
+                        <MaterialDesignIcon
+                            :icon-name="isUpdating || isLoading ? 'loading' : 'refresh'"
                             class="w-4 h-4 sm:w-5 sm:h-5"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
-                            />
-                        </svg>
-                        <svg
-                            v-else
-                            class="animate-spin h-4 w-4 sm:w-5 sm:h-5"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                        >
-                            <circle
-                                class="opacity-25"
-                                cx="12"
-                                cy="12"
-                                r="10"
-                                stroke="currentColor"
-                                stroke-width="4"
-                            ></circle>
-                            <path
-                                class="opacity-75"
-                                fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            ></path>
-                        </svg>
+                            :class="{ 'animate-spin': isUpdating || isLoading }"
+                        />
                     </button>
                     <div class="w-5 sm:w-6 flex justify-center">
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
+                        <MaterialDesignIcon
+                            icon-name="chevron-down"
                             class="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 transition-transform duration-300"
                             :class="{ 'rotate-180': isShowingControls }"
-                        >
-                            <path
-                                fill-rule="evenodd"
-                                d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z"
-                                clip-rule="evenodd"
-                            />
-                        </svg>
+                        />
                     </div>
                 </div>
             </div>
@@ -88,11 +50,39 @@
             >
                 <div class="h-px bg-linear-to-r from-transparent via-gray-200 dark:via-zinc-800 to-transparent"></div>
 
+                <div class="grid grid-cols-2 gap-2">
+                    <div
+                        class="rounded-xl px-3 py-2 border border-gray-100 dark:border-zinc-700/50 bg-gray-50/60 dark:bg-zinc-800/40"
+                        :title="engineModeTitle"
+                    >
+                        <div
+                            class="text-[10px] font-bold text-gray-500 dark:text-zinc-500 uppercase tracking-wider mb-0.5"
+                        >
+                            {{ $t("visualiser.engine") }}
+                        </div>
+                        <div class="text-xs font-bold truncate" :class="engineModeClass">
+                            {{ engineModeLabel }}
+                        </div>
+                    </div>
+                    <div
+                        class="rounded-xl px-3 py-2 border border-gray-100 dark:border-zinc-700/50 bg-gray-50/60 dark:bg-zinc-800/40"
+                    >
+                        <div
+                            class="text-[10px] font-bold text-gray-500 dark:text-zinc-500 uppercase tracking-wider mb-0.5"
+                        >
+                            {{ $t("visualiser.fps") }}
+                        </div>
+                        <div class="text-xs font-bold text-gray-800 dark:text-zinc-100 tabular-nums">
+                            {{ fpsDisplay }}
+                        </div>
+                    </div>
+                </div>
+
                 <div class="flex items-center justify-between">
                     <label
                         for="auto-reload"
                         class="text-sm font-semibold text-gray-700 dark:text-zinc-300 cursor-pointer"
-                        >Auto Update</label
+                        >{{ $t("visualiser.auto_update") }}</label
                     >
                     <Toggle
                         id="auto-reload"
@@ -105,7 +95,7 @@
                     <label
                         for="enable-physics"
                         class="text-sm font-semibold text-gray-700 dark:text-zinc-300 cursor-pointer"
-                        >Live Layout</label
+                        >{{ $t("visualiser.live_layout") }}</label
                     >
                     <Toggle
                         id="enable-physics"
@@ -156,7 +146,7 @@
                         <div
                             class="text-[10px] font-bold text-gray-500 dark:text-zinc-500 uppercase tracking-wider mb-1"
                         >
-                            Nodes
+                            {{ $t("visualiser.nodes") }}
                         </div>
                         <div class="text-lg font-bold text-blue-600 dark:text-blue-400">{{ nodeCount }}</div>
                     </div>
@@ -166,7 +156,7 @@
                         <div
                             class="text-[10px] font-bold text-gray-500 dark:text-zinc-500 uppercase tracking-wider mb-1"
                         >
-                            Links
+                            {{ $t("visualiser.links") }}
                         </div>
                         <div class="text-lg font-bold text-emerald-600 dark:text-emerald-400">{{ edgeCount }}</div>
                     </div>
@@ -176,19 +166,19 @@
                     class="bg-zinc-950/5 dark:bg-white/5 rounded-xl p-3 border border-gray-100 dark:border-zinc-700/50"
                 >
                     <div class="text-[10px] font-bold text-gray-500 dark:text-zinc-500 uppercase tracking-wider mb-2">
-                        Interfaces
+                        {{ $t("visualiser.interfaces") }}
                     </div>
                     <div class="flex items-center gap-4">
                         <div class="flex items-center gap-1.5">
                             <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
                             <span class="text-xs font-bold text-gray-700 dark:text-zinc-300"
-                                >{{ onlineInterfaceCount }} Online</span
+                                >{{ onlineInterfaceCount }} {{ $t("visualiser.online") }}</span
                             >
                         </div>
                         <div class="flex items-center gap-1.5">
                             <div class="w-2 h-2 rounded-full bg-red-500"></div>
                             <span class="text-xs font-bold text-gray-700 dark:text-zinc-300"
-                                >{{ offlineInterfaceCount }} Offline</span
+                                >{{ offlineInterfaceCount }} {{ $t("visualiser.offline") }}</span
                             >
                         </div>
                     </div>
@@ -201,18 +191,12 @@
                 <div
                     class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 group-focus-within:text-blue-500 transition-colors"
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-                        <path
-                            fill-rule="evenodd"
-                            d="M9 3.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM2.25 10a7.75 7.75 0 1 1 14.03 4.5l3.47 3.47a.75.75 0 0 1-1.06 1.06l-3.47-3.47A7.75 7.75 0 0 1 2.25 10Z"
-                            clip-rule="evenodd"
-                        />
-                    </svg>
+                    <MaterialDesignIcon icon-name="magnify" class="w-4 h-4" />
                 </div>
                 <input
                     :value="searchQuery"
                     type="text"
-                    :placeholder="`Search nodes (${nodeCount})...`"
+                    :placeholder="$t('visualiser.search_nodes_placeholder', { count: nodeCount })"
                     class="block w-full sm:w-64 pl-9 pr-10 py-2.5 sm:py-3 bg-white/90 dark:bg-zinc-900/90 border border-gray-200/50 dark:border-zinc-800/50 rounded-2xl text-xs font-semibold focus:outline-hidden focus:ring-2 focus:ring-blue-500/50 sm:focus:w-80 md:max-lg:focus:w-72 lg:focus:w-80 transition-all dark:text-zinc-100 shadow-xs"
                     @input="$emit('update:searchQuery', $event.target.value)"
                 />
@@ -220,13 +204,10 @@
                     v-if="searchQuery"
                     type="button"
                     class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-zinc-200 transition-colors"
+                    :aria-label="$t('visualiser.clear_search')"
                     @click="$emit('update:searchQuery', '')"
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-                        <path
-                            d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z"
-                        />
-                    </svg>
+                    <MaterialDesignIcon icon-name="close" class="w-4 h-4" />
                 </button>
             </div>
         </div>
@@ -235,11 +216,12 @@
 
 <script>
 import Toggle from "../../forms/Toggle.vue";
+import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
 import { HOP_SLIDER_POS_ALL, hopSliderPosToMaxHops, hopMaxHopsToSliderPos } from "./hopMaxFilterSliderMap.js";
 
 export default {
     name: "NetworkVisualiserToolbar",
-    components: { Toggle },
+    components: { Toggle, MaterialDesignIcon },
     props: {
         isShowingControls: { type: Boolean, default: true },
         isUpdating: { type: Boolean, default: false },
@@ -257,6 +239,14 @@ export default {
         onlineInterfaceCount: { type: Number, default: 0 },
         offlineInterfaceCount: { type: Number, default: 0 },
         searchQuery: { type: String, default: "" },
+        engineMode: {
+            type: String,
+            default: "checking",
+            validator(v) {
+                return ["checking", "wasm", "fallback"].includes(v);
+            },
+        },
+        fps: { type: Number, default: 0 },
     },
     emits: [
         "update:isShowingControls",
@@ -286,6 +276,26 @@ export default {
         hopSliderAriaText() {
             if (this.hopMaxFilter === null) return this.$t("visualiser.all");
             return String(this.hopMaxFilter);
+        },
+        engineModeLabel() {
+            if (this.engineMode === "wasm") return this.$t("visualiser.engine_wasm");
+            if (this.engineMode === "fallback") return this.$t("visualiser.engine_fallback");
+            return this.$t("visualiser.engine_checking");
+        },
+        engineModeTitle() {
+            if (this.engineMode === "wasm") return this.$t("visualiser.engine_wasm_hint");
+            if (this.engineMode === "fallback") return this.$t("visualiser.engine_fallback_hint");
+            return this.$t("visualiser.engine_checking_hint");
+        },
+        engineModeClass() {
+            if (this.engineMode === "wasm") return "text-emerald-600 dark:text-emerald-400";
+            if (this.engineMode === "fallback") return "text-amber-600 dark:text-amber-400";
+            return "text-gray-500 dark:text-zinc-400";
+        },
+        fpsDisplay() {
+            const n = Number(this.fps);
+            if (!Number.isFinite(n) || n <= 0) return "--";
+            return String(Math.round(n));
         },
     },
     methods: {

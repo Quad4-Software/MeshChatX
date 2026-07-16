@@ -5943,6 +5943,91 @@ class ReticulumMeshChat:
                 },
             )
 
+        @routes.post("/api/v1/reticulum/interfaces/bitrates")
+        async def reticulum_interfaces_bitrates(request):
+            """Set forced bitrate (bps) on named interfaces and optionally reload RNS."""
+            try:
+                data = await request.json()
+            except Exception:
+                return web.json_response({"message": "Invalid JSON"}, status=400)
+            if not isinstance(data, dict):
+                return web.json_response({"message": "Invalid JSON object"}, status=400)
+
+            bitrates = data.get("bitrates")
+            if not isinstance(bitrates, dict) or not bitrates:
+                return web.json_response(
+                    {"message": "bitrates object is required"},
+                    status=422,
+                )
+
+            reload_stack = bool(data.get("reload", False))
+            interfaces = self._get_interfaces_section()
+            interfaces_before_write = self._get_interfaces_snapshot()
+            updated = []
+            missing = []
+            for raw_name, raw_bps in bitrates.items():
+                name = InterfaceEditor.sanitize_interface_section_name(str(raw_name))
+                if not name or name not in interfaces:
+                    missing.append(str(raw_name))
+                    continue
+                details = interfaces[name]
+                if raw_bps is None or raw_bps == "":
+                    details.pop("bitrate", None)
+                else:
+                    try:
+                        bps = int(raw_bps)
+                    except (TypeError, ValueError):
+                        return web.json_response(
+                            {"message": f"Invalid bitrate for {name}"},
+                            status=422,
+                        )
+                    if bps < 0:
+                        return web.json_response(
+                            {"message": f"Bitrate must be >= 0 for {name}"},
+                            status=422,
+                        )
+                    details["bitrate"] = str(bps)
+                updated.append(name)
+
+            if not updated and missing:
+                return web.json_response(
+                    {"message": "No matching interfaces", "missing": missing},
+                    status=404,
+                )
+
+            if updated and not self._write_reticulum_config(
+                rollback_interfaces=interfaces_before_write
+            ):
+                return web.json_response(
+                    {"message": "Failed to write Reticulum config"},
+                    status=500,
+                )
+
+            reloaded = False
+            if reload_stack and updated:
+                try:
+                    await self.reload_reticulum()
+                    reloaded = True
+                except Exception as e:
+                    return web.json_response(
+                        {
+                            "message": f"Bitrates saved but RNS reload failed: {e}",
+                            "updated": updated,
+                            "missing": missing,
+                            "reloaded": False,
+                        },
+                        status=500,
+                    )
+
+            return web.json_response(
+                {
+                    "message": "Interface bitrates updated",
+                    "updated": updated,
+                    "missing": missing,
+                    "reloaded": reloaded,
+                },
+            )
+
         # fetch community interfaces
         @routes.get("/api/v1/community-interfaces")
         async def community_interfaces(request):
@@ -7437,6 +7522,16 @@ class ReticulumMeshChat:
                 except Exception:
                     return None
 
+            def _safe_resource_breakdown():
+                try:
+                    from meshchatx.src.backend.process_resource_breakdown import (
+                        build_resource_breakdown,
+                    )
+
+                    return build_resource_breakdown(process)
+                except Exception:
+                    return []
+
             def _safe_net_io():
                 try:
                     return psutil.net_io_counters()
@@ -7454,6 +7549,7 @@ class ReticulumMeshChat:
             memory_info = _safe_memory_info()
             process_usage = _safe_process_usage()
             battery_usage = _safe_battery_usage()
+            resource_breakdown = _safe_resource_breakdown()
             net_io = _safe_net_io()
 
             def _safe_database_path():
@@ -7684,6 +7780,7 @@ class ReticulumMeshChat:
                             "create_time": process_usage.get("create_time"),
                             "cpu_time_seconds": process_usage.get("cpu_time_seconds"),
                         },
+                        "resource_breakdown": resource_breakdown,
                         "battery_usage": battery_usage,
                         "network_stats": {
                             "bytes_sent": net_io.bytes_sent,

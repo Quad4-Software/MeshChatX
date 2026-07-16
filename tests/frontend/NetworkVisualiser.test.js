@@ -157,6 +157,11 @@ describe("NetworkVisualiser.vue", () => {
                             "visualiser.reticulum_mesh": "Reticulum Mesh",
                             "visualiser.total_nodes": "Nodes",
                             "visualiser.total_edges": "Links",
+                            "visualiser.nodes": "Nodes",
+                            "visualiser.links": "Links",
+                            "visualiser.engine_wasm": "WASM",
+                            "visualiser.engine_fallback": "JS fallback",
+                            "visualiser.engine_checking": "Checking",
                         };
                         return translations[msg] || msg;
                     },
@@ -167,6 +172,7 @@ describe("NetworkVisualiser.vue", () => {
                             '<input type="checkbox" :checked="modelValue" @change="$emit(\'update:modelValue\', $event.target.checked)" />',
                         props: ["modelValue"],
                     },
+                    MaterialDesignIcon: true,
                 },
             },
         });

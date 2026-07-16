@@ -20,6 +20,7 @@ describe("AboutPage.vue", () => {
     beforeEach(() => {
         vi.clearAllMocks();
         vi.useFakeTimers();
+        localStorage.clear();
         axiosMock = {
             get: vi.fn().mockImplementation(() => Promise.resolve({ data: {} })),
             post: vi.fn().mockImplementation(() => Promise.resolve({ data: {} })),
@@ -541,6 +542,10 @@ describe("AboutPage.vue", () => {
                                 confidence: "estimate",
                                 method: "cpu_time",
                             },
+                            resource_breakdown: [
+                                { name: "backend", rss: 128 * 1024 * 1024, cpu_percent: 2.5 },
+                                { name: "child:bot", rss: 64 * 1024 * 1024, cpu_percent: 12.0 },
+                            ],
                             reticulum_stats: {
                                 memory_cleanup: { path_table_size: 42, sqlite_relaxed: false },
                             },
@@ -562,11 +567,50 @@ describe("AboutPage.vue", () => {
 
         expect(wrapper.text()).toContain("about.usage_insights");
         expect(wrapper.text()).toContain("about.app_battery_use");
+        expect(wrapper.text()).toContain("about.battery_saver");
+        expect(wrapper.text()).toContain("about.battery_saver_off");
+        expect(wrapper.text()).toContain("about.top_memory_consumer");
+        expect(wrapper.text()).toContain("about.top_cpu_consumer");
+        expect(wrapper.vm.topMemoryConsumerLabel).toContain("backend");
+        expect(wrapper.vm.topCpuConsumerLabel).toContain("child:bot");
         expect(wrapper.vm.batteryUsageLabel).toContain("0.4%/hr");
         expect(wrapper.text()).toContain("about.memory_rss");
         expect(wrapper.text()).toContain("about.process_cpu");
         expect(wrapper.vm.processUptimeLabel).toMatch(/2m/);
         expect(wrapper.vm.showHostBattery).toBe(false);
         expect(wrapper.text()).not.toContain("about.env_battery");
+    });
+
+    it("shows battery saver active measures when enabled", async () => {
+        const { saveBatterySaverPrefs } = await import("../../meshchatx/src/frontend/js/settings/batterySaverPrefs.js");
+        saveBatterySaverPrefs({ enabled: true });
+
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/app/info") {
+                return Promise.resolve({
+                    data: {
+                        app_info: {
+                            version: "1.0.0",
+                            host_platform: "linux",
+                            memory_usage: { rss: 1, vms: 1 },
+                        },
+                    },
+                });
+            }
+            if (url === "/api/v1/config") return Promise.resolve({ data: { config: {} } });
+            if (url === "/api/v1/database/health") return Promise.resolve({ data: { database: {} } });
+            if (url === "/api/v1/database/snapshots") return Promise.resolve({ data: [] });
+            return Promise.reject(new Error("Not found"));
+        });
+
+        const wrapper = mountAboutPage();
+        await vi.runOnlyPendingTimers();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.getAppInfo();
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.text()).toContain("about.battery_saver_on");
+        expect(wrapper.text()).toContain("about.battery_saver_measures");
+        expect(wrapper.vm.batterySaverActiveMeasures.length).toBeGreaterThan(0);
     });
 });

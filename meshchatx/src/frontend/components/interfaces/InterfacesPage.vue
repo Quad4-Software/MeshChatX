@@ -730,6 +730,8 @@ import ToastUtils from "../../js/ToastUtils";
 import GlobalState from "../../js/GlobalState";
 import Toggle from "../forms/Toggle.vue";
 import BundledDocsHint from "./BundledDocsHint.vue";
+import GlobalEmitter from "../../js/GlobalEmitter";
+import { BATTERY_SAVER_CHANGED_EVENT, loadBatterySaverPrefs } from "../../js/settings/batterySaverPrefs.js";
 
 export default {
     name: "InterfacesPage",
@@ -934,6 +936,9 @@ export default {
     beforeUnmount() {
         clearInterval(this.reloadInterval);
         clearInterval(this.discoveryInterval);
+        if (this._batterySaverPrefsHandler) {
+            GlobalEmitter.off(BATTERY_SAVER_CHANGED_EVENT, this._batterySaverPrefsHandler);
+        }
     },
     mounted() {
         try {
@@ -953,16 +958,30 @@ export default {
         this.loadDiscoveryConfig();
         this.loadDiscoveredInterfaces();
 
-        // update info every few seconds
-        this.reloadInterval = setInterval(() => {
-            this.updateInterfaceStats();
-        }, 1000);
-
-        this.discoveryInterval = setInterval(() => {
-            this.loadDiscoveredInterfaces();
-        }, 5000);
+        this._batterySaverPrefsHandler = () => {
+            this.startInterfacePollIntervals();
+        };
+        GlobalEmitter.on(BATTERY_SAVER_CHANGED_EVENT, this._batterySaverPrefsHandler);
+        this.startInterfacePollIntervals();
     },
     methods: {
+        startInterfacePollIntervals() {
+            clearInterval(this.reloadInterval);
+            clearInterval(this.discoveryInterval);
+            this.reloadInterval = null;
+            this.discoveryInterval = null;
+            const prefs = loadBatterySaverPrefs();
+            const statsMs =
+                prefs.enabled && prefs.reduceInterfacesDiscovery ? prefs.interfacesStatsPollSeconds * 1000 : 1000;
+            const discoveryMs =
+                prefs.enabled && prefs.reduceInterfacesDiscovery ? prefs.interfacesDiscoveryPollSeconds * 1000 : 5000;
+            this.reloadInterval = setInterval(() => {
+                this.updateInterfaceStats();
+            }, statsMs);
+            this.discoveryInterval = setInterval(() => {
+                this.loadDiscoveredInterfaces();
+            }, discoveryMs);
+        },
         relaunch() {
             ElectronUtils.relaunch();
         },
