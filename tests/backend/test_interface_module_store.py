@@ -63,4 +63,6 @@ def test_install_list_delete_interface_module(tmp_path):
     )
     deleted = delete_interface_module(str(config_dir), "ExampleInterface")
     assert deleted["filename"] == "ExampleInterface.py"
-    assert not os.path.exists(os.path.join(str(config_dir), "interfaces", "ExampleInterface.py"))
+    assert not os.path.exists(
+        os.path.join(str(config_dir), "interfaces", "ExampleInterface.py")
+    )

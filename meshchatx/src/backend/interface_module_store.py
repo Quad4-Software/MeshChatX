@@ -99,8 +99,7 @@ def install_interface_module(
     stem = sanitize_interface_module_stem(filename)
     if stem is None:
         raise ValueError(
-            "Filename must be a Python identifier plus .py "
-            "(example: WeaveInterface.py)"
+            "Filename must be a Python identifier plus .py (example: WeaveInterface.py)"
         )
     target_dir = interface_modules_dir(reticulum_config_dir)
     os.makedirs(target_dir, mode=0o700, exist_ok=True)
