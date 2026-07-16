@@ -28,6 +28,8 @@ All notable changes to this project will be documented in this file.
 - Relay Chat: denser hub UI, announce interval, collapsed system lines, reconnect notices
 - Low-memory cleanup and SQLite pragmas under memory pressure
 - CI benches use median-of-medians and quieter regression gates
+- Backend benchmarks cover slim conversation list, mark-as-read, call history, and missed-call notification paths
+- Benchmark gate fails when a full-suite run drops required benches or loses coverage vs baseline
 - Backend tests can run sharded in CI
 - Plugin strings live in plugin bundles, not main locale files
 - Docker frontend build installs Go, builds visualiser WASM, and fails if WASM artifacts are missing

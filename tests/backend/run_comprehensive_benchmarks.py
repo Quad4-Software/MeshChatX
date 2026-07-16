@@ -22,6 +22,7 @@ from meshchatx.src.backend.database.map_drawings import MapDrawingsDAO  # noqa: 
 from meshchatx.src.backend.database.telephone import TelephoneDAO  # noqa: E402
 from meshchatx.src.backend.database.voicemails import VoicemailDAO  # noqa: E402
 from meshchatx.src.backend.identity_manager import IdentityManager  # noqa: E402
+from meshchatx.src.backend.message_handler import MessageHandler  # noqa: E402
 from tests.backend.benchmarking_utils import (  # noqa: E402
     BenchmarkResult,
     aggregate_run_results,
@@ -259,6 +260,24 @@ class BackendBenchmarker:
         def get_convs():
             return self.db.messages.get_conversations()
 
+        @benchmark("Get Conversations Slim List (handler)", iterations=10)
+        def get_convs_handler():
+            handler = MessageHandler(self.db)
+            return handler.get_conversations(self.my_hash, limit=100)
+
+        @benchmark("Get Conversations Unread Filter (handler)", iterations=10)
+        def get_convs_unread():
+            handler = MessageHandler(self.db)
+            return handler.get_conversations(
+                self.my_hash,
+                filter_unread=True,
+                limit=100,
+            )
+
+        @benchmark("Mark Conversation As Read", iterations=20)
+        def mark_read():
+            self.db.messages.mark_conversation_as_read(random.choice(peer_hashes))
+
         @benchmark("Get Messages for Conversation (offset 500)", iterations=20)
         def get_messages():
             return self.db.messages.get_conversation_messages(
@@ -276,7 +295,12 @@ class BackendBenchmarker:
 
         _, res = get_convs()
         self.results.append(res)
-
+        _, res = get_convs_handler()
+        self.results.append(res)
+        _, res = get_convs_unread()
+        self.results.append(res)
+        _, res = mark_read()
+        self.results.append(res)
         _, res = get_messages()
         self.results.append(res)
 
@@ -385,7 +409,23 @@ class BackendBenchmarker:
                 timestamp=time.time(),
             )
 
+        @benchmark("Get Call History List", iterations=20)
+        def get_history():
+            return dao.get_call_history(limit=50)
+
+        for _ in range(40):
+            dao.add_call_history(
+                remote_identity_hash=secrets.token_hex(16),
+                remote_identity_name="Seed Peer",
+                is_incoming=True,
+                status="Busy",
+                duration_seconds=0,
+                timestamp=time.time(),
+            )
+
         _, res = log_call()
+        self.results.append(res)
+        _, res = get_history()
         self.results.append(res)
 
     def bench_contact_operations(self):
@@ -662,6 +702,27 @@ class BackendBenchmarker:
                 )
             return self.db.misc.get_unread_notification_count()
 
+        @benchmark("Missed Call Unread Count by Type", iterations=20)
+        def missed_call_count():
+            return self.db.misc.get_unread_notification_count_by_type(
+                "telephone_missed_call",
+            )
+
+        @benchmark("Dismiss Missed Call Notifications", iterations=10)
+        def dismiss_missed_calls():
+            with self.db.provider:
+                for _ in range(5):
+                    self.db.misc.add_notification(
+                        notification_type="telephone_missed_call",
+                        remote_hash=random.choice(dest_hashes),
+                        title="Missed Call",
+                        content="bench missed call",
+                    )
+            self.db.misc.dismiss_unviewed_notifications("telephone_missed_call")
+            return self.db.misc.get_unread_notification_count_by_type(
+                "telephone_missed_call",
+            )
+
         for _ in range(50):
             with self.db.provider:
                 self.db.misc.add_blocked_destination(random.choice(dest_hashes))
@@ -671,6 +732,13 @@ class BackendBenchmarker:
                     "person",
                     "#fff",
                     "#000",
+                )
+            with self.db.provider:
+                self.db.misc.add_notification(
+                    notification_type="telephone_missed_call",
+                    remote_hash=random.choice(dest_hashes),
+                    title="Missed Call",
+                    content="seed missed call",
                 )
 
         _, res = blocked_dest_roundtrip()
@@ -682,6 +750,10 @@ class BackendBenchmarker:
         _, res = icon_multi_lookup()
         self.results.append(res)
         _, res = notification_roundtrip()
+        self.results.append(res)
+        _, res = missed_call_count()
+        self.results.append(res)
+        _, res = dismiss_missed_calls()
         self.results.append(res)
 
     def print_summary(self, json_output_path=None):
