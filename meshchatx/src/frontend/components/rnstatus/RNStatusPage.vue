@@ -52,6 +52,51 @@
                         </div>
                     </div>
 
+                    <div class="space-y-3 border-t border-slate-200/70 pt-4 dark:border-zinc-700/80">
+                        <div class="text-sm font-semibold text-gray-900 dark:text-white">
+                            {{ $t("rnstatus.remote_query") }}
+                        </div>
+                        <p class="text-xs text-gray-500 dark:text-zinc-500">
+                            {{ $t("rnstatus.remote_query_hint") }}
+                        </p>
+                        <div class="grid gap-3 lg:grid-cols-2">
+                            <label class="block space-y-1">
+                                <span class="text-xs font-medium text-gray-700 dark:text-zinc-300">{{
+                                    $t("rnstatus.remote_transport_hash")
+                                }}</span>
+                                <input
+                                    v-model="remoteHash"
+                                    type="text"
+                                    class="input-field font-mono text-xs"
+                                    :placeholder="$t('rnstatus.remote_transport_placeholder')"
+                                    :disabled="reloadingRns"
+                                />
+                            </label>
+                            <label class="block space-y-1">
+                                <span class="text-xs font-medium text-gray-700 dark:text-zinc-300">{{
+                                    $t("rnstatus.remote_timeout")
+                                }}</span>
+                                <input
+                                    v-model.number="remoteTimeout"
+                                    type="number"
+                                    min="1"
+                                    step="1"
+                                    class="input-field text-sm"
+                                    :disabled="reloadingRns"
+                                />
+                            </label>
+                        </div>
+                        <ManagementIdentityPicker v-model="identityPath" :disabled="reloadingRns" default-name="mgmt" />
+                        <div v-if="activeRemoteHash" class="flex flex-wrap items-center gap-2 text-xs">
+                            <span class="font-mono text-amber-700 dark:text-amber-300">{{
+                                $t("rnstatus.remote_active", { hash: activeRemoteHash })
+                            }}</span>
+                            <button type="button" class="secondary-chip px-2 py-1 text-xs" @click="clearRemote">
+                                {{ $t("rnstatus.use_local") }}
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="grid grid-cols-1 gap-3 lg:grid-cols-2">
                         <div
                             v-if="linkCount !== null"
@@ -251,6 +296,7 @@
 <script>
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
+import ManagementIdentityPicker from "../tools/ManagementIdentityPicker.vue";
 import ToastUtils from "../../js/ToastUtils";
 import WebSocketConnection from "../../js/WebSocketConnection";
 
@@ -259,6 +305,7 @@ export default {
     components: {
         MaterialDesignIcon,
         ToolsPageHeader,
+        ManagementIdentityPicker,
     },
     data() {
         return {
@@ -271,6 +318,10 @@ export default {
             blackholeEnabled: null,
             blackholeSources: [],
             blackholeCount: 0,
+            remoteHash: "",
+            identityPath: "",
+            remoteTimeout: 15,
+            activeRemoteHash: "",
         };
     },
     watch: {
@@ -303,6 +354,11 @@ export default {
             }
             return n.toLocaleString();
         },
+        clearRemote() {
+            this.remoteHash = "";
+            this.activeRemoteHash = "";
+            this.refreshStatus();
+        },
         onWebsocketMessage(message) {
             let json;
             try {
@@ -330,12 +386,23 @@ export default {
                 if (this.sorting) {
                     params.sorting = this.sorting;
                 }
+                const remote = (this.remoteHash || "").trim();
+                if (remote) {
+                    params.remote = remote;
+                    if (this.identityPath) {
+                        params.identity_path = this.identityPath;
+                    }
+                    if (this.remoteTimeout) {
+                        params.timeout = this.remoteTimeout;
+                    }
+                }
                 const response = await window.api.get("/api/v1/rnstatus", { params });
                 this.interfaces = response.data.interfaces || [];
                 this.linkCount = response.data.link_count;
                 this.blackholeEnabled = response.data.blackhole_enabled;
                 this.blackholeSources = response.data.blackhole_sources || [];
                 this.blackholeCount = response.data.blackhole_count || 0;
+                this.activeRemoteHash = response.data.remote || "";
             } catch (e) {
                 console.error(e);
                 const detail = e?.response?.data?.message || e?.message || "";

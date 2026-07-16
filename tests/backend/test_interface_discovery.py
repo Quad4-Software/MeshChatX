@@ -634,7 +634,9 @@ def test_apply_bootstrap_only_to_interface():
 
     details = {"bootstrap_only": "yes"}
     ReticulumMeshChat.apply_bootstrap_only_to_interface(
-        details, {"bootstrap_only": False}, True
+        details,
+        {"bootstrap_only": False},
+        True,
     )
     assert details["bootstrap_only"] == "no"
 
@@ -644,7 +646,10 @@ def test_apply_bootstrap_only_to_interface():
 
     details = {"bootstrap_only": "yes"}
     ReticulumMeshChat.apply_bootstrap_only_to_interface(
-        details, {}, True, updating_existing=True
+        details,
+        {},
+        True,
+        updating_existing=True,
     )
     assert details["bootstrap_only"] == "yes"
 
@@ -654,7 +659,7 @@ def test_strip_reload_instance_suffix():
     assert ReticulumMeshChat._strip_reload_instance_suffix("") is None
     assert ReticulumMeshChat._strip_reload_instance_suffix("mesh") == "mesh"
     assert ReticulumMeshChat._strip_reload_instance_suffix(
-        "production-reload-backend"
+        "production-reload-backend",
     ) == ("production-reload-backend")
     assert (
         ReticulumMeshChat._strip_reload_instance_suffix("my-net-reload-peer")

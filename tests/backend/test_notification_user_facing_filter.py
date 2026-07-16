@@ -118,7 +118,7 @@ class TestIsUserFacingLxmfPayload:
 
     def test_accepts_json_string_fields(self):
         fields = json.dumps(
-            {"reaction": {"reaction_to": "abc", "reaction_content": "\U0001f44d"}}
+            {"reaction": {"reaction_to": "abc", "reaction_content": "\U0001f44d"}},
         )
         assert not is_user_facing_lxmf_payload(fields, "", "")
         fields = json.dumps({"image": {"image_size": 1}})
@@ -157,7 +157,7 @@ class TestRequireUserFacingFlag:
         row = _row(
             incoming=1,
             fields={
-                "reaction": {"reaction_to": "abc", "reaction_content": "\U0001f44d"}
+                "reaction": {"reaction_to": "abc", "reaction_content": "\U0001f44d"},
             },
         )
         # Without ``require_user_facing`` the helper preserves its old behavior
@@ -168,7 +168,7 @@ class TestRequireUserFacingFlag:
         row = _row(
             incoming=1,
             fields={
-                "reaction": {"reaction_to": "abc", "reaction_content": "\U0001f44d"}
+                "reaction": {"reaction_to": "abc", "reaction_content": "\U0001f44d"},
             },
         )
         assert (
@@ -323,7 +323,10 @@ class TestGetLatestUserFacingIncomingMessage:
                 peer_hash=PEER_HASH,
                 content="",
                 fields={
-                    "reaction": {"reaction_to": "abc", "reaction_content": "\U0001f44d"}
+                    "reaction": {
+                        "reaction_to": "abc",
+                        "reaction_content": "\U0001f44d",
+                    },
                 },
                 timestamp=200,
             ),
@@ -410,7 +413,7 @@ class TestGetLatestUserFacingIncomingMessage:
                         "reaction": {
                             "reaction_to": "x",
                             "reaction_content": "\U0001f44d",
-                        }
+                        },
                     },
                     timestamp=100 + i,
                 ),
@@ -541,7 +544,7 @@ class TestNotificationsGetUserFacingFilter:
                 peer_hash=PEER_HASH,
                 content="",
                 fields={
-                    "reaction": {"reaction_to": "m1", "reaction_content": "\U0001f44d"}
+                    "reaction": {"reaction_to": "m1", "reaction_content": "\U0001f44d"},
                 },
                 timestamp=1_700_001_000,
             ),
@@ -570,7 +573,7 @@ class TestNotificationsGetUserFacingFilter:
                 peer_hash=PEER_HASH,
                 content="",
                 fields={
-                    "reaction": {"reaction_to": "m1", "reaction_content": "\U0001f44d"}
+                    "reaction": {"reaction_to": "m1", "reaction_content": "\U0001f44d"},
                 },
                 timestamp=1_700_001_000,
             ),
@@ -697,7 +700,7 @@ class TestNotificationsGetUserFacingFilter:
                 peer_hash=PEER_HASH_2,
                 content="",
                 fields={
-                    "reaction": {"reaction_to": "x", "reaction_content": "\U0001f44d"}
+                    "reaction": {"reaction_to": "x", "reaction_content": "\U0001f44d"},
                 },
                 timestamp=1_700_000_200,
             ),
@@ -724,7 +727,10 @@ class TestNotificationsGetUserFacingFilter:
                 peer_hash=PEER_HASH,
                 content="",
                 fields={
-                    "reaction": {"reaction_to": "abc", "reaction_content": "\U0001f44d"}
+                    "reaction": {
+                        "reaction_to": "abc",
+                        "reaction_content": "\U0001f44d",
+                    },
                 },
                 timestamp=1_700_000_000,
             ),
@@ -833,16 +839,21 @@ class TestNotificationsMarkReadSync:
         )
 
         conv_before = await self._get(
-            bell_app, path="/api/v1/lxmf/conversations", filter_unread="true"
+            bell_app,
+            path="/api/v1/lxmf/conversations",
+            filter_unread="true",
         )
         assert len(conv_before["conversations"]) == 1
 
         await self._post(
-            bell_app, f"/api/v1/lxmf/conversations/{PEER_HASH}/mark-as-read"
+            bell_app,
+            f"/api/v1/lxmf/conversations/{PEER_HASH}/mark-as-read",
         )
 
         conv_after = await self._get(
-            bell_app, path="/api/v1/lxmf/conversations", filter_unread="true"
+            bell_app,
+            path="/api/v1/lxmf/conversations",
+            filter_unread="true",
         )
         bell_after = await self._get(bell_app, unread="true", limit=10)
         assert conv_after["conversations"] == []
@@ -864,7 +875,7 @@ class TestNotificationsMarkReadSync:
                 peer_hash=PEER_HASH,
                 content="",
                 fields={
-                    "reaction": {"reaction_to": "m1", "reaction_content": "\U0001f44d"}
+                    "reaction": {"reaction_to": "m1", "reaction_content": "\U0001f44d"},
                 },
                 timestamp=1_700_001_000,
             ),

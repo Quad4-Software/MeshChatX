@@ -253,7 +253,7 @@ class TestRnsLinkPluginCapabilities:
                 "destination_hash": "aa" * 16,
                 "aspect": "microrn.mgmt",
                 "payload_b64": "AA==",
-            }
+            },
         )
         assert events == []
 
@@ -269,7 +269,7 @@ class TestRnsLinkPluginCapabilities:
                 "destination_hash": "aa" * 16,
                 "aspect": "microrn.mgmt",
                 "payload_b64": "AA==",
-            }
+            },
         )
         assert events
         assert events[-1][1] == "rns.link.event"

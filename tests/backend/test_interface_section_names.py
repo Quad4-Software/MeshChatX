@@ -50,7 +50,7 @@ def test_configobj_accepts_sanitized_section_names():
     path = Path(tempfile.mktemp(suffix=".cfg"))
     try:
         name = InterfaceEditor.sanitize_interface_section_name(
-            "MSK SZAO [HaLow Bridge]"
+            "MSK SZAO [HaLow Bridge]",
         )
         cfg = ConfigObj(str(path))
         cfg["interfaces"] = {}
@@ -74,8 +74,8 @@ def test_community_manager_normalizes_bracket_names(tmp_path):
                 "type": "TCPClientInterface",
                 "target_host": "dreadgurizta.ru",
                 "target_port": 4242,
-            }
-        ]
+            },
+        ],
     }
     path = tmp_path / "community_interfaces.json"
     path.write_text(json.dumps(doc), encoding="utf-8")

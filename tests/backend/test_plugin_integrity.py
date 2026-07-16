@@ -17,7 +17,7 @@ def _install_simple(manager, tmp_path):
                 "apiVersion": 1,
                 "name": "Integrity",
                 "frontend": {"entry": "frontend/main.js", "type": "js"},
-            }
+            },
         ),
         encoding="utf-8",
     )

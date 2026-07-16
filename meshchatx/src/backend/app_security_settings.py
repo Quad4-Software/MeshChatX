@@ -43,7 +43,8 @@ def load_app_security_settings(storage_dir: str) -> dict[str, Any]:
 
 
 def save_app_security_settings(
-    storage_dir: str, updates: dict[str, Any]
+    storage_dir: str,
+    updates: dict[str, Any],
 ) -> dict[str, Any]:
     from meshchatx.src.backend.ip_allowlist import parse_allowlist_networks
 
@@ -55,10 +56,9 @@ def save_app_security_settings(
         current["web_ui_ip_allowlist"] = text
     path = _settings_path(storage_dir)
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    with _LOCK:
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(current, f, indent=2)
-            f.write("\n")
+    with _LOCK, open(path, "w", encoding="utf-8") as f:
+        json.dump(current, f, indent=2)
+        f.write("\n")
     return current
 
 

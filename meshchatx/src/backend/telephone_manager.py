@@ -384,7 +384,8 @@ class TelephoneManager:
                 self._update_initiation_status("Discovering path/identity...")
                 with contextlib.suppress(Exception):
                     reticulum_pathfinding.prepare_fresh_path_request(
-                        None, destination_hash
+                        None,
+                        destination_hash,
                     )
                 timeout_after = time.monotonic() + timeout_seconds
                 next_request_at = 0.0

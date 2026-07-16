@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-import meshchatx.android_codec2 as android_codec2
+from meshchatx import android_codec2
 
 
 def test_ensure_codec2_skips_non_android():
@@ -26,7 +26,9 @@ def test_ensure_codec2_loads_bundled_library(tmp_path):
     with (
         patch.object(android_codec2, "_is_chaquopy_android", return_value=True),
         patch.object(
-            android_codec2.ctypes, "CDLL", side_effect=[OSError(), None]
+            android_codec2.ctypes,
+            "CDLL",
+            side_effect=[OSError(), None],
         ) as cdll,
         patch.object(
             android_codec2,

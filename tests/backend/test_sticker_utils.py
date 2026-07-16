@@ -200,7 +200,10 @@ def test_validate_export_document_fuzz_never_raises_unexpected(doc):
 
 
 def _build_tgs(
-    width: int = 512, height: int = 512, fps: float = 30.0, frames: int = 60
+    width: int = 512,
+    height: int = 512,
+    fps: float = 30.0,
+    frames: int = 60,
 ) -> bytes:
     import gzip
     import json
@@ -248,7 +251,7 @@ def test_parse_tgs_invalid_metadata():
     import json
 
     raw = gzip.compress(
-        json.dumps({"w": 0, "h": 0, "fr": 0, "ip": 0, "op": 0}).encode()
+        json.dumps({"w": 0, "h": 0, "fr": 0, "ip": 0, "op": 0}).encode(),
     )
     with pytest.raises(ValueError, match="invalid_tgs_metadata"):
         sticker_utils.parse_tgs(raw)

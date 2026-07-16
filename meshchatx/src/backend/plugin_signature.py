@@ -7,7 +7,7 @@ from __future__ import annotations
 import io
 import os
 import zipfile
-from typing import Iterable
+from collections.abc import Iterable
 
 from meshchatx.src.backend.plugin_rsg import SignatureInfo, verify_rsg_payload
 
@@ -52,7 +52,8 @@ def canonical_zip_payload_from_bytes(payload: bytes) -> bytes:
             if info.is_dir():
                 continue
             clean = os.path.normpath(info.filename.replace("\\", "/")).replace(
-                "\\", "/"
+                "\\",
+                "/",
             )
             if clean in {"", "."}:
                 continue
@@ -90,7 +91,8 @@ def verify_zip_signature(payload: bytes) -> SignatureInfo:
         with zipfile.ZipFile(io.BytesIO(payload)) as archive:
             for info in archive.infolist():
                 clean = os.path.normpath(info.filename.replace("\\", "/")).replace(
-                    "\\", "/"
+                    "\\",
+                    "/",
                 )
                 if is_signature_basename(clean):
                     rsg_data = archive.read(info.filename)
@@ -123,7 +125,8 @@ def verify_wasm_signature(data: bytes) -> SignatureInfo:
 
 
 def verify_file_bytes_signature(
-    rsg_data: bytes | None, payload: bytes
+    rsg_data: bytes | None,
+    payload: bytes,
 ) -> SignatureInfo:
     if not rsg_data:
         return SignatureInfo()
@@ -168,7 +171,8 @@ def embed_signature_in_zip_bytes(payload: bytes, rsg_data: bytes) -> bytes:
             if info.is_dir():
                 continue
             clean = os.path.normpath(info.filename.replace("\\", "/")).replace(
-                "\\", "/"
+                "\\",
+                "/",
             )
             if clean in {"", "."} or is_signature_basename(clean):
                 continue

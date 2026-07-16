@@ -41,7 +41,12 @@ def test_maybe_add_rrc_mention_notification():
     app.current_context = ctx
 
     msg = proto.RRCMessage(
-        "msg", "lobby", b"\x20" * 16, "carol", "hey @alice", proto.now_ms()
+        "msg",
+        "lobby",
+        b"\x20" * 16,
+        "carol",
+        "hey @alice",
+        proto.now_ms(),
     )
     msg.mention = True
 

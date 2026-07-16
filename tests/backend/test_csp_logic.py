@@ -77,7 +77,8 @@ async def test_csp_header_logic(mock_rns_minimal, tmp_path):
 
 @pytest.mark.asyncio
 async def test_security_middleware_sets_cors_headers_on_rnode_flasher(
-    mock_rns_minimal, tmp_path
+    mock_rns_minimal,
+    tmp_path,
 ):
     storage_dir = str(tmp_path / "storage")
     config_dir = str(tmp_path / "config")
@@ -110,7 +111,8 @@ async def test_security_middleware_sets_cors_headers_on_rnode_flasher(
 
 @pytest.mark.asyncio
 async def test_security_middleware_does_not_set_cors_on_reticulum_docs(
-    mock_rns_minimal, tmp_path
+    mock_rns_minimal,
+    tmp_path,
 ):
     storage_dir = str(tmp_path / "storage")
     config_dir = str(tmp_path / "config")

@@ -4,7 +4,6 @@
 
 import os
 
-
 from meshchatx.src.backend.rrc import protocol as proto
 from meshchatx.src.backend.rrc.hub_policy import load_hub_policy, save_hub_policy
 from meshchatx.src.backend.rrc.identity_util import parse_identity_hash
@@ -65,7 +64,7 @@ def route(server, link, sess, env):
 
 
 def join(server, link, sess, room, key=None):
-    body = key if key else None
+    body = key or None
     route(
         server,
         link,
@@ -284,6 +283,7 @@ def test_server_manager_roundtrip_policy_and_rooms(tmp_path):
 
     manager2 = RRCServerManager(storage_dir=str(tmp_path))
     from unittest.mock import patch
+
     import RNS
 
     class _Ident:
@@ -331,7 +331,7 @@ def test_rooms_toml_roundtrip(tmp_path):
             "bans": {BOB},
             "invited": {},
             "last_used_ts": 1.0,
-        }
+        },
     }
     store.save(reg)
     loaded = store.load()

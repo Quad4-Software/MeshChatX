@@ -29,7 +29,7 @@ def test_able_services_search(able_path):
         {
             "service0": {"c1-aa": 0, "aa-c2-aa": 1},
             "service1": {"bb-c3-bb": 2},
-        }
+        },
     )
     assert services.search("c3") == 2
     assert services.search("c4") is None

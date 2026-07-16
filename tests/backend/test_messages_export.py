@@ -117,7 +117,7 @@ async def test_messages_export_with_icons(mock_rns_minimal, temp_dir):
                 "path_interface_at_send": None,
                 "path_finding_measure": None,
                 "path_row_hash_hex": None,
-            }
+            },
         )
         app.database.messages.upsert_lxmf_message(
             {
@@ -145,10 +145,13 @@ async def test_messages_export_with_icons(mock_rns_minimal, temp_dir):
                 "path_interface_at_send": None,
                 "path_finding_measure": None,
                 "path_row_hash_hex": None,
-            }
+            },
         )
         app.database.misc.update_lxmf_user_icon(
-            "peer1", "account", "#FFFFFF", "#000000"
+            "peer1",
+            "account",
+            "#FFFFFF",
+            "#000000",
         )
         app.database.misc.update_lxmf_user_icon("peer2", "robot", "#000000", "#FFFFFF")
 
@@ -211,7 +214,7 @@ async def test_messages_export_without_icons(mock_rns_minimal, temp_dir):
                 "path_interface_at_send": None,
                 "path_finding_measure": None,
                 "path_row_hash_hex": None,
-            }
+            },
         )
 
         handler = None

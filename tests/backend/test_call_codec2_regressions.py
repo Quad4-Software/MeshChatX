@@ -285,7 +285,7 @@ class TestAndroidCodec2PackagingRegression:
             with zipfile.ZipFile(wheels[-1]) as zin:
                 assert "pycodec2/libcodec2.so" in zin.namelist()
             lib_wheels = sorted(
-                vendor.glob(f"chaquopy_libcodec2-*-android_24_{abi}.whl")
+                vendor.glob(f"chaquopy_libcodec2-*-android_24_{abi}.whl"),
             )
             if not lib_wheels:
                 pytest.skip(f"missing chaquopy_libcodec2 for {abi}")

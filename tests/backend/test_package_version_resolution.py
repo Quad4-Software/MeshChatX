@@ -85,7 +85,8 @@ def test_app_info_dependency_keys_resolve_in_dev_env(package: str):
 
 
 @pytest.mark.skipif(
-    sys.version_info < (3, 13), reason="audioop-lts only on Python 3.13+"
+    sys.version_info < (3, 13),
+    reason="audioop-lts only on Python 3.13+",
 )
 def test_audioop_lts_resolves_when_applicable():
     v = ReticulumMeshChat.get_package_version("audioop-lts")

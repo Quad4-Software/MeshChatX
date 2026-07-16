@@ -238,7 +238,7 @@ def test_migrate_rejects_nonempty_target(tmp_path):
 
 def test_fresh_rejects_nonempty_target(tmp_path):
     (tmp_path / "identity").write_bytes(
-        RNS.Identity(create_keys=True).get_private_key()
+        RNS.Identity(create_keys=True).get_private_key(),
     )
     with pytest.raises(ValueError):
         fresh_storage_at_target(str(tmp_path))
@@ -251,11 +251,15 @@ def test_assert_migration_context_paths():
         "target_path": "/a/.reticulum-meshchatx",
     }
     assert_migration_context_paths(
-        ctx, "/a/.reticulum-meshchat", "/a/.reticulum-meshchatx"
+        ctx,
+        "/a/.reticulum-meshchat",
+        "/a/.reticulum-meshchatx",
     )
     with pytest.raises(ValueError):
         assert_migration_context_paths(
-            ctx, "/b/.reticulum-meshchat", "/a/.reticulum-meshchatx"
+            ctx,
+            "/b/.reticulum-meshchat",
+            "/a/.reticulum-meshchatx",
         )
 
 
@@ -379,7 +383,7 @@ def _create_old_meshchat_style_sqlite(db_path: Path) -> None:
             VALUES ('msghex01', 'src01', 'dst01', 'delivered', 1.0);
             INSERT INTO announces (destination_hash, aspect, identity_hash, identity_public_key, app_data)
             VALUES ('dh01', 'lxmf.delivery', 'ih01', 'pk01', NULL);
-            """
+            """,
         )
         conn.commit()
     finally:
@@ -427,7 +431,7 @@ def test_live_migrate_copies_wal_sidecar_files(tmp_path):
     legacy_root = tmp_path / "wal_src"
     legacy_root.mkdir()
     (legacy_root / "identity").write_bytes(
-        RNS.Identity(create_keys=True).get_private_key()
+        RNS.Identity(create_keys=True).get_private_key(),
     )
     db_path = legacy_root / "identities" / "idwal" / "database.db"
     _create_old_meshchat_style_sqlite(db_path)
@@ -462,11 +466,15 @@ def test_resolve_identities_only_no_root_identity(monkeypatch):
 def test_paired_upstream_plain_from_meshchatx_paths():
     p_dot = os.path.join("/tmp", "o", CURRENT_DIR)
     assert paired_upstream_plain_from_meshchatx(p_dot) == os.path.join(
-        "/tmp", "o", UPSTREAM_DIR
+        "/tmp",
+        "o",
+        UPSTREAM_DIR,
     )
     p_plain = os.path.join("/tmp", "o", UPSTREAM_X_DIR)
     assert paired_upstream_plain_from_meshchatx(p_plain) == os.path.join(
-        "/tmp", "o", UPSTREAM_DIR
+        "/tmp",
+        "o",
+        UPSTREAM_DIR,
     )
     assert paired_upstream_plain_from_meshchatx("/tmp/storage") is None
 

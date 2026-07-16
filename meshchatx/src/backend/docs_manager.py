@@ -247,7 +247,8 @@ class DocsManager:
         manifest, _manifest_error = self._read_manifest()
         if manifest and manifest.get("sections"):
             for section in sorted(
-                manifest["sections"], key=lambda s: s.get("order", 0)
+                manifest["sections"],
+                key=lambda s: s.get("order", 0),
             ):
                 section_title = self._localized_text(
                     section.get("title"),
@@ -309,7 +310,8 @@ class DocsManager:
             html_path = os.path.join(self.meshchatx_docs_dir, html_file)
             os.makedirs(os.path.dirname(html_path), exist_ok=True)
             doc_html = self._standalone_html_shell(
-                title, f'<div class="max-w-none break-words">{body}</div>'
+                title,
+                f'<div class="max-w-none break-words">{body}</div>',
             )
             with open(html_path, "w", encoding="utf-8") as f:
                 f.write(doc_html)
@@ -469,7 +471,9 @@ class DocsManager:
                 {
                     "id": "all",
                     "title": self._localized_text(
-                        {"en": "Guides"}, lang, default_language
+                        {"en": "Guides"},
+                        lang,
+                        default_language,
                     ),
                     "items": [
                         {
@@ -486,7 +490,8 @@ class DocsManager:
         available = {doc["path"] for doc in flat_docs}
         sections = []
         for section in sorted(
-            manifest.get("sections", []), key=lambda s: s.get("order", 0)
+            manifest.get("sections", []),
+            key=lambda s: s.get("order", 0),
         ):
             items = []
             for item in section.get("items", []):

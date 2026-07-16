@@ -21,7 +21,6 @@ from meshchatx.src.backend.websocket_config_guard import (
 )
 from tests.backend.ws_json_contract_schemas import assert_ws_message_matches_schema
 
-
 st_aspect = st.text(
     alphabet=st.sampled_from("abcdefghijklmnopqrstuvwxyz0123456789._-"),
     min_size=1,
@@ -139,7 +138,7 @@ def test_rns_link_open_parse_failures_never_raise(dest_hex, aspect, request_id):
     async def _run():
         app = _make_app()
         app.rns_link_manager.open_link = AsyncMock(
-            return_value=(MagicMock(), False, None)
+            return_value=(MagicMock(), False, None),
         )
         client, sent = _capture_client()
         await app._handle_rns_link_open(
@@ -196,19 +195,23 @@ def test_rns_link_send_fuzz_never_raises(dest_hex, aspect, payload, request_id):
         st.just("!!!not-base64!!!"),
         st.just("%%%%"),
         st.binary(min_size=0, max_size=64).map(
-            lambda b: base64.b64encode(b).decode("ascii")
+            lambda b: base64.b64encode(b).decode("ascii"),
         ),
     ),
     request_id=st.text(min_size=1, max_size=24),
 )
 @settings(max_examples=40, deadline=None)
 def test_rns_link_request_fuzz_never_raises(
-    dest_hex, aspect, path, data_b64, request_id
+    dest_hex,
+    aspect,
+    path,
+    data_b64,
+    request_id,
 ):
     async def _run():
         app = _make_app()
         app.rns_link_manager.open_link = AsyncMock(
-            return_value=(None, False, "no_path_to_destination")
+            return_value=(None, False, "no_path_to_destination"),
         )
         client, sent = _capture_client()
         await app._handle_rns_link_request(

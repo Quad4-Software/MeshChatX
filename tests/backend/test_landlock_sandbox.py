@@ -17,11 +17,15 @@ def test_parse_kernel_version():
 
 def test_kernel_version_meets_minimum():
     with patch.object(
-        ll.os, "uname", return_value=type("U", (), {"release": "6.12.7"})()
+        ll.os,
+        "uname",
+        return_value=type("U", (), {"release": "6.12.7"})(),
     ):
         assert ll._kernel_version_meets_minimum() is True
     with patch.object(
-        ll.os, "uname", return_value=type("U", (), {"release": "5.12.99"})()
+        ll.os,
+        "uname",
+        return_value=type("U", (), {"release": "5.12.99"})(),
     ):
         assert ll._kernel_version_meets_minimum() is False
 

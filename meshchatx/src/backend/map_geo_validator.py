@@ -119,7 +119,9 @@ def validate_geojson_bytes(
         raise GeoValidationError("too_many_features")
     _validate_coords_finite(obj)
     return GeoValidationResult(
-        format="geojson", feature_count=count, byte_size=len(data)
+        format="geojson",
+        feature_count=count,
+        byte_size=len(data),
     )
 
 
@@ -191,9 +193,11 @@ def validate_kmz_bytes(
             lower = name.lower()
             if lower.endswith(".kml"):
                 if kml_name is None or lower.endswith("doc.kml") or lower == "doc.kml":
-                    if lower == "doc.kml" or lower.endswith("/doc.kml"):
-                        kml_name = name
-                    elif kml_name is None:
+                    if (
+                        lower == "doc.kml"
+                        or lower.endswith("/doc.kml")
+                        or kml_name is None
+                    ):
                         kml_name = name
         if not kml_name:
             raise GeoValidationError("kmz_missing_kml")

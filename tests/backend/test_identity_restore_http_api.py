@@ -31,7 +31,7 @@ def web_identity_app(mock_app):
 @pytest.mark.asyncio
 async def test_post_identity_restore_base32_passes_display_name(web_identity_app):
     web_identity_app.restore_identity_from_base32 = MagicMock(
-        return_value={"hash": "abc123", "display_name": "Imported Name"}
+        return_value={"hash": "abc123", "display_name": "Imported Name"},
     )
     aio_app = _build_aio_app(web_identity_app)
 
@@ -60,7 +60,8 @@ async def test_post_identity_restore_returns_400_when_base32_missing(web_identit
 
     async with TestClient(TestServer(aio_app)) as client:
         response = await client.post(
-            "/api/v1/identity/restore", json={"display_name": "Any"}
+            "/api/v1/identity/restore",
+            json={"display_name": "Any"},
         )
         assert response.status == 400
         data = await response.json()
@@ -74,7 +75,7 @@ async def test_post_identity_restore_multipart_file_passes_display_name(
     web_identity_app,
 ):
     web_identity_app.restore_identity_from_bytes = MagicMock(
-        return_value={"hash": "filehash", "display_name": "From File"}
+        return_value={"hash": "filehash", "display_name": "From File"},
     )
     aio_app = _build_aio_app(web_identity_app)
 
@@ -104,7 +105,7 @@ async def test_post_identity_restore_multipart_display_name_before_file(
     web_identity_app,
 ):
     web_identity_app.restore_identity_from_bytes = MagicMock(
-        return_value={"hash": "filehash", "display_name": "From File"}
+        return_value={"hash": "filehash", "display_name": "From File"},
     )
     aio_app = _build_aio_app(web_identity_app)
 
@@ -129,7 +130,7 @@ async def test_post_identity_restore_multipart_display_name_before_file(
 @pytest.mark.asyncio
 async def test_post_identity_restore_value_error_returns_400(web_identity_app):
     web_identity_app.restore_identity_from_base32 = MagicMock(
-        side_effect=ValueError("Identity file is empty")
+        side_effect=ValueError("Identity file is empty"),
     )
     aio_app = _build_aio_app(web_identity_app)
 

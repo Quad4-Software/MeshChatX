@@ -662,11 +662,13 @@ class CrashRecovery:
     def _append_permission_failure_diagnosis(self, exc, file, results):
         if exc is None:
             return
-        if isinstance(exc, PermissionError):
-            pass
-        elif isinstance(exc, OSError) and getattr(exc, "errno", None) in (
-            errno.EACCES,
-            errno.EPERM,
+        if isinstance(exc, PermissionError) or (
+            isinstance(exc, OSError)
+            and getattr(exc, "errno", None)
+            in (
+                errno.EACCES,
+                errno.EPERM,
+            )
         ):
             pass
         else:

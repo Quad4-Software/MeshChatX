@@ -314,7 +314,7 @@ class BackendBenchmarker:
                             "rssi": -50,
                             "snr": 5.0,
                             "quality": 3,
-                        }
+                        },
                     )
 
         _, res = upsert_announces()
@@ -348,7 +348,7 @@ class BackendBenchmarker:
                 get_memory_usage_mb() - mem0,
                 samples_ms=trim_samples,
                 iterations=10,
-            )
+            ),
         )
 
     def bench_identity_operations(self):
@@ -431,7 +431,8 @@ class BackendBenchmarker:
             with self.db.provider:
                 for i in range(50):
                     self.db.config.set(
-                        f"bench_key_{i}", f"value_{secrets.token_hex(4)}"
+                        f"bench_key_{i}",
+                        f"value_{secrets.token_hex(4)}",
                     )
 
         @benchmark("Config Get (50 keys)", iterations=20)
@@ -512,9 +513,9 @@ class BackendBenchmarker:
             '{"type":"FeatureCollection","features":['
             + ",".join(
                 [
-                    '{"type":"Feature","geometry":{"type":"Point","coordinates":[0,0]},"properties":{}}'
+                    '{"type":"Feature","geometry":{"type":"Point","coordinates":[0,0]},"properties":{}}',
                 ]
-                * 20
+                * 20,
             )
             + "]}"
         )
@@ -666,7 +667,10 @@ class BackendBenchmarker:
                 self.db.misc.add_blocked_destination(random.choice(dest_hashes))
             with self.db.provider:
                 self.db.misc.update_lxmf_user_icon(
-                    random.choice(dest_hashes), "person", "#fff", "#000"
+                    random.choice(dest_hashes),
+                    "person",
+                    "#fff",
+                    "#000",
                 )
 
         _, res = blocked_dest_roundtrip()
@@ -685,7 +689,7 @@ class BackendBenchmarker:
         print(f"\n{'=' * 20} BENCHMARK SUMMARY {'=' * 20}")
         print(f"Aggregated over {suite_runs} suite run(s) (median of medians)")
         print(
-            f"{'Benchmark Name':40} | {'Median':10} | {'MAD':8} | {'CV':6} | {'Mem':10}"
+            f"{'Benchmark Name':40} | {'Median':10} | {'MAD':8} | {'CV':6} | {'Mem':10}",
         )
         print(f"{'-' * 40}-|-{'-' * 10}-|-{'-' * 8}-|-{'-' * 6}-|-{'-' * 10}")
         for r in self.results:

@@ -11,7 +11,8 @@ def test_findings_for_unsigned_network_and_eval(tmp_path):
     plugin_dir = tmp_path / "plugin"
     plugin_dir.mkdir()
     (plugin_dir / "main.js").write_text(
-        "eval('1'); fetch('https://evil.example/x')", encoding="utf-8"
+        "eval('1'); fetch('https://evil.example/x')",
+        encoding="utf-8",
     )
     manifest = {
         "id": "com.example.risky",

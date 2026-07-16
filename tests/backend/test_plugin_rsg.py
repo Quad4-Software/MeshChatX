@@ -49,12 +49,17 @@ def test_verify_rsg_payload_and_trusted_lookup(tmp_path):
     plugins_root = tmp_path / "plugins"
     plugins_root.mkdir()
     add_user_trusted_publisher(
-        str(plugins_root), str(db), identity.hash.hex(), "Example Publisher"
+        str(plugins_root),
+        str(db),
+        identity.hash.hex(),
+        "Example Publisher",
     )
     pubs = list_trusted_publishers(str(plugins_root), str(db))
     assert any(p["identity"] == identity.hash.hex() for p in pubs)
     name, trusted = lookup_trusted_publisher_in_storage(
-        identity.hash.hex(), str(plugins_root), str(db)
+        identity.hash.hex(),
+        str(plugins_root),
+        str(db),
     )
     assert trusted is True
     assert name == "Example Publisher"

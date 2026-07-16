@@ -5,9 +5,8 @@
 from __future__ import annotations
 
 import importlib.util
-from pathlib import Path
-
 import tomllib
+from pathlib import Path
 
 
 def _project_dependencies() -> list[str]:

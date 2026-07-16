@@ -161,7 +161,7 @@ def test_lxst_switch_profile_updates_codec_and_frame_time(monkeypatch):
 
     assert telephone.active_call.profile == LXSTTelephony.Profiles.QUALITY_HIGH
     assert telephone.target_frame_time_ms == LXSTTelephony.Profiles.get_frame_time(
-        LXSTTelephony.Profiles.QUALITY_HIGH
+        LXSTTelephony.Profiles.QUALITY_HIGH,
     )
     assert telephone.transmit_codec is fake_codec
 

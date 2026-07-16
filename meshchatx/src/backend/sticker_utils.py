@@ -314,7 +314,10 @@ def parse_tgs(data: bytes) -> dict:
 
 
 def _ebml_read_vint(
-    buf: bytes, pos: int, *, mask_marker: bool = True
+    buf: bytes,
+    pos: int,
+    *,
+    mask_marker: bool = True,
 ) -> tuple[int, int] | None:
     """Read an EBML variable-length integer at ``pos``; returns ``(value, next_pos)``."""
     if pos >= len(buf):
@@ -408,13 +411,16 @@ def parse_webm(data: bytes) -> dict:
                                     track_type = _ebml_read_uint(raw, fb, fe)
                                 elif f_id == 0x86:
                                     track_codec = raw[fb:fe].decode(
-                                        "ascii", errors="replace"
+                                        "ascii",
+                                        errors="replace",
                                     )
                                 elif f_id == 0x23E383:
                                     track_def_dur = _ebml_read_uint(raw, fb, fe)
                                 elif f_id == 0xE0:
                                     for v_id, vb, ve in _ebml_iter_elements(
-                                        raw, fb, fe
+                                        raw,
+                                        fb,
+                                        fe,
                                     ):
                                         if v_id == 0xB0:
                                             t_w = _ebml_read_uint(raw, vb, ve)

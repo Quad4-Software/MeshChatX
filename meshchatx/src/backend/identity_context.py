@@ -16,7 +16,6 @@ from meshchatx.src.backend.community_interfaces import CommunityInterfacesManage
 from meshchatx.src.backend.config_manager import ConfigManager
 from meshchatx.src.backend.database import Database
 from meshchatx.src.backend.docs_manager import DocsManager
-from meshchatx.src.backend.repository_server_manager import RepositoryServerManager
 from meshchatx.src.backend.forwarding_manager import ForwardingManager
 from meshchatx.src.backend.integrity_manager import (
     CriticalIntegrityError,
@@ -28,14 +27,16 @@ from meshchatx.src.backend.map_overlay_manager import MapOverlayManager
 from meshchatx.src.backend.meshchat_utils import create_lxmf_router
 from meshchatx.src.backend.message_handler import MessageHandler
 from meshchatx.src.backend.nomadnet_utils import NomadNetworkManager
+from meshchatx.src.backend.repository_server_manager import RepositoryServerManager
 from meshchatx.src.backend.ringtone_manager import RingtoneManager
 from meshchatx.src.backend.rncp_handler import RNCPHandler
-from meshchatx.src.backend.rnsh_manager import RNSHManager
-from meshchatx.src.backend.rrc import RRCManager, RRCServerManager
 from meshchatx.src.backend.rnpath_handler import RNPathHandler
 from meshchatx.src.backend.rnpath_trace_handler import RNPathTraceHandler
 from meshchatx.src.backend.rnprobe_handler import RNProbeHandler
+from meshchatx.src.backend.rnsh_manager import RNSHManager
 from meshchatx.src.backend.rnstatus_handler import RNStatusHandler
+from meshchatx.src.backend.rnx_manager import RNXManager
+from meshchatx.src.backend.rrc import RRCManager, RRCServerManager
 from meshchatx.src.backend.telephone_manager import TelephoneManager
 from meshchatx.src.backend.translator_handler import TranslatorHandler
 from meshchatx.src.backend.voicemail_manager import VoicemailManager
@@ -93,6 +94,7 @@ class IdentityContext:
         self.auto_propagation_manager = None
         self.rncp_handler = None
         self.rnsh_manager = None
+        self.rnx_manager = None
         self.rnstatus_handler = None
         self.rnpath_handler = None
         self.rnpath_trace_handler = None
@@ -313,13 +315,29 @@ class IdentityContext:
         )
         self.rnsh_manager.set_output_callback(
             lambda session, chunk: self.app.on_rnsh_output(
-                session, chunk, context=self
+                session,
+                chunk,
+                context=self,
             ),
         )
         try:
             self.rnsh_manager.load()
         except Exception as exc:
             print(f"Failed to load RNSH sessions for {self.identity_hash}: {exc}")
+        self.rnx_manager = RNXManager(
+            storage_dir=self.storage_path,
+            reticulum_config_dir=getattr(self.app, "reticulum_config_dir", None),
+        )
+        self.rnx_manager.set_change_callback(
+            lambda session: self.app.on_rnx_change(session, context=self),
+        )
+        self.rnx_manager.set_output_callback(
+            lambda session, chunk: self.app.on_rnx_output(session, chunk, context=self),
+        )
+        try:
+            self.rnx_manager.load()
+        except Exception as exc:
+            print(f"Failed to load RNX sessions for {self.identity_hash}: {exc}")
         self.rnstatus_handler = RNStatusHandler(
             reticulum_instance=getattr(self.app, "reticulum", None),
         )
@@ -544,7 +562,8 @@ class IdentityContext:
             target=asyncio.run,
             args=(
                 self.app.lxmf_flood_protection_cooldown_loop(
-                    self.session_id, context=self
+                    self.session_id,
+                    context=self,
                 ),
             ),
         )
@@ -684,6 +703,17 @@ class IdentityContext:
                     f"Error tearing down RNSH manager for {self.identity_hash}: {e}",
                 )
             self.rnsh_manager = None
+
+        if self.rnx_manager:
+            try:
+                self.rnx_manager.set_change_callback(None)
+                self.rnx_manager.set_output_callback(None)
+                self.rnx_manager.shutdown()
+            except Exception as e:
+                print(
+                    f"Error tearing down RNX manager for {self.identity_hash}: {e}",
+                )
+            self.rnx_manager = None
 
         if self.forwarding_manager:
             try:

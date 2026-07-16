@@ -2,6 +2,7 @@ const NOMAD_TABS_KEY = "meshchatx.nomadnet.tabs";
 const MAP_TABS_KEY = "meshchatx.map.tabs";
 const MESSAGE_PANES_KEY = "meshchatx.messages.panes";
 const RNSH_LAYOUT_KEY = "meshchatx.rnsh.layout";
+const RNX_LAYOUT_KEY = "meshchatx.rnx.layout";
 const FEATURE_SIDEBAR_COLLAPSED_KEYS = {
     app: "meshchatx.sidebar.app",
     messages: "meshchatx.sidebar.messages",
@@ -134,6 +135,28 @@ export function loadRnshLayout() {
  */
 export function saveRnshLayout(state) {
     writeJson(RNSH_LAYOUT_KEY, state);
+}
+
+/**
+ * Load persisted RNX manager UI layout.
+ *
+ * @returns {{selectedSessionId: string|null}|null} saved layout or null
+ */
+export function loadRnxLayout() {
+    const data = readJson(RNX_LAYOUT_KEY);
+    if (!data || typeof data !== "object") {
+        return null;
+    }
+    return data;
+}
+
+/**
+ * Persist RNX manager UI layout.
+ *
+ * @param {{selectedSessionId: string|null}} state layout to save
+ */
+export function saveRnxLayout(state) {
+    writeJson(RNX_LAYOUT_KEY, state);
 }
 
 /**

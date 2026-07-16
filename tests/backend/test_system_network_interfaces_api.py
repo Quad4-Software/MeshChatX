@@ -50,7 +50,8 @@ async def test_system_network_interfaces_returns_json(mock_rns_minimal, temp_dir
     with (
         patch("meshchatx.meshchat.generate_ssl_certificate"),
         patch(
-            "meshchatx.meshchat.list_host_network_interfaces", return_value=fake_ifaces
+            "meshchatx.meshchat.list_host_network_interfaces",
+            return_value=fake_ifaces,
         ),
     ):
         app_instance = ReticulumMeshChat(
@@ -79,13 +80,15 @@ async def test_system_network_interfaces_returns_json(mock_rns_minimal, temp_dir
 
 @pytest.mark.asyncio
 async def test_system_network_interfaces_surfaces_psutil_error(
-    mock_rns_minimal, temp_dir
+    mock_rns_minimal,
+    temp_dir,
 ):
     fake_ifaces = ([], "permission denied")
     with (
         patch("meshchatx.meshchat.generate_ssl_certificate"),
         patch(
-            "meshchatx.meshchat.list_host_network_interfaces", return_value=fake_ifaces
+            "meshchatx.meshchat.list_host_network_interfaces",
+            return_value=fake_ifaces,
         ),
     ):
         app_instance = ReticulumMeshChat(

@@ -251,7 +251,10 @@ class MessageDAO:
         self.provider.execute(query, params)
 
     def set_lxmf_message_path_at_send_if_unset(
-        self, message_hash, hops, interface_name
+        self,
+        message_hash,
+        hops,
+        interface_name,
     ):
         """Store Reticulum path snapshot once (send or receive); never overwrites."""
         now = datetime.now(UTC).isoformat()

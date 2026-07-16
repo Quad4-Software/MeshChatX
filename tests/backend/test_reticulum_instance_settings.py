@@ -73,7 +73,7 @@ def test_parse_rns_config_bool():
                 "off",
                 "",
                 "  Yes  ",
-            ]
+            ],
         ),
         st.integers(min_value=-3, max_value=3),
         st.none(),
@@ -99,6 +99,9 @@ async def test_reticulum_instance_get_and_patch(temp_dir):
                 "enable_transport": "No",
                 "respond_to_probes": "No",
                 "enable_remote_management": "No",
+                "remote_management_allowed": [
+                    "aabbccddeeff00112233445566778899",
+                ],
                 "instance_name": "default",
                 "shared_instance_type": "tcp",
                 "rpc_key": "aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899",
@@ -148,6 +151,9 @@ async def test_reticulum_instance_get_and_patch(temp_dir):
         assert get_data["instance"]["share_instance"] is True
         assert get_data["instance"]["local_hops_delta"] is False
         assert get_data["instance"]["shared_instance_type"] == "tcp"
+        assert get_data["instance"]["remote_management_allowed"] == [
+            "aabbccddeeff00112233445566778899",
+        ]
         assert get_data["instance"]["rpc_config_snippet"]
         assert "rpc_key =" in get_data["instance"]["rpc_config_snippet"]
 
@@ -160,6 +166,10 @@ async def test_reticulum_instance_get_and_patch(temp_dir):
                     "respond_to_probes": True,
                     "shared_instance_type": "unix",
                     "instance_name": "meshchatx",
+                    "remote_management_allowed": [
+                        "00112233445566778899aabbccddeeff",
+                    ],
+                    "enable_remote_management": True,
                 }
 
         patch_response = await patch_handler(PatchRequest())
@@ -167,6 +177,14 @@ async def test_reticulum_instance_get_and_patch(temp_dir):
         assert patch_response.status == 200
         assert patch_data["instance"]["local_hops_delta"] is True
         assert patch_data["instance"]["respond_to_probes"] is True
+        assert patch_data["instance"]["enable_remote_management"] is True
+        assert patch_data["instance"]["remote_management_allowed"] == [
+            "00112233445566778899aabbccddeeff",
+        ]
+        assert config["reticulum"]["remote_management_allowed"] == [
+            "00112233445566778899aabbccddeeff",
+        ]
+        assert config["reticulum"]["enable_remote_management"] == "Yes"
         assert patch_data["instance"]["shared_instance_type"] == "unix"
         assert patch_data["instance"]["instance_name"] == "meshchatx"
         assert config["reticulum"]["local_hops_delta"] == "Yes"
@@ -355,10 +373,12 @@ async def test_reticulum_instance_clears_optional_fields(temp_dir):
         {},
         optional={
             "share_instance": st.one_of(
-                st.booleans(), st.sampled_from(["Yes", "No", 1, 0])
+                st.booleans(),
+                st.sampled_from(["Yes", "No", 1, 0]),
             ),
             "local_hops_delta": st.one_of(
-                st.booleans(), st.sampled_from(["yes", "no"])
+                st.booleans(),
+                st.sampled_from(["yes", "no"]),
             ),
             "respond_to_probes": st.booleans(),
             "enable_remote_management": st.booleans(),
@@ -369,12 +389,12 @@ async def test_reticulum_instance_clears_optional_fields(temp_dir):
             "instance_name": st.one_of(
                 st.none(),
                 st.sampled_from(
-                    ["default", "meshchatx", "a", "bad name", "x" * 65, ""]
+                    ["default", "meshchatx", "a", "bad name", "x" * 65, ""],
                 ),
                 st.text(min_size=0, max_size=80),
             ),
         },
-    )
+    ),
 )
 @settings(
     max_examples=60,

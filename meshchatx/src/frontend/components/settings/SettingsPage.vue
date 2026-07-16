@@ -2512,6 +2512,47 @@
                                     </span>
                                 </label>
 
+                                <div
+                                    v-if="reticulumInstance.enable_remote_management"
+                                    class="space-y-2 rounded-xl border border-gray-200 dark:border-zinc-700 bg-black/2 dark:bg-white/2 p-3"
+                                >
+                                    <label class="block space-y-1">
+                                        <span class="text-sm font-medium text-gray-800 dark:text-zinc-200">{{
+                                            $t("app.remote_management_allowed")
+                                        }}</span>
+                                        <textarea
+                                            v-model="remoteManagementAllowedText"
+                                            rows="3"
+                                            class="w-full rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 font-mono text-xs text-gray-900 dark:text-white"
+                                            :disabled="reticulumInstanceSaving"
+                                            :placeholder="$t('app.remote_management_allowed_placeholder')"
+                                        ></textarea>
+                                        <span class="text-xs text-gray-500 dark:text-zinc-400">{{
+                                            $t("app.remote_management_allowed_description")
+                                        }}</span>
+                                    </label>
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <button
+                                            type="button"
+                                            class="primary-chip px-3 py-1.5 text-xs"
+                                            :disabled="reticulumInstanceSaving"
+                                            @click="saveRemoteManagementAllowed"
+                                        >
+                                            {{ $t("app.remote_management_allowed_save") }}
+                                        </button>
+                                        <ManagementIdentityPicker
+                                            v-model="settingsMgmtIdentityPath"
+                                            class="min-w-[16rem] flex-1"
+                                            default-name="mgmt"
+                                            @update:identity-hash="onSettingsMgmtIdentityHash"
+                                        />
+                                    </div>
+                                    <p v-if="settingsMgmtIdentityHash" class="text-xs text-gray-600 dark:text-zinc-400">
+                                        {{ $t("remote_mgmt.management_identity") }}:
+                                        <span class="font-mono">{{ settingsMgmtIdentityHash }}</span>
+                                    </p>
+                                </div>
+
                                 <div class="grid gap-3 sm:grid-cols-2">
                                     <label class="block space-y-1">
                                         <span class="text-sm font-medium text-gray-800 dark:text-zinc-200">{{
@@ -3575,6 +3616,7 @@ import DownloadUtils from "../../js/DownloadUtils";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import Toggle from "../forms/Toggle.vue";
+import ManagementIdentityPicker from "../tools/ManagementIdentityPicker.vue";
 import ShortcutRecorder from "./ShortcutRecorder.vue";
 import SettingsSectionBlock from "./SettingsSectionBlock.vue";
 import SettingsNav from "./SettingsNav.vue";
@@ -3630,6 +3672,7 @@ export default {
     components: {
         MaterialDesignIcon,
         Toggle,
+        ManagementIdentityPicker,
         ShortcutRecorder,
         SettingsSectionBlock,
         SettingsNav,
@@ -3789,6 +3832,7 @@ export default {
                 local_hops_delta: false,
                 respond_to_probes: false,
                 enable_remote_management: false,
+                remote_management_allowed: [],
                 shared_instance_type: "",
                 instance_name: "default",
                 rpc_key: null,
@@ -3797,6 +3841,9 @@ export default {
                 enable_transport: false,
             },
             reticulumInstanceSaving: false,
+            remoteManagementAllowedText: "",
+            settingsMgmtIdentityPath: "",
+            settingsMgmtIdentityHash: "",
         };
     },
     computed: {
@@ -4128,7 +4175,13 @@ export default {
                         ...instance,
                         shared_instance_type: instance.shared_instance_type || "",
                         instance_name: instance.instance_name || "default",
+                        remote_management_allowed: Array.isArray(instance.remote_management_allowed)
+                            ? instance.remote_management_allowed
+                            : [],
                     };
+                    this.remoteManagementAllowedText = (this.reticulumInstance.remote_management_allowed || []).join(
+                        "\n"
+                    );
                 }
             } catch (e) {
                 console.log(e);
@@ -4146,7 +4199,15 @@ export default {
                         ...instance,
                         shared_instance_type: instance.shared_instance_type || "",
                         instance_name: instance.instance_name || "default",
+                        remote_management_allowed: Array.isArray(instance.remote_management_allowed)
+                            ? instance.remote_management_allowed
+                            : [],
                     };
+                    if ("remote_management_allowed" in (patch || {})) {
+                        this.remoteManagementAllowedText = (
+                            this.reticulumInstance.remote_management_allowed || []
+                        ).join("\n");
+                    }
                 }
                 if (response?.data?.message) {
                     ToastUtils.success(response.data.message);
@@ -4169,6 +4230,16 @@ export default {
         },
         onEnableRemoteManagementChange(value) {
             this.patchReticulumInstance({ enable_remote_management: !!value });
+        },
+        saveRemoteManagementAllowed() {
+            const hashes = (this.remoteManagementAllowedText || "")
+                .split(/[\s,]+/)
+                .map((value) => value.trim().toLowerCase())
+                .filter((value) => value.length > 0);
+            this.patchReticulumInstance({ remote_management_allowed: hashes });
+        },
+        onSettingsMgmtIdentityHash(hash) {
+            this.settingsMgmtIdentityHash = hash || "";
         },
         onSharedInstanceTypeChange() {
             const value = this.reticulumInstance.shared_instance_type || null;

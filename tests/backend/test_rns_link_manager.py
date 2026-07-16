@@ -227,7 +227,7 @@ async def test_open_link_cancel_tears_down_half_built(monkeypatch):
 
     manager = _manager()
     task = asyncio.create_task(
-        manager.open_link(dest, "app.aspect", link_establishment_timeout=5.0)
+        manager.open_link(dest, "app.aspect", link_establishment_timeout=5.0),
     )
     await asyncio.sleep(0.05)
     task.cancel()
@@ -458,7 +458,7 @@ def test_parse_dest_aspect_helpers():
     from meshchatx.meshchat import ReticulumMeshChat
 
     dest, aspect, err = ReticulumMeshChat._rns_link_parse_dest_aspect(
-        {"destination_hash": "aa" * 16, "aspect": "microrn.mgmt"}
+        {"destination_hash": "aa" * 16, "aspect": "microrn.mgmt"},
     )
     assert err is None
     assert dest == bytes.fromhex("aa" * 16)
@@ -467,7 +467,7 @@ def test_parse_dest_aspect_helpers():
     _, _, err = ReticulumMeshChat._rns_link_parse_dest_aspect({})
     assert err == "missing_destination_or_aspect"
     _, _, err = ReticulumMeshChat._rns_link_parse_dest_aspect(
-        {"destination_hash": "zz", "aspect": "a"}
+        {"destination_hash": "zz", "aspect": "a"},
     )
     assert err == "invalid_destination_hash"
 

@@ -102,5 +102,5 @@ def parse_memory_log_line(text: str) -> dict | None:
                 parsed[key] = value.lower() in ("true", "1", "yes")
             else:
                 parsed[key] = value
-        return parsed if parsed else None
+        return parsed or None
     return None

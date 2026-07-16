@@ -223,14 +223,22 @@ def test_meshchatx_map_query_tail_fuzzing(mock_app, tail):
 )
 @given(
     lat=st.floats(
-        min_value=-90.0, max_value=90.0, allow_nan=False, allow_infinity=False
+        min_value=-90.0,
+        max_value=90.0,
+        allow_nan=False,
+        allow_infinity=False,
     ),
     lon=st.floats(
-        min_value=-180.0, max_value=180.0, allow_nan=False, allow_infinity=False
+        min_value=-180.0,
+        max_value=180.0,
+        allow_nan=False,
+        allow_infinity=False,
     ),
     z=st.integers(min_value=-50, max_value=50),
     extra=st.dictionaries(
-        keys=st.text(max_size=8), values=st.text(max_size=40), max_size=6
+        keys=st.text(max_size=8),
+        values=st.text(max_size=40),
+        max_size=6,
     ),
 )
 def test_meshchatx_map_numeric_params_fuzzing(mock_app, lat, lon, z, extra):

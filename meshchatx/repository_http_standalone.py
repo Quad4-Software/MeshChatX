@@ -23,10 +23,15 @@ def main() -> int:
         help="Path to the identity's repository-server folder (contains uploads/ and bundled/).",
     )
     parser.add_argument(
-        "--host", default="0.0.0.0", help="Bind address (default 0.0.0.0)."
+        "--host",
+        default="0.0.0.0",
+        help="Bind address (default 0.0.0.0).",
     )
     parser.add_argument(
-        "--port", type=int, default=8787, help="TCP port (default 8787)."
+        "--port",
+        type=int,
+        default=8787,
+        help="TCP port (default 8787).",
     )
     parser.add_argument(
         "--public-dir",

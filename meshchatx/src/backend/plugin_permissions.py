@@ -13,7 +13,7 @@ KNOWN_HOOKS = frozenset(
     {
         "announce.received",
         "rns.link.event",
-    }
+    },
 )
 
 KNOWN_MANAGERS = frozenset(
@@ -36,7 +36,7 @@ KNOWN_MANAGERS = frozenset(
         "rnsLink.request",
         "rnsLink.send",
         "rnsLink.close",
-    }
+    },
 )
 
 KNOWN_STORAGE = frozenset({"isolated", "none"})
@@ -132,7 +132,8 @@ def validate_declared_permissions(manifest: dict[str, Any]) -> None:
 
 
 def normalize_granted_permissions(
-    declared: list[str], granted: list[str] | None
+    declared: list[str],
+    granted: list[str] | None,
 ) -> list[str]:
     declared_set = set(declared)
     if granted is None:
@@ -282,7 +283,7 @@ def collect_network_endpoints(manifest: dict[str, Any], plugin_dir: str) -> list
 def requires_network_fetch(manifest: dict[str, Any], endpoints: list[str]) -> bool:
     permissions = manifest.get("permissions") or {}
     network = normalize_network_mode(
-        permissions.get("network") if isinstance(permissions, dict) else None
+        permissions.get("network") if isinstance(permissions, dict) else None,
     )
     if network == "fetch":
         return True

@@ -12,7 +12,6 @@ import RNS
 from meshchatx.src.backend import reticulum_pathfinding
 from meshchatx.src.backend.reticulum_pathfinding import ReticulumLike
 
-
 # Cache of established RNS Links keyed by (aspect_str, destination_hash_bytes).
 # Kept separate from nomadnet_downloader.nomadnet_cached_links, as the two caches
 # may merge in the future if NomadNet is ported onto this generic Links API.
@@ -222,7 +221,7 @@ class RnsLinkManager:
         self,
         *,
         self_identity_getter: Callable[[], Optional["RNS.Identity"]],
-        reticulum_getter: Callable[[], Optional[ReticulumLike]],
+        reticulum_getter: Callable[[], ReticulumLike | None],
         broadcast_event: Callable[[dict], None],
     ):
         self._get_identity = self_identity_getter
@@ -235,10 +234,10 @@ class RnsLinkManager:
         aspect: str,
         *,
         auto_identify: bool = False,
-        on_phase: Optional[Callable[[str], None]] = None,
+        on_phase: Callable[[str], None] | None = None,
         path_lookup_timeout: float = 15.0,
         link_establishment_timeout: float = 15.0,
-    ) -> tuple[Optional["RNS.Link"], bool, Optional[str]]:
+    ) -> tuple[Optional["RNS.Link"], bool, str | None]:
         """Open (or reuse) a Link to (aspect, destination_hash).
 
         Returns (link, identified, failure_reason). On failure link is None
@@ -370,8 +369,10 @@ class RnsLinkManager:
         return link, identified, None
 
     def identify(
-        self, destination_hash: bytes, aspect: str
-    ) -> tuple[bool, Optional[str]]:
+        self,
+        destination_hash: bytes,
+        aspect: str,
+    ) -> tuple[bool, str | None]:
         link = get_cached_active_link(aspect, destination_hash)
         if link is None:
             return False, "no_active_link"
@@ -393,7 +394,7 @@ class RnsLinkManager:
         response_callback,
         failed_callback,
         progress_callback,
-        timeout: Optional[float] = None,
+        timeout: float | None = None,
     ):
         link = get_cached_active_link(aspect, destination_hash)
         if link is None:
@@ -433,8 +434,11 @@ class RnsLinkManager:
         )
 
     def send_packet(
-        self, destination_hash: bytes, aspect: str, payload: bytes
-    ) -> tuple[bool, Optional[str]]:
+        self,
+        destination_hash: bytes,
+        aspect: str,
+        payload: bytes,
+    ) -> tuple[bool, str | None]:
         link = get_cached_active_link(aspect, destination_hash)
         if link is None:
             return False, "no_active_link"
@@ -464,7 +468,7 @@ class RnsLinkManager:
                     "destination_hash": destination_hash.hex(),
                     "aspect": aspect,
                     "payload_b64": base64.b64encode(bytes(data)).decode("ascii"),
-                }
+                },
             )
         except Exception:
             pass
@@ -478,7 +482,7 @@ class RnsLinkManager:
                     "event": "link_closed",
                     "destination_hash": destination_hash.hex(),
                     "aspect": aspect,
-                }
+                },
             )
         except Exception:
             pass

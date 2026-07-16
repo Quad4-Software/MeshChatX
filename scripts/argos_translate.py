@@ -78,7 +78,7 @@ def ensure_package_installed(from_code, to_code):
 
     if not from_lang or not to_lang or to_lang not in from_lang.translations_from:
         print_warning(
-            f"Translation package {from_code} -> {to_code} not found. Attempting to install..."
+            f"Translation package {from_code} -> {to_code} not found. Attempting to install...",
         )
         try:
             argostranslate.package.update_package_index()
@@ -94,7 +94,7 @@ def ensure_package_installed(from_code, to_code):
                 print_info(f"Downloading package: {pkg_to_install}")
                 argostranslate.package.install_from_path(pkg_to_install.download())
                 print_success(
-                    f"Successfully installed package: {from_code} -> {to_code}"
+                    f"Successfully installed package: {from_code} -> {to_code}",
                 )
 
                 # Refresh installed languages
@@ -102,7 +102,7 @@ def ensure_package_installed(from_code, to_code):
                 installed_dict = {lang.code: lang for lang in installed}
             else:
                 print_error(
-                    f"Could not find a translation package for {from_code} -> {to_code}"
+                    f"Could not find a translation package for {from_code} -> {to_code}",
                 )
                 sys.exit(1)
         except Exception as e:
@@ -179,7 +179,7 @@ def translate_dict(data, translate_func, target_name=None):
             return restore_vars_from_tokens(translated_temp, vars_found)
         except Exception as e:
             print_warning(
-                f"Failed to translate '{data}': {e}. Falling back to original."
+                f"Failed to translate '{data}': {e}. Falling back to original.",
             )
             return data
     else:
@@ -188,10 +188,12 @@ def translate_dict(data, translate_func, target_name=None):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Translate JSON localization files using Argos Translate."
+        description="Translate JSON localization files using Argos Translate.",
     )
     parser.add_argument(
-        "--from", dest="from_lang", help="Source language code (e.g. 'en')"
+        "--from",
+        dest="from_lang",
+        help="Source language code (e.g. 'en')",
     )
     parser.add_argument("--to", dest="to_lang", help="Target language code (e.g. 'zh')")
     parser.add_argument("--input", dest="input_file", help="Path to input JSON file")
@@ -214,7 +216,7 @@ def main():
     if not all([from_lang, to_lang, input_file, output_file]):
         parser.print_help()
         print_error(
-            "Missing required arguments. Please provide --from, --to, --input, and --output."
+            "Missing required arguments. Please provide --from, --to, --input, and --output.",
         )
         sys.exit(1)
 
@@ -241,7 +243,7 @@ def main():
     translate_func = get_translation_func(from_lang, to_lang)
 
     print_info(
-        "Starting translation. This may take a moment depending on the file size..."
+        "Starting translation. This may take a moment depending on the file size...",
     )
     translated_data = translate_dict(source_data, translate_func, target_name)
 

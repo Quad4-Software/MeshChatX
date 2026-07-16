@@ -11,23 +11,23 @@
                     v-if="showSessionsToggle"
                     type="button"
                     class="secondary-chip text-xs px-2 py-1.5 shrink-0 lg:hidden"
-                    :aria-label="sessionsOpen ? $t('rnsh.hide_sessions') : $t('rnsh.show_sessions')"
+                    :aria-label="sessionsOpen ? tKey('hide_sessions') : tKey('show_sessions')"
                     @click="$emit('toggle-sessions')"
                 >
                     <MaterialDesignIcon icon-name="format-list-bulleted" class="size-4" />
                     <span class="hidden sm:inline">{{
-                        sessionsOpen ? $t("rnsh.hide_sessions") : $t("rnsh.show_sessions")
+                        sessionsOpen ? tKey("hide_sessions") : tKey("show_sessions")
                     }}</span>
                 </button>
                 <div class="min-w-0">
                     <div class="text-xs sm:text-sm font-semibold text-gray-900 dark:text-zinc-100 truncate">
-                        {{ session?.name || $t("rnsh.session_output") }}
+                        {{ session?.name || tKey("session_output") }}
                     </div>
                     <div
                         v-if="!compactHeader"
                         class="text-[10px] sm:text-xs text-gray-500 dark:text-zinc-400 font-mono truncate"
                     >
-                        {{ session?.last_command || $t("rnsh.no_command_yet") }}
+                        {{ session?.last_command || tKey("no_command_yet") }}
                     </div>
                 </div>
             </div>
@@ -36,51 +36,51 @@
                     type="button"
                     class="secondary-chip text-xs p-1.5 sm:px-2 sm:py-1.5"
                     :disabled="!session"
-                    :title="$t('rnsh.start')"
-                    :aria-label="$t('rnsh.start')"
+                    :title="tKey('start')"
+                    :aria-label="tKey('start')"
                     @click="$emit('start')"
                 >
                     <MaterialDesignIcon icon-name="play" class="size-4" />
-                    <span class="hidden sm:inline ml-1">{{ $t("rnsh.start") }}</span>
+                    <span class="hidden sm:inline ml-1">{{ tKey("start") }}</span>
                 </button>
                 <button
                     type="button"
                     class="secondary-chip text-xs p-1.5 sm:px-2 sm:py-1.5 text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/40"
                     :disabled="!session"
-                    :title="$t('rnsh.stop')"
-                    :aria-label="$t('rnsh.stop')"
+                    :title="tKey('stop')"
+                    :aria-label="tKey('stop')"
                     @click="$emit('stop')"
                 >
                     <MaterialDesignIcon icon-name="stop" class="size-4" />
-                    <span class="hidden sm:inline ml-1">{{ $t("rnsh.stop") }}</span>
+                    <span class="hidden sm:inline ml-1">{{ tKey("stop") }}</span>
                 </button>
                 <button
                     type="button"
                     class="secondary-chip text-xs p-1.5 sm:px-2 sm:py-1.5"
                     :disabled="!session"
-                    :title="$t('rnsh.clear')"
-                    :aria-label="$t('rnsh.clear')"
+                    :title="tKey('clear')"
+                    :aria-label="tKey('clear')"
                     @click="$emit('clear')"
                 >
                     <MaterialDesignIcon icon-name="broom" class="size-4" />
-                    <span class="hidden sm:inline ml-1">{{ $t("rnsh.clear") }}</span>
+                    <span class="hidden sm:inline ml-1">{{ tKey("clear") }}</span>
                 </button>
                 <button
                     type="button"
                     class="secondary-chip text-xs p-1.5 sm:px-2 sm:py-1.5 text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/40"
                     :disabled="!session"
-                    :title="$t('rnsh.remove')"
-                    :aria-label="$t('rnsh.remove')"
+                    :title="tKey('remove')"
+                    :aria-label="tKey('remove')"
                     @click="$emit('remove')"
                 >
                     <MaterialDesignIcon icon-name="trash-can-outline" class="size-4" />
-                    <span class="hidden sm:inline ml-1">{{ $t("rnsh.remove") }}</span>
+                    <span class="hidden sm:inline ml-1">{{ tKey("remove") }}</span>
                 </button>
                 <button
                     type="button"
                     class="secondary-chip text-xs p-1.5 sm:px-2 sm:py-1.5"
-                    :title="fullscreen ? $t('rnsh.exit_fullscreen') : $t('rnsh.fullscreen')"
-                    :aria-label="fullscreen ? $t('rnsh.exit_fullscreen') : $t('rnsh.fullscreen')"
+                    :title="fullscreen ? tKey('exit_fullscreen') : tKey('fullscreen')"
+                    :aria-label="fullscreen ? tKey('exit_fullscreen') : tKey('fullscreen')"
                     @click="$emit('toggle-fullscreen')"
                 >
                     <MaterialDesignIcon :icon-name="fullscreen ? 'fullscreen-exit' : 'fullscreen'" class="size-4" />
@@ -95,21 +95,21 @@
             <span
                 class="text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-300 shrink-0"
             >
-                {{ $t("rnsh.listening_on") }}
+                {{ tKey("listening_on") }}
             </span>
             <span class="min-w-0 flex-1 font-mono text-[11px] sm:text-xs text-gray-900 dark:text-zinc-100 truncate">
-                {{ listenAddress || $t("rnsh.waiting_for_address") }}
+                {{ listenAddress || tKey("waiting_for_address") }}
             </span>
             <button
                 v-if="listenAddress"
                 type="button"
                 class="secondary-chip text-xs p-1 sm:px-2 sm:py-1 shrink-0"
-                :title="$t('rnsh.copy_address')"
-                :aria-label="$t('rnsh.copy_address')"
+                :title="tKey('copy_address')"
+                :aria-label="tKey('copy_address')"
                 @click="$emit('copy-address')"
             >
                 <MaterialDesignIcon icon-name="content-copy" class="size-4" />
-                <span class="hidden sm:inline ml-1">{{ $t("rnsh.copy_address") }}</span>
+                <span class="hidden sm:inline ml-1">{{ tKey("copy_address") }}</span>
             </button>
         </div>
 
@@ -134,7 +134,7 @@
                 :value="commandInput"
                 type="text"
                 class="input-field flex-1 min-w-0 font-mono text-xs"
-                :placeholder="$t('rnsh.command_input_placeholder')"
+                :placeholder="tKey('command_input_placeholder')"
                 :disabled="!session"
                 autocomplete="off"
                 autocapitalize="off"
@@ -145,10 +145,10 @@
                 type="submit"
                 class="primary-chip px-2.5 sm:px-3 py-2 text-xs shrink-0"
                 :disabled="!session || !commandInput.trim()"
-                :aria-label="$t('rnsh.send_line')"
+                :aria-label="tKey('send_line')"
             >
                 <MaterialDesignIcon icon-name="send" class="size-4" />
-                <span class="hidden sm:inline ml-1">{{ $t("rnsh.send_line") }}</span>
+                <span class="hidden sm:inline ml-1">{{ tKey("send_line") }}</span>
             </button>
         </form>
     </div>
@@ -169,6 +169,7 @@ export default {
         showSessionsToggle: { type: Boolean, default: false },
         sessionsOpen: { type: Boolean, default: false },
         compactHeader: { type: Boolean, default: false },
+        i18nPrefix: { type: String, default: "rnsh" },
     },
     emits: [
         "update:commandInput",
@@ -182,6 +183,9 @@ export default {
         "toggle-sessions",
     ],
     methods: {
+        tKey(suffix) {
+            return this.$t(`${this.i18nPrefix}.${suffix}`);
+        },
         scrollToBottom() {
             const target = this.$refs.outputBox;
             if (target) {

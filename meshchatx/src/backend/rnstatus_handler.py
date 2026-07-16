@@ -110,23 +110,23 @@ class RNStatusHandler:
         include_link_stats: bool = False,
         sorting: str | None = None,
         sort_reverse: bool = False,
+        stats: dict | None = None,
+        link_count: int | None = None,
+        *,
+        include_local_blackhole: bool = True,
     ):
-        stats = None
-        link_count = None
+        if stats is None:
+            try:
+                if include_link_stats and link_count is None:
+                    link_count = self.reticulum.get_link_count()
+            except Exception as e:
+                print(f"Failed to get link count: {e}")
 
-        try:
-            if include_link_stats:
-                link_count = self.reticulum.get_link_count()
-        except Exception as e:
-            # We can't do much here if the reticulum instance fails
-            print(f"Failed to get link count: {e}")
-
-        try:
-            stats = self.reticulum.get_interface_stats()
-        except Exception as e:
-            # We can't do much here if the reticulum instance fails
-            print(f"Failed to get interface stats: {e}")
-            stats = None
+            try:
+                stats = self.reticulum.get_interface_stats()
+            except Exception as e:
+                print(f"Failed to get interface stats: {e}")
+                stats = None
 
         if not isinstance(stats, dict):
             return {
@@ -143,13 +143,15 @@ class RNStatusHandler:
         blackhole_enabled = False
         blackhole_sources = []
         blackhole_count = 0
-        with contextlib.suppress(Exception):
-            blackhole_enabled = RNS.Reticulum.publish_blackhole_enabled()
-            blackhole_sources = [s.hex() for s in RNS.Reticulum.blackhole_sources()]
+        if include_local_blackhole:
+            with contextlib.suppress(Exception):
+                blackhole_enabled = RNS.Reticulum.publish_blackhole_enabled()
+                blackhole_sources = [s.hex() for s in RNS.Reticulum.blackhole_sources()]
 
-            # Get count of blackholed identities
-            if self.reticulum and hasattr(self.reticulum, "get_blackholed_identities"):
-                blackhole_count = len(self.reticulum.get_blackholed_identities())
+                if self.reticulum and hasattr(
+                    self.reticulum, "get_blackholed_identities"
+                ):
+                    blackhole_count = len(self.reticulum.get_blackholed_identities())
 
         interfaces = stats.get("interfaces", [])
         if not isinstance(interfaces, list):
@@ -220,7 +222,7 @@ class RNStatusHandler:
                     "LocalInterface[",
                     "TCPInterface[Client",
                     "BackboneInterface[Client on",
-                )
+                ),
             ):
                 continue
 

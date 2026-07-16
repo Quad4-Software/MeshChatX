@@ -134,7 +134,10 @@ class BluetoothDispatcher:
     """Subset of able.BluetoothDispatcher used by RNS RNode BLEConnection."""
 
     def __init__(
-        self, queue_timeout: float = 0.5, enable_ble_code: int = 0xAB1E, **_kwargs
+        self,
+        queue_timeout: float = 0.5,
+        enable_ble_code: int = 0xAB1E,
+        **_kwargs,
     ):
         java = _java()
         self.queue_timeout = queue_timeout

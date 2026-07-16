@@ -48,6 +48,36 @@
 
             <!-- path table -->
             <div v-if="tab === 'table'" class="space-y-4">
+                <div
+                    class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-3 sm:p-4 space-y-3"
+                >
+                    <div class="text-sm font-semibold">{{ $t("rnstatus.remote_query") }}</div>
+                    <p class="text-xs text-gray-500">{{ $t("rnstatus.remote_query_hint") }}</p>
+                    <div class="grid gap-3 lg:grid-cols-2">
+                        <input
+                            v-model="remoteHash"
+                            type="text"
+                            class="input-field font-mono text-xs"
+                            :placeholder="$t('rnstatus.remote_transport_placeholder')"
+                        />
+                        <input
+                            v-model.number="remoteTimeout"
+                            type="number"
+                            min="1"
+                            class="input-field text-sm"
+                            :placeholder="$t('rnstatus.remote_timeout')"
+                        />
+                    </div>
+                    <ManagementIdentityPicker v-model="identityPath" default-name="mgmt" />
+                    <div v-if="activeRemoteHash" class="flex flex-wrap items-center gap-2 text-xs">
+                        <span class="font-mono text-amber-700 dark:text-amber-300">{{
+                            $t("rnstatus.remote_active", { hash: activeRemoteHash })
+                        }}</span>
+                        <button type="button" class="secondary-chip px-2 py-1 text-xs" @click="clearRemote">
+                            {{ $t("rnstatus.use_local") }}
+                        </button>
+                    </div>
+                </div>
                 <!-- filters -->
                 <div
                     class="rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-3 sm:p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
@@ -334,12 +364,14 @@ import ToastUtils from "../../js/ToastUtils";
 import DialogUtils from "../../js/DialogUtils";
 import Utils from "../../js/Utils";
 import ToolsPageHeader from "./ToolsPageHeader.vue";
+import ManagementIdentityPicker from "./ManagementIdentityPicker.vue";
 
 export default {
     name: "RNPathPage",
     components: {
         MaterialDesignIcon,
         ToolsPageHeader,
+        ManagementIdentityPicker,
     },
     data() {
         return {
@@ -359,6 +391,10 @@ export default {
             responsiveItems: 0,
             unresponsiveItems: 0,
             interfaces: [],
+            remoteHash: "",
+            identityPath: "",
+            remoteTimeout: 15,
+            activeRemoteHash: "",
         };
     },
     computed: {
@@ -391,12 +427,32 @@ export default {
         this.refreshAll();
     },
     methods: {
+        remoteQueryParams() {
+            const remote = (this.remoteHash || "").trim();
+            if (!remote) {
+                return {};
+            }
+            const params = { remote };
+            if (this.identityPath) {
+                params.identity_path = this.identityPath;
+            }
+            if (this.remoteTimeout) {
+                params.timeout = this.remoteTimeout;
+            }
+            return params;
+        },
+        clearRemote() {
+            this.remoteHash = "";
+            this.activeRemoteHash = "";
+            this.refreshAll();
+        },
         async refreshAll() {
             this.isLoading = true;
             try {
+                const remoteParams = this.remoteQueryParams();
                 const [pathRes, rateRes, ifaceRes, discRes] = await Promise.all([
                     this.fetchPathTable(),
-                    window.api.get("/api/v1/rnpath/rates"),
+                    window.api.get("/api/v1/rnpath/rates", { params: remoteParams }),
                     window.api.get("/api/v1/reticulum/interfaces"),
                     window.api.get("/api/v1/reticulum/discovered-interfaces").catch(() => ({ data: {} })),
                 ]);
@@ -404,6 +460,7 @@ export default {
                 this.totalItems = pathRes.total;
                 this.responsiveItems = pathRes.responsive;
                 this.unresponsiveItems = pathRes.unresponsive;
+                this.activeRemoteHash = pathRes.remote || rateRes.data?.remote || "";
                 this.rateTable = rateRes.data.rates;
                 const nameSet = new Set(Object.keys(ifaceRes.data?.interfaces || {}));
                 for (const row of discRes.data?.active || []) {
@@ -419,7 +476,10 @@ export default {
                 this.interfaces = Array.from(nameSet).sort();
             } catch (e) {
                 console.error(e);
-                ToastUtils.error(this.$t("tools.rnpath.failed_fetch"));
+                const detail = e?.response?.data?.message || e?.message || "";
+                ToastUtils.error(
+                    detail ? `${this.$t("tools.rnpath.failed_fetch")}: ${detail}` : this.$t("tools.rnpath.failed_fetch")
+                );
             } finally {
                 this.isLoading = false;
             }
@@ -432,9 +492,13 @@ export default {
                 this.totalItems = res.total;
                 this.responsiveItems = res.responsive;
                 this.unresponsiveItems = res.unresponsive;
+                this.activeRemoteHash = res.remote || "";
             } catch (e) {
                 console.error(e);
-                ToastUtils.error(this.$t("tools.rnpath.failed_fetch"));
+                const detail = e?.response?.data?.message || e?.message || "";
+                ToastUtils.error(
+                    detail ? `${this.$t("tools.rnpath.failed_fetch")}: ${detail}` : this.$t("tools.rnpath.failed_fetch")
+                );
             } finally {
                 this.isLoading = false;
             }
@@ -454,6 +518,7 @@ export default {
                 search: this.searchQuery || undefined,
                 interface: this.filterInterface || undefined,
                 hops,
+                ...this.remoteQueryParams(),
             };
             const res = await window.api.get("/api/v1/rnpath/table", { params });
             return res.data;

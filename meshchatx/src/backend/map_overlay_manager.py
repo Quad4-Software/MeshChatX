@@ -24,9 +24,9 @@ from meshchatx.src.backend.map_overlay_export import (
     EXTENSIONS,
     OverlayExportError,
     convert_overlay_bytes,
+    from_geojson,
     merge_geojson_bytes,
     to_geojson,
-    from_geojson,
 )
 from meshchatx.src.backend.map_overlay_sources import (
     KIND_NOMADNET_FILE,
@@ -135,7 +135,10 @@ class MapOverlayManager:
         return path
 
     def cache_path_for(
-        self, identity_hash: str, overlay_id: int, fmt: str
+        self,
+        identity_hash: str,
+        overlay_id: int,
+        fmt: str,
     ) -> tuple[str, str]:
         rel = os.path.join(identity_hash, f"{overlay_id}.{fmt}")
         return os.path.join(self.overlay_root(), rel), rel
@@ -202,7 +205,9 @@ class MapOverlayManager:
                 continue
             try:
                 await self.refresh_overlay(
-                    identity_hash, overlay_id, reason="autorefresh"
+                    identity_hash,
+                    overlay_id,
+                    reason="autorefresh",
                 )
             except Exception:
                 _log.exception("autorefresh failed for overlay %s", overlay_id)
@@ -323,7 +328,11 @@ class MapOverlayManager:
         async def runner():
             try:
                 await self._run_job(
-                    job_id, identity_hash, overlay_ids, specs, generations
+                    job_id,
+                    identity_hash,
+                    overlay_ids,
+                    specs,
+                    generations,
                 )
             except Exception as exc:
                 _log.exception("overlay job %s failed", job_id)
@@ -417,7 +426,10 @@ class MapOverlayManager:
         )
 
     def _set_phase(
-        self, job_id: str, phase: str, progress: float | None = None
+        self,
+        job_id: str,
+        phase: str,
+        progress: float | None = None,
     ) -> None:
         job = self._jobs.get(job_id)
         if not job:
@@ -438,7 +450,11 @@ class MapOverlayManager:
             await self._fetch_with_retries(
                 job_id,
                 lambda: self._download_nomadnet_once(
-                    job_id, identity_hash, overlay_id, spec, generation
+                    job_id,
+                    identity_hash,
+                    overlay_id,
+                    spec,
+                    generation,
                 ),
             )
 
@@ -744,8 +760,7 @@ class MapOverlayManager:
                 raise OverlaySourceParseError("invalid_refresh_interval")
             if 0 < ri < 60:
                 ri = 60
-            if ri > 86400:
-                ri = 86400
+            ri = min(ri, 86400)
             fields["refresh_interval_seconds"] = ri
             if ri > 0:
                 base = row.get("last_fetched_at")
@@ -781,7 +796,9 @@ class MapOverlayManager:
         return self.database.map_overlays.delete_for_identity(identity_hash, overlay_id)
 
     def read_cache_bytes(
-        self, identity_hash: str, overlay_id: int
+        self,
+        identity_hash: str,
+        overlay_id: int,
     ) -> tuple[bytes, str] | None:
         row = self.get_overlay(identity_hash, overlay_id)
         if not row or not row.get("cache_relpath") or not row.get("format"):

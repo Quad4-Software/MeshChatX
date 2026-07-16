@@ -203,7 +203,7 @@ class BotHandler:
         text = raw.decode("utf-8", errors="replace")
         if truncated and "\n" in text:
             _first, _sep, rest = text.partition("\n")
-            text = rest if rest else _first
+            text = rest or _first
         return {"log": text, "truncated": truncated, "total_bytes": total}
 
     def get_status(self):
@@ -258,7 +258,7 @@ class BotHandler:
                         address_full = self._normalize_lxmf_hash_hex(destination.hash)
                         if address_full:
                             address_pretty = RNS.prettyhexrep(
-                                bytes.fromhex(address_full)
+                                bytes.fromhex(address_full),
                             )
 
             if address_full is None:
@@ -637,7 +637,9 @@ class BotHandler:
         PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
         STILL_ACTIVE = 259
         handle = kernel32.OpenProcess(
-            PROCESS_QUERY_LIMITED_INFORMATION, False, int(pid)
+            PROCESS_QUERY_LIMITED_INFORMATION,
+            False,
+            int(pid),
         )
         if not handle:
             return False

@@ -6,7 +6,8 @@ import importlib.util
 import json
 import sys
 import threading
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from meshchatx.src.backend.plugin_guard import validate_invoke_payload
 
@@ -75,7 +76,8 @@ class PluginPythonRuntime:
             if module is not None:
                 return module
             spec = importlib.util.spec_from_file_location(
-                f"meshchatx_plugin_{plugin_id}", entry_path
+                f"meshchatx_plugin_{plugin_id}",
+                entry_path,
             )
             if spec is None or spec.loader is None:
                 raise ImportError(f"cannot load python backend: {entry_path}")

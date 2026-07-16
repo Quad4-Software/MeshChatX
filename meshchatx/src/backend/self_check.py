@@ -178,7 +178,8 @@ def check_storage_lock(base_dir: str) -> dict[str, str]:
         if not contested:
             first.release()
             return _status(
-                False, f"Storage lock did not reject a second holder ({mode})"
+                False,
+                f"Storage lock did not reject a second holder ({mode})",
             )
 
         first.release()
@@ -283,7 +284,7 @@ def _frontend_source_available() -> bool:
         package_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         frontend = os.path.join(package_dir, "src", "frontend")
         return os.path.isdir(frontend) and os.path.isfile(
-            os.path.join(frontend, "main.js")
+            os.path.join(frontend, "main.js"),
         )
     except Exception:
         return False
@@ -429,14 +430,17 @@ def check_sqlite_roundtrip(base_dir: str | None = None) -> dict[str, str]:
     path = None
     try:
         fd, path = tempfile.mkstemp(
-            prefix="meshchatx_self_check_", suffix=".db", dir=root
+            prefix="meshchatx_self_check_",
+            suffix=".db",
+            dir=root,
         )
         os.close(fd)
         conn = sqlite3.connect(path)
         try:
             conn.execute("CREATE TABLE probe (id INTEGER PRIMARY KEY, note TEXT)")
             conn.execute(
-                "INSERT INTO probe (note) VALUES (?)", ("meshchatx-sqlite-ok",)
+                "INSERT INTO probe (note) VALUES (?)",
+                ("meshchatx-sqlite-ok",),
             )
             conn.commit()
             row = conn.execute("SELECT note FROM probe WHERE id = 1").fetchone()
@@ -464,7 +468,9 @@ def check_identity_file_roundtrip(base_dir: str | None = None) -> dict[str, str]
     path = None
     try:
         fd, path = tempfile.mkstemp(
-            prefix="meshchatx_id_", suffix=".identity", dir=root
+            prefix="meshchatx_id_",
+            suffix=".identity",
+            dir=root,
         )
         os.close(fd)
         identity = RNS.Identity(create_keys=True)
@@ -586,9 +592,9 @@ def check_bot_launcher() -> dict[str, str]:
         from unittest.mock import patch
 
         from meshchatx.src.backend.bot_handler import (
-            BotHandler,
             _BOT_PROCESS_MODULE,
             _MESHCHATX_RUN_MODULE_FLAG,
+            BotHandler,
         )
 
         handler = BotHandler.__new__(BotHandler)
@@ -760,8 +766,8 @@ async def _probe_rns_link_api(ws: Any, *, timeout: float = 10.0) -> dict[str, st
                     "destination_hash": "aa" * 16,
                     "aspect": "meshchatx.selfcheck",
                     "request_id": request_id,
-                }
-            )
+                },
+            ),
         )
         deadline = asyncio.get_event_loop().time() + timeout
         while True:
@@ -856,7 +862,7 @@ async def _run_web_api_probes(app: Any) -> dict[str, dict[str, str]]:
         aio_app = await _build_probe_aio_app(app)
     except Exception as exc:
         failed = _status(False, f"Failed to build probe app: {exc}")
-        return {key: failed for key in results}
+        return dict.fromkeys(results, failed)
 
     try:
         async with TestClient(TestServer(aio_app)) as client:
@@ -891,7 +897,8 @@ async def _run_web_api_probes(app: Any) -> dict[str, dict[str, str]]:
 
             try:
                 resp = await asyncio.wait_for(
-                    client.get("/api/v1/auth/csrf"), timeout=15
+                    client.get("/api/v1/auth/csrf"),
+                    timeout=15,
                 )
                 body = await resp.json()
                 token = body.get("csrf_token") if isinstance(body, dict) else None
@@ -1031,7 +1038,7 @@ async def _run_web_api_probes(app: Any) -> dict[str, dict[str, str]]:
 
                     if results["websocket_good"]["status"] == "ok":
                         results["websocket_rns_link_good"] = await _probe_rns_link_api(
-                            ws
+                            ws,
                         )
                     else:
                         results["websocket_rns_link_good"] = _status(
@@ -1071,4 +1078,4 @@ def check_web_stack(app: Any) -> dict[str, dict[str, str]]:
             )
     except Exception as exc:
         failed = _status(False, f"Web stack check failed: {exc}")
-        return {key: failed for key in _WEB_PROBE_KEYS}
+        return dict.fromkeys(_WEB_PROBE_KEYS, failed)

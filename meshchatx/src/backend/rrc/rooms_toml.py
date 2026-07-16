@@ -136,10 +136,10 @@ def dump_rooms_registry(path, registry):
         lines.append(f"moderated = {'true' if st.get('moderated') else 'false'}")
         lines.append(f"invite_only = {'true' if st.get('invite_only') else 'false'}")
         lines.append(
-            f"topic_ops_only = {'true' if st.get('topic_ops_only') else 'false'}"
+            f"topic_ops_only = {'true' if st.get('topic_ops_only') else 'false'}",
         )
         lines.append(
-            f"no_outside_msgs = {'true' if st.get('no_outside_msgs') else 'false'}"
+            f"no_outside_msgs = {'true' if st.get('no_outside_msgs') else 'false'}",
         )
         lines.append(f"private = {'true' if st.get('private') else 'false'}")
         key = st.get("key")

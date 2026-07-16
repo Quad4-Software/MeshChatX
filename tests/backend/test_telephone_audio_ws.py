@@ -50,7 +50,8 @@ async def test_telephone_audio_ws_disabled_config_returns_error(web_audio_app):
 
 @pytest.mark.asyncio
 async def test_telephone_audio_ws_allowed_on_chaquopy_when_config_disabled(
-    web_audio_app, monkeypatch
+    web_audio_app,
+    monkeypatch,
 ):
     monkeypatch.setattr("meshchatx.meshchat._is_chaquopy_android", lambda: True)
 

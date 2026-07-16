@@ -120,7 +120,8 @@ def _validate_body(contract: HttpJsonContract, status: int, body) -> None:
     ids=lambda c: f"{c.method} {c.path}",
 )
 async def test_get_json_response_matches_schema(
-    contract_app, contract: HttpJsonContract
+    contract_app,
+    contract: HttpJsonContract,
 ):
     status, body = await invoke_json_contract(contract_app, contract)
     _validate_body(contract, status, body)

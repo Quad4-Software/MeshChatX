@@ -157,7 +157,7 @@ async def test_lxmf_sync_requests_path_before_sync(mock_app):
             await asyncio.sleep(0.05)
             mock_request.assert_called_with(outbound)
             mock_router.request_messages_from_propagation_node.assert_called_with(
-                mock_app.current_context.identity
+                mock_app.current_context.identity,
             )
 
 

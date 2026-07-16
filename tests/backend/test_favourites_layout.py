@@ -45,7 +45,7 @@ def test_normalize_favourites_layout_sanitizes():
                 "custom": ["abc", 12],
                 "orphan": ["x"],
             },
-        }
+        },
     )
     assert layout is not None
     assert [s["id"] for s in layout["sections"]] == ["default", "custom"]
@@ -68,7 +68,7 @@ def test_normalize_rejects_prototype_pollution_keys():
                 "__proto__": ["a" * 32],
                 "ok": ["b" * 32],
             },
-        }
+        },
     )
     assert layout is not None
     assert [s["id"] for s in layout["sections"]] == ["ok"]
@@ -87,7 +87,7 @@ def test_normalize_enforces_caps():
             "sections": sections,
             "sectionOrder": [s["id"] for s in sections],
             "favouritesBySection": {sections[0]["id"]: hashes},
-        }
+        },
     )
     assert layout is not None
     assert len(layout["sections"]) == MAX_SECTIONS
@@ -108,7 +108,7 @@ def test_normalize_enforces_total_hash_cap():
                 s["id"]: [f"{s['id']}{i:028x}"[:32] for i in range(per)]
                 for s in sections
             },
-        }
+        },
     )
     assert layout is not None
     total = sum(len(v) for v in layout["favouritesBySection"].values())
@@ -123,7 +123,7 @@ def test_normalize_dedupes_hashes_and_trims():
             "favouritesBySection": {
                 "default": ["  abc  ", "abc", "x" * (MAX_HASH_LEN + 5), ""],
             },
-        }
+        },
     )
     assert layout["sections"][0]["id"] == "default"
     assert layout["sections"][0]["name"] == "  Name  "[:MAX_SECTION_NAME_LEN]
@@ -144,7 +144,7 @@ def test_layout_payload_too_large():
         st.text(),
         st.binary(),
         st.lists(st.integers()),
-    )
+    ),
 )
 @settings(max_examples=80, suppress_health_check=[HealthCheck.too_slow])
 def test_normalize_never_throws_on_garbage(payload):
@@ -161,7 +161,8 @@ def test_normalize_never_throws_on_garbage(payload):
         max_size=MAX_SECTIONS + 5,
     ),
     names=st.lists(
-        st.text(max_size=MAX_SECTION_NAME_LEN + 20), max_size=MAX_SECTIONS + 5
+        st.text(max_size=MAX_SECTION_NAME_LEN + 20),
+        max_size=MAX_SECTIONS + 5,
     ),
     hashes=st.lists(st.text(max_size=MAX_HASH_LEN + 8), max_size=40),
 )
@@ -177,12 +178,12 @@ def test_normalize_fuzz_structured(section_ids, names, hashes):
                 "id": sid,
                 "name": names[i] if i < len(names) else 123,
                 "collapsed": i % 2 == 0,
-            }
+            },
         )
     raw = {
         "sections": sections,
         "sectionOrder": section_ids[::-1] + ["missing"],
-        "favouritesBySection": {sid: hashes for sid in section_ids[:3]},
+        "favouritesBySection": dict.fromkeys(section_ids[:3], hashes),
     }
     out = normalize_favourites_layout(raw)
     if out is None:

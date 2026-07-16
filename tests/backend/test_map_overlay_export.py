@@ -1,12 +1,13 @@
 # SPDX-License-Identifier: 0BSD
 
+import json
+
 from meshchatx.src.backend.map_overlay_export import (
     convert_overlay_bytes,
     geojson_to_kml,
     kml_to_geojson,
     merge_geojson_bytes,
 )
-import json
 
 
 def test_geojson_kml_roundtrip_point():

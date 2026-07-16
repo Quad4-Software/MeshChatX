@@ -160,7 +160,7 @@ class BatteryUsageTracker:
         try:
             times = process.cpu_times()
             cpu_time = float(getattr(times, "user", 0.0)) + float(
-                getattr(times, "system", 0.0)
+                getattr(times, "system", 0.0),
             )
         except Exception:
             return self._last

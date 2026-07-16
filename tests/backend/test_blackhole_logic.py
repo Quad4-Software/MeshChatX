@@ -265,7 +265,7 @@ def test_is_destination_blocked_by_identity_hash(mock_rns_minimal, temp_dir):
     )
     app_instance.database.announces.get_announce_by_hash.return_value = None
     app_instance.database.announces.get_announces_by_identity_hash.return_value = [
-        {"destination_hash": dest_hash, "identity_hash": ident_hash}
+        {"destination_hash": dest_hash, "identity_hash": ident_hash},
     ]
 
     assert app_instance.is_destination_blocked(ident_hash) is True

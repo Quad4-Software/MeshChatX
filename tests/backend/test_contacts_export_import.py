@@ -74,7 +74,10 @@ async def test_contacts_export_with_data(mock_rns_minimal, temp_dir):
         app.database.contacts.add_contact("Alice", "a" * 32, lxmf_address="b" * 32)
         app.database.contacts.add_contact("Bob", "c" * 32)
         app.database.misc.update_lxmf_user_icon(
-            "a" * 32, "account", "#FFFFFF", "#000000"
+            "a" * 32,
+            "account",
+            "#FFFFFF",
+            "#000000",
         )
 
         handler = None

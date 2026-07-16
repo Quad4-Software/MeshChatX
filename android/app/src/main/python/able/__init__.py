@@ -15,12 +15,12 @@ STATE_CONNECTED = 2
 STATE_DISCONNECTED = 0
 
 __all__ = [
-    "Advertisement",
-    "BluetoothDispatcher",
     "GATT_SUCCESS",
-    "Services",
     "STATE_CONNECTED",
     "STATE_DISCONNECTED",
+    "Advertisement",
+    "BluetoothDispatcher",
+    "Services",
 ]
 
 

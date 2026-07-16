@@ -14,7 +14,7 @@ UNKNOWN_FAVOURITE_NAMES = frozenset(
         "Onbekende knoop",
         "Неизвестный узел",
         "未知节点",
-    }
+    },
 )
 
 

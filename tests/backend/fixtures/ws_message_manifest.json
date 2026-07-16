@@ -61,6 +61,8 @@
         "rns.link.event",
         "rnsh.output",
         "rnsh.session.change",
+        "rnx.output",
+        "rnx.session.change",
         "rrc.change",
         "rrc.message",
         "rrc.server.change",

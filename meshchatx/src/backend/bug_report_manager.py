@@ -427,7 +427,7 @@ class BugReportManager:
         if identity is None:
             raise LookupError(
                 "Could not recall collector identity. "
-                "Wait for an mcx-bugs-v1 announce or start a local collector."
+                "Wait for an mcx-bugs-v1 announce or start a local collector.",
             )
         app_name, aspects = RNS.Destination.app_and_aspects_from_name(BUG_ASPECT)
         destination = RNS.Destination(
@@ -447,7 +447,7 @@ class BugReportManager:
             if not RNS.Transport.has_path(dest_hash):
                 raise TimeoutError(
                     "No path to bug collector. "
-                    "Start a collector locally to test, or wait for mesh announces."
+                    "Start a collector locally to test, or wait for mesh announces.",
                 )
 
         link = RNS.Link(destination)
@@ -544,14 +544,14 @@ class BugReportManager:
         ):
             raise ValueError(
                 f"Invalid collector hash: '{dest_hex[:20]}{'...' if len(dest_hex) > 20 else ''}' "
-                f"must be 32–64 hex characters (even length)."
+                f"must be 32–64 hex characters (even length).",
             )
         try:
             dest_hash = bytes.fromhex(dest_hex)
         except ValueError as exc:
             raise ValueError(
                 f"Invalid collector hash: '{dest_hex[:20]}...' "
-                f"must be 32–64 hex characters (even length)."
+                f"must be 32–64 hex characters (even length).",
             ) from exc
 
         _payload, body = self._build_payload(args)

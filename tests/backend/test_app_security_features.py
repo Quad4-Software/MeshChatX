@@ -87,7 +87,8 @@ async def test_csrf_required_for_config_patch(mock_app, monkeypatch):
 
     async with TestClient(TestServer(aio_app)) as client:
         blocked = await client.patch(
-            "/api/v1/server/security", json={"web_ui_ip_allowlist": ""}
+            "/api/v1/server/security",
+            json={"web_ui_ip_allowlist": ""},
         )
         assert blocked.status == 403
         headers = await fetch_api_csrf_headers(client)
@@ -112,7 +113,8 @@ async def test_login_requires_csrf(mock_app, monkeypatch):
 
     async with TestClient(TestServer(aio_app)) as client:
         denied = await client.post(
-            "/api/v1/auth/login", json={"password": pw.decode("utf-8")}
+            "/api/v1/auth/login",
+            json={"password": pw.decode("utf-8")},
         )
         assert denied.status == 403
         headers = await fetch_api_csrf_headers(client)

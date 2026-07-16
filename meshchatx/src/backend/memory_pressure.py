@@ -158,9 +158,9 @@ class MemoryPressureManager:
             interfaces = getattr(RNS.Transport, "interfaces", None) or []
             for iface in interfaces:
                 iface_held = getattr(iface, "held_announces", None)
-                if isinstance(iface_held, dict):
-                    total += len(iface_held)
-                elif isinstance(iface_held, (list, set, tuple)):
+                if isinstance(iface_held, dict) or isinstance(
+                    iface_held, (list, set, tuple)
+                ):
                     total += len(iface_held)
         except Exception:
             pass

@@ -24,7 +24,7 @@ def test_preview_report_uses_database_logs(tmp_path):
                     "level": "ERROR",
                     "module": "meshchat",
                     "message": "fail at /tmp/x for aabbccddeeff00112233445566778899",
-                }
+                },
             ]
 
         def get_total_count(self, **_kwargs):
@@ -100,7 +100,7 @@ def test_report_receive_and_list(tmp_path):
     response = manager._report_response(
         path="/report",
         data=json.dumps(
-            {"title": "test", "description": "desc", "log_text": "log"}
+            {"title": "test", "description": "desc", "log_text": "log"},
         ).encode("utf-8"),
         request_id=b"",
         link_id=None,
@@ -124,7 +124,7 @@ def test_send_report_rejects_invalid_hashes(tmp_path, monkeypatch):
                 "destination_hash": "",
                 "title": "t",
                 "description": "d",
-            }
+            },
         )
 
     invalid_hashes = [
@@ -144,7 +144,7 @@ def test_send_report_rejects_invalid_hashes(tmp_path, monkeypatch):
                     "destination_hash": h,
                     "title": "t",
                     "description": "d",
-                }
+                },
             )
 
 
@@ -173,7 +173,7 @@ def test_send_report_accepts_32_and_64_char_hashes(tmp_path, monkeypatch):
                 "title": f"len{length}",
                 "description": "d",
                 "limit": 5,
-            }
+            },
         )
         assert result["ok"] is True
 
@@ -203,7 +203,7 @@ def test_send_local_report_bypasses_rns(tmp_path, monkeypatch):
             "title": "Local Bug",
             "description": "desc",
             "limit": 5,
-        }
+        },
     )
 
     assert result["ok"] is True
@@ -224,7 +224,7 @@ def test_send_remote_report_requires_identity_recall(tmp_path, monkeypatch):
                 "destination_hash": remote_hash,
                 "title": "Remote Bug",
                 "description": "desc",
-            }
+            },
         )
 
 
@@ -253,14 +253,16 @@ def test_build_payload_enforces_size_limit(tmp_path):
     class FakeLogs:
         def get_logs(self, **_kwargs):
             return [
-                {"timestamp": 1, "level": "INFO", "module": "m", "message": "x"}
+                {"timestamp": 1, "level": "INFO", "module": "m", "message": "x"},
             ] * 10
 
         def get_total_count(self, **_kwargs):
             return 10
 
     manager.app = type(
-        "A", (), {"database": type("DB", (), {"debug_logs": FakeLogs()})()}
+        "A",
+        (),
+        {"database": type("DB", (), {"debug_logs": FakeLogs()})()},
     )()
 
     payload, body = manager._build_payload({"limit": 10})

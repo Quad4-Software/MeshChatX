@@ -4,8 +4,8 @@ import pytest
 
 from meshchatx.src.backend.http_url_guard import (
     UnsafeOutboundUrlError,
-    normalize_loopback_http_service_base,
     normalize_libretranslate_http_service_base,
+    normalize_loopback_http_service_base,
 )
 
 
@@ -77,7 +77,7 @@ def test_normalize_rejects_scheme_or_crlf_injection(bad):
 
 def test_normalize_libretranslate_public_https():
     assert normalize_libretranslate_http_service_base(
-        "https://libretranslate.com/path"
+        "https://libretranslate.com/path",
     ) == ("https://libretranslate.com")
 
 
@@ -134,5 +134,5 @@ def test_normalize_libretranslate_rejects_scheme_or_empty(bad):
 def test_normalize_libretranslate_rejects_encoded_crlf_in_host():
     with pytest.raises(UnsafeOutboundUrlError):
         normalize_libretranslate_http_service_base(
-            "http://127.0.0.1%0d%0a.evil.com:80/"
+            "http://127.0.0.1%0d%0a.evil.com:80/",
         )

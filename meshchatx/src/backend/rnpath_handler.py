@@ -15,45 +15,64 @@ class RNPathHandler:
         hops: int | None = None,
         page: int = 1,
         limit: int = 0,
+        raw_table: list | None = None,
     ):
-        table = self.reticulum.get_path_table(max_hops=max_hops)
+        if raw_table is None:
+            table = self.reticulum.get_path_table(max_hops=max_hops)
+        else:
+            table = raw_table
         formatted_table = []
         for entry in table:
             # Get additional data directly from Transport.path_table if available
             # to provide more stats as requested.
             dst_hash = entry["hash"]
+            if isinstance(dst_hash, str):
+                try:
+                    dst_hash = bytes.fromhex(dst_hash)
+                except ValueError:
+                    continue
             announce_hash = None
             state = RNS.Transport.STATE_UNKNOWN
 
-            if dst_hash in RNS.Transport.path_table:
+            if raw_table is None and dst_hash in RNS.Transport.path_table:
                 pt_entry = RNS.Transport.path_table[dst_hash]
                 if len(pt_entry) > 6:
                     announce_hash = pt_entry[6].hex() if pt_entry[6] else None
 
-            if dst_hash in RNS.Transport.path_states:
+            if raw_table is None and dst_hash in RNS.Transport.path_states:
                 state = RNS.Transport.path_states[dst_hash]
+            elif "state" in entry:
+                state = entry.get("state", state)
+
+            via = entry.get("via")
+            if isinstance(via, (bytes, bytearray)):
+                via_hex = via.hex()
+            elif isinstance(via, str):
+                via_hex = via
+            else:
+                via_hex = ""
 
             # Filtering
             if search:
-                search = search.lower()
-                hash_str = entry["hash"].hex().lower()
-                via_str = entry["via"].hex().lower()
-                if search not in hash_str and search not in via_str:
+                search_l = search.lower()
+                hash_str = dst_hash.hex().lower()
+                via_str = via_hex.lower()
+                if search_l not in hash_str and search_l not in via_str:
                     continue
 
-            if interface and entry["interface"] != interface:
+            if interface and entry.get("interface") != interface:
                 continue
 
-            if hops is not None and entry["hops"] != hops:
+            if hops is not None and entry.get("hops") != hops:
                 continue
 
             formatted_table.append(
                 {
-                    "hash": entry["hash"].hex(),
-                    "hops": entry["hops"],
-                    "via": entry["via"].hex(),
-                    "interface": entry["interface"],
-                    "expires": entry["expires"],
+                    "hash": dst_hash.hex(),
+                    "hops": entry.get("hops"),
+                    "via": via_hex,
+                    "interface": entry.get("interface"),
+                    "expires": entry.get("expires"),
                     "timestamp": entry.get("timestamp"),
                     "announce_hash": announce_hash,
                     "state": state,
@@ -64,8 +83,8 @@ class RNPathHandler:
         formatted_table.sort(
             key=lambda e: (
                 0 if e["state"] == RNS.Transport.STATE_RESPONSIVE else 1,
-                e["hops"],
-                e["interface"],
+                e["hops"] if e["hops"] is not None else 999,
+                e["interface"] or "",
             ),
         )
 
@@ -100,19 +119,30 @@ class RNPathHandler:
             "limit": limit,
         }
 
-    def get_rate_table(self):
-        table = self.reticulum.get_rate_table()
-        formatted_table = [
-            {
-                "hash": entry["hash"].hex(),
-                "last": entry["last"],
-                "timestamps": entry["timestamps"],
-                "rate_violations": entry["rate_violations"],
-                "blocked_until": entry["blocked_until"],
-            }
-            for entry in table
-        ]
-        return sorted(formatted_table, key=lambda e: e["last"])
+    def get_rate_table(self, raw_table: list | None = None):
+        if raw_table is None:
+            table = self.reticulum.get_rate_table()
+        else:
+            table = raw_table
+        formatted_table = []
+        for entry in table:
+            entry_hash = entry.get("hash")
+            if isinstance(entry_hash, (bytes, bytearray)):
+                hash_hex = entry_hash.hex()
+            elif isinstance(entry_hash, str):
+                hash_hex = entry_hash
+            else:
+                continue
+            formatted_table.append(
+                {
+                    "hash": hash_hex,
+                    "last": entry.get("last"),
+                    "timestamps": entry.get("timestamps"),
+                    "rate_violations": entry.get("rate_violations"),
+                    "blocked_until": entry.get("blocked_until"),
+                },
+            )
+        return sorted(formatted_table, key=lambda e: e.get("last") or 0)
 
     def drop_path(self, destination_hash: str) -> bool:
         try:

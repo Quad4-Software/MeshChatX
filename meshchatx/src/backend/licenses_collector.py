@@ -175,7 +175,8 @@ def _bundled_lxmfy_license_row(repo_root: Path) -> dict[str, Any] | None:
 
 
 def _merge_bundled_lxmfy(
-    repo_root: Path, rows: list[dict[str, Any]]
+    repo_root: Path,
+    rows: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     if any(str(r.get("name") or "").lower() == "lxmfy" for r in rows):
         return rows

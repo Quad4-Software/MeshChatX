@@ -289,5 +289,6 @@ class IdentityManager:
             msg = f"Invalid base32 identity: {exc}"
             raise ValueError(msg) from exc
         return self.restore_identity_from_bytes(
-            identity_bytes, display_name=display_name
+            identity_bytes,
+            display_name=display_name,
         )

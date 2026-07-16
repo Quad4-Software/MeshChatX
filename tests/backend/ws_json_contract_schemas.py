@@ -49,10 +49,14 @@ WS_MESSAGE_SCHEMAS: dict[str, dict] = {
         },
     ),
     "config.set": _ws_type(
-        "config.set", required=["config"], properties={"config": _WS_OBJECT}
+        "config.set",
+        required=["config"],
+        properties={"config": _WS_OBJECT},
     ),
     "config": _ws_type(
-        "config", required=["config"], properties={"config": _WS_OBJECT}
+        "config",
+        required=["config"],
+        properties={"config": _WS_OBJECT},
     ),
     "announced": _ws_type("announced"),
     "blocked_destinations": _ws_type(
@@ -147,7 +151,9 @@ WS_MESSAGE_SCHEMAS: dict[str, dict] = {
         properties={"success": _WS_BOOL},
     ),
     "announce": _ws_type(
-        "announce", required=["announce"], properties={"announce": _WS_OBJECT}
+        "announce",
+        required=["announce"],
+        properties={"announce": _WS_OBJECT},
     ),
     "lxmf.delivery": _ws_type("lxmf.delivery"),
     "lxmf_message_created": _ws_type(
@@ -175,11 +181,15 @@ WS_MESSAGE_SCHEMAS: dict[str, dict] = {
     ),
     "rrc.change": _ws_type("rrc.change"),
     "rrc.message": _ws_type(
-        "rrc.message", required=["message"], properties={"message": _WS_OBJECT}
+        "rrc.message",
+        required=["message"],
+        properties={"message": _WS_OBJECT},
     ),
     "rrc.server.change": _ws_type("rrc.server.change"),
     "rnsh.session.change": _ws_type("rnsh.session.change"),
     "rnsh.output": _ws_type("rnsh.output"),
+    "rnx.session.change": _ws_type("rnx.session.change"),
+    "rnx.output": _ws_type("rnx.output"),
     "rncp.transfer.progress": _ws_type("rncp.transfer.progress"),
     "rncp.send.completed": _ws_type("rncp.send.completed"),
     "rncp.fetch.completed": _ws_type("rncp.fetch.completed"),
@@ -377,6 +387,8 @@ WS_MESSAGE_SAMPLES: dict[str, dict] = {
     "rrc.server.change": {"type": "rrc.server.change"},
     "rnsh.session.change": {"type": "rnsh.session.change"},
     "rnsh.output": {"type": "rnsh.output", "data": "ok"},
+    "rnx.session.change": {"type": "rnx.session.change"},
+    "rnx.output": {"type": "rnx.output", "data": "ok"},
     "rncp.transfer.progress": {"type": "rncp.transfer.progress", "percent": 50},
     "rncp.send.completed": {"type": "rncp.send.completed"},
     "rncp.fetch.completed": {"type": "rncp.fetch.completed"},

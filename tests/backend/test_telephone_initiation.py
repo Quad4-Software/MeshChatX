@@ -22,7 +22,7 @@ def telephone_manager():
     tm._status_poll_interval_s = 0.01
     tm._status_events = []
     tm.on_initiation_status_callback = lambda status, _target: tm._status_events.append(
-        status
+        status,
     )
     return tm
 
@@ -38,7 +38,9 @@ async def test_initiate_retries_path_requests_during_lookup(telephone_manager):
         return state["calls"] >= 8
 
     telephone_manager.telephone.call.side_effect = lambda _identity, *_a, **_k: setattr(
-        telephone_manager.telephone, "call_status", 0
+        telephone_manager.telephone,
+        "call_status",
+        0,
     )
 
     with (
@@ -51,7 +53,7 @@ async def test_initiate_retries_path_requests_during_lookup(telephone_manager):
             side_effect=has_path,
         ),
         patch(
-            "meshchatx.src.backend.telephone_manager.RNS.Transport.request_path"
+            "meshchatx.src.backend.telephone_manager.RNS.Transport.request_path",
         ) as request_path,
     ):
         await telephone_manager.initiate(destination_hash, timeout_seconds=1)
@@ -84,7 +86,7 @@ async def test_initiate_cancels_quickly_while_finding_path_identity(telephone_ma
         ),
     ):
         task = asyncio.create_task(
-            telephone_manager.initiate(destination_hash, timeout_seconds=5)
+            telephone_manager.initiate(destination_hash, timeout_seconds=5),
         )
         result = await asyncio.wait_for(task, timeout=0.3)
 
@@ -112,7 +114,7 @@ async def test_initiate_cancels_quickly_while_dialling(telephone_manager):
         ),
     ):
         task = asyncio.create_task(
-            telephone_manager.initiate(destination_hash, timeout_seconds=5)
+            telephone_manager.initiate(destination_hash, timeout_seconds=5),
         )
         for _ in range(200):
             if telephone_manager.initiation_status in (
@@ -179,7 +181,7 @@ async def test_cancel_after_path_found_before_dialling_stabilizes(telephone_mana
         ),
     ):
         task = asyncio.create_task(
-            telephone_manager.initiate(destination_hash, timeout_seconds=2)
+            telephone_manager.initiate(destination_hash, timeout_seconds=2),
         )
         for _ in range(200):
             if telephone_manager.initiation_status == "Establishing link...":
@@ -209,7 +211,9 @@ async def test_request_path_exceptions_do_not_abort_discovery(telephone_manager)
             raise value
 
     telephone_manager.telephone.call.side_effect = lambda _identity, *_a, **_k: setattr(
-        telephone_manager.telephone, "call_status", 0
+        telephone_manager.telephone,
+        "call_status",
+        0,
     )
 
     with (
@@ -245,7 +249,9 @@ async def test_flapping_path_state_recovers_and_dials(telephone_manager):
         return True
 
     telephone_manager.telephone.call.side_effect = lambda _identity, *_a, **_k: setattr(
-        telephone_manager.telephone, "call_status", 0
+        telephone_manager.telephone,
+        "call_status",
+        0,
     )
 
     with (
@@ -286,7 +292,8 @@ async def test_call_thread_exception_surfaces_without_hanging(telephone_manager)
             return_value=True,
         ),
         patch(
-            "meshchatx.src.backend.telephone_manager.asyncio.sleep", side_effect=no_wait
+            "meshchatx.src.backend.telephone_manager.asyncio.sleep",
+            side_effect=no_wait,
         ),
     ):
         result = await asyncio.wait_for(
@@ -320,7 +327,8 @@ async def test_inconsistent_call_status_finishes_within_timeout(telephone_manage
             return_value=True,
         ),
         patch(
-            "meshchatx.src.backend.telephone_manager.asyncio.sleep", side_effect=no_wait
+            "meshchatx.src.backend.telephone_manager.asyncio.sleep",
+            side_effect=no_wait,
         ),
     ):
         result = await asyncio.wait_for(
@@ -376,7 +384,9 @@ async def test_lxst_busy_and_rejected_end_without_stuck_status(telephone_manager
         telephone_manager.telephone.call_status = 3
         telephone_manager.telephone.call.side_effect = (
             lambda _identity, state=terminal_state: setattr(
-                telephone_manager.telephone, "call_status", state
+                telephone_manager.telephone,
+                "call_status",
+                state,
             )
         )
 
@@ -424,7 +434,7 @@ async def test_rapid_dial_cancel_soak_has_bounded_memory(telephone_manager):
         for _ in range(loops):
             telephone_manager.telephone.call_status = 3
             task = asyncio.create_task(
-                telephone_manager.initiate(destination_hash, timeout_seconds=1)
+                telephone_manager.initiate(destination_hash, timeout_seconds=1),
             )
             await asyncio.sleep(0.005)
             telephone_manager._update_initiation_status(None, None)
@@ -461,7 +471,9 @@ async def test_initiate_checks_path_for_lxst_telephony_destination(telephone_man
     fake_destination = MagicMock()
     fake_destination.hash = telephony_destination_hash
     telephone_manager.telephone.call.side_effect = lambda _identity, *_a, **_k: setattr(
-        telephone_manager.telephone, "call_status", 0
+        telephone_manager.telephone,
+        "call_status",
+        0,
     )
 
     with (

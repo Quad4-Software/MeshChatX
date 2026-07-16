@@ -67,7 +67,7 @@ def main():
         config_path = os.path.join(os.path.abspath(args.storage), "config")
     os.makedirs(config_path, exist_ok=True)
     reticulum_config_dir = os.path.abspath(
-        os.path.expanduser(args.reticulum_config_dir)
+        os.path.expanduser(args.reticulum_config_dir),
     )
     os.makedirs(reticulum_config_dir, exist_ok=True)
 
@@ -87,13 +87,15 @@ def main():
         except OSError:
             pass
         raise
-    with contextlib.suppress(OSError):
-        with open(
+    with (
+        contextlib.suppress(OSError),
+        open(
             os.path.join(config_path, "bot_display_name.txt"),
             "w",
             encoding="utf-8",
-        ) as f:
-            f.write(args.name.strip())
+        ) as f,
+    ):
+        f.write(args.name.strip())
 
     watcher = threading.Thread(
         target=_control_watcher,

@@ -292,7 +292,9 @@ def _list_index_files(subdir: str) -> list[tuple[str, int]]:
 
 
 def _index_file_section(
-    title: str, url_prefix: str, file_rows: list[tuple[str, int]]
+    title: str,
+    url_prefix: str,
+    file_rows: list[tuple[str, int]],
 ) -> str:
     lines: list[str] = [f'<h2 class="section">{html.escape(title)}</h2>']
     if not file_rows:
@@ -306,7 +308,7 @@ def _index_file_section(
         lines.append(
             "<tr><td>"
             f'<a href="{html.escape(url_prefix + q, quote=True)}">{html.escape(name)}</a>'
-            f'</td><td class="size">{html.escape(_format_index_size(size))}</td></tr>'
+            f'</td><td class="size">{html.escape(_format_index_size(size))}</td></tr>',
         )
     lines.append("</tbody></table>")
     return "\n".join(lines)
@@ -343,7 +345,7 @@ def build_repository_index_html(
         (
             _index_file_section("Bundled", "bundled/", bundled_rows),
             _index_file_section("Uploads", "uploads/", upload_rows),
-        )
+        ),
     )
     if _FILE_LIST_MARKER in shell:
         return shell.replace(_FILE_LIST_MARKER, injected, 1)
@@ -479,7 +481,9 @@ class RepositoryServerManager:
                 shutil.copy2(src, dest)
             except OSError as e:
                 logging.warning(
-                    "repository bundled seed copy failed for %s: %s", name, e
+                    "repository bundled seed copy failed for %s: %s",
+                    name,
+                    e,
                 )
 
     def _http_status_block(self) -> dict[str, Any]:
@@ -515,7 +519,9 @@ class RepositoryServerManager:
         }
 
     def start_http_server(
-        self, host: str | None = None, port: int | None = None
+        self,
+        host: str | None = None,
+        port: int | None = None,
     ) -> dict[str, Any]:
         """Serve ``repository-server`` root over plain HTTP (no TLS) on a background thread."""
         bind_host = _normalize_listen_host(host or self._http_last_host or "127.0.0.1")
@@ -530,7 +536,8 @@ class RepositoryServerManager:
             return {"ok": False, "error": "invalid_port"}
 
         handler = make_repository_http_request_handler(
-            self.root, public_dir=self._public_dir
+            self.root,
+            public_dir=self._public_dir,
         )
 
         class _RepoHTTPServer(socketserver.ThreadingTCPServer):
@@ -590,7 +597,9 @@ class RepositoryServerManager:
         return {"ok": True}
 
     def restart_http_server(
-        self, host: str | None = None, port: int | None = None
+        self,
+        host: str | None = None,
+        port: int | None = None,
     ) -> dict[str, Any]:
         self.stop_http_server()
         use_host = host if host is not None else self._http_last_host
@@ -697,7 +706,10 @@ class RepositoryServerManager:
 
             def _on_pkg(i: int, t: int, pkg: str) -> None:
                 self._set_refresh_progress(
-                    running=True, current=pkg, completed=i, total=t
+                    running=True,
+                    current=pkg,
+                    completed=i,
+                    total=t,
                 )
 
             result = download_bundled_wheels_to_directory(staging, on_package=_on_pkg)

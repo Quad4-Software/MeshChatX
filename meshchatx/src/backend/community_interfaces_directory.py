@@ -58,7 +58,7 @@ class _DirectoryFetchNoRedirectHandler(urllib.request.HTTPRedirectHandler):
 
 
 _DIRECTORY_FETCH_OPENER = urllib.request.build_opener(
-    _DirectoryFetchNoRedirectHandler()
+    _DirectoryFetchNoRedirectHandler(),
 )
 
 

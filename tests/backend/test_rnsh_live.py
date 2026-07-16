@@ -23,9 +23,9 @@ import time
 import pytest
 
 from meshchatx.src.backend.rnsh_manager import (
-    RNSHSession,
     _MESHCHATX_RUN_MODULE_FLAG,
     _RNSH_MODULE,
+    RNSHSession,
 )
 
 _RUN = os.environ.get("MESHCHAT_LIVE_RNSH") == "1"
@@ -74,7 +74,8 @@ def _wait_for_listen_address(session: RNSHSession, timeout: float = 30.0) -> str
 @pytest.mark.integration
 @pytest.mark.skipif(not _RUN, reason="Set MESHCHAT_LIVE_RNSH=1 to run live RNSh tests")
 @pytest.mark.skipif(
-    not _RNSH_AVAILABLE, reason="RNS.Utilities.rnsh.rnsh is not installed"
+    not _RNSH_AVAILABLE,
+    reason="RNS.Utilities.rnsh.rnsh is not installed",
 )
 def test_rnsh_live_listen_session_reports_address(monkeypatch):
     _force_pipe_mode(monkeypatch)
@@ -113,7 +114,8 @@ def test_rnsh_live_listen_session_reports_address(monkeypatch):
 @pytest.mark.integration
 @pytest.mark.skipif(not _RUN, reason="Set MESHCHAT_LIVE_RNSH=1 to run live RNSh tests")
 @pytest.mark.skipif(
-    not _RNSH_AVAILABLE, reason="RNS.Utilities.rnsh.rnsh is not installed"
+    not _RNSH_AVAILABLE,
+    reason="RNS.Utilities.rnsh.rnsh is not installed",
 )
 def test_rnsh_live_meshchatx_run_module_launcher_starts_listener(monkeypatch, tmp_path):
     """Frozen-style launcher: MeshChatX re-entry flag, executed via a shim script."""
@@ -131,7 +133,7 @@ def test_rnsh_live_meshchatx_run_module_launcher_starts_listener(monkeypatch, tm
             module_name = sys.argv[2]
             sys.argv = [sys.argv[0], *sys.argv[3:]]
             runpy.run_module(module_name, run_name="__main__", alter_sys=True)
-            """
+            """,
         ),
         encoding="utf-8",
     )
@@ -194,7 +196,7 @@ def _write_tcp_pair(listen_dir: str, conn_dir: str, port: int) -> None:
             enabled = Yes
             listen_ip = 127.0.0.1
             listen_port = {port}
-        """
+        """,
     )
     conn_cfg = textwrap.dedent(
         f"""\
@@ -214,7 +216,7 @@ def _write_tcp_pair(listen_dir: str, conn_dir: str, port: int) -> None:
             enabled = Yes
             target_host = 127.0.0.1
             target_port = {port}
-        """
+        """,
     )
     os.makedirs(listen_dir, exist_ok=True)
     os.makedirs(conn_dir, exist_ok=True)
@@ -264,7 +266,8 @@ def _wait_for_output(
 @pytest.mark.integration
 @pytest.mark.skipif(not _RUN, reason="Set MESHCHAT_LIVE_RNSH=1 to run live RNSh tests")
 @pytest.mark.skipif(
-    not _RNSH_AVAILABLE, reason="RNS.Utilities.rnsh.rnsh is not installed"
+    not _RNSH_AVAILABLE,
+    reason="RNS.Utilities.rnsh.rnsh is not installed",
 )
 @pytest.mark.skipif(os.name != "posix", reason="Full connect e2e requires a PTY")
 def test_rnsh_live_listen_connect_echo_roundtrip():

@@ -50,11 +50,13 @@ class SidebandPluginLoader:
         if cfg is None:
             raise RuntimeError("config is not available")
         if service_plugins_enabled is not None and hasattr(
-            cfg, "service_plugins_enabled"
+            cfg,
+            "service_plugins_enabled",
         ):
             cfg.service_plugins_enabled.set(bool(service_plugins_enabled))
         if command_plugins_enabled is not None and hasattr(
-            cfg, "command_plugins_enabled"
+            cfg,
+            "command_plugins_enabled",
         ):
             cfg.command_plugins_enabled.set(bool(command_plugins_enabled))
         if command_plugins_path is not None and hasattr(cfg, "command_plugins_path"):
@@ -153,7 +155,7 @@ class SidebandPluginLoader:
                     "error": "script size rejected",
                     "signature": {"present": False, "valid": False, "trusted": False},
                     "security_findings": [],
-                }
+                },
             )
             return
         try:
@@ -170,7 +172,7 @@ class SidebandPluginLoader:
                     "error": str(exc),
                     "signature": {"present": False, "valid": False, "trusted": False},
                     "security_findings": [],
-                }
+                },
             )
             return
 

@@ -71,7 +71,7 @@ share_instance = False
         guard.repair_unparseable_reticulum_config(
             str(config_path),
             write_default=lambda _path: (_ for _ in ()).throw(
-                AssertionError("should not write")
+                AssertionError("should not write"),
             ),
         )
         is False

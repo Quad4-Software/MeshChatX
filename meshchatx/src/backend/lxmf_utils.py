@@ -47,7 +47,8 @@ def _reaction_content_to_emoji(value) -> str:
 
 
 def parse_lxmf_reaction_field_dict(
-    reaction_dict: dict, source_hash_hex: str = ""
+    reaction_dict: dict,
+    source_hash_hex: str = "",
 ) -> dict | None:
     """Parse FIELD_REACTION (0x40) dict into normalized reaction metadata."""
     if not isinstance(reaction_dict, dict):
@@ -159,7 +160,7 @@ def is_user_facing_lxmf_payload(fields, content, title) -> bool:
         fields = {}
 
     if isinstance(fields.get("reaction"), dict) and fields["reaction"].get(
-        "reaction_to"
+        "reaction_to",
     ):
         return False
     raw_reaction = (
@@ -356,10 +357,11 @@ def lxmf_fields_attachment_flags(fields) -> dict:
     has_reaction = 1 if isinstance(fields.get("reaction"), dict) else 0
     has_telemetry = 0
     telemetry = fields.get("telemetry")
-    if isinstance(telemetry, dict) and telemetry:
-        has_telemetry = 1
-    elif isinstance(fields.get("telemetry_stream"), list) and fields.get(
-        "telemetry_stream",
+    if (isinstance(telemetry, dict) and telemetry) or (
+        isinstance(fields.get("telemetry_stream"), list)
+        and fields.get(
+            "telemetry_stream",
+        )
     ):
         has_telemetry = 1
     # Also accept raw LXMF hex-style keys that may appear in stored JSON.
@@ -528,7 +530,8 @@ def lxmf_sidebar_preview_for_conversation_latest_row(
 
 
 def lxmf_message_solving_stamps(
-    lxmf_message: LXMF.LXMessage, message_router=None
+    lxmf_message: LXMF.LXMessage,
+    message_router=None,
 ) -> bool:
     if getattr(lxmf_message, "incoming", False):
         return False
@@ -998,7 +1001,11 @@ def compute_lxmf_conversation_unread_from_latest_row(row, *, require_user_facing
             (row.get("content") and str(row.get("content")).strip())
             or (row.get("title") and str(row.get("title")).strip())
             or _row_flag_true(
-                row, "has_image", "has_audio", "has_files", "has_attachments"
+                row,
+                "has_image",
+                "has_audio",
+                "has_files",
+                "has_attachments",
             )
         ):
             return False

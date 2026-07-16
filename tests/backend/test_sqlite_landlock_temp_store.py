@@ -143,7 +143,7 @@ def test_landlock_worker_heavy_query_ok_with_memory_temp():
             print(mem_errors[:3])
             sys.exit(4)
         sys.exit(0)
-        """
+        """,
     )
     result = subprocess.run(
         [sys.executable, "-c", script],
@@ -243,7 +243,7 @@ def test_landlock_memory_pressure_keeps_memory_temp_and_queries_ok():
             print(errors[:3])
             sys.exit(5)
         sys.exit(0)
-        """
+        """,
     )
     result = subprocess.run(
         [sys.executable, "-c", script],
