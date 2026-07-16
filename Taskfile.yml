@@ -405,10 +405,10 @@ tasks:
         desc: Run Go unit tests for visualiser-wasm
         dir: visualiser-wasm
         env:
-            GOCACHE: ../.gocache
-            GOTMPDIR: ../.gotmp
+            GOCACHE: "{{.ROOT_DIR}}/.gocache"
+            GOTMPDIR: "{{.ROOT_DIR}}/.gotmp"
         cmds:
-            - mkdir -p ../.gocache ../.gotmp
+            - mkdir -p "{{.ROOT_DIR}}/.gocache" "{{.ROOT_DIR}}/.gotmp"
             - go test ./internal/...
 
     test:visualiser-wasm:race:
@@ -416,11 +416,11 @@ tasks:
         desc: Run visualiser-wasm tests with the race detector
         dir: visualiser-wasm
         env:
-            GOCACHE: ../.gocache
-            GOTMPDIR: ../.gotmp
+            GOCACHE: "{{.ROOT_DIR}}/.gocache"
+            GOTMPDIR: "{{.ROOT_DIR}}/.gotmp"
             CGO_ENABLED: "1"
         cmds:
-            - mkdir -p ../.gocache ../.gotmp
+            - mkdir -p "{{.ROOT_DIR}}/.gocache" "{{.ROOT_DIR}}/.gotmp"
             - go test -race -count=1 ./internal/...
 
     test:visualiser-wasm:fuzz:
@@ -428,10 +428,10 @@ tasks:
         desc: Run short visualiser-wasm fuzz targets
         dir: visualiser-wasm
         env:
-            GOCACHE: ../.gocache
-            GOTMPDIR: ../.gotmp
+            GOCACHE: "{{.ROOT_DIR}}/.gocache"
+            GOTMPDIR: "{{.ROOT_DIR}}/.gotmp"
         cmds:
-            - mkdir -p ../.gocache ../.gotmp
+            - mkdir -p "{{.ROOT_DIR}}/.gocache" "{{.ROOT_DIR}}/.gotmp"
             - go test ./internal/hashpos -fuzz=FuzzAngle01 -fuzztime=5s
             - go test ./internal/filter -fuzz=FuzzPathHashesWithinHopFilter -fuzztime=5s
             - go test ./internal/filter -fuzz=FuzzMatchesSearch -fuzztime=3s
@@ -445,10 +445,10 @@ tasks:
         desc: Run visualiser-wasm benchmarks with allocation reporting
         dir: visualiser-wasm
         env:
-            GOCACHE: ../.gocache
-            GOTMPDIR: ../.gotmp
+            GOCACHE: "{{.ROOT_DIR}}/.gocache"
+            GOTMPDIR: "{{.ROOT_DIR}}/.gotmp"
         cmds:
-            - mkdir -p ../.gocache ../.gotmp
+            - mkdir -p "{{.ROOT_DIR}}/.gocache" "{{.ROOT_DIR}}/.gotmp"
             - go test ./internal/... -run='^$' -bench=. -benchmem -count=1
 
     build:wheel:
