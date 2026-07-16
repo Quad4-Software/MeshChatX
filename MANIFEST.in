@@ -9,6 +9,10 @@ include meshchatx/__init__.py
 
 exclude meshchatx/src/frontend
 recursive-exclude meshchatx/src/frontend *
+recursive-exclude vendor/offline *
+recursive-exclude vendor/lxmfy/tests *
+recursive-exclude vendor/lxmfy/docs *
+recursive-exclude vendor/lxmfy/docker *
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
 
