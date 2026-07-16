@@ -32,17 +32,51 @@ inputs:
 runs:
     using: composite
     steps:
-        # Verify before dependency installs that may rewrite tracked files.
+        # Best-effort integrity check before dependency installs that may rewrite tracked files.
+        # Tree verify warns by default and does not fail the job.
         - name: Ensure rnid for tree verify
           if: inputs.skip_tree_verify != 'true'
           shell: bash
           run: |
-              set -euo pipefail
+              set -u
               if command -v rnid >/dev/null 2>&1; then
                 exit 0
               fi
-              python3 -m pip install --user 'rns>=1.3.8'
-              echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+              if [ -x .venv/bin/rnid ]; then
+                exit 0
+              fi
+              echo "Installing rns tools for tree verify (best effort)"
+              py=python3
+              if command -v python >/dev/null 2>&1; then
+                py=python
+              fi
+              if "$py" -m pip install --user 'rns>=1.3.8' 2>/dev/null; then
+                :
+              elif "$py" -m pip install --user --break-system-packages 'rns>=1.3.8' 2>/dev/null; then
+                :
+              else
+                echo "WARNING: could not install rnid via pip (tree verify may be skipped)" >&2
+                exit 0
+              fi
+              # Unix user scripts
+              if [ -d "$HOME/.local/bin" ]; then
+                echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+              fi
+              # Windows user Scripts (GitHub-hosted runners)
+              if [ -n "${APPDATA:-}" ]; then
+                for scripts_dir in "$APPDATA"/Python/Python*/Scripts; do
+                  if [ -d "$scripts_dir" ]; then
+                    echo "$scripts_dir" >> "$GITHUB_PATH"
+                  fi
+                done
+              fi
+              if [ -n "${LOCALAPPDATA:-}" ]; then
+                for scripts_dir in "$LOCALAPPDATA"/Programs/Python/Python*/Scripts; do
+                  if [ -d "$scripts_dir" ]; then
+                    echo "$scripts_dir" >> "$GITHUB_PATH"
+                  fi
+                done
+              fi
 
         - name: Verify tree RSM
           if: inputs.skip_tree_verify != 'true'

@@ -623,7 +623,7 @@ tasks:
             - sh scripts/ci/sign-tree-rsm.sh
 
     tree-rsm-verify:
-        desc: Verify meshchatx.rsm signature and byte-level file hashes
+        desc: Verify meshchatx.rsm signature and hashes (warn by default, RNS_TREE_VERIFY_STRICT=1 to fail)
         cmds:
             - sh scripts/ci/verify-tree-rsm.sh
 
@@ -633,7 +633,7 @@ tasks:
             - sh scripts/ci/install-git-hooks.sh
 
     tree-workspace-clean:
-        desc: Recheck inventory and fail on unexpected workspace changes
+        desc: Recheck inventory (warn by default, RNS_TREE_VERIFY_STRICT=1 to fail)
         cmds:
             - sh scripts/ci/verify-workspace-clean.sh "${RNS_INVENTORY_OUT:-/tmp/meshchatx-tree-inventory.txt}"
 

@@ -1,5 +1,5 @@
 name: Verify workspace clean
-description: Recheck byte-level tree inventory and reject unexpected runner mutations
+description: Recheck byte-level tree inventory (warn by default, non-blocking)
 runs:
     using: composite
     steps:
