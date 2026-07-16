@@ -23,7 +23,24 @@ def _is_chaquopy_android() -> bool:
     return True
 
 
+def _cdll_load(path_or_name: str):
+    """Load a shared library with RTLD_GLOBAL when the platform supports it.
+
+    pycodec2.so declares NEEDED libcodec2.so. Loading with RTLD_GLOBAL lets the
+    later dlopen of the extension resolve that dependency.
+    """
+    mode = getattr(ctypes, "RTLD_GLOBAL", None)
+    if mode is None:
+        return ctypes.CDLL(path_or_name)
+    return ctypes.CDLL(path_or_name, mode=mode)
+
+
 def _libcodec2_candidates() -> list[Path]:
+    """Return candidate paths for libcodec2.so without importing pycodec2.
+
+    ``import pycodec2`` loads the extension which already needs libcodec2.so.
+    Searching sys.path on disk avoids that chicken-and-egg failure.
+    """
     candidates: list[Path] = []
     seen: set[str] = set()
 
@@ -34,17 +51,12 @@ def _libcodec2_candidates() -> list[Path]:
         seen.add(key)
         candidates.append(path)
 
-    try:
-        import pycodec2
-
-        add(Path(pycodec2.__file__).resolve().parent / "libcodec2.so")
-    except Exception:
-        pass
-
     for entry in sys.path:
         if not entry:
             continue
-        add(Path(entry) / "chaquopy" / "lib" / "libcodec2.so")
+        root = Path(entry)
+        add(root / "pycodec2" / "libcodec2.so")
+        add(root / "chaquopy" / "lib" / "libcodec2.so")
 
     return candidates
 
@@ -53,7 +65,7 @@ def ensure_codec2_native_library() -> bool:
     """Preload ``libcodec2.so`` so ``import pycodec2`` works on Android.
 
     Chaquopy installs ``chaquopy-libcodec2`` separately from ``pycodec2``. The
-    extension module only declares a NEEDED entry for ``libcodec2.so``; without
+    extension module only declares a NEEDED entry for ``libcodec2.so``. Without
     preloading or bundling the shared library next to ``pycodec2.so``, imports
     fail at runtime with ``dlopen`` errors.
     """
@@ -68,7 +80,7 @@ def ensure_codec2_native_library() -> bool:
         return True
 
     try:
-        ctypes.CDLL("libcodec2.so")
+        _cdll_load("libcodec2.so")
         return True
     except OSError:
         pass
@@ -78,7 +90,7 @@ def ensure_codec2_native_library() -> bool:
         if not lib_path.is_file():
             continue
         try:
-            ctypes.CDLL(str(lib_path))
+            _cdll_load(str(lib_path))
             logger.info("Loaded Codec2 native library from %s", lib_path)
             return True
         except OSError as exc:
@@ -106,3 +118,10 @@ def probe_pycodec2() -> tuple[bool, str | None]:
 def codec2_preload_error() -> str | None:
     """Return the last preload failure message, if any."""
     return _codec2_preload_error
+
+
+def reset_codec2_preload_state_for_tests() -> None:
+    """Clear preload memoization (tests only)."""
+    global _codec2_preload_done, _codec2_preload_error
+    _codec2_preload_done = False
+    _codec2_preload_error = None

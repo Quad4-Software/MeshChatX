@@ -91,7 +91,6 @@
                                 />
                             </button>
                             <LanguageSelector class="hidden sm:block" @language-change="onLanguageChange" />
-                            <NotificationBell />
                             <button
                                 type="button"
                                 class="sm:hidden rounded-full p-1.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors relative"
@@ -101,7 +100,7 @@
                                 <MaterialDesignIcon icon-name="message-text" class="w-5 h-5" />
                                 <span
                                     v-if="unreadConversationsCount > 0"
-                                    class="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none"
+                                    class="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white"
                                 >
                                     {{ unreadConversationsCount > 99 ? "99+" : unreadConversationsCount }}
                                 </span>
@@ -116,7 +115,7 @@
                                 <MaterialDesignIcon icon-name="forum" class="w-5 h-5" />
                                 <span
                                     v-if="relayChatUnreadCount > 0"
-                                    class="absolute -top-0.5 -right-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white"
+                                    class="absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white"
                                 >
                                     {{ relayChatUnreadCount > 99 ? "99+" : relayChatUnreadCount }}
                                 </span>
@@ -238,10 +237,22 @@
                                     <li v-for="item in visibleNavItems" :key="item.id">
                                         <SidebarLink :to="item.route" :is-collapsed="isSidebarCollapsed">
                                             <template #icon>
-                                                <MaterialDesignIcon
-                                                    :icon-name="item.icon"
-                                                    class="w-6 h-6 text-gray-700 dark:text-white"
-                                                />
+                                                <span class="relative inline-flex shrink-0">
+                                                    <MaterialDesignIcon
+                                                        :icon-name="item.icon"
+                                                        class="w-6 h-6 text-gray-700 dark:text-white"
+                                                    />
+                                                    <span
+                                                        v-if="
+                                                            isSidebarCollapsed &&
+                                                            getNavBadgeCount(item) > 0 &&
+                                                            item.badge?.pill
+                                                        "
+                                                        class="absolute -right-2 -top-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white"
+                                                    >
+                                                        {{ formatNavBadgeCount(item) }}
+                                                    </span>
+                                                </span>
                                             </template>
                                             <template #text>
                                                 <span>{{ item.label || $t(item.labelKey) }}</span>
@@ -252,8 +263,12 @@
                                                     {{ getNavBadgeCount(item) }}
                                                 </span>
                                                 <span
-                                                    v-else-if="getNavBadgeCount(item) > 0 && item.badge?.pill"
-                                                    class="ml-auto mr-2 min-w-[1.25rem] rounded-full bg-red-500 px-1.5 py-0.5 text-center text-xs font-bold text-white"
+                                                    v-else-if="
+                                                        !isSidebarCollapsed &&
+                                                        getNavBadgeCount(item) > 0 &&
+                                                        item.badge?.pill
+                                                    "
+                                                    class="ml-auto mr-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white"
                                                 >
                                                     {{ formatNavBadgeCount(item) }}
                                                 </span>
@@ -592,7 +607,6 @@ import PromptDialog from "./PromptDialog.vue";
 import ToastUtils from "../js/ToastUtils";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import QRCode from "qrcode";
-import NotificationBell from "./NotificationBell.vue";
 import LanguageSelector from "./LanguageSelector.vue";
 import CallOverlay from "./call/CallOverlay.vue";
 import CommandPalette from "./CommandPalette.vue";
@@ -626,7 +640,6 @@ export default {
         ConfirmDialog,
         PromptDialog,
         MaterialDesignIcon,
-        NotificationBell,
         LanguageSelector,
         CallOverlay,
         CommandPalette,
@@ -957,6 +970,7 @@ export default {
             GlobalEmitter.on("block-status-changed", this.onBlockStatusChangedShell);
             GlobalEmitter.on("show-changelog", this.onShowChangelogShell);
             GlobalEmitter.on("show-tutorial", this.onShowTutorialShell);
+            GlobalEmitter.on("notifications-changed", this.updateUnreadConversationsCount);
 
             this.getAppInfo();
             this.getConfig();
@@ -1031,6 +1045,7 @@ export default {
             GlobalEmitter.off("block-status-changed", this.onBlockStatusChangedShell);
             GlobalEmitter.off("show-changelog", this.onShowChangelogShell);
             GlobalEmitter.off("show-tutorial", this.onShowTutorialShell);
+            GlobalEmitter.off("notifications-changed", this.updateUnreadConversationsCount);
             this.clearWsShellUiTimers();
             this.wsDisconnected = false;
             this.wsDisconnectedAt = null;
@@ -1421,6 +1436,11 @@ export default {
                     this.toneGenerator.stop();
                     NotificationUtils.cancelIncomingCallNotification();
                     this.updateTelephoneStatus();
+                    // Ensure CallPage is mounted so Android native audio / web
+                    // audio can attach after answer from overlay or notification.
+                    if (this.$route?.name !== "call" || this.$route?.query?.tab !== "phone") {
+                        this.$router.push({ name: "call", query: { tab: "phone" } });
+                    }
                 },
                 telephone_call_ended: () => {
                     this.stopRingtone();
@@ -2121,6 +2141,19 @@ export default {
                 if (/^(meshchatx|meshchat):\/\/relay\b/i.test(normalizedUrl)) {
                     this.openRelayShareLink(normalizedUrl);
                     return;
+                }
+                if (/^(meshchatx|meshchat):\/\//i.test(normalizedUrl)) {
+                    try {
+                        const u = new URL(normalizedUrl);
+                        const host = (u.hostname || "").toLowerCase();
+                        if (host && !["map", "docs", "relay", "app"].includes(host)) {
+                            ToastUtils.error(this.$t("messages.unknown_meshchatx_link", { host }));
+                            return;
+                        }
+                    } catch {
+                        ToastUtils.error(this.$t("messages.unknown_meshchatx_link_generic"));
+                        return;
+                    }
                 }
                 if (/^lxm(a|f)?:\/\//i.test(normalizedUrl)) {
                     WebSocketConnection.send(

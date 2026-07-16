@@ -229,7 +229,6 @@ describe("App telephone_ringing policy regressions", () => {
                 stubs: {
                     MaterialDesignIcon: true,
                     LxmfUserIcon: true,
-                    NotificationBell: true,
                     LanguageSelector: true,
                     CallOverlay: true,
                     CommandPalette: true,

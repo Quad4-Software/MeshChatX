@@ -9,8 +9,7 @@ from meshchatx import android_codec2
 
 
 def test_ensure_codec2_skips_non_android():
-    android_codec2._codec2_preload_done = False
-    android_codec2._codec2_preload_error = None
+    android_codec2.reset_codec2_preload_state_for_tests()
     with patch.object(android_codec2, "_is_chaquopy_android", return_value=False):
         assert android_codec2.ensure_codec2_native_library() is True
         assert android_codec2.codec2_preload_error() is None
@@ -20,14 +19,13 @@ def test_ensure_codec2_loads_bundled_library(tmp_path):
     lib = tmp_path / "libcodec2.so"
     lib.write_bytes(b"\x7fELF")
 
-    android_codec2._codec2_preload_done = False
-    android_codec2._codec2_preload_error = None
+    android_codec2.reset_codec2_preload_state_for_tests()
 
     with (
         patch.object(android_codec2, "_is_chaquopy_android", return_value=True),
         patch.object(
-            android_codec2.ctypes,
-            "CDLL",
+            android_codec2,
+            "_cdll_load",
             side_effect=[OSError(), None],
         ) as cdll,
         patch.object(
@@ -37,17 +35,43 @@ def test_ensure_codec2_loads_bundled_library(tmp_path):
         ),
     ):
         assert android_codec2.ensure_codec2_native_library() is True
-        cdll.assert_called_with(str(lib))
+        assert cdll.call_count == 2
+        assert cdll.call_args_list[0].args[0] == "libcodec2.so"
+        assert cdll.call_args_list[1].args[0] == str(lib)
+
+
+def test_libcodec2_candidates_find_without_importing_pycodec2(tmp_path, monkeypatch):
+    """Discovery must not import pycodec2 (extension needs libcodec2 already loaded)."""
+    site = tmp_path / "site-packages"
+    pkg = site / "pycodec2"
+    pkg.mkdir(parents=True)
+    lib = pkg / "libcodec2.so"
+    lib.write_bytes(b"\x7fELF")
+    monkeypatch.syspath_prepend(str(site))
+
+    import builtins
+
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == "pycodec2" or name.startswith("pycodec2."):
+            raise ImportError("pycodec2 must not be imported during candidate search")
+        return real_import(name, *args, **kwargs)
+
+    with patch("builtins.__import__", side_effect=fake_import):
+        candidates = android_codec2._libcodec2_candidates()
+
+    assert lib.resolve() in [c.resolve() for c in candidates]
 
 
 def test_probe_pycodec2_reports_failure_when_import_breaks():
+    android_codec2.reset_codec2_preload_state_for_tests()
     android_codec2._codec2_preload_done = True
     android_codec2._codec2_preload_error = None
     with (
         patch.object(android_codec2, "_is_chaquopy_android", return_value=False),
         patch.dict("sys.modules", {"pycodec2": None}),
     ):
-        # Force ImportError path by making import raise
         import builtins
 
         real_import = builtins.__import__
@@ -65,8 +89,6 @@ def test_probe_pycodec2_reports_failure_when_import_breaks():
 
 def test_vendor_wheels_bundle_libcodec2_for_all_abis():
     import zipfile
-
-    import pytest
 
     repo = Path(__file__).resolve().parents[2]
     vendor = repo / "android" / "vendor"
@@ -99,8 +121,6 @@ def test_jni_libs_synced_for_all_abis():
 
 def test_android_lxst_wheel_get_codec_guards_missing_codec2():
     import zipfile
-
-    import pytest
 
     repo = Path(__file__).resolve().parents[2]
     whl = repo / "android" / "vendor" / "lxst-0.4.8-py3-none-any.whl"

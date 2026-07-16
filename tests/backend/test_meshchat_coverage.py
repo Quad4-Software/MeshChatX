@@ -114,7 +114,13 @@ async def test_lxm_ingest_uri_lxma_adds_contact(mock_app):
 
     fake_identity = MagicMock()
     fake_identity.hash = bytes.fromhex("bb" * 16)
-    fake_identity.load_public_key.return_value = True
+    fake_identity.pub = object()
+    fake_identity.get_public_key.return_value = b"\x11" * 64
+
+    def load_public_key(_key_bytes):
+        return None
+
+    fake_identity.load_public_key.side_effect = load_public_key
 
     mock_app.config.auth_enabled.get.return_value = False
 
@@ -124,6 +130,7 @@ async def test_lxm_ingest_uri_lxma_adds_contact(mock_app):
             side_effect=lambda coro: asyncio.create_task(coro),
         ),
         patch("meshchatx.meshchat.RNS.Identity", return_value=fake_identity),
+        patch("meshchatx.meshchat.RNS.Identity.remember") as remember_mock,
     ):
         await mock_app.on_websocket_data_received(
             mock_client,
@@ -139,6 +146,7 @@ async def test_lxm_ingest_uri_lxma_adds_contact(mock_app):
         "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         lxmf_address="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     )
+    remember_mock.assert_called_once()
     mock_app.message_router.ingest_lxm_uri.assert_not_called()
     mock_client.send_str.assert_called_once()
     payload = json.loads(mock_client.send_str.call_args[0][0])
@@ -160,9 +168,18 @@ async def test_lxm_ingest_uri_lxma_accepts_128_hex_public_key(mock_app):
 
     fake_identity = MagicMock()
     fake_identity.hash = bytes.fromhex("bb" * 16)
+    fake_identity.pub = object()
+    fake_identity.get_public_key.return_value = b"\x01" * 64
 
     def load_public_key(key_bytes):
-        return len(key_bytes) == 64
+        # Match real RNS: return None even on success.
+        if len(key_bytes) != 64:
+            fake_identity.pub = None
+            fake_identity.hash = None
+            return None
+        fake_identity.pub = object()
+        fake_identity.hash = bytes.fromhex("bb" * 16)
+        return None
 
     fake_identity.load_public_key.side_effect = load_public_key
 
@@ -174,6 +191,7 @@ async def test_lxm_ingest_uri_lxma_accepts_128_hex_public_key(mock_app):
             side_effect=lambda coro: asyncio.create_task(coro),
         ),
         patch("meshchatx.meshchat.RNS.Identity", return_value=fake_identity),
+        patch("meshchatx.meshchat.RNS.Identity.remember"),
     ):
         await mock_app.on_websocket_data_received(
             mock_client,
@@ -190,6 +208,19 @@ async def test_lxm_ingest_uri_lxma_accepts_128_hex_public_key(mock_app):
     assert payload["ingest_type"] == "lxma_contact"
     assert fake_identity.load_public_key.call_count >= 1
     assert len(fake_identity.load_public_key.call_args[0][0]) == 64
+
+
+def test_identity_from_public_key_bytes_accepts_real_rns_none_return():
+    """Regression for issue #21: RNS load_public_key returns None on success."""
+    import RNS
+    from meshchatx.meshchat import ReticulumMeshChat
+
+    source = RNS.Identity()
+    pub = source.get_public_key()
+    loaded = ReticulumMeshChat._identity_from_public_key_bytes(pub)
+    assert loaded is not None
+    assert loaded.hash == source.hash
+    assert ReticulumMeshChat._identity_from_public_key_bytes(b"\x00" * 8) is None
 
 
 @pytest.mark.asyncio

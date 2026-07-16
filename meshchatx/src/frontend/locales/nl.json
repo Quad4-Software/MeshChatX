@@ -88,9 +88,6 @@
         "show_qr": "QR-code tonen",
         "failed_announce": "kon niet aankondigen",
         "announce_sent": "Mededeling verzonden",
-        "notifications_no_new": "Geen nieuwe meldingen",
-        "notifications_empty_history": "Geen meldingsgeschiedenis",
-        "notifications_history_title": "Recente meldingsgeschiedenis",
         "notifications": "Meldingen",
         "notification_sound_settings": "Meldingsgeluid voor berichten",
         "notification_sound_settings_description": "Speelt een aangepast geluid af wanneer je een nieuw bericht ontvangt terwijl MeshChat open is. Upload eerst een audiobestand en schakel daarna afspelen in.",
@@ -1777,7 +1774,9 @@
         "conversation_files_other": "{name} heeft {count} bestanden gestuurd",
         "message_not_found_in_cache": "Bericht niet gevonden in cache",
         "failed_to_send": "Bericht verzenden mislukt",
-        "failed_to_send_image": "Afbeelding {index} verzenden mislukt: {detail}"
+        "failed_to_send_image": "Afbeelding {index} verzenden mislukt: {detail}",
+        "unknown_meshchatx_link": "Unknown meshchatx link ({host})",
+        "unknown_meshchatx_link_generic": "Unknown or invalid meshchatx link"
     },
     "settings": {
         "shortcut_saved": "Sneltoets opgeslagen",
@@ -3168,7 +3167,9 @@
         "failed_to_send_to_voicemail": "Kon gesprek naar voicemail niet versturen",
         "failed_load_audio_edit": "Kon audio niet laden om te bewerken",
         "ringtone_saved": "Ringtone is succesvol opgeslagen",
-        "failed_save_ringtone": "Opslaan van bewerkte ringtone mislukt"
+        "failed_save_ringtone": "Opslaan van bewerkte ringtone mislukt",
+        "codec2_unavailable": "Codec2 is not available on this device. Low-bandwidth call profiles are hidden.",
+        "codec2_profile_remapped": "Codec2 is unavailable so the call profile was switched to Opus."
     },
     "contacts": {
         "title": "Contacten",

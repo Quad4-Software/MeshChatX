@@ -2903,13 +2903,18 @@ export default {
         async disableWebAudioBridgeWithError(errorKey, error, stage = "unknown") {
             this.logWebAudioFailure(stage, error);
             ToastUtils.error(this.$t(errorKey));
-            if (this.config) {
-                this.config.telephone_web_audio_enabled = false;
-            }
-            try {
-                await this.updateConfig({ telephone_web_audio_enabled: false });
-            } catch (updateError) {
-                this.logWebAudioFailure("disable-config-update", updateError);
+            // On Android the backend forces web_audio.enabled while Chaquopy is
+            // present. Permanently clearing the config flag just creates a 1s
+            // retry/toast loop without helping recovery.
+            if (!this.isMeshChatXAndroid()) {
+                if (this.config) {
+                    this.config.telephone_web_audio_enabled = false;
+                }
+                try {
+                    await this.updateConfig({ telephone_web_audio_enabled: false });
+                } catch (updateError) {
+                    this.logWebAudioFailure("disable-config-update", updateError);
+                }
             }
             this.stopWebAudio();
         },
@@ -3509,8 +3514,15 @@ export default {
         async getAudioProfiles() {
             try {
                 const response = await window.api.get("/api/v1/telephone/audio-profiles");
-                this.audioProfiles = response.data.audio_profiles;
+                const profiles = Array.isArray(response.data.audio_profiles) ? response.data.audio_profiles : [];
+                this.audioProfiles = profiles.filter((p) => p && p.available !== false);
                 this.selectedAudioProfileId = response.data.default_audio_profile_id;
+                if (response.data.codec2_available === false) {
+                    const hadCodec2 = profiles.some((p) => p && p.unavailable_reason === "codec2");
+                    if (hadCodec2) {
+                        ToastUtils.warning(this.$t("call.codec2_unavailable"));
+                    }
+                }
             } catch (e) {
                 console.log(e);
             }
@@ -4354,7 +4366,14 @@ export default {
         },
         async switchAudioProfile(audioProfileId) {
             try {
-                await window.api.get(`/api/v1/telephone/switch-audio-profile/${audioProfileId}`);
+                const response = await window.api.get(`/api/v1/telephone/switch-audio-profile/${audioProfileId}`);
+                const resolved = response.data?.profile_id;
+                if (resolved != null) {
+                    this.selectedAudioProfileId = resolved;
+                }
+                if (response.data?.remapped) {
+                    ToastUtils.warning(this.$t("call.codec2_profile_remapped"));
+                }
             } catch {
                 ToastUtils.error(this.$t("call.failed_to_switch_audio_profile"));
             }

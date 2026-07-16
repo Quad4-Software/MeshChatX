@@ -606,7 +606,7 @@ describe("MessagesPage.vue", () => {
         expect(wrapper.vm.selectedPeer.display_name).toBe("Existing Peer");
     });
 
-    it("onBulkMarkAsRead notifies notification bell after server confirms", async () => {
+    it("onBulkMarkAsRead emits notifications-changed after server confirms", async () => {
         const wrapper = mountMessagesPage();
         await wrapper.vm.$nextTick();
         axiosMock.post.mockResolvedValue({ data: {} });

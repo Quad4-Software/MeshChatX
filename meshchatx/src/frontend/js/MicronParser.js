@@ -209,6 +209,61 @@ export default class MicronParser extends BaseMicronParser {
             }
         `;
         document.head.appendChild(styleEl);
+        MicronParser.installMicronCopyFix();
+    }
+
+    /**
+     * Browsers insert newlines between adjacent ``inline-block`` Mu-mnt cells
+     * when copying. Rebuild clipboard text without those spurious breaks while
+     * keeping intentional block-level line breaks.
+     */
+    static installMicronCopyFix() {
+        if (typeof document === "undefined" || window.__meshchatxMicronCopyFix) {
+            return;
+        }
+        window.__meshchatxMicronCopyFix = true;
+        document.addEventListener("copy", (event) => {
+            const sel = window.getSelection();
+            if (!sel || sel.isCollapsed || !sel.rangeCount) {
+                return;
+            }
+            const anchor = sel.anchorNode;
+            const focus = sel.focusNode;
+            const anchorEl = anchor && anchor.nodeType === Node.ELEMENT_NODE ? anchor : anchor?.parentElement;
+            const focusEl = focus && focus.nodeType === Node.ELEMENT_NODE ? focus : focus?.parentElement;
+            const inMicron = (el) => Boolean(el?.closest?.(".Mu-mws, .Mu-mnt, .Mu-mnt-full, .Mu-mnt-group, .Mu-nl"));
+            if (!inMicron(anchorEl) && !inMicron(focusEl)) {
+                return;
+            }
+            try {
+                const range = sel.getRangeAt(0);
+                const fragment = range.cloneContents();
+                const walker = document.createTreeWalker(fragment, NodeFilter.SHOW_ALL);
+                let out = "";
+                let node = walker.nextNode();
+                while (node) {
+                    if (node.nodeType === Node.TEXT_NODE) {
+                        out += node.nodeValue || "";
+                    } else if (node.nodeType === Node.ELEMENT_NODE) {
+                        const tag = node.tagName;
+                        if (tag === "BR" || tag === "DIV" || tag === "P" || tag === "PRE") {
+                            if (out.length && !out.endsWith("\n")) {
+                                out += "\n";
+                            }
+                        }
+                    }
+                    node = walker.nextNode();
+                }
+                // Collapse newlines that came only from adjacent inline-block cells.
+                const cleaned = out.replace(/([^\n])\n(?!\n)/g, "$1");
+                if (cleaned && event.clipboardData) {
+                    event.clipboardData.setData("text/plain", cleaned);
+                    event.preventDefault();
+                }
+            } catch {
+                /* leave default copy behaviour */
+            }
+        });
     }
 
     convertMicronToHtmlWasmHybrid(markup, partialContents = {}) {

@@ -88,9 +88,6 @@
         "show_qr": "显示二维码",
         "failed_announce": "广播失败",
         "announce_sent": "广播已发送",
-        "notifications_no_new": "没有新通知",
-        "notifications_empty_history": "无通知历史",
-        "notifications_history_title": "最近通知历史",
         "notifications": "通知",
         "notification_sound_settings": "消息通知声音",
         "notification_sound_settings_description": "在 MeshChat 打开时收到新消息播放自定义声音。请先上传音频文件，然后启用播放。",
@@ -1777,7 +1774,9 @@
         "conversation_files_other": "{name} 发送了 {count} 个文件",
         "message_not_found_in_cache": "缓存中未找到消息",
         "failed_to_send": "发送消息失败",
-        "failed_to_send_image": "发送图片 {index} 失败：{detail}"
+        "failed_to_send_image": "发送图片 {index} 失败：{detail}",
+        "unknown_meshchatx_link": "Unknown meshchatx link ({host})",
+        "unknown_meshchatx_link_generic": "Unknown or invalid meshchatx link"
     },
     "settings": {
         "shortcut_saved": "快捷键已保存",
@@ -3168,7 +3167,9 @@
         "failed_to_send_to_voicemail": "发送通话到语音信箱失败",
         "failed_load_audio_edit": "加载用于编辑的音频失败",
         "ringtone_saved": "铃声保存成功",
-        "failed_save_ringtone": "保存编辑的铃声失败"
+        "failed_save_ringtone": "保存编辑的铃声失败",
+        "codec2_unavailable": "Codec2 is not available on this device. Low-bandwidth call profiles are hidden.",
+        "codec2_profile_remapped": "Codec2 is unavailable so the call profile was switched to Opus."
     },
     "contacts": {
         "title": "联系人",

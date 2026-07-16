@@ -16,7 +16,8 @@ ARG PYTHON_HASH=sha256:dd4d2bd5b53d9b25a51da13addf2be586beebd5387e289e798e4083d9
 # ---- STAGE 1: Frontend Build ----
 FROM --platform=linux/amd64 ${NODE_IMAGE}@${NODE_HASH} AS build-frontend
 WORKDIR /src
-RUN apk add --no-cache git python3
+# go is required to compile visualiser-wasm
+RUN apk add --no-cache git python3 go
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml vite.config.js ./
 COPY patches ./patches
 COPY scripts/fetch-micron-wasm.mjs scripts/fetch-micron-wasm.mjs
@@ -27,11 +28,19 @@ COPY scripts/sync-meshchatx-docs.js scripts/sync-meshchatx-docs.js
 COPY scripts/pip_rns_remotes.py scripts/pip_rns_remotes.py
 COPY scripts/build/fetch_reticulum_manual.py scripts/build/fetch_reticulum_manual.py
 COPY docs ./docs
+COPY visualiser-wasm ./visualiser-wasm
 COPY meshchatx/src/frontend ./meshchatx/src/frontend
-RUN npm install -g pnpm@11.1.2 && \
+ENV GOCACHE=/tmp/go-cache
+ENV GOTMPDIR=/tmp/go-tmp
+RUN mkdir -p /tmp/go-cache /tmp/go-tmp && \
+    npm install -g pnpm@11.1.2 && \
     pnpm config set verify-store-integrity true && \
     pnpm install --frozen-lockfile && \
-    pnpm run build-frontend && \
+    MESHCHATX_REQUIRE_VISUALISER_WASM=1 pnpm run build-frontend && \
+    test -s meshchatx/src/frontend/public/vendor/visualiser-wasm/visualiser.wasm && \
+    test -s meshchatx/src/frontend/public/vendor/visualiser-wasm/wasm_exec.js && \
+    test -s meshchatx/src/frontend/public/vendor/micron-parser-go/micron-parser-go.wasm && \
+    test -s meshchatx/src/frontend/public/vendor/micron-parser-go/wasm_exec.js && \
     pnpm run build-docs
 
 # ---- STAGE 2: Python Builder ----

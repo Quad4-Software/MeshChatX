@@ -81,11 +81,6 @@ describe("clampFloatingToViewport wiring", () => {
         ["DropDownMenu.vue", "meshchatx/src/frontend/components/DropDownMenu.vue", 'ref="dropdownPanel"'],
         ["LanguageSelector.vue", "meshchatx/src/frontend/components/LanguageSelector.vue", 'ref="languageDropdown"'],
         [
-            "NotificationBell.vue",
-            "meshchatx/src/frontend/components/NotificationBell.vue",
-            'ref="notificationDropdown"',
-        ],
-        [
             "ConversationViewer.vue",
             "meshchatx/src/frontend/components/messages/ConversationViewer.vue",
             "onReactionPickerDragStart",

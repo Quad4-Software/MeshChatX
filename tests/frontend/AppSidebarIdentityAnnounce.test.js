@@ -54,7 +54,6 @@ const routes = [
 const appStubs = {
     MaterialDesignIcon: { template: '<span class="md-stub" />' },
     LxmfUserIcon: { template: "<div />" },
-    NotificationBell: true,
     LanguageSelector: true,
     CallOverlay: true,
     CommandPalette: true,

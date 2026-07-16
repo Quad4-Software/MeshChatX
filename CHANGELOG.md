@@ -29,6 +29,7 @@ All notable changes to this project will be documented in this file.
 - CI benches use median-of-medians and quieter regression gates
 - Backend tests can run sharded in CI
 - Plugin strings live in plugin bundles, not main locale files
+- Docker frontend build installs Go, builds visualiser WASM, and fails if WASM artifacts are missing
 
 ### Fixed
 
@@ -37,10 +38,20 @@ All notable changes to this project will be documented in this file.
 - Startup check and disable unsupported interfaces
 - Nomad favourites: no more Unknown Node / lost custom sections
 - Relay Chat message dedupe. Network visualiser faster on large meshes
-- Bots and RNSh work in frozen macOS/Windows builds (`--meshchatx-run-module`)
+- Bots and RNSh work in frozen macOS/Windows builds
 - Sensitive config no longer mutable over WebSocket. Reticulum config repair on startup
 - Paper message URI encoding for non-ASCII title and content
 - Nightly releases and broader self-test / CI coverage
+- LXMA contact import works with current RNS public-key loading and remembers the peer key before announce
+- Android calls: overlay accept opens the phone tab so native audio attaches. Web-audio no longer permanently disabled after a bridge error
+- Android Codec2: reliable libcodec2 preload, Gradle fails without Codec2 wheels or jniLibs, and unavailable Codec2 profiles are hidden
+- Unknown meshchatx links return a clear error instead of falling through to LXMF
+- NomadNet Micron copy no longer inserts a newline between every character
+- Unread message count is a red pill on the Messages nav icon
+- Notification bell removed from the header
+- Unread badge stays circular and remains visible when the sidebar is collapsed
+- Open conversations mark as read when a new message arrives without needing to reselect the thread
+- Startup stage logs no longer print the same stage twice
 
 ## [4.7.2] - 2026-07-06
 
