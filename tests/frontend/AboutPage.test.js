@@ -517,4 +517,30 @@ describe("AboutPage.vue", () => {
 
         expect(wrapper.text()).not.toContain("app.landlock_status");
     });
+
+    it("loads and shows host battery status in environment info", async () => {
+        navigator.getBattery = vi.fn(async () => ({ level: 0.81, charging: true }));
+
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/app/info") {
+                return Promise.resolve({
+                    data: { app_info: { version: "1.0.0", host_platform: "linux" } },
+                });
+            }
+            if (url === "/api/v1/config") return Promise.resolve({ data: { config: {} } });
+            if (url === "/api/v1/database/health") return Promise.resolve({ data: { database: {} } });
+            if (url === "/api/v1/database/snapshots") return Promise.resolve({ data: [] });
+            return Promise.reject(new Error("Not found"));
+        });
+
+        const wrapper = mountAboutPage();
+        await vi.runOnlyPendingTimers();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.refreshBatteryStatus();
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.text()).toContain("about.env_battery");
+        expect(wrapper.vm.batteryStatus?.level).toBe(81);
+        expect(wrapper.vm.batteryStatusLabel).toContain("81%");
+    });
 });

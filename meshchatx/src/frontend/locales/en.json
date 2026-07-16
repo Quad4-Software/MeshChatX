@@ -486,7 +486,11 @@
         "map_tile_server_url": "Tile server URL",
         "map_nominatim_api_url": "Nominatim API URL",
         "map_offline_enabled": "Offline MBTiles enabled",
-        "map_tile_cache_enabled": "Tile cache enabled"
+        "map_tile_cache_enabled": "Tile cache enabled",
+        "battery_unavailable": "Battery status unavailable",
+        "battery_level_title": "Battery {percent}",
+        "battery_charging_title": "Charging {percent}",
+        "battery_discharging_title": "On battery {percent}"
     },
     "common": {
         "open": "Open",
@@ -1129,7 +1133,11 @@
         "failed_acknowledge_integrity": "Failed to acknowledge integrity issues",
         "shutdown_sent": "Shutdown command sent to server.",
         "identity_exported": "Identity key file exported",
-        "identity_copied": "Identity Base32 key copied to clipboard"
+        "identity_copied": "Identity Base32 key copied to clipboard",
+        "env_battery": "Battery",
+        "env_battery_unavailable": "Unavailable on this device",
+        "env_battery_charging": "Charging {percent}",
+        "env_battery_on_battery": "On battery {percent}"
     },
     "interfaces": {
         "title": "Interfaces",

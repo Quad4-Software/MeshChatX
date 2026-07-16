@@ -486,7 +486,11 @@
         "recover_network": "重试网络",
         "open_interfaces": "打开接口",
         "network_recovered": "网络栈已恢复",
-        "network_recover_failed": "无法恢复网络栈。请检查接口后重试。"
+        "network_recover_failed": "无法恢复网络栈。请检查接口后重试。",
+        "battery_unavailable": "无法获取电池状态",
+        "battery_level_title": "电池 {percent}",
+        "battery_charging_title": "充电中 {percent}",
+        "battery_discharging_title": "使用电池 {percent}"
     },
     "common": {
         "open": "打开",
@@ -1129,7 +1133,11 @@
         "tagline_after": "。",
         "tagline_lead": "安全、有韧性的通信平台，基于 ",
         "tagline_link": "Reticulum Network Stack",
-        "technical_issues_detected": "自上次快照以来的更改"
+        "technical_issues_detected": "自上次快照以来的更改",
+        "env_battery": "电池",
+        "env_battery_unavailable": "此设备不可用",
+        "env_battery_charging": "充电中 {percent}",
+        "env_battery_on_battery": "使用电池 {percent}"
     },
     "interfaces": {
         "title": "接口",

@@ -486,7 +486,11 @@
         "recover_network": "Reintentar red",
         "open_interfaces": "Abrir interfaces",
         "network_recovered": "Pila de red recuperada",
-        "network_recover_failed": "No se pudo recuperar la pila de red. Revise las interfaces e inténtelo de nuevo."
+        "network_recover_failed": "No se pudo recuperar la pila de red. Revise las interfaces e inténtelo de nuevo.",
+        "battery_unavailable": "Estado de batería no disponible",
+        "battery_level_title": "Batería {percent}",
+        "battery_charging_title": "Cargando {percent}",
+        "battery_discharging_title": "En batería {percent}"
     },
     "common": {
         "open": "Abierto",
@@ -1129,7 +1133,11 @@
         "tagline_after": ".",
         "tagline_lead": "Una plataforma de comunicaciones segura y resistente basada en ",
         "tagline_link": "Reticulum Network Stack",
-        "technical_issues_detected": "Cambios desde la última instantánea"
+        "technical_issues_detected": "Cambios desde la última instantánea",
+        "env_battery": "Batería",
+        "env_battery_unavailable": "No disponible en este dispositivo",
+        "env_battery_charging": "Cargando {percent}",
+        "env_battery_on_battery": "En batería {percent}"
     },
     "interfaces": {
         "title": "Interfaces",

@@ -38,6 +38,17 @@ class ElectronUtils {
         return null;
     }
 
+    static async getBatteryStatus() {
+        if (!window.electron?.getBatteryStatus) {
+            return null;
+        }
+        try {
+            return await window.electron.getBatteryStatus();
+        } catch {
+            return null;
+        }
+    }
+
     static showPathInFolder(path) {
         if (window.electron) {
             window.electron.showPathInFolder(path);

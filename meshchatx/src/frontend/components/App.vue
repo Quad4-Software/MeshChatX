@@ -91,6 +91,7 @@
                                 />
                             </button>
                             <LanguageSelector class="hidden sm:block" @language-change="onLanguageChange" />
+                            <BatteryStatusChip />
                             <NotificationBell />
                             <button
                                 type="button"
@@ -594,6 +595,7 @@ import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import QRCode from "qrcode";
 import NotificationBell from "./NotificationBell.vue";
 import LanguageSelector from "./LanguageSelector.vue";
+import BatteryStatusChip from "./layout/BatteryStatusChip.vue";
 import CallOverlay from "./call/CallOverlay.vue";
 import CommandPalette from "./CommandPalette.vue";
 import IntegrityWarningModal from "./IntegrityWarningModal.vue";
@@ -623,6 +625,7 @@ export default {
         MaterialDesignIcon,
         NotificationBell,
         LanguageSelector,
+        BatteryStatusChip,
         CallOverlay,
         CommandPalette,
         IntegrityWarningModal,

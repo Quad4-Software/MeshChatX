@@ -486,7 +486,11 @@
         "recover_network": "Netwerk opnieuw proberen",
         "open_interfaces": "Interfaces openen",
         "network_recovered": "Netwerkstack hersteld",
-        "network_recover_failed": "Netwerkstack kon niet worden hersteld. Controleer interfaces en probeer opnieuw."
+        "network_recover_failed": "Netwerkstack kon niet worden hersteld. Controleer interfaces en probeer opnieuw.",
+        "battery_unavailable": "Batterijstatus niet beschikbaar",
+        "battery_level_title": "Batterij {percent}",
+        "battery_charging_title": "Opladen {percent}",
+        "battery_discharging_title": "Op batterij {percent}"
     },
     "common": {
         "open": "Openen",
@@ -1129,7 +1133,11 @@
         "tagline_after": ".",
         "tagline_lead": "Een veilige, veerkrachtige communicatieplatform gebaseerd op ",
         "tagline_link": "Reticulum Network Stack",
-        "technical_issues_detected": "Wijzigingen sinds laatste snapshot"
+        "technical_issues_detected": "Wijzigingen sinds laatste snapshot",
+        "env_battery": "Batterij",
+        "env_battery_unavailable": "Niet beschikbaar op dit apparaat",
+        "env_battery_charging": "Opladen {percent}",
+        "env_battery_on_battery": "Op batterij {percent}"
     },
     "interfaces": {
         "title": "Interfaces",

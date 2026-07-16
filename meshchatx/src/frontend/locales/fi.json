@@ -486,7 +486,11 @@
         "recover_network": "Yritä verkkoa uudelleen",
         "open_interfaces": "Avaa liittymät",
         "network_recovered": "Verkkopinon palautus onnistui",
-        "network_recover_failed": "Verkkopinoa ei voitu palauttaa. Tarkista liittymät ja yritä uudelleen."
+        "network_recover_failed": "Verkkopinoa ei voitu palauttaa. Tarkista liittymät ja yritä uudelleen.",
+        "battery_unavailable": "Akun tila ei ole saatavilla",
+        "battery_level_title": "Akku {percent}",
+        "battery_charging_title": "Lataa {percent}",
+        "battery_discharging_title": "Akulla {percent}"
     },
     "common": {
         "open": "Avaa",
@@ -1129,7 +1133,11 @@
         "failed_acknowledge_integrity": "Eheysongelmien kuittaus epäonnistui",
         "shutdown_sent": "Sammutuskäsky lähetetty palvelimelle.",
         "identity_exported": "Identiteetien avaintiedosto viety",
-        "identity_copied": "Identiteetin Base32-avain kopioitu leikepöydälle"
+        "identity_copied": "Identiteetin Base32-avain kopioitu leikepöydälle",
+        "env_battery": "Akku",
+        "env_battery_unavailable": "Ei saatavilla tällä laitteella",
+        "env_battery_charging": "Lataa {percent}",
+        "env_battery_on_battery": "Akulla {percent}"
     },
     "interfaces": {
         "title": "Sovittimet",

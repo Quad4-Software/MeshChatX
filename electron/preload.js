@@ -83,6 +83,10 @@ contextBridge.exposeInMainWorld("electron", {
         return await ipcRenderer.invoke("get-memory-usage");
     },
 
+    getBatteryStatus: async function () {
+        return await ipcRenderer.invoke("get-battery-status");
+    },
+
     // allow showing a file path in os file manager
     showPathInFolder: async function (path) {
         return await ipcRenderer.invoke("showPathInFolder", path);

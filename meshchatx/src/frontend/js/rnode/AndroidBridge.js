@@ -112,6 +112,17 @@ export default class AndroidBridge {
         return safeCall(() => this.bridge.getPlatform(), null);
     }
 
+    /**
+     * Host battery status JSON string from the Android WebView bridge.
+     * Returns null when unavailable.
+     */
+    getBatteryStatus() {
+        if (!this.bridge || typeof this.bridge.getBatteryStatus !== "function") {
+            return null;
+        }
+        return safeCall(() => this.bridge.getBatteryStatus(), null);
+    }
+
     getSidebandPluginsDefaultPath() {
         if (!this.bridge || typeof this.bridge.getSidebandPluginsDefaultPath !== "function") {
             return null;
