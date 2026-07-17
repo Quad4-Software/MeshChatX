@@ -8,16 +8,27 @@ describe("NotificationUtils", () => {
 
     beforeEach(() => {
         originalNotification = globalThis.Notification;
-        electronMock = { showNotification: vi.fn() };
+        NotificationUtils._webMessageNotifications.clear();
+        electronMock = {
+            showNotification: vi.fn(),
+            closeMessageNotifications: vi.fn(),
+        };
         androidMock = {
             getPlatform: vi.fn().mockReturnValue("android"),
             showNotification: vi.fn(),
             showIncomingCallNotification: vi.fn(),
             showMissedCallNotification: vi.fn(),
             cancelIncomingCallNotification: vi.fn(),
+            cancelMessageNotifications: vi.fn(),
+            cancelAllMessageNotifications: vi.fn(),
+            setOpenConversationHashes: vi.fn(),
+            setDoNotDisturbEnabled: vi.fn(),
         };
         globalThis.Notification = vi.fn(function (title, opts) {
-            return { title, opts };
+            this.title = title;
+            this.opts = opts;
+            this.close = vi.fn();
+            return this;
         });
         globalThis.Notification.requestPermission = vi.fn().mockResolvedValue("granted");
     });
@@ -34,14 +45,19 @@ describe("NotificationUtils", () => {
             globalThis.electron = electronMock;
         });
 
-        it("showNewMessageNotification delegates to electron", () => {
-            NotificationUtils.showNewMessageNotification("Alice", "hello");
-            expect(electronMock.showNotification).toHaveBeenCalledWith("New Message", "Alice: hello", false);
+        it("showNewMessageNotification delegates to electron with destination hash", () => {
+            NotificationUtils.showNewMessageNotification("Alice", "hello", false, "abcd");
+            expect(electronMock.showNotification).toHaveBeenCalledWith("New Message", "Alice: hello", false, "abcd");
         });
 
         it("showNewMessageNotification passes silent flag to electron", () => {
-            NotificationUtils.showNewMessageNotification("Alice", "hello", true);
-            expect(electronMock.showNotification).toHaveBeenCalledWith("New Message", "Alice: hello", true);
+            NotificationUtils.showNewMessageNotification("Alice", "hello", true, "abcd");
+            expect(electronMock.showNotification).toHaveBeenCalledWith("New Message", "Alice: hello", true, "abcd");
+        });
+
+        it("clearMessageNotifications delegates to electron", () => {
+            NotificationUtils.clearMessageNotifications("abcd");
+            expect(electronMock.closeMessageNotifications).toHaveBeenCalledWith("abcd");
         });
 
         it("showIncomingCallNotification delegates to electron", () => {
@@ -71,9 +87,25 @@ describe("NotificationUtils", () => {
             globalThis.MeshChatXAndroid = androidMock;
         });
 
-        it("showNewMessageNotification delegates to Android bridge", () => {
-            NotificationUtils.showNewMessageNotification("Alice", "hello");
-            expect(androidMock.showNotification).toHaveBeenCalledWith("New Message", "Alice: hello");
+        it("showNewMessageNotification does not post OS notifs (push bridge owns them)", () => {
+            NotificationUtils.showNewMessageNotification("Alice", "hello", false, "abcd");
+            expect(androidMock.showNotification).not.toHaveBeenCalled();
+        });
+
+        it("clearMessageNotifications cancels by destination hash", () => {
+            NotificationUtils.clearMessageNotifications("abcd");
+            expect(androidMock.cancelMessageNotifications).toHaveBeenCalledWith("abcd");
+        });
+
+        it("clearAllMessageNotifications cancels all", () => {
+            NotificationUtils.clearAllMessageNotifications();
+            expect(androidMock.cancelAllMessageNotifications).toHaveBeenCalled();
+        });
+
+        it("syncAndroidNotificationContext pushes open peers and DND", () => {
+            NotificationUtils.syncAndroidNotificationContext(["AAAA", "bbbb"], true);
+            expect(androidMock.setOpenConversationHashes).toHaveBeenCalledWith("aaaa,bbbb");
+            expect(androidMock.setDoNotDisturbEnabled).toHaveBeenCalledWith(true);
         });
 
         it("showIncomingCallNotification delegates to Android bridge", () => {
@@ -89,14 +121,6 @@ describe("NotificationUtils", () => {
             );
         });
 
-        it("showNewVoicemailNotification delegates to Android bridge", () => {
-            NotificationUtils.showNewVoicemailNotification("Dave");
-            expect(androidMock.showNotification).toHaveBeenCalledWith(
-                "New Voicemail",
-                "You have a new voicemail from Dave."
-            );
-        });
-
         it("cancelIncomingCallNotification delegates to Android bridge", () => {
             NotificationUtils.cancelIncomingCallNotification();
             expect(androidMock.cancelIncomingCallNotification).toHaveBeenCalled();
@@ -104,13 +128,25 @@ describe("NotificationUtils", () => {
     });
 
     describe("Browser fallback", () => {
-        it("showNewMessageNotification uses browser Notification API", async () => {
-            NotificationUtils.showNewMessageNotification("Alice", "hello");
+        it("showNewMessageNotification uses per-peer tag", async () => {
+            NotificationUtils.showNewMessageNotification("Alice", "hello", false, "abcd1234");
             await new Promise((r) => setTimeout(r, 10));
             expect(globalThis.Notification).toHaveBeenCalledWith(
                 "New Message",
-                expect.objectContaining({ body: "Alice: hello" })
+                expect.objectContaining({ body: "Alice: hello", tag: "lxmf-abcd1234" })
             );
+        });
+
+        it("clearMessageNotifications closes tracked web notifications", async () => {
+            NotificationUtils.showNewMessageNotification("Alice", "hello", false, "peer1");
+            await new Promise((r) => setTimeout(r, 10));
+            const instance = globalThis.Notification.mock.results[0].value;
+            NotificationUtils.clearMessageNotifications("peer1");
+            expect(instance.close).toHaveBeenCalled();
+        });
+
+        it("clear unknown hash is a no-op", () => {
+            expect(() => NotificationUtils.clearMessageNotifications("missing")).not.toThrow();
         });
     });
 

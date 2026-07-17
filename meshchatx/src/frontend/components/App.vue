@@ -607,6 +607,13 @@ import Utils from "../js/Utils";
 import GlobalEmitter from "../js/GlobalEmitter";
 import NotificationUtils from "../js/NotificationUtils";
 import NotificationSoundUtils from "../js/NotificationSoundUtils";
+import {
+    deliverySourceHash,
+    isUserFacingLxmfDeliveryMessage,
+    shouldPlayMessageSound,
+    shouldShowOsMessageNotification,
+} from "../js/notificationPolicy.js";
+import { listOpenDestinationHashes, subscribeOpenDestinationHashes } from "../js/activeConversationStore.js";
 import LxmfUserIcon from "./LxmfUserIcon.vue";
 import Toast from "./Toast.vue";
 import ConfirmDialog from "./ConfirmDialog.vue";
@@ -835,6 +842,10 @@ export default {
                     this.applyThemePreference(newConfig.theme ?? "light");
                 }
                 this.applyShellAppearance();
+                NotificationUtils.syncAndroidNotificationContext(
+                    listOpenDestinationHashes(),
+                    Boolean(newConfig?.do_not_disturb_enabled)
+                );
             },
             deep: true,
         },
@@ -861,6 +872,10 @@ export default {
         window.removeEventListener("meshchatx-intent-uri", this.onAndroidIntentUri);
         window.removeEventListener("pointerdown", this.onRingtoneUnlockGesture, true);
         window.removeEventListener("keydown", this.onRingtoneUnlockGesture, true);
+        if (typeof this._unsubOpenConversations === "function") {
+            this._unsubOpenConversations();
+            this._unsubOpenConversations = null;
+        }
     },
     mounted() {
         try {
@@ -898,6 +913,13 @@ export default {
         window.addEventListener("meshchatx-intent-uri", this.onAndroidIntentUri);
         window.addEventListener("pointerdown", this.onRingtoneUnlockGesture, true);
         window.addEventListener("keydown", this.onRingtoneUnlockGesture, true);
+        this._unsubOpenConversations = subscribeOpenDestinationHashes((hashes) => {
+            NotificationUtils.syncAndroidNotificationContext(hashes, Boolean(this.config?.do_not_disturb_enabled));
+        });
+        NotificationUtils.syncAndroidNotificationContext(
+            listOpenDestinationHashes(),
+            Boolean(this.config?.do_not_disturb_enabled)
+        );
     },
     methods: {
         isNavItemVisible(item) {
@@ -1495,19 +1517,38 @@ export default {
                     if (json.sieve_suppress_notifications) {
                         return;
                     }
-                    this.updateUnreadConversationsCount();
-                    const isIncomingMessage =
-                        json.lxmf_message?.is_incoming === true &&
-                        (json.lxmf_message?.content || json.lxmf_message?.title);
+                    const lxmfMessage = json.lxmf_message;
+                    const isIncoming = lxmfMessage?.is_incoming === true;
+                    const userFacing = isUserFacingLxmfDeliveryMessage(lxmfMessage);
+                    const sourceHash = deliverySourceHash(json);
+                    const openHashes = listOpenDestinationHashes();
+                    const sourceOpen = openHashes.includes(String(sourceHash || "").toLowerCase());
+                    const hasFocus = typeof document !== "undefined" ? document.hasFocus() : true;
+                    const policyBase = {
+                        isIncoming,
+                        sieveSuppress: Boolean(json.sieve_suppress_notifications),
+                        dnd: Boolean(this.config?.do_not_disturb_enabled),
+                        hasFocus,
+                        openDestinationHashes: openHashes,
+                        sourceHash,
+                        userFacing,
+                    };
+
+                    // Open peers are mark-as-read by ConversationViewer; still refresh for other peers.
+                    if (isIncoming && userFacing && !sourceOpen) {
+                        this.updateUnreadConversationsCount();
+                    }
+
                     let playedNotificationSound = false;
-                    if (isIncomingMessage) {
+                    if (shouldPlayMessageSound(policyBase)) {
                         playedNotificationSound = await NotificationSoundUtils.play(this.config);
                     }
-                    if (!document.hasFocus() && isIncomingMessage) {
+                    if (shouldShowOsMessageNotification(policyBase)) {
                         NotificationUtils.showNewMessageNotification(
                             json.remote_identity_name,
-                            json.lxmf_message?.content,
-                            playedNotificationSound
+                            lxmfMessage?.content || lxmfMessage?.title || "",
+                            playedNotificationSound,
+                            sourceHash
                         );
                     }
                 },

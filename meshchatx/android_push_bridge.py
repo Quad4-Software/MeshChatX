@@ -8,6 +8,8 @@ import json
 import logging
 from typing import Any
 
+from meshchatx.src.backend.lxmf_utils import is_user_facing_lxmf_payload
+
 logger = logging.getLogger("meshchatx.android_push_bridge")
 
 _ws_hook_installed = False
@@ -40,6 +42,40 @@ def _get_android_external_files_dir() -> str | None:
     return None
 
 
+def _android_notification_bridge():
+    try:
+        from com.meshchatx import (
+            AndroidNotificationBridge,  # type: ignore[import-not-found,import-untyped]
+        )
+
+        return AndroidNotificationBridge
+    except Exception as exc:
+        logger.debug("Android notification bridge unavailable: %s", exc)
+        return None
+
+
+def _dnd_enabled() -> bool:
+    bridge = _android_notification_bridge()
+    if bridge is None:
+        return False
+    try:
+        return bool(bridge.isDoNotDisturbEnabled())
+    except Exception:
+        return False
+
+
+def _is_open_conversation(destination_hash: str | None) -> bool:
+    if not destination_hash:
+        return False
+    bridge = _android_notification_bridge()
+    if bridge is None:
+        return False
+    try:
+        return bool(bridge.isOpenConversationHash(destination_hash))
+    except Exception:
+        return False
+
+
 def lxmf_delivery_notification_text(payload: dict[str, Any]) -> tuple[str, str] | None:
     """Return (title, body) for a system notification, or None to skip."""
     if payload.get("type") != "lxmf.delivery":
@@ -51,16 +87,18 @@ def lxmf_delivery_notification_text(payload: dict[str, Any]) -> tuple[str, str] 
         return None
     if not msg.get("is_incoming"):
         return None
+    if not is_user_facing_lxmf_payload(
+        msg.get("fields"),
+        msg.get("content"),
+        msg.get("title"),
+    ):
+        return None
+    source_hash = msg.get("source_hash")
+    if isinstance(source_hash, str) and _is_open_conversation(source_hash):
+        return None
+    if _dnd_enabled():
+        return None
     sender = str(payload.get("remote_identity_name") or "").strip() or "Mesh"
-    if msg.get("is_reaction"):
-        emoji = str(msg.get("reaction_emoji") or "").strip()
-        body = f"Reaction {emoji}".strip() if emoji else "Reaction"
-        return (sender, body)
-    fields = msg.get("fields")
-    if isinstance(fields, dict) and not msg.get("title") and not msg.get("content"):
-        keys = set(fields.keys())
-        if keys <= {"telemetry"}:
-            return None
     title = str(msg.get("title") or "").strip()
     content = str(msg.get("content") or "").strip()
     if len(content) > 200:
@@ -71,6 +109,7 @@ def lxmf_delivery_notification_text(payload: dict[str, Any]) -> tuple[str, str] 
         return (sender, title)
     if content:
         return (sender, content)
+    fields = msg.get("fields")
     if isinstance(fields, dict) and fields.get("image"):
         return (sender, "Image message")
     if isinstance(fields, dict) and fields.get("audio"):
@@ -80,58 +119,53 @@ def lxmf_delivery_notification_text(payload: dict[str, Any]) -> tuple[str, str] 
     return (sender, "New message")
 
 
-def _notify_java(title: str, body: str, dedupe_hex: str | None) -> None:
-    try:
-        from com.meshchatx import (
-            AndroidNotificationBridge,  # type: ignore[import-not-found,import-untyped]
-        )
-    except Exception as exc:
-        logger.debug("Android notification bridge unavailable: %s", exc)
+def _notify_java(
+    title: str,
+    body: str,
+    dedupe_hex: str | None,
+    destination_hash: str | None = None,
+) -> None:
+    bridge = _android_notification_bridge()
+    if bridge is None:
         return
     try:
-        AndroidNotificationBridge.showInboundMessage(title, body, dedupe_hex)
+        bridge.showInboundMessage(title, body, dedupe_hex, destination_hash)
+    except TypeError:
+        # Older bridge signature without destination hash.
+        try:
+            bridge.showInboundMessage(title, body, dedupe_hex)
+        except Exception as exc:
+            logger.debug("showInboundMessage failed: %s", exc)
     except Exception as exc:
         logger.debug("showInboundMessage failed: %s", exc)
 
 
 def _notify_incoming_call_java(caller_name: str, dedupe_hex: str | None) -> None:
-    try:
-        from com.meshchatx import (
-            AndroidNotificationBridge,  # type: ignore[import-not-found,import-untyped]
-        )
-    except Exception as exc:
-        logger.debug("Android notification bridge unavailable: %s", exc)
+    bridge = _android_notification_bridge()
+    if bridge is None:
         return
     try:
-        AndroidNotificationBridge.showIncomingCall(caller_name, dedupe_hex)
+        bridge.showIncomingCall(caller_name, dedupe_hex)
     except Exception as exc:
         logger.debug("showIncomingCall failed: %s", exc)
 
 
 def _notify_missed_call_java(title: str, body: str, dedupe_hex: str | None) -> None:
-    try:
-        from com.meshchatx import (
-            AndroidNotificationBridge,  # type: ignore[import-not-found,import-untyped]
-        )
-    except Exception as exc:
-        logger.debug("Android notification bridge unavailable: %s", exc)
+    bridge = _android_notification_bridge()
+    if bridge is None:
         return
     try:
-        AndroidNotificationBridge.showMissedCall(title, body, dedupe_hex)
+        bridge.showMissedCall(title, body, dedupe_hex)
     except Exception as exc:
         logger.debug("showMissedCall failed: %s", exc)
 
 
 def _cancel_incoming_call_notification_java() -> None:
-    try:
-        from com.meshchatx import (
-            AndroidNotificationBridge,  # type: ignore[import-not-found,import-untyped]
-        )
-    except Exception as exc:
-        logger.debug("Android notification bridge unavailable: %s", exc)
+    bridge = _android_notification_bridge()
+    if bridge is None:
         return
     try:
-        AndroidNotificationBridge.cancelIncomingCallNotification()
+        bridge.cancelIncomingCallNotification()
     except Exception as exc:
         logger.debug("cancelIncomingCallNotification failed: %s", exc)
 
@@ -150,12 +184,16 @@ def _after_websocket_broadcast(data: object) -> None:
         _cancel_incoming_call_notification_java()
         return
     if t == "telephone_ringing":
+        if _dnd_enabled():
+            return
         ch = payload.get("remote_identity_hash")
         name = (payload.get("remote_identity_name") or "").strip() or "Mesh"
         ded = ch if isinstance(ch, str) and len(ch) >= 8 else None
         _notify_incoming_call_java(name, ded)
         return
     if t == "telephone_missed_call":
+        if _dnd_enabled():
+            return
         sender = (payload.get("remote_identity_name") or "").strip() or "Mesh"
         ch = payload.get("remote_identity_hash")
         h = ch if isinstance(ch, str) and len(ch) >= 8 else None
@@ -177,11 +215,15 @@ def _after_websocket_broadcast(data: object) -> None:
     title, body = pair
     msg = payload.get("lxmf_message")
     dedupe = None
+    destination_hash = None
     if isinstance(msg, dict):
         h = msg.get("hash")
         if isinstance(h, str) and len(h) >= 8:
             dedupe = h
-    _notify_java(title, body, dedupe)
+        src = msg.get("source_hash")
+        if isinstance(src, str) and src.strip():
+            destination_hash = src.strip().lower()
+    _notify_java(title, body, dedupe, destination_hash)
 
 
 def install_websocket_hook(reticulum_mesh_chat_cls: type) -> None:

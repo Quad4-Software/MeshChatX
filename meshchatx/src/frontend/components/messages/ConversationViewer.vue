@@ -1811,6 +1811,7 @@ import AudioWaveformPlayer from "./AudioWaveformPlayer.vue";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import ToastUtils from "../../js/ToastUtils";
+import NotificationUtils from "../../js/NotificationUtils";
 import PaperMessageModal from "./PaperMessageModal.vue";
 import GlobalState from "../../js/GlobalState";
 import MarkdownRenderer from "../../js/MarkdownRenderer";
@@ -7170,6 +7171,7 @@ export default {
             try {
                 await window.api.post(`/api/v1/lxmf/conversations/${conversation.destination_hash}/mark-as-read`);
                 GlobalEmitter.emit("notifications-changed");
+                NotificationUtils.clearMessageNotifications(conversation.destination_hash);
                 if (wasUnread && GlobalState.unreadConversationsCount > 0) {
                     GlobalState.unreadConversationsCount -= 1;
                 }

@@ -2,12 +2,22 @@ import { mount, flushPromises } from "@vue/test-utils";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import MessagesPage from "@/components/messages/MessagesPage.vue";
 import GlobalEmitter from "@/js/GlobalEmitter";
+import NotificationUtils from "@/js/NotificationUtils";
 
 vi.mock("@/js/GlobalEmitter", () => ({
     default: {
         on: vi.fn(),
         off: vi.fn(),
         emit: vi.fn(),
+    },
+}));
+
+vi.mock("@/js/NotificationUtils", () => ({
+    default: {
+        clearMessageNotifications: vi.fn(),
+        clearAllMessageNotifications: vi.fn(),
+        showNewMessageNotification: vi.fn(),
+        syncAndroidNotificationContext: vi.fn(),
     },
 }));
 
@@ -612,6 +622,7 @@ describe("MessagesPage.vue", () => {
         axiosMock.post.mockResolvedValue({ data: {} });
         axiosMock.get.mockResolvedValue({ data: { conversations: [] } });
         GlobalEmitter.emit.mockClear();
+        NotificationUtils.clearMessageNotifications.mockClear();
 
         await wrapper.vm.onBulkMarkAsRead(["peer-a", "peer-b"]);
         await wrapper.vm.$nextTick();
@@ -620,6 +631,8 @@ describe("MessagesPage.vue", () => {
             destination_hashes: ["peer-a", "peer-b"],
         });
         expect(GlobalEmitter.emit).toHaveBeenCalledWith("notifications-changed");
+        expect(NotificationUtils.clearMessageNotifications).toHaveBeenCalledWith("peer-a");
+        expect(NotificationUtils.clearMessageNotifications).toHaveBeenCalledWith("peer-b");
     });
 
     it("onMarkAllAsRead posts mark_all and refreshes conversations", async () => {
@@ -628,6 +641,7 @@ describe("MessagesPage.vue", () => {
         axiosMock.post.mockResolvedValue({ data: {} });
         axiosMock.get.mockResolvedValue({ data: { conversations: [] } });
         GlobalEmitter.emit.mockClear();
+        NotificationUtils.clearAllMessageNotifications.mockClear();
         const getConversations = vi.spyOn(wrapper.vm, "getConversations").mockResolvedValue(undefined);
 
         await wrapper.vm.onMarkAllAsRead();
@@ -638,6 +652,7 @@ describe("MessagesPage.vue", () => {
         });
         expect(GlobalEmitter.emit).toHaveBeenCalledWith("notifications-changed");
         expect(getConversations).toHaveBeenCalled();
+        expect(NotificationUtils.clearAllMessageNotifications).toHaveBeenCalled();
     });
 
     it("onBulkMarkAsRead does not notify bell when server rejects", async () => {
@@ -645,10 +660,12 @@ describe("MessagesPage.vue", () => {
         await wrapper.vm.$nextTick();
         axiosMock.post.mockRejectedValue(new Error("fail"));
         GlobalEmitter.emit.mockClear();
+        NotificationUtils.clearMessageNotifications.mockClear();
 
         await wrapper.vm.onBulkMarkAsRead(["peer-a"]);
         await wrapper.vm.$nextTick();
 
         expect(GlobalEmitter.emit).not.toHaveBeenCalledWith("notifications-changed");
+        expect(NotificationUtils.clearMessageNotifications).not.toHaveBeenCalled();
     });
 });

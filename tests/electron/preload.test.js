@@ -49,7 +49,23 @@ describe("electron/preload", () => {
         expect(invoke).toHaveBeenCalledWith("is-hardware-acceleration-enabled");
 
         api.showNotification("t", "b", true);
-        expect(invoke).toHaveBeenCalledWith("show-notification", { title: "t", body: "b", silent: true });
+        expect(invoke).toHaveBeenCalledWith("show-notification", {
+            title: "t",
+            body: "b",
+            silent: true,
+            destinationHash: null,
+        });
+        api.showNotification("t2", "b2", false, "peerhash");
+        expect(invoke).toHaveBeenCalledWith("show-notification", {
+            title: "t2",
+            body: "b2",
+            silent: false,
+            destinationHash: "peerhash",
+        });
+        api.closeMessageNotifications("abcd");
+        expect(invoke).toHaveBeenCalledWith("close-message-notifications", "abcd");
+        api.closeMessageNotifications();
+        expect(invoke).toHaveBeenCalledWith("close-message-notifications", null);
     });
 
     it("onProtocolLink registers ipc listener for open-protocol-link", () => {

@@ -26,10 +26,65 @@ public final class AndroidNotificationBridge {
     private static final int REQ_CALL_ANSWER = 0x4c33;
     private static final int REQ_CALL_DECLINE = 0x4c34;
 
+    private static final Object CONTEXT_LOCK = new Object();
+    private static volatile boolean doNotDisturbEnabled = false;
+    private static volatile String openConversationHashesCsv = "";
+    private static final java.util.Set<Integer> postedMessageNotificationIds =
+        java.util.Collections.synchronizedSet(new java.util.HashSet<>());
+
     private AndroidNotificationBridge() {
     }
 
+    public static void setDoNotDisturbEnabled(boolean enabled) {
+        doNotDisturbEnabled = enabled;
+    }
+
+    public static boolean isDoNotDisturbEnabled() {
+        return doNotDisturbEnabled;
+    }
+
+    public static void setOpenConversationHashes(String csv) {
+        synchronized (CONTEXT_LOCK) {
+            openConversationHashesCsv = csv == null ? "" : csv.trim().toLowerCase();
+        }
+    }
+
+    public static String getOpenConversationHashesCsv() {
+        synchronized (CONTEXT_LOCK) {
+            return openConversationHashesCsv;
+        }
+    }
+
+    public static boolean isOpenConversationHash(String destinationHash) {
+        if (destinationHash == null) {
+            return false;
+        }
+        String needle = destinationHash.trim().toLowerCase();
+        if (needle.isEmpty()) {
+            return false;
+        }
+        String csv = getOpenConversationHashesCsv();
+        if (csv.isEmpty()) {
+            return false;
+        }
+        for (String part : csv.split(",")) {
+            if (needle.equals(part.trim())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static void showInboundMessage(String title, String body, @Nullable String dedupeHex) {
+        showInboundMessage(title, body, dedupeHex, null);
+    }
+
+    public static void showInboundMessage(
+        String title,
+        String body,
+        @Nullable String dedupeHex,
+        @Nullable String destinationHash
+    ) {
         Context ctx = MeshChatApplication.getAppContext();
         if (ctx == null) {
             return;
@@ -37,7 +92,63 @@ public final class AndroidNotificationBridge {
         String safeTitle = TextUtils.isEmpty(title) ? ctx.getString(R.string.app_name) : title;
         String safeBody = TextUtils.isEmpty(body) ? ctx.getString(R.string.notification_new_message_fallback) : body;
 
-        new Handler(Looper.getMainLooper()).post(() -> postInboundMessage(ctx, safeTitle, safeBody, dedupeHex));
+        new Handler(Looper.getMainLooper()).post(
+            () -> postInboundMessage(ctx, safeTitle, safeBody, dedupeHex, destinationHash)
+        );
+    }
+
+    public static void cancelMessageNotifications(@Nullable String destinationHash) {
+        Context ctx = MeshChatApplication.getAppContext();
+        if (ctx == null) {
+            return;
+        }
+        new Handler(Looper.getMainLooper()).post(
+            () -> {
+                NotificationManager nm = ctx.getSystemService(NotificationManager.class);
+                if (nm == null) {
+                    return;
+                }
+                int id = messageNotificationId(null, destinationHash);
+                try {
+                    nm.cancel(id);
+                } catch (Exception ignored) {
+                }
+                postedMessageNotificationIds.remove(id);
+            }
+        );
+    }
+
+    public static void cancelAllMessageNotifications() {
+        Context ctx = MeshChatApplication.getAppContext();
+        if (ctx == null) {
+            return;
+        }
+        new Handler(Looper.getMainLooper()).post(
+            () -> {
+                NotificationManager nm = ctx.getSystemService(NotificationManager.class);
+                if (nm == null) {
+                    return;
+                }
+                Integer[] ids;
+                synchronized (postedMessageNotificationIds) {
+                    ids = postedMessageNotificationIds.toArray(new Integer[0]);
+                    postedMessageNotificationIds.clear();
+                }
+                for (Integer id : ids) {
+                    if (id == null) {
+                        continue;
+                    }
+                    try {
+                        nm.cancel(id);
+                    } catch (Exception ignored) {
+                    }
+                }
+                try {
+                    nm.cancel(NOTIFY_BASE_ID);
+                } catch (Exception ignored) {
+                }
+            }
+        );
     }
 
     public static void showIncomingCall(String callerName, @Nullable String dedupeHex) {
@@ -214,7 +325,35 @@ public final class AndroidNotificationBridge {
         }
     }
 
-    private static void postInboundMessage(Context ctx, String title, String body, @Nullable String dedupeHex) {
+    private static int messageNotificationId(@Nullable String dedupeHex, @Nullable String destinationHash) {
+        if (destinationHash != null && destinationHash.length() >= 8) {
+            try {
+                return NOTIFY_BASE_ID
+                    + (int) (Long.parseLong(
+                        destinationHash.substring(0, Math.min(8, destinationHash.length())), 16) & 0x7fff_ffff);
+            } catch (NumberFormatException ignored) {
+                return NOTIFY_BASE_ID + (destinationHash.hashCode() & 0x7fff_ffff);
+            }
+        }
+        if (dedupeHex != null && dedupeHex.length() >= 8) {
+            try {
+                return NOTIFY_BASE_ID
+                    + (int) (Long.parseLong(
+                        dedupeHex.substring(0, Math.min(8, dedupeHex.length())), 16) & 0x7fff_ffff);
+            } catch (NumberFormatException ignored) {
+                return NOTIFY_BASE_ID + (dedupeHex.hashCode() & 0x7fff_ffff);
+            }
+        }
+        return NOTIFY_BASE_ID;
+    }
+
+    private static void postInboundMessage(
+        Context ctx,
+        String title,
+        String body,
+        @Nullable String dedupeHex,
+        @Nullable String destinationHash
+    ) {
         NotificationManager nm = ctx.getSystemService(NotificationManager.class);
         if (nm == null) {
             return;
@@ -229,16 +368,7 @@ public final class AndroidNotificationBridge {
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
 
-        int id = NOTIFY_BASE_ID;
-        if (dedupeHex != null && dedupeHex.length() >= 8) {
-            try {
-                id = NOTIFY_BASE_ID
-                    + (int) (Long.parseLong(
-                        dedupeHex.substring(0, Math.min(8, dedupeHex.length())), 16) & 0x7fff_ffff);
-            } catch (NumberFormatException ignored) {
-                id = NOTIFY_BASE_ID + (dedupeHex.hashCode() & 0x7fff_ffff);
-            }
-        }
+        int id = messageNotificationId(dedupeHex, destinationHash);
 
         try {
             nm.cancel(id);
@@ -259,6 +389,7 @@ public final class AndroidNotificationBridge {
 
         try {
             nm.notify(id, b.build());
+            postedMessageNotificationIds.add(id);
         } catch (SecurityException ignored) {
         }
     }
