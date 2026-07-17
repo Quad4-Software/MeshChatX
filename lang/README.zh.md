@@ -89,6 +89,10 @@ docker compose up -d
 docker run -d --name reticulum-meshchatx \
   --restart unless-stopped \
   --security-opt no-new-privileges:true \
+  --cpus=2.0 \
+  --memory=1g \
+  --memory-reservation=256m \
+  --pids-limit=512 \
   -p 127.0.0.1:8000:8000 \
   -v meshchatx-config:/config \
   ghcr.io/quad4-software/meshchatx:latest
