@@ -531,4 +531,81 @@ describe("NetworkVisualiser.vue", () => {
         expect(n.y).toBe(404);
         expect(getPositions.mock.calls.length).toBeGreaterThanOrEqual(2);
     });
+
+    it("display counts prefer webglEngine graph totals", async () => {
+        vi.spyOn(NetworkVisualiser.methods, "init").mockImplementation(() => {});
+        const wrapper = mountVisualiser();
+        wrapper.vm.rendererMode = "webgl";
+        wrapper.vm.engineMode = "webgl";
+        wrapper.vm.graphNodeCount = 42;
+        wrapper.vm.graphEdgeCount = 17;
+        wrapper.vm.webglEngine = { destroy: vi.fn() };
+        expect(wrapper.vm.displayNodeCount).toBe(42);
+        expect(wrapper.vm.displayEdgeCount).toBe(17);
+        expect(wrapper.vm.hasRenderer).toBe(true);
+    });
+
+    it("runIconQueue updates webglEngine images instead of vis DataSet", async () => {
+        vi.spyOn(NetworkVisualiser.methods, "init").mockImplementation(() => {});
+        const wrapper = mountVisualiser();
+        const updateNodeImages = vi.fn();
+        wrapper.vm.webglEngine = { updateNodeImages, destroy: vi.fn() };
+        wrapper.vm.rendererMode = "webgl";
+        wrapper.vm.engineMode = "webgl";
+        wrapper.vm.currentLOD = "high";
+        wrapper.vm.iconCache["account-#ffffff-#000000-64"] = "blob:custom";
+        wrapper.vm.iconQueue = [
+            {
+                nodeId: "peer1",
+                cacheKey: "account-#ffffff-#000000-64",
+                iconName: "account",
+                fg: "#ffffff",
+                bg: "#000000",
+                size: 64,
+                generation: wrapper.vm.iconQueueGeneration,
+            },
+            {
+                nodeId: "peer2",
+                cacheKey: "account-#ffffff-#000000-64",
+                iconName: "account",
+                fg: "#ffffff",
+                bg: "#000000",
+                size: 64,
+                generation: wrapper.vm.iconQueueGeneration,
+            },
+        ];
+        await wrapper.vm.runIconQueue();
+        expect(updateNodeImages).toHaveBeenCalledWith([
+            { id: "peer1", image: "blob:custom" },
+            { id: "peer2", image: "blob:custom" },
+        ]);
+    });
+
+    it("processVisualization on webgl path calls setGraph and schedules icons", async () => {
+        vi.spyOn(NetworkVisualiser.methods, "init").mockImplementation(() => {});
+        const wrapper = mountVisualiser();
+        const setGraph = vi.fn();
+        const getCounts = vi.fn().mockReturnValue({ nodes: 3, edges: 2 });
+        const getPositions = vi.fn().mockReturnValue({ me: { x: 0, y: 0 } });
+        const scheduleSpy = vi.spyOn(wrapper.vm, "scheduleIconQueue");
+        wrapper.vm.webglEngine = {
+            setGraph,
+            getCounts,
+            getPositions,
+            setLiveLayout: vi.fn(),
+            requestRedraw: vi.fn(),
+            destroy: vi.fn(),
+        };
+        wrapper.vm.rendererMode = "webgl";
+        wrapper.vm.engineMode = "webgl";
+        wrapper.vm.config = { display_name: "Me", identity_hash: "abc" };
+        wrapper.vm.interfaces = [{ name: "eth0", status: true, bitrate: 1000, txb: 0, rxb: 0 }];
+        wrapper.vm.pathTable = [];
+        wrapper.vm.announces = {};
+        await wrapper.vm.processVisualization();
+        expect(setGraph).toHaveBeenCalled();
+        expect(wrapper.vm.graphNodeCount).toBe(3);
+        expect(wrapper.vm.graphEdgeCount).toBe(2);
+        expect(scheduleSpy).toHaveBeenCalled();
+    });
 });
