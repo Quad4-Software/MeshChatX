@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Tests for MeshChatX ``--meshchatx-run-module`` frozen re-entry."""
+"""Tests for MeshChatX --meshchatx-run-module frozen re-entry."""
 
 from __future__ import annotations
 

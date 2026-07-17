@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: 0BSD
-"""Patch LXST bundled pyogg ``ogg.py`` for Python 3.14+.
+"""Patch LXST bundled pyogg ogg.py for Python 3.14+.
 
-``opus.py`` does ``from .ogg import *`` but needs extra ctypes names that
-``ogg.py`` never defined: POINTER aliases, and ``c_uchar`` (used as ``c_uchar*0``
-for flexible array argtypes; same layout as ``c_ubyte``).
+opus.py does from .ogg import * but needs extra ctypes names that
+ogg.py never defined: POINTER aliases, and c_uchar (used as c_uchar*0
+for flexible array argtypes; same layout as c_ubyte).
 
-Idempotent: safe to run after every ``pip install`` / ``poetry install``.
+Idempotent: safe to run after every pip install / poetry install.
 """
 
 from __future__ import annotations

@@ -78,7 +78,7 @@ async def test_https_serves_over_tls_only_plain_http_gets_no_http_response(
 ):
     """TLS-only server must not emit a plaintext HTTP response to raw HTTP bytes.
 
-    Raw TCP clients should see handshake noise or close, not ``HTTP/`` headers.
+    Raw TCP clients should see handshake noise or close, not HTTP/ headers.
     """
     ssl_context, _, _ = ssl_context_and_cert
     app = web.Application()

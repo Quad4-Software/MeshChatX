@@ -59,7 +59,7 @@ def repair_unparseable_reticulum_config(config_path: str, *, write_default) -> b
     """Back up and rewrite *config_path* when ConfigObj cannot parse it.
 
     *write_default* must be a callable accepting the config path and writing
-    stock RNS defaults (``ReticulumMeshChat._write_rns_reticulum_default_config_file``).
+    stock RNS defaults (ReticulumMeshChat._write_rns_reticulum_default_config_file).
 
     Returns True when the file was replaced.
     """
@@ -88,8 +88,8 @@ def repair_unparseable_reticulum_config(config_path: str, *, write_default) -> b
 def ensure_safe_reticulum_runtime_flags(config_path: str) -> bool:
     """Force runtime flags that keep MeshChatX alive when interfaces fail.
 
-    Currently forces ``panic_on_interface_error = No`` so RNS does not call
-    ``os._exit`` on interface faults.
+    Currently forces panic_on_interface_error = No so RNS does not call
+    os._exit on interface faults.
     """
     from meshchatx.src.backend.rns_startup_recovery import (
         ensure_panic_on_interface_error_disabled,

@@ -1390,12 +1390,12 @@ class RRCHub:
             }
 
     def room_messages(self, room, limit=None, before_seq=None):
-        """Return ``(messages, has_more)`` for a room, newest page last.
+        """Return (messages, has_more) for a room, newest page last.
 
-        ``before_seq``, when given, restricts results to messages recorded
+        before_seq, when given, restricts results to messages recorded
         before that sequence number, letting callers page backwards through
-        history. ``limit`` caps how many of the most recent matching messages
-        are returned; ``has_more`` reports whether older messages remain.
+        history. limit caps how many of the most recent matching messages
+        are returned; has_more reports whether older messages remain.
         """
         msgs = self.get_messages(proto.normalize_room(room))
         if before_seq is not None:
@@ -1461,7 +1461,7 @@ class RRCManager:
         self._server_manager = server_manager
 
     def find_local_server(self, hub_hash):
-        """Return a running locally hosted hub matching ``hub_hash``, if any."""
+        """Return a running locally hosted hub matching hub_hash, if any."""
         sm = self._server_manager
         if sm is None:
             return None

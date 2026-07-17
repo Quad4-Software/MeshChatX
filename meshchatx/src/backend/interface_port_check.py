@@ -23,7 +23,7 @@ _PORT_IN_USE_ERRNOS = {
 
 
 def _normalize_host(host: str | None) -> str:
-    """Return a host string that is safe to call ``getaddrinfo`` with."""
+    """Return a host string that is safe to call getaddrinfo with."""
     if host is None:
         return ""
     host = str(host).strip()
@@ -45,13 +45,13 @@ def _coerce_port(port) -> int | None:
 
 
 def is_port_in_use(host: str | None, port, *, kind: str = "tcp") -> bool:
-    """Return ``True`` when the given ``host``:``port`` is already bound.
+    """Return True when the given host:port is already bound.
 
-    ``kind`` may be ``"tcp"`` or ``"udp"``. Unknown values are treated as TCP.
+    kind may be "tcp" or "udp". Unknown values are treated as TCP.
 
-    The helper resolves the supplied host (falling back to ``INADDR_ANY``) and
-    tries to bind a fresh socket. ``EADDRINUSE``/``EACCES``/``EADDRNOTAVAIL``
-    are reported as "in use", any other exception bubbles up as ``False`` so
+    The helper resolves the supplied host (falling back to INADDR_ANY) and
+    tries to bind a fresh socket. EADDRINUSE/EACCES/EADDRNOTAVAIL
+    are reported as "in use", any other exception bubbles up as False so
     that we never block save flows because of a transient resolution glitch.
     """
     coerced_port = _coerce_port(port)

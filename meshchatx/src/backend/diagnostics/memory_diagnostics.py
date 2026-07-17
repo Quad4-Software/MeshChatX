@@ -128,9 +128,9 @@ class MemoryDiagnostics:
     linger longer between full collections.  This class helps detect
     accumulating objects by:
 
-    * Taking periodic ``tracemalloc`` snapshots and diffing against a baseline.
+    * Taking periodic tracemalloc snapshots and diffing against a baseline.
     * Tracking GC generation sizes (gen0/gen1/gen2 object counts).
-    * Profiling ``gc.get_objects()`` by type to spot monotonic growth.
+    * Profiling gc.get_objects() by type to spot monotonic growth.
     * Finding the top-N allocation sites (filename + line number) that
       contribute the most to memory growth.
 
@@ -205,8 +205,8 @@ class MemoryDiagnostics:
     def _trim_history(self) -> None:
         """Bound retained snapshots and GC records while preserving the baseline.
 
-        The baseline (index 0) is always kept so ``diff_snapshots`` and
-        ``gc_stats`` deltas remain anchored to application start; only the
+        The baseline (index 0) is always kept so diff_snapshots and
+        gc_stats deltas remain anchored to application start; only the
         intermediate readings are evicted once the cap is exceeded.
         """
         if len(self._snapshots) > self._max_snapshots:
@@ -555,7 +555,7 @@ def get_diagnostics() -> MemoryDiagnostics:
 def take_heap_snapshot(include_tracemalloc: bool = True) -> dict[str, Any]:
     """Convenience function: take a one-shot heap snapshot.
 
-    Useful for ``pdb`` / ``breakpoint()`` sessions::
+    Useful for pdb / breakpoint() sessions::
 
         from meshchatx.src.backend.diagnostics import take_heap_snapshot
         report = take_heap_snapshot()

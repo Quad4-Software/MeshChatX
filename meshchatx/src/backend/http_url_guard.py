@@ -16,7 +16,7 @@ class UnsafeOutboundUrlError(ValueError):
 def normalize_loopback_http_service_base(url: str) -> str:
     """Return scheme://host:port with no path, query, or fragment.
 
-    Only ``http``/``https`` to loopback hosts (127.0.0.1, localhost, ::1) are allowed.
+    Only http/https to loopback hosts (127.0.0.1, localhost, ::1) are allowed.
     Userinfo (embedded credentials) is rejected.
     """
     if not url or not isinstance(url, str):
@@ -57,7 +57,7 @@ def normalize_libretranslate_http_service_base(url: str) -> str:
     Accepts any HTTP(S) hostname or IP reachable from this process (remote LibreTranslate or
     public API). Embedded credentials are rejected; non-http(s) schemes are rejected.
 
-    Literal IPv4 link-local targets (``169.254.0.0/16``) are rejected as a common SSRF/metadata
+    Literal IPv4 link-local targets (169.254.0.0/16) are rejected as a common SSRF/metadata
     path. Other private or loopback addresses are allowed so local servers and overlays (e.g. VPN
     mesh) continue to work.
     """

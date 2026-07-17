@@ -2,8 +2,8 @@
 
 """List and create Reticulum management identity files.
 
-These live under ``<reticulum_config_dir>/storage/identities/`` and are used by
-rnstatus / rnpath remote queries (``-i``), rnx, and rnsh.
+These live under <reticulum_config_dir>/storage/identities/ and are used by
+rnstatus / rnpath remote queries (-i), rnx, and rnsh.
 """
 
 from __future__ import annotations

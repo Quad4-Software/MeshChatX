@@ -2,8 +2,8 @@
 
 """SQLite integration: announce spam and bounded storage (anti-exhaustion).
 
-Multi-minute soak scenarios live in ``test_long_running_stress.py`` (opt-in via
-``MESHCHAT_LONG_TEST_SECONDS``).
+Multi-minute soak scenarios live in test_long_running_stress.py (opt-in via
+MESHCHAT_LONG_TEST_SECONDS).
 """
 
 from __future__ import annotations

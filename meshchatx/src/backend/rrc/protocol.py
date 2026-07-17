@@ -98,7 +98,7 @@ def decode(data):
 
 
 def load(fp):
-    """Read a single CBOR value from a stream, raising ``EOFError`` at the end."""
+    """Read a single CBOR value from a stream, raising EOFError at the end."""
     try:
         return cbor2.load(fp)
     except cbor2.CBORDecodeEOF as exc:
@@ -119,7 +119,7 @@ _MENTION_RE_CACHE = {}
 
 
 def mention_re(nick):
-    """Return a compiled regex matching ``@nick`` mentions, or ``None``."""
+    """Return a compiled regex matching @nick mentions, or None."""
     if not isinstance(nick, str) or not nick:
         return None
     pat = _MENTION_RE_CACHE.get(nick)
@@ -135,7 +135,7 @@ def mention_re(nick):
 
 
 def text_mentions(text, nick):
-    """Return ``True`` when ``text`` mentions ``nick``."""
+    """Return True when text mentions nick."""
     pat = mention_re(nick)
     return bool(pat is not None and isinstance(text, str) and pat.search(text))
 
@@ -159,10 +159,10 @@ def make_envelope(msg_type, src, room=None, body=None, nick=None, mid=None, ts=N
 
 
 def display_name_from_hub_app_data(app_data_b64):
-    """Return the hub name from a base64-encoded RRC announce, or ``None``.
+    """Return the hub name from a base64-encoded RRC announce, or None.
 
-    Hosted hubs announce CBOR ``app_data`` of the form
-    ``{"proto": "rrc", "v": 1, "hub": name}``.
+    Hosted hubs announce CBOR app_data of the form
+    {"proto": "rrc", "v": 1, "hub": name}.
     """
     if not app_data_b64:
         return None
@@ -179,7 +179,7 @@ def display_name_from_hub_app_data(app_data_b64):
 
 
 def normalize_nick(nick, max_bytes=DEFAULT_MAX_NICK_BYTES):
-    """Normalize a nickname, returning ``None`` when empty or invalid."""
+    """Normalize a nickname, returning None when empty or invalid."""
     if not isinstance(nick, str):
         return None
     n = " ".join(nick.split()).strip()
@@ -212,11 +212,11 @@ _WHO_ENTRY_RE = re.compile(
 
 
 def parse_who_notice(text):
-    """Parse a hub ``/who`` notice into ``(room, [(nick, hex), ...])``.
+    """Parse a hub /who notice into (room, [(nick, hex), ...]).
 
     Nicked users carry only a 12-hex prefix of their identity hash, while
-    un-nicked users appear as their full hex hash. Returns ``None`` when the
-    notice is not a ``/who`` response.
+    un-nicked users appear as their full hex hash. Returns None when the
+    notice is not a /who response.
     """
     if not isinstance(text, str):
         return None
@@ -241,7 +241,7 @@ def parse_who_notice(text):
 
 
 def parse_room_list_notice(text):
-    """Parse a hub ``/list`` notice into ``{room: topic_or_None}`` or ``None``."""
+    """Parse a hub /list notice into {room: topic_or_None} or None."""
     if not isinstance(text, str):
         return None
     stripped = text.strip()

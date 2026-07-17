@@ -90,8 +90,8 @@ class DatabaseSchema:
     def _sync_table_columns(self, table_name, create_sql):
         """Parse CREATE TABLE and add any missing columns to match the declaration.
 
-        Finds the column list between the first ``(`` and last ``)``, splits on
-        commas outside nested parentheses (e.g. ``DECIMAL(10,2)``), then ensures
+        Finds the column list between the first ( and last ), splits on
+        commas outside nested parentheses (e.g. DECIMAL(10,2)), then ensures
         each column exists on the actual table.
         """
         start_idx = create_sql.find("(")

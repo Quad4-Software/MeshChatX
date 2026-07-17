@@ -2,7 +2,7 @@
 """USB module for Android (Chaquopy / MeshChatX).
 
 Based on usb4a 0.3.0 by Quan Lin. Context comes from MeshChatX instead of
-Kivy ``org.kivy.android.PythonActivity``.
+Kivy org.kivy.android.PythonActivity.
 """
 
 from __future__ import annotations

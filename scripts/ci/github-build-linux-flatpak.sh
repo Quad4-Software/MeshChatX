@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build a Flatpak via electron-builder (same stack as AppImage/deb/macOS/Windows CI).
 #
-# Expects ``meshchatx/public/`` to already contain a prebuilt frontend bundle
+# Expects meshchatx/public/ to already contain a prebuilt frontend bundle
 # (downloaded from the reusable Frontend build workflow), so this script only
 # rebuilds the cx_Freeze backend before running electron-builder.
 #

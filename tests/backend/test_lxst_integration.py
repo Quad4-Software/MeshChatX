@@ -2,7 +2,7 @@
 
 """Integration-oriented tests for real LXST telephony classes.
 
-These tests intentionally use LXST's real ``Telephone`` implementation while stubbing
+These tests intentionally use LXST's real Telephone implementation while stubbing
 RNS/network/audio backends, so we validate LXST behavior without requiring hardware.
 """
 

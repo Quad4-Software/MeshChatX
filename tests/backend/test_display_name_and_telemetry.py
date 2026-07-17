@@ -11,7 +11,7 @@ from meshchatx.src.backend.telemetry_utils import Telemeter
 
 
 def test_parse_lxmf_display_name_bytes_and_strings_in_msgpack_list():
-    """``parse_lxmf_display_name`` accepts msgpack list elements as bytes or str."""
+    """parse_lxmf_display_name accepts msgpack list elements as bytes or str."""
     display_name_bytes = b"Test User"
     app_data_list = [display_name_bytes, None, None]
     app_data_bytes = msgpack.packb(app_data_list)

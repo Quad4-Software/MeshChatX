@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Sparse fetch of specific files from an RNGit ``rns://`` repository."""
+"""Sparse fetch of specific files from an RNGit rns:// repository."""
 
 from __future__ import annotations
 

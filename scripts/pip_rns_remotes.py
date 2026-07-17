@@ -26,7 +26,7 @@ DEFAULT_INSTALL_PACKAGES = ("rns", "lxmf", "lxst")
 
 
 def parse_aliases(path: Path | None = None) -> dict[str, str]:
-    """Parse a pip-rns aliases file into ``name -> identity/group/repo``."""
+    """Parse a pip-rns aliases file into name -> identity/group/repo."""
     target = path or ALIASES_PATH
     result: dict[str, str] = {}
     if not target.is_file():
@@ -46,7 +46,7 @@ def parse_aliases(path: Path | None = None) -> dict[str, str]:
 
 
 def remote_url(alias_or_path: str, aliases: dict[str, str] | None = None) -> str:
-    """Return an ``rns://`` URL for an alias name or raw ``identity/group/repo``."""
+    """Return an rns:// URL for an alias name or raw identity/group/repo."""
     table = aliases if aliases is not None else parse_aliases()
     raw = table.get(alias_or_path, alias_or_path).strip()
     if raw.lower().startswith("rns://"):
@@ -55,7 +55,7 @@ def remote_url(alias_or_path: str, aliases: dict[str, str] | None = None) -> str
 
 
 def website_docs_source(aliases: dict[str, str] | None = None) -> str:
-    """Preferred ``rns://`` source for the Reticulum website/manual repo."""
+    """Preferred rns:// source for the Reticulum website/manual repo."""
     table = aliases if aliases is not None else parse_aliases()
     if "website" in table:
         return remote_url("website", table)

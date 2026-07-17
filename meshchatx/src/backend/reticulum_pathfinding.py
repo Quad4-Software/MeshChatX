@@ -19,7 +19,7 @@ class OutboundPathOutcome:
 
 
 def format_outbound_path_finding_measure(outcome: OutboundPathOutcome) -> str:
-    """Single string for storage/API: base measure, plus ``+nudge`` if a nudge was used."""
+    """Single string for storage/API: base measure, plus +nudge if a nudge was used."""
     base = outcome.prepare_measure
     if outcome.used_nudge:
         return f"{base}+nudge"
@@ -213,8 +213,8 @@ def prepare_fresh_path_request(
     """Ensure a path request is in flight if needed.
 
     Returns a stable label for what was done before waiting:
-    ``reused_valid_path`` (no new request), ``path_refresh_requested`` (dropped
-    or expired then requested), or ``new_path_requested`` (no prior path).
+    reused_valid_path (no new request), path_refresh_requested (dropped
+    or expired then requested), or new_path_requested (no prior path).
     """
     if not should_rediscover_path(destination_hash):
         return "reused_valid_path"

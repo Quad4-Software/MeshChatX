@@ -266,7 +266,7 @@ def _author_from_package_json(data: dict[str, Any]) -> str:
 
 
 def _workspace_root_npm_identity(repo_root: Path) -> tuple[str | None, str | None]:
-    """Return ``(name_lower, version)`` from the repository root ``package.json``."""
+    """Return (name_lower, version) from the repository root package.json."""
     pj = repo_root / "package.json"
     if not pj.is_file():
         return None, None
@@ -306,7 +306,7 @@ def _filter_out_workspace_root_package(
 def collect_frontend_from_node_modules(repo_root: Path) -> list[dict[str, Any]]:
     """Collect license rows by scanning node_modules/**/package.json.
 
-    Used when ``pnpm licenses list`` is unavailable or fails (e.g. pnpm lockfile
+    Used when pnpm licenses list is unavailable or fails (e.g. pnpm lockfile
     bugs). Recursive glob follows symlinks so pnpm-linked layouts are included.
     """
     nm = repo_root / "node_modules"

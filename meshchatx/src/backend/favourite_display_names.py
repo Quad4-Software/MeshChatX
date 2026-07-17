@@ -19,7 +19,7 @@ UNKNOWN_FAVOURITE_NAMES = frozenset(
 
 
 def is_unknown_favourite_display_name(name) -> bool:
-    """Return True when ``name`` is empty or a known unknown-node placeholder."""
+    """Return True when name is empty or a known unknown-node placeholder."""
     if not isinstance(name, str):
         return True
     return name.strip() in UNKNOWN_FAVOURITE_NAMES

@@ -12,9 +12,9 @@ from LXMF import LXMRouter
 
 
 def create_lxmf_router(identity, storagepath, propagation_cost=None):
-    """Construct an ``LXMF.LXMRouter`` without signal-handler crashes off the main thread.
+    """Construct an LXMF.LXMRouter without signal-handler crashes off the main thread.
 
-    ``signal.signal`` only works on the main thread; on workers it is temporarily
+    signal.signal only works on the main thread; on workers it is temporarily
     replaced with a no-op while the router is created.
     """
     if propagation_cost is None:
@@ -250,7 +250,7 @@ def normalize_hex_identifier(value: str | None) -> str:
 
 
 def hex_identifier_to_bytes(value: str | None) -> bytes | None:
-    """Parse a hex identity or hash string for ``bytes.fromhex`` (tolerates UUID-style separators)."""
+    """Parse a hex identity or hash string for bytes.fromhex (tolerates UUID-style separators)."""
     h = normalize_hex_identifier(value)
     if not h or len(h) % 2:
         return None
@@ -294,10 +294,10 @@ def find_lxm_by_content_hash_for_paper_uri(
     message_router,
     content_hash_bytes: bytes,
 ):
-    """Return a live ``LXMessage`` from router outbound queues, or ``None``.
+    """Return a live LXMessage from router outbound queues, or None.
 
     Paper URI generation needs packed bytes that only exist while the message is
-    still in ``pending_outbound`` or ``pending_deferred_stamps``.
+    still in pending_outbound or pending_deferred_stamps.
     """
     if not message_router or not content_hash_bytes:
         return None
@@ -312,9 +312,9 @@ def find_lxm_by_content_hash_for_paper_uri(
 
 
 def lxmf_message_try_paper_uri_string(lxm) -> tuple[str | None, str | None]:
-    """Build an ``lxm://`` Paper URI from a live message without mutating it.
+    """Build an lxm:// Paper URI from a live message without mutating it.
 
-    Returns ``(uri, None)`` on success, or ``(None, detail)`` on failure.
+    Returns (uri, None) on success, or (None, detail) on failure.
     """
     if lxm is None:
         return None, "No message"
@@ -361,7 +361,7 @@ def interval_action_due(
     """Return whether a periodic action should run now.
 
     Used for auto-announce, propagation sync, and similar timers stored in config.
-    If ``last_at`` is ahead of ``now`` (clock skew, restored DB, or bad values),
+    If last_at is ahead of now (clock skew, restored DB, or bad values),
     the action is treated as due so scheduling does not stall until wall clock
     catches a corrupted future timestamp.
     """

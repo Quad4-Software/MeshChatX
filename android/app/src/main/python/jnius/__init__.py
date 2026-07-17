@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: 0BSD
-"""PyJNIus-compatible facade over Chaquopy's ``java`` module.
+"""PyJNIus-compatible facade over Chaquopy's java module.
 
-RNS, usb4a, and related Android serial/Bluetooth code import ``jnius``.
+RNS, usb4a, and related Android serial/Bluetooth code import jnius.
 Chaquopy does not ship pyjnius. Map the small surface those libraries need
 onto Chaquopy's native Java bridge so RNode USB and classic Bluetooth work.
 """
@@ -18,12 +18,12 @@ except ImportError as exc:  # pragma: no cover - desktop import path
 
 
 def autoclass(class_name: str):
-    """Return a Java class, matching pyjnius ``autoclass``."""
+    """Return a Java class, matching pyjnius autoclass."""
     return jclass(class_name)
 
 
 def cast(cls, obj):
-    """Cast ``obj`` to ``cls``, accepting a class name string like pyjnius."""
+    """Cast obj to cls, accepting a class name string like pyjnius."""
     if isinstance(cls, str):
         cls = jclass(cls)
     return _java_cast(cls, obj)
@@ -39,9 +39,9 @@ def java_method(_signature):
 
 
 class PythonJavaClass:
-    """Base that rebinds subclasses onto ``java.dynamic_proxy`` interfaces.
+    """Base that rebinds subclasses onto java.dynamic_proxy interfaces.
 
-    Subclasses set ``__javainterfaces__`` to a list of Java interface names
+    Subclasses set __javainterfaces__ to a list of Java interface names
     (dot or slash form). Instantiation switches the instance class bases so
     method implementations are visible to Java callers.
     """

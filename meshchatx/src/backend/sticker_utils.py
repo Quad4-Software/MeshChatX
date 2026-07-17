@@ -3,24 +3,24 @@
 """Validation, hashing, and metadata extraction for user sticker payloads.
 
 MeshChatX aligns with the Telegram sticker specification while keeping the
-historical "saved image" formats supported as a separate ``legacy`` class so
+historical "saved image" formats supported as a separate legacy class so
 existing libraries continue to work after migration.
 
 Sticker classes:
 
-``static``
+static
     PNG or WebP. Telegram-strict: max 512 KB, max 512x512 px and at least one
     side must be exactly 512 px.
 
-``animated``
+animated
     TGS (gzipped Lottie JSON). Telegram-strict: max 64 KB, canvas 512x512,
     30-60 FPS, max 3 s, looped (loop attribute is informational only).
 
-``video``
+video
     WebM/VP9 with no audio. Telegram-strict: max 256 KB, max 512x512 with at
     least one side exactly 512 px, max 30 FPS, max 3 s.
 
-``legacy``
+legacy
     PNG/JPEG/GIF/WebP/BMP without dimension/duration enforcement. Capped at
     512 KB. Used for the historical free-form sticker library and for save
     images coming from chats. Not exportable as part of a Telegram-style pack.
@@ -96,7 +96,7 @@ def detect_image_format_from_magic(image_bytes: bytes) -> str | None:
     """Detect a sticker payload format from its magic bytes.
 
     Recognises PNG, JPEG, GIF, WebP, BMP, gzipped TGS (Lottie), and EBML/WebM
-    containers. Returns a normalized type key or ``None`` for unknown input.
+    containers. Returns a normalized type key or None for unknown input.
     """
     if not isinstance(image_bytes, (bytes, bytearray)) or len(image_bytes) < 4:
         return None
@@ -172,7 +172,7 @@ def _read_bmp_dimensions(data: bytes) -> tuple[int, int] | None:
 
 
 def detect_image_dimensions(image_type: str, data: bytes) -> tuple[int, int] | None:
-    """Return ``(width, height)`` for a static sticker payload, or ``None``.
+    """Return (width, height) for a static sticker payload, or None.
 
     Works for PNG, WebP (lossy/lossless/extended), GIF, and BMP without any
     third-party imaging dependency.
@@ -230,13 +230,13 @@ _GZIP_WBITS = 31
 
 
 def _decompress_gzip_bounded(data: bytes, max_bytes: int) -> bytes:
-    """Decompress a gzip stream, never buffering more than ``max_bytes``.
+    """Decompress a gzip stream, never buffering more than max_bytes.
 
-    Unlike ``gzip.decompress`` (which expands the whole stream into memory
+    Unlike gzip.decompress (which expands the whole stream into memory
     before any size check), this caps each decompression step so a small
-    "gzip bomb" cannot force an unbounded allocation. Raises ``ValueError``
-    with ``invalid_tgs_too_large_decompressed`` once the output would exceed
-    ``max_bytes``.
+    "gzip bomb" cannot force an unbounded allocation. Raises ValueError
+    with invalid_tgs_too_large_decompressed once the output would exceed
+    max_bytes.
     """
     decompressor = zlib.decompressobj(_GZIP_WBITS)
     chunks: list[bytes] = []
@@ -266,8 +266,8 @@ def _decompress_gzip_bounded(data: bytes, max_bytes: int) -> bytes:
 def parse_tgs(data: bytes) -> dict:
     """Decompress a TGS payload and parse the Lottie JSON inside.
 
-    Returns a dict with ``width``, ``height``, ``fps``, ``duration_ms`` and the
-    raw lottie ``data``. Raises ``ValueError`` if the file is not a valid
+    Returns a dict with width, height, fps, duration_ms and the
+    raw lottie data. Raises ValueError if the file is not a valid
     Lottie animation.
     """
     if not isinstance(data, (bytes, bytearray)) or len(data) < 2:
@@ -319,7 +319,7 @@ def _ebml_read_vint(
     *,
     mask_marker: bool = True,
 ) -> tuple[int, int] | None:
-    """Read an EBML variable-length integer at ``pos``; returns ``(value, next_pos)``."""
+    """Read an EBML variable-length integer at pos; returns (value, next_pos)."""
     if pos >= len(buf):
         return None
     first = buf[pos]
@@ -376,8 +376,8 @@ def _ebml_read_float(buf: bytes, start: int, end: int) -> float | None:
 def parse_webm(data: bytes) -> dict:
     """Parse a WebM container header to extract sticker-relevant metadata.
 
-    Returns ``width``, ``height``, ``fps`` (best-effort), ``duration_ms``, the
-    detected video ``codec_id`` and ``has_audio`` flag. Raises ``ValueError``
+    Returns width, height, fps (best-effort), duration_ms, the
+    detected video codec_id and has_audio flag. Raises ValueError
     when the container is not a valid WebM file.
     """
     if not isinstance(data, (bytes, bytearray)) or len(data) < 32:
@@ -482,12 +482,12 @@ def validate_sticker_payload(
 ) -> tuple[str, str]:
     """Validate a sticker payload against the legacy or strict Telegram rules.
 
-    When ``strict`` is False the validator preserves the historical behaviour
+    When strict is False the validator preserves the historical behaviour
     of the MeshChatX library (PNG/JPEG/GIF/WebP/BMP up to 512 KB, no dimension
-    enforcement). When ``strict`` is True the validator additionally enforces
+    enforcement). When strict is True the validator additionally enforces
     Telegram-aligned size, dimension, FPS and duration limits per format.
 
-    Returns ``(normalized_image_type, content_hash_hex)``. Raises ``ValueError``
+    Returns (normalized_image_type, content_hash_hex). Raises ValueError
     with a short machine-readable reason on invalid input.
     """
     if not isinstance(image_bytes, (bytes, bytearray)):
@@ -626,8 +626,8 @@ _EXPORT_VERSION = 1
 def validate_export_document(data: object) -> list[dict]:
     """Parse and validate a single-sticker export JSON document.
 
-    Each sticker dict has ``name``, ``image_type``, ``image_bytes`` (base64),
-    optional ``source_message_hash``, and optional ``emoji`` (sticker tag).
+    Each sticker dict has name, image_type, image_bytes (base64),
+    optional source_message_hash, and optional emoji (sticker tag).
     """
     if not isinstance(data, dict):
         msg = "invalid_document"
@@ -688,7 +688,7 @@ def build_export_document(stickers: list[dict], exported_at_iso: str) -> dict:
 
 
 def mime_for_image_type(normalized_type: str) -> str:
-    """Return the HTTP ``Content-Type`` for a normalized sticker type key."""
+    """Return the HTTP Content-Type for a normalized sticker type key."""
     return {
         "jpeg": "image/jpeg",
         "png": "image/png",

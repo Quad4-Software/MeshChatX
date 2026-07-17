@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Bug report collector and sender over aspect ``mcx-bugs-v1``."""
+"""Bug report collector and sender over aspect mcx-bugs-v1."""
 
 from __future__ import annotations
 

@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """Download repository bundled wheels at build time (offline-first installs).
 
-Wheels are written to ``meshchatx/public/repository-server-bundled/bundled`` so they
+Wheels are written to meshchatx/public/repository-server-bundled/bundled so they
 ship with the same artifact layout as the Vite output. At runtime,
 :class:`~meshchatx.src.backend.repository_server_manager.RepositoryServerManager`
-copies any missing ``*.whl`` files from that directory into each identity's
-``repository-server/bundled`` folder (no network required).
+copies any missing *.whl files from that directory into each identity's
+repository-server/bundled folder (no network required).
 
-The PyPI/sdist wheel intentionally omits this tree (see ``MANIFEST.in`` and
-``tool.setuptools.exclude-package-data``); use this script for desktop or
+The PyPI/sdist wheel intentionally omits this tree (see MANIFEST.in and
+tool.setuptools.exclude-package-data); use this script for desktop or
 Android builds, or refresh bundled wheels when online. If
-``dist/reticulum_meshchatx-*.whl`` exists at the project root, it is copied into
+dist/reticulum_meshchatx-*.whl exists at the project root, it is copied into
 the bundled directory after PyPI downloads so the shipped wheel matches this
 tree.
 
@@ -20,7 +20,7 @@ Usage::
 
 Environment::
 
-    MESHCHATX_SKIP_REPOSITORY_WHEELS_FETCH  If ``1``/``true``, exit without downloading.
+    MESHCHATX_SKIP_REPOSITORY_WHEELS_FETCH  If 1/true, exit without downloading.
 """
 
 from __future__ import annotations

@@ -10,7 +10,7 @@ from meshchatx.src.backend import gif_utils
 class UserGifsDAO:
     """Per-identity library of user-uploaded GIFs.
 
-    Mirrors :class:`UserStickersDAO` but exposes a ``usage_count``/``last_used_at``
+    Mirrors :class:`UserStickersDAO` but exposes a usage_count/last_used_at
     pair so the picker can order entries by most-used and the user can quickly
     reuse their favorite GIFs across chats.
     """
@@ -82,9 +82,9 @@ class UserGifsDAO:
         return cur.rowcount > 0
 
     def record_usage(self, gif_id: int, identity_hash: str) -> bool:
-        """Increment ``usage_count`` and refresh ``last_used_at`` for a GIF.
+        """Increment usage_count and refresh last_used_at for a GIF.
 
-        Returns ``True`` when a row was updated, ``False`` when the GIF does
+        Returns True when a row was updated, False when the GIF does
         not belong to the given identity.
         """
         now = time.time()
@@ -106,7 +106,7 @@ class UserGifsDAO:
         image_bytes: bytes,
         source_message_hash: str | None = None,
     ) -> dict | None:
-        """Insert a GIF. Returns summary dict or ``None`` if duplicate (same content_hash)."""
+        """Insert a GIF. Returns summary dict or None if duplicate (same content_hash)."""
         if self.count_for_identity(identity_hash) >= gif_utils.MAX_GIFS_PER_IDENTITY:
             msg = "gif_limit_reached"
             raise ValueError(msg)

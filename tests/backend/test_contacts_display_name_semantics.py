@@ -442,7 +442,7 @@ class TestNameResolutionPriority:
         announce_dao,
         contacts_dao,
     ):
-        """When ``app_data`` is NULL, fall back to the contact name."""
+        """When app_data is NULL, fall back to the contact name."""
         dest = "f" * 32
         contacts_dao.add_contact("ContactFallback", dest, lxmf_address=dest)
         announce_dao.upsert_announce(_base_announce(dest=dest, app_data=None))

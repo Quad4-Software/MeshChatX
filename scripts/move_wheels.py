@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Move Poetry-built wheels from ``dist/`` into ``python-dist/``.
+"""Move Poetry-built wheels from dist/ into python-dist/.
 
 Avoids filename clashes with Electron build outputs.
 """

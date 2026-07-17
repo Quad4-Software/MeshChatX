@@ -51,9 +51,9 @@ class BotHandler:
     def _resolve_bot_launcher(self):
         """Return argv prefix for launching bot_process.
 
-        Frozen desktop builds set ``sys.executable`` to MeshChatX itself. Passing
-        a ``.py`` path as argv[1] starts another full app instance and hits the
-        storage lock. Those builds re-enter via ``--meshchatx-run-module``.
+        Frozen desktop builds set sys.executable to MeshChatX itself. Passing
+        a .py path as argv[1] starts another full app instance and hits the
+        storage lock. Those builds re-enter via --meshchatx-run-module.
         """
         if self._is_frozen_executable():
             return [

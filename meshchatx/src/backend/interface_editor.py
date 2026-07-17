@@ -8,12 +8,12 @@ _IPV4_HOST_PORT = re.compile(r"^(\d{1,3}(?:\.\d{1,3}){3}):(\d{1,5})$")
 
 
 def normalize_rnode_tcp_port(port: str) -> str:
-    """Normalize RNodeInterface ``port`` when using ``tcp://``.
+    """Normalize RNodeInterface port when using tcp://.
 
-    Reticulum's ``TCPConnection`` (``RNS/Interfaces/RNodeInterface.py``) calls
-    ``socket.getaddrinfo(target_host, 7633)``. The first argument must be a hostname or IP **only**; an embedded ``:port``
-    breaks resolution. Config may list legacy ``tcp://host:7633`` or ``tcp://host:``;
-    strip those so storage matches ``tcp://<host>``.
+    Reticulum's TCPConnection (RNS/Interfaces/RNodeInterface.py) calls
+    socket.getaddrinfo(target_host, 7633). The first argument must be a hostname or IP **only**; an embedded :port
+    breaks resolution. Config may list legacy tcp://host:7633 or tcp://host:;
+    strip those so storage matches tcp://<host>.
     """
     raw = str(port).strip()
     low = raw.lower()
@@ -45,7 +45,7 @@ def normalize_rnode_tcp_port(port: str) -> str:
 def coerce_rnode_frequency_hz(value):
     """Return RNode carrier frequency as integer Hz for Reticulum config.
 
-    Reticulum reads ``frequency`` with ``int()``; MHz-style decimals (868.825)
+    Reticulum reads frequency with int(); MHz-style decimals (868.825)
     must not be stored verbatim or they truncate to invalid values. Accepts
     Hz integers, bare MHz-style numbers below 1e6, and strings with optional
     ghz/mhz/khz/hz suffix (ASCII, case-insensitive).
@@ -76,7 +76,7 @@ RNODE_TXPOWER_MAX = 37
 
 
 def normalize_rnode_txpower(value):
-    """Return integer dBm for Reticulum ``RNodeInterface`` config."""
+    """Return integer dBm for Reticulum RNodeInterface config."""
     if value is None or value == "":
         return value
     return int(float(str(value).strip()))
@@ -108,7 +108,7 @@ class InterfaceEditor:
 
     @staticmethod
     def sanitize_interface_section_name(name: str | None) -> str:
-        """Make a name safe for Reticulum/ConfigObj ``[[section]]`` headers.
+        """Make a name safe for Reticulum/ConfigObj [[section]] headers.
 
         Square brackets break ConfigObj nesting and can leave the in-memory
         interfaces map dirty after a failed write, blocking later adds.
@@ -134,7 +134,7 @@ class InterfaceEditor:
 
     @staticmethod
     def apply_fixed_mtu(interface_details: dict, data: dict) -> str | None:
-        """Persist ``fixed_mtu`` when valid; return an API error message otherwise."""
+        """Persist fixed_mtu when valid; return an API error message otherwise."""
         value = data.get("fixed_mtu")
         if value is None or value == "":
             interface_details.pop("fixed_mtu", None)

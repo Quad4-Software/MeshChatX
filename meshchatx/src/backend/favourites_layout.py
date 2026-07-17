@@ -23,7 +23,7 @@ def _clip_str(value, max_len):
 
 
 def normalize_favourites_layout(layout):
-    """Return a sanitized layout dict, or ``None`` when the shape is invalid."""
+    """Return a sanitized layout dict, or None when the shape is invalid."""
     if not isinstance(layout, dict) or not isinstance(layout.get("sections"), list):
         return None
 

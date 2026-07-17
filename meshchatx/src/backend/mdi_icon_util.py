@@ -9,7 +9,7 @@ MAX_MDI_ICON_NAME_LEN = 64
 
 
 def normalize_mdi_icon_name(value):
-    """Return a normalized icon name or ``None`` when unset/invalid."""
+    """Return a normalized icon name or None when unset/invalid."""
     if value is None:
         return None
     if not isinstance(value, str):

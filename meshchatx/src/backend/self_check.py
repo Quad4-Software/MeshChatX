@@ -277,7 +277,7 @@ def _is_frozen_executable() -> bool:
 def _frontend_source_available() -> bool:
     """True when running from a source tree with Vite frontend sources.
 
-    Built ``meshchatx/public/`` is gitignored and often absent in CI / E2E
+    Built meshchatx/public/ is gitignored and often absent in CI / E2E
     (Vite serves the UI). Frozen desktop builds still require bundled public.
     """
     try:
@@ -313,7 +313,7 @@ def check_public_assets(public_path_fn: Callable[[str], str]) -> dict[str, str]:
 
 
 def check_meshchatx_run_module() -> dict[str, str]:
-    """Verify ``--meshchatx-run-module`` re-entry used by bots/rnsh on frozen builds."""
+    """Verify --meshchatx-run-module re-entry used by bots/rnsh on frozen builds."""
     marker_dir = tempfile.mkdtemp(prefix="meshchatx_run_module_check_")
     marker = os.path.join(marker_dir, "probe.out")
     env = os.environ.copy()
@@ -378,9 +378,9 @@ def check_meshchatx_run_module() -> dict[str, str]:
 def check_subprocess_spawn() -> dict[str, str]:
     """Spawn a short-lived child process (covers Windows CreateProcess / POSIX fork).
 
-    Frozen desktop builds (AppImage / EXE / macOS) set ``sys.executable`` to
-    MeshChatX itself, which rejects Python ``-c``. Those builds re-enter via
-    ``--meshchatx-run-module`` like bots and rnsh.
+    Frozen desktop builds (AppImage / EXE / macOS) set sys.executable to
+    MeshChatX itself, which rejects Python -c. Those builds re-enter via
+    --meshchatx-run-module like bots and rnsh.
     """
     try:
         env = {**os.environ, "PYTHONUNBUFFERED": "1"}
@@ -639,7 +639,7 @@ def _ensure_app_session_secret(app: Any) -> None:
 
 
 def _ensure_awaitable_method(app: Any, name: str) -> None:
-    """Ensure ``app.name`` is awaitable (unit tests often patch with sync MagicMock)."""
+    """Ensure app.name is awaitable (unit tests often patch with sync MagicMock)."""
     import asyncio
 
     method = getattr(app, name, None)

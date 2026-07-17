@@ -11,7 +11,7 @@ request/response with specific path conventions).
 Clients link to the destination and call link.request("/page/name.mu")
 to fetch a page, or /file/name for files.
 
-Supported page filename extensions are ``.mu``, ``.md``, ``.txt``, and ``.html``.
+Supported page filename extensions are .mu, .md, .txt, and .html.
 """
 
 import json
@@ -177,9 +177,9 @@ class PageNode:
             self.active_links.remove(link)
 
     def _ensure_local_path(self):
-        """Register this identity in ``RNS.Identity.known_destinations``.
+        """Register this identity in RNS.Identity.known_destinations.
 
-        Lets ``Identity.recall()`` resolve the destination for local link setup.
+        Lets Identity.recall() resolve the destination for local link setup.
         """
         if not self.destination:
             return

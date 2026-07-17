@@ -190,7 +190,7 @@ def test_attach_client_returns_false_without_active_call():
 
 
 class _TeleMgrNoTelephone:
-    """Telephone manager shape without a ``telephone`` attribute (edge case)."""
+    """Telephone manager shape without a telephone attribute (edge case)."""
 
 
 def test_tele_returns_none_when_manager_has_no_telephone():
@@ -281,7 +281,7 @@ async def test_send_status_defaults_when_no_telephone():
 
 @patch("meshchatx.src.backend.web_audio_bridge.Pipeline")
 def test_attach_client_success_wires_telephony_and_dedupes_client(mock_pipeline_cls):
-    """LXST ``Pipeline`` validates sources; mock it so we only assert bridge wiring."""
+    """LXST Pipeline validates sources; mock it so we only assert bridge wiring."""
     mock_receive_pipeline = MagicMock()
     mock_pipeline_cls.return_value = mock_receive_pipeline
     tele = MagicMock()

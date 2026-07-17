@@ -21,7 +21,7 @@ def median(values):
 
 
 def median_abs_deviation(values, center=None):
-    """Median absolute deviation (MAD) of ``values`` around ``center``."""
+    """Median absolute deviation (MAD) of values around center."""
     if not values:
         return 0.0
     if center is None:
@@ -82,7 +82,7 @@ class BenchmarkResult:
 def benchmark(name=None, iterations=1, warmup=1):
     """Decorator to benchmark a function's execution time and memory delta.
 
-    Each iteration is timed separately with ``perf_counter``. The reported
+    Each iteration is timed separately with perf_counter. The reported
     duration is the median of per-iteration samples (more stable than mean
     under CI noise). A short warmup pass is discarded.
     """
@@ -142,7 +142,7 @@ def benchmark(name=None, iterations=1, warmup=1):
 def aggregate_run_results(runs):
     """Aggregate a list of result-lists (one per suite run) by benchmark name.
 
-    Returns a list of ``BenchmarkResult`` with median-of-run-medians duration.
+    Returns a list of BenchmarkResult with median-of-run-medians duration.
     """
     if not runs:
         return []
@@ -212,7 +212,7 @@ def should_alert_regression(
 ):
     """Decide whether a slower current value is a real regression.
 
-    Returns ``(alert: bool, reason: str)``. Skips alerts when both values sit
+    Returns (alert: bool, reason: str). Skips alerts when both values sit
     under the noise floor, when the absolute delta is tiny, or when the ratio
     is within an adaptive threshold. High CV on either side widens the bar.
     """
@@ -258,7 +258,7 @@ def should_alert_regression(
 
 
 def parse_extra_stats(extra):
-    """Parse ``mad=`` / ``cv=`` / ``runs=`` fields from github-action-benchmark extra."""
+    """Parse mad= / cv= / runs= fields from github-action-benchmark extra."""
     out = {}
     if not extra:
         return out

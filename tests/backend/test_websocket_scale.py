@@ -72,8 +72,8 @@ async def test_websocket_broadcast_soak_iterations(mock_app):
 async def test_websocket_broadcast_iterates_snapshot_not_live_list(mock_app):
     """Broadcast must iterate a snapshot of websocket clients, not the live list.
 
-    If another coroutine mutates ``websocket_clients`` during iteration, using
-    ``list(...)`` avoids skipping entries (classic mutating-list pitfall).
+    If another coroutine mutates websocket_clients during iteration, using
+    list(...) avoids skipping entries (classic mutating-list pitfall).
     """
     mock_app.websocket_clients.clear()
     clients = [MagicWs() for _ in range(5)]

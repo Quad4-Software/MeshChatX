@@ -6,10 +6,10 @@ Covers:
   - the pure helper :func:`is_user_facing_lxmf_payload`
   - the conversation-row helper
     :func:`compute_lxmf_conversation_unread_from_latest_row` with
-    ``require_user_facing=True``
+    require_user_facing=True
   - the DAO method
     :func:`MessageDAO.get_latest_user_facing_incoming_message`
-  - end-to-end ``GET /api/v1/notifications`` integration: reactions,
+  - end-to-end GET /api/v1/notifications integration: reactions,
     generic telemetry-only payloads, icon-only, empty pings and
     delivery-status updates must not produce false unread badges or empty
     dropdown entries; location shares, telemetry streams, and Sideband
@@ -96,7 +96,7 @@ class TestIsUserFacingLxmfPayload:
 
     def test_icon_only_is_not_user_facing(self):
         # Icon appearance updates are processed separately and never appear in
-        # the converted ``fields`` dict; an icon-only message therefore looks
+        # the converted fields dict; an icon-only message therefore looks
         # like an empty payload to this helper.
         assert not is_user_facing_lxmf_payload({}, "", "")
 
@@ -160,7 +160,7 @@ class TestRequireUserFacingFlag:
                 "reaction": {"reaction_to": "abc", "reaction_content": "\U0001f44d"},
             },
         )
-        # Without ``require_user_facing`` the helper preserves its old behavior
+        # Without require_user_facing the helper preserves its old behavior
         # so the conversation list (which renders reactions) is unaffected.
         assert compute_lxmf_conversation_unread_from_latest_row(row) is True
 
@@ -719,7 +719,7 @@ class TestNotificationsGetUserFacingFilter:
         assert body["unread_count"] == 2
 
     async def test_count_is_consistent_with_unread_filter_off(self, bell_app):
-        # When ``unread=false`` the lxmf unread_count must still ignore
+        # When unread=false the lxmf unread_count must still ignore
         # silent payloads so the badge never disagrees with the dropdown.
         bell_app.database.messages.upsert_lxmf_message(
             _mk_message(

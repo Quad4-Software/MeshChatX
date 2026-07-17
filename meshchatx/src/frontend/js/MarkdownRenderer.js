@@ -27,7 +27,7 @@ export default class MarkdownRenderer {
             return placeholder;
         });
 
-        // Inline code before emphasis so snake_case inside `code` / ``code`` is safe.
+        // Inline code before emphasis so snake_case inside `code` / code is safe.
         const inline_codes = [];
         const pushInline = (code) => {
             const placeholder = `[[IC${inline_codes.length}]]`;
