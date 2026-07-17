@@ -65,6 +65,11 @@ vi.mock("../../meshchatx/src/frontend/js/NotificationUtils", () => ({
     default: {
         showIncomingCallNotification: vi.fn(),
         showMissedCallNotification: vi.fn(),
+        showNewMessageNotification: vi.fn(),
+        clearMessageNotifications: vi.fn(),
+        clearAllMessageNotifications: vi.fn(),
+        syncAndroidNotificationContext: vi.fn(),
+        cancelIncomingCallNotification: vi.fn(),
     },
 }));
 
