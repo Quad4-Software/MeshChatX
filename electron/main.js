@@ -154,11 +154,22 @@ ipcMain.handle("get-integrity-status", () => {
 });
 
 // Native Notification IPC
-ipcMain.handle("show-notification", (event, { title, body, silent }) => {
+const {
+    trackMessageNotification,
+    untrackMessageNotification,
+    closeMessageNotificationsFor,
+    closeAllMessageNotifications,
+} = require("./messageNotifications.js");
+
+ipcMain.handle("show-notification", (event, { title, body, silent, destinationHash }) => {
     const notification = new Notification({
         title: title,
         body: body,
         silent: silent,
+    });
+    trackMessageNotification(destinationHash, notification);
+    notification.on("close", () => {
+        untrackMessageNotification(destinationHash, notification);
     });
     notification.show();
 
@@ -168,6 +179,13 @@ ipcMain.handle("show-notification", (event, { title, body, silent }) => {
             mainWindow.focus();
         }
     });
+});
+
+ipcMain.handle("close-message-notifications", (_event, destinationHash) => {
+    if (destinationHash) {
+        return closeMessageNotificationsFor(destinationHash);
+    }
+    return closeAllMessageNotifications();
 });
 
 // Power Management IPC

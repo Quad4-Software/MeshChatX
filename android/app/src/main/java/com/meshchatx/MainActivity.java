@@ -1643,7 +1643,32 @@ public class MainActivity extends AppCompatActivity {
 
         @JavascriptInterface
         public void showNotification(String title, String body) {
-            AndroidNotificationBridge.showInboundMessage(title, body, null);
+            AndroidNotificationBridge.showInboundMessage(title, body, null, null);
+        }
+
+        @JavascriptInterface
+        public void showMessageNotification(String title, String body, String destinationHash) {
+            AndroidNotificationBridge.showInboundMessage(title, body, null, destinationHash);
+        }
+
+        @JavascriptInterface
+        public void cancelMessageNotifications(String destinationHash) {
+            AndroidNotificationBridge.cancelMessageNotifications(destinationHash);
+        }
+
+        @JavascriptInterface
+        public void cancelAllMessageNotifications() {
+            AndroidNotificationBridge.cancelAllMessageNotifications();
+        }
+
+        @JavascriptInterface
+        public void setOpenConversationHashes(String csv) {
+            AndroidNotificationBridge.setOpenConversationHashes(csv);
+        }
+
+        @JavascriptInterface
+        public void setDoNotDisturbEnabled(boolean enabled) {
+            AndroidNotificationBridge.setDoNotDisturbEnabled(enabled);
         }
 
         @JavascriptInterface

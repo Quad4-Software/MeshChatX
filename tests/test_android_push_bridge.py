@@ -103,20 +103,24 @@ def test_lxmf_delivery_truncates_long_content():
     assert len(body) == 200
 
 
-def test_lxmf_delivery_reaction():
-    assert lxmf_delivery_notification_text(
-        {
-            "type": "lxmf.delivery",
-            "remote_identity_name": "Eve",
-            "lxmf_message": {
-                "is_incoming": True,
-                "is_reaction": True,
-                "reaction_emoji": "thumbsup",
-                "title": "",
-                "content": "",
+def test_lxmf_delivery_skips_reaction():
+    assert (
+        lxmf_delivery_notification_text(
+            {
+                "type": "lxmf.delivery",
+                "remote_identity_name": "Eve",
+                "lxmf_message": {
+                    "is_incoming": True,
+                    "is_reaction": True,
+                    "reaction_emoji": "thumbsup",
+                    "title": "",
+                    "content": "",
+                    "fields": {"reaction": {"reaction_to": "deadbeef"}},
+                },
             },
-        },
-    ) == ("Eve", "Reaction thumbsup")
+        )
+        is None
+    )
 
 
 def test_lxmf_delivery_default_sender():
@@ -181,17 +185,91 @@ def test_lxmf_delivery_attachment_fields_only():
     ) == ("Hal", "Attachment")
 
 
-def test_lxmf_delivery_skips_non_dict_message():
+def test_lxmf_delivery_skips_when_open_conversation(monkeypatch):
+    monkeypatch.setattr(android_push_bridge, "_is_open_conversation", lambda _h: True)
     assert (
         lxmf_delivery_notification_text(
             {
                 "type": "lxmf.delivery",
-                "remote_identity_name": "Ian",
-                "lxmf_message": "not-a-dict",
+                "remote_identity_name": "Open",
+                "lxmf_message": {
+                    "is_incoming": True,
+                    "source_hash": "a" * 32,
+                    "title": "Hi",
+                    "content": "Body",
+                },
             },
         )
         is None
     )
+
+
+def test_lxmf_delivery_skips_when_dnd(monkeypatch):
+    monkeypatch.setattr(android_push_bridge, "_dnd_enabled", lambda: True)
+    assert (
+        lxmf_delivery_notification_text(
+            {
+                "type": "lxmf.delivery",
+                "remote_identity_name": "Quiet",
+                "lxmf_message": {
+                    "is_incoming": True,
+                    "source_hash": "b" * 32,
+                    "title": "Hi",
+                    "content": "Body",
+                },
+            },
+        )
+        is None
+    )
+
+
+def test_lxmf_delivery_notifies_other_peer_while_one_open(monkeypatch):
+    monkeypatch.setattr(
+        android_push_bridge,
+        "_is_open_conversation",
+        lambda h: h == "a" * 32,
+    )
+    monkeypatch.setattr(android_push_bridge, "_dnd_enabled", lambda: False)
+    assert lxmf_delivery_notification_text(
+        {
+            "type": "lxmf.delivery",
+            "remote_identity_name": "Other",
+            "lxmf_message": {
+                "is_incoming": True,
+                "source_hash": "b" * 32,
+                "title": "Hi",
+                "content": "Body",
+            },
+        },
+    ) == ("Other", "Hi\nBody")
+
+
+def test_after_broadcast_passes_destination_hash(monkeypatch):
+    calls = []
+
+    def fake_notify(title, body, dedupe, destination_hash=None):
+        calls.append((title, body, dedupe, destination_hash))
+
+    monkeypatch.setattr(android_push_bridge, "_notify_java", fake_notify)
+    monkeypatch.setattr(android_push_bridge, "_dnd_enabled", lambda: False)
+    monkeypatch.setattr(android_push_bridge, "_is_open_conversation", lambda _h: False)
+    payload = json.dumps(
+        {
+            "type": "lxmf.delivery",
+            "remote_identity_name": "Zed",
+            "lxmf_message": {
+                "is_incoming": True,
+                "hash": "cafebabe" + "0" * 24,
+                "source_hash": "d" * 32,
+                "title": "T",
+                "content": "C",
+            },
+        },
+    )
+    android_push_bridge._after_websocket_broadcast(payload)
+    assert calls
+    assert calls[0][0] == "Zed"
+    assert calls[0][3] == "d" * 32
 
 
 def test_after_websocket_broadcast_ignores_non_string(monkeypatch):

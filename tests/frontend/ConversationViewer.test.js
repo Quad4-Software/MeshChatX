@@ -8,10 +8,20 @@ import ToastUtils from "@/js/ToastUtils";
 import { MESSAGE_BODY_MAX_DISPLAY_CHARS } from "../../meshchatx/src/frontend/js/messageDisplayLimits.js";
 import DownloadUtils from "@/js/DownloadUtils";
 import GlobalEmitter from "@/js/GlobalEmitter";
+import NotificationUtils from "@/js/NotificationUtils";
 
 vi.mock("@/js/DialogUtils", () => ({
     default: {
         confirm: vi.fn(() => Promise.resolve(true)),
+    },
+}));
+
+vi.mock("@/js/NotificationUtils", () => ({
+    default: {
+        clearMessageNotifications: vi.fn(),
+        clearAllMessageNotifications: vi.fn(),
+        showNewMessageNotification: vi.fn(),
+        syncAndroidNotificationContext: vi.fn(),
     },
 }));
 
@@ -127,6 +137,7 @@ describe("ConversationViewer.vue", () => {
         await flushPromises();
         axiosMock.post.mockClear();
         GlobalEmitter.emit.mockClear();
+        NotificationUtils.clearMessageNotifications.mockClear();
 
         const conversation = { destination_hash: "open-hash", is_unread: false };
         await wrapper.vm.markConversationAsRead(conversation, { force: true });
@@ -136,6 +147,7 @@ describe("ConversationViewer.vue", () => {
         const markCalls = axiosMock.post.mock.calls.filter((c) => String(c[0]).includes("/mark-as-read"));
         expect(markCalls).toHaveLength(1);
         expect(GlobalEmitter.emit).toHaveBeenCalledWith("notifications-changed");
+        expect(NotificationUtils.clearMessageNotifications).toHaveBeenCalledWith("open-hash");
     });
 
     it("onLxmfMessageReceived force marks the open conversation as read", async () => {
@@ -146,6 +158,7 @@ describe("ConversationViewer.vue", () => {
         });
         await flushPromises();
         axiosMock.post.mockClear();
+        NotificationUtils.clearMessageNotifications.mockClear();
 
         wrapper.vm.onLxmfMessageReceived({
             source_hash: "open-peer",
@@ -158,6 +171,7 @@ describe("ConversationViewer.vue", () => {
         const markCalls = axiosMock.post.mock.calls.filter((c) => String(c[0]).includes("/mark-as-read"));
         expect(markCalls).toHaveLength(1);
         expect(conversations[0].is_unread).toBe(false);
+        expect(NotificationUtils.clearMessageNotifications).toHaveBeenCalledWith("open-peer");
     });
 
     it("markConversationAsRead marks read without reloading conversations when conversation is unread", async () => {
@@ -165,6 +179,7 @@ describe("ConversationViewer.vue", () => {
         await flushPromises();
         axiosMock.post.mockClear();
         GlobalEmitter.emit.mockClear();
+        NotificationUtils.clearMessageNotifications.mockClear();
 
         const conversation = { destination_hash: "unread-hash", is_unread: true };
         await wrapper.vm.markConversationAsRead(conversation);
@@ -175,6 +190,7 @@ describe("ConversationViewer.vue", () => {
         expect(markCalls).toHaveLength(1);
         expect(wrapper.emitted("reload-conversations")).toBeFalsy();
         expect(GlobalEmitter.emit).toHaveBeenCalledWith("notifications-changed");
+        expect(NotificationUtils.clearMessageNotifications).toHaveBeenCalledWith("unread-hash");
     });
 
     it("markConversationAsRead does not notify bell when server mark-as-read fails", async () => {
@@ -187,12 +203,14 @@ describe("ConversationViewer.vue", () => {
             return Promise.resolve({ data: {} });
         });
         GlobalEmitter.emit.mockClear();
+        NotificationUtils.clearMessageNotifications.mockClear();
 
         const conversation = { destination_hash: "unread-hash", is_unread: true };
         await wrapper.vm.markConversationAsRead(conversation);
         await flushPromises();
 
         expect(GlobalEmitter.emit).not.toHaveBeenCalledWith("notifications-changed");
+        expect(NotificationUtils.clearMessageNotifications).not.toHaveBeenCalled();
         expect(conversation.is_unread).toBe(true);
     });
 

@@ -109,8 +109,11 @@ contextBridge.exposeInMainWorld("electron", {
         return await ipcRenderer.invoke("get-integrity-status");
     },
     // allow showing a native notification
-    showNotification: function (title, body, silent = false) {
-        ipcRenderer.invoke("show-notification", { title, body, silent });
+    showNotification: function (title, body, silent = false, destinationHash = null) {
+        ipcRenderer.invoke("show-notification", { title, body, silent, destinationHash });
+    },
+    closeMessageNotifications: function (destinationHash = null) {
+        return ipcRenderer.invoke("close-message-notifications", destinationHash);
     },
     // allow controlling power save blocker
     setPowerSaveBlocker: async function (enabled) {

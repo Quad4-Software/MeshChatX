@@ -326,6 +326,8 @@ import DialogUtils from "../../js/DialogUtils";
 import DownloadUtils from "../../js/DownloadUtils";
 import GlobalEmitter from "../../js/GlobalEmitter";
 import ToastUtils from "../../js/ToastUtils";
+import NotificationUtils from "../../js/NotificationUtils";
+import { setOpenDestinationHashes } from "../../js/activeConversationStore.js";
 import {
     attachStreamToVideo,
     decodeQrFromVideo,
@@ -507,6 +509,7 @@ export default {
         },
         paneLayoutSignature() {
             this.persistPanes();
+            this.syncOpenDestinationHashes();
         },
         destinationHash(newHash) {
             if (!newHash) {
@@ -531,6 +534,7 @@ export default {
         this.boundPaneResizeMove = null;
         this.boundPaneResizeEnd = null;
         this.restorePanes(this.destinationHash);
+        this.syncOpenDestinationHashes();
     },
     beforeUnmount() {
         clearInterval(this.reloadInterval);
@@ -541,6 +545,7 @@ export default {
         this.stopIngestScanner();
         this.teardownPaneViewportWatchers();
         this.teardownPaneResize();
+        setOpenDestinationHashes([]);
 
         // stop listening for websocket messages
         WebSocketConnection.off("message", this.onWebsocketMessage);
@@ -1071,6 +1076,9 @@ export default {
                     destination_hashes,
                 });
                 GlobalEmitter.emit("notifications-changed");
+                for (const h of destination_hashes || []) {
+                    NotificationUtils.clearMessageNotifications(h);
+                }
                 await this.getConversations();
                 ToastUtils.success(this.$t("messages.marked_read"));
             } catch {
@@ -1083,6 +1091,7 @@ export default {
                     mark_all: true,
                 });
                 GlobalEmitter.emit("notifications-changed");
+                NotificationUtils.clearAllMessageNotifications();
                 await this.getConversations();
                 ToastUtils.success(this.$t("messages.marked_all_read"));
             } catch {
@@ -1284,6 +1293,13 @@ export default {
                 sizes: this.panes.map((pane) => this.paneFlexValue(pane.id)),
                 focusedIndex: focusedIndex < 0 ? 0 : focusedIndex,
             });
+        },
+        syncOpenDestinationHashes() {
+            const hashes = this.panes
+                .map((pane) => pane.peer?.destination_hash)
+                .filter((h) => typeof h === "string" && h.length > 0);
+            setOpenDestinationHashes(hashes);
+            NotificationUtils.syncAndroidNotificationContext(hashes, Boolean(this.config?.do_not_disturb_enabled));
         },
         applyToPanePeers(destinationHash, patch) {
             for (const pane of this.panes) {
