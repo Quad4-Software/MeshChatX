@@ -5,6 +5,11 @@ import { appPackageVersion } from "./fixtures/repoPackageVersion.js";
 import { createRouter, createWebHashHistory } from "vue-router";
 import { createI18n } from "vue-i18n";
 import { createVuetify } from "vuetify";
+import { clearPromptSeenState } from "../../meshchatx/src/frontend/js/postInstallPromptState.js";
+import {
+    postInstallPromptRegistry,
+    registerPostInstallPrompt,
+} from "../../meshchatx/src/frontend/js/registries/postInstallPromptRegistry.js";
 
 // Mock axios
 const axiosMock = {
@@ -207,6 +212,81 @@ describe("App.vue Modals", () => {
         await new Promise((resolve) => setTimeout(resolve, 200));
 
         expect(wrapper.vm.$refs.changelogModal.visible).toBe(true);
+    });
+
+    it("should show post-install prompt before changelog when one is pending", async () => {
+        clearPromptSeenState();
+        postInstallPromptRegistry.clear();
+        registerPostInstallPrompt({
+            id: "app_modal_test",
+            revision: 1,
+            titleKey: "app.name",
+            descriptionKey: "app.do_not_show_again",
+            primaryLabelKey: "common.close",
+        });
+
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/app/info") {
+                return Promise.resolve({
+                    data: {
+                        app_info: {
+                            version: appPackageVersion,
+                            tutorial_seen: true,
+                            changelog_seen_version: "3.9.0",
+                        },
+                    },
+                });
+            }
+            if (url === "/api/v1/app/changelog") {
+                return Promise.resolve({
+                    data: { html: "<h1>New Features</h1>", version: appPackageVersion },
+                });
+            }
+            if (url === "/api/v1/config") return Promise.resolve({ data: { config: { theme: "dark" } } });
+            if (url === "/api/v1/auth/status") return Promise.resolve({ data: { auth_enabled: false } });
+            if (url === "/api/v1/blocked-destinations") return Promise.resolve({ data: { blocked_destinations: [] } });
+            if (url === "/api/v1/telephone/status") return Promise.resolve({ data: { active_call: null } });
+            if (url === "/api/v1/lxmf/propagation-node/status")
+                return Promise.resolve({ data: { propagation_node_status: { state: "idle" } } });
+            return Promise.resolve({ data: {} });
+        });
+
+        const wrapper = mount(App, {
+            global: {
+                plugins: [router, vuetify, i18n],
+                stubs: {
+                    MaterialDesignIcon: true,
+                    LxmfUserIcon: true,
+                    LanguageSelector: true,
+                    CallOverlay: true,
+                    CommandPalette: true,
+                    IntegrityWarningModal: true,
+                    AndroidStorageChoicePrompt: true,
+                    VDialog: true,
+                    VCard: true,
+                    VCardText: true,
+                    VCardActions: true,
+                    VBtn: true,
+                    VIcon: true,
+                    VToolbar: true,
+                    VToolbarTitle: true,
+                    VSpacer: true,
+                    VProgressCircular: true,
+                    VCheckbox: true,
+                    VDivider: true,
+                },
+            },
+        });
+
+        await router.isReady();
+        await new Promise((resolve) => setTimeout(resolve, 250));
+
+        expect(wrapper.vm.$refs.postInstallPromptHost.visible).toBe(true);
+        expect(wrapper.vm.$refs.changelogModal.visible).toBe(false);
+
+        clearPromptSeenState();
+        postInstallPromptRegistry.clear();
+        wrapper.unmount();
     });
 
     it("playRingtone marks autoplay blocked on NotAllowedError", async () => {
