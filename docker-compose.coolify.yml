@@ -1,0 +1,47 @@
+# Coolify Docker Compose deployment for MeshChatX.
+# https://coolify.io/docs/knowledge-base/docker/compose
+#
+# In Coolify, assign a domain with container port 8000, for example:
+#   https://meshchatx.example.com:8000
+# Coolify terminates TLS at the proxy. This stack serves plain HTTP inside the
+# container (MESHCHAT_NO_HTTPS=1) so Traefik can reach it without a self-signed
+# backend cert. Do not publish host ports unless you intend to bypass the proxy.
+
+services:
+    reticulum-meshchatx:
+        image: ${MESHCHAT_IMAGE:-quad4io/meshchatx:latest}
+        restart: unless-stopped
+        security_opt:
+            - no-new-privileges:true
+        expose:
+            - "8000"
+        environment:
+            - MESHCHAT_NO_HTTPS=${MESHCHAT_NO_HTTPS:-1}
+            - MESHCHAT_AUTH=${MESHCHAT_AUTH:-1}
+            - MESHCHAT_PORT=${MESHCHAT_PORT:-8000}
+        volumes:
+            - meshchatx-config:/config
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "python",
+                    "-c",
+                    "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/status')",
+                ]
+            interval: 30s
+            timeout: 5s
+            retries: 3
+            start_period: 90s
+        deploy:
+            resources:
+                limits:
+                    cpus: "2.0"
+                    memory: 1G
+                    pids: 512
+                reservations:
+                    cpus: "0.25"
+                    memory: 256M
+
+volumes:
+    meshchatx-config:
