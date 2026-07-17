@@ -1,24 +1,38 @@
 /**
  * WebGL2 canvas renderer for MeshChatX network visualiser.
- * Draws instanced node discs and line edges from WASM float buffers.
+ * Draws instanced circular sprites (textured when available) and line edges.
  */
 
-const NODE_STRIDE = 8;
-const EDGE_STRIDE = 8;
+/** WASM / scene pack: x y size r g b a kind */
+export const SCENE_NODE_STRIDE = 8;
+/** Draw instance: x y size r g b a useTex u v */
+export const NODE_STRIDE = 10;
+export const EDGE_STRIDE = 8;
+
+const ATLAS_CELL = 64;
+const ATLAS_COLS = 16;
+const ATLAS_ROWS = 16;
+const ATLAS_CAPACITY = ATLAS_COLS * ATLAS_ROWS;
 
 const NODE_VS = `#version 300 es
 layout(location=0) in vec2 a_corner;
 layout(location=1) in vec2 a_center;
 layout(location=2) in float a_size;
 layout(location=3) in vec4 a_color;
+layout(location=4) in float a_useTex;
+layout(location=5) in vec2 a_uvOrigin;
 uniform vec2 u_resolution;
 uniform vec2 u_camera;
 uniform float u_zoom;
 out vec4 v_color;
 out vec2 v_uv;
+out float v_useTex;
+out vec2 v_uvOrigin;
 void main() {
   v_uv = a_corner;
   v_color = a_color;
+  v_useTex = a_useTex;
+  v_uvOrigin = a_uvOrigin;
   float r = max(a_size, 2.0);
   vec2 world = a_center + a_corner * r;
   vec2 screen = (world - u_camera) * u_zoom + u_resolution * 0.5;
@@ -32,12 +46,25 @@ const NODE_FS = `#version 300 es
 precision mediump float;
 in vec4 v_color;
 in vec2 v_uv;
+in float v_useTex;
+in vec2 v_uvOrigin;
+uniform sampler2D u_atlas;
+uniform vec2 u_cellUv;
 out vec4 outColor;
 void main() {
   float d = length(v_uv);
   if (d > 1.0) discard;
   float edge = smoothstep(1.0, 0.72, d);
-  outColor = vec4(v_color.rgb, v_color.a * edge);
+  if (v_useTex > 0.5) {
+    vec2 local = v_uv * 0.5 + 0.5;
+    vec2 texUV = v_uvOrigin + local * u_cellUv;
+    vec4 tex = texture(u_atlas, texUV);
+    float a = tex.a * edge * v_color.a;
+    if (a < 0.01) discard;
+    outColor = vec4(tex.rgb, a);
+  } else {
+    outColor = vec4(v_color.rgb, v_color.a * edge);
+  }
 }
 `;
 
@@ -96,6 +123,49 @@ function link(gl, vsSrc, fsSrc) {
 }
 
 /**
+ * Merge WASM scene node packs with atlas UVs into draw instances.
+ * @param {Float32Array|null} sceneNodes SCENE_NODE_STRIDE
+ * @param {{useTex:number,u:number,v:number}[]} texMeta per-node
+ * @param {Float32Array} [dst] scratch with length >= count * NODE_STRIDE
+ * @returns {Float32Array} view of length count * NODE_STRIDE
+ */
+export function mergeSceneNodesWithTextures(sceneNodes, texMeta, dst) {
+    const count = sceneNodes && sceneNodes.length ? Math.floor(sceneNodes.length / SCENE_NODE_STRIDE) : 0;
+    const need = count * NODE_STRIDE;
+    const out = dst && dst.length >= need ? dst : new Float32Array(need);
+    for (let i = 0; i < count; i++) {
+        const s = i * SCENE_NODE_STRIDE;
+        const d = i * NODE_STRIDE;
+        out[d] = sceneNodes[s];
+        out[d + 1] = sceneNodes[s + 1];
+        out[d + 2] = sceneNodes[s + 2];
+        out[d + 3] = sceneNodes[s + 3];
+        out[d + 4] = sceneNodes[s + 4];
+        out[d + 5] = sceneNodes[s + 5];
+        out[d + 6] = sceneNodes[s + 6];
+        const meta = texMeta?.[i];
+        out[d + 7] = meta?.useTex ? 1 : 0;
+        out[d + 8] = meta?.u ?? 0;
+        out[d + 9] = meta?.v ?? 0;
+    }
+    return need === out.length ? out : out.subarray(0, need);
+}
+
+/**
+ * Atlas UV origin for a slot index.
+ * @param {number} slot
+ * @returns {{u:number,v:number}}
+ */
+export function atlasUvForSlot(slot) {
+    const col = slot % ATLAS_COLS;
+    const row = Math.floor(slot / ATLAS_COLS);
+    return {
+        u: col / ATLAS_COLS,
+        v: row / ATLAS_ROWS,
+    };
+}
+
+/**
  * @param {HTMLCanvasElement} canvas
  * @returns {WebGL2RenderingContext|null}
  */
@@ -115,12 +185,114 @@ export function tryCreateWebGL2Context(canvas) {
 }
 
 /**
+ * @param {WebGL2RenderingContext} gl
+ */
+function createIconAtlas(gl) {
+    const width = ATLAS_COLS * ATLAS_CELL;
+    const height = ATLAS_ROWS * ATLAS_CELL;
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+    const urlToSlot = new Map();
+    const pending = new Map();
+    const freeSlots = [];
+    let nextSlot = 0;
+    const scratch = typeof document !== "undefined" ? document.createElement("canvas") : null;
+    if (scratch) {
+        scratch.width = ATLAS_CELL;
+        scratch.height = ATLAS_CELL;
+    }
+    const scratchCtx = scratch?.getContext?.("2d") || null;
+
+    function allocSlot() {
+        if (freeSlots.length > 0) return freeSlots.pop();
+        if (nextSlot >= ATLAS_CAPACITY) return null;
+        return nextSlot++;
+    }
+
+    function paintSlot(slot, source) {
+        if (!scratchCtx || !scratch) return;
+        scratchCtx.clearRect(0, 0, ATLAS_CELL, ATLAS_CELL);
+        const sw = source.width || source.videoWidth || ATLAS_CELL;
+        const sh = source.height || source.videoHeight || ATLAS_CELL;
+        const scale = Math.min(ATLAS_CELL / sw, ATLAS_CELL / sh);
+        const dw = Math.max(1, Math.floor(sw * scale));
+        const dh = Math.max(1, Math.floor(sh * scale));
+        const dx = Math.floor((ATLAS_CELL - dw) / 2);
+        const dy = Math.floor((ATLAS_CELL - dh) / 2);
+        scratchCtx.drawImage(source, dx, dy, dw, dh);
+        const col = slot % ATLAS_COLS;
+        const row = Math.floor(slot / ATLAS_COLS);
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, col * ATLAS_CELL, row * ATLAS_CELL, gl.RGBA, gl.UNSIGNED_BYTE, scratch);
+    }
+
+    function loadImage(url) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.decoding = "async";
+            img.onload = () => resolve(img);
+            img.onerror = () => reject(new Error(`icon load failed: ${url}`));
+            img.src = url;
+        });
+    }
+
+    /**
+     * @param {string} url
+     * @returns {Promise<number|null>} slot index or null
+     */
+    async function ensure(url) {
+        if (!url || typeof url !== "string") return null;
+        if (urlToSlot.has(url)) return urlToSlot.get(url);
+        if (pending.has(url)) return pending.get(url);
+        const slot = allocSlot();
+        if (slot == null) return null;
+        const work = loadImage(url)
+            .then((img) => {
+                paintSlot(slot, img);
+                urlToSlot.set(url, slot);
+                pending.delete(url);
+                return slot;
+            })
+            .catch(() => {
+                pending.delete(url);
+                freeSlots.push(slot);
+                return null;
+            });
+        pending.set(url, work);
+        return work;
+    }
+
+    function destroy() {
+        gl.deleteTexture(texture);
+        urlToSlot.clear();
+        pending.clear();
+    }
+
+    return {
+        texture,
+        ensure,
+        uvForSlot: atlasUvForSlot,
+        cellUv: { x: 1 / ATLAS_COLS, y: 1 / ATLAS_ROWS },
+        destroy,
+        getSlot: (url) => urlToSlot.get(url) ?? null,
+    };
+}
+
+/**
  * @param {HTMLCanvasElement} canvas
  * @param {WebGL2RenderingContext} gl
  */
 export function createNetworkVisualiserWebGL(canvas, gl) {
     const nodeProg = link(gl, NODE_VS, NODE_FS);
     const edgeProg = link(gl, EDGE_VS, EDGE_FS);
+    const atlas = createIconAtlas(gl);
 
     const nodeCornerBuf = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, nodeCornerBuf);
@@ -136,18 +308,22 @@ export function createNetworkVisualiserWebGL(canvas, gl) {
     gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, nodeInstanceBuf);
-    // center xy
+    const strideBytes = NODE_STRIDE * 4;
     gl.enableVertexAttribArray(1);
-    gl.vertexAttribPointer(1, 2, gl.FLOAT, false, NODE_STRIDE * 4, 0);
+    gl.vertexAttribPointer(1, 2, gl.FLOAT, false, strideBytes, 0);
     gl.vertexAttribDivisor(1, 1);
-    // size
     gl.enableVertexAttribArray(2);
-    gl.vertexAttribPointer(2, 1, gl.FLOAT, false, NODE_STRIDE * 4, 8);
+    gl.vertexAttribPointer(2, 1, gl.FLOAT, false, strideBytes, 8);
     gl.vertexAttribDivisor(2, 1);
-    // rgba
     gl.enableVertexAttribArray(3);
-    gl.vertexAttribPointer(3, 4, gl.FLOAT, false, NODE_STRIDE * 4, 12);
+    gl.vertexAttribPointer(3, 4, gl.FLOAT, false, strideBytes, 12);
     gl.vertexAttribDivisor(3, 1);
+    gl.enableVertexAttribArray(4);
+    gl.vertexAttribPointer(4, 1, gl.FLOAT, false, strideBytes, 28);
+    gl.vertexAttribDivisor(4, 1);
+    gl.enableVertexAttribArray(5);
+    gl.vertexAttribPointer(5, 2, gl.FLOAT, false, strideBytes, 32);
+    gl.vertexAttribDivisor(5, 1);
     gl.bindVertexArray(null);
 
     const edgeVao = gl.createVertexArray();
@@ -162,6 +338,8 @@ export function createNetworkVisualiserWebGL(canvas, gl) {
     const uNodeRes = gl.getUniformLocation(nodeProg, "u_resolution");
     const uNodeCam = gl.getUniformLocation(nodeProg, "u_camera");
     const uNodeZoom = gl.getUniformLocation(nodeProg, "u_zoom");
+    const uNodeAtlas = gl.getUniformLocation(nodeProg, "u_atlas");
+    const uNodeCellUv = gl.getUniformLocation(nodeProg, "u_cellUv");
     const uEdgeRes = gl.getUniformLocation(edgeProg, "u_resolution");
     const uEdgeCam = gl.getUniformLocation(edgeProg, "u_camera");
     const uEdgeZoom = gl.getUniformLocation(edgeProg, "u_zoom");
@@ -211,7 +389,6 @@ export function createNetworkVisualiserWebGL(canvas, gl) {
         nodeCount = nodes && nodes.length ? Math.floor(nodes.length / NODE_STRIDE) : 0;
         const edgeCount = edges && edges.length ? Math.floor(edges.length / EDGE_STRIDE) : 0;
 
-        // Expand edges to 2 verts * (xy + rgba) = 12 floats per edge -> 6 floats per vertex
         const need = edgeCount * 12;
         if (edgeScratch.length < need) {
             edgeScratch = new Float32Array(Math.max(need, 64));
@@ -260,6 +437,10 @@ export function createNetworkVisualiserWebGL(canvas, gl) {
             gl.uniform2f(uNodeRes, size.width, size.height);
             gl.uniform2f(uNodeCam, camX, camY);
             gl.uniform1f(uNodeZoom, zoom);
+            gl.uniform1i(uNodeAtlas, 0);
+            gl.uniform2f(uNodeCellUv, atlas.cellUv.x, atlas.cellUv.y);
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, atlas.texture);
             gl.bindVertexArray(nodeVao);
             gl.bindBuffer(gl.ARRAY_BUFFER, nodeInstanceBuf);
             gl.bufferData(gl.ARRAY_BUFFER, nodes, gl.DYNAMIC_DRAW);
@@ -271,6 +452,7 @@ export function createNetworkVisualiserWebGL(canvas, gl) {
     }
 
     function destroy() {
+        atlas.destroy();
         gl.deleteBuffer(nodeCornerBuf);
         gl.deleteBuffer(nodeInstanceBuf);
         gl.deleteBuffer(edgeBuf);
@@ -280,7 +462,15 @@ export function createNetworkVisualiserWebGL(canvas, gl) {
         gl.deleteProgram(edgeProg);
     }
 
-    return { draw, resize, destroy, getCssSize: () => ({ width: cssW, height: cssH }) };
+    return {
+        draw,
+        resize,
+        destroy,
+        ensureIcon: (url) => atlas.ensure(url),
+        iconUv: (slot) => atlas.uvForSlot(slot),
+        getIconSlot: (url) => atlas.getSlot(url),
+        getCssSize: () => ({ width: cssW, height: cssH }),
+    };
 }
 
-export { NODE_STRIDE, EDGE_STRIDE };
+export { ATLAS_CELL, ATLAS_COLS, ATLAS_ROWS };

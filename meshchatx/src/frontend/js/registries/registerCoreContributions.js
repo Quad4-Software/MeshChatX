@@ -8,6 +8,8 @@ import { CORE_COMMAND_ENTRIES } from "./coreCommandEntries.js";
 import { registerCommand } from "./commandRegistry.js";
 import { CORE_SETTINGS_SECTION_KEYWORDS } from "./coreSettingsSectionKeywords.js";
 import { registerSettingsSection } from "./settingsSectionRegistry.js";
+import { CORE_POST_INSTALL_PROMPT_ENTRIES } from "./corePostInstallPromptEntries.js";
+import { registerPostInstallPrompt } from "./postInstallPromptRegistry.js";
 
 let coreRegistered = false;
 
@@ -35,5 +37,9 @@ export function registerCoreContributions() {
 
     for (const [sectionId, keywords] of Object.entries(CORE_SETTINGS_SECTION_KEYWORDS)) {
         registerSettingsSection({ id: sectionId, keywords });
+    }
+
+    for (const entry of CORE_POST_INSTALL_PROMPT_ENTRIES) {
+        registerPostInstallPrompt(entry);
     }
 }

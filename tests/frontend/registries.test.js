@@ -25,6 +25,11 @@ import {
 } from "../../meshchatx/src/frontend/js/registries/registerCoreContributions.js";
 import { CORE_NAV_ENTRIES } from "../../meshchatx/src/frontend/js/registries/coreNavEntries.js";
 import { CORE_TOOLS_ENTRIES } from "../../meshchatx/src/frontend/js/registries/coreToolsEntries.js";
+import {
+    postInstallPromptRegistry,
+    listPostInstallPrompts,
+} from "../../meshchatx/src/frontend/js/registries/postInstallPromptRegistry.js";
+import { CORE_POST_INSTALL_PROMPT_ENTRIES } from "../../meshchatx/src/frontend/js/registries/corePostInstallPromptEntries.js";
 
 describe("registryCore", () => {
     it("registers and lists entries", () => {
@@ -56,6 +61,7 @@ describe("contribution registries", () => {
         toolsRegistry.clear();
         commandRegistry.clear();
         settingsSectionRegistry.clear();
+        postInstallPromptRegistry.clear();
     });
 
     it("registers nav items", () => {
@@ -108,6 +114,7 @@ describe("registerCoreContributions", () => {
         toolsRegistry.clear();
         commandRegistry.clear();
         settingsSectionRegistry.clear();
+        postInstallPromptRegistry.clear();
     });
 
     it("loads all core entries once", () => {
@@ -115,6 +122,7 @@ describe("registerCoreContributions", () => {
         registerCoreContributions();
         expect(listNavItems()).toHaveLength(CORE_NAV_ENTRIES.length);
         expect(listTools()).toHaveLength(CORE_TOOLS_ENTRIES.length);
+        expect(listPostInstallPrompts()).toHaveLength(CORE_POST_INSTALL_PROMPT_ENTRIES.length);
     });
 
     it("calls nav entry has a missed-calls pill badge", () => {

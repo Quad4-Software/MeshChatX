@@ -11,13 +11,14 @@ Wire nav, tools, commands, settings search, and WebSocket events through registr
 
 ## Registries
 
-| Registry                                  | Role                       |
-| ----------------------------------------- | -------------------------- |
-| `navRegistry.js`                          | Primary sidebar / nav      |
-| `toolsRegistry.js`                        | Tools area entries         |
-| `commandRegistry.js`                      | Command palette            |
-| `settingsSectionRegistry.js`              | Settings search / sections |
-| `wsEventRegistry.js` + `wsEventBridge.js` | Typed WS handlers          |
+| Registry                                  | Role                                  |
+| ----------------------------------------- | ------------------------------------- |
+| `navRegistry.js`                          | Primary sidebar / nav                 |
+| `toolsRegistry.js`                        | Tools area entries                    |
+| `commandRegistry.js`                      | Command palette                       |
+| `settingsSectionRegistry.js`              | Settings search / sections            |
+| `wsEventRegistry.js` + `wsEventBridge.js` | Typed WS handlers                     |
+| `postInstallPromptRegistry.js`            | Existing-user / after-install prompts |
 
 Core boot registers once via `registerCoreContributions.js` and `core*Entries.js` siblings.
 
@@ -42,6 +43,18 @@ For a new badge:
 3. Wire `getNavBadgeCount` in `App.vue`
 4. Refresh the count from the right API or WebSocket event
 5. Clear it when the user has actually seen the related UI
+
+## Post-install / existing-user prompts
+
+Use `postInstallPromptRegistry` + `PostInstallPromptHost` when you need to ask existing installs to do or acknowledge something after an upgrade.
+
+1. Add an entry to `corePostInstallPromptEntries.js` with a stable `id`, `revision`, and i18n `titleKey` (optional description and button keys).
+2. Register happens via `registerCoreContributions`.
+3. `App.vue` shows the next pending prompt after tutorial / Android storage upgrade and before changelog.
+4. To show the same prompt again later, bump `revision`. Users who dismissed an older revision are prompted again.
+5. Optional `shouldShow()` gates platform or feature conditions. Optional `onPrimary` / `onSecondary` run actions before dismiss.
+
+Seen revisions live in `localStorage` under `meshchatx.post_install_prompts_seen` via `postInstallPromptState.js`.
 
 ## Hard rules
 

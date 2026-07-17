@@ -288,6 +288,12 @@ describe("behavior contracts: network visualiser performance", () => {
         const engine = readSource("meshchatx/src/frontend/js/networkVisualiserWebGLEngine.js");
         expect(engine).toContain("meshchatxVisualiserSceneSet");
         expect(engine).toContain("createVisualiserWebGLEngine");
+        expect(engine).toContain('pointerMode = "pinch"');
+        expect(engine).toContain("meshchatxVisualiserSceneZoomAt");
+        expect(engine).toContain("updateNodeImages");
+        const webgl = readSource("meshchatx/src/frontend/js/networkVisualiserWebGL.js");
+        expect(webgl).toContain("u_atlas");
+        expect(webgl).toContain("mergeSceneNodesWithTextures");
         const prefs = readSource("meshchatx/src/frontend/js/settings/settingsVisualiserPrefs.js");
         expect(prefs).toContain("persistVisualiserRenderer");
         expect(prefs).toContain('"auto"');

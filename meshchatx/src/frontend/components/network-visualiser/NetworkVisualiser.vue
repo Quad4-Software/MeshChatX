@@ -1680,6 +1680,7 @@ export default {
                 this.loadedNodesCount = 0;
                 this.currentBatch = 0;
                 this.totalBatches = 0;
+                this.scheduleIconQueue();
                 return;
             }
 
@@ -1756,12 +1757,18 @@ export default {
                     }
                     const updates = [];
                     for (const nodeId of item.nodeIds) {
-                        if (this.nodes.get(nodeId)) {
+                        if (this.webglEngine) {
+                            updates.push({ id: nodeId, image: url });
+                        } else if (this.nodes.get(nodeId)) {
                             updates.push({ id: nodeId, image: url });
                         }
                     }
                     if (updates.length > 0) {
-                        this.nodes.update(updates);
+                        if (this.webglEngine) {
+                            this.webglEngine.updateNodeImages(updates);
+                        } else {
+                            this.nodes.update(updates);
+                        }
                     }
                     await yieldToMain();
                 }

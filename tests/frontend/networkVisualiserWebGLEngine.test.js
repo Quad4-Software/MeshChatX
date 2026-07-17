@@ -5,7 +5,15 @@ import {
     KIND_ME,
     KIND_IFACE_ON,
     KIND_PEER,
+    pointerDistance,
+    pointerMidpoint,
 } from "@/js/networkVisualiserWebGLEngine.js";
+import {
+    atlasUvForSlot,
+    mergeSceneNodesWithTextures,
+    SCENE_NODE_STRIDE,
+    NODE_STRIDE,
+} from "@/js/networkVisualiserWebGL.js";
 
 describe("networkVisualiserWebGLEngine", () => {
     const sceneFns = [
@@ -66,5 +74,45 @@ describe("networkVisualiserWebGLEngine", () => {
         expect(req.edges).toHaveLength(1);
         expect(req.edges[0].from).toBe("me");
         expect(req.width).toBe(640);
+    });
+
+    it("pointerDistance and midpoint support pinch zoom math", () => {
+        const a = { x: 0, y: 0 };
+        const b = { x: 30, y: 40 };
+        expect(pointerDistance(a, b)).toBe(50);
+        expect(pointerMidpoint(a, b)).toEqual({ x: 15, y: 20 });
+    });
+});
+
+describe("networkVisualiserWebGL textures", () => {
+    it("atlasUvForSlot maps grid cells", () => {
+        expect(atlasUvForSlot(0)).toEqual({ u: 0, v: 0 });
+        expect(atlasUvForSlot(1).u).toBeCloseTo(1 / 16);
+        expect(atlasUvForSlot(16).v).toBeCloseTo(1 / 16);
+    });
+
+    it("mergeSceneNodesWithTextures attaches atlas UVs", () => {
+        const scene = new Float32Array(SCENE_NODE_STRIDE);
+        scene[0] = 1;
+        scene[1] = 2;
+        scene[2] = 10;
+        scene[3] = 0.1;
+        scene[4] = 0.2;
+        scene[5] = 0.3;
+        scene[6] = 1;
+        scene[7] = 3;
+        const out = mergeSceneNodesWithTextures(scene, [{ useTex: 1, u: 0.25, v: 0.5 }]);
+        expect(out.length).toBe(NODE_STRIDE);
+        expect(out[0]).toBe(1);
+        expect(out[2]).toBe(10);
+        expect(out[7]).toBe(1);
+        expect(out[8]).toBe(0.25);
+        expect(out[9]).toBe(0.5);
+    });
+
+    it("mergeSceneNodesWithTextures falls back to untextured discs", () => {
+        const scene = new Float32Array(SCENE_NODE_STRIDE);
+        const out = mergeSceneNodesWithTextures(scene, [{ useTex: 0, u: 0, v: 0 }]);
+        expect(out[7]).toBe(0);
     });
 });
