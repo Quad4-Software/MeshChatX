@@ -38,7 +38,7 @@ def _cdll_load(path_or_name: str):
 def _libcodec2_candidates() -> list[Path]:
     """Return candidate paths for libcodec2.so without importing pycodec2.
 
-    ``import pycodec2`` loads the extension which already needs libcodec2.so.
+    import pycodec2 loads the extension which already needs libcodec2.so.
     Searching sys.path on disk avoids that chicken-and-egg failure.
     """
     candidates: list[Path] = []
@@ -62,12 +62,12 @@ def _libcodec2_candidates() -> list[Path]:
 
 
 def ensure_codec2_native_library() -> bool:
-    """Preload ``libcodec2.so`` so ``import pycodec2`` works on Android.
+    """Preload libcodec2.so so import pycodec2 works on Android.
 
-    Chaquopy installs ``chaquopy-libcodec2`` separately from ``pycodec2``. The
-    extension module only declares a NEEDED entry for ``libcodec2.so``. Without
-    preloading or bundling the shared library next to ``pycodec2.so``, imports
-    fail at runtime with ``dlopen`` errors.
+    Chaquopy installs chaquopy-libcodec2 separately from pycodec2. The
+    extension module only declares a NEEDED entry for libcodec2.so. Without
+    preloading or bundling the shared library next to pycodec2.so, imports
+    fail at runtime with dlopen errors.
     """
     global _codec2_preload_done, _codec2_preload_error
 

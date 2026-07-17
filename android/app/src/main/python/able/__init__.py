@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 """Minimal Android BLE stack for RNS RNodeInterface on Chaquopy.
 
-API-compatible with the subset of ``able`` that Reticulum's Android
+API-compatible with the subset of able that Reticulum's Android
 RNodeInterface imports. Uses org.able.BLE (Java) plus Chaquopy proxies
 instead of Kivy / pyjnius.
 """

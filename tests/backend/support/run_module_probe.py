@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Probe module for ``--meshchatx-run-module`` live/subprocess tests."""
+"""Probe module for --meshchatx-run-module live/subprocess tests."""
 
 from __future__ import annotations
 

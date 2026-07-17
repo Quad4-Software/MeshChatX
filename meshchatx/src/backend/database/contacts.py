@@ -135,7 +135,7 @@ class ContactsDAO:
     def get_contact_by_identity_hash(self, remote_identity_hash, related_hashes=None):
         """Match a contact by identity, LXMF, or LXST hash.
 
-        ``related_hashes`` may include derived destination hashes for the same
+        related_hashes may include derived destination hashes for the same
         peer so callers that only know an identity hash still match contacts
         that were saved with an LXMF or LXST destination hash as the primary key.
         Matching is case-insensitive. Hex-only forms are also tried so UUID-style

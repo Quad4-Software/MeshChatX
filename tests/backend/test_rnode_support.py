@@ -10,7 +10,7 @@ from meshchatx.src.backend import rnode_support
 def test_normalize_rnode_tcp_host_backfills_from_port(tmp_path):
     """RNS's Android RNodeInterface reads tcp_host as its own config key.
 
-    Configs written with only ``port = tcp://host:port`` (which is all the
+    Configs written with only port = tcp://host:port (which is all the
     desktop RNodeInterface needs) silently try to open the RNode as a serial
     device on Android unless tcp_host is also present.
     """

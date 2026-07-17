@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Install custom Reticulum interface modules into ``configdir/interfaces``."""
+"""Install custom Reticulum interface modules into configdir/interfaces."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ _MAX_MODULE_BYTES = 512 * 1024
 
 
 def interface_modules_dir(reticulum_config_dir: str | None) -> str:
-    """Return the RNS ``interfacepath`` directory for this MeshChatX instance."""
+    """Return the RNS interfacepath directory for this MeshChatX instance."""
     if not reticulum_config_dir:
         raise ValueError("Reticulum config directory is not configured")
     root = os.path.abspath(os.path.expanduser(str(reticulum_config_dir)))
@@ -57,7 +57,7 @@ def validate_interface_module_source(data: bytes) -> str | None:
 
 
 def list_interface_modules(reticulum_config_dir: str | None) -> dict:
-    """List installed ``*.py`` modules under interfacepath."""
+    """List installed *.py modules under interfacepath."""
     path = interface_modules_dir(reticulum_config_dir)
     modules: list[dict] = []
     if os.path.isdir(path):
@@ -90,8 +90,8 @@ def install_interface_module(
 ) -> dict:
     """Write a custom interface module into interfacepath.
 
-    Returns a dict with ``type``, ``filename``, ``path``, and ``interfacepath``.
-    Raises ``ValueError`` on validation failures.
+    Returns a dict with type, filename, path, and interfacepath.
+    Raises ValueError on validation failures.
     """
     err = validate_interface_module_source(data)
     if err:

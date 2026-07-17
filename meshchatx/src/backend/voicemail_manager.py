@@ -148,7 +148,7 @@ class VoicemailManager:
                 os.remove(wav_path)
 
     def convert_to_greeting(self, input_path):
-        """Decode ``input_path`` and write the OGG/Opus voicemail greeting.
+        """Decode input_path and write the OGG/Opus voicemail greeting.
 
         Any miniaudio-supported format is accepted; output uses LXST's voice profile.
         """
@@ -500,11 +500,11 @@ class VoicemailManager:
             self.telephone_manager.is_voicemail_session_active = False
 
     def _fix_recording(self, filepath):
-        """Ensure ``filepath`` is a valid OGG/Opus file.
+        """Ensure filepath is a valid OGG/Opus file.
 
         OpusFileSink already produces valid OGG containers, so the common
-        case is a no-op (the file already starts with ``OggS``). For any
-        other input, we try to decode and re-encode using ``audio_codec``
+        case is a no-op (the file already starts with OggS). For any
+        other input, we try to decode and re-encode using audio_codec
         which covers WAV/MP3/FLAC/Vorbis/Opus.
         """
         if not os.path.exists(filepath):
@@ -535,7 +535,7 @@ class VoicemailManager:
             RNS.log(f"Voicemail: Error fixing recording {filepath}: {e}", RNS.LOG_ERROR)
 
     def _write_silence_file(self, filepath, seconds=1):
-        """Write a minimal OGG/Opus silence file at ``filepath``."""
+        """Write a minimal OGG/Opus silence file at filepath."""
         try:
             audio_codec.write_silence_ogg_opus(filepath, seconds=max(1, seconds))
             return os.path.exists(filepath) and os.path.getsize(filepath) > 0

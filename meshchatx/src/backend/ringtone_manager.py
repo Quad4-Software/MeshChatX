@@ -6,7 +6,7 @@ from .audio_codec import encode_audio_to_ogg_opus
 
 
 def _ringtone_profile():
-    """Stereo 48 kHz Opus ``audio`` profile for music-grade ringtones."""
+    """Stereo 48 kHz Opus audio profile for music-grade ringtones."""
     from LXST.Codecs import Opus
 
     return Opus.PROFILE_AUDIO_MAX
@@ -29,11 +29,11 @@ class RingtoneManager:
         os.makedirs(self.storage_dir, exist_ok=True)
 
     def convert_to_ringtone(self, input_path, ringtone_id=None):
-        """Decode ``input_path`` and re-encode it as an OGG/Opus ringtone.
+        """Decode input_path and re-encode it as an OGG/Opus ringtone.
 
         Accepts any audio container miniaudio can decode (WAV, MP3, FLAC,
         OGG/Vorbis) plus OGG/Opus via LXST. Encoded with the music
-        ``audio`` profile so trim edits preserve the original duration
+        audio profile so trim edits preserve the original duration
         and stereo image instead of being forced through the low-bitrate
         voice profile. Returns the stored filename.
         """

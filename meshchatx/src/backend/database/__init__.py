@@ -47,7 +47,7 @@ _ALLOWED_WAL_CHECKPOINT_MODES = frozenset({"PASSIVE", "FULL", "RESTART", "TRUNCA
 
 
 def _sanitize_pragma_read_name(name: str | None) -> str | None:
-    """Allow only simple SQLite pragma tokens for dynamic ``PRAGMA name`` reads."""
+    """Allow only simple SQLite pragma tokens for dynamic PRAGMA name reads."""
     if not name or not isinstance(name, str):
         return None
     token = name.strip()
@@ -140,7 +140,7 @@ class Database:
         """Shrink SQLite cache under low RAM.
 
         FILE temp spills break complex conversation queries under Landlock
-        (``unable to open database file``), even when TMPDIR is inside the
+        (unable to open database file), even when TMPDIR is inside the
         allowed storage tree. Keep MEMORY temp while Landlock is active and
         only reduce cache/mmap. Without Landlock, FILE temp is still used.
         """

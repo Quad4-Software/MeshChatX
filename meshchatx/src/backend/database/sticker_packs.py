@@ -5,7 +5,7 @@
 Packs group multiple stickers under a single user-facing label so they can be
 exported, shared with peers over LXMF, or installed from a peer's pack
 attachment. Stickers belonging to a pack reference it via
-``user_stickers.pack_id``.
+user_stickers.pack_id.
 """
 
 from __future__ import annotations
@@ -22,13 +22,13 @@ _PACK_COLUMNS = (
 
 
 class UserStickerPacksDAO:
-    """CRUD for ``user_sticker_packs``."""
+    """CRUD for user_sticker_packs."""
 
     def __init__(self, provider):
         self.provider = provider
 
     def count_for_identity(self, identity_hash: str) -> int:
-        """Return the number of packs stored for ``identity_hash``."""
+        """Return the number of packs stored for identity_hash."""
         row = self.provider.fetchone(
             "SELECT COUNT(*) AS c FROM user_sticker_packs WHERE identity_hash = ?",
             (identity_hash,),
@@ -36,7 +36,7 @@ class UserStickerPacksDAO:
         return int(row["c"]) if row else 0
 
     def list_for_identity(self, identity_hash: str):
-        """List packs for ``identity_hash`` ordered by user-defined sort order."""
+        """List packs for identity_hash ordered by user-defined sort order."""
         return self.provider.fetchall(
             f"""
             SELECT {_PACK_COLUMNS}
@@ -48,7 +48,7 @@ class UserStickerPacksDAO:
         )
 
     def get_row(self, pack_id: int, identity_hash: str):
-        """Fetch a single pack row scoped to ``identity_hash``."""
+        """Fetch a single pack row scoped to identity_hash."""
         return self.provider.fetchone(
             f"""
             SELECT {_PACK_COLUMNS}
@@ -59,7 +59,7 @@ class UserStickerPacksDAO:
         )
 
     def get_by_short_name(self, identity_hash: str, short_name: str):
-        """Fetch a pack by its identity-scoped ``short_name`` slug."""
+        """Fetch a pack by its identity-scoped short_name slug."""
         return self.provider.fetchone(
             f"""
             SELECT {_PACK_COLUMNS}
@@ -80,7 +80,7 @@ class UserStickerPacksDAO:
         author: str | None = None,
         is_strict: bool = True,
     ) -> dict:
-        """Create a new pack. Raises ``ValueError`` on quota or short_name clash."""
+        """Create a new pack. Raises ValueError on quota or short_name clash."""
         if (
             self.count_for_identity(identity_hash)
             >= sticker_utils.MAX_STICKER_PACKS_PER_IDENTITY
@@ -132,8 +132,8 @@ class UserStickerPacksDAO:
     ) -> bool:
         """Update mutable fields of an existing pack.
 
-        ``cover_sticker_id`` uses a sentinel default so callers can clear the
-        cover by passing ``None`` while leaving it untouched when omitted.
+        cover_sticker_id uses a sentinel default so callers can clear the
+        cover by passing None while leaving it untouched when omitted.
         """
         existing = self.get_row(pack_id, identity_hash)
         if not existing:
@@ -198,7 +198,7 @@ class UserStickerPacksDAO:
         return updated
 
     def delete(self, pack_id: int, identity_hash: str) -> bool:
-        """Delete a pack and detach its stickers (set ``pack_id`` to NULL)."""
+        """Delete a pack and detach its stickers (set pack_id to NULL)."""
         self.provider.execute(
             """
             UPDATE user_stickers SET pack_id = NULL

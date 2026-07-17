@@ -95,7 +95,7 @@ class IntegrityManager:
         """Determine if a file path is volatile RNS/LXMF state to skip.
 
         Critical security components living directly under the identity storage
-        directory (``identity``, ``config``, ``database.db``) are never ignored;
+        directory (identity, config, database.db) are never ignored;
         only the continuously-rewritten LXMF router tree, ratchets, message
         store and known RNS state files are excluded.
         """

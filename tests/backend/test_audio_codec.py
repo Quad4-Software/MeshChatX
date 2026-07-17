@@ -2,13 +2,13 @@
 """Tests for the in-process audio decode/encode helpers.
 
 These tests stand in for the previous ffmpeg subprocess pipeline.
-Coverage is targeted at the public ``audio_codec`` API:
+Coverage is targeted at the public audio_codec API:
 
-* ``decode_audio`` for WAV (built-in), miniaudio formats and OGG/Opus
-* ``encode_pcm_to_ogg_opus`` round-trips
-* ``encode_audio_to_ogg_opus`` for arbitrary inputs
-* ``write_silence_ogg_opus`` for empty greetings/voicemails
-* ``encode_audio_bytes_to_ogg_opus`` passthrough + decode-and-reencode
+* decode_audio for WAV (built-in), miniaudio formats and OGG/Opus
+* encode_pcm_to_ogg_opus round-trips
+* encode_audio_to_ogg_opus for arbitrary inputs
+* write_silence_ogg_opus for empty greetings/voicemails
+* encode_audio_bytes_to_ogg_opus passthrough + decode-and-reencode
 """
 
 import io
@@ -208,7 +208,7 @@ def test_encode_pcm_to_ogg_opus_preserves_duration(duration_seconds):
 
 
 def test_encode_pcm_to_ogg_opus_audio_profile_keeps_stereo():
-    """``PROFILE_AUDIO_MAX`` must keep stereo input as stereo, not collapse to mono."""
+    """PROFILE_AUDIO_MAX must keep stereo input as stereo, not collapse to mono."""
     out = _tmp_opus_path()
     try:
         from LXST.Codecs import Opus

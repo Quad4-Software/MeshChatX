@@ -4,7 +4,7 @@
 
 Handles creation, deletion, persistence, start/stop, and announce
 scheduling for page nodes. Each node gets its own subdirectory under
-``storage/page_nodes/<node_id>/``.
+storage/page_nodes/<node_id>/.
 """
 
 import os

@@ -49,7 +49,7 @@ _LISTEN_ADDRESS_RE = re.compile(
 
 _RNX_MODULE = "RNS.Utilities.rnx"
 # cx_Freeze / AppImage bundles set sys.executable to MeshChatX itself, which
-# does not accept Python's ``-m``. meshchat.main() dispatches this flag to
+# does not accept Python's -m. meshchat.main() dispatches this flag to
 # runpy.run_module before argparse (see meshchatx/meshchat.py).
 _MESHCHATX_RUN_MODULE_FLAG = "--meshchatx-run-module"
 
@@ -154,7 +154,7 @@ class RNXSession:
     def resolved_config_dir(self):
         """The Reticulum config directory rnx is launched against.
 
-        A per-session ``config_path`` override wins; otherwise the manager's
+        A per-session config_path override wins; otherwise the manager's
         shared directory (the MeshChatX app's Reticulum instance) is used so
         rnx attaches to the same shared instance.
         """
@@ -236,7 +236,7 @@ class RNXSession:
     def _maybe_detect_listen_address(self):
         """Extract the listener destination hash from rnx log output.
 
-        Must be called while holding ``self._lock``.
+        Must be called while holding self._lock.
         Returns True when a new listen address was stored.
         """
         if self.mode != "listen" or self.listen_address:
@@ -266,11 +266,11 @@ class RNXSession:
         Prefer the Python module entry point so sessions work when the PATH
         console-script wrapper is not executable (common with pip --user
         installs) or when Landlock denies executing paths outside allowed
-        read roots (for example ``~/.local/bin/rnx``).
+        read roots (for example ~/.local/bin/rnx).
 
         Frozen desktop builds (Windows EXE, AppImage, macOS) set
-        ``sys.executable`` to MeshChatX itself, which rejects ``-m``. Those
-        builds re-enter via ``--meshchatx-run-module`` instead.
+        sys.executable to MeshChatX itself, which rejects -m. Those
+        builds re-enter via --meshchatx-run-module instead.
         """
         if RNXSession._rnx_module_available():
             if RNXSession._is_frozen_executable():
@@ -402,8 +402,8 @@ class RNXSession:
     def _acquire_controlling_tty():  # pragma: no cover - runs in child process
         """Make the slave pty the controlling terminal of the child.
 
-        Runs in the forked child after ``start_new_session`` has called
-        ``setsid`` and after stdio has been redirected to the slave pty.
+        Runs in the forked child after start_new_session has called
+        setsid and after stdio has been redirected to the slave pty.
         """
         with contextlib.suppress(Exception):
             fcntl.ioctl(0, termios.TIOCSCTTY, 0)
@@ -623,7 +623,7 @@ class RNXSession:
         self.manager.save()
 
     def _waiter_loop(self, process):
-        """Wait for ``process`` and update status only if it is still current.
+        """Wait for process and update status only if it is still current.
 
         The process is passed in so a later restart cannot be clobbered by an
         older waiter finishing after a new session process was started.

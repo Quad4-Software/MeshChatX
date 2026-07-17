@@ -279,7 +279,7 @@ class MessageDAO:
         """Lightweight update for delivery-state changes only.
 
         Avoids re-serializing the full message (including base64 attachment
-        data) which the heavy ``upsert_lxmf_message`` path does.
+        data) which the heavy upsert_lxmf_message path does.
         """
         now = datetime.now(UTC).isoformat()
         if method is None:
@@ -446,14 +446,14 @@ class MessageDAO:
         )
 
     def get_latest_user_facing_incoming_message(self, peer_hash, *, scan_limit=50):
-        """Return the most recent incoming user-facing message for ``peer_hash``.
+        """Return the most recent incoming user-facing message for peer_hash.
 
         Walks recent incoming messages in timestamp-descending order and applies
         :func:`is_user_facing_lxmf_payload` in Python (the SQLite layer cannot
-        cheaply parse the JSON ``fields`` blob). ``scan_limit`` bounds the walk
+        cheaply parse the JSON fields blob). scan_limit bounds the walk
         so a long chain of reactions/telemetry won't degrade the bell endpoint.
 
-        Returns ``None`` if no user-facing incoming message exists in the
+        Returns None if no user-facing incoming message exists in the
         scanned window.
         """
         from meshchatx.src.backend.lxmf_utils import is_user_facing_lxmf_payload

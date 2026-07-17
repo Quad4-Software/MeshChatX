@@ -2,7 +2,7 @@
 
 """Multi-minute soak tests (announce DB + websocket fan-out).
 
-These are **opt-in**: unset ``MESHCHAT_LONG_TEST_SECONDS`` skips them immediately.
+These are **opt-in**: unset MESHCHAT_LONG_TEST_SECONDS skips them immediately.
 
 Examples::
 

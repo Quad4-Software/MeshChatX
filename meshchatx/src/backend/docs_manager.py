@@ -20,11 +20,11 @@ class DocsManager:
     """Manages the bundled Reticulum manual and any user-uploaded overrides.
 
     The Reticulum manual is shipped with the application under
-    ``<public_dir>/reticulum-docs-bundled/current``. Users may upload a
-    replacement archive which is extracted into ``<storage_dir>/reticulum-docs``
+    <public_dir>/reticulum-docs-bundled/current. Users may upload a
+    replacement archive which is extracted into <storage_dir>/reticulum-docs
     and takes precedence at request time. Removing the user upload restores the
     bundled copy. There is no runtime download path. Fresh manuals are staged at
-    build time with ``scripts/build/fetch_reticulum_manual.py`` (``pnpm run build-docs``).
+    build time with scripts/build/fetch_reticulum_manual.py (pnpm run build-docs).
     """
 
     def __init__(self, config, public_dir, project_root=None, storage_dir=None):
@@ -221,7 +221,7 @@ class DocsManager:
     def _sync_docs_tree(self, src_docs, dest_dir):
         """Copy manifest, markdown, and text files from src_docs into dest_dir.
 
-        Skips ``agents/`` (contributor and automated-agent guidance, not
+        Skips agents/ (contributor and automated-agent guidance, not
         end-user documentation).
         """
         for root, dirnames, files in os.walk(src_docs):
@@ -610,9 +610,9 @@ class DocsManager:
     def export_reticulum_docs(self, root_folder="reticulum_manual"):
         """Build a ZIP of the active Reticulum manual in upload-compatible form.
 
-        The archive lays out files under ``<root_folder>/docs/`` so that another
-        MeshChatX instance can re-import it via the ``/api/v1/docs/upload``
-        endpoint without modification. Returns ``None`` when no Reticulum docs
+        The archive lays out files under <root_folder>/docs/ so that another
+        MeshChatX instance can re-import it via the /api/v1/docs/upload
+        endpoint without modification. Returns None when no Reticulum docs
         are currently available (neither user-uploaded nor bundled).
         """
         active_docs_dir = self._active_reticulum_docs_dir()
@@ -773,9 +773,9 @@ class DocsManager:
         return os.path.exists(os.path.join(self.bundled_docs_dir, "index.html"))
 
     def find_docs_file(self, rel_path):
-        """Resolve ``rel_path`` against user docs first, then bundled docs.
+        """Resolve rel_path against user docs first, then bundled docs.
 
-        Returns the absolute on-disk path of the matching file, or ``None`` when
+        Returns the absolute on-disk path of the matching file, or None when
         the path either escapes the docs roots or no file exists in either
         location. Path traversal attempts are rejected.
         """

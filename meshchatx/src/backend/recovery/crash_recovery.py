@@ -71,8 +71,8 @@ class CrashRecovery:
     def install(self):
         """Installs the crash recovery exception hook into the system.
 
-        Covers both the main thread (``sys.excepthook``) and background
-        threads (``threading.excepthook``).  A daemon worker dying silently is
+        Covers both the main thread (sys.excepthook) and background
+        threads (threading.excepthook).  A daemon worker dying silently is
         a common source of hard-to-diagnose failures, so its exception is
         diagnosed and logged without tearing down the whole process.
         """

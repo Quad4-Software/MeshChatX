@@ -163,7 +163,7 @@ class TranslatorHandler:
         """List installed/reachable language pairs for the translator UI.
 
         LibreTranslate is queried only when it is enabled in config or when the
-        caller passes ``libretranslate_url`` (non-empty) to probe a specific server.
+        caller passes libretranslate_url (non-empty) to probe a specific server.
         """
         languages: list[dict[str, str]] = []
         libretranslate_reachable = False

@@ -9,7 +9,7 @@ flat ratio alert is useless. This script:
 2. Applies noise-floor, absolute-delta, and adaptive-ratio heuristics.
 3. Writes a human-readable summary and exits non-zero only on real regressions.
 4. Optionally updates the baseline cache when the run is clean (or always when
-   ``--update-baseline`` is set), so the next push compares against a stable
+   --update-baseline is set), so the next push compares against a stable
    median rather than a single noisy sample.
 """
 

@@ -60,7 +60,7 @@ class AnnounceDAO:
 
         Announces that correspond to a favourited destination or to a saved
         contact are considered protected and are never deleted by this trim,
-        even if the total count exceeds ``max_rows``. This prevents purging
+        even if the total count exceeds max_rows. This prevents purging
         of announces (and the path/identity context they provide) for
         favourited NomadNet nodes and for messaging contacts when storage
         limits are enforced.

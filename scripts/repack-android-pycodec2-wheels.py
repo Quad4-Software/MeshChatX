@@ -48,8 +48,8 @@ def _urlsafe_sha256_digest(data: bytes) -> str:
 def _rewrite_wheel_record(root: Path) -> None:
     """Regenerate dist-info/RECORD after wheel contents change.
 
-    Chaquopy's pip post-processor parses RECORD sizes with ``int()`` and rejects
-    directory placeholder lines (``path,,``). Rebuilding RECORD from file bytes
+    Chaquopy's pip post-processor parses RECORD sizes with int() and rejects
+    directory placeholder lines (path,,). Rebuilding RECORD from file bytes
     keeps repacked pycodec2 wheels installable.
     """
     dist_infos = sorted(root.glob("*.dist-info"))

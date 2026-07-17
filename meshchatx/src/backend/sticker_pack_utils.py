@@ -3,7 +3,7 @@
 """Validation and (de)serialization for MeshChatX sticker packs.
 
 A sticker pack is a named collection of stickers. Packs use the
-``meshchatx-stickerpack`` JSON document format so they can be exported to a
+meshchatx-stickerpack JSON document format so they can be exported to a
 local file, attached to an LXMF message for peer sharing, or installed back
 into another identity's library.
 """
@@ -20,7 +20,7 @@ _VALID_PACK_TYPES = frozenset({"static", "animated", "video", "mixed"})
 
 
 def sanitize_pack_title(title: str | None) -> str:
-    """Return a printable title for a pack, defaulting to ``"Untitled pack"``."""
+    """Return a printable title for a pack, defaulting to "Untitled pack"."""
     if title is None:
         return "Untitled pack"
     s = "".join(ch for ch in str(title).strip() if ch.isprintable())
@@ -28,7 +28,7 @@ def sanitize_pack_title(title: str | None) -> str:
 
 
 def sanitize_pack_short_name(name: str | None) -> str | None:
-    """Return a slug-compatible short name (alnum/underscore/dash) or ``None``."""
+    """Return a slug-compatible short name (alnum/underscore/dash) or None."""
     if name is None:
         return None
     s = str(name).strip().lower()
@@ -45,7 +45,7 @@ def sanitize_pack_description(description: str | None) -> str | None:
 
 
 def sanitize_pack_type(pack_type: str | None) -> str:
-    """Normalize a pack type to one of ``static|animated|video|mixed``."""
+    """Normalize a pack type to one of static|animated|video|mixed."""
     if not pack_type:
         return "mixed"
     s = str(pack_type).strip().lower()
@@ -57,10 +57,10 @@ def build_pack_document(
     stickers: list[dict],
     exported_at_iso: str,
 ) -> dict:
-    """Build a ``meshchatx-stickerpack`` document from a pack and its stickers.
+    """Build a meshchatx-stickerpack document from a pack and its stickers.
 
-    ``pack`` is a row from ``user_sticker_packs``. ``stickers`` is a list of
-    rows containing ``name``, ``emoji``, ``image_type``, ``image_bytes`` (base64
+    pack is a row from user_sticker_packs. stickers is a list of
+    rows containing name, emoji, image_type, image_bytes (base64
     string), and optional metadata fields.
     """
     return {
@@ -80,10 +80,10 @@ def build_pack_document(
 
 
 def validate_pack_document(data: object) -> dict:
-    """Parse and validate a ``meshchatx-stickerpack`` document.
+    """Parse and validate a meshchatx-stickerpack document.
 
-    Returns a dict with normalized ``pack`` and ``stickers`` lists. Raises
-    ``ValueError`` with a short reason on invalid input.
+    Returns a dict with normalized pack and stickers lists. Raises
+    ValueError with a short reason on invalid input.
     """
     if not isinstance(data, dict):
         msg = "invalid_pack_document"

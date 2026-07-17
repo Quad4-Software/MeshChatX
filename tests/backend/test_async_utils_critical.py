@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Critical-path tests for ``AsyncUtils``: cross-thread scheduling and memory caps."""
+"""Critical-path tests for AsyncUtils: cross-thread scheduling and memory caps."""
 
 from __future__ import annotations
 

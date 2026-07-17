@@ -136,7 +136,7 @@ def rnode_transport_supported(iface: dict, *, is_android: bool | None = None) ->
     usbserial4a + jnius on Android. BLE needs able on Android. On desktop,
     serial and classic-Bluetooth rely on pyserial; BLE relies on bleak.
 
-    ``is_android`` lets a caller that already determined the platform pass
+    is_android lets a caller that already determined the platform pass
     that result through explicitly, instead of re-detecting it here.
     """
     if is_android is None:
@@ -160,7 +160,7 @@ def normalize_rnode_tcp_host_in_config(config_path: str) -> bool:
     RNS's desktop RNodeInterface derives tcp_host from a tcp:// port itself,
     but the Android-specific implementation reads tcp_host as its own,
     separate config key and never looks at port for that. Configs written or
-    hand-edited with only ``port = tcp://host:port`` therefore silently try
+    hand-edited with only port = tcp://host:port therefore silently try
     (and fail) to open the RNode as a serial device on Android. This keeps
     both keys in sync regardless of how the entry was created, so RNode over
     TCP works the same way on both platforms.

@@ -47,9 +47,9 @@ def estimate_battery_usage(
 ) -> dict[str, Any] | None:
     """Build an estimated MeshChatX battery-usage payload.
 
-    ``avg_cpu_percent`` is percent of one logical core (may exceed 100 on
-    multi-threaded work). ``machine_share_percent`` normalizes by CPU count.
-    ``estimated_percent_per_hour`` is a rough battery pack drain rate.
+    avg_cpu_percent is percent of one logical core (may exceed 100 on
+    multi-threaded work). machine_share_percent normalizes by CPU count.
+    estimated_percent_per_hour is a rough battery pack drain rate.
     """
     if cpu_time_seconds is None or uptime_seconds is None:
         return None

@@ -27,7 +27,7 @@ class UserStickersDAO:
         self.provider = provider
 
     def count_for_identity(self, identity_hash: str) -> int:
-        """Return the total number of stickers stored for ``identity_hash``."""
+        """Return the total number of stickers stored for identity_hash."""
         row = self.provider.fetchone(
             "SELECT COUNT(*) AS c FROM user_stickers WHERE identity_hash = ?",
             (identity_hash,),
@@ -35,7 +35,7 @@ class UserStickersDAO:
         return int(row["c"]) if row else 0
 
     def count_for_pack(self, pack_id: int, identity_hash: str) -> int:
-        """Return the number of stickers belonging to ``pack_id``."""
+        """Return the number of stickers belonging to pack_id."""
         row = self.provider.fetchone(
             "SELECT COUNT(*) AS c FROM user_stickers WHERE pack_id = ? AND identity_hash = ?",
             (pack_id, identity_hash),
@@ -43,7 +43,7 @@ class UserStickersDAO:
         return int(row["c"]) if row else 0
 
     def list_for_identity(self, identity_hash: str):
-        """List all sticker summaries for ``identity_hash``, newest first."""
+        """List all sticker summaries for identity_hash, newest first."""
         return self.provider.fetchall(
             f"""
             SELECT {_STICKER_SUMMARY_COLUMNS}
@@ -55,7 +55,7 @@ class UserStickersDAO:
         )
 
     def list_for_pack(self, pack_id: int, identity_hash: str):
-        """List sticker summaries belonging to a pack, ordered by ``sort_order``."""
+        """List sticker summaries belonging to a pack, ordered by sort_order."""
         return self.provider.fetchall(
             f"""
             SELECT {_STICKER_SUMMARY_COLUMNS}
@@ -79,7 +79,7 @@ class UserStickersDAO:
         )
 
     def get_row(self, sticker_id: int, identity_hash: str):
-        """Fetch the full row (including ``image_blob``) for a sticker."""
+        """Fetch the full row (including image_blob) for a sticker."""
         return self.provider.fetchone(
             f"""
             SELECT {_STICKER_FULL_COLUMNS}
@@ -90,7 +90,7 @@ class UserStickersDAO:
         )
 
     def delete(self, sticker_id: int, identity_hash: str) -> bool:
-        """Delete a single sticker. Returns ``True`` when a row was removed."""
+        """Delete a single sticker. Returns True when a row was removed."""
         cur = self.provider.execute(
             "DELETE FROM user_stickers WHERE id = ? AND identity_hash = ?",
             (sticker_id, identity_hash),
@@ -106,7 +106,7 @@ class UserStickersDAO:
         return cur.rowcount
 
     def delete_all_for_pack(self, pack_id: int, identity_hash: str) -> int:
-        """Delete every sticker that belongs to ``pack_id``."""
+        """Delete every sticker that belongs to pack_id."""
         cur = self.provider.execute(
             "DELETE FROM user_stickers WHERE pack_id = ? AND identity_hash = ?",
             (pack_id, identity_hash),
@@ -180,10 +180,10 @@ class UserStickersDAO:
         strict: bool = False,
         sort_order: int = 0,
     ) -> dict | None:
-        """Insert a sticker. Returns ``None`` if a duplicate (by content hash).
+        """Insert a sticker. Returns None if a duplicate (by content hash).
 
         Validates the payload against the legacy or strict Telegram rules
-        depending on ``strict``. Extracts and stores width/height/fps/duration
+        depending on strict. Extracts and stores width/height/fps/duration
         metadata so the picker can render the sticker correctly without
         re-parsing.
         """

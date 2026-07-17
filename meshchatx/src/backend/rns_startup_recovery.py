@@ -2,13 +2,13 @@
 
 """Contain RNS process-killing exits and recover from bad interface configs.
 
-Reticulum's ``RNS.panic()`` calls ``os._exit(255)``, which kills the whole
+Reticulum's RNS.panic() calls os._exit(255), which kills the whole
 MeshChatX process (fatal on Android where Python runs in-process). Interface
 init failures can also leave the app unable to start until the user wipes
 storage. This module:
 
-1. Replaces ``RNS.panic`` / ``RNS.exit`` with catchable exceptions
-2. Forces ``panic_on_interface_error = No`` in the Reticulum config
+1. Replaces RNS.panic / RNS.exit with catchable exceptions
+2. Forces panic_on_interface_error = No in the Reticulum config
 3. Progressively disables risky interfaces and retries RNS construction
 """
 
@@ -44,7 +44,7 @@ _HIGH_RISK_TYPES = (
 
 
 class RnsPanicError(RuntimeError):
-    """Raised instead of ``os._exit`` when RNS would panic or hard-exit."""
+    """Raised instead of os._exit when RNS would panic or hard-exit."""
 
 
 def install_rns_panic_containment(*, force: bool = False) -> bool:
@@ -102,7 +102,7 @@ def install_rns_panic_containment(*, force: bool = False) -> bool:
 
 
 def ensure_panic_on_interface_error_disabled(config_path: str) -> bool:
-    """Force ``panic_on_interface_error = No`` so interface faults cannot kill RNS."""
+    """Force panic_on_interface_error = No so interface faults cannot kill RNS."""
     if not os.path.isfile(config_path):
         return False
     try:

@@ -134,7 +134,7 @@ describe("postInstallPromptRegistry", () => {
                 id: "bad",
                 revision: 0,
                 titleKey: "post_install.demo_title",
-            }),
+            })
         ).toThrow(/revision/);
     });
 

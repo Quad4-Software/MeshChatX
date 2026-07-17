@@ -3,20 +3,20 @@
 
 This module replaces the previous ffmpeg subprocess pipelines used for
 voicemail greetings, ringtones and browser-recorded voice messages. It
-exposes a small API that decodes user-supplied audio into ``float32`` PCM
+exposes a small API that decodes user-supplied audio into float32 PCM
 frames and encodes PCM frames into LXMF-compatible OGG/Opus files using
-``LXST.Sinks.OpusFileSink``.
+LXST.Sinks.OpusFileSink.
 
 Decoders, in priority order:
 
-1. ``wave`` (built-in) for ``RIFF/WAVE`` containers.
+1. wave (built-in) for RIFF/WAVE containers.
 2. `miniaudio <https://pypi.org/project/miniaudio/>`_ for WAV, MP3, FLAC
    and OGG/Vorbis. Bundled as a runtime dependency on every supported
    target (including Android via the Chaquopy recipe under
-   ``android/chaquopy-recipes/miniaudio-1.70``).
-3. LXST/pyogg ``OpusFile`` for OGG/Opus payloads.
+   android/chaquopy-recipes/miniaudio-1.70).
+3. LXST/pyogg OpusFile for OGG/Opus payloads.
 
-Encoder: ``LXST.Sinks.OpusFileSink`` configured with a voice-friendly
+Encoder: LXST.Sinks.OpusFileSink configured with a voice-friendly
 Opus profile so the output is a valid OGG/Opus file that Sideband and
 the rest of the LXMF ecosystem can play.
 """
@@ -35,8 +35,8 @@ class DecodedAudio:
     """A decoded audio buffer.
 
     Attributes:
-        samples: ``float32`` numpy array shaped ``(frames, channels)`` with
-            values in ``[-1.0, 1.0]``.
+        samples: float32 numpy array shaped (frames, channels) with
+            values in [-1.0, 1.0].
         samplerate: PCM sample rate in Hz.
         channels: Channel count.
 
@@ -48,7 +48,7 @@ class DecodedAudio:
 
 
 def _read_bytes(source) -> bytes:
-    """Return the bytes for ``source`` (path, file-like or bytes)."""
+    """Return the bytes for source (path, file-like or bytes)."""
     if isinstance(source, (bytes, bytearray, memoryview)):
         return bytes(source)
     if hasattr(source, "read"):
@@ -156,10 +156,10 @@ def _decode_with_lxst_opus(data: bytes):
 
 
 def decode_audio(source) -> DecodedAudio:
-    """Decode ``source`` into ``float32`` PCM frames.
+    """Decode source into float32 PCM frames.
 
-    ``source`` may be a path (``str``/``os.PathLike``), a file-like object
-    open in binary mode, or a ``bytes``/``bytearray`` payload.
+    source may be a path (str/os.PathLike), a file-like object
+    open in binary mode, or a bytes/bytearray payload.
 
     Raises:
         ValueError: If the payload could not be decoded by any backend.
@@ -191,9 +191,9 @@ def _normalize_for_opus(
     target_rate: int = _OPUS_TARGET_RATE,
     target_channels: int = 1,
 ):
-    """Resample/remix ``samples`` to a layout the chosen Opus profile accepts.
+    """Resample/remix samples to a layout the chosen Opus profile accepts.
 
-    Returns ``float32`` frames at ``target_rate`` with ``target_channels``
+    Returns float32 frames at target_rate with target_channels
     channels. Multi-channel input is downmixed to mono by averaging,
     mono input is duplicated when the profile expects stereo, and the
     rate is resampled via LXST's helper to stay consistent with the
@@ -243,16 +243,16 @@ def encode_pcm_to_ogg_opus(
     profile=None,
     frame_ms: int = 60,
 ) -> str:
-    """Encode ``samples`` (``float32`` ``(frames, channels)``) to OGG/Opus.
+    """Encode samples (float32 (frames, channels)) to OGG/Opus.
 
-    ``profile`` defaults to ``LXST.Codecs.Opus.PROFILE_VOICE_HIGH`` (48 kHz
+    profile defaults to LXST.Codecs.Opus.PROFILE_VOICE_HIGH (48 kHz
     mono voip, ~16 kbps ceiling) which keeps voice payloads small while
     remaining intelligible. Inputs at any sample rate or channel count are
     transparently resampled/remixed to the profile's expected layout
     before encoding.
 
     Encoding is fully synchronous: PCM is fed straight into a
-    ``OpusBufferedEncoder`` wrapped by an ``OggOpusWriter`` and flushed
+    OpusBufferedEncoder wrapped by an OggOpusWriter and flushed
     on close, so the encoded duration matches the input exactly with no
     frame loss and no trailing silence padding.
     """
@@ -309,7 +309,7 @@ def encode_pcm_to_ogg_opus(
 
 
 def encode_audio_to_ogg_opus(source, output_path: str, profile=None) -> str:
-    """Decode any supported ``source`` and re-encode it as OGG/Opus.
+    """Decode any supported source and re-encode it as OGG/Opus.
 
     Intended for converting user-uploaded greetings/ringtones (any format
     miniaudio can decode) into the OGG/Opus container required by the
@@ -332,7 +332,7 @@ def write_silence_ogg_opus(
     channels: int = 1,
     profile=None,
 ) -> str:
-    """Write a silent OGG/Opus file of ``seconds`` seconds to ``output_path``."""
+    """Write a silent OGG/Opus file of seconds seconds to output_path."""
     import numpy as np
 
     duration = max(0.05, float(seconds))
@@ -348,14 +348,14 @@ def write_silence_ogg_opus(
 
 
 def is_ogg_opus_bytes(data: bytes) -> bool:
-    """Return ``True`` if ``data`` looks like an OGG container payload."""
+    """Return True if data looks like an OGG container payload."""
     return len(data) >= 4 and data[:4] == b"OggS"
 
 
 def encode_audio_bytes_to_ogg_opus(data: bytes, profile=None) -> bytes | None:
-    """Decode ``data`` and return the corresponding OGG/Opus byte string.
+    """Decode data and return the corresponding OGG/Opus byte string.
 
-    Returns ``None`` if the payload could not be decoded. If the payload
+    Returns None if the payload could not be decoded. If the payload
     is already an OGG container it is returned unchanged.
     """
     if is_ogg_opus_bytes(data):

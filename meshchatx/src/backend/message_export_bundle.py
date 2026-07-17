@@ -174,7 +174,7 @@ def _import_display_names(database, display_names) -> int:
 def import_messages_export_bundle(database, payload) -> dict:
     """Import messages plus optional contacts, names, and read state.
 
-    Accepts legacy ``{messages: [...]}`` / bare arrays and v2 bundles.
+    Accepts legacy {messages: [...]} / bare arrays and v2 bundles.
     """
     if isinstance(payload, list):
         messages = payload

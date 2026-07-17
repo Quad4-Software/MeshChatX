@@ -331,8 +331,7 @@ describe("createVisualiserWebGLEngine interactions", () => {
         });
         globalThis.meshchatxVisualiserSceneZoomAt = (...args) => zoomAt(...args);
         globalThis.meshchatxVisualiserScenePanBy = vi.fn();
-        globalThis.meshchatxVisualiserSceneGetPositions = () =>
-            JSON.stringify({ positions: { me: { x: 0, y: 0 } } });
+        globalThis.meshchatxVisualiserSceneGetPositions = () => JSON.stringify({ positions: { me: { x: 0, y: 0 } } });
         globalThis.meshchatxVisualiserSceneResize = vi.fn();
         canvas = makeCanvas(gl);
         engine = createVisualiserWebGLEngine(canvas, {

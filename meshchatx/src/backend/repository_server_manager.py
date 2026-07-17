@@ -47,7 +47,7 @@ def bundled_pip_targets() -> tuple[str, ...]:
 
 
 def meshchat_bundle_project_root() -> Path | None:
-    """Directory containing ``pyproject.toml`` for this MeshChatX tree (repo layout helper)."""
+    """Directory containing pyproject.toml for this MeshChatX tree (repo layout helper)."""
     here = Path(__file__).resolve()
     for anc in here.parents:
         meta = anc / "pyproject.toml"
@@ -68,7 +68,7 @@ REPOSITORY_BUNDLED_PUBLIC_PARTS = ("repository-server-bundled", "bundled")
 
 
 def public_bundled_wheels_dir(public_dir: str) -> str:
-    """Directory under ``public_dir`` where build-staged wheels live (HTTP + optional pip fallback)."""
+    """Directory under public_dir where build-staged wheels live (HTTP + optional pip fallback)."""
     return os.path.join(public_dir, *REPOSITORY_BUNDLED_PUBLIC_PARTS)
 
 
@@ -180,9 +180,9 @@ def _download_wheel_via_pypi_index(
 
 
 def stage_local_meshchatx_wheel_into_bundled_dir(dest: Path) -> Path | None:
-    """If ``dist/reticulum_meshchatx-*.whl`` exists under the project root, copy the newest into ``dest``.
+    """If dist/reticulum_meshchatx-*.whl exists under the project root, copy the newest into dest.
 
-    Replaces any PyPI-downloaded ``reticulum_meshchatx-*.whl`` so APK/offline bundles ship this tree's wheel.
+    Replaces any PyPI-downloaded reticulum_meshchatx-*.whl so APK/offline bundles ship this tree's wheel.
     """
     root = meshchat_bundle_project_root()
     if root is None:
@@ -214,9 +214,9 @@ def download_bundled_wheels_to_directory(
     *,
     on_package: Callable[[int, int, str], None] | None = None,
 ) -> dict[str, Any]:
-    """Populate ``dest`` with wheels for :func:`bundled_pip_targets`.
+    """Populate dest with wheels for :func:`bundled_pip_targets`.
 
-    Uses PyPI project metadata JSON and HTTPS downloads via ``urllib`` only.
+    Uses PyPI project metadata JSON and HTTPS downloads via urllib only.
     """
     dest.mkdir(parents=True, exist_ok=True)
     packages = list(bundled_pip_targets())
@@ -255,7 +255,7 @@ _FILE_LIST_MARKER = "<!--FILE_LISTS-->"
 
 
 def _repository_index_template_path(public_dir: str | None) -> Path | None:
-    """Resolve the repository index HTML (Vite public / built ``public`` / source tree)."""
+    """Resolve the repository index HTML (Vite public / built public / source tree)."""
     if public_dir:
         candidate = Path(public_dir) / _REPOSITORY_INDEX_HTML
         if candidate.is_file():
@@ -319,7 +319,7 @@ def build_repository_index_html(
     uploads_dir: str,
     public_dir: str | None = None,
 ) -> str:
-    """HTML shell with live bundled and uploads file tables (for ``/`` and ``/index.html``)."""
+    """HTML shell with live bundled and uploads file tables (for / and /index.html)."""
     template = _repository_index_template_path(public_dir)
     shell: str
     if template is not None:
@@ -356,7 +356,7 @@ def make_repository_http_request_handler(
     root: str,
     public_dir: str | None = None,
 ) -> type[http.server.SimpleHTTPRequestHandler]:
-    """``SimpleHTTPRequestHandler`` subclass: dynamic index listing at ``/`` and ``/index.html``."""
+    """SimpleHTTPRequestHandler subclass: dynamic index listing at / and /index.html."""
     root_abs = os.path.abspath(root)
     uploads_dir = os.path.join(root_abs, "uploads")
     bundled_dir = os.path.join(root_abs, "bundled")
@@ -411,7 +411,7 @@ def _safe_any_upload_filename(name: str) -> str | None:
 
 
 class RepositoryServerManager:
-    """Keeps user uploads and a ``bundled`` directory of wheels (PyPI over HTTPS, stdlib only)."""
+    """Keeps user uploads and a bundled directory of wheels (PyPI over HTTPS, stdlib only)."""
 
     def __init__(self, storage_path: str, public_dir: str | None = None) -> None:
         self.root = os.path.join(storage_path, "repository-server")
@@ -523,7 +523,7 @@ class RepositoryServerManager:
         host: str | None = None,
         port: int | None = None,
     ) -> dict[str, Any]:
-        """Serve ``repository-server`` root over plain HTTP (no TLS) on a background thread."""
+        """Serve repository-server root over plain HTTP (no TLS) on a background thread."""
         bind_host = _normalize_listen_host(host or self._http_last_host or "127.0.0.1")
         if not bind_host:
             return {"ok": False, "error": "invalid_host"}
@@ -671,7 +671,7 @@ class RepositoryServerManager:
         }
 
     def refresh_bundled_wheels(self) -> dict[str, Any]:
-        """Download wheels into ``bundled_dir`` (PyPI JSON + ``urllib``).
+        """Download wheels into bundled_dir (PyPI JSON + urllib).
 
         Downloads into a temporary directory first, then atomically replaces
         the live bundled directory so a failed refresh cannot wipe existing

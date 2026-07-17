@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Regression: Nomad net downloads must emit websocket ``started`` before scheduling ``download()``."""
+"""Regression: Nomad net downloads must emit websocket started before scheduling download()."""
 
 import json
 from unittest.mock import AsyncMock, MagicMock

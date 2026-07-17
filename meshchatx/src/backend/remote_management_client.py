@@ -2,8 +2,8 @@
 
 """Remote Reticulum management client for status and path queries.
 
-Uses the same ``rnstransport.remote.management`` destination and request paths
-as the bundled ``rnstatus`` / ``rnpath`` utilities (``-R`` / ``-i``).
+Uses the same rnstransport.remote.management destination and request paths
+as the bundled rnstatus / rnpath utilities (-R / -i).
 """
 
 from __future__ import annotations

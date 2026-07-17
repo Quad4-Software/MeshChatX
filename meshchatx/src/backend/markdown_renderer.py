@@ -77,8 +77,8 @@ class MarkdownRenderer:
             flags=re.DOTALL,
         )
 
-        # Inline code before emphasis so snake_case / ``rst`` spans are not
-        # mangled by underscore italic (changelog uses both `code` and ``code``).
+        # Inline code before emphasis so snake_case / rst spans are not
+        # mangled by underscore italic (changelog uses both `code` and code).
         inline_codes: list[str] = []
 
         def inline_code_placeholder(match):

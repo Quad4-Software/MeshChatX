@@ -304,15 +304,15 @@ def _resolve_rns_loglevel(cli_override: str | None) -> int | None:
 
 
 def _restore_rns_console_logging_after_reticulum_init(app) -> None:
-    """Undo shutdown side effects from ``RNS.Reticulum.exit_handler``.
+    """Undo shutdown side effects from RNS.Reticulum.exit_handler.
 
-    That handler sets ``RNS.loglevel`` to ``LOG_NONE`` and points ``sys.stdout`` /
-    ``sys.stderr`` at ``os.devnull``. Without this, hot reload appears to stop all
+    That handler sets RNS.loglevel to LOG_NONE and points sys.stdout /
+    sys.stderr at os.devnull. Without this, hot reload appears to stop all
     announce traffic logging even though interfaces are up.
 
-    When no CLI or ``MESHCHAT_RNS_LOG_LEVEL`` value applies and the level is still
-    ``LOG_NONE`` after reading config, fall back to ``LOG_WARNING`` so notices are
-    visible. Explicit ``none`` in the environment remains respected.
+    When no CLI or MESHCHAT_RNS_LOG_LEVEL value applies and the level is still
+    LOG_NONE after reading config, fall back to LOG_WARNING so notices are
+    visible. Explicit none in the environment remains respected.
     """
     try:
         if hasattr(sys, "__stdout__"):
@@ -327,16 +327,16 @@ def _restore_rns_console_logging_after_reticulum_init(app) -> None:
 
 
 def _create_reticulum_instance(config_dir: str, loglevel: int | None = None):
-    """Construct ``RNS.Reticulum`` even when called off the main thread.
+    """Construct RNS.Reticulum even when called off the main thread.
 
-    Reticulum registers SIGINT/SIGTERM handlers in ``__init__``. Python only allows
-    ``signal.signal`` on the main thread, so deferred network setup must skip that
+    Reticulum registers SIGINT/SIGTERM handlers in __init__. Python only allows
+    signal.signal on the main thread, so deferred network setup must skip that
     registration when running in a background worker and install handlers later.
 
     On failure, progressively disables risky interfaces (I2P, unsupported RNode,
     AutoInterface, etc.) and retries so Android/desktop can recover without
-    wiping app data or the whole ``.reticulum`` tree. ``RNS.panic`` is contained
-    so it cannot ``os._exit`` the MeshChatX process.
+    wiping app data or the whole .reticulum tree. RNS.panic is contained
+    so it cannot os._exit the MeshChatX process.
     """
     kwargs = {}
     if loglevel is not None:
@@ -382,10 +382,10 @@ def list_host_network_interfaces():
     """Enumerate kernel network interfaces on the host running MeshChat.
 
     Uses psutil (Linux, macOS, Windows). Fails soft on restricted environments
-    (e.g. some Android sandboxes) and returns ``([], error)``.
+    (e.g. some Android sandboxes) and returns ([], error).
 
-    Reticulum's ``device`` field on server-style interfaces is a *single* interface
-    name, or omitted when binding only via ``listen_ip``.
+    Reticulum's device field on server-style interfaces is a *single* interface
+    name, or omitted when binding only via listen_ip.
     """
     try:
         raw = psutil.net_if_addrs()
@@ -873,7 +873,7 @@ class ReticulumMeshChat:
         """Create, start, stop, and delete an Echo bot subprocess.
 
         Uses an isolated identity + Reticulum config under storage so the check
-        does not touch user bots or ``~/.reticulum``.
+        does not touch user bots or ~/.reticulum.
         """
         from meshchatx.src.backend.bot_handler import BotHandler
 
@@ -1253,9 +1253,9 @@ class ReticulumMeshChat:
 
     @staticmethod
     def _write_rns_reticulum_default_config_file(config_path: str) -> str:
-        """Write RNS stock default config to ``config_path``; return on-disk text.
+        """Write RNS stock default config to config_path; return on-disk text.
 
-        Uses the same template and ConfigObj path as ``Reticulum.__create_default_config``.
+        Uses the same template and ConfigObj path as Reticulum.__create_default_config.
         """
         from RNS.vendor.configobj import ConfigObj
 
@@ -1339,13 +1339,13 @@ class ReticulumMeshChat:
         return disable_rnode_interfaces_in_config(config_path, is_android=True)
 
     def _ensure_reticulum_config(self, materialize: bool = True):
-        """Normalize ``reticulum_config_dir`` and optionally ensure a ``config`` file exists.
+        """Normalize reticulum_config_dir and optionally ensure a config file exists.
 
-        When ``materialize`` is true (default), write RNS stock defaults if the file
+        When materialize is true (default), write RNS stock defaults if the file
         is missing or lacks required sections so first Reticulum startup is reliable.
 
         API handlers that must distinguish a missing file (e.g. raw config GET) pass
-        ``materialize=False`` to only normalize the directory path.
+        materialize=False to only normalize the directory path.
         """
         config_dir = self._normalize_reticulum_config_dir(self.reticulum_config_dir)
         self.reticulum_config_dir = config_dir
@@ -1897,8 +1897,8 @@ class ReticulumMeshChat:
     def _reset_transport_globals_for_reload() -> None:
         """Clear RNS Transport globals so a new Reticulum can start cleanly.
 
-        ``Reticulum.exit_handler`` sets ``Transport._should_run = False``. Upstream
-        ``Transport.start`` never flips it back, so hot reload must restore it or
+        Reticulum.exit_handler sets Transport._should_run = False. Upstream
+        Transport.start never flips it back, so hot reload must restore it or
         the new jobloop exits immediately and path/link tools stay dead while
         interface RX/TX counters still update.
         """
@@ -1931,8 +1931,8 @@ class ReticulumMeshChat:
     def _looks_like_meshchat_hot_reload_tail(pid: int, epoch: int) -> bool:
         """Limit repairs to suffixes :meth:`reload_reticulum` actually writes.
 
-        Hot reload uses ``-reload-{os.getpid()}-{int(time.time())}``. Names like
-        ``my-net-reload-peer`` must not be truncated.
+        Hot reload uses -reload-{os.getpid()}-{int(time.time())}. Names like
+        my-net-reload-peer must not be truncated.
         """
         if pid < 1 or pid > ReticulumMeshChat._meshchat_reload_pid_max:
             return False
@@ -1984,7 +1984,7 @@ class ReticulumMeshChat:
         return cp.get("reticulum", "instance_name", fallback=None)
 
     def _repair_reticulum_instance_name_corruption(self):
-        """Rewrite persisted ``instance_name`` if hot-reload suffixes were left on disk."""
+        """Rewrite persisted instance_name if hot-reload suffixes were left on disk."""
         raw = self._read_reticulum_instance_name()
         if not raw:
             return
@@ -2772,7 +2772,7 @@ class ReticulumMeshChat:
         """Resolve an installed distribution version for About /app/info.
 
         cx_Freeze and similar bundles often omit .dist-info; fall back to module
-        attributes and known submodule layouts (e.g. ``websockets.version``).
+        attributes and known submodule layouts (e.g. websockets.version).
         """
         try:
             from packaging.utils import canonicalize_name as _canonicalize_name
@@ -3051,14 +3051,14 @@ class ReticulumMeshChat:
         """Surface IFAC fields from discovery announces in a frontend-friendly shape.
 
         RNS publishes IFAC values in discovered interface dicts as
-        ``ifac_netname`` and ``ifac_netkey`` (when the publishing interface
-        sets ``publish_ifac = yes``). The Reticulum config file uses
-        ``network_name`` / ``passphrase`` instead. This helper keeps the raw
+        ifac_netname and ifac_netkey (when the publishing interface
+        sets publish_ifac = yes). The Reticulum config file uses
+        network_name / passphrase instead. This helper keeps the raw
         RNS keys for backwards compatibility but also exposes the canonical
-        config-style aliases (``network_name`` and ``passphrase``) and ensures
-        the optional ``config_entry`` blob is always a string when present.
+        config-style aliases (network_name and passphrase) and ensures
+        the optional config_entry blob is always a string when present.
 
-        Returns the list with new keys added; missing values become ``None``
+        Returns the list with new keys added; missing values become None
         so the frontend can render placeholders consistently.
         """
         if not isinstance(interfaces, list):
@@ -9564,8 +9564,8 @@ class ReticulumMeshChat:
         async def reticulum_config_raw_put(request):
             """Persist new raw text to the Reticulum config file.
 
-            The body must be JSON with a ``content`` string. Basic validation
-            requires the ``[reticulum]`` and ``[interfaces]`` sections so we
+            The body must be JSON with a content string. Basic validation
+            requires the [reticulum] and [interfaces] sections so we
             do not write a config that would prevent RNS from starting on the
             next reload.
             """
@@ -20463,9 +20463,9 @@ class ReticulumMeshChat:
     def _identity_from_public_key_bytes(public_key: bytes) -> RNS.Identity | None:
         """Load an RNS Identity from raw public-key bytes.
 
-        ``Identity.load_public_key`` is documented as returning True/False, but
-        current RNS releases return ``None`` on both success and failure. Treat
-        a non-None ``identity.pub`` (and a computed hash) as success.
+        Identity.load_public_key is documented as returning True/False, but
+        current RNS releases return None on both success and failure. Treat
+        a non-None identity.pub (and a computed hash) as success.
         """
         if not public_key:
             return None
@@ -20833,7 +20833,7 @@ class ReticulumMeshChat:
         """Resolve a contact for an identity or destination hash.
 
         Contacts are often saved with an LXMF destination hash as
-        ``remote_identity_hash`` (from chat UI). Incoming calls provide the
+        remote_identity_hash (from chat UI). Incoming calls provide the
         caller's identity hash. Bridge those forms via announces and derived
         destination hashes so contacts-only call policy works.
         """
@@ -20891,7 +20891,7 @@ class ReticulumMeshChat:
         return encoded
 
     def is_destination_blocked(self, destination_hash: str, context=None) -> bool:
-        """Return whether ``destination_hash`` is in the block list.
+        """Return whether destination_hash is in the block list.
 
         Accepts either a destination hash or an identity hash. When an identity
         hash is passed, any blocked destination belonging to that identity will
@@ -22860,7 +22860,7 @@ class ReticulumMeshChat:
         announce_packet_hash,
         context=None,
     ):
-        """Handle Relay Chat ``rrc.hub`` announces for hub discovery."""
+        """Handle Relay Chat rrc.hub announces for hub discovery."""
         ctx = context or self.current_context
         if not ctx or not ctx.running or not ctx.announce_manager or not ctx.database:
             return
@@ -22997,7 +22997,7 @@ class ReticulumMeshChat:
     def _try_serve_local_page_node_file(self, destination_hash, file_path):
         """Serve a file from disk when the hash matches a local page node.
 
-        Returns ``(file_name, file_bytes)``, or None.
+        Returns (file_name, file_bytes), or None.
         """
         for node in self.page_node_manager.nodes.values():
             if not node.running or not node.destination:
@@ -23112,9 +23112,9 @@ class ReticulumMeshChat:
 def _maybe_run_embedded_module():
     """Re-enter a bundled Python module from a frozen MeshChatX executable.
 
-    Desktop builds set ``sys.executable`` to MeshChatX itself, so
-    ``python -m …`` cannot be used to start tools like rnsh. Callers pass
-    ``--meshchatx-run-module <dotted.name>`` followed by that module's argv.
+    Desktop builds set sys.executable to MeshChatX itself, so
+    python -m … cannot be used to start tools like rnsh. Callers pass
+    --meshchatx-run-module <dotted.name> followed by that module's argv.
     """
     marker = "--meshchatx-run-module"
     if len(sys.argv) < 3 or sys.argv[1] != marker:

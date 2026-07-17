@@ -92,7 +92,7 @@ class MessageHandler:
         params = [like_term, like_term, like_term, limit]
         return self.db.provider.fetchall(query, params)
 
-    # Keep conversation-list payloads small. Full ``fields`` often embeds
+    # Keep conversation-list payloads small. Full fields often embeds
     # multi-MB base64 attachments and must never be loaded into the list API.
     # Prefer persisted has_* columns (schema v51+). Fall back to instr only
     # when flags were never backfilled (NULL) on filter paths.

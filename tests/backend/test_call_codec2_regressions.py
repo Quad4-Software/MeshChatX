@@ -4,8 +4,8 @@
 
 These lock in bugs that broke real calls:
 1. Contacts saved under LXMF destination hashes were rejected by contacts-only.
-2. Configured audio profiles never reached LXST ``telephone.call()``.
-3. Invalid legacy profile id ``2`` silently mapped to Opus instead of a real profile.
+2. Configured audio profiles never reached LXST telephone.call().
+3. Invalid legacy profile id 2 silently mapped to Opus instead of a real profile.
 4. Codec2 profiles crashed or were unusable when pycodec2/libcodec2 was missing.
 5. Incoming calls during outbound dial left the remote ringing forever.
 """

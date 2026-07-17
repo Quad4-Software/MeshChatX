@@ -213,7 +213,7 @@ export default class MicronParser extends BaseMicronParser {
     }
 
     /**
-     * Browsers insert newlines between adjacent ``inline-block`` Mu-mnt cells
+     * Browsers insert newlines between adjacent inline-block Mu-mnt cells
      * when copying. Rebuild clipboard text without those spurious breaks while
      * keeping intentional block-level line breaks.
      */

@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: 0BSD
 """Tests for :mod:`meshchatx.src.backend.ringtone_manager`.
 
-The manager performs conversion in-process via ``audio_codec``
+The manager performs conversion in-process via audio_codec
 (miniaudio + LXST). These tests pin the contract that
-``convert_to_ringtone`` decodes any supported audio container and
+convert_to_ringtone decodes any supported audio container and
 produces a stored OGG/Opus ringtone.
 """
 

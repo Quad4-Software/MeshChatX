@@ -2,9 +2,9 @@
 # SPDX-License-Identifier: 0BSD
 """Fetch the Reticulum manual at build time and stage it for bundling.
 
-The downloaded archive is extracted into ``meshchatx/public/reticulum-docs-bundled/current``
+The downloaded archive is extracted into meshchatx/public/reticulum-docs-bundled/current
 so that the application ships with an offline copy of the manual. At runtime the
-backend will serve those files for any ``/reticulum-docs/`` request that does not
+backend will serve those files for any /reticulum-docs/ request that does not
 have a user-uploaded version overriding it.
 
 Usage::
@@ -12,21 +12,21 @@ Usage::
     python scripts/build/fetch_reticulum_manual.py [--source URL] [--dest DIR]
                                                    [--force] [--include-pdf]
 
-Sources may be HTTPS ZIP URLs, local directories that contain a ``docs/`` tree, or
-``rns://`` rngit remotes (requires ``git`` and ``git-remote-rns``).
+Sources may be HTTPS ZIP URLs, local directories that contain a docs/ tree, or
+rns:// rngit remotes (requires git and git-remote-rns).
 
 By default the upstream PDF/EPUB copies of the manual are excluded from the
 bundle because the in-app viewer only renders the HTML version. Pass
-``--include-pdf`` (or set ``MESHCHATX_DOCS_INCLUDE_PDF=1``) to keep them.
+--include-pdf (or set MESHCHATX_DOCS_INCLUDE_PDF=1) to keep them.
 
 Environment variables::
 
     MESHCHATX_RETICULUM_DOCS_URL   Override the default source URL (single value).
     MESHCHATX_RETICULUM_DOCS_DEST  Override the destination directory.
     MESHCHATX_RETICULUM_DOCS_VIA_RNS  If set, prefer the default rngit website remote.
-    MESHCHATX_RETICULUM_DOCS_REF   Git ref for ``rns://`` clones (default HEAD).
-    MESHCHATX_SKIP_DOCS_FETCH      If set to ``1``/``true``, exit without fetching.
-    MESHCHATX_DOCS_INCLUDE_PDF     If set to ``1``/``true``, include PDF/EPUB.
+    MESHCHATX_RETICULUM_DOCS_REF   Git ref for rns:// clones (default HEAD).
+    MESHCHATX_SKIP_DOCS_FETCH      If set to 1/true, exit without fetching.
+    MESHCHATX_DOCS_INCLUDE_PDF     If set to 1/true, include PDF/EPUB.
 """
 
 from __future__ import annotations
@@ -115,9 +115,9 @@ def _extract(
     dest: Path,
     include_pdf: bool = False,
 ) -> tuple[int, int]:
-    """Extract docs/ tree from ``archive`` into ``dest``.
+    """Extract docs/ tree from archive into dest.
 
-    Returns ``(extracted_count, skipped_binary_count)``. When ``include_pdf`` is
+    Returns (extracted_count, skipped_binary_count). When include_pdf is
     false, large alternate-format manuals listed in :data:`EXTRA_BINARY_SUFFIXES`
     are skipped to keep shipped artifacts small.
     """
@@ -152,7 +152,7 @@ def _extract_from_docs_dir(
     dest: Path,
     include_pdf: bool = False,
 ) -> tuple[int, int]:
-    """Copy a local ``docs/`` tree into ``dest``."""
+    """Copy a local docs/ tree into dest."""
     if not docs_dir.is_dir():
         raise ValueError(f"docs directory missing: {docs_dir}")
     extracted = 0
@@ -212,7 +212,7 @@ def _clone_rns_docs(
     timeout: float,
     ref: str,
 ) -> Path:
-    """Clone an ``rns://`` website repo sparsely and return its ``docs/`` path."""
+    """Clone an rns:// website repo sparsely and return its docs/ path."""
     if shutil.which("git") is None:
         raise ValueError("git is required for rns:// docs sources")
     if shutil.which("git-remote-rns") is None:

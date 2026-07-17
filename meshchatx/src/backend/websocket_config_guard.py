@@ -3,7 +3,7 @@
 """WebSocket guards for config updates and authenticated mutators.
 
 Settings that change the HTTP security boundary must go through CSRF-protected
-HTTP endpoints, not the unauthenticated ``config.set`` WebSocket message.
+HTTP endpoints, not the unauthenticated config.set WebSocket message.
 """
 
 from __future__ import annotations

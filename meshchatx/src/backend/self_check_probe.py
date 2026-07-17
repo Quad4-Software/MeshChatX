@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Probe module for self-check ``--meshchatx-run-module`` verification."""
+"""Probe module for self-check --meshchatx-run-module verification."""
 
 from __future__ import annotations
 

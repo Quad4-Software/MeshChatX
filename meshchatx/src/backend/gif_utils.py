@@ -2,12 +2,12 @@
 
 """Validation, hashing, and export/import helpers for user GIF library entries.
 
-GIFs are stored per identity in the ``user_gifs`` table. Compared to stickers,
+GIFs are stored per identity in the user_gifs table. Compared to stickers,
 the library is intended for animated content shared in chats, so:
 
-* Only animated-friendly formats are accepted (``gif`` and ``webp``).
+* Only animated-friendly formats are accepted (gif and webp).
 * The per-file byte limit is larger.
-* A ``usage_count`` is tracked at the DAO level so the picker can surface
+* A usage_count is tracked at the DAO level so the picker can surface
   most-used GIFs first.
 """
 
@@ -43,7 +43,7 @@ def content_hash_hex(image_bytes: bytes) -> str:
 def detect_image_format_from_magic(image_bytes: bytes) -> str | None:
     """Detect a GIF-library compatible image format from magic bytes.
 
-    Returns a normalized type key (``gif`` or ``webp``), or ``None``.
+    Returns a normalized type key (gif or webp), or None.
     """
     if not isinstance(image_bytes, (bytes, bytearray)) or len(image_bytes) < 4:
         return None
@@ -59,12 +59,12 @@ def validate_gif_payload(
     image_bytes: bytes,
     image_type: str | None,
 ) -> tuple[str, str]:
-    """Returns ``(normalized_image_type, content_hash_hex)``.
+    """Returns (normalized_image_type, content_hash_hex).
 
-    The declared ``image_type`` must match the format detected from magic
+    The declared image_type must match the format detected from magic
     bytes; the stored type is the normalized detected format.
 
-    Raises ``ValueError`` with a short reason on invalid input.
+    Raises ValueError with a short reason on invalid input.
     """
     if not isinstance(image_bytes, (bytes, bytearray)):
         msg = "invalid_image_bytes"
@@ -100,8 +100,8 @@ _EXPORT_VERSION = 1
 def validate_export_document(data: object) -> list[dict]:
     """Parse and validate a GIF library export JSON document.
 
-    Each entry has ``name``, ``image_type``, ``image_bytes`` (base64), and
-    optional ``source_message_hash`` and ``usage_count``.
+    Each entry has name, image_type, image_bytes (base64), and
+    optional source_message_hash and usage_count.
     """
     if not isinstance(data, dict):
         msg = "invalid_document"
@@ -159,8 +159,8 @@ def validate_export_document(data: object) -> list[dict]:
 def build_export_document(gifs: list[dict], exported_at_iso: str) -> dict:
     """Build the GIF export document.
 
-    ``gifs``: rows with ``name``, ``image_type``, ``image_bytes`` (base64 str),
-    ``source_message_hash``, and ``usage_count``.
+    gifs: rows with name, image_type, image_bytes (base64 str),
+    source_message_hash, and usage_count.
     """
     return {
         "format": _EXPORT_FORMAT,

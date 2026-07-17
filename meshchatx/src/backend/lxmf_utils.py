@@ -141,11 +141,11 @@ def is_user_facing_lxmf_payload(fields, content, title) -> bool:
       - icon-only / appearance-only updates (no body, no attachment)
       - empty pings (no content, no title, no attachment)
 
-    Location shares (telemetry including ``location``), telemetry streams,
-    and Sideband ``commands`` entries with key ``0x01`` (location request) ARE
+    Location shares (telemetry including location), telemetry streams,
+    and Sideband commands entries with key 0x01 (location request) ARE
     treated as user-facing so the bell and previews stay informative.
 
-    The helper is intentionally tolerant: ``fields`` may be the rich dict
+    The helper is intentionally tolerant: fields may be the rich dict
     produced by :func:`convert_lxmf_message_to_dict` (string keys), the raw
     LXMF integer-keyed dict, or a JSON-string from the database.
     """
@@ -279,7 +279,7 @@ def _b64_payload_size(b64_bytes) -> int:
 def lxmf_fields_without_attachment_bytes(fields) -> dict:
     """Return fields with image/audio/file byte payloads removed.
 
-    Used for ``fields_meta`` storage and conversation-list/thread APIs so
+    Used for fields_meta storage and conversation-list/thread APIs so
     multi-MB base64 blobs are never re-parsed on every load.
     """
     if not isinstance(fields, dict):
@@ -423,9 +423,9 @@ def lxmf_sidebar_preview_for_conversation_latest_row(
 ) -> str:
     """Single-line preview for conversation list APIs (reactions and some media have empty body).
 
-    Conversation list rows may omit full ``fields`` (to avoid loading multi-MB
-    attachment blobs). In that case SQL-derived flags such as ``has_image`` /
-    ``has_reaction`` are used instead.
+    Conversation list rows may omit full fields (to avoid loading multi-MB
+    attachment blobs). In that case SQL-derived flags such as has_image /
+    has_reaction are used instead.
     """
     content = row.get("content")
     if content is not None and str(content).strip():
@@ -976,11 +976,11 @@ def convert_db_lxmf_message_to_dict(
 def compute_lxmf_conversation_unread_from_latest_row(row, *, require_user_facing=False):
     """Return whether the conversation row should appear as unread.
 
-    Uses ``lxmf_conversation_read_state.last_read_at`` only. The latest message
+    Uses lxmf_conversation_read_state.last_read_at only. The latest message
     must be incoming. outbound-only threads are not unread (matches
-    ``filter_unread`` in ``MessageHandler.get_conversations``).
+    filter_unread in MessageHandler.get_conversations).
 
-    When ``require_user_facing`` is True, the row's latest message must also be
+    When require_user_facing is True, the row's latest message must also be
     user-facing (i.e. not a bare reaction / telemetry / icon-only payload).
     Used by the notification bell so silent system messages do not raise the
     unread badge.
