@@ -35,6 +35,10 @@ mkdir -p "$CONFIG_DIR"
 echo "Starting container on host port ${HOST_PORT}..."
 docker run -d \
     --name "$CONTAINER" \
+    --cpus=2.0 \
+    --memory=1g \
+    --memory-reservation=256m \
+    --pids-limit=512 \
     -p "${HOST_PORT}:8000" \
     -v "${CONFIG_DIR}:/config" \
     "$IMAGE" >/dev/null
