@@ -507,6 +507,7 @@
             variant="upgrade"
             @completed="onAndroidStorageUpgradeCompleted"
         />
+        <PostInstallPromptHost ref="postInstallPromptHost" />
 
         <!-- LXMF QR modal -->
         <div
@@ -620,6 +621,7 @@ import IntegrityWarningModal from "./IntegrityWarningModal.vue";
 import ChangelogModal from "./ChangelogModal.vue";
 import TutorialModal from "./TutorialModal.vue";
 import AndroidStorageChoicePrompt from "./AndroidStorageChoicePrompt.vue";
+import PostInstallPromptHost from "./PostInstallPromptHost.vue";
 import AppShellBanners from "./layout/AppShellBanners.vue";
 import KeyboardShortcuts from "../js/KeyboardShortcuts";
 import ElectronUtils from "../js/ElectronUtils";
@@ -653,6 +655,7 @@ export default {
         ChangelogModal,
         TutorialModal,
         AndroidStorageChoicePrompt,
+        PostInstallPromptHost,
         AppShellBanners,
     },
     setup() {
@@ -1287,6 +1290,13 @@ export default {
             }
             return prompt.showUpgrade();
         },
+        async maybeShowPostInstallPrompt() {
+            const host = this.$refs.postInstallPromptHost;
+            if (!host || typeof host.showNext !== "function") {
+                return false;
+            }
+            return host.showNext();
+        },
         onAndroidStorageUpgradeCompleted() {
             // prompt handles restart when user copies to external storage
         },
@@ -1578,6 +1588,8 @@ export default {
                         this.$refs.tutorialModal.show();
                     } else if (this.maybeShowAndroidStorageUpgrade()) {
                         // upgrade prompt for existing internal-storage installs
+                    } else if (await this.maybeShowPostInstallPrompt()) {
+                        // registry prompts for existing users (bump revision to re-show)
                     } else if (
                         this.appInfo &&
                         this.appInfo.changelog_seen_version !== "999.999.999" &&

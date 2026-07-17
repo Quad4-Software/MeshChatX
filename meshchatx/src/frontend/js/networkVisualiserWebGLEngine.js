@@ -4,7 +4,13 @@
  */
 
 import { callVisualiserWasmJson, isVisualiserWebGLSceneReady } from "./VisualiserWasmLoader.js";
-import { createNetworkVisualiserWebGL, tryCreateWebGL2Context } from "./networkVisualiserWebGL.js";
+import {
+    createNetworkVisualiserWebGL,
+    mergeSceneNodesWithTextures,
+    NODE_STRIDE,
+    SCENE_NODE_STRIDE,
+    tryCreateWebGL2Context,
+} from "./networkVisualiserWebGL.js";
 
 export { isVisualiserWebGLSceneReady };
 
@@ -15,9 +21,24 @@ export const KIND_PEER = 3;
 export const KIND_DISCOVERED = 4;
 
 /**
- * True when WASM scene exports needed for WebGL path are present.
- * Re-exported from VisualiserWasmLoader for callers that import the engine module.
+ * Distance between two CSS points.
+ * @param {{x:number,y:number}} a
+ * @param {{x:number,y:number}} b
  */
+export function pointerDistance(a, b) {
+    const dx = a.x - b.x;
+    const dy = a.y - b.y;
+    return Math.hypot(dx, dy);
+}
+
+/**
+ * Midpoint of two CSS points.
+ * @param {{x:number,y:number}} a
+ * @param {{x:number,y:number}} b
+ */
+export function pointerMidpoint(a, b) {
+    return { x: (a.x + b.x) * 0.5, y: (a.y + b.y) * 0.5 };
+}
 
 /**
  * @param {HTMLCanvasElement} [_canvas] optional host (capability is global)
@@ -92,7 +113,6 @@ function kindForNode(node) {
 function sizeForNode(node, kind) {
     const s = Number(node?.size);
     if (Number.isFinite(s) && s > 0) {
-        // vis sizes are large; scale down for disc radius in world units
         return Math.max(6, Math.min(28, s * 0.35));
     }
     if (kind === KIND_ME) return 18;
@@ -172,14 +192,24 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
 
     const renderer = createNetworkVisualiserWebGL(canvas, gl);
     const metaById = new Map();
+    const indexById = new Map();
+    /** @type {(string|null)[]} */
+    let imageByIndex = [];
+    /** @type {{useTex:number,u:number,v:number}[]} */
+    let texMeta = [];
+    let drawNodeScratch = new Float32Array(0);
     let rafId = null;
     let running = true;
     let dirty = true;
-    let pointerMode = null; // "pan" | "drag" | null
+    let pointerMode = null;
     let lastX = 0;
     let lastY = 0;
     let nodeCount = 0;
     let edgeCount = 0;
+    /** @type {Map<number,{x:number,y:number}>} */
+    const pointers = new Map();
+    let pinchLastDist = 0;
+    let iconLoadGen = 0;
 
     function cssPoint(ev) {
         const rect = canvas.getBoundingClientRect();
@@ -200,20 +230,48 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
         }
     }
 
+    function rebuildTexMeta() {
+        texMeta = imageByIndex.map((url) => {
+            if (!url) return { useTex: 0, u: 0, v: 0 };
+            const slot = renderer.getIconSlot(url);
+            if (slot == null) return { useTex: 0, u: 0, v: 0 };
+            const uv = renderer.iconUv(slot);
+            return { useTex: 1, u: uv.u, v: uv.v };
+        });
+    }
+
+    async function loadIconsForCurrentGraph(generation) {
+        const urls = [...new Set(imageByIndex.filter(Boolean))];
+        await Promise.all(
+            urls.map(async (url) => {
+                await renderer.ensureIcon(url);
+            })
+        );
+        if (!running || generation !== iconLoadGen) return;
+        rebuildTexMeta();
+        dirty = true;
+    }
+
     function setGraph(graphNodes, graphEdges, viewOpts = {}) {
         metaById.clear();
+        indexById.clear();
+        imageByIndex = [];
+        let idx = 0;
         for (const n of graphNodes || []) {
             if (!n?.id) continue;
-            metaById.set(String(n.id), {
-                id: String(n.id),
+            const id = String(n.id);
+            metaById.set(id, {
+                id,
                 label: n.label || "",
                 title: n.title || "",
                 group: n.group || "",
                 announce: n._announce || null,
             });
+            indexById.set(id, idx);
+            imageByIndex[idx] = typeof n.image === "string" && n.image ? n.image : null;
+            idx += 1;
         }
         const size = renderer.resize();
-        // zoom <= 0 keeps the current WASM camera (see scene.Set).
         const preserveCamera = viewOpts.preserveCamera !== false && nodeCount > 0;
         const req = graphToSceneRequest(graphNodes, graphEdges, {
             width: size.width,
@@ -228,7 +286,29 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
         }
         nodeCount = got.nodes || 0;
         edgeCount = got.edges || 0;
+        rebuildTexMeta();
         dirty = true;
+        iconLoadGen += 1;
+        void loadIconsForCurrentGraph(iconLoadGen);
+    }
+
+    /**
+     * Apply deferred LXMF / custom icon URLs after paint.
+     * @param {{id:string,image:string}[]} updates
+     */
+    function updateNodeImages(updates) {
+        let changed = false;
+        for (const u of updates || []) {
+            if (!u?.id || !u?.image) continue;
+            const i = indexById.get(String(u.id));
+            if (i == null) continue;
+            if (imageByIndex[i] === u.image) continue;
+            imageByIndex[i] = u.image;
+            changed = true;
+        }
+        if (!changed) return;
+        iconLoadGen += 1;
+        void loadIconsForCurrentGraph(iconLoadGen);
     }
 
     function getPositions() {
@@ -261,17 +341,40 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
             zoom: buf.zoom > 0 ? buf.zoom : 1,
         };
         const dark = typeof hooks.isDark === "function" ? hooks.isDark() : false;
-        const size = renderer.draw(buf.nodes, buf.edges, camera, dark);
+        const sceneCount = buf.nodes && buf.nodes.length ? Math.floor(buf.nodes.length / SCENE_NODE_STRIDE) : 0;
+        const need = sceneCount * NODE_STRIDE;
+        if (drawNodeScratch.length < need) {
+            drawNodeScratch = new Float32Array(need);
+        }
+        const drawNodes = mergeSceneNodesWithTextures(buf.nodes, texMeta, drawNodeScratch);
+        const size = renderer.draw(drawNodes, buf.edges, camera, dark);
         callScene("meshchatxVisualiserSceneResize", size.width, size.height);
         nodeCount = buf.nodeCount || nodeCount;
         edgeCount = buf.edgeCount || edgeCount;
         dirty = false;
     }
 
+    function activePointerPair() {
+        if (pointers.size < 2) return null;
+        const pts = [...pointers.values()];
+        return { a: pts[0], b: pts[1] };
+    }
+
     function onPointerDown(ev) {
-        if (ev.button !== 0) return;
+        if (ev.pointerType === "mouse" && ev.button !== 0) return;
         canvas.setPointerCapture?.(ev.pointerId);
         const p = cssPoint(ev);
+        pointers.set(ev.pointerId, p);
+        if (pointers.size >= 2) {
+            if (pointerMode === "drag") {
+                callScene("meshchatxVisualiserSceneDragEnd");
+            }
+            pointerMode = "pinch";
+            const pair = activePointerPair();
+            pinchLastDist = pair ? pointerDistance(pair.a, pair.b) : 0;
+            dirty = true;
+            return;
+        }
         lastX = p.x;
         lastY = p.y;
         const id = callScene("meshchatxVisualiserScenePick", p.x, p.y, 16);
@@ -286,6 +389,23 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
 
     function onPointerMove(ev) {
         const p = cssPoint(ev);
+        if (pointers.has(ev.pointerId)) {
+            pointers.set(ev.pointerId, p);
+        }
+        if (pointerMode === "pinch") {
+            const pair = activePointerPair();
+            if (!pair || pinchLastDist <= 0) return;
+            const dist = pointerDistance(pair.a, pair.b);
+            if (dist <= 0) return;
+            const factor = dist / pinchLastDist;
+            if (Math.abs(factor - 1) > 0.001) {
+                const mid = pointerMidpoint(pair.a, pair.b);
+                callScene("meshchatxVisualiserSceneZoomAt", mid.x, mid.y, factor);
+                pinchLastDist = dist;
+                dirty = true;
+            }
+            return;
+        }
         if (pointerMode === "drag") {
             callScene("meshchatxVisualiserSceneDragTo", p.x, p.y);
             dirty = true;
@@ -305,16 +425,34 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
     }
 
     function onPointerUp(ev) {
-        if (pointerMode === "drag") {
-            callScene("meshchatxVisualiserSceneDragEnd");
-        }
-        pointerMode = null;
-        dirty = true;
+        pointers.delete(ev.pointerId);
         try {
             canvas.releasePointerCapture?.(ev.pointerId);
         } catch {
             /* ignore */
         }
+        if (pointerMode === "pinch") {
+            if (pointers.size >= 2) {
+                const pair = activePointerPair();
+                pinchLastDist = pair ? pointerDistance(pair.a, pair.b) : 0;
+            } else if (pointers.size === 1) {
+                const remaining = [...pointers.values()][0];
+                lastX = remaining.x;
+                lastY = remaining.y;
+                pointerMode = "pan";
+            } else {
+                pointerMode = null;
+            }
+            dirty = true;
+            return;
+        }
+        if (pointerMode === "drag") {
+            callScene("meshchatxVisualiserSceneDragEnd");
+        }
+        if (pointers.size === 0) {
+            pointerMode = null;
+        }
+        dirty = true;
     }
 
     function onDblClick(ev) {
@@ -353,6 +491,7 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
 
     function destroy() {
         running = false;
+        iconLoadGen += 1;
         if (rafId != null) cancelAnimationFrame(rafId);
         rafId = null;
         canvas.removeEventListener("pointerdown", onPointerDown);
@@ -362,12 +501,17 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
         canvas.removeEventListener("dblclick", onDblClick);
         canvas.removeEventListener("wheel", onWheel);
         window.removeEventListener("resize", onResize);
+        pointers.clear();
         renderer.destroy();
         metaById.clear();
+        indexById.clear();
+        imageByIndex = [];
+        texMeta = [];
     }
 
     return {
         setGraph,
+        updateNodeImages,
         getPositions,
         getCounts,
         setLiveLayout,

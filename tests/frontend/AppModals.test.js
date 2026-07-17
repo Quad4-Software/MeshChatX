@@ -124,6 +124,7 @@ describe("App.vue Modals", () => {
                     CallOverlay: true,
                     CommandPalette: true,
                     IntegrityWarningModal: true,
+                    PostInstallPromptHost: true,
                     // Stub all Vuetify components
                     VDialog: true,
                     VCard: true,
@@ -184,6 +185,7 @@ describe("App.vue Modals", () => {
                     CallOverlay: true,
                     CommandPalette: true,
                     IntegrityWarningModal: true,
+                    PostInstallPromptHost: true,
                     // Stub all Vuetify components
                     VDialog: true,
                     VCard: true,
