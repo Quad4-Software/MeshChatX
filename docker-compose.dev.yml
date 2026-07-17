@@ -12,6 +12,15 @@ services:
             - 127.0.0.1:8000:8000
         volumes:
             - meshchatx-config:/config
+        deploy:
+            resources:
+                limits:
+                    cpus: "2.0"
+                    memory: 1G
+                    pids: 512
+                reservations:
+                    cpus: "0.25"
+                    memory: 256M
 
 volumes:
     meshchatx-config:
