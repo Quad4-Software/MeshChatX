@@ -14,6 +14,12 @@ const ATLAS_COLS = 16;
 const ATLAS_ROWS = 16;
 const ATLAS_CAPACITY = ATLAS_COLS * ATLAS_ROWS;
 
+/** Soft-edge AA width in UV radius units (1.0 = disc edge). Keep tight to avoid fuzzy blobs. */
+export const NODE_EDGE_INNER = 0.96;
+/** Border ring starts inside the disc (untextured and under glyphs). */
+export const NODE_BORDER_INNER = 0.78;
+export const NODE_BORDER_OUTER = 0.96;
+
 const NODE_VS = `#version 300 es
 layout(location=0) in vec2 a_corner;
 layout(location=1) in vec2 a_center;
@@ -54,20 +60,24 @@ out vec4 outColor;
 void main() {
   float d = length(v_uv);
   if (d > 1.0) discard;
-  float edge = smoothstep(1.0, 0.82, d);
-  float rim = smoothstep(0.92, 1.0, d);
+  // Tight AA so nodes read as crisp discs, not soft fuzzy blobs.
+  float edge = smoothstep(1.0, ${NODE_EDGE_INNER.toFixed(2)}, d);
+  float border = smoothstep(${NODE_BORDER_INNER.toFixed(2)}, ${NODE_BORDER_OUTER.toFixed(2)}, d);
+  vec3 fill = v_color.rgb;
+  vec3 rim = fill * 0.55;
   if (v_useTex > 0.5) {
     vec2 local = v_uv * 0.5 + 0.5;
     vec2 texUV = v_uvOrigin + local * u_cellUv;
     vec4 tex = texture(u_atlas, texUV);
-    // Opaque RGB icons (and RGB canvases) may report a=0 in some uploads.
-    float texA = max(tex.a, 0.001);
-    float a = texA * edge * v_color.a;
-    if (a < 0.01) discard;
-    vec3 rgb = mix(tex.rgb, v_color.rgb, rim * 0.85);
+    float texA = clamp(tex.a, 0.0, 1.0);
+    // Colored disc from node color, optional glyph/logo from atlas on top.
+    vec3 rgb = mix(fill, tex.rgb, texA);
+    rgb = mix(rgb, rim, border * (1.0 - texA));
+    float a = edge * v_color.a;
+    if (a < 0.02) discard;
     outColor = vec4(rgb, a);
   } else {
-    vec3 rgb = mix(v_color.rgb * 0.92, v_color.rgb, 1.0 - rim);
+    vec3 rgb = mix(fill, rim, border);
     outColor = vec4(rgb, v_color.a * edge);
   }
 }
@@ -214,6 +224,64 @@ export function resolveVisualiserAssetUrl(url) {
     return trimmed;
 }
 
+/**
+ * True when the asset is a solid-fill network-visualiser badge (colored disc + light glyph).
+ * Those should be converted to white-on-transparent glyphs so the shader can paint node color.
+ * @param {string} url
+ */
+export function isGlyphStyleVisualiserIcon(url) {
+    if (!url || typeof url !== "string") return false;
+    return /\/network-visualiser\//i.test(url);
+}
+
+/**
+ * Prepare atlas RGBA pixels for upload.
+ *
+ * - opaque: force non-empty pixels to a=255 (RGB PNG uploads)
+ * - glyph: keep near-white / bright pixels as white glyphs, clear the solid fill
+ *
+ * @param {Uint8ClampedArray|Uint8Array} data RGBA buffer (mutated)
+ * @param {"opaque"|"glyph"} mode
+ * @returns {{painted:number,glyphPixels:number}}
+ */
+export function prepareVisualiserIconPixels(data, mode = "opaque") {
+    let painted = 0;
+    let glyphPixels = 0;
+    if (!data || data.length < 4) return { painted: 0, glyphPixels: 0 };
+    const glyphMode = mode === "glyph";
+    for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        const a = data[i + 3];
+        if (!(r | g | b | a)) continue;
+        painted += 1;
+        if (glyphMode) {
+            // Stock badges: bright glyph on saturated fill. Keep bright pixels.
+            const luma = 0.299 * r + 0.587 * g + 0.114 * b;
+            const maxc = Math.max(r, g, b);
+            const minc = Math.min(r, g, b);
+            const sat = maxc - minc;
+            const isGlyph = luma >= 185 || (luma >= 150 && sat < 40);
+            if (isGlyph) {
+                data[i] = 255;
+                data[i + 1] = 255;
+                data[i + 2] = 255;
+                data[i + 3] = 255;
+                glyphPixels += 1;
+            } else {
+                data[i] = 0;
+                data[i + 1] = 0;
+                data[i + 2] = 0;
+                data[i + 3] = 0;
+            }
+        } else {
+            data[i + 3] = 255;
+        }
+    }
+    return { painted, glyphPixels };
+}
+
 function createIconAtlas(gl) {
     const width = ATLAS_COLS * ATLAS_CELL;
     const height = ATLAS_ROWS * ATLAS_CELL;
@@ -242,7 +310,7 @@ function createIconAtlas(gl) {
         return nextSlot++;
     }
 
-    function paintSlot(slot, source) {
+    function paintSlot(slot, source, url) {
         if (!scratchCtx || !scratch) return false;
         scratchCtx.save();
         scratchCtx.setTransform(1, 0, 0, 1, 0, 0);
@@ -259,19 +327,26 @@ function createIconAtlas(gl) {
         const dx = Math.floor((ATLAS_CELL - dw) / 2);
         const dy = Math.floor((ATLAS_CELL - dh) / 2);
         scratchCtx.drawImage(source, dx, dy, dw, dh);
-        // Force full opacity for RGB sources that leave alpha at 0 after upload.
         const pixels = scratchCtx.getImageData(0, 0, ATLAS_CELL, ATLAS_CELL);
         const data = pixels.data;
-        let painted = 0;
-        for (let i = 0; i < data.length; i += 4) {
-            if (data[i] | data[i + 1] | data[i + 2] | data[i + 3]) {
-                data[i + 3] = 255;
-                painted += 1;
+        const mode = isGlyphStyleVisualiserIcon(url) ? "glyph" : "opaque";
+        if (mode === "glyph") {
+            const backup = new Uint8ClampedArray(data);
+            const { painted, glyphPixels } = prepareVisualiserIconPixels(data, "glyph");
+            if (painted < 8) {
+                scratchCtx.restore();
+                return false;
             }
-        }
-        if (painted < 8) {
-            scratchCtx.restore();
-            return false;
+            if (glyphPixels < 8) {
+                data.set(backup);
+                prepareVisualiserIconPixels(data, "opaque");
+            }
+        } else {
+            const { painted } = prepareVisualiserIconPixels(data, "opaque");
+            if (painted < 8) {
+                scratchCtx.restore();
+                return false;
+            }
         }
         scratchCtx.putImageData(pixels, 0, 0);
         scratchCtx.restore();
@@ -325,7 +400,7 @@ function createIconAtlas(gl) {
         if (slot == null) return null;
         const work = loadImageSource(url)
             .then((img) => {
-                const ok = paintSlot(slot, img);
+                const ok = paintSlot(slot, img, url);
                 if (typeof img.close === "function") {
                     try {
                         img.close();
