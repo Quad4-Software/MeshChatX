@@ -231,7 +231,10 @@ class TelephoneManager:
         if phone is None:
             return
         previous = getattr(phone, "_Telephone__link_closed", None)
-        if previous is None or getattr(previous, "_meshchatx_link_cleanup", False) is True:
+        if (
+            previous is None
+            or getattr(previous, "_meshchatx_link_cleanup", False) is True
+        ):
             return
 
         def _link_closed(link, previous=previous, phone=phone):
