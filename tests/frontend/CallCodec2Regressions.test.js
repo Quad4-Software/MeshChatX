@@ -96,7 +96,12 @@ describe("Call dial / contact regressions", () => {
                 }
                 return Promise.resolve({ data: {} });
             }),
-            post: vi.fn().mockResolvedValue({ data: {} }),
+            post: vi.fn().mockImplementation((url) => {
+                if (String(url).includes("/api/v1/telephone/call/")) {
+                    return Promise.resolve({ data: { message: "Call initiation started" } });
+                }
+                return Promise.resolve({ data: {} });
+            }),
             patch: vi.fn().mockResolvedValue({ data: {} }),
             delete: vi.fn().mockResolvedValue({ data: {} }),
         };
@@ -130,7 +135,7 @@ describe("Call dial / contact regressions", () => {
         await wrapper.vm.$nextTick();
         const hash32 = "cd".repeat(16);
         await wrapper.vm.call(`please call ${hash32} now`);
-        expect(axiosMock.get).toHaveBeenCalledWith(`/api/v1/telephone/call/${hash32}`);
+        expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/telephone/call/${hash32}`);
     });
 
     it("regression: dialer does not require 64-char hex", async () => {
@@ -138,7 +143,7 @@ describe("Call dial / contact regressions", () => {
         await wrapper.vm.$nextTick();
         const hash32 = "ef".repeat(16);
         await wrapper.vm.call(hash32);
-        expect(axiosMock.get).toHaveBeenCalledWith(`/api/v1/telephone/call/${hash32}`);
+        expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/telephone/call/${hash32}`);
     });
 
     it("regression: addContactFromHistory keeps identity and destination fields separate", async () => {
