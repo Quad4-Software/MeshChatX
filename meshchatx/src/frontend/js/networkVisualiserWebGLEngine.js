@@ -190,7 +190,8 @@ export function graphToSceneRequest(graphNodes, graphEdges, view) {
         height: view?.height || 600,
         cam_x: view?.camX ?? 0,
         cam_y: view?.camY ?? 0,
-        zoom: view?.zoom > 0 ? view.zoom : 1,
+        // zoom === 0 means "preserve camera" for Scene.Set. Do not coerce to 1.
+        zoom: typeof view?.zoom === "number" ? view.zoom : 1,
     };
 }
 
@@ -300,11 +301,23 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
         }
         const size = renderer.resize();
         const preserveCamera = viewOpts.preserveCamera !== false && nodeCount > 0;
+        let prevCam = null;
+        if (preserveCamera) {
+            const buf = callScene("meshchatxVisualiserSceneGetDrawBuffers");
+            if (buf && buf.ok !== false) {
+                prevCam = {
+                    x: buf.camX || 0,
+                    y: buf.camY || 0,
+                    zoom: buf.zoom > 0 ? buf.zoom : 1,
+                };
+            }
+        }
         const req = graphToSceneRequest(graphNodes, graphEdges, {
             width: size.width,
             height: size.height,
             camX: viewOpts.camX ?? 0,
             camY: viewOpts.camY ?? 0,
+            // 0 = Scene.Set keeps the current pan/zoom (auto-refresh must not reset).
             zoom: preserveCamera ? 0 : viewOpts.zoom > 0 ? viewOpts.zoom : 1,
         });
         const got = callVisualiserWasmJson("meshchatxVisualiserSceneSet", JSON.stringify(req));
@@ -313,6 +326,9 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
         }
         nodeCount = got.nodes || 0;
         edgeCount = got.edges || 0;
+        if (preserveCamera && prevCam) {
+            callScene("meshchatxVisualiserSceneSetCamera", prevCam.x, prevCam.y, prevCam.zoom);
+        }
         rebuildTexMeta();
         dirty = true;
         iconLoadGen += 1;
