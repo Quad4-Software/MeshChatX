@@ -107,6 +107,39 @@ def test_collect_read_roots_includes_interpreter_prefix():
     assert any(
         prefix == root or prefix.startswith(root.rstrip("/") + "/") for root in roots
     ), f"prefix {prefix!r} not covered by {roots!r}"
+    # Active venv root (sys.prefix) must be allowed even when base_prefix differs,
+    # otherwise child Python cannot read pyvenv.cfg (Docker /opt/venv + rnsh).
+    venv_prefix = os.path.realpath(sys.prefix)
+    assert any(
+        venv_prefix == root or venv_prefix.startswith(root.rstrip("/") + "/")
+        for root in roots
+    ), f"sys.prefix {venv_prefix!r} not covered by {roots!r}"
+
+
+def test_collect_read_roots_includes_venv_root_for_pyvenv_cfg(tmp_path, monkeypatch):
+    """Landlock must allow the venv root, not only …/bin (pyvenv.cfg sibling)."""
+    venv = tmp_path / "opt" / "venv"
+    bindir = venv / "bin"
+    bindir.mkdir(parents=True)
+    (venv / "pyvenv.cfg").write_text("home = /usr\n", encoding="utf-8")
+    fake_python = bindir / "python"
+    fake_python.write_text("#!/bin/sh\n", encoding="utf-8")
+
+    class _FakeSys:
+        platform = sys.platform
+        executable = str(fake_python)
+        prefix = str(venv)
+        base_prefix = "/usr"
+        path = list(sys.path)
+
+    monkeypatch.setattr(ll, "sys", _FakeSys)
+    monkeypatch.setattr(ll.site, "getsitepackages", lambda: [])
+    monkeypatch.setattr(ll.site, "getusersitepackages", lambda: "")
+    monkeypatch.setenv("VIRTUAL_ENV", str(venv))
+
+    roots = {os.path.realpath(r) for r in ll._collect_read_roots()}
+    assert os.path.realpath(str(venv)) in roots
+    assert os.path.realpath(str(bindir)) in roots
 
 
 def test_handled_access_fs_for_abi_gates_new_rights():

@@ -353,8 +353,20 @@ def _collect_read_roots() -> list[str]:
         exe_dir = _existing_dir(os.path.dirname(candidate))
         if exe_dir:
             roots.add(exe_dir)
-        # Prefer the install prefix (…/cpython-…/) so bin + lib are covered.
-        prefix = _existing_dir(getattr(sys, "base_prefix", None) or sys.prefix)
+        # Venv layouts put pyvenv.cfg next to bin/, not under it. Allowing only
+        # …/bin leaves child interpreters unable to read pyvenv.cfg (EACCES).
+        venv_root = os.path.dirname(exe_dir) if exe_dir else None
+        if venv_root and os.path.isfile(os.path.join(venv_root, "pyvenv.cfg")):
+            existing_venv = _existing_dir(venv_root)
+            if existing_venv:
+                roots.add(existing_venv)
+    # Prefer the install prefix (…/cpython-…/) so bin + lib are covered.
+    for prefix_candidate in (
+        getattr(sys, "base_prefix", None),
+        sys.prefix,
+        os.environ.get("VIRTUAL_ENV"),
+    ):
+        prefix = _existing_dir(prefix_candidate)
         if prefix:
             roots.add(prefix)
     return sorted(roots)
