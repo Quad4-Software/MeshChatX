@@ -83,8 +83,9 @@ function colorFromNode(node) {
         if (rgb) return rgb;
     }
     if (c && typeof c === "object") {
-        const border = c.border || c.background;
-        const rgb = hexToRgb01(border);
+        // Border is the vivid badge color; background is a pale tint for vis-network.
+        const fill = c.border || c.background;
+        const rgb = hexToRgb01(fill);
         if (rgb) return rgb;
     }
     return null;
@@ -121,12 +122,18 @@ function kindForNode(node) {
 function sizeForNode(node, kind) {
     const s = Number(node?.size);
     if (Number.isFinite(s) && s > 0) {
-        return Math.max(10, Math.min(34, s * 0.55));
+        // Keep WebGL radii close to vis-network so glyphs stay readable.
+        return Math.max(18, Math.min(48, s * 0.9));
     }
-    if (kind === KIND_ME) return 26;
-    if (kind === KIND_IFACE_ON || kind === KIND_IFACE_OFF) return 18;
-    if (kind === KIND_DISCOVERED) return 14;
-    return 16;
+    if (kind === KIND_ME) return 32;
+    if (kind === KIND_IFACE_ON || kind === KIND_IFACE_OFF) return 24;
+    if (kind === KIND_DISCOVERED) return 20;
+    return 22;
+}
+
+/** Exported for unit tests. */
+export function webglNodeSizeFor(node, kind) {
+    return sizeForNode(node, kind == null ? kindForNode(node) : kind);
 }
 
 function imageForNode(node, kind) {
