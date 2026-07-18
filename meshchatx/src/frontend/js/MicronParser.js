@@ -89,6 +89,8 @@ export default class MicronParser extends BaseMicronParser {
                 }
             });
             cleaned = cleaned.replace(/\\(.)/g, "$1");
+            // Drop format/bidi noise so fi\u200Bxed / soft-hyphen cannot hide overlays.
+            cleaned = cleaned.replace(/[\u00AD\u180E\u200B-\u200F\u202A-\u202E\u2060-\u2064\uFEFF]/g, "");
             const declarations = cleaned.split(";").filter(Boolean);
             const safe = declarations.filter((decl) => {
                 const colon = decl.indexOf(":");
@@ -101,6 +103,7 @@ export default class MicronParser extends BaseMicronParser {
                     .trim()
                     .toLowerCase()
                     .replace(/!important/g, "")
+                    .replace(/\s+/g, "")
                     .trim();
                 if (prop === "position" && (/\bfixed\b/.test(val) || /\bsticky\b/.test(val))) {
                     return false;

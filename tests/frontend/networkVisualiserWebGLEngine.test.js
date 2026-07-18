@@ -15,6 +15,7 @@ import {
 import {
     atlasUvForSlot,
     mergeSceneNodesWithTextures,
+    resolveVisualiserAssetUrl,
     SCENE_NODE_STRIDE,
     NODE_STRIDE,
     ATLAS_COLS,
@@ -109,6 +110,7 @@ function stubGl() {
         TEXTURE_WRAP_S: 0x2802,
         TEXTURE_WRAP_T: 0x2803,
         UNPACK_FLIP_Y_WEBGL: 0x9240,
+        UNPACK_PREMULTIPLY_ALPHA_WEBGL: 0x9241,
         COLOR_BUFFER_BIT: 0x4000,
         BLEND: 0x0be2,
         SRC_ALPHA: 0x0302,
@@ -127,15 +129,35 @@ function stubGl() {
 }
 
 function makeCanvas(gl) {
+    const host = document.createElement("div");
+    host.style.cssText = "position:relative;width:400px;height:300px;";
     const canvas = document.createElement("canvas");
+    host.appendChild(canvas);
+    document.body.appendChild(host);
     Object.defineProperty(canvas, "clientWidth", { value: 400 });
     Object.defineProperty(canvas, "clientHeight", { value: 300 });
     canvas.getBoundingClientRect = () => ({ left: 10, top: 20, width: 400, height: 300 });
     canvas.setPointerCapture = vi.fn();
     canvas.releasePointerCapture = vi.fn();
-    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(function (type) {
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(function (type, opts) {
         if (this === canvas && type === "webgl2") return gl;
-        if (type === "2d") return { clearRect: vi.fn(), drawImage: vi.fn() };
+        if (type === "2d") {
+            return {
+                clearRect: vi.fn(),
+                drawImage: vi.fn(),
+                getImageData: () => ({
+                    data: new Uint8ClampedArray(64 * 64 * 4).fill(255),
+                    width: 64,
+                    height: 64,
+                }),
+                putImageData: vi.fn(),
+                save: vi.fn(),
+                restore: vi.fn(),
+                setTransform: vi.fn(),
+                strokeText: vi.fn(),
+                fillText: vi.fn(),
+            };
+        }
         return null;
     });
     return canvas;
@@ -251,6 +273,19 @@ describe("networkVisualiserWebGL textures", () => {
         expect(last.v).toBeCloseTo((ATLAS_ROWS - 1) / ATLAS_ROWS);
     });
 
+    it("resolveVisualiserAssetUrl keeps blob/data/http URLs", () => {
+        expect(resolveVisualiserAssetUrl("blob:http://localhost/x")).toBe("blob:http://localhost/x");
+        expect(resolveVisualiserAssetUrl("data:image/png;base64,xx")).toBe("data:image/png;base64,xx");
+        expect(resolveVisualiserAssetUrl("https://example.com/a.png")).toBe("https://example.com/a.png");
+    });
+
+    it("resolveVisualiserAssetUrl absolutizes root paths", () => {
+        const origin = window.location.origin;
+        expect(resolveVisualiserAssetUrl("/assets/images/reticulum_logo_512.png")).toBe(
+            `${origin}/assets/images/reticulum_logo_512.png`
+        );
+    });
+
     it("mergeSceneNodesWithTextures attaches atlas UVs", () => {
         const scene = new Float32Array(SCENE_NODE_STRIDE);
         scene[0] = 1;
@@ -345,6 +380,7 @@ describe("createVisualiserWebGLEngine interactions", () => {
             engine.destroy();
             engine = null;
         }
+        canvas?.parentElement?.remove();
         clearSceneGlobals();
         vi.restoreAllMocks();
     });
@@ -355,6 +391,7 @@ describe("createVisualiserWebGLEngine interactions", () => {
         clearSceneGlobals();
         const c = makeCanvas(stubGl());
         expect(() => createVisualiserWebGLEngine(c)).toThrow(/WASM scene unavailable/);
+        c.parentElement?.remove();
     });
 
     it("pinch gesture calls SceneZoomAt with distance ratio", () => {
@@ -387,23 +424,25 @@ describe("createVisualiserWebGLEngine interactions", () => {
     });
 
     it("setGraph and updateNodeImages upload icon textures", async () => {
-        const OriginalImage = globalThis.Image;
-        globalThis.Image = class MockImage {
-            constructor() {
-                this.width = 32;
-                this.height = 32;
-                queueMicrotask(() => this.onload?.());
-            }
-            set src(_v) {
-                /* onload via microtask */
-            }
-        };
+        const bitmap = { width: 32, height: 32, close: vi.fn() };
+        vi.stubGlobal(
+            "fetch",
+            vi.fn(async () => ({
+                ok: true,
+                blob: async () => new Blob([new Uint8Array([1, 2, 3])], { type: "image/png" }),
+            }))
+        );
+        vi.stubGlobal(
+            "createImageBitmap",
+            vi.fn(async () => bitmap)
+        );
 
         engine.setGraph(
             [
                 {
                     id: "me",
                     group: "me",
+                    label: "Local",
                     image: "/assets/images/reticulum_logo_512.png",
                     x: 0,
                     y: 0,
@@ -411,6 +450,7 @@ describe("createVisualiserWebGLEngine interactions", () => {
                 {
                     id: "peer",
                     group: "announce",
+                    label: "Peer",
                     image: "/assets/images/network-visualiser/user.png",
                     x: 10,
                     y: 10,
@@ -431,8 +471,29 @@ describe("createVisualiserWebGLEngine interactions", () => {
         await vi.waitFor(() => {
             expect(gl.texSubImage2D.mock.calls.length).toBeGreaterThan(uploadsBefore);
         });
+    });
 
-        globalThis.Image = OriginalImage;
+    it("setGraph applies kind default icons when image missing", async () => {
+        vi.stubGlobal(
+            "fetch",
+            vi.fn(async () => ({
+                ok: true,
+                blob: async () => new Blob([new Uint8Array([9])], { type: "image/png" }),
+            }))
+        );
+        vi.stubGlobal(
+            "createImageBitmap",
+            vi.fn(async () => ({ width: 16, height: 16, close: vi.fn() }))
+        );
+
+        engine.setGraph([{ id: "me", group: "me", label: "Me", x: 0, y: 0 }], [], {
+            preserveCamera: false,
+            zoom: 1,
+        });
+        await vi.waitFor(() => {
+            expect(globalThis.fetch).toHaveBeenCalled();
+            expect(String(globalThis.fetch.mock.calls[0][0])).toContain("reticulum_logo_512.png");
+        });
     });
 
     it("sets touch-action none for mobile gestures", () => {

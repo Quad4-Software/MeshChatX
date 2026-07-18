@@ -54,16 +54,21 @@ out vec4 outColor;
 void main() {
   float d = length(v_uv);
   if (d > 1.0) discard;
-  float edge = smoothstep(1.0, 0.72, d);
+  float edge = smoothstep(1.0, 0.82, d);
+  float rim = smoothstep(0.92, 1.0, d);
   if (v_useTex > 0.5) {
     vec2 local = v_uv * 0.5 + 0.5;
     vec2 texUV = v_uvOrigin + local * u_cellUv;
     vec4 tex = texture(u_atlas, texUV);
-    float a = tex.a * edge * v_color.a;
+    // Opaque RGB icons (and RGB canvases) may report a=0 in some uploads.
+    float texA = max(tex.a, 0.001);
+    float a = texA * edge * v_color.a;
     if (a < 0.01) discard;
-    outColor = vec4(tex.rgb, a);
+    vec3 rgb = mix(tex.rgb, v_color.rgb, rim * 0.85);
+    outColor = vec4(rgb, a);
   } else {
-    outColor = vec4(v_color.rgb, v_color.a * edge);
+    vec3 rgb = mix(v_color.rgb * 0.92, v_color.rgb, 1.0 - rim);
+    outColor = vec4(rgb, v_color.a * edge);
   }
 }
 `;
@@ -187,6 +192,28 @@ export function tryCreateWebGL2Context(canvas) {
 /**
  * @param {WebGL2RenderingContext} gl
  */
+/**
+ * Resolve a same-origin asset path against the Vite/app base URL.
+ * Absolute http(s)/blob/data URLs are returned unchanged.
+ * @param {string} url
+ * @returns {string}
+ */
+export function resolveVisualiserAssetUrl(url) {
+    if (!url || typeof url !== "string") return "";
+    const trimmed = url.trim();
+    if (!trimmed) return "";
+    if (/^(?:blob:|data:|https?:|file:)/i.test(trimmed)) return trimmed;
+    if (typeof window !== "undefined" && window.location?.origin && trimmed.startsWith("/")) {
+        const base = typeof import.meta !== "undefined" && import.meta.env?.BASE_URL ? import.meta.env.BASE_URL : "/";
+        const root = String(base || "/").replace(/\/?$/, "/");
+        if (root !== "/" && !trimmed.startsWith(root)) {
+            return `${window.location.origin}${root.replace(/\/$/, "")}${trimmed}`;
+        }
+        return `${window.location.origin}${trimmed}`;
+    }
+    return trimmed;
+}
+
 function createIconAtlas(gl) {
     const width = ATLAS_COLS * ATLAS_CELL;
     const height = ATLAS_ROWS * ATLAS_CELL;
@@ -207,7 +234,7 @@ function createIconAtlas(gl) {
         scratch.width = ATLAS_CELL;
         scratch.height = ATLAS_CELL;
     }
-    const scratchCtx = scratch?.getContext?.("2d") || null;
+    const scratchCtx = scratch?.getContext?.("2d", { willReadFrequently: true }) || null;
 
     function allocSlot() {
         if (freeSlots.length > 0) return freeSlots.pop();
@@ -216,31 +243,74 @@ function createIconAtlas(gl) {
     }
 
     function paintSlot(slot, source) {
-        if (!scratchCtx || !scratch) return;
+        if (!scratchCtx || !scratch) return false;
+        scratchCtx.save();
+        scratchCtx.setTransform(1, 0, 0, 1, 0, 0);
         scratchCtx.clearRect(0, 0, ATLAS_CELL, ATLAS_CELL);
         const sw = source.width || source.videoWidth || ATLAS_CELL;
         const sh = source.height || source.videoHeight || ATLAS_CELL;
+        if (!(sw > 0 && sh > 0)) {
+            scratchCtx.restore();
+            return false;
+        }
         const scale = Math.min(ATLAS_CELL / sw, ATLAS_CELL / sh);
         const dw = Math.max(1, Math.floor(sw * scale));
         const dh = Math.max(1, Math.floor(sh * scale));
         const dx = Math.floor((ATLAS_CELL - dw) / 2);
         const dy = Math.floor((ATLAS_CELL - dh) / 2);
         scratchCtx.drawImage(source, dx, dy, dw, dh);
+        // Force full opacity for RGB sources that leave alpha at 0 after upload.
+        const pixels = scratchCtx.getImageData(0, 0, ATLAS_CELL, ATLAS_CELL);
+        const data = pixels.data;
+        let painted = 0;
+        for (let i = 0; i < data.length; i += 4) {
+            if (data[i] | data[i + 1] | data[i + 2] | data[i + 3]) {
+                data[i + 3] = 255;
+                painted += 1;
+            }
+        }
+        if (painted < 8) {
+            scratchCtx.restore();
+            return false;
+        }
+        scratchCtx.putImageData(pixels, 0, 0);
+        scratchCtx.restore();
         const col = slot % ATLAS_COLS;
         const row = Math.floor(slot / ATLAS_COLS);
         gl.bindTexture(gl.TEXTURE_2D, texture);
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+        gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
         gl.texSubImage2D(gl.TEXTURE_2D, 0, col * ATLAS_CELL, row * ATLAS_CELL, gl.RGBA, gl.UNSIGNED_BYTE, scratch);
+        return true;
     }
 
-    function loadImage(url) {
-        return new Promise((resolve, reject) => {
-            const img = new Image();
-            img.decoding = "async";
-            img.onload = () => resolve(img);
-            img.onerror = () => reject(new Error(`icon load failed: ${url}`));
-            img.src = url;
+    async function loadImageSource(url) {
+        const resolved = resolveVisualiserAssetUrl(url);
+        if (typeof createImageBitmap === "function") {
+            try {
+                const res = await fetch(resolved);
+                if (!res.ok) throw new Error(`icon fetch ${res.status}`);
+                const blob = await res.blob();
+                return await createImageBitmap(blob);
+            } catch {
+                // Fall through to HTMLImageElement.
+            }
+        }
+        const img = await new Promise((resolve, reject) => {
+            const el = new Image();
+            el.decoding = "sync";
+            el.onload = () => resolve(el);
+            el.onerror = () => reject(new Error(`icon load failed: ${resolved}`));
+            el.src = resolved;
         });
+        if (typeof img.decode === "function") {
+            try {
+                await img.decode();
+            } catch {
+                // decode() can reject for already-decoded bitmaps
+            }
+        }
+        return img;
     }
 
     /**
@@ -253,9 +323,21 @@ function createIconAtlas(gl) {
         if (pending.has(url)) return pending.get(url);
         const slot = allocSlot();
         if (slot == null) return null;
-        const work = loadImage(url)
+        const work = loadImageSource(url)
             .then((img) => {
-                paintSlot(slot, img);
+                const ok = paintSlot(slot, img);
+                if (typeof img.close === "function") {
+                    try {
+                        img.close();
+                    } catch {
+                        /* ignore */
+                    }
+                }
+                if (!ok) {
+                    freeSlots.push(slot);
+                    pending.delete(url);
+                    return null;
+                }
                 urlToSlot.set(url, slot);
                 pending.delete(url);
                 return slot;
@@ -350,6 +432,19 @@ export function createNetworkVisualiserWebGL(canvas, gl) {
     let edgeVertexCount = 0;
     let edgeScratch = new Float32Array(0);
 
+    /** @type {HTMLCanvasElement|null} */
+    let labelCanvas = null;
+    /** @type {CanvasRenderingContext2D|null} */
+    let labelCtx = null;
+    if (typeof document !== "undefined" && canvas?.parentElement) {
+        labelCanvas = document.createElement("canvas");
+        labelCanvas.className = "network-webgl-labels";
+        labelCanvas.style.cssText =
+            "position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;";
+        canvas.parentElement.appendChild(labelCanvas);
+        labelCtx = labelCanvas.getContext("2d");
+    }
+
     function resize() {
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         const rect = canvas.getBoundingClientRect();
@@ -361,6 +456,10 @@ export function createNetworkVisualiserWebGL(canvas, gl) {
             canvas.width = bw;
             canvas.height = bh;
         }
+        if (labelCanvas && (labelCanvas.width !== bw || labelCanvas.height !== bh)) {
+            labelCanvas.width = bw;
+            labelCanvas.height = bh;
+        }
         gl.viewport(0, 0, canvas.width, canvas.height);
         return { width: cssW, height: cssH };
     }
@@ -370,12 +469,14 @@ export function createNetworkVisualiserWebGL(canvas, gl) {
      * @param {Float32Array} edges packed EDGE_STRIDE
      * @param {{x:number,y:number,zoom:number}} camera
      * @param {boolean} dark
+     * @param {{x:number,y:number,size:number,text:string}[]} [labels]
      */
-    function draw(nodes, edges, camera, dark) {
+    function draw(nodes, edges, camera, dark, labels) {
         const size = resize();
         const camX = camera?.x ?? 0;
         const camY = camera?.y ?? 0;
         const zoom = camera?.zoom > 0 ? camera.zoom : 1;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
         if (dark) {
             gl.clearColor(0.035, 0.035, 0.04, 1);
@@ -448,6 +549,32 @@ export function createNetworkVisualiserWebGL(canvas, gl) {
             gl.bindVertexArray(null);
         }
 
+        if (labelCtx && labelCanvas) {
+            labelCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            labelCtx.clearRect(0, 0, cssW, cssH);
+            if (zoom >= 0.45 && Array.isArray(labels) && labels.length > 0) {
+                labelCtx.textAlign = "center";
+                labelCtx.textBaseline = "top";
+                labelCtx.font = "600 11px ui-sans-serif, system-ui, sans-serif";
+                const fill = dark ? "#f4f4f5" : "#18181b";
+                const stroke = dark ? "rgba(9,9,11,0.85)" : "rgba(255,255,255,0.9)";
+                for (const lab of labels) {
+                    if (!lab?.text) continue;
+                    const sx = (lab.x - camX) * zoom + cssW * 0.5;
+                    const sy = (lab.y - camY) * zoom + cssH * 0.5;
+                    if (sx < -40 || sy < -20 || sx > cssW + 40 || sy > cssH + 20) continue;
+                    const r = Math.max(lab.size || 10, 6) * zoom;
+                    const tx = sx;
+                    const ty = sy + r + 3;
+                    labelCtx.lineWidth = 3;
+                    labelCtx.strokeStyle = stroke;
+                    labelCtx.fillStyle = fill;
+                    labelCtx.strokeText(lab.text, tx, ty);
+                    labelCtx.fillText(lab.text, tx, ty);
+                }
+            }
+        }
+
         return size;
     }
 
@@ -460,6 +587,11 @@ export function createNetworkVisualiserWebGL(canvas, gl) {
         gl.deleteVertexArray(edgeVao);
         gl.deleteProgram(nodeProg);
         gl.deleteProgram(edgeProg);
+        if (labelCanvas?.parentElement) {
+            labelCanvas.parentElement.removeChild(labelCanvas);
+        }
+        labelCanvas = null;
+        labelCtx = null;
     }
 
     return {

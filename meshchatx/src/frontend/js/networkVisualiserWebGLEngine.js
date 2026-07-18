@@ -20,6 +20,14 @@ export const KIND_IFACE_OFF = 2;
 export const KIND_PEER = 3;
 export const KIND_DISCOVERED = 4;
 
+const DEFAULT_ICON_BY_KIND = {
+    [KIND_ME]: "/assets/images/reticulum_logo_512.png",
+    [KIND_IFACE_ON]: "/assets/images/network-visualiser/interface_connected.png",
+    [KIND_IFACE_OFF]: "/assets/images/network-visualiser/interface_disconnected.png",
+    [KIND_PEER]: "/assets/images/network-visualiser/user.png",
+    [KIND_DISCOVERED]: "/assets/images/network-visualiser/interface_connected.png",
+};
+
 /**
  * Distance between two CSS points.
  * @param {{x:number,y:number}} a
@@ -113,12 +121,19 @@ function kindForNode(node) {
 function sizeForNode(node, kind) {
     const s = Number(node?.size);
     if (Number.isFinite(s) && s > 0) {
-        return Math.max(6, Math.min(28, s * 0.35));
+        return Math.max(10, Math.min(34, s * 0.55));
     }
-    if (kind === KIND_ME) return 18;
-    if (kind === KIND_IFACE_ON || kind === KIND_IFACE_OFF) return 12;
-    if (kind === KIND_DISCOVERED) return 9;
-    return 10;
+    if (kind === KIND_ME) return 26;
+    if (kind === KIND_IFACE_ON || kind === KIND_IFACE_OFF) return 18;
+    if (kind === KIND_DISCOVERED) return 14;
+    return 16;
+}
+
+function imageForNode(node, kind) {
+    if (typeof node?.image === "string" && node.image) {
+        return node.image;
+    }
+    return DEFAULT_ICON_BY_KIND[kind] || null;
 }
 
 /**
@@ -195,6 +210,8 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
     const indexById = new Map();
     /** @type {(string|null)[]} */
     let imageByIndex = [];
+    /** @type {(string|null)[]} */
+    let labelByIndex = [];
     /** @type {{useTex:number,u:number,v:number}[]} */
     let texMeta = [];
     let drawNodeScratch = new Float32Array(0);
@@ -256,10 +273,12 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
         metaById.clear();
         indexById.clear();
         imageByIndex = [];
+        labelByIndex = [];
         let idx = 0;
         for (const n of graphNodes || []) {
             if (!n?.id) continue;
             const id = String(n.id);
+            const kind = kindForNode(n);
             metaById.set(id, {
                 id,
                 label: n.label || "",
@@ -268,7 +287,8 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
                 announce: n._announce || null,
             });
             indexById.set(id, idx);
-            imageByIndex[idx] = typeof n.image === "string" && n.image ? n.image : null;
+            imageByIndex[idx] = imageForNode(n, kind);
+            labelByIndex[idx] = typeof n.label === "string" && n.label ? n.label : null;
             idx += 1;
         }
         const size = renderer.resize();
@@ -347,7 +367,21 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
             drawNodeScratch = new Float32Array(need);
         }
         const drawNodes = mergeSceneNodesWithTextures(buf.nodes, texMeta, drawNodeScratch);
-        const size = renderer.draw(drawNodes, buf.edges, camera, dark);
+        const labels = [];
+        if (camera.zoom >= 0.45) {
+            for (let i = 0; i < sceneCount; i++) {
+                const text = labelByIndex[i];
+                if (!text) continue;
+                const o = i * SCENE_NODE_STRIDE;
+                labels.push({
+                    x: buf.nodes[o],
+                    y: buf.nodes[o + 1],
+                    size: buf.nodes[o + 2],
+                    text,
+                });
+            }
+        }
+        const size = renderer.draw(drawNodes, buf.edges, camera, dark, labels);
         callScene("meshchatxVisualiserSceneResize", size.width, size.height);
         nodeCount = buf.nodeCount || nodeCount;
         edgeCount = buf.edgeCount || edgeCount;
@@ -506,6 +540,7 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
         metaById.clear();
         indexById.clear();
         imageByIndex = [];
+        labelByIndex = [];
         texMeta = [];
     }
 

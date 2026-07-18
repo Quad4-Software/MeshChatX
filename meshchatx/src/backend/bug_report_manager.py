@@ -13,6 +13,7 @@ from typing import Any
 import RNS
 
 from meshchatx.src.backend.announce_handler import AnnounceHandler
+from meshchatx.src.backend.log_redaction import redact_diagnostic_text
 
 BUG_ASPECT = "mcx-bugs-v1"
 REPORT_PATH = "/report"
@@ -386,7 +387,7 @@ class BugReportManager:
             module = entry.get("module") or ""
             message = entry.get("message") or ""
             lines.append(f"{ts}\t{level}\t{module}\t{message}")
-        log_text = "\n".join(lines)
+        log_text = redact_diagnostic_text("\n".join(lines))
         if len(log_text) > MAX_PAYLOAD_CHARS:
             log_text = log_text[:MAX_PAYLOAD_CHARS] + "\n[truncated]"
         return {

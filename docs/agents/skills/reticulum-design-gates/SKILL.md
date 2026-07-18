@@ -88,6 +88,7 @@ Allowed:
 - [ ] No new unauthenticated mutating HTTP/WS surface
 - [ ] No cross-identity leakage
 - [ ] Tests cover success and recoverable failure
+- [ ] Mesh/identity/auth changes cite matching EECT scenario ids under `tests/backend/eect/`
 
 ## Key references
 

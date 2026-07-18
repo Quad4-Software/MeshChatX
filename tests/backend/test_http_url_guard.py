@@ -103,11 +103,25 @@ def test_normalize_libretranslate_private_and_loopback_ips():
         "http://239.255.0.1:5000/",
         "http://0.0.0.0/",
         "http://240.0.0.1:1",
+        # Decimal / hex encodings of 169.254.169.254 (SSRF metadata bypass).
+        "http://2852039166/",
+        "http://0xa9fea9fe/",
+        "http://0xA9FEA9FE:80/",
     ],
 )
 def test_normalize_libretranslate_rejects_ssrf_lit_ips(bad):
     with pytest.raises(UnsafeOutboundUrlError):
         normalize_libretranslate_http_service_base(bad)
+
+
+def test_normalize_libretranslate_allows_decimal_loopback():
+    # Loopback encodings remain allowed for local LibreTranslate.
+    assert normalize_libretranslate_http_service_base("http://2130706433:5000/") == (
+        "http://2130706433:5000"
+    )
+    assert normalize_libretranslate_http_service_base("http://0x7f000001/") == (
+        "http://0x7f000001"
+    )
 
 
 @pytest.mark.parametrize(

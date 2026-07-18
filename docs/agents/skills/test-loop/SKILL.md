@@ -22,6 +22,11 @@ pnpm exec vitest run tests/frontend/<Name>.test.js
 # Quick regression
 task test:quick
 
+# Extended Edge Case Tester / Live Validation
+task test:eect
+task test:lv:l0
+MESHCHAT_LIVE_VALIDATION=1 task test:lv
+
 # Broader
 task test:backend
 task test:frontend

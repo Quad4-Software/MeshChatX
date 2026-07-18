@@ -43,4 +43,24 @@ describe("hot-path bug regressions", () => {
         expect(DownloadUtils.sanitizeDownloadFilename("a\r\nb.html", "x.bin")).toBe("ab.html");
         expect(DownloadUtils.sanitizeDownloadFilename("a\x00b.bin", "x.bin")).toBe("ab.bin");
     });
+
+    it("strips zero-width and soft-hyphen hidden fixed overlays", () => {
+        const zwsp = String.fromCharCode(0x200b);
+        const shyChar = String.fromCharCode(0x00ad);
+        const zw = MicronParser.stripOverlayStyles(`<div style="position:fi${zwsp}xed; color:red">x</div>`);
+        expect(zw.toLowerCase()).not.toMatch(/position\s*:\s*fi/);
+        expect(zw).toContain("color:red");
+        const shy = MicronParser.stripOverlayStyles(`<div style="position:fi${shyChar}xed">x</div>`);
+        expect(shy.toLowerCase()).not.toMatch(/position\s*:/);
+        const cssZw = stripOverlayFromCss(`.x{position:fi${zwsp}xed;inset:0}`);
+        expect(cssZw.toLowerCase()).not.toMatch(/position\s*:\s*fi/);
+        expect(cssZw.toLowerCase()).toMatch(/position:static/);
+    });
+
+    it("download filenames strip bidi overrides and Windows reserved names", () => {
+        const rtl = String.fromCharCode(0x202e);
+        expect(DownloadUtils.sanitizeDownloadFilename(`${rtl}exe.txt`, "x.bin")).toBe("exe.txt");
+        expect(DownloadUtils.sanitizeDownloadFilename("CON.txt", "x.bin")).toBe("x.bin");
+        expect(DownloadUtils.sanitizeDownloadFilename("evil.txt...", "x.bin")).toBe("evil.txt");
+    });
 });

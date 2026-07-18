@@ -81,8 +81,10 @@ export function stripOverlayFromCss(css) {
         }
     });
     s = s.replace(/\\(.)/g, "$1");
+    // Drop format/bidi noise so fi\u200Bxed cannot hide overlays.
+    s = s.replace(/[\u00AD\u180E\u200B-\u200F\u202A-\u202E\u2060-\u2064\uFEFF]/g, "");
     s = s.replace(/position\s*:\s*[^;{}]+/gi, (decl) => {
-        const lower = decl.toLowerCase();
+        const lower = decl.toLowerCase().replace(/\s+/g, "");
         if (/\bfixed\b/.test(lower) || /\bsticky\b/.test(lower)) {
             return "position:static";
         }
