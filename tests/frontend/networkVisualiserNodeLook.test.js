@@ -7,6 +7,7 @@
 
 import { describe, expect, it } from "vitest";
 import {
+    ATLAS_CELL,
     isGlyphStyleVisualiserIcon,
     NODE_BORDER_INNER,
     NODE_BORDER_OUTER,
@@ -38,6 +39,10 @@ describe("visualiser WebGL node look regressions", () => {
         expect(isGlyphStyleVisualiserIcon("")).toBe(false);
     });
 
+    it("uses a high-res atlas cell so icons stay sharp on HiDPI", () => {
+        expect(ATLAS_CELL).toBeGreaterThanOrEqual(128);
+    });
+
     it("extracts white glyph and clears solid fill from badge pixels", () => {
         // 2x2: blue fill, white glyph, blue fill, empty
         const data = new Uint8ClampedArray([
@@ -67,6 +72,18 @@ describe("visualiser WebGL node look regressions", () => {
         expect(data[7]).toBe(255);
         expect(data[8]).toBe(0);
         expect(data[11]).toBe(0);
+    });
+
+    it("preserves soft alpha on mid-luma glyph AA fringes", () => {
+        // Grey fringe between white glyph and blue fill (binary threshold would crunch this).
+        const data = new Uint8ClampedArray([180, 180, 180, 255]);
+        const { glyphPixels } = prepareVisualiserIconPixels(data, "glyph");
+        expect(glyphPixels).toBe(1);
+        expect(data[0]).toBe(255);
+        expect(data[1]).toBe(255);
+        expect(data[2]).toBe(255);
+        expect(data[3]).toBeGreaterThan(40);
+        expect(data[3]).toBeLessThan(220);
     });
 
     it("opaque mode forces alpha on RGB pixels for logo uploads", () => {

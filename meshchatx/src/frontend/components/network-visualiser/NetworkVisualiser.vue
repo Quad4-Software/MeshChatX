@@ -1815,4 +1815,14 @@ export default {
     background-image: radial-gradient(#18181b 1px, transparent 1px);
     background-size: 32px 32px;
 }
+
+#network-webgl,
+.network-webgl-labels {
+    image-rendering: auto;
+}
+
+.network-webgl-labels {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
 </style>

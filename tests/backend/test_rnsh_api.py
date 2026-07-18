@@ -483,6 +483,24 @@ def test_rnsh_stop_returns_stopped_status(monkeypatch):
     assert session.status == RNSHSession.STATUS_STOPPED
 
 
+def test_rnsh_build_env_redirects_home_under_storage(tmp_path):
+    """rnsh ensure_config_directory needs ~/.rnsh. Keep it inside storage."""
+    from meshchatx.src.backend.rnsh_manager import RNSHSession
+
+    storage = tmp_path / "identity_storage"
+    storage.mkdir()
+    manager = MagicMock()
+    manager.storage_dir = str(storage)
+    manager.reticulum_config_dir = str(tmp_path / "reticulum")
+    session = RNSHSession(manager, "s1", {"mode": "listen"})
+    env = session._build_env()
+    expected_home = str(storage / "rnsh_home")
+    assert env["HOME"] == expected_home
+    assert (storage / "rnsh_home" / ".rnsh").is_dir()
+    assert "XDG_CONFIG_HOME" not in env
+    assert env.get("PYTHONUNBUFFERED") == "1"
+
+
 def test_rnsh_waiter_does_not_clobber_restarted_process():
     import threading
     import time
