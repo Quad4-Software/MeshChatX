@@ -76,7 +76,12 @@ func Settle(req Request) Result {
 	}
 
 	gravity := req.Gravity
-	if gravity == 0 {
+	// Negative gravity means "off" (live Tick). Zero means use the default
+	// centering pull for one-shot settle. Live layout must not vacuum nodes
+	// toward the origin or users cannot shape the graph.
+	if gravity < 0 {
+		gravity = 0
+	} else if gravity == 0 {
 		gravity = 0.01
 	}
 	repulsion := req.Repulsion

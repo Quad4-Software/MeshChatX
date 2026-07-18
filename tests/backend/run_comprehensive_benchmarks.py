@@ -378,21 +378,24 @@ class BackendBenchmarker:
     def bench_identity_operations(self):
         manager = IdentityManager(self.temp_dir)
 
-        @benchmark("Create Identity", iterations=5)
-        def create_id():
-            return manager.create_identity(f"Bench {random.randint(0, 1000)}")
+        # Seed exactly 50 identities for the list bench. Do not call the
+        # @benchmark-wrapped create helper here: each call runs warmup +
+        # iterations and would create ~300 dirs, not 50.
+        for i in range(50):
+            manager.create_identity(f"Seed {i}")
 
         @benchmark("List 50 Identities", iterations=10)
         def list_ids():
             return manager.list_identities()
 
-        # Seed some identities
-        for i in range(50):
-            create_id()
+        @benchmark("Create Identity", iterations=5)
+        def create_id():
+            return manager.create_identity(f"Bench {random.randint(0, 1000)}")
 
-        _, res = create_id()
-        self.results.append(res)
+        # List first so the metric stays at 50 identities (create would add more).
         _, res = list_ids()
+        self.results.append(res)
+        _, res = create_id()
         self.results.append(res)
 
     def bench_telephony_operations(self):

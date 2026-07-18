@@ -3,6 +3,7 @@
 package layout_test
 
 import (
+	"math"
 	"testing"
 
 	"github.com/Quad4-Software/MeshChatX/visualiser-wasm/internal/layout"
@@ -28,8 +29,23 @@ func TestSettleMovesUnfixedNodes(t *testing.T) {
 		t.Fatalf("me should stay fixed: %#v", res.Positions["me"])
 	}
 	// Springs should push a/b outward from the tiny start distance.
-	if abs(res.Positions["a"].X) < 20 {
+	if math.Abs(res.Positions["a"].X) < 20 {
 		t.Fatalf("expected a to move outward, got %#v", res.Positions["a"])
+	}
+}
+
+func TestSettleNegativeGravityDisablesOriginPull(t *testing.T) {
+	// Far from origin with no edges: default gravity would suck the node home.
+	res := layout.Settle(layout.Request{
+		Nodes: []layout.Node{
+			{ID: "lonely", X: 800, Y: 600, Mass: 1},
+		},
+		Iterations: 40,
+		Gravity:    -1,
+	})
+	p := res.Positions["lonely"]
+	if math.Hypot(p.X-800, p.Y-600) > 5 {
+		t.Fatalf("negative gravity must not pull toward origin: start=(800,600) got=%#v", p)
 	}
 }
 
@@ -83,11 +99,4 @@ func itoa(n int) string {
 		n /= 10
 	}
 	return string(buf[i:])
-}
-
-func abs(v float64) float64 {
-	if v < 0 {
-		return -v
-	}
-	return v
 }

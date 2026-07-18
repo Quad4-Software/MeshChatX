@@ -213,6 +213,15 @@ describe("networkVisualiserWebGLEngine", () => {
         expect(req.width).toBe(640);
     });
 
+    it("graphToSceneRequest keeps zoom 0 so Scene.Set can preserve camera", () => {
+        const req = graphToSceneRequest([], [], { width: 100, height: 100, zoom: 0, camX: 12, camY: -4 });
+        expect(req.zoom).toBe(0);
+        expect(req.cam_x).toBe(12);
+        expect(req.cam_y).toBe(-4);
+        const def = graphToSceneRequest([], [], { width: 100, height: 100 });
+        expect(def.zoom).toBe(1);
+    });
+
     it("graphToSceneRequest marks disconnected interfaces and discovered peers", () => {
         const req = graphToSceneRequest(
             [

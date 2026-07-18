@@ -271,11 +271,12 @@ func (s *Scene) Tick(steps int) {
 		})
 	}
 	// Softer than one-shot Settle defaults so live layout does not twitch.
+	// Gravity -1 disables origin pull so dragged layouts stay put.
 	_ = layout.Settle(layout.Request{
 		Nodes:      layoutNodes,
 		Edges:      layoutEdges,
 		Iterations: steps,
-		Gravity:    0.004,
+		Gravity:    -1,
 		Repulsion:  550,
 		SpringK:    0.018,
 		Damping:    0.52,
