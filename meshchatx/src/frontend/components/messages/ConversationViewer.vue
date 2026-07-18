@@ -1813,10 +1813,7 @@ import {
 import MicrophoneRecorder from "../../js/MicrophoneRecorder";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import AddAudioButton from "./AddAudioButton.vue";
-import dayjs from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime";
-
-dayjs.extend(relativeTime);
+import { fromNow } from "../../libs/datetime.js";
 
 const SCROLL_SETTLE_MAX_PASSES = 24;
 const OPEN_CONVERSATION_SCROLL_PIN_MS = 900;
@@ -1845,7 +1842,7 @@ import "emoji-picker-element";
 import StickerView from "../stickers/StickerView.vue";
 import InViewAnimatedImg from "./InViewAnimatedImg.vue";
 import TelemetryHistoryModal from "./telemetry/TelemetryHistoryModal.vue";
-import { v4 as uuidv4 } from "uuid";
+import { uuidv4 } from "../../libs/uuid.js";
 
 export default {
     name: "ConversationViewer",
@@ -3845,7 +3842,7 @@ export default {
 
             // check if we have an outbound ticket available
             if (outboundTicketExpiry != null) {
-                estimatedTimeForStamp = `instant (ticket expires ${dayjs(outboundTicketExpiry * 1000).fromNow()})`;
+                estimatedTimeForStamp = `instant (ticket expires ${fromNow(outboundTicketExpiry * 1000)})`;
             }
 
             DialogUtils.alert(

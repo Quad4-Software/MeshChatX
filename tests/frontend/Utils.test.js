@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import Utils from "@/js/Utils";
-import dayjs from "dayjs";
 
 describe("Utils.js", () => {
     describe("formatDestinationHash", () => {

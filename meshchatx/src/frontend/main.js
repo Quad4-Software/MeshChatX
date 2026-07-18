@@ -1,7 +1,7 @@
 import { createApp } from "vue";
 import { createRouter, createWebHashHistory } from "vue-router";
 import { createI18n } from "vue-i18n";
-import vClickOutside from "click-outside-vue3";
+import vClickOutside from "./libs/clickOutside.js";
 import DOMPurify from "dompurify";
 import "./style.css";
 import { injectMeshchatThemeVariables, vuetifyThemesFromTokens } from "./theme/designTokens.js";

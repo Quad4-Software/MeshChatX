@@ -173,16 +173,13 @@
 
 <script>
 import Utils from "../../js/Utils";
-import dayjs from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime";
+import { fromNow } from "../../libs/datetime.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import IconButton from "../IconButton.vue";
 import LxmfUserIcon from "../LxmfUserIcon.vue";
 import ConversationDropDownMenu from "./ConversationDropDownMenu.vue";
 import DropDownMenu from "../DropDownMenu.vue";
 import DropDownMenuItem from "../DropDownMenuItem.vue";
-
-dayjs.extend(relativeTime);
 
 export default {
     name: "ConversationPeerHeader",
@@ -341,7 +338,7 @@ export default {
             if (ms == null) {
                 return "";
             }
-            return dayjs(ms).fromNow();
+            return fromNow(ms);
         },
     },
     methods: {

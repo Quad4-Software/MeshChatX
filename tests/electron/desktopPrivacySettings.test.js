@@ -39,9 +39,7 @@ describe("electron/desktopPrivacySettings", () => {
         expect(normalizeDesktopPrivacySettings({ screenSecurityEnabled: "yes" })).toEqual(
             defaultDesktopPrivacySettings()
         );
-        expect(normalizeDesktopPrivacySettings({ screenSecurityEnabled: 1 })).toEqual(
-            defaultDesktopPrivacySettings()
-        );
+        expect(normalizeDesktopPrivacySettings({ screenSecurityEnabled: 1 })).toEqual(defaultDesktopPrivacySettings());
         expect(normalizeDesktopPrivacySettings({ screenSecurityEnabled: true })).toEqual({
             screenSecurityEnabled: true,
         });

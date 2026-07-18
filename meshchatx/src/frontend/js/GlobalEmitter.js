@@ -1,8 +1,10 @@
-import mitt from "mitt";
+// SPDX-License-Identifier: 0BSD
+
+import { createEmitter } from "../libs/emitter.js";
 
 class GlobalEmitter {
     constructor() {
-        this.emitter = mitt();
+        this.emitter = createEmitter();
     }
 
     // add event listener

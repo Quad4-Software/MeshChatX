@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: 0BSD
 
-import mitt from "mitt";
+import { createEmitter } from "../../libs/emitter.js";
 
-/** @type {import('mitt').Emitter<Record<string, unknown>>} */
-const emitter = mitt();
+/** @type {ReturnType<typeof createEmitter>} */
+const emitter = createEmitter();
 
 /**
  * @param {string} type
@@ -27,7 +27,7 @@ export function offWsEvent(type, handler) {
  */
 export async function dispatchWsEvent(type, payload) {
     const handlers = emitter.all.get(type);
-    if (!handlers || handlers.size === 0) {
+    if (!handlers || handlers.length === 0) {
         return;
     }
     for (const handler of handlers) {
