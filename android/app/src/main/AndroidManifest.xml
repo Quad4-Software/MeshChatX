@@ -90,6 +90,18 @@
                 android:resource="@xml/device_filter" />
         </activity>
 
+        <!--
+          Non-exported: notification answer/decline PendingIntents only.
+          Keeps forgeable CALL_ANSWER / CALL_DECLINE off the exported MainActivity.
+        -->
+        <activity
+            android:name=".CallNotificationTrampolineActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
         <service
             android:name=".MeshChatForegroundService"
             android:exported="false"
