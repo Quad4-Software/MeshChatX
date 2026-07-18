@@ -9,16 +9,16 @@ export const SCENE_NODE_STRIDE = 8;
 export const NODE_STRIDE = 10;
 export const EDGE_STRIDE = 8;
 
-const ATLAS_CELL = 64;
+const ATLAS_CELL = 128;
 const ATLAS_COLS = 16;
 const ATLAS_ROWS = 16;
 const ATLAS_CAPACITY = ATLAS_COLS * ATLAS_ROWS;
 
 /** Soft-edge AA width in UV radius units (1.0 = disc edge). Keep tight to avoid fuzzy blobs. */
-export const NODE_EDGE_INNER = 0.96;
+export const NODE_EDGE_INNER = 0.97;
 /** Border ring starts inside the disc (untextured and under glyphs). */
-export const NODE_BORDER_INNER = 0.78;
-export const NODE_BORDER_OUTER = 0.96;
+export const NODE_BORDER_INNER = 0.82;
+export const NODE_BORDER_OUTER = 0.97;
 
 const NODE_VS = `#version 300 es
 layout(location=0) in vec2 a_corner;
@@ -238,7 +238,7 @@ export function isGlyphStyleVisualiserIcon(url) {
  * Prepare atlas RGBA pixels for upload.
  *
  * - opaque: force non-empty pixels to a=255 (RGB PNG uploads)
- * - glyph: keep near-white / bright pixels as white glyphs, clear the solid fill
+ * - glyph: keep bright glyph coverage as soft alpha (preserves AA), clear fill
  *
  * @param {Uint8ClampedArray|Uint8Array} data RGBA buffer (mutated)
  * @param {"opaque"|"glyph"} mode
@@ -257,23 +257,34 @@ export function prepareVisualiserIconPixels(data, mode = "opaque") {
         if (!(r | g | b | a)) continue;
         painted += 1;
         if (glyphMode) {
-            // Stock badges: bright glyph on saturated fill. Keep bright pixels.
+            // Soft coverage from luma so badge AA edges stay smooth when scaled.
             const luma = 0.299 * r + 0.587 * g + 0.114 * b;
             const maxc = Math.max(r, g, b);
             const minc = Math.min(r, g, b);
             const sat = maxc - minc;
-            const isGlyph = luma >= 185 || (luma >= 150 && sat < 40);
-            if (isGlyph) {
-                data[i] = 255;
-                data[i + 1] = 255;
-                data[i + 2] = 255;
-                data[i + 3] = 255;
-                glyphPixels += 1;
-            } else {
+            let cover = 0;
+            if (luma >= 210) {
+                cover = 1;
+            } else if (luma >= 150) {
+                cover = (luma - 150) / 60;
+                if (sat > 50) {
+                    cover *= Math.max(0, 1 - (sat - 50) / 120);
+                }
+            } else if (luma >= 130 && sat < 35) {
+                cover = ((luma - 130) / 20) * 0.45;
+            }
+            if (cover <= 0.02) {
                 data[i] = 0;
                 data[i + 1] = 0;
                 data[i + 2] = 0;
                 data[i + 3] = 0;
+            } else {
+                const alpha = Math.round(Math.min(1, cover) * 255);
+                data[i] = 255;
+                data[i + 1] = 255;
+                data[i + 2] = 255;
+                data[i + 3] = alpha;
+                if (alpha >= 24) glyphPixels += 1;
             }
         } else {
             data[i + 3] = 255;
@@ -287,11 +298,12 @@ function createIconAtlas(gl) {
     const height = ATLAS_ROWS * ATLAS_CELL;
     const texture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.generateMipmap(gl.TEXTURE_2D);
 
     const urlToSlot = new Map();
     const pending = new Map();
@@ -302,7 +314,13 @@ function createIconAtlas(gl) {
         scratch.width = ATLAS_CELL;
         scratch.height = ATLAS_CELL;
     }
-    const scratchCtx = scratch?.getContext?.("2d", { willReadFrequently: true }) || null;
+    const scratchCtx = scratch?.getContext?.("2d", { willReadFrequently: true, alpha: true }) || null;
+    if (scratchCtx) {
+        scratchCtx.imageSmoothingEnabled = true;
+        if ("imageSmoothingQuality" in scratchCtx) {
+            scratchCtx.imageSmoothingQuality = "high";
+        }
+    }
 
     function allocSlot() {
         if (freeSlots.length > 0) return freeSlots.pop();
@@ -314,6 +332,11 @@ function createIconAtlas(gl) {
         if (!scratchCtx || !scratch) return false;
         scratchCtx.save();
         scratchCtx.setTransform(1, 0, 0, 1, 0, 0);
+        scratchCtx.globalCompositeOperation = "source-over";
+        scratchCtx.imageSmoothingEnabled = true;
+        if ("imageSmoothingQuality" in scratchCtx) {
+            scratchCtx.imageSmoothingQuality = "high";
+        }
         scratchCtx.clearRect(0, 0, ATLAS_CELL, ATLAS_CELL);
         const sw = source.width || source.videoWidth || ATLAS_CELL;
         const sh = source.height || source.videoHeight || ATLAS_CELL;
@@ -321,9 +344,12 @@ function createIconAtlas(gl) {
             scratchCtx.restore();
             return false;
         }
-        const scale = Math.min(ATLAS_CELL / sw, ATLAS_CELL / sh);
-        const dw = Math.max(1, Math.floor(sw * scale));
-        const dh = Math.max(1, Math.floor(sh * scale));
+        // Pad slightly so circular badges do not clip AA fringes at the cell edge.
+        const pad = 2;
+        const fit = ATLAS_CELL - pad * 2;
+        const scale = Math.min(fit / sw, fit / sh);
+        const dw = Math.max(1, Math.round(sw * scale));
+        const dh = Math.max(1, Math.round(sh * scale));
         const dx = Math.floor((ATLAS_CELL - dw) / 2);
         const dy = Math.floor((ATLAS_CELL - dh) / 2);
         scratchCtx.drawImage(source, dx, dy, dw, dh);
@@ -356,6 +382,7 @@ function createIconAtlas(gl) {
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
         gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
         gl.texSubImage2D(gl.TEXTURE_2D, 0, col * ATLAS_CELL, row * ATLAS_CELL, gl.RGBA, gl.UNSIGNED_BYTE, scratch);
+        gl.generateMipmap(gl.TEXTURE_2D);
         return true;
     }
 
@@ -514,9 +541,16 @@ export function createNetworkVisualiserWebGL(canvas, gl) {
     if (typeof document !== "undefined" && canvas?.parentElement) {
         labelCanvas = document.createElement("canvas");
         labelCanvas.className = "network-webgl-labels";
-        labelCanvas.style.cssText = "position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;";
+        labelCanvas.style.cssText =
+            "position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;";
         canvas.parentElement.appendChild(labelCanvas);
-        labelCtx = labelCanvas.getContext("2d");
+        labelCtx = labelCanvas.getContext("2d", { alpha: true });
+        if (labelCtx) {
+            labelCtx.imageSmoothingEnabled = true;
+            if ("imageSmoothingQuality" in labelCtx) {
+                labelCtx.imageSmoothingQuality = "high";
+            }
+        }
     }
 
     function resize() {
@@ -624,23 +658,29 @@ export function createNetworkVisualiserWebGL(canvas, gl) {
         }
 
         if (labelCtx && labelCanvas) {
-            labelCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-            labelCtx.clearRect(0, 0, cssW, cssH);
+            labelCtx.setTransform(1, 0, 0, 1, 0, 0);
+            labelCtx.clearRect(0, 0, labelCanvas.width, labelCanvas.height);
             if (zoom >= 0.45 && Array.isArray(labels) && labels.length > 0) {
+                // Draw in device pixels so glyph AA matches the HiDPI canvas.
+                const fontPx = Math.max(12, Math.round(12 * dpr));
                 labelCtx.textAlign = "center";
                 labelCtx.textBaseline = "top";
-                labelCtx.font = "600 11px ui-sans-serif, system-ui, sans-serif";
+                labelCtx.font = `500 ${fontPx}px Inter, system-ui, -apple-system, "Segoe UI", sans-serif`;
+                labelCtx.imageSmoothingEnabled = true;
                 const fill = dark ? "#f4f4f5" : "#18181b";
-                const stroke = dark ? "rgba(9,9,11,0.85)" : "rgba(255,255,255,0.9)";
+                const stroke = dark ? "rgba(9,9,11,0.75)" : "rgba(255,255,255,0.88)";
+                labelCtx.lineJoin = "round";
+                labelCtx.miterLimit = 2;
+                labelCtx.lineWidth = Math.max(2, Math.round(2.25 * dpr));
                 for (const lab of labels) {
                     if (!lab?.text) continue;
                     const sx = (lab.x - camX) * zoom + cssW * 0.5;
                     const sy = (lab.y - camY) * zoom + cssH * 0.5;
                     if (sx < -40 || sy < -20 || sx > cssW + 40 || sy > cssH + 20) continue;
                     const r = Math.max(lab.size || 10, 6) * zoom;
-                    const tx = sx;
-                    const ty = sy + r + 3;
-                    labelCtx.lineWidth = 3;
+                    // Snap to device pixels to avoid blurry half-pixel text.
+                    const tx = Math.round(sx * dpr);
+                    const ty = Math.round((sy + r + 4) * dpr);
                     labelCtx.strokeStyle = stroke;
                     labelCtx.fillStyle = fill;
                     labelCtx.strokeText(lab.text, tx, ty);

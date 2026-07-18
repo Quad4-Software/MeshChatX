@@ -371,6 +371,26 @@ class RNSHSession:
     def _supports_pty():
         return _PTY_SUPPORTED
 
+    def _resolved_rnsh_home(self):
+        """Directory used as HOME for the rnsh subprocess.
+
+        Upstream rnsh always creates or opens ~/.rnsh (see ensure_config_directory).
+        Under Landlock the real home is not writable, so MeshChatX points HOME at
+        an identity-scoped path under storage that the sandbox already allows.
+        """
+        storage = getattr(self.manager, "storage_dir", None)
+        if isinstance(storage, str) and storage.strip():
+            return os.path.join(storage.strip(), "rnsh_home")
+        return ""
+
+    def _ensure_rnsh_home(self, home_dir):
+        """Create HOME and the ~/.rnsh layout rnsh expects before spawn."""
+        if not home_dir:
+            return ""
+        rnsh_cfg = os.path.join(home_dir, ".rnsh")
+        os.makedirs(rnsh_cfg, exist_ok=True)
+        return home_dir
+
     def _build_env(self):
         env = dict(os.environ)
         env.setdefault("TERM", "xterm-256color")
@@ -379,6 +399,12 @@ class RNSHSession:
         # Pipe mode (Windows and pytest) has no TTY, so CPython fully buffers
         # stdout and listen-address lines never reach the reader promptly.
         env["PYTHONUNBUFFERED"] = "1"
+        home_dir = self._ensure_rnsh_home(self._resolved_rnsh_home())
+        if home_dir:
+            # Keep rnsh's ensure_config_directory() inside the Landlock RW tree.
+            env["HOME"] = home_dir
+            # Avoid picking up a host XDG tree that Landlock cannot create under.
+            env.pop("XDG_CONFIG_HOME", None)
         return env
 
     @staticmethod

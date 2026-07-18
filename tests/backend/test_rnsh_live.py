@@ -16,6 +16,7 @@ import importlib.util
 import os
 import shutil
 import socket
+import sys
 import tempfile
 import textwrap
 import time
@@ -33,8 +34,10 @@ _RNSH_AVAILABLE = importlib.util.find_spec(_RNSH_MODULE) is not None
 
 
 class _LiveManager:
-    def __init__(self, reticulum_config_dir: str):
+    def __init__(self, reticulum_config_dir: str, storage_dir: str | None = None):
         self.reticulum_config_dir = reticulum_config_dir
+        # rnsh subprocess HOME is rooted under storage_dir (Landlock RW tree).
+        self.storage_dir = storage_dir or reticulum_config_dir
         self.changes = 0
         self.outputs = 0
 
@@ -98,6 +101,9 @@ def test_rnsh_live_listen_session_reports_address(monkeypatch):
         assert "-m" in started["last_command"] or "rnsh" in started["last_command"]
         assert "--meshchatx-run-module" not in started["last_command"]
         assert session._build_env().get("PYTHONUNBUFFERED") == "1"
+        env = session._build_env()
+        assert env["HOME"] == os.path.join(tmpdir, "rnsh_home")
+        assert os.path.isdir(os.path.join(tmpdir, "rnsh_home", ".rnsh"))
 
         address = _wait_for_listen_address(session)
         assert len(address) >= 16
@@ -347,3 +353,285 @@ def test_rnsh_live_listen_connect_echo_roundtrip():
             listen.stop()
         shutil.rmtree(listen_dir, ignore_errors=True)
         shutil.rmtree(conn_dir, ignore_errors=True)
+
+
+def _free_port() -> int:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        return int(sock.getsockname()[1])
+
+
+def _write_isolated_rns_config(config_dir: str, *, port: int, name: str) -> None:
+    os.makedirs(config_dir, exist_ok=True)
+    path = os.path.join(config_dir, "config")
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write(
+            textwrap.dedent(
+                f"""\
+                [reticulum]
+                  enable_transport = No
+                  share_instance = No
+                  shared_instance_port = {port}
+                  instance_name = {name}
+                  panic_on_interface_error = No
+
+                [logging]
+                  loglevel = 6
+                """,
+            ),
+        )
+
+
+@pytest.mark.integration
+@pytest.mark.skipif(not _RUN, reason="Set MESHCHAT_LIVE_RNSH=1 to run live RNSh tests")
+@pytest.mark.skipif(
+    not _RNSH_AVAILABLE,
+    reason="RNS.Utilities.rnsh.rnsh is not installed",
+)
+@pytest.mark.skipif(sys.platform != "linux", reason="Landlock live check is Linux-only")
+def test_rnsh_live_listen_without_landlock(monkeypatch):
+    """Landlock off: listener starts and HOME stays under storage."""
+    monkeypatch.setenv("MESHCHAT_LANDLOCK", "0")
+    _force_pipe_mode(monkeypatch)
+    storage = tempfile.mkdtemp(prefix="meshchat_rnsh_ll_off_storage_")
+    rns_dir = tempfile.mkdtemp(prefix="meshchat_rnsh_ll_off_rns_")
+    session = None
+    try:
+        _write_isolated_rns_config(rns_dir, port=_free_port(), name="rnsh_ll_off")
+        manager = _LiveManager(rns_dir, storage_dir=storage)
+        session = RNSHSession(
+            manager,
+            "live-ll-off",
+            {
+                "mode": "listen",
+                "no_auth": True,
+                "quiet": 1,
+                "config_path": rns_dir,
+            },
+        )
+        started = session.start()
+        assert started["status"] == RNSHSession.STATUS_RUNNING
+        env = session._build_env()
+        assert env["HOME"] == os.path.join(storage, "rnsh_home")
+        address = _wait_for_listen_address(session, timeout=35.0)
+        assert len(address) >= 16
+        assert "Could not get or create rnsh configuration directory" not in (
+            session.to_dict(include_output_tail=True).get("output_text") or ""
+        )
+    finally:
+        if session is not None:
+            with contextlib.suppress(Exception):
+                session.stop()
+        shutil.rmtree(storage, ignore_errors=True)
+        shutil.rmtree(rns_dir, ignore_errors=True)
+
+
+@pytest.mark.integration
+@pytest.mark.skipif(not _RUN, reason="Set MESHCHAT_LIVE_RNSH=1 to run live RNSh tests")
+@pytest.mark.skipif(
+    not _RNSH_AVAILABLE,
+    reason="RNS.Utilities.rnsh.rnsh is not installed",
+)
+@pytest.mark.skipif(sys.platform != "linux", reason="Landlock live check is Linux-only")
+def test_rnsh_live_listen_under_landlock_and_denied_home_fails():
+    """Landlock on + real HOME outside RW roots: rnsh cannot create ~/.rnsh."""
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    from meshchatx.src.backend.landlock_sandbox import landlock_kernel_supported
+
+    if not landlock_kernel_supported():
+        pytest.skip("Landlock not available on this kernel")
+
+    storage = tempfile.mkdtemp(prefix="meshchat_rnsh_ll_deny_storage_")
+    rns_dir = tempfile.mkdtemp(prefix="meshchat_rnsh_ll_deny_rns_")
+    _write_isolated_rns_config(rns_dir, port=_free_port(), name="rnsh_ll_deny")
+    script = textwrap.dedent(
+        f"""\
+        import os
+        import subprocess
+        import sys
+        from meshchatx.src.backend.landlock_sandbox import apply_landlock_sandbox
+
+        storage = {storage!r}
+        rns_dir = {rns_dir!r}
+        os.environ["MESHCHAT_LANDLOCK"] = "1"
+        # HOME outside the Landlock RW tree (storage/tmp/run/dev).
+        os.environ["HOME"] = "/root"
+        os.environ.pop("XDG_CONFIG_HOME", None)
+        ok = apply_landlock_sandbox(
+            storage_dir=storage,
+            reticulum_config_dir=rns_dir,
+            log_dir=storage,
+        )
+        if not ok:
+            print("LANDLOCK_NOT_APPLIED")
+            sys.exit(2)
+        env = dict(os.environ)
+        env["PYTHONUNBUFFERED"] = "1"
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "RNS.Utilities.rnsh.rnsh",
+                "-c",
+                rns_dir,
+                "-l",
+                "-n",
+                "-q",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=12,
+            env=env,
+            check=False,
+        )
+        out = (result.stdout or "") + (result.stderr or "")
+        print("RC", result.returncode)
+        print("OUT", out[-2000:])
+        if "Could not get or create rnsh configuration directory" in out:
+            print("GOT_CONFIG_DIR_CRITICAL")
+            sys.exit(0)
+        # Some environments may fail earlier with PermissionError on /root.
+        if result.returncode not in (0, None) and (
+            "Permission" in out or "configuration directory" in out
+        ):
+            print("GOT_HOME_DENY")
+            sys.exit(0)
+        print("UNEXPECTED_SUCCESS")
+        sys.exit(3)
+        """,
+    )
+    try:
+        result = subprocess.run(
+            [sys.executable, "-c", script],
+            cwd=str(Path(__file__).resolve().parents[2]),
+            capture_output=True,
+            text=True,
+            timeout=40,
+            check=False,
+        )
+        if "LANDLOCK_NOT_APPLIED" in result.stdout:
+            pytest.skip("Landlock could not be applied in this environment")
+        assert result.returncode == 0, (result.stdout, result.stderr)
+        assert (
+            "GOT_CONFIG_DIR_CRITICAL" in result.stdout
+            or "GOT_HOME_DENY" in result.stdout
+        )
+    finally:
+        shutil.rmtree(storage, ignore_errors=True)
+        shutil.rmtree(rns_dir, ignore_errors=True)
+
+
+@pytest.mark.integration
+@pytest.mark.skipif(not _RUN, reason="Set MESHCHAT_LIVE_RNSH=1 to run live RNSh tests")
+@pytest.mark.skipif(
+    not _RNSH_AVAILABLE,
+    reason="RNS.Utilities.rnsh.rnsh is not installed",
+)
+@pytest.mark.skipif(sys.platform != "linux", reason="Landlock live check is Linux-only")
+def test_rnsh_live_listen_under_landlock_with_storage_home():
+    """Landlock on + HOME under storage: MeshChatX-style env lets rnsh listen."""
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    from meshchatx.src.backend.landlock_sandbox import landlock_kernel_supported
+
+    if not landlock_kernel_supported():
+        pytest.skip("Landlock not available on this kernel")
+
+    storage = tempfile.mkdtemp(prefix="meshchat_rnsh_ll_ok_storage_")
+    rns_dir = tempfile.mkdtemp(prefix="meshchat_rnsh_ll_ok_rns_")
+    _write_isolated_rns_config(rns_dir, port=_free_port(), name="rnsh_ll_ok")
+    script = textwrap.dedent(
+        f"""\
+        import os
+        import sys
+        import time
+        from meshchatx.src.backend.landlock_sandbox import apply_landlock_sandbox
+        from meshchatx.src.backend.rnsh_manager import RNSHSession
+
+        storage = {storage!r}
+        rns_dir = {rns_dir!r}
+        os.environ["MESHCHAT_LANDLOCK"] = "1"
+        ok = apply_landlock_sandbox(
+            storage_dir=storage,
+            reticulum_config_dir=rns_dir,
+            log_dir=storage,
+        )
+        if not ok:
+            print("LANDLOCK_NOT_APPLIED")
+            sys.exit(2)
+
+        class Manager:
+            def __init__(self):
+                self.storage_dir = storage
+                self.reticulum_config_dir = rns_dir
+            def _on_session_change(self, _s):
+                return None
+            def _on_session_output(self, _s, _c):
+                return None
+            def save(self):
+                return None
+
+        # Avoid PTY SIGHUP under capture.
+        RNSHSession._supports_pty = staticmethod(lambda: False)
+        session = RNSHSession(
+            Manager(),
+            "live-ll-ok",
+            {{
+                "mode": "listen",
+                "no_auth": True,
+                "quiet": 1,
+                "config_path": rns_dir,
+            }},
+        )
+        env = session._build_env()
+        print("HOME", env.get("HOME"))
+        if env.get("HOME") != os.path.join(storage, "rnsh_home"):
+            print("BAD_HOME")
+            sys.exit(4)
+        started = session.start()
+        print("STATUS", started.get("status"))
+        print("PID", started.get("pid"))
+        deadline = time.time() + 35.0
+        while time.time() < deadline:
+            if session.listen_address:
+                print("LISTEN", session.listen_address)
+                text = session.to_dict(include_output_tail=True).get("output_text") or ""
+                if "Could not get or create rnsh configuration directory" in text:
+                    print("CONFIG_DIR_CRITICAL")
+                    session.stop()
+                    sys.exit(5)
+                session.stop()
+                print("OK")
+                sys.exit(0)
+            if session.status == "failed":
+                print("FAILED", session.last_error)
+                print("OUT", session.to_dict(include_output_tail=True).get("output_text"))
+                sys.exit(6)
+            time.sleep(0.2)
+        print("TIMEOUT", session.to_dict(include_output_tail=True).get("output_text"))
+        session.stop()
+        sys.exit(7)
+        """,
+    )
+    try:
+        result = subprocess.run(
+            [sys.executable, "-c", script],
+            cwd=str(Path(__file__).resolve().parents[2]),
+            capture_output=True,
+            text=True,
+            timeout=60,
+            check=False,
+        )
+        if "LANDLOCK_NOT_APPLIED" in result.stdout:
+            pytest.skip("Landlock could not be applied in this environment")
+        assert result.returncode == 0, (result.stdout, result.stderr)
+        assert "OK" in result.stdout
+        assert "LISTEN" in result.stdout
+    finally:
+        shutil.rmtree(storage, ignore_errors=True)
+        shutil.rmtree(rns_dir, ignore_errors=True)
