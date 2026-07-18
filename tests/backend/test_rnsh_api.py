@@ -484,7 +484,7 @@ def test_rnsh_stop_returns_stopped_status(monkeypatch):
 
 
 def test_rnsh_build_env_redirects_home_under_storage(tmp_path):
-    """rnsh ensure_config_directory needs ~/.rnsh. Keep it inside storage."""
+    """Rnsh ensure_config_directory needs ~/.rnsh. Keep it inside storage."""
     from meshchatx.src.backend.rnsh_manager import RNSHSession
 
     storage = tmp_path / "identity_storage"

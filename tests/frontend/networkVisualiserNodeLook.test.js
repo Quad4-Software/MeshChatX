@@ -32,9 +32,7 @@ describe("visualiser WebGL node look regressions", () => {
 
     it("treats network-visualiser badge PNGs as glyph-style icons", () => {
         expect(isGlyphStyleVisualiserIcon("/assets/images/network-visualiser/user.png")).toBe(true);
-        expect(isGlyphStyleVisualiserIcon("/assets/images/network-visualiser/interface_connected.png")).toBe(
-            true
-        );
+        expect(isGlyphStyleVisualiserIcon("/assets/images/network-visualiser/interface_connected.png")).toBe(true);
         expect(isGlyphStyleVisualiserIcon("/assets/images/reticulum_logo_512.png")).toBe(false);
         expect(isGlyphStyleVisualiserIcon("")).toBe(false);
     });
@@ -45,24 +43,7 @@ describe("visualiser WebGL node look regressions", () => {
 
     it("extracts white glyph and clears solid fill from badge pixels", () => {
         // 2x2: blue fill, white glyph, blue fill, empty
-        const data = new Uint8ClampedArray([
-            59,
-            130,
-            246,
-            255,
-            255,
-            255,
-            255,
-            255,
-            59,
-            130,
-            246,
-            255,
-            0,
-            0,
-            0,
-            0,
-        ]);
+        const data = new Uint8ClampedArray([59, 130, 246, 255, 255, 255, 255, 255, 59, 130, 246, 255, 0, 0, 0, 0]);
         const { painted, glyphPixels } = prepareVisualiserIconPixels(data, "glyph");
         expect(painted).toBe(3);
         expect(glyphPixels).toBe(1);
