@@ -1952,7 +1952,7 @@ requires-dist = [
     { name = "cbor2", specifier = ">=6.1.1" },
     { name = "cryptography", specifier = ">=49.0.0,<50.0.0" },
     { name = "lxmf", specifier = ">=1.0.1" },
-    { name = "lxst", specifier = ">=0.4.8" },
+    { name = "lxst", specifier = ">=0.5.1" },
     { name = "miniaudio", specifier = ">=1.70,<2.0" },
     { name = "ply", specifier = ">=3.11,<4.0" },
     { name = "psutil", specifier = ">=7.2.2" },

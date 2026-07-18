@@ -11539,6 +11539,7 @@ class ReticulumMeshChat:
                 custom_image=custom_image,
                 is_telemetry_trusted=is_telemetry_trusted,
             )
+            self.sync_telephone_call_policy()
             return web.json_response({"message": "Contact added"})
 
         @routes.patch("/api/v1/telephone/contacts/{id}")
@@ -11565,12 +11566,14 @@ class ReticulumMeshChat:
                 clear_image=clear_image,
                 is_telemetry_trusted=is_telemetry_trusted,
             )
+            self.sync_telephone_call_policy()
             return web.json_response({"message": "Contact updated"})
 
         @routes.delete("/api/v1/telephone/contacts/{id}")
         async def telephone_contacts_delete(request):
             contact_id = int(request.match_info["id"])
             self.database.contacts.delete_contact(contact_id)
+            self.sync_telephone_call_policy()
             return web.json_response({"message": "Contact deleted"})
 
         @routes.get("/api/v1/telephone/contacts/check/{identity_hash}")
@@ -11653,6 +11656,7 @@ class ReticulumMeshChat:
                         added += 1
                     except Exception:
                         skipped += 1
+                self.sync_telephone_call_policy()
                 return web.json_response(
                     {"message": "Import complete", "added": added, "skipped": skipped},
                 )
@@ -16019,6 +16023,7 @@ class ReticulumMeshChat:
             local_hash = self.local_lxmf_destination.hash.hex()
             self.message_handler.delete_conversation(local_hash, destination_hash)
 
+            self.sync_telephone_call_policy()
             AsyncUtils.run_async(self._broadcast_blocked_destinations())
 
             return web.json_response({"message": "ok"})
@@ -16071,6 +16076,7 @@ class ReticulumMeshChat:
                     print(f"Failed to unblackhole identity in Reticulum: {e}")
 
                 AsyncUtils.run_async(self._broadcast_blocked_destinations())
+                self.sync_telephone_call_policy()
 
                 return web.json_response({"message": "ok"})
             except Exception as e:
@@ -18345,6 +18351,7 @@ class ReticulumMeshChat:
                     self.message_router.announce(
                         destination_hash=self.local_lxmf_destination.hash,
                     )
+            self.sync_telephone_call_policy()
 
         # update flood protection settings
         if "lxmf_flood_protection_enabled" in data:
@@ -18582,6 +18589,7 @@ class ReticulumMeshChat:
             self.config.do_not_disturb_enabled.set(
                 self._parse_bool(data["do_not_disturb_enabled"]),
             )
+            self.sync_telephone_call_policy()
 
         if "telephone_enabled" in data:
             value = self._parse_bool(data["telephone_enabled"])
@@ -18594,11 +18602,13 @@ class ReticulumMeshChat:
                 self.telephone_manager.teardown()
             elif value and self.telephone_manager:
                 self.telephone_manager.init_telephone()
+                self.sync_telephone_call_policy()
 
         if "telephone_allow_calls_from_contacts_only" in data:
             self.config.telephone_allow_calls_from_contacts_only.set(
                 self._parse_bool(data["telephone_allow_calls_from_contacts_only"]),
             )
+            self.sync_telephone_call_policy()
 
         if "telephone_announce_enabled" in data:
             self.config.telephone_announce_enabled.set(
@@ -19535,6 +19545,7 @@ class ReticulumMeshChat:
                         remote_identity_hash,
                         lxmf_address=destination_hash_hex,
                     )
+                    self.sync_telephone_call_policy()
 
                     # Persist pubkey so outbound LXMF works before any announce.
                     try:
@@ -20948,6 +20959,81 @@ class ReticulumMeshChat:
         except Exception:
             return None
 
+    def _collect_blocked_identity_hashes(self, context=None) -> list:
+        """Identity-hash bytes for LXST set_blocked from the block list."""
+        ctx = context or self.current_context
+        out = []
+        seen = set()
+        if not ctx or not ctx.database:
+            return out
+        try:
+            blocked = ctx.database.misc.get_blocked_destinations()
+        except Exception:
+            return out
+
+        for row in blocked or []:
+            dest_hex = row.get("destination_hash") if isinstance(row, dict) else None
+            if not dest_hex:
+                continue
+            candidates = [dest_hex]
+            try:
+                announce = ctx.database.announces.get_announce_by_hash(dest_hex)
+                if announce and announce.get("identity_hash"):
+                    candidates.append(announce["identity_hash"])
+            except Exception:
+                pass
+            for candidate in candidates:
+                try:
+                    raw = bytes.fromhex(str(candidate))
+                except Exception:
+                    continue
+                if len(raw) != RNS.Reticulum.TRUNCATED_HASHLENGTH // 8:
+                    continue
+                if raw in seen:
+                    continue
+                seen.add(raw)
+                out.append(raw)
+        return out
+
+    def sync_telephone_call_policy(self, context=None):
+        """Push contacts-only / DND / block policy into LXST Telephone.set_allowed.
+
+        This rejects unauthorized callers before RINGING instead of relying only
+        on a delayed hangup after the ringing callback.
+        """
+        ctx = context or self.current_context
+        if not ctx or not getattr(ctx, "telephone_manager", None):
+            return
+
+        def allowed(identity_hash: bytes, policy_ctx=ctx) -> bool:
+            if not isinstance(identity_hash, (bytes, bytearray)):
+                return False
+            caller_hex = bytes(identity_hash).hex()
+            try:
+                if policy_ctx.config.do_not_disturb_enabled.get():
+                    return False
+                if self.is_destination_blocked(caller_hex, context=policy_ctx):
+                    return False
+                if (
+                    policy_ctx.config.telephone_allow_calls_from_contacts_only.get()
+                    or policy_ctx.config.block_all_from_strangers.get()
+                ) and not self._is_contact(caller_hex, context=policy_ctx):
+                    return False
+                return True
+            except Exception as e:
+                print(f"sync_telephone_call_policy allowed() error: {e}")
+                return False
+
+        try:
+            ctx.telephone_manager.set_call_policy(
+                allowed_fn=allowed,
+                blocked_identity_hashes=self._collect_blocked_identity_hashes(
+                    context=ctx,
+                ),
+            )
+        except Exception as e:
+            print(f"sync_telephone_call_policy failed: {e}")
+
     def _is_contact(self, source_hash: str, context=None) -> bool:
         return self._resolve_contact_for_hash(source_hash, context=context) is not None
 
@@ -21131,6 +21217,7 @@ class ReticulumMeshChat:
         self._lxmf_reticulum_enforce_block(destination_hash)
         self._delete_contact_and_stamp_ticket(destination_hash, context=ctx)
         AsyncUtils.run_async(self._broadcast_blocked_destinations())
+        self.sync_telephone_call_policy(context=ctx)
 
     def check_spam_keywords(self, title: str, content: str, context=None) -> bool:
         """Return whether title/content match configured spam keywords."""

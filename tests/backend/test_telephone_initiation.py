@@ -516,7 +516,13 @@ def test_init_telephone_creates_when_enabled(mock_tel_class, tmp_path):
     storage_dir.mkdir()
     cfg = MagicMock()
     cfg.telephone_enabled.get.return_value = True
+    cfg.telephone_audio_profile_id.get.return_value = 64
+    phone = MagicMock()
+    phone.links = {}
+    phone._Telephone__link_closed = MagicMock()
+    mock_tel_class.return_value = phone
     tm = TelephoneManager(MagicMock(), config_manager=cfg, storage_dir=str(storage_dir))
     tm.init_telephone()
     assert tm.telephone is not None
     mock_tel_class.assert_called_once()
+    assert mock_tel_class.call_args.kwargs.get("auto_answer") is None

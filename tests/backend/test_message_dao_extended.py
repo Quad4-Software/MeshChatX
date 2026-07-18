@@ -204,7 +204,11 @@ def test_delete_lxmf_messages_by_hashes(message_dao, mock_provider):
 
 def test_delete_all_lxmf_messages(message_dao, mock_provider):
     message_dao.delete_all_lxmf_messages()
-    assert mock_provider.execute.call_count == 2
+    assert mock_provider.execute.call_count == 3
+    calls = [call[0][0] for call in mock_provider.execute.call_args_list]
+    assert any("DELETE FROM lxmf_messages" in q for q in calls)
+    assert any("DELETE FROM lxmf_conversation_read_state" in q for q in calls)
+    assert any("DELETE FROM lxmf_conversation_summaries" in q for q in calls)
 
 
 def test_get_conversation_messages(message_dao, mock_provider):
