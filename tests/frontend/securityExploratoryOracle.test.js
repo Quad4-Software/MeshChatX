@@ -37,6 +37,8 @@ const OVERLAY_STYLE_ATTACKS = [
     'style="position/**/:fixed; top:0; left:0"',
     'style="position: sticky !important; transform: translateY(0)"',
     'style="POSITION:FiXeD; width:100vw; height:100vh"',
+    `style="position:fi${String.fromCharCode(0x200b)}xed; inset:0"`,
+    `style="position:fi${String.fromCharCode(0x00ad)}xed"`,
 ];
 
 function assertSafeHtmlOracle(html) {

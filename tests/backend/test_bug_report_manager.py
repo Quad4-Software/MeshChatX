@@ -16,6 +16,8 @@ def _fake_app(tmp_path):
 
 
 def test_preview_report_uses_database_logs(tmp_path):
+    full_hash = "aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899"
+
     class FakeLogs:
         def get_logs(self, **_kwargs):
             return [
@@ -23,7 +25,7 @@ def test_preview_report_uses_database_logs(tmp_path):
                     "timestamp": 1.0,
                     "level": "ERROR",
                     "module": "meshchat",
-                    "message": "fail at /tmp/x for aabbccddeeff00112233445566778899",
+                    "message": f"fail at /tmp/x for {full_hash}",
                 },
             ]
 
@@ -41,8 +43,9 @@ def test_preview_report_uses_database_logs(tmp_path):
     manager = BugReportManager(FakeApp())
     preview = manager.preview_report({"limit": 5})
     assert preview["line_count"] == 1
-    assert "/tmp/x" in preview["log_text"]
-    assert "aabbccddeeff00112233445566778899" in preview["log_text"]
+    assert "/tmp/x" not in preview["log_text"]
+    assert full_hash not in preview["log_text"]
+    assert "[redacted]" in preview["log_text"]
     assert preview["chars"] > 0
 
 

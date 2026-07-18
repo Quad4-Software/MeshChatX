@@ -80,7 +80,8 @@ class TestPluginManagerInstall:
             {"limit": 10},
         )
         assert preview["line_count"] == 1
-        assert "/home/user1/secret" in preview["log_text"]
+        assert "/home/user1/secret" not in preview["log_text"]
+        assert "[redacted]" in preview["log_text"]
 
     def test_rns_link_capabilities_require_manifest_grant(self, tmp_path):
         class FakeLinkManager:

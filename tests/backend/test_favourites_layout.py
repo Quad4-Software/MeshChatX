@@ -134,6 +134,28 @@ def test_layout_payload_too_large():
     assert layout_payload_too_large(MAX_LAYOUT_JSON_BYTES + 1) is True
     assert layout_payload_too_large(MAX_LAYOUT_JSON_BYTES) is False
     assert layout_payload_too_large("nope") is False
+    assert layout_payload_too_large(-1) is True
+    assert layout_payload_too_large("-5") is True
+
+
+def test_normalize_rejects_null_bytes_in_ids_and_hashes():
+    layout = normalize_favourites_layout(
+        {
+            "sections": [
+                {"id": "ok\x00evil", "name": "bad"},
+                {"id": "good", "name": "Good"},
+            ],
+            "sectionOrder": ["ok\x00evil", "good"],
+            "favouritesBySection": {
+                "good": ["ab\x00cd", "aabbccddeeff00112233445566778899"],
+            },
+        },
+    )
+    assert layout is not None
+    assert [s["id"] for s in layout["sections"]] == ["good"]
+    assert layout["favouritesBySection"]["good"] == [
+        "aabbccddeeff00112233445566778899",
+    ]
 
 
 @given(

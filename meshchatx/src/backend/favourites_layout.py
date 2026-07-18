@@ -43,6 +43,7 @@ def normalize_favourites_layout(layout):
         section_id = section_id.strip()
         if (
             not section_id
+            or "\x00" in section_id
             or len(section_id) > MAX_SECTION_ID_LEN
             or section_id in section_ids
             or section_id in _FORBIDDEN_SECTION_IDS
@@ -99,7 +100,7 @@ def normalize_favourites_layout(layout):
             if not isinstance(item, str):
                 continue
             h = item.strip()
-            if not h or len(h) > MAX_HASH_LEN or h in seen:
+            if not h or "\x00" in h or len(h) > MAX_HASH_LEN or h in seen:
                 continue
             seen.add(h)
             hashes.append(h)
@@ -117,9 +118,15 @@ def normalize_favourites_layout(layout):
 
 
 def layout_payload_too_large(raw_body_len):
-    """Return True when a raw request body exceeds the layout size budget."""
+    """Return True when a raw request body exceeds the layout size budget.
+
+    Negative sizes are treated as oversize so hostile Content-Length values
+    cannot skip the early reject path.
+    """
     try:
         size = int(raw_body_len)
     except (TypeError, ValueError):
         return False
+    if size < 0:
+        return True
     return size > MAX_LAYOUT_JSON_BYTES

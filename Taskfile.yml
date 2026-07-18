@@ -264,7 +264,7 @@ tasks:
                 fi
 
     test:quick:be:
-        desc: Backend regression subset (interface-stats, CSRF, LXMF send, nomad downloads, RNS link)
+        desc: Backend regression subset (interface-stats, CSRF, LXMF send, nomad downloads, RNS link, EECT packs)
         cmds:
             - >-
                 uv run pytest
@@ -276,6 +276,22 @@ tasks:
                 tests/backend/test_rns_link_fuzzing.py
                 tests/backend/test_rns_link_plugin.py
                 -q
+            - task: test:eect
+
+    test:eect:
+        desc: Extended Edge Case Tester packs (seeded identity/path/auth/hostile/scarcity scenarios)
+        cmds:
+            - uv run pytest tests/backend/eect/packs -m eect -q --tb=short
+
+    test:lv:
+        desc: Live Validation ladder (set MESHCHAT_LIVE_VALIDATION=1 for L2-L3)
+        cmds:
+            - MESHCHAT_LIVE_VALIDATION=1 uv run pytest tests/backend/eect/live -m live_validation -q --tb=short
+
+    test:lv:l0:
+        desc: Live Validation L0 only (imports/sqlite/unicode, CI-safe)
+        cmds:
+            - uv run pytest tests/backend/eect/live/test_lv_ladder.py -m live_validation -k "l0" -q --tb=short
 
     test:quick:fe:
         desc: Frontend regression subset (links, micron preview, stranger banner, interface stats)

@@ -168,6 +168,9 @@ electron/backend-manifest.json
 scripts/private/
 
 *.exe
+# Accidental ImageMagick / print dumps (e.g. root-level "re" PostScript)
+*.ps
+*.eps
 # Local identity and rnid-style artifacts
 *.rid
 *.rsg

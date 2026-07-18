@@ -102,6 +102,8 @@ task install
 task format
 task lint
 task test:quick
+task test:eect
+task test:lv:l0
 task test:backend
 task test:frontend
 task test:e2e
