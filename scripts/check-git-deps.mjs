@@ -22,12 +22,35 @@ const FULL_COMMIT_RE = /^[0-9a-f]{40}$/i;
 const CODELOAD_COMMIT_RE = /codeload\.github\.com\/[^/]+\/[^/]+\/tar\.gz\/([0-9a-f]{40})/i;
 
 /**
+ * Glob-style match with only "*" wildcards (no RegExp constructor).
+ *
  * @param {string} pattern
  * @param {string} value
  */
 function matchPattern(pattern, value) {
-    const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*");
-    return new RegExp(`^${escaped}$`).test(value);
+    const parts = pattern.split("*");
+    if (parts.length === 1) {
+        return pattern === value;
+    }
+    if (!value.startsWith(parts[0])) {
+        return false;
+    }
+    let cursor = parts[0].length;
+    for (let i = 1; i < parts.length; i++) {
+        const part = parts[i];
+        if (part.length === 0) {
+            if (i === parts.length - 1) {
+                return true;
+            }
+            continue;
+        }
+        const found = value.indexOf(part, cursor);
+        if (found < 0) {
+            return false;
+        }
+        cursor = found + part.length;
+    }
+    return cursor === value.length || pattern.endsWith("*");
 }
 
 /**
@@ -45,19 +68,22 @@ function splitGitSpec(spec) {
 }
 
 /**
+ * Escape is unnecessary here: package names are matched as exact lockfile headers.
+ *
  * @param {string} lockText
  * @param {string} name
  */
 function lockfileCommitForPackage(lockText, name) {
+    const header = `    ${name}:`;
     const lines = lockText.split(/\r?\n/);
     let inPackage = false;
     for (const line of lines) {
-        if (line.match(new RegExp(`^\\s{4}${name}:\\s*$`))) {
+        if (line === header) {
             inPackage = true;
             continue;
         }
         if (inPackage) {
-            if (/^\s{4}\S/.test(line) && !line.trim().startsWith(`${name}:`)) {
+            if (/^\s{4}\S/.test(line) && !line.startsWith(header)) {
                 break;
             }
             const versionMatch = line.match(/^\s+version:\s+(\S+)\s*$/);
@@ -67,9 +93,11 @@ function lockfileCommitForPackage(lockText, name) {
                     return codeload[1].toLowerCase();
                 }
             }
-            const resolutionMatch = line.match(/^\s+resolution:\s+\{[^}]*tarball:\s+(\S+?)[,}]/);
-            if (resolutionMatch) {
-                const codeload = resolutionMatch[1].match(CODELOAD_COMMIT_RE);
+            const tarballMarker = "tarball: ";
+            const tarballAt = line.indexOf(tarballMarker);
+            if (tarballAt >= 0) {
+                const rest = line.slice(tarballAt + tarballMarker.length);
+                const codeload = rest.match(CODELOAD_COMMIT_RE);
                 if (codeload) {
                     return codeload[1].toLowerCase();
                 }
@@ -77,11 +105,14 @@ function lockfileCommitForPackage(lockText, name) {
         }
     }
 
-    const globalCodeload = lockText.match(
-        new RegExp(`${name}@https://codeload\\.github\\.com/[^\\s]+/tar\\.gz/([0-9a-f]{40})`, "i")
-    );
-    if (globalCodeload) {
-        return globalCodeload[1].toLowerCase();
+    const marker = `${name}@https://codeload.github.com/`;
+    const markerAt = lockText.indexOf(marker);
+    if (markerAt >= 0) {
+        const slice = lockText.slice(markerAt, markerAt + marker.length + 200);
+        const codeload = slice.match(CODELOAD_COMMIT_RE);
+        if (codeload) {
+            return codeload[1].toLowerCase();
+        }
     }
     return null;
 }
@@ -91,9 +122,21 @@ function lockfileCommitForPackage(lockText, name) {
  * @param {string} constName
  */
 function readExportedStringConst(text, constName) {
-    const re = new RegExp(`const\\s+${constName}\\s*=\\s*[\`"']([^\`"']+)[\`"']`);
-    const match = text.match(re);
-    return match ? match[1] : null;
+    const needle = `const ${constName} = `;
+    const idx = text.indexOf(needle);
+    if (idx < 0) {
+        return null;
+    }
+    const after = text.slice(idx + needle.length).trimStart();
+    const quote = after[0];
+    if (quote !== '"' && quote !== "'" && quote !== "`") {
+        return null;
+    }
+    const end = after.indexOf(quote, 1);
+    if (end < 0) {
+        return null;
+    }
+    return after.slice(1, end);
 }
 
 function main() {
@@ -123,9 +166,7 @@ function main() {
         }
     }
 
-    const allowByName = new Map(
-        (allowlist.git_dependencies || []).map((entry) => [entry.name, entry])
-    );
+    const allowByName = new Map((allowlist.git_dependencies || []).map((entry) => [entry.name, entry]));
 
     for (const dep of gitDeps) {
         const allowed = allowByName.get(dep.name);
@@ -135,9 +176,7 @@ function main() {
         }
 
         const { base, ref } = splitGitSpec(dep.spec);
-        const allowedBases = new Set(
-            (allowed.specifiers || []).map((spec) => splitGitSpec(spec).base)
-        );
+        const allowedBases = new Set((allowed.specifiers || []).map((spec) => splitGitSpec(spec).base));
         if (!allowedBases.has(base) && !(allowed.specifiers || []).includes(dep.spec)) {
             errors.push(
                 `git dependency "${dep.name}" specifier base "${base}" is not allowlisted (have: ${(allowed.specifiers || []).join(", ")})`
@@ -202,9 +241,7 @@ function main() {
             );
         }
         if (allowed.tag && source.tag && source.tag !== allowed.tag) {
-            errors.push(
-                `flatpak git source ${source.url} tag ${source.tag} drifts from allowlist ${allowed.tag}`
-            );
+            errors.push(`flatpak git source ${source.url} tag ${source.tag} drifts from allowlist ${allowed.tag}`);
         }
         if (!source.commit) {
             errors.push(`flatpak git source ${source.url} is missing commit pin`);
@@ -213,15 +250,12 @@ function main() {
 
     for (const allowed of allowGitSources) {
         if (!declaredGitSources.some((source) => source.url === allowed.url)) {
-            errors.push(
-                `allowlist git source ${allowed.url} is missing from package.json flatpak modules`
-            );
+            errors.push(`allowlist git source ${allowed.url} is missing from package.json flatpak modules`);
         }
     }
 
     const wasmUrlTemplate = readExportedStringConst(fetchMicronText, "DEFAULT_WASM_URL");
     const wasmExecUrl = readExportedStringConst(fetchMicronText, "DEFAULT_WASM_EXEC_URL");
-    // DEFAULT_WASM_URL is a template literal with ${MICRON_PARSER_GO_RELEASE_TAG}
     const wasmUrlResolved = `https://github.com/Quad4-Software/Micron-Parser-Go/releases/download/${MICRON_PARSER_GO_RELEASE_TAG}/micron-parser-go.wasm`;
 
     for (const entry of allowlist.download_urls || []) {
@@ -232,9 +266,7 @@ function main() {
                 );
             }
             if (entry.pattern && !matchPattern(entry.pattern, wasmUrlResolved)) {
-                errors.push(
-                    `Micron WASM URL ${wasmUrlResolved} does not match allowlist pattern ${entry.pattern}`
-                );
+                errors.push(`Micron WASM URL ${wasmUrlResolved} does not match allowlist pattern ${entry.pattern}`);
             }
             if (wasmUrlTemplate && !wasmUrlTemplate.includes("Micron-Parser-Go/releases/download/")) {
                 errors.push(`fetch-micron-wasm.mjs DEFAULT_WASM_URL looks unexpected: ${wasmUrlTemplate}`);
@@ -244,9 +276,7 @@ function main() {
             if (!wasmExecUrl) {
                 errors.push("fetch-micron-wasm.mjs DEFAULT_WASM_EXEC_URL missing");
             } else if (entry.url && wasmExecUrl !== entry.url) {
-                errors.push(
-                    `wasm_exec URL ${wasmExecUrl} drifts from allowlist ${entry.url}`
-                );
+                errors.push(`wasm_exec URL ${wasmExecUrl} drifts from allowlist ${entry.url}`);
             }
         }
     }
