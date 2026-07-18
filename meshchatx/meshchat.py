@@ -15219,6 +15219,7 @@ class ReticulumMeshChat:
                 limit = int(limit) if limit is not None else None
             except ValueError:
                 limit = None
+            limit = self.message_handler.clamp_conversations_limit(limit)
 
             try:
                 offset = request.query.get("offset")
@@ -15285,8 +15286,8 @@ class ReticulumMeshChat:
                             "background_colour": row["background_colour"],
                         }
 
-                    # contact image
-                    contact_image = row.get("contact_image", None)
+                    # contact image blob stays out of the list payload
+                    has_contact_image = bool(row.get("has_contact_image", 0))
 
                     try:
                         is_unread = compute_lxmf_conversation_unread_from_latest_row(
@@ -15315,7 +15316,8 @@ class ReticulumMeshChat:
                         {
                             "display_name": display_name,
                             "custom_display_name": row["custom_display_name"],
-                            "contact_image": contact_image,
+                            "contact_image": None,
+                            "has_contact_image": has_contact_image,
                             "destination_hash": other_user_hash,
                             "is_unread": is_unread,
                             "is_tracking": tracking_states.get(other_user_hash, False),

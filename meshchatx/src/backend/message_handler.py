@@ -33,6 +33,10 @@ class MessageHandler:
             END as fields
     """
 
+    # Default and hard cap when callers omit or overshoot limit.
+    DEFAULT_CONVERSATIONS_LIMIT = 500
+    MAX_CONVERSATIONS_LIMIT = 2000
+
     def get_conversation_messages(
         self,
         local_hash,
@@ -77,6 +81,7 @@ class MessageHandler:
             "DELETE FROM lxmf_conversation_pins WHERE peer_hash = ?",
             [destination_hash],
         )
+        self.db.messages.delete_conversation_summary(destination_hash)
 
     def search_messages(self, local_hash, search_term, limit=500):
         search_term = _strip_utf16_surrogates(search_term) or ""
@@ -97,26 +102,35 @@ class MessageHandler:
     # Prefer persisted has_* columns (schema v51+). Fall back to instr only
     # when flags were never backfilled (NULL) on filter paths.
     _CONVERSATION_CONTENT_PREVIEW_CHARS = 240
-    _FIELDS_HAS_IMAGE_SQL = "COALESCE(m1.has_image, 0)"
-    _FIELDS_HAS_AUDIO_SQL = "COALESCE(m1.has_audio, 0)"
-    _FIELDS_HAS_FILES_SQL = "COALESCE(m1.has_files, 0)"
-    _FIELDS_HAS_REACTION_SQL = "COALESCE(m1.has_reaction, 0)"
-    _FIELDS_HAS_TELEMETRY_SQL = "COALESCE(m1.has_telemetry, 0)"
+    _FIELDS_HAS_IMAGE_SQL = "COALESCE(s.has_image, 0)"
+    _FIELDS_HAS_AUDIO_SQL = "COALESCE(s.has_audio, 0)"
+    _FIELDS_HAS_FILES_SQL = "COALESCE(s.has_files, 0)"
+    _FIELDS_HAS_REACTION_SQL = "COALESCE(s.has_reaction, 0)"
+    _FIELDS_HAS_TELEMETRY_SQL = "COALESCE(s.has_telemetry, 0)"
     _FIELDS_HAS_ATTACHMENTS_SQL = (
         f"({_FIELDS_HAS_IMAGE_SQL} = 1 OR {_FIELDS_HAS_AUDIO_SQL} = 1 "
         f"OR {_FIELDS_HAS_FILES_SQL} = 1)"
     )
-    # Filter path: prefer columns so filter_has_attachments does not scan blobs.
+    # Filter path: prefer summary has_* so filter_has_attachments stays cheap.
     _FILTER_HAS_ATTACHMENTS_SQL = (
-        "(COALESCE(m1.has_image, 0) = 1 OR COALESCE(m1.has_audio, 0) = 1 "
-        "OR COALESCE(m1.has_files, 0) = 1 OR "
-        "(m1.has_image IS NULL AND m1.has_audio IS NULL AND m1.has_files IS NULL "
-        "AND m1.fields IS NOT NULL AND m1.fields != '' AND m1.fields != '{}' "
-        "AND (instr(m1.fields, '\"image\"') > 0 OR instr(m1.fields, '\"0x05\"') > 0 "
-        "OR instr(m1.fields, '\"audio\"') > 0 OR instr(m1.fields, '\"0x06\"') > 0 "
-        "OR instr(m1.fields, '\"file_attachments\"') > 0 "
-        "OR instr(m1.fields, '\"0x07\"') > 0)))"
+        "(COALESCE(s.has_image, 0) = 1 OR COALESCE(s.has_audio, 0) = 1 "
+        "OR COALESCE(s.has_files, 0) = 1)"
     )
+
+    @classmethod
+    def clamp_conversations_limit(cls, limit):
+        """Normalize list limit. None becomes the default. Cap at MAX."""
+        if limit is None:
+            return cls.DEFAULT_CONVERSATIONS_LIMIT
+        try:
+            value = int(limit)
+        except (TypeError, ValueError):
+            return cls.DEFAULT_CONVERSATIONS_LIMIT
+        if value < 0:
+            return 0
+        if value > cls.MAX_CONVERSATIONS_LIMIT:
+            return cls.MAX_CONVERSATIONS_LIMIT
+        return value
 
     def get_conversations(
         self,
@@ -129,16 +143,23 @@ class MessageHandler:
         limit=500,
         offset=0,
     ):
-        preview_chars = self._CONVERSATION_CONTENT_PREVIEW_CHARS
+        limit = self.clamp_conversations_limit(limit)
+        try:
+            offset = max(0, int(offset or 0))
+        except (TypeError, ValueError):
+            offset = 0
+
         query = f"""
             SELECT
-                m1.id, m1.hash, m1.source_hash, m1.destination_hash,
-                m1.peer_hash, m1.state, m1.progress, m1.is_incoming,
-                m1.title,
-                substr(COALESCE(m1.content, ''), 1, {preview_chars}) as content,
-                m1.timestamp,
-                m1.is_spam, m1.reply_to_hash,
-                m1.created_at, m1.updated_at,
+                s.latest_message_id as id,
+                s.latest_message_hash as hash,
+                s.source_hash, s.destination_hash,
+                s.peer_hash, s.state, s.progress, s.is_incoming,
+                s.title,
+                s.content_preview as content,
+                s.timestamp,
+                s.is_spam, s.reply_to_hash,
+                s.created_at, s.updated_at,
                 ({self._FIELDS_HAS_IMAGE_SQL}) as has_image,
                 ({self._FIELDS_HAS_AUDIO_SQL}) as has_audio,
                 ({self._FIELDS_HAS_FILES_SQL}) as has_files,
@@ -147,37 +168,28 @@ class MessageHandler:
                 CASE WHEN {self._FIELDS_HAS_ATTACHMENTS_SQL} THEN 1 ELSE 0 END as has_attachments,
                 a.app_data as peer_app_data,
                 c.display_name as custom_display_name,
-                con.custom_image as contact_image,
+                CASE
+                    WHEN con.custom_image IS NOT NULL AND con.custom_image != ''
+                    THEN 1 ELSE 0
+                END as has_contact_image,
                 con.name as contact_name,
                 i.icon_name, i.foreground_colour, i.background_colour,
                 r.last_read_at,
                 f.id as folder_id,
                 fn.name as folder_name,
-                COALESCE(fc.failed_count, 0) as failed_count,
+                COALESCE(s.failed_count, 0) as failed_count,
                 CASE WHEN con.id IS NOT NULL THEN 1 ELSE 0 END as is_contact
-            FROM lxmf_messages m1
-            INNER JOIN (
-                SELECT peer_hash, MAX(id) as max_id
-                FROM lxmf_messages
-                WHERE peer_hash IS NOT NULL
-                GROUP BY peer_hash
-            ) m2 ON m1.peer_hash = m2.peer_hash AND m1.id = m2.max_id
-            LEFT JOIN (
-                SELECT peer_hash, COUNT(*) as failed_count
-                FROM lxmf_messages
-                WHERE state = 'failed'
-                GROUP BY peer_hash
-            ) fc ON fc.peer_hash = m1.peer_hash
-            LEFT JOIN announces a ON a.destination_hash = m1.peer_hash
-            LEFT JOIN custom_destination_display_names c ON c.destination_hash = m1.peer_hash
+            FROM lxmf_conversation_summaries s
+            LEFT JOIN announces a ON a.destination_hash = s.peer_hash
+            LEFT JOIN custom_destination_display_names c ON c.destination_hash = s.peer_hash
             LEFT JOIN contacts con ON (
-                con.remote_identity_hash = m1.peer_hash OR
-                con.lxmf_address = m1.peer_hash OR
-                con.lxst_address = m1.peer_hash
+                con.remote_identity_hash = s.peer_hash OR
+                con.lxmf_address = s.peer_hash OR
+                con.lxst_address = s.peer_hash
             )
-            LEFT JOIN lxmf_user_icons i ON i.destination_hash = m1.peer_hash
-            LEFT JOIN lxmf_conversation_read_state r ON r.destination_hash = m1.peer_hash
-            LEFT JOIN lxmf_conversation_folders f ON f.peer_hash = m1.peer_hash
+            LEFT JOIN lxmf_user_icons i ON i.destination_hash = s.peer_hash
+            LEFT JOIN lxmf_conversation_read_state r ON r.destination_hash = s.peer_hash
+            LEFT JOIN lxmf_conversation_folders f ON f.peer_hash = s.peer_hash
             LEFT JOIN lxmf_folders fn ON fn.id = f.folder_id
         """
         params = []
@@ -193,11 +205,11 @@ class MessageHandler:
 
         if filter_unread:
             where_clauses.append(
-                "(m1.is_incoming = 1 AND (r.last_read_at IS NULL OR m1.timestamp > strftime('%s', r.last_read_at)))",
+                "(s.is_incoming = 1 AND (r.last_read_at IS NULL OR s.timestamp > strftime('%s', r.last_read_at)))",
             )
 
         if filter_failed:
-            where_clauses.append("m1.state = 'failed'")
+            where_clauses.append("s.state = 'failed'")
 
         if filter_has_attachments:
             where_clauses.append(self._FILTER_HAS_ATTACHMENTS_SQL)
@@ -206,10 +218,14 @@ class MessageHandler:
             search = _strip_utf16_surrogates(search) or ""
             if search:
                 like_term = f"%{search}%"
-                # Search in latest message info OR search across ALL messages for this peer
+                # Search latest summary fields or any historical message for the peer
                 where_clauses.append("""
-                    (m1.title LIKE ? OR m1.content LIKE ? OR m1.peer_hash LIKE ? OR c.display_name LIKE ? OR con.name LIKE ?
-                     OR m1.peer_hash IN (SELECT peer_hash FROM lxmf_messages WHERE title LIKE ? OR content LIKE ?))
+                    (s.title LIKE ? OR s.content_preview LIKE ? OR s.peer_hash LIKE ?
+                     OR c.display_name LIKE ? OR con.name LIKE ?
+                     OR s.peer_hash IN (
+                        SELECT peer_hash FROM lxmf_messages
+                        WHERE title LIKE ? OR content LIKE ?
+                     ))
                 """)
                 params.extend(
                     [
@@ -226,10 +242,8 @@ class MessageHandler:
         if where_clauses:
             query += " WHERE " + " AND ".join(where_clauses)
 
-        query += " GROUP BY m1.peer_hash ORDER BY m1.id DESC"
-
-        if limit is not None:
-            query += " LIMIT ? OFFSET ?"
-            params.extend([limit, offset])
+        query += " GROUP BY s.peer_hash ORDER BY s.latest_message_id DESC"
+        query += " LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
 
         return self.db.provider.fetchall(query, params)

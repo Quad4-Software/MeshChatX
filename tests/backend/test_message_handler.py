@@ -38,6 +38,7 @@ class TestMessageHandler(unittest.TestCase):
         self.assertEqual(p2, ["dest"])
         self.assertIn("DELETE FROM lxmf_conversation_pins", sql3)
         self.assertEqual(p3, ["dest"])
+        self.db.messages.delete_conversation_summary.assert_called_once_with("dest")
 
     def test_get_conversations_includes_failed_count(self):
         self.db.provider.fetchall.return_value = [
@@ -60,7 +61,7 @@ class TestMessageHandler(unittest.TestCase):
                 "updated_at": "2023-01-01",
                 "peer_app_data": None,
                 "custom_display_name": None,
-                "contact_image": None,
+                "has_contact_image": 0,
                 "icon_name": None,
                 "foreground_colour": None,
                 "background_colour": None,
@@ -79,7 +80,7 @@ class TestMessageHandler(unittest.TestCase):
         self.db.provider.fetchall.return_value = []
         self.handler.get_conversations("local", filter_failed=True)
         args, _ = self.db.provider.fetchall.call_args
-        self.assertIn("state = 'failed'", args[0])
+        self.assertIn("s.state = 'failed'", args[0])
 
     def test_search_messages(self):
         self.db.provider.fetchall.return_value = [

@@ -3398,7 +3398,9 @@ export default {
         async fetchPeers() {
             if (!window.api) return;
             try {
-                const response = await window.api.get("/api/v1/lxmf/conversations");
+                const response = await window.api.get("/api/v1/lxmf/conversations", {
+                    params: { limit: 2000 },
+                });
                 const peers = {};
                 for (const conv of response.data.conversations) {
                     peers[conv.destination_hash] = conv;
