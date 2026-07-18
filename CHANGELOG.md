@@ -24,6 +24,9 @@ All notable changes to this project will be documented in this file.
 
 - UI opens sooner: HTTP binds first, Reticulum starts in the background
 - Conversations load faster: slim list and thread queries via fields_meta and attachment flags
+- Conversation list uses a per-peer summary table so refreshes no longer scan the full message history
+- Conversation list API omits contact image blobs and caps unbounded callers (Map, Network Visualiser)
+- Messages page conversation poll is slower and skips while the tab is hidden
 - Schema v51 message-flag backfill skips empty databases so fresh init stays fast
 - Relay Chat: denser hub UI, announce interval, collapsed system lines, reconnect notices
 - Low-memory cleanup and SQLite pragmas under memory pressure
