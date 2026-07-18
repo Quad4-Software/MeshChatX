@@ -356,7 +356,7 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
         rafId = requestAnimationFrame(frame);
         const live = typeof hooks.getLiveLayout === "function" ? hooks.getLiveLayout() : false;
         if (live && pointerMode !== "drag") {
-            callScene("meshchatxVisualiserSceneTick", 2);
+            callScene("meshchatxVisualiserSceneTick", 1);
             dirty = true;
         }
         if (!dirty && !live) return;

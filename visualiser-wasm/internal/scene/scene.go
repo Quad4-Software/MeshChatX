@@ -74,6 +74,8 @@ type Scene struct {
 	nodes   []Node
 	edges   []Edge
 	index   map[string]int
+	vx      []float64
+	vy      []float64
 	width   float64
 	height  float64
 	camX    float64
@@ -130,6 +132,8 @@ func (s *Scene) Set(req SetRequest) {
 		s.camY = req.CamY
 	}
 	s.dragIdx = -1
+	s.vx = make([]float64, len(s.nodes))
+	s.vy = make([]float64, len(s.nodes))
 }
 
 func defaultSize(kind int) float64 {
@@ -227,10 +231,14 @@ func (s *Scene) Tick(steps int) {
 		return
 	}
 	if steps <= 0 {
-		steps = 2
+		steps = 1
 	}
-	if steps > 8 {
-		steps = 8
+	if steps > 3 {
+		steps = 3
+	}
+	if len(s.vx) != len(s.nodes) || len(s.vy) != len(s.nodes) {
+		s.vx = make([]float64, len(s.nodes))
+		s.vy = make([]float64, len(s.nodes))
 	}
 	layoutNodes := make([]layout.Node, len(s.nodes))
 	for i := range s.nodes {
@@ -243,6 +251,8 @@ func (s *Scene) Tick(steps int) {
 			ID:    n.ID,
 			X:     n.X,
 			Y:     n.Y,
+			Vx:    s.vx[i],
+			Vy:    s.vy[i],
 			Mass:  n.Mass,
 			Fixed: fixed,
 		}
@@ -250,9 +260,9 @@ func (s *Scene) Tick(steps int) {
 	layoutEdges := make([]layout.Edge, 0, len(s.edges))
 	for i := range s.edges {
 		e := &s.edges[i]
-		length := 180.0
+		length := 200.0
 		if e.Width >= 2.5 {
-			length = 150
+			length = 170
 		}
 		layoutEdges = append(layoutEdges, layout.Edge{
 			From:   e.From,
@@ -260,18 +270,31 @@ func (s *Scene) Tick(steps int) {
 			Length: length,
 		})
 	}
-	res := layout.Settle(layout.Request{
+	// Softer than one-shot Settle defaults so live layout does not twitch.
+	_ = layout.Settle(layout.Request{
 		Nodes:      layoutNodes,
 		Edges:      layoutEdges,
 		Iterations: steps,
+		Gravity:    0.004,
+		Repulsion:  550,
+		SpringK:    0.018,
+		Damping:    0.52,
+		MaxSpeed:   6,
 	})
+	const restSpeed = 0.12
 	for i := range s.nodes {
-		if p, ok := res.Positions[s.nodes[i].ID]; ok {
-			if s.dragIdx == i {
-				continue
-			}
-			s.nodes[i].X = p.X
-			s.nodes[i].Y = p.Y
+		if s.dragIdx == i {
+			s.vx[i] = 0
+			s.vy[i] = 0
+			continue
+		}
+		s.nodes[i].X = layoutNodes[i].X
+		s.nodes[i].Y = layoutNodes[i].Y
+		s.vx[i] = layoutNodes[i].Vx
+		s.vy[i] = layoutNodes[i].Vy
+		if math.Hypot(s.vx[i], s.vy[i]) < restSpeed {
+			s.vx[i] = 0
+			s.vy[i] = 0
 		}
 	}
 }

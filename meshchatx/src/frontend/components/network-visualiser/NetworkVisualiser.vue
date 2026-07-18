@@ -1039,10 +1039,10 @@ export default {
                         barnesHut: {
                             // Match upstream gravity, as avoidOverlap is O(n) per tick
                             // and is the main reason we felt slower than MeshChat.
-                            gravitationalConstant: -5000,
-                            springConstant: 0.04,
+                            gravitationalConstant: -3500,
+                            springConstant: 0.03,
                             springLength: 200,
-                            damping: 0.35,
+                            damping: 0.55,
                             avoidOverlap: 0,
                             theta: 0.6,
                         },
@@ -1051,9 +1051,9 @@ export default {
                             iterations: 80,
                             updateInterval: 50,
                         },
-                        maxVelocity: 50,
-                        minVelocity: 0.75,
-                        timestep: 0.5,
+                        maxVelocity: 22,
+                        minVelocity: 1.2,
+                        timestep: 0.35,
                     },
                     nodes: {
                         borderWidth: 2,
