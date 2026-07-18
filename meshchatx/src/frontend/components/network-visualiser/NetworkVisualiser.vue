@@ -269,7 +269,13 @@ export default {
                 persistVisualiserAutoReload(val === true, { emit: false });
             }
             if (val) {
-                this.manualUpdate();
+                // Already painted: quiet refresh so enabling auto-update does not flash
+                // the loading overlay or re-settle the whole graph.
+                if (this.displayNodeCount > 0) {
+                    this.onAutoReload();
+                } else {
+                    this.manualUpdate();
+                }
             }
             this.restartAutoReloadInterval();
         },
@@ -1125,11 +1131,11 @@ export default {
             this.restartAutoReloadInterval();
         },
         async manualUpdate() {
-            if (this.isLoading) return;
+            if (this.isLoading || this.isUpdating) return;
             this.isLoading = true;
             this.isUpdating = true;
             try {
-                await this.update();
+                await this.update({ silent: false });
             } finally {
                 this.isLoading = false;
                 this.isUpdating = false;
@@ -1139,7 +1145,7 @@ export default {
             if (!this.autoReload || this.isUpdating || this.isLoading) return;
             this.isUpdating = true;
             try {
-                await this.update();
+                await this.update({ silent: true });
             } finally {
                 this.isUpdating = false;
             }
@@ -1249,17 +1255,27 @@ export default {
                 };
             }
         },
-        async update() {
-            this.loadingStatus = "Fetching basic info...";
-            this.currentBatch = 0;
-            this.totalBatches = 0;
+        async update(options = {}) {
+            const silent = options.silent === true;
+            const alreadyPainted = this.displayNodeCount > 0;
+
+            if (!silent) {
+                this.loadingStatus = "Fetching basic info...";
+                this.currentBatch = 0;
+                this.totalBatches = 0;
+            }
 
             await this.getConfig();
             if (this.abortController.signal.aborted) return;
 
             const identityHash = this.config?.identity_hash;
+            /*
+             * Cold open only: restore IndexedDB cache for a fast first paint.
+             * Auto-refresh must not reload cache (would overwrite live path data
+             * and rebuild the graph twice, which looks like a UI reset).
+             */
             let paintedFromCache = false;
-            if (identityHash) {
+            if (identityHash && !alreadyPainted) {
                 const cached = await loadVisualiserCache(identityHash);
                 if (cached?.pathTable?.length) {
                     this.pathTable = cached.pathTable;
@@ -1272,13 +1288,15 @@ export default {
             await Promise.all([this.getInterfaceStats(), this.getConversations(), this.getDiscoveredInterfaces()]);
             if (this.abortController.signal.aborted) return;
 
-            if (paintedFromCache && this.pathTable.length > 0) {
+            if (!silent && paintedFromCache && this.pathTable.length > 0) {
                 this.loadingStatus = "Restoring cached graph...";
-                await this.processVisualization();
+                await this.processVisualization({ silent: false });
                 if (this.abortController.signal.aborted) return;
             }
 
-            this.loadingStatus = "Fetching network data...";
+            if (!silent) {
+                this.loadingStatus = "Fetching network data...";
+            }
             await this.getPathTableBatch();
             if (this.abortController.signal.aborted) return;
             /*
@@ -1288,11 +1306,12 @@ export default {
             await this.ensureAnnouncesForPathHashes({ reset: false });
             if (this.abortController.signal.aborted) return;
 
-            await this.processVisualization();
+            await this.processVisualization({ silent });
             if (this.abortController.signal.aborted) return;
             await this.persistVisualiserCache();
         },
-        async processVisualization() {
+        async processVisualization(options = {}) {
+            const silent = options.silent === true;
             await new Promise((r) => {
                 requestAnimationFrame(r);
             });
@@ -1300,7 +1319,9 @@ export default {
 
             const runId = ++this.vizRunGeneration;
 
-            this.loadingStatus = "Processing visualization...";
+            if (!silent) {
+                this.loadingStatus = "Processing visualization...";
+            }
 
             /*
              * Invalidate any in-flight icon-generation work. Each call to
@@ -1315,9 +1336,11 @@ export default {
              * Pause vis-network physics for the bulk update. WASM may settle
              * starting positions, then Live Layout re-enables JS physics so the
              * graph keeps moving without requiring a drag.
+             * Silent auto-refresh keeps physics running so existing nodes do not jump.
              */
             const physicsWasOn = this.network && this.enablePhysics;
-            if (this.network) {
+            const pausePhysics = Boolean(this.network && !silent);
+            if (pausePhysics) {
                 this.network.setOptions({
                     physics: { enabled: false },
                     edges: { smooth: VIZ_EDGE_SMOOTH },
@@ -1325,7 +1348,7 @@ export default {
             }
 
             try {
-                await this._processVisualizationGraph(runId);
+                await this._processVisualizationGraph(runId, { silent });
             } finally {
                 if (runId === this.vizRunGeneration) {
                     if (this.webglEngine) {
@@ -1339,7 +1362,7 @@ export default {
                             edges: { smooth: VIZ_EDGE_SMOOTH },
                         });
                     }
-                    if (this.network && !this.physicsPausedForDrag) {
+                    if (pausePhysics && this.network && !this.physicsPausedForDrag) {
                         this.network.setOptions({
                             physics: { enabled: Boolean(physicsWasOn || this.enablePhysics) },
                             edges: { smooth: VIZ_EDGE_SMOOTH },
@@ -1351,7 +1374,8 @@ export default {
                 }
             }
         },
-        async _processVisualizationGraph(runId) {
+        async _processVisualizationGraph(runId, options = {}) {
+            const silent = options.silent === true;
             const isCurrentRun = () => runId === this.vizRunGeneration && !this.abortController.signal.aborted;
             const processedNodeIds = new Set();
             const processedEdgeIds = new Set();
@@ -1385,7 +1409,9 @@ export default {
             const isDarkMode = document.documentElement.classList.contains("dark");
             this.totalNodesToLoad = this.pathTable.length;
             this.loadedNodesCount = 0;
-            this.loadingStatus = "Building graph...";
+            if (!silent) {
+                this.loadingStatus = "Building graph...";
+            }
 
             const announcePayload = {};
             for (const [hash, announce] of Object.entries(this.announces || {})) {
@@ -1620,25 +1646,36 @@ export default {
                 }));
             }
 
-            this.loadingStatus = "Settling layout...";
+            if (!silent) {
+                this.loadingStatus = "Settling layout...";
+            }
             const layoutNodes = Array.isArray(graph.layout_nodes) ? graph.layout_nodes : [];
             const layoutEdges = Array.isArray(graph.layout_edges) ? graph.layout_edges : [];
-            // With Live Layout off, keep existing coordinates. Only settle when
-            // physics is on, or when nodes still lack cached positions.
-            const missingPositions = layoutNodes.some((n) => {
+            /*
+             * Place only nodes that still lack coordinates. Existing nodes stay
+             * fixed so auto-refresh spawns newcomers without resetting the map.
+             */
+            const missingIds = new Set();
+            for (const n of layoutNodes) {
                 const p = posById[n.id];
-                return !(p && Number.isFinite(p.x) && Number.isFinite(p.y));
-            });
-            const shouldSettle =
-                layoutNodes.length > 0 && (this.enablePhysics || (isVisualiserWasmReady() && missingPositions));
+                if (!(p && Number.isFinite(p.x) && Number.isFinite(p.y))) {
+                    missingIds.add(n.id);
+                }
+            }
+            const shouldSettle = missingIds.size > 0 && isVisualiserWasmReady();
             if (shouldSettle) {
+                const settleNodes = layoutNodes.map((n) => ({
+                    ...n,
+                    fixed: Boolean(n.fixed) || !missingIds.has(n.id),
+                }));
                 const settled = settleLayout({
-                    nodes: layoutNodes,
+                    nodes: settleNodes,
                     edges: layoutEdges,
                     iterations: 0,
                 });
                 const positions = settled?.positions || {};
                 for (const node of graphNodes) {
+                    if (!missingIds.has(node.id)) continue;
                     const p = positions[node.id];
                     if (p && Number.isFinite(p.x) && Number.isFinite(p.y)) {
                         node.x = p.x;
@@ -1669,7 +1706,9 @@ export default {
             this.currentBatch = 0;
 
             if (this.webglEngine && this.rendererMode === "webgl") {
-                this.loadingStatus = "Uploading scene...";
+                if (!silent) {
+                    this.loadingStatus = "Uploading scene...";
+                }
                 this.webglEngine.setGraph(graphNodes, graphEdges);
                 const counts = this.webglEngine.getCounts();
                 this.graphNodeCount = counts.nodes;
@@ -1694,7 +1733,9 @@ export default {
                 if (batchNodes.length > 0) this.nodes.update(batchNodes);
                 if (batchEdges.length > 0) this.edges.update(batchEdges);
                 this.loadedNodesCount = Math.min(this.pathTable.length, i + chunkSize);
-                this.loadingStatus = `Processing Batch ${this.currentBatch} / ${this.totalBatches}...`;
+                if (!silent) {
+                    this.loadingStatus = `Processing Batch ${this.currentBatch} / ${this.totalBatches}...`;
+                }
                 if (this.pathTable.length > VIZ_SYNC_PATH_THRESHOLD) {
                     await yieldToMain();
                 }

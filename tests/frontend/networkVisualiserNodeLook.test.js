@@ -67,11 +67,30 @@ describe("visualiser WebGL node look regressions", () => {
         expect(data[3]).toBeLessThan(220);
     });
 
-    it("opaque mode forces alpha on RGB pixels for logo uploads", () => {
-        const data = new Uint8ClampedArray([10, 20, 30, 0, 0, 0, 0, 0]);
+    it("opaque mode preserves soft alpha and only promotes a=0 RGB pixels", () => {
+        const data = new Uint8ClampedArray([
+            10,
+            20,
+            30,
+            0, // RGB quirk: promote alpha
+            40,
+            50,
+            60,
+            90, // soft fringe: keep
+            0,
+            0,
+            0,
+            0, // empty
+        ]);
         const { painted } = prepareVisualiserIconPixels(data, "opaque");
-        expect(painted).toBe(1);
+        expect(painted).toBe(2);
         expect(data[3]).toBe(255);
+        expect(data[7]).toBe(90);
+    });
+
+    it("stepwise atlas blit is exported for large logo downscales", async () => {
+        const { drawImageToAtlasCell } = await import("@/js/networkVisualiserWebGL.js");
+        expect(typeof drawImageToAtlasCell).toBe("function");
     });
 
     it("falls back to opaque when glyph extraction would wipe the icon", () => {

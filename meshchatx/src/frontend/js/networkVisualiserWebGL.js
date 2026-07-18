@@ -237,7 +237,7 @@ export function isGlyphStyleVisualiserIcon(url) {
 /**
  * Prepare atlas RGBA pixels for upload.
  *
- * - opaque: force non-empty pixels to a=255 (RGB PNG uploads)
+ * - opaque: keep soft alpha (logo AA). Only promote RGB-with-a=0 PNG quirks.
  * - glyph: keep bright glyph coverage as soft alpha (preserves AA), clear fill
  *
  * @param {Uint8ClampedArray|Uint8Array} data RGBA buffer (mutated)
@@ -286,11 +286,65 @@ export function prepareVisualiserIconPixels(data, mode = "opaque") {
                 data[i + 3] = alpha;
                 if (alpha >= 24) glyphPixels += 1;
             }
-        } else {
+        } else if (a === 0 && (r | g | b)) {
+            // Some RGB PNGs store color with a=0. Promote those only.
+            // Never crush existing soft alpha (RNS logo fringe looked jagged).
             data[i + 3] = 255;
         }
     }
     return { painted, glyphPixels };
+}
+
+/**
+ * Downscale large bitmaps in steps before the final atlas blit.
+ * A single 512→116 drawImage looks soft/jagged on HiDPI discs.
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {CanvasImageSource} source
+ * @param {number} sw
+ * @param {number} sh
+ * @param {number} dx
+ * @param {number} dy
+ * @param {number} dw
+ * @param {number} dh
+ */
+export function drawImageToAtlasCell(ctx, source, sw, sh, dx, dy, dw, dh) {
+    if (!ctx || !source || !(dw > 0 && dh > 0 && sw > 0 && sh > 0)) return;
+    ctx.imageSmoothingEnabled = true;
+    if ("imageSmoothingQuality" in ctx) {
+        ctx.imageSmoothingQuality = "high";
+    }
+    if (typeof document === "undefined" || (sw <= dw * 2 && sh <= dh * 2)) {
+        ctx.drawImage(source, dx, dy, dw, dh);
+        return;
+    }
+    let curW = sw;
+    let curH = sh;
+    let cur = source;
+    const temps = [];
+    try {
+        while (curW > dw * 2 || curH > dh * 2) {
+            const nextW = Math.max(dw, Math.ceil(curW / 2));
+            const nextH = Math.max(dh, Math.ceil(curH / 2));
+            const tmp = document.createElement("canvas");
+            tmp.width = nextW;
+            tmp.height = nextH;
+            const tctx = tmp.getContext("2d", { alpha: true });
+            if (!tctx) break;
+            tctx.imageSmoothingEnabled = true;
+            if ("imageSmoothingQuality" in tctx) {
+                tctx.imageSmoothingQuality = "high";
+            }
+            tctx.drawImage(cur, 0, 0, nextW, nextH);
+            temps.push(tmp);
+            cur = tmp;
+            curW = nextW;
+            curH = nextH;
+        }
+        ctx.drawImage(cur, dx, dy, dw, dh);
+    } finally {
+        // Drop temp canvases promptly (no explicit dispose API).
+        temps.length = 0;
+    }
 }
 
 function createIconAtlas(gl) {
@@ -302,6 +356,9 @@ function createIconAtlas(gl) {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    // Cap mip depth so neighbouring atlas cells do not bleed into logos.
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_BASE_LEVEL, 0);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAX_LEVEL, 2);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
     gl.generateMipmap(gl.TEXTURE_2D);
 
@@ -344,15 +401,15 @@ function createIconAtlas(gl) {
             scratchCtx.restore();
             return false;
         }
-        // Pad slightly so circular badges do not clip AA fringes at the cell edge.
-        const pad = 2;
+        // Pad so circular clip and mip filtering do not chew logo AA.
+        const pad = isGlyphStyleVisualiserIcon(url) ? 2 : 6;
         const fit = ATLAS_CELL - pad * 2;
         const scale = Math.min(fit / sw, fit / sh);
         const dw = Math.max(1, Math.round(sw * scale));
         const dh = Math.max(1, Math.round(sh * scale));
         const dx = Math.floor((ATLAS_CELL - dw) / 2);
         const dy = Math.floor((ATLAS_CELL - dh) / 2);
-        scratchCtx.drawImage(source, dx, dy, dw, dh);
+        drawImageToAtlasCell(scratchCtx, source, sw, sh, dx, dy, dw, dh);
         const pixels = scratchCtx.getImageData(0, 0, ATLAS_CELL, ATLAS_CELL);
         const data = pixels.data;
         const mode = isGlyphStyleVisualiserIcon(url) ? "glyph" : "opaque";

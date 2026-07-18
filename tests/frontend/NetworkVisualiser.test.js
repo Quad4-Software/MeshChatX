@@ -608,4 +608,41 @@ describe("NetworkVisualiser.vue", () => {
         expect(wrapper.vm.graphEdgeCount).toBe(2);
         expect(scheduleSpy).toHaveBeenCalled();
     });
+
+    it("onAutoReload uses silent update without loading overlay", async () => {
+        vi.spyOn(NetworkVisualiser.methods, "init").mockImplementation(() => {});
+        const wrapper = mountVisualiser();
+        wrapper.vm.autoReload = true;
+        wrapper.vm.graphNodeCount = 5;
+        wrapper.vm.rendererMode = "webgl";
+        const updateSpy = vi.spyOn(wrapper.vm, "update").mockResolvedValue();
+
+        await wrapper.vm.onAutoReload();
+
+        expect(updateSpy).toHaveBeenCalledWith({ silent: true });
+        expect(wrapper.vm.isLoading).toBe(false);
+        expect(wrapper.vm.isUpdating).toBe(false);
+    });
+
+    it("silent update paints once and never sets isLoading", async () => {
+        vi.spyOn(NetworkVisualiser.methods, "init").mockImplementation(() => {});
+        const wrapper = mountVisualiser();
+        wrapper.vm.graphNodeCount = 4;
+        wrapper.vm.rendererMode = "webgl";
+        wrapper.vm.config = { display_name: "Me", identity_hash: "deadbeef" };
+        const processSpy = vi.spyOn(wrapper.vm, "processVisualization").mockResolvedValue();
+        vi.spyOn(wrapper.vm, "getConfig").mockResolvedValue();
+        vi.spyOn(wrapper.vm, "getInterfaceStats").mockResolvedValue();
+        vi.spyOn(wrapper.vm, "getConversations").mockResolvedValue();
+        vi.spyOn(wrapper.vm, "getDiscoveredInterfaces").mockResolvedValue();
+        vi.spyOn(wrapper.vm, "getPathTableBatch").mockResolvedValue();
+        vi.spyOn(wrapper.vm, "ensureAnnouncesForPathHashes").mockResolvedValue();
+        vi.spyOn(wrapper.vm, "persistVisualiserCache").mockResolvedValue();
+
+        await wrapper.vm.update({ silent: true });
+
+        expect(wrapper.vm.isLoading).toBe(false);
+        expect(processSpy).toHaveBeenCalledTimes(1);
+        expect(processSpy).toHaveBeenCalledWith({ silent: true });
+    });
 });
