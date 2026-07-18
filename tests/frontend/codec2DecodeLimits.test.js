@@ -14,9 +14,9 @@ describe("codec2DecodeLimits", () => {
     });
 
     it("rejects oversized encoded and decoded buffers", () => {
-        expect(() => assertByteLengthAtMost(new Uint8Array(MAX_CODEC2_ENCODED_BYTES + 1), MAX_CODEC2_ENCODED_BYTES)).toThrow(
-            /exceeds size limit/
-        );
+        expect(() =>
+            assertByteLengthAtMost(new Uint8Array(MAX_CODEC2_ENCODED_BYTES + 1), MAX_CODEC2_ENCODED_BYTES)
+        ).toThrow(/exceeds size limit/);
         expect(() =>
             assertByteLengthAtMost(new Uint8Array(MAX_CODEC2_DECODED_RAW_BYTES + 1), MAX_CODEC2_DECODED_RAW_BYTES)
         ).toThrow(/exceeds size limit/);

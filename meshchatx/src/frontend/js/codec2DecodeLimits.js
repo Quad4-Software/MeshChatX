@@ -6,6 +6,8 @@ export const MAX_CODEC2_ENCODED_BYTES = 512 * 1024;
 export const MAX_CODEC2_DECODED_RAW_BYTES = 8 * 1024 * 1024;
 /** WAV header + PCM. Slightly above raw cap. */
 export const MAX_CODEC2_WAV_BYTES = MAX_CODEC2_DECODED_RAW_BYTES + 44;
+/** Opus attachments are stored compressed; still bound blob URL creation. */
+export const MAX_OPUS_ATTACHMENT_BYTES = 2 * 1024 * 1024;
 
 /**
  * @param {ArrayBuffer | Uint8Array | null | undefined} data

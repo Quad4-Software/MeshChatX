@@ -29,7 +29,7 @@
                     <MaterialDesignIcon icon-name="tag-outline" class="size-4" />
                 </div>
                 <div
-                    class="font-semibold text-gray-900 dark:text-zinc-100 truncate max-w-[120px] sm:max-w-sm text-base"
+                    class="font-semibold text-gray-900 dark:text-zinc-100 truncate max-w-[min(40vw,12rem)] sm:max-w-sm text-base"
                     :title="selectedPeer.custom_display_name ?? selectedPeer.display_name"
                 >
                     {{ selectedPeer.custom_display_name ?? selectedPeer.display_name }}
@@ -37,7 +37,7 @@
             </div>
             <div class="text-xs text-gray-500 dark:text-zinc-400 mt-0.5 flex items-center gap-2 min-w-0">
                 <div
-                    class="cursor-pointer hover:text-blue-500 transition-colors truncate max-w-[120px] sm:max-w-none shrink-0"
+                    class="cursor-pointer hover:text-blue-500 transition-colors truncate max-w-[min(40vw,12rem)] sm:max-w-none shrink-0"
                     :title="selectedPeer.destination_hash"
                     @click="$emit('copy-hash', selectedPeer.destination_hash)"
                 >

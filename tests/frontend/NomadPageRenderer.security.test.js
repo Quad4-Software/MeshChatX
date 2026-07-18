@@ -152,7 +152,7 @@ describe("NomadPageRenderer HTML document sanitization", () => {
 
     it("strips fixed overlays from style blocks", () => {
         const html = renderNomadHtmlPage(
-            "<body><style>.x{position:fixed;inset:0;z-index:99999}</style><div class=\"x\">x</div></body>"
+            '<body><style>.x{position:fixed;inset:0;z-index:99999}</style><div class="x">x</div></body>'
         );
         expect(html.toLowerCase()).not.toMatch(/position\s*:\s*fixed/);
     });

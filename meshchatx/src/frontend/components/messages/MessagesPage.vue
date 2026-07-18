@@ -131,7 +131,7 @@
         <button
             v-if="!isPopoutMode && !destinationHash"
             type="button"
-            class="sm:hidden fixed bottom-5 right-4 z-65 flex h-14 w-14 items-center justify-center rounded-full bg-zinc-900 text-white shadow-lg ring-1 ring-white/10 transition active:scale-95 dark:bg-zinc-100 dark:text-zinc-900 dark:ring-zinc-800"
+            class="sm:hidden fixed z-65 flex h-14 w-14 items-center justify-center rounded-full bg-zinc-900 text-white shadow-lg ring-1 ring-white/10 transition active:scale-95 dark:bg-zinc-100 dark:text-zinc-900 dark:ring-zinc-800 right-[max(1rem,env(safe-area-inset-right,0px))] bottom-[max(1.25rem,env(safe-area-inset-bottom,0px))]"
             :title="$t('app.compose')"
             @click="openMobileCompose"
         >
@@ -140,11 +140,11 @@
 
         <div
             v-if="isMobileComposeModalOpen"
-            class="fixed inset-0 z-95 flex items-end justify-center sm:items-center p-0 sm:p-4 bg-black/50 backdrop-blur-xs sm:bg-black/50"
+            class="fixed inset-0 z-95 flex items-end justify-center sm:items-center p-0 sm:p-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0px,env(safe-area-inset-bottom))] bg-black/50 backdrop-blur-xs sm:bg-black/50"
             @click.self="isMobileComposeModalOpen = false"
         >
             <div
-                class="w-full sm:max-w-md bg-white dark:bg-zinc-900 rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+                class="w-full sm:max-w-md bg-white dark:bg-zinc-900 rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden max-h-[90dvh] flex flex-col"
                 @click.stop
             >
                 <div

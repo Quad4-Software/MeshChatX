@@ -35,6 +35,7 @@ Quick start with Compose:
 ```bash
 docker compose up -d
 ```
+
 Manual run with a named volume for persistence:
 
 ```bash

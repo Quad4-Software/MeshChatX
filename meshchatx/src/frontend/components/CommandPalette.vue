@@ -2,10 +2,13 @@
 
 <template>
     <transition name="slide-down">
-        <div v-if="isOpen" class="fixed inset-x-0 top-0 z-200 flex items-start justify-center p-4 pointer-events-none">
+        <div
+            v-if="isOpen"
+            class="fixed inset-x-0 top-0 z-200 flex items-start justify-center p-4 pt-[max(0.5rem,env(safe-area-inset-top))] pointer-events-none"
+        >
             <div
                 v-click-outside="close"
-                class="w-full max-w-2xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden flex flex-col max-h-[70vh] pointer-events-auto mt-2 sm:mt-8"
+                class="w-full max-w-2xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden flex flex-col max-h-[min(70dvh,70vh)] pointer-events-auto mt-2 sm:mt-8"
             >
                 <!-- search input -->
                 <div class="relative flex items-center p-4 border-b border-gray-100 dark:border-zinc-800">

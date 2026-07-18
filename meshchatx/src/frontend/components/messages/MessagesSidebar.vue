@@ -188,7 +188,10 @@
                             </div>
                         </div>
                     </div>
-                    <div v-if="foldersExpanded" class="flex flex-col max-h-48 overflow-y-auto pb-1">
+                    <div
+                        v-if="foldersExpanded"
+                        class="flex flex-col max-h-48 overflow-y-auto overscroll-y-contain pb-1"
+                    >
                         <div
                             class="px-3 py-1.5 flex items-center gap-2 cursor-pointer transition-colors text-sm"
                             :class="[

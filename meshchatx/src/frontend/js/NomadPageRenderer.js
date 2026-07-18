@@ -72,6 +72,15 @@ export function stripOverlayFromCss(css) {
         return "";
     }
     let s = String(css).replace(/\/\*[\s\S]*?\*\//g, "");
+    // Unescape CSS hex escapes so position:fixe\64 is treated as fixed.
+    s = s.replace(/\\([0-9a-fA-F]{1,6})\s?/g, (_, hex) => {
+        try {
+            return String.fromCodePoint(parseInt(hex, 16));
+        } catch {
+            return "";
+        }
+    });
+    s = s.replace(/\\(.)/g, "$1");
     s = s.replace(/position\s*:\s*[^;{}]+/gi, (decl) => {
         const lower = decl.toLowerCase();
         if (/\bfixed\b/.test(lower) || /\bsticky\b/.test(lower)) {

@@ -2,7 +2,7 @@
 
 <template>
     <div
-        class="fixed max-sm:bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] bottom-4 left-1/2 -translate-x-1/2 sm:left-auto sm:right-4 sm:translate-x-0 z-100 flex flex-col gap-2 pointer-events-none w-[calc(100%-2rem)] max-w-sm sm:w-auto sm:max-w-md"
+        class="fixed max-sm:bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] bottom-4 left-1/2 -translate-x-1/2 sm:left-auto sm:right-4 sm:translate-x-0 z-100 flex flex-col gap-2 pointer-events-none w-[calc(100%-2rem)] max-w-sm sm:w-auto sm:max-w-md"
     >
         <TransitionGroup name="toast">
             <div
@@ -49,7 +49,9 @@
 
                 <!-- close button -->
                 <button
-                    class="ml-auto text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300"
+                    type="button"
+                    class="ml-auto inline-flex min-h-[44px] min-w-[44px] items-center justify-center -my-2 -mr-2 text-gray-400 hover:text-gray-600 dark:hover:text-zinc-300"
+                    :aria-label="$t('common.close')"
                     @click="remove(toast.id)"
                 >
                     <MaterialDesignIcon icon-name="close" class="h-4 w-4" />

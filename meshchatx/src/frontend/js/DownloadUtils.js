@@ -7,6 +7,18 @@ function isAndroidSaveBridge() {
 }
 
 class DownloadUtils {
+    static sanitizeDownloadFilename(filename, defaultFilename = "download") {
+        let name = filename == null ? "" : String(filename);
+        // eslint-disable-next-line no-control-regex -- strip CR/LF/NUL from peer-provided names
+        name = name.replace(/[\r\n\x00]/g, "").trim();
+        // Drop path segments from naive Content-Disposition or peer-provided names.
+        name = name.split(/[/\\]/).pop() || "";
+        if (!name || name === "." || name === "..") {
+            return defaultFilename;
+        }
+        return name;
+    }
+
     static parseFilenameFromContentDisposition(header, defaultFilename) {
         if (!header || typeof header !== "string") {
             return defaultFilename;
@@ -14,14 +26,14 @@ class DownloadUtils {
         const star = header.match(/filename\*=UTF-8''([^;\s]+)/i);
         if (star?.[1]) {
             try {
-                return decodeURIComponent(star[1]);
+                return DownloadUtils.sanitizeDownloadFilename(decodeURIComponent(star[1]), defaultFilename);
             } catch {
                 // fall through
             }
         }
         const plain = header.match(/filename="?([^";\n]+)"?/i);
         if (plain?.[1]) {
-            return plain[1].trim();
+            return DownloadUtils.sanitizeDownloadFilename(plain[1].trim(), defaultFilename);
         }
         return defaultFilename;
     }
@@ -64,8 +76,9 @@ class DownloadUtils {
     }
 
     static downloadFromBase64(filename, fileBytesBase64) {
+        const safeName = DownloadUtils.sanitizeDownloadFilename(filename, "download");
         if (isAndroidSaveBridge()) {
-            window.MeshChatXAndroid.saveDownload(filename, fileBytesBase64);
+            window.MeshChatXAndroid.saveDownload(safeName, fileBytesBase64);
             return;
         }
         const byteCharacters = atob(fileBytesBase64);
@@ -76,17 +89,18 @@ class DownloadUtils {
         const byteArray = new Uint8Array(byteNumbers);
         const blob = new Blob([byteArray]);
         const objectUrl = URL.createObjectURL(blob);
-        DownloadUtils._triggerBrowserDownload(filename, objectUrl);
+        DownloadUtils._triggerBrowserDownload(safeName, objectUrl);
     }
 
     static async downloadFile(filename, blob) {
+        const safeName = DownloadUtils.sanitizeDownloadFilename(filename, "download");
         if (isAndroidSaveBridge()) {
             const b64 = await DownloadUtils._blobToBase64(blob);
-            window.MeshChatXAndroid.saveDownload(filename, b64);
+            window.MeshChatXAndroid.saveDownload(safeName, b64);
             return;
         }
         const objectUrl = URL.createObjectURL(blob);
-        DownloadUtils._triggerBrowserDownload(filename, objectUrl);
+        DownloadUtils._triggerBrowserDownload(safeName, objectUrl);
     }
 }
 

@@ -3,7 +3,7 @@
 <template>
     <div
         v-if="activeCall || initiationStatus || isEnded || wasDeclined"
-        class="fixed bottom-4 right-4 z-100 w-80 bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden transition-all duration-300"
+        class="fixed z-90 w-[min(20rem,calc(100%-1.5rem))] max-sm:left-1/2 max-sm:-translate-x-1/2 max-sm:right-auto sm:right-4 bottom-[max(1rem,env(safe-area-inset-bottom,0px))] max-sm:bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))] bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-zinc-800 overflow-hidden transition-all duration-300"
         :class="{ 'ring-2 ring-red-500 ring-opacity-50': isEnded || wasDeclined }"
     >
         <!-- Header -->

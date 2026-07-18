@@ -61,10 +61,12 @@
         <!-- Share Contact Modal -->
         <div
             v-if="isShareContactModalOpen"
-            class="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs"
+            class="fixed inset-0 z-100 flex items-center justify-center p-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-black/50 backdrop-blur-xs"
             @click.self="isShareContactModalOpen = false"
         >
-            <div class="w-full max-w-md bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden">
+            <div
+                class="w-full max-w-md bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden max-h-[min(90dvh,40rem)] flex flex-col"
+            >
                 <div class="px-6 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between">
                     <h3 class="text-lg font-bold text-gray-900 dark:text-white">
                         {{ $t("messages.share_contact_modal_title") }}
@@ -149,27 +151,33 @@
             <!-- stranger trust banner -->
             <div
                 v-if="isStrangerPeer && !strangerBannerDismissed && showUnknownContactBanner"
-                class="mx-3 mt-2 mb-0 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-lg flex items-center gap-3 text-sm"
+                class="mx-3 mt-2 mb-0 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-lg flex flex-col gap-3 text-sm sm:flex-row sm:items-center"
             >
-                <MaterialDesignIcon
-                    icon-name="alert-circle-outline"
-                    class="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0"
-                />
-                <span class="flex-1 text-amber-900 dark:text-amber-200">
-                    {{ $t("messages.stranger_banner_text") }}
-                </span>
-                <button
-                    class="px-3 py-1 text-xs font-medium rounded-md bg-amber-600 hover:bg-amber-700 text-white transition-colors"
-                    @click="addStrangerAsContact"
-                >
-                    {{ $t("messages.add_to_contacts") }}
-                </button>
-                <button
-                    class="px-2 py-1 text-xs text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200 transition-colors"
-                    @click="strangerBannerDismissed = true"
-                >
-                    {{ $t("messages.dismiss") }}
-                </button>
+                <div class="flex items-start gap-3 min-w-0 flex-1">
+                    <MaterialDesignIcon
+                        icon-name="alert-circle-outline"
+                        class="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5"
+                    />
+                    <span class="flex-1 text-amber-900 dark:text-amber-200">
+                        {{ $t("messages.stranger_banner_text") }}
+                    </span>
+                </div>
+                <div class="flex items-center gap-2 shrink-0 sm:justify-end">
+                    <button
+                        type="button"
+                        class="min-h-[44px] flex-1 sm:flex-none px-3 py-2 text-xs font-medium rounded-md bg-amber-600 hover:bg-amber-700 text-white transition-colors"
+                        @click="addStrangerAsContact"
+                    >
+                        {{ $t("messages.add_to_contacts") }}
+                    </button>
+                    <button
+                        type="button"
+                        class="min-h-[44px] px-3 py-2 text-xs text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200 transition-colors"
+                        @click="strangerBannerDismissed = true"
+                    >
+                        {{ $t("messages.dismiss") }}
+                    </button>
+                </div>
             </div>
 
             <!-- chat items -->
@@ -177,7 +185,7 @@
                 <div
                     id="messages"
                     ref="messagesScroll"
-                    class="flex-1 min-h-0 overflow-y-scroll bg-white dark:bg-zinc-950"
+                    class="flex-1 min-h-0 overflow-y-auto bg-white dark:bg-zinc-950"
                     style="overflow-anchor: none; overscroll-behavior-y: contain"
                     :data-message-list-mode="useVirtualMessageList ? 'virtual' : 'reverse'"
                     :aria-busy="!messagesViewportReady ? 'true' : undefined"
@@ -270,7 +278,7 @@
                 >
                     <button
                         type="button"
-                        class="flex items-center justify-center size-8 rounded-full bg-white/90 dark:bg-zinc-800/90 backdrop-blur-sm border border-gray-200 dark:border-zinc-700 shadow-sm text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700 hover:text-gray-700 dark:hover:text-zinc-200 transition-colors"
+                        class="flex items-center justify-center size-10 min-h-[44px] min-w-[44px] rounded-full bg-white/90 dark:bg-zinc-800/90 backdrop-blur-sm border border-gray-200 dark:border-zinc-700 shadow-sm text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-700 hover:text-gray-700 dark:hover:text-zinc-200 transition-colors"
                         title="Scroll to bottom"
                         @click="scrollMessagesToBottom()"
                     >
@@ -314,7 +322,8 @@
 
             <!-- send message -->
             <div
-                class="w-full border-t border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 sm:px-4 py-2.5"
+                class="w-full border-t border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 sm:px-4 pt-2.5"
+                :style="composerChromeStyle"
             >
                 <div class="w-full">
                     <!-- banished user notification -->
@@ -458,10 +467,14 @@
                                         </button>
                                         <button
                                             type="button"
-                                            class="absolute top-1.5 right-1.5 inline-flex items-center justify-center w-6 h-6 rounded-full bg-black/55 text-white hover:bg-black/70 shadow-md"
+                                            class="absolute top-1 right-1 inline-flex items-center justify-center min-h-[44px] min-w-[44px] w-11 h-11 rounded-full text-white"
                                             @click.stop="removeImageAttachment(slot - 1)"
                                         >
-                                            <MaterialDesignIcon icon-name="close" class="w-3.5 h-3.5" />
+                                            <span
+                                                class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-black/55 hover:bg-black/70 shadow-md"
+                                            >
+                                                <MaterialDesignIcon icon-name="close" class="w-3.5 h-3.5" />
+                                            </span>
                                         </button>
                                     </div>
                                 </div>
@@ -546,7 +559,7 @@
                                     </AddAudioButton>
                                     <button
                                         type="button"
-                                        class="inline-flex items-center justify-center rounded-lg p-1.5 text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800 hover:text-gray-800 dark:hover:text-zinc-100 transition-colors"
+                                        class="inline-flex items-center justify-center rounded-lg min-h-[44px] min-w-[44px] p-1.5 text-gray-500 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-800 hover:text-gray-800 dark:hover:text-zinc-100 transition-colors"
                                         :title="$t('stickers.picker_tooltip')"
                                         @click.stop="toggleStickerPicker"
                                     >
@@ -1303,7 +1316,7 @@
             v-if="imageModalUrl"
             ref="imageModalOverlay"
             tabindex="0"
-            class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 dark:bg-black/90 backdrop-blur-xs p-4 outline-hidden"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 dark:bg-black/90 backdrop-blur-xs p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] outline-hidden"
             @click="closeImageModal"
             @keydown.left.prevent="imageModalNavigate(-1)"
             @keydown.right.prevent="imageModalNavigate(1)"
@@ -1482,11 +1495,11 @@
     >
         <div
             v-if="isRawMessageModalOpen"
-            class="fixed inset-0 z-150 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
+            class="fixed inset-0 z-150 flex items-center justify-center p-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-black/60 backdrop-blur-xs"
             @click.self="isRawMessageModalOpen = false"
         >
             <div
-                class="w-full max-w-2xl bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+                class="w-full max-w-2xl bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[min(90dvh,48rem)]"
             >
                 <div
                     class="px-6 py-4 border-b border-gray-100 dark:border-zinc-800 flex items-center justify-between shrink-0"
@@ -1762,6 +1775,7 @@ import {
     MAX_CODEC2_DECODED_RAW_BYTES,
     MAX_CODEC2_ENCODED_BYTES,
     MAX_CODEC2_WAV_BYTES,
+    MAX_OPUS_ATTACHMENT_BYTES,
     assertByteLengthAtMost,
 } from "../../js/codec2DecodeLimits.js";
 import { buildTimestampGroupedOldestFirst } from "../../js/messageTimestampGrouping.js";
@@ -1999,6 +2013,7 @@ export default {
             sendStatusUiMs: Date.now(),
             sendStatusTickInterval: null,
             windowWidth: typeof window !== "undefined" ? window.innerWidth : 1024,
+            keyboardInsetPx: 0,
             peerHeaderCompact: false,
             peerHeaderResizeObserver: null,
             scrollBottomGen: 0,
@@ -2156,6 +2171,15 @@ export default {
                 return this.$t("messages.compose_hint_opportunistic");
             }
             return this.$t("messages.compose_hint_automatic");
+        },
+        composerChromeStyle() {
+            const bottomPad = this.keyboardInsetPx > 0 ? Math.max(10, this.keyboardInsetPx) : null;
+            if (bottomPad != null) {
+                return { paddingBottom: `${bottomPad}px` };
+            }
+            return {
+                paddingBottom: "max(0.625rem, env(safe-area-inset-bottom, 0px))",
+            };
         },
         isSyncingPropagationNode() {
             // Mirror App chrome: only spin for user-started sync, not auto-sync.
@@ -2512,6 +2536,7 @@ export default {
 
         this._onWindowResize = () => {
             this.windowWidth = window.innerWidth;
+            this.updateKeyboardInset();
         };
         window.addEventListener("resize", this._onWindowResize);
         this._visualViewport = typeof window !== "undefined" ? window.visualViewport : null;
@@ -2519,6 +2544,7 @@ export default {
             this._visualViewport.addEventListener("resize", this._onWindowResize);
             this._visualViewport.addEventListener("scroll", this._onWindowResize);
         }
+        this.updateKeyboardInset();
     },
     beforeUnmount() {
         this.scrollBottomGen += 1;
@@ -2555,6 +2581,15 @@ export default {
         this.clearAudioAttachmentCache();
     },
     methods: {
+        updateKeyboardInset() {
+            const vv = this._visualViewport;
+            if (!vv || typeof window === "undefined") {
+                this.keyboardInsetPx = 0;
+                return;
+            }
+            const inset = Math.round(Math.max(0, window.innerHeight - vv.height - vv.offsetTop));
+            this.keyboardInsetPx = inset > 48 ? inset : 0;
+        },
         clearAudioAttachmentCache() {
             const cache = this.lxmfMessageAudioAttachmentCache || {};
             for (const url of Object.values(cache)) {
@@ -5374,10 +5409,7 @@ export default {
                 );
 
                 // convert decoded codec2 to wav audio
-                const wavAudio = assertByteLengthAtMost(
-                    await Codec2Lib.rawToWav(decoded),
-                    MAX_CODEC2_WAV_BYTES
-                );
+                const wavAudio = assertByteLengthAtMost(await Codec2Lib.rawToWav(decoded), MAX_CODEC2_WAV_BYTES);
 
                 // create blob from wav audio
                 const blob = new Blob([wavAudio], {
@@ -5401,6 +5433,7 @@ export default {
                 } else {
                     opusAudioBytes = new Uint8Array(audioBytes);
                 }
+                opusAudioBytes = assertByteLengthAtMost(opusAudioBytes, MAX_OPUS_ATTACHMENT_BYTES);
 
                 // create blob from opus audio
                 const blob = new Blob([opusAudioBytes], {
@@ -7043,10 +7076,7 @@ export default {
                     );
 
                     // convert decoded codec2 to wav audio and create a blob
-                    const wavAudio = assertByteLengthAtMost(
-                        await Codec2Lib.rawToWav(decoded),
-                        MAX_CODEC2_WAV_BYTES
-                    );
+                    const wavAudio = assertByteLengthAtMost(await Codec2Lib.rawToWav(decoded), MAX_CODEC2_WAV_BYTES);
                     const wavBlob = new Blob([wavAudio], {
                         type: "audio/wav",
                     });
@@ -7227,16 +7257,26 @@ export default {
             lines.push(`Method: ${lxmfMessage.method ?? "unknown"}`);
 
             if (lxmfMessage.fields?.audio) {
-                const audioSize =
-                    lxmfMessage.fields.audio.audio_size ??
-                    (lxmfMessage.fields.audio.audio_bytes ? atob(lxmfMessage.fields.audio.audio_bytes).length : 0);
+                let audioSize = lxmfMessage.fields.audio.audio_size ?? 0;
+                if (!audioSize && lxmfMessage.fields.audio.audio_bytes) {
+                    try {
+                        audioSize = atob(lxmfMessage.fields.audio.audio_bytes).length;
+                    } catch {
+                        audioSize = 0;
+                    }
+                }
                 if (audioSize > 0) lines.push(`Audio Attachment: ${this.formatBytes(audioSize)}`);
             }
 
             if (lxmfMessage.fields?.image) {
-                const imageSize =
-                    lxmfMessage.fields.image.image_size ??
-                    (lxmfMessage.fields.image.image_bytes ? atob(lxmfMessage.fields.image.image_bytes).length : 0);
+                let imageSize = lxmfMessage.fields.image.image_size ?? 0;
+                if (!imageSize && lxmfMessage.fields.image.image_bytes) {
+                    try {
+                        imageSize = atob(lxmfMessage.fields.image.image_bytes).length;
+                    } catch {
+                        imageSize = 0;
+                    }
+                }
                 if (imageSize > 0) lines.push(`Image Attachment: ${this.formatBytes(imageSize)}`);
             }
 

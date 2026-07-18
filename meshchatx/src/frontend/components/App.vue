@@ -41,14 +41,14 @@
 
             <template v-else>
                 <div
-                    class="sticky top-0 z-100 flex bg-white dark:bg-zinc-950 border-gray-200 dark:border-zinc-800 border-b min-h-16 shadow-xs transition-colors"
+                    class="z-100 flex shrink-0 bg-white dark:bg-zinc-950 border-gray-200 dark:border-zinc-800 border-b min-h-16 shadow-xs transition-colors pt-[env(safe-area-inset-top,0px)]"
                 >
                     <div
                         class="flex w-full min-h-16 items-center gap-0 overflow-x-auto no-scrollbar pl-2 pr-2 sm:ps-0 sm:pe-4"
                     >
                         <button
                             type="button"
-                            class="sm:hidden shrink-0 mr-2 text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-300"
+                            class="sm:hidden shrink-0 mr-2 inline-flex min-h-[44px] min-w-[44px] items-center justify-center text-gray-500 hover:text-gray-600 dark:text-gray-400 dark:hover:text-gray-300"
                             @click="isSidebarOpen = !isSidebarOpen"
                         >
                             <MaterialDesignIcon :icon-name="isSidebarOpen ? 'close' : 'menu'" class="size-6" />
@@ -93,7 +93,7 @@
                             <LanguageSelector class="hidden sm:block" @language-change="onLanguageChange" />
                             <button
                                 type="button"
-                                class="sm:hidden rounded-full p-1.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors relative"
+                                class="sm:hidden rounded-full p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors relative"
                                 :title="$t('app.messages')"
                                 @click="$router.push({ name: 'messages' })"
                             >
@@ -108,7 +108,7 @@
                             <button
                                 v-if="rrcEnabled"
                                 type="button"
-                                class="relative sm:hidden rounded-full p-1.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                                class="relative sm:hidden rounded-full p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
                                 :title="$t('app.relay_chat')"
                                 @click="$router.push({ name: 'relay-chat' })"
                             >
@@ -122,7 +122,7 @@
                             </button>
                             <button
                                 type="button"
-                                class="relative rounded-full p-1.5 sm:p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                                class="relative rounded-full p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center sm:p-2 sm:min-h-0 sm:min-w-0 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
                                 :title="$t('app.audio_calls')"
                                 @click="$router.push({ name: 'call' })"
                             >
@@ -136,7 +136,7 @@
                             </button>
                             <button
                                 type="button"
-                                class="sm:hidden rounded-full p-1.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
+                                class="sm:hidden rounded-full p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors"
                                 :title="isSyncingPropagationNode ? $t('app.syncing') : $t('app.sync_messages')"
                                 @click="syncPropagationNode"
                             >
@@ -179,26 +179,26 @@
                 <!-- middle -->
                 <div
                     ref="middle"
-                    class="flex flex-1 w-full overflow-hidden transition-colors"
+                    class="relative flex flex-1 w-full overflow-hidden transition-colors"
                     :style="shellCanvasStyle"
                 >
                     <!-- sidebar backdrop for mobile -->
                     <div
                         v-if="isSidebarOpen"
-                        class="fixed inset-0 z-65 bg-black/20 backdrop-blur-xs sm:hidden"
+                        class="absolute inset-0 z-65 bg-black/20 backdrop-blur-xs sm:hidden"
                         @click="isSidebarOpen = false"
                     ></div>
 
                     <!-- sidebar -->
                     <div
-                        class="fixed inset-y-0 left-0 z-70 transform transition-all duration-300 ease-in-out sm:relative sm:z-0 sm:flex sm:translate-x-0"
+                        class="absolute inset-y-0 left-0 z-70 transform transition-all duration-300 ease-in-out sm:relative sm:inset-auto sm:z-0 sm:flex sm:translate-x-0"
                         :class="[
                             isSidebarOpen ? 'translate-x-0' : '-translate-x-full',
                             isSidebarCollapsed ? 'w-16' : 'w-80 md:max-lg:w-64 lg:w-80',
                         ]"
                     >
                         <div
-                            class="flex h-full w-full flex-col overflow-y-auto border-r border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 pt-16 sm:pt-0"
+                            class="flex h-full w-full flex-col overflow-y-auto border-r border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-950"
                         >
                             <!-- toggle button for desktop (h-10 aligns with Messages/Nomad collapse rows) -->
                             <div
