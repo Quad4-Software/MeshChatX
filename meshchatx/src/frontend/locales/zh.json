@@ -359,6 +359,7 @@
         "restart_backend": "重启后端",
         "restart_backend_started": "正在重启后端…",
         "restart_backend_failed": "无法重启后端",
+        "memory_pressure_warning": "检测到高内存占用。请尽量关闭大型 Nomad 页面、语音消息或下载，然后关闭此警告。持续高压可能来自恶意对等内容。",
         "view_backend_logs": "查看崩溃日志",
         "view_backend_logs_failed": "无可用崩溃日志",
         "blackhole_integration_enabled": "黑洞集成",

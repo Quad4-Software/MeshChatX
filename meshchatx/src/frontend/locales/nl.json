@@ -359,6 +359,7 @@
         "restart_backend": "Backend herstarten",
         "restart_backend_started": "Backend wordt herstart…",
         "restart_backend_failed": "Backend kon niet worden herstart",
+        "memory_pressure_warning": "Hoog geheugengebruik gedetecteerd. Sluit grote Nomad-pagina's, spraakberichten of downloads als dat kan, en sluit daarna deze waarschuwing. Aanhoudende druk kan komen van vijandige peer-inhoud.",
         "view_backend_logs": "Crashlog bekijken",
         "view_backend_logs_failed": "Geen crashlog beschikbaar",
         "blackhole_integration_enabled": "Integratie van zwart gat",

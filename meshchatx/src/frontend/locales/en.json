@@ -409,6 +409,7 @@
         "network_recover_failed": "Could not recover the network stack. Check interfaces and try again.",
         "restart_backend_started": "Restarting backend…",
         "restart_backend_failed": "Could not restart backend",
+        "memory_pressure_warning": "High memory use detected. Close large Nomad pages, voice notes, or downloads if you can, then dismiss this warning. Persistent pressure can come from hostile peer content.",
         "view_backend_logs": "View crash log",
         "view_backend_logs_failed": "No crash log available",
         "blackhole_integration_enabled": "Blackhole Integration",

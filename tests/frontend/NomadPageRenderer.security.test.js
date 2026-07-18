@@ -6,6 +6,7 @@ import {
     rewriteCssBodyHtmlSelectors,
     sanitizeNomadHtmlFragment,
     stripExternalFromCss,
+    stripOverlayFromCss,
 } from "../../meshchatx/src/frontend/js/NomadPageRenderer";
 
 function assertNoDangerousHtmlPatterns(html) {
@@ -41,6 +42,15 @@ describe("NomadPageRenderer stripExternalFromCss", () => {
     it("neutralises expression() and IE-style javascript in css", () => {
         expect(stripExternalFromCss(`x{width:expression(alert(1))}`)).toContain("blocked(");
         expect(stripExternalFromCss(`x{foo:javascript:alert(1)}`)).toContain("blocked:");
+    });
+
+    it("neutralises fixed/sticky overlays in css", () => {
+        expect(stripOverlayFromCss(`.x{position:fixed;inset:0;z-index:99999}`).toLowerCase()).not.toMatch(
+            /position\s*:\s*fixed/
+        );
+        expect(stripExternalFromCss(`.x{position:sticky !important}`).toLowerCase()).not.toMatch(
+            /position\s*:\s*sticky/
+        );
     });
 
     it("fuzzing: stripExternalFromCss never throws", () => {
@@ -129,6 +139,22 @@ describe("NomadPageRenderer HTML document sanitization", () => {
         const html = renderNomadHtmlPage("<p>x</p><style>body{color:blue}</style>");
         expect(html).toContain("nomad-html-root");
         expect(html).toContain(".nomad-html-root");
+    });
+
+    it("strips fixed overlay styles from html documents", () => {
+        const html = renderNomadHtmlPage(
+            '<body><div style="position:fixed !important; inset:0; z-index:99999">Fake login</div></body>'
+        );
+        expect(html.toLowerCase()).not.toMatch(/position\s*:\s*fixed/);
+        expect(html.toLowerCase()).not.toContain("inset");
+        expect(html).toContain("Fake login");
+    });
+
+    it("strips fixed overlays from style blocks", () => {
+        const html = renderNomadHtmlPage(
+            "<body><style>.x{position:fixed;inset:0;z-index:99999}</style><div class=\"x\">x</div></body>"
+        );
+        expect(html.toLowerCase()).not.toMatch(/position\s*:\s*fixed/);
     });
 
     it("adversarial templates do not throw and omit script-like vectors", () => {

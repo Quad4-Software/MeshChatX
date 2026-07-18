@@ -7640,7 +7640,8 @@ class ReticulumMeshChat:
         @routes.get("/ws/telephone/audio")
         async def telephone_audio_ws(request):
             websocket_response = web.WebSocketResponse(
-                max_msg_size=5 * 1024 * 1024,
+                # Cap well above a normal PCM frame (tens of KB) but far below prior 5 MiB.
+                max_msg_size=256 * 1024,
             )
             await websocket_response.prepare(request)
 
@@ -10665,7 +10666,11 @@ class ReticulumMeshChat:
 
             # get path params
             identity_hash_hex = request.match_info.get("identity_hash", "")
-            timeout_seconds = int(request.query.get("timeout", 15))
+            try:
+                timeout_seconds = int(request.query.get("timeout", 15))
+            except (TypeError, ValueError):
+                timeout_seconds = 15
+            timeout_seconds = max(1, min(timeout_seconds, 120))
 
             try:
                 # convert hash to bytes
@@ -14941,16 +14946,55 @@ class ReticulumMeshChat:
 
             # handle image
             if attachment_type == "image" and "image" in fields:
-                image_data = base64.b64decode(fields["image"]["image_bytes"])
+                image_field = fields["image"]
+                if not isinstance(image_field, dict):
+                    return web.json_response(
+                        {"message": "Invalid image attachment"},
+                        status=400,
+                    )
+                image_bytes_b64 = image_field.get("image_bytes")
+                if not isinstance(image_bytes_b64, str) or not image_bytes_b64:
+                    return web.json_response(
+                        {"message": "Missing image data"},
+                        status=400,
+                    )
+                try:
+                    image_data = base64.b64decode(image_bytes_b64)
+                except Exception:
+                    return web.json_response(
+                        {"message": "Invalid image data"},
+                        status=400,
+                    )
                 allowed_image_types = {"png", "jpeg", "jpg", "gif", "webp", "bmp"}
-                image_type = fields["image"]["image_type"]
-                if image_type.lower() not in allowed_image_types:
+                image_type = image_field.get("image_type") or "png"
+                if not isinstance(image_type, str):
+                    image_type = "png"
+                image_type = image_type.lower().replace("image/", "").strip() or "png"
+                if image_type not in allowed_image_types:
                     image_type = "png"
                 return web.Response(body=image_data, content_type=f"image/{image_type}")
 
             # handle audio
             if attachment_type == "audio" and "audio" in fields:
-                audio_data = base64.b64decode(fields["audio"]["audio_bytes"])
+                audio_field = fields["audio"]
+                if not isinstance(audio_field, dict):
+                    return web.json_response(
+                        {"message": "Invalid audio attachment"},
+                        status=400,
+                    )
+                audio_bytes_b64 = audio_field.get("audio_bytes")
+                if not isinstance(audio_bytes_b64, str) or not audio_bytes_b64:
+                    return web.json_response(
+                        {"message": "Missing audio data"},
+                        status=400,
+                    )
+                try:
+                    audio_data = base64.b64decode(audio_bytes_b64)
+                except Exception:
+                    return web.json_response(
+                        {"message": "Invalid audio data"},
+                        status=400,
+                    )
                 return web.Response(
                     body=audio_data,
                     content_type="application/octet-stream",
@@ -14966,10 +15010,38 @@ class ReticulumMeshChat:
                                 {"message": "Invalid file index"},
                                 status=400,
                             )
-                        file_attachment = fields["file_attachments"][index]
-                        file_data = base64.b64decode(file_attachment["file_bytes"])
+                        file_attachments = fields["file_attachments"]
+                        if not isinstance(file_attachments, list) or index >= len(
+                            file_attachments,
+                        ):
+                            return web.json_response(
+                                {"message": "Invalid file index"},
+                                status=400,
+                            )
+                        file_attachment = file_attachments[index]
+                        if not isinstance(file_attachment, dict):
+                            return web.json_response(
+                                {"message": "Invalid file attachment"},
+                                status=400,
+                            )
+                        file_bytes_b64 = file_attachment.get("file_bytes")
+                        if not isinstance(file_bytes_b64, str) or not file_bytes_b64:
+                            return web.json_response(
+                                {"message": "Missing file data"},
+                                status=400,
+                            )
+                        try:
+                            file_data = base64.b64decode(file_bytes_b64)
+                        except Exception:
+                            return web.json_response(
+                                {"message": "Invalid file data"},
+                                status=400,
+                            )
+                        raw_name = file_attachment.get("file_name") or "download"
+                        if not isinstance(raw_name, str):
+                            raw_name = "download"
                         safe_name = (
-                            os.path.basename(file_attachment["file_name"])
+                            os.path.basename(raw_name)
                             .replace('"', "_")
                             .replace("\r", "")
                             .replace("\n", "")

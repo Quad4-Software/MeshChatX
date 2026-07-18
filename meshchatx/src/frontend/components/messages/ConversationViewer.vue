@@ -1758,6 +1758,12 @@
 import Utils from "../../js/Utils";
 import { copyTextToClipboard, readTextFromClipboard } from "../../js/clipboardUtils.js";
 import { MESSAGE_BODY_MAX_DISPLAY_CHARS, isStringTooLargeForInlineDisplay } from "../../js/messageDisplayLimits.js";
+import {
+    MAX_CODEC2_DECODED_RAW_BYTES,
+    MAX_CODEC2_ENCODED_BYTES,
+    MAX_CODEC2_WAV_BYTES,
+    assertByteLengthAtMost,
+} from "../../js/codec2DecodeLimits.js";
 import { buildTimestampGroupedOldestFirst } from "../../js/messageTimestampGrouping.js";
 import DownloadUtils from "../../js/DownloadUtils";
 import { clampFloatingToViewport } from "../../js/clampFloatingToViewport.js";
@@ -5359,12 +5365,19 @@ export default {
                 } else {
                     encoded = new Uint8Array(audioBytes);
                 }
+                encoded = assertByteLengthAtMost(encoded, MAX_CODEC2_ENCODED_BYTES);
 
                 // decode codec2 audio
-                const decoded = await Codec2Lib.runDecode(codecMode, encoded);
+                const decoded = assertByteLengthAtMost(
+                    await Codec2Lib.runDecode(codecMode, encoded),
+                    MAX_CODEC2_DECODED_RAW_BYTES
+                );
 
                 // convert decoded codec2 to wav audio
-                const wavAudio = await Codec2Lib.rawToWav(decoded);
+                const wavAudio = assertByteLengthAtMost(
+                    await Codec2Lib.rawToWav(decoded),
+                    MAX_CODEC2_WAV_BYTES
+                );
 
                 // create blob from wav audio
                 const blob = new Blob([wavAudio], {
@@ -7023,10 +7036,17 @@ export default {
 
                     // decode codec2 audio back to wav so we can show a preview audio player before user sends it
                     const codec2Mode = this.audioAttachmentMicrophoneRecorder.codec2Mode;
-                    const decoded = await Codec2Lib.runDecode(codec2Mode, new Uint8Array(audio));
+                    const encoded = assertByteLengthAtMost(new Uint8Array(audio), MAX_CODEC2_ENCODED_BYTES);
+                    const decoded = assertByteLengthAtMost(
+                        await Codec2Lib.runDecode(codec2Mode, encoded),
+                        MAX_CODEC2_DECODED_RAW_BYTES
+                    );
 
                     // convert decoded codec2 to wav audio and create a blob
-                    const wavAudio = await Codec2Lib.rawToWav(decoded);
+                    const wavAudio = assertByteLengthAtMost(
+                        await Codec2Lib.rawToWav(decoded),
+                        MAX_CODEC2_WAV_BYTES
+                    );
                     const wavBlob = new Blob([wavAudio], {
                         type: "audio/wav",
                     });

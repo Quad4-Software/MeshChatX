@@ -619,6 +619,14 @@ import Toast from "./Toast.vue";
 import ConfirmDialog from "./ConfirmDialog.vue";
 import PromptDialog from "./PromptDialog.vue";
 import ToastUtils from "../js/ToastUtils";
+import {
+    CLIENT_HEAP_SAMPLE_INTERVAL_MS,
+    MEMORY_WARNING_TOAST_KEY,
+    evaluateClientHeapSample,
+    handleHealthWarningPayload,
+    markMemoryWarningDismissed,
+    showMemoryWarningToastIfNeeded,
+} from "../js/healthMemoryWarning.js";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import QRCode from "qrcode";
 import LanguageSelector from "./LanguageSelector.vue";
@@ -999,6 +1007,8 @@ export default {
             WebSocketConnection.on("disconnected", this.onWsShellDisconnected);
             WebSocketConnection.on("connected", this.onWsShellConnected);
             this.registerShellWsHandlers();
+            this.startClientHeapMemoryWatch();
+            GlobalEmitter.on("toast-dismissed", this.onToastDismissedShell);
             GlobalEmitter.on("identity-switching-start", this.onIdentitySwitchingStartShell);
             GlobalEmitter.on("identity-switched-apply", this.onIdentitySwitchedApplyShell);
             GlobalEmitter.on("sync-propagation-node", this.onSyncPropagationNodeShell);
@@ -1059,11 +1069,43 @@ export default {
                 this.startShellPollIntervals();
             }
         },
+        onToastDismissedShell({ key }) {
+            if (key === MEMORY_WARNING_TOAST_KEY) {
+                markMemoryWarningDismissed();
+            }
+        },
+        startClientHeapMemoryWatch() {
+            this.stopClientHeapMemoryWatch();
+            this._clientHeapMemoryTimer = setInterval(() => {
+                this.sampleClientHeapMemory();
+            }, CLIENT_HEAP_SAMPLE_INTERVAL_MS);
+            this.sampleClientHeapMemory();
+        },
+        stopClientHeapMemoryWatch() {
+            if (this._clientHeapMemoryTimer != null) {
+                clearInterval(this._clientHeapMemoryTimer);
+                this._clientHeapMemoryTimer = null;
+            }
+        },
+        sampleClientHeapMemory() {
+            let memoryInfo = null;
+            try {
+                memoryInfo = performance?.memory ?? null;
+            } catch {
+                memoryInfo = null;
+            }
+            const result = evaluateClientHeapSample(memoryInfo);
+            if (result.shouldWarn) {
+                showMemoryWarningToastIfNeeded(ToastUtils, { fromClientHeap: true });
+            }
+        },
         stopShell() {
             if (!this.shellRunning) {
                 return;
             }
             this.shellRunning = false;
+            this.stopClientHeapMemoryWatch();
+            GlobalEmitter.off("toast-dismissed", this.onToastDismissedShell);
             clearInterval(this.reloadInterval);
             this.reloadInterval = null;
             clearInterval(this.appInfoInterval);
@@ -1574,6 +1616,9 @@ export default {
                     if (json.issues && json.issues.length > 0) {
                         ToastUtils.warning(json.issues.join(" ") || "Database issue detected.", 8000);
                     }
+                },
+                health_warning: (json) => {
+                    handleHealthWarningPayload(json, ToastUtils);
                 },
                 identity_switched: async (json) => {
                     await this.applyIdentitySwitched(json);

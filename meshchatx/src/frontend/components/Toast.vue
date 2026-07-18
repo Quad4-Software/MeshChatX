@@ -159,6 +159,9 @@ export default {
                     clearTimeout(toast.timer);
                 }
                 this.toasts.splice(index, 1);
+                if (toast.key != null) {
+                    GlobalEmitter.emit("toast-dismissed", { key: toast.key });
+                }
             }
         },
         toastClass(type) {
