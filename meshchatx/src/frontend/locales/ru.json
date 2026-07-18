@@ -138,6 +138,14 @@
         "privacy_subsection_telemetry": "Телеметрия mesh",
         "privacy_mode_enabled": "Режим конфиденциальности (блокировка внешнего HTTP/HTTPS)",
         "privacy_mode_description": "Блокирует тайлы карт, геокодирование, LibreTranslate, загрузку прошивок и другие исходящие HTTP/HTTPS-соединения приложения. Политика безопасности контента браузера ограничивается только same-origin.",
+        "screen_security_enabled": "Защита экрана (блокировать захват)",
+        "screen_security_description": "Использует флаг display affinity Windows, чтобы MeshChatX не попадал в снимки экрана, запись и Windows Recall. Окно по-прежнему выглядит обычно на мониторе.",
+        "screen_security_description_short": "Скрыть это окно от снимков экрана, записи и Windows Recall.",
+        "screen_security_drm_eyebrow": "DRM Windows / защита от захвата экрана",
+        "screen_security_drm_note": "Использует тот же системный флаг защиты содержимого, что и медиаприложения для DRM. Это не жёсткая гарантия: камера, направленная на экран, всё ещё может захватить содержимое, а некоторым средствам доступности может понадобиться выключить эту настройку.",
+        "screen_security_disable_confirm": "Отключить защиту экрана? Windows Recall и другие приложения снова смогут захватывать MeshChatX.",
+        "screen_security_enabled_toast": "Защита экрана включена",
+        "screen_security_disabled_toast": "Защита экрана отключена",
         "web_exposure_title": "Сетевая доступность",
         "web_exposure_description": "Адрес привязки веб-интерфейса задаётся при запуске через --host или MESHCHAT_HOST. Ограничьте доступ, если привязка не к loopback.",
         "web_listen_address": "Текущий адрес привязки",
@@ -3070,6 +3078,9 @@
         "ready": "Все готово!",
         "ready_desc": "Все настроено. Reticulum перезапущен с новой конфигурацией.",
         "ready_desc_page": "MeshChatX настроен, Reticulum выполнил горячую перезагрузку с новыми параметрами.",
+        "privacy_title": "Конфиденциальность и безопасность",
+        "privacy_desc": "Необязательное усиление для этого устройства. Можно изменить в любой момент в Настройки → Конфиденциальность.",
+        "privacy_later_hint": "Рекомендуется при чувствительном использовании. Оставить параметры выключенными нормально для обычных установок.",
         "docker_note": "Reticulum был перезапущен автоматически. Если что-то не так, перезапустите MeshChatX через меню.",
         "restart_required": "Reticulum перезапущен",
         "restart_desc_page": "Reticulum выполнил горячую перезагрузку с новой конфигурацией. Ручной перезапуск для обычной работы не требуется.",
@@ -3735,5 +3746,11 @@
         "identity_created": "Management identity created",
         "failed_load_identities": "Failed to load management identities",
         "failed_create_identity": "Failed to create management identity"
+    },
+    "post_install": {
+        "windows_screen_security_title": "Включить защиту экрана Windows?",
+        "windows_screen_security_desc": "MeshChatX может использовать защиту содержимого Windows (тот же DRM-подобный флаг отображения, что у медиаприложений), чтобы снимки, запись и Windows Recall не захватывали окно. Позже можно изменить в Настройки → Конфиденциальность.",
+        "windows_screen_security_enable": "Включить защиту экрана",
+        "windows_screen_security_later": "Не сейчас"
     }
 }

@@ -39,6 +39,7 @@ vi.mock("../../meshchatx/src/frontend/js/ElectronUtils", () => ({
     default: {
         relaunch: vi.fn(),
         isElectron: () => false,
+        isWindowsElectron: () => false,
     },
 }));
 

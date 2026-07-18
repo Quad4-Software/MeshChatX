@@ -164,6 +164,14 @@
         "privacy_subsection_telemetry": "Mesh 遥测",
         "privacy_mode_enabled": "隐私模式（阻止外部 HTTP/HTTPS）",
         "privacy_mode_description": "阻止地图瓦片、地理编码、LibreTranslate、固件下载以及应用的其他出站 HTTP/HTTPS 连接。浏览器内容安全策略收紧为仅同源。",
+        "screen_security_enabled": "屏幕安全（阻止截录）",
+        "screen_security_description": "使用 Windows 显示亲和性标志，使 MeshChatX 不出现在截图、录屏和 Windows Recall 中。窗口在显示器上仍正常显示。",
+        "screen_security_description_short": "对此窗口隐藏截图、录屏和 Windows Recall。",
+        "screen_security_drm_eyebrow": "Windows DRM / 屏幕捕获保护",
+        "screen_security_drm_note": "复用媒体应用用于 DRM 的同一系统内容保护标志。这不是绝对保证：对着屏幕拍照仍可捕获内容，部分辅助功能工具可能需要关闭此设置。",
+        "screen_security_disable_confirm": "关闭屏幕安全？Windows Recall 和其他应用将能再次捕获 MeshChatX。",
+        "screen_security_enabled_toast": "已启用屏幕安全",
+        "screen_security_disabled_toast": "已关闭屏幕安全",
         "web_exposure_title": "网络暴露",
         "web_exposure_description": "Web UI 绑定地址在启动时通过 --host 或 MESHCHAT_HOST 设置。未绑定到 loopback 时，请限制可访问者。",
         "web_listen_address": "当前绑定地址",
@@ -3315,6 +3323,9 @@
         "ready": "准备就绪！",
         "ready_desc": "一切已设置。Reticulum 已随您的新配置重新启动。",
         "ready_desc_page": "MeshChatX 现已配置，Reticulum 已随您的新设置热重载。",
+        "privacy_title": "隐私与安全",
+        "privacy_desc": "此设备的可选加固。可随时在 设置 → 隐私 中更改。",
+        "privacy_later_hint": "敏感用途建议开启。日常安装可保持关闭。",
         "docker_note": "Reticulum 会自动重新启动。如果有任何更改，您可以从菜单中重新启动 MeshChatX。",
         "restart_required": "Reticulum 重新启动",
         "restart_desc_page": "Reticulum 已热重载您的新配置。正常使用不需要手动重启。",
@@ -3735,5 +3746,11 @@
         "identity_created": "Management identity created",
         "failed_load_identities": "Failed to load management identities",
         "failed_create_identity": "Failed to create management identity"
+    },
+    "post_install": {
+        "windows_screen_security_title": "启用 Windows 屏幕安全？",
+        "windows_screen_security_desc": "MeshChatX 可使用 Windows 内容保护（与媒体应用相同的 DRM 风格显示标志），使截图、录屏和 Windows Recall 无法捕获应用窗口。之后可在 设置 → 隐私 中更改。",
+        "windows_screen_security_enable": "启用屏幕安全",
+        "windows_screen_security_later": "暂不"
     }
 }

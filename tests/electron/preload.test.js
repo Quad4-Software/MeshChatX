@@ -125,6 +125,45 @@ describe("electron/preload", () => {
         expect(invoke).toHaveBeenCalledWith("set-close-settings", { closeBehavior: "quit" });
     });
 
+    it("exposes screen security IPC helpers and platform", async () => {
+        const exposeInMainWorld = vi.fn();
+        const invoke = vi.fn();
+        loadPreloadWithElectronMock({
+            contextBridge: { exposeInMainWorld },
+            ipcRenderer: { invoke, on: vi.fn() },
+        });
+        const api = exposeInMainWorld.mock.calls[0][1];
+        expect(typeof api.getPlatform).toBe("function");
+
+        invoke.mockResolvedValueOnce({
+            platform: "win32",
+            available: true,
+            windowsDrm: true,
+            enabled: false,
+        });
+        await expect(api.getScreenSecuritySettings()).resolves.toEqual({
+            platform: "win32",
+            available: true,
+            windowsDrm: true,
+            enabled: false,
+        });
+        expect(invoke).toHaveBeenCalledWith("get-screen-security-settings");
+
+        invoke.mockResolvedValueOnce({
+            platform: "win32",
+            available: true,
+            windowsDrm: true,
+            enabled: true,
+        });
+        await expect(api.setScreenSecurityEnabled(true)).resolves.toEqual({
+            platform: "win32",
+            available: true,
+            windowsDrm: true,
+            enabled: true,
+        });
+        expect(invoke).toHaveBeenCalledWith("set-screen-security-enabled", true);
+    });
+
     it("subscribes to log channel on load", () => {
         const exposeInMainWorld = vi.fn();
         const on = vi.fn();

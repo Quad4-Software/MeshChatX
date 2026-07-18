@@ -31,6 +31,31 @@ class ElectronUtils {
         return null;
     }
 
+    static getPlatform() {
+        if (typeof window.electron?.getPlatform === "function") {
+            return window.electron.getPlatform();
+        }
+        return null;
+    }
+
+    static isWindowsElectron() {
+        return ElectronUtils.isElectron() && ElectronUtils.getPlatform() === "win32";
+    }
+
+    static async getScreenSecuritySettings() {
+        if (window.electron?.getScreenSecuritySettings) {
+            return await window.electron.getScreenSecuritySettings();
+        }
+        return null;
+    }
+
+    static async setScreenSecurityEnabled(enabled) {
+        if (window.electron?.setScreenSecurityEnabled) {
+            return await window.electron.setScreenSecurityEnabled(enabled === true);
+        }
+        return null;
+    }
+
     static async getMemoryUsage() {
         if (window.electron) {
             return await window.electron.getMemoryUsage();

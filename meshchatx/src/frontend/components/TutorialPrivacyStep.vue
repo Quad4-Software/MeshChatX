@@ -1,0 +1,276 @@
+<!-- SPDX-License-Identifier: 0BSD -->
+<template>
+    <div class="space-y-6" :class="compact ? '' : 'py-4'">
+        <div class="space-y-2 text-center sm:text-left">
+            <h2 class="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white">
+                {{ $t("tutorial.privacy_title") }}
+            </h2>
+            <p class="text-base text-gray-600 dark:text-zinc-400 max-w-xl">
+                {{ $t("tutorial.privacy_desc") }}
+            </p>
+        </div>
+
+        <div class="space-y-3 w-full max-w-xl mx-auto sm:mx-0">
+            <div
+                v-if="showWindowsScreenSecurity"
+                class="p-4 rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/90 dark:bg-amber-950/40 text-left space-y-3"
+            >
+                <div class="font-semibold text-amber-950 dark:text-amber-100">
+                    {{ $t("app.screen_security_drm_eyebrow") }}
+                </div>
+                <p class="text-sm text-amber-950/90 dark:text-amber-100/90">
+                    {{ $t("app.screen_security_description") }}
+                </p>
+                <p class="text-xs text-amber-950/80 dark:text-amber-100/80">
+                    {{ $t("app.screen_security_drm_note") }}
+                </p>
+                <label class="setting-toggle">
+                    <Toggle
+                        id="tutorial-screen-security"
+                        v-model="screenSecurityEnabled"
+                        :disabled="screenSecuritySaving"
+                        @update:model-value="onScreenSecurityChange"
+                    />
+                    <span class="setting-toggle__label">
+                        <span class="setting-toggle__title">{{ $t("app.screen_security_enabled") }}</span>
+                        <span class="setting-toggle__description">{{
+                            $t("app.screen_security_description_short")
+                        }}</span>
+                    </span>
+                </label>
+            </div>
+
+            <label v-if="showAndroidScreenshotBlock" class="setting-toggle">
+                <Toggle
+                    id="tutorial-android-block-screenshots"
+                    v-model="androidBlockScreenshots"
+                    :disabled="androidSaving"
+                    @update:model-value="onAndroidBlockScreenshotsChange"
+                />
+                <span class="setting-toggle__label">
+                    <span class="setting-toggle__title">{{ $t("settings.android_block_screenshots") }}</span>
+                    <span class="setting-toggle__description">{{
+                        $t("settings.android_block_screenshots_desc")
+                    }}</span>
+                </span>
+            </label>
+
+            <label class="setting-toggle">
+                <Toggle
+                    id="tutorial-obfuscate-hops"
+                    v-model="localHopsDelta"
+                    :disabled="reticulumSaving"
+                    @update:model-value="onLocalHopsDeltaChange"
+                />
+                <span class="setting-toggle__label">
+                    <span class="setting-toggle__title">{{ $t("app.obfuscate_hops") }}</span>
+                    <span class="setting-toggle__description">{{ $t("app.obfuscate_hops_description") }}</span>
+                </span>
+            </label>
+
+            <label class="setting-toggle">
+                <Toggle
+                    id="tutorial-privacy-mode"
+                    v-model="privacyModeEnabled"
+                    :disabled="configSaving"
+                    @update:model-value="onPrivacyModeChange"
+                />
+                <span class="setting-toggle__label">
+                    <span class="setting-toggle__title">{{ $t("app.privacy_mode_enabled") }}</span>
+                    <span class="setting-toggle__description">{{ $t("app.privacy_mode_description") }}</span>
+                </span>
+            </label>
+
+            <label class="setting-toggle">
+                <Toggle
+                    id="tutorial-telemetry"
+                    v-model="telemetryEnabled"
+                    :disabled="configSaving"
+                    @update:model-value="onTelemetryChange"
+                />
+                <span class="setting-toggle__label">
+                    <span class="setting-toggle__title">{{ $t("app.telemetry_enabled") }}</span>
+                    <span class="setting-toggle__description">{{ $t("app.telemetry_description") }}</span>
+                </span>
+            </label>
+        </div>
+
+        <p class="text-xs text-center sm:text-left text-gray-500 dark:text-zinc-500 max-w-xl">
+            {{ $t("tutorial.privacy_later_hint") }}
+        </p>
+    </div>
+</template>
+
+<script>
+import ElectronUtils from "../js/ElectronUtils.js";
+import AndroidBridge from "../js/rnode/AndroidBridge.js";
+import ToastUtils from "../js/ToastUtils";
+import Toggle from "./forms/Toggle.vue";
+
+export default {
+    name: "TutorialPrivacyStep",
+    components: {
+        Toggle,
+    },
+    props: {
+        compact: {
+            type: Boolean,
+            default: false,
+        },
+    },
+    data() {
+        return {
+            screenSecurityEnabled: false,
+            screenSecuritySaving: false,
+            showWindowsScreenSecurity: false,
+            androidBlockScreenshots: false,
+            androidSaving: false,
+            showAndroidScreenshotBlock: false,
+            localHopsDelta: false,
+            reticulumSaving: false,
+            privacyModeEnabled: false,
+            telemetryEnabled: false,
+            configSaving: false,
+        };
+    },
+    async mounted() {
+        await this.loadPrivacyOptions();
+    },
+    methods: {
+        async loadPrivacyOptions() {
+            this.showWindowsScreenSecurity =
+                typeof ElectronUtils.isWindowsElectron === "function" && ElectronUtils.isWindowsElectron();
+            this.showAndroidScreenshotBlock =
+                typeof window !== "undefined" &&
+                window.MeshChatXAndroid &&
+                typeof window.MeshChatXAndroid.getPlatform === "function" &&
+                window.MeshChatXAndroid.getPlatform() === "android";
+
+            if (this.showWindowsScreenSecurity) {
+                try {
+                    const settings = await ElectronUtils.getScreenSecuritySettings();
+                    this.screenSecurityEnabled = settings?.enabled === true;
+                } catch {
+                    this.screenSecurityEnabled = false;
+                }
+            }
+
+            if (this.showAndroidScreenshotBlock) {
+                try {
+                    const bridge = new AndroidBridge();
+                    this.androidBlockScreenshots = bridge.getBlockScreenshots() === true;
+                } catch {
+                    this.androidBlockScreenshots = false;
+                }
+            }
+
+            try {
+                const [configResponse, instanceResponse] = await Promise.all([
+                    window.api.get("/api/v1/config"),
+                    window.api.get("/api/v1/reticulum/instance"),
+                ]);
+                const config = configResponse?.data?.config || {};
+                this.privacyModeEnabled = config.privacy_mode_enabled === true;
+                this.telemetryEnabled = config.telemetry_enabled === true;
+                this.localHopsDelta = instanceResponse?.data?.instance?.local_hops_delta === true;
+            } catch (e) {
+                console.error("Failed to load tutorial privacy options:", e);
+            }
+        },
+        async onScreenSecurityChange(value) {
+            if (this.screenSecuritySaving) {
+                return;
+            }
+            this.screenSecuritySaving = true;
+            try {
+                const settings = await ElectronUtils.setScreenSecurityEnabled(value === true);
+                this.screenSecurityEnabled = settings?.enabled === true;
+                ToastUtils.success(
+                    this.screenSecurityEnabled
+                        ? this.$t("app.screen_security_enabled_toast")
+                        : this.$t("app.screen_security_disabled_toast")
+                );
+            } catch (e) {
+                console.error(e);
+                this.screenSecurityEnabled = !value;
+                ToastUtils.error(this.$t("common.save_failed"));
+            } finally {
+                this.screenSecuritySaving = false;
+            }
+        },
+        async onAndroidBlockScreenshotsChange(value) {
+            if (this.androidSaving) {
+                return;
+            }
+            this.androidSaving = true;
+            try {
+                const bridge = new AndroidBridge();
+                if (!bridge.setBlockScreenshots(value === true)) {
+                    throw new Error("setBlockScreenshots failed");
+                }
+                this.androidBlockScreenshots = value === true;
+            } catch (e) {
+                console.error(e);
+                this.androidBlockScreenshots = !value;
+                ToastUtils.error(this.$t("common.save_failed"));
+            } finally {
+                this.androidSaving = false;
+            }
+        },
+        async onLocalHopsDeltaChange(value) {
+            if (this.reticulumSaving) {
+                return;
+            }
+            this.reticulumSaving = true;
+            try {
+                await window.api.patch("/api/v1/reticulum/instance", {
+                    local_hops_delta: value === true,
+                });
+                this.localHopsDelta = value === true;
+            } catch (e) {
+                console.error(e);
+                this.localHopsDelta = !value;
+                ToastUtils.error(this.$t("settings.failed_update_reticulum_instance"));
+            } finally {
+                this.reticulumSaving = false;
+            }
+        },
+        async onPrivacyModeChange(value) {
+            if (this.configSaving) {
+                return;
+            }
+            this.configSaving = true;
+            try {
+                await window.api.patch("/api/v1/config", {
+                    privacy_mode_enabled: value === true,
+                });
+                this.privacyModeEnabled = value === true;
+            } catch (e) {
+                console.error(e);
+                this.privacyModeEnabled = !value;
+                ToastUtils.error(this.$t("common.save_failed"));
+            } finally {
+                this.configSaving = false;
+            }
+        },
+        async onTelemetryChange(value) {
+            if (this.configSaving) {
+                return;
+            }
+            this.configSaving = true;
+            try {
+                await window.api.patch("/api/v1/config", {
+                    telemetry_enabled: value === true,
+                });
+                this.telemetryEnabled = value === true;
+            } catch (e) {
+                console.error(e);
+                this.telemetryEnabled = !value;
+                ToastUtils.error(this.$t("common.save_failed"));
+            } finally {
+                this.configSaving = false;
+            }
+        },
+    },
+};
+</script>
