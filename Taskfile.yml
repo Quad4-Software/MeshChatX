@@ -103,6 +103,51 @@ tasks:
             - echo "Warning - Installing packages over RNS via pip-rns is slow. Use for mesh-only environments."
             - bash scripts/pip-rns-deps.sh {{.CLI_ARGS}}
 
+    deps:git-pins:
+        aliases: [deps:pins]
+        desc: Fail if github/git deps or WASM download URLs drift from scripts/deps-allowlist.json
+        cmds:
+            - node scripts/check-git-deps.mjs
+
+    deps:why:
+        desc: Explain why a package is installed (pnpm why and uv tree --package)
+        cmds:
+            - |
+                PKG="{{.CLI_ARGS}}"
+                if [ -z "$PKG" ]; then
+                  echo "Usage: task deps:why -- <package>" >&2
+                  exit 1
+                fi
+                echo "=== pnpm why ${PKG} ==="
+                {{.NPM}} why "$PKG" || true
+                echo
+                echo "=== uv tree --package ${PKG} --invert ==="
+                uv tree --package "$PKG" --invert || true
+
+    check:format-tokens:
+        desc: Fail if formatDate/meshDate patterns use unsupported datetime tokens
+        cmds:
+            - node scripts/check-format-tokens.mjs
+
+    licenses:refresh:
+        desc: Regenerate embedded license artifacts and fail if the tree is dirty afterward
+        cmds:
+            - uv run python -m meshchatx.src.backend.licenses_collector --write-artifacts
+            - |
+                if ! git diff --quiet -- \
+                  meshchatx/src/backend/data/licenses_frontend.json \
+                  meshchatx/src/backend/data/licenses_backend.json \
+                  meshchatx/src/backend/data/THIRD_PARTY_NOTICES.txt
+                then
+                  echo "licenses:refresh left a dirty tree. Commit the updated license artifacts." >&2
+                  git status --short -- \
+                    meshchatx/src/backend/data/licenses_frontend.json \
+                    meshchatx/src/backend/data/licenses_backend.json \
+                    meshchatx/src/backend/data/THIRD_PARTY_NOTICES.txt >&2
+                  exit 1
+                fi
+                echo "licenses:refresh: artifacts up to date"
+
     docs:rns:
         aliases: [build-docs:rns]
         desc: Fetch Reticulum manual from rngit website remote over RNS
@@ -180,11 +225,13 @@ tasks:
 
     lint:frontend:
         aliases: [lint:fe]
-        desc: Lint frontend code (ESLint, vue-tsc, knip)
+        desc: Lint frontend code (ESLint, vue-tsc, knip, format-token and git-dep pin checks)
         cmds:
             - "{{.NPM}} run lint"
             - "{{.NPM}} run typecheck"
             - "{{.NPM}} exec knip"
+            - task: check:format-tokens
+            - task: deps:git-pins
 
     lint:backend:
         aliases: [lint:be]
@@ -282,6 +329,30 @@ tasks:
         desc: Quick MeshMut sample on Capabilities.js (capped mutants)
         cmds:
             - node scripts/mutation/run.mjs --source meshchatx/src/frontend/js/rnode/Capabilities.js --max-per-file 20
+
+    test:mutation:frontend:libs:
+        desc: MeshMut on meshchatx/src/frontend/libs (emitter uuid datetime clickOutside)
+        cmds:
+            - >-
+                node scripts/mutation/run.mjs
+                --source meshchatx/src/frontend/libs/emitter.js
+                --source meshchatx/src/frontend/libs/uuid.js
+                --source meshchatx/src/frontend/libs/datetime.js
+                --source meshchatx/src/frontend/libs/clickOutside.js
+                {{.CLI_ARGS}}
+
+    test:libs:
+        aliases: [test:fe:libs]
+        desc: Run in-repo frontend libs tests with coverage gate
+        cmds:
+            - >-
+                {{.NPM}} exec vitest run
+                tests/frontend/libs.core.test.js
+                tests/frontend/libs.oracle.test.js
+                tests/frontend/libs.index.test.js
+                --coverage
+                --coverage.include=meshchatx/src/frontend/libs/**
+            - node scripts/check-format-tokens.mjs
 
     test:frontend:
         aliases: [test:fe]
