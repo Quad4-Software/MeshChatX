@@ -193,7 +193,7 @@ importers:
         specifier: ^6.24.0
         version: 6.24.0
       micron-parser:
-        specifier: github:RFnexus/micron-parser-js
+        specifier: github:RFnexus/micron-parser-js#33feb1054c8b2cb3f5f05abbb8903360d3f0c098
         version: https://codeload.github.com/RFnexus/micron-parser-js/tar.gz/33feb1054c8b2cb3f5f05abbb8903360d3f0c098
       prettier:
         specifier: ^3.9.3
@@ -4270,7 +4270,7 @@ snapshots:
   '@isaacs/cliui@8.0.2':
     dependencies:
       string-width: 5.1.2
-      string-width-cjs: string-width@4.2.0
+      string-width-cjs: string-width@4.2.3
       strip-ansi: 6.0.1
       strip-ansi-cjs: strip-ansi@6.0.1
       wrap-ansi: 8.1.0

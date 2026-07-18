@@ -90,7 +90,7 @@
         "globals": "^17.6.0",
         "jsdom": "^29.1.1",
         "knip": "^6.24.0",
-        "micron-parser": "github:RFnexus/micron-parser-js",
+        "micron-parser": "github:RFnexus/micron-parser-js#33feb1054c8b2cb3f5f05abbb8903360d3f0c098",
         "prettier": "^3.9.3",
         "tailwindcss": "^4.3.0",
         "terser": "^5.48.0",

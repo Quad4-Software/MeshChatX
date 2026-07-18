@@ -4,6 +4,12 @@
 
 /** @typedef {{ source: string, tests: string[] }} MutationTarget */
 
+const LIBS_TESTS = [
+    "tests/frontend/libs.core.test.js",
+    "tests/frontend/libs.oracle.test.js",
+    "tests/frontend/libs.index.test.js",
+];
+
 /** @type {MutationTarget[]} */
 export const DEFAULT_FRONTEND_TARGETS = [
     {
@@ -25,6 +31,22 @@ export const DEFAULT_FRONTEND_TARGETS = [
     {
         source: "meshchatx/src/frontend/js/reticulumPathfinding.js",
         tests: ["tests/frontend/reticulumPathfinding.test.js"],
+    },
+    {
+        source: "meshchatx/src/frontend/libs/emitter.js",
+        tests: LIBS_TESTS,
+    },
+    {
+        source: "meshchatx/src/frontend/libs/uuid.js",
+        tests: LIBS_TESTS,
+    },
+    {
+        source: "meshchatx/src/frontend/libs/datetime.js",
+        tests: LIBS_TESTS,
+    },
+    {
+        source: "meshchatx/src/frontend/libs/clickOutside.js",
+        tests: LIBS_TESTS,
     },
 ];
 
