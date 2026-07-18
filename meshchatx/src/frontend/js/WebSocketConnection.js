@@ -1,4 +1,4 @@
-import mitt from "mitt";
+import { createEmitter } from "../libs/emitter.js";
 import { reconnectDelayWithJitterMs } from "./wsConnectionSupport";
 
 const PING_INTERVAL_MS = 25000;
@@ -9,7 +9,7 @@ const JITTER_MAX_MS = 400;
 
 class WebSocketConnection {
     constructor() {
-        this.emitter = mitt();
+        this.emitter = createEmitter();
         this.ws = null;
         this._heartbeatInterval = null;
         this._pongTimeout = null;

@@ -11,11 +11,8 @@ const vendorChunkGroups = [
     { test: /[/\\]node_modules[/\\](vis-network|vis-data)/, name: "vendor-vis", priority: 95 },
     { test: /[/\\]node_modules[/\\]vue-router/, name: "vendor-vue-router", priority: 90 },
     { test: /[/\\]node_modules[/\\](protobufjs|@protobufjs)/, name: "vendor-protobuf", priority: 85 },
-    { test: /[/\\]node_modules[/\\]dayjs/, name: "vendor-dayjs", priority: 80 },
     { test: /[/\\]node_modules[/\\]@mdi(?:\/|\\)js/, name: "vendor-mdi", priority: 75 },
     { test: /[/\\]node_modules[/\\]compressorjs/, name: "vendor-compressor", priority: 70 },
-    { test: /[/\\]node_modules[/\\]click-outside-vue3/, name: "vendor-click-outside", priority: 65 },
-    { test: /[/\\]node_modules[/\\]mitt/, name: "vendor-mitt", priority: 60 },
     { test: /[/\\]node_modules[/\\]micron-parser/, name: "vendor-micron", priority: 55 },
     { test: /MicronParser\.js/, name: "vendor-micron", priority: 55 },
     { test: /[/\\]node_modules[/\\]electron-prompt/, name: "vendor-electron-prompt", priority: 50 },
@@ -271,7 +268,7 @@ export default defineConfig({
     },
 
     optimizeDeps: {
-        include: ["dayjs", "vue", "emoji-picker-element"],
+        include: ["vue", "emoji-picker-element"],
     },
 
     resolve: {

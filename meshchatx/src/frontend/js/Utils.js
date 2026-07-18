@@ -1,4 +1,4 @@
-import dayjs from "dayjs";
+import { formatDate } from "../libs/datetime.js";
 
 class Utils {
     static formatDestinationHash(destinationHashHex) {
@@ -98,7 +98,7 @@ class Utils {
 
         // If older than 24 hours, show full date
         if (diffSec > 86400) {
-            return dayjs(date).format("MMM D, h:mm A");
+            return formatDate(date, "MMM D, h:mm A");
         }
 
         return this.formatSeconds(diffSec);
@@ -127,7 +127,7 @@ class Utils {
         }
 
         if (diffSec > 86400) {
-            return dayjs(date).format("MMM D, h:mm A");
+            return formatDate(date, "MMM D, h:mm A");
         }
 
         return this.formatSecondsWithoutAgo(diffSec);
@@ -154,7 +154,7 @@ class Utils {
     }
 
     static convertUnixMillisToLocalDateTimeString(unixTimestampInMilliseconds) {
-        return dayjs(unixTimestampInMilliseconds).format("YYYY-MM-DD hh:mm A");
+        return formatDate(unixTimestampInMilliseconds, "YYYY-MM-DD hh:mm A");
     }
 
     static convertDateTimeToLocalDateTimeString(dateTime) {

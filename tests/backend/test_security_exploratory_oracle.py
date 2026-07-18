@@ -47,7 +47,9 @@ class _Sink:
         st.none(),
         st.integers(min_value=-10_000, max_value=10_000),
         st.text(max_size=40),
-        st.sampled_from(["", "15", "0", "-1", "999999", "1.5", "nan", "0x10", "timeout"]),
+        st.sampled_from(
+            ["", "15", "0", "-1", "999999", "1.5", "nan", "0x10", "timeout"]
+        ),
     ),
 )
 def test_oracle_call_timeout_always_in_bounds(raw):
@@ -139,7 +141,9 @@ def _try_b64(raw):
         st.booleans(),
         st.lists(st.text(max_size=8), max_size=3),
         st.text(max_size=40),
-        st.sampled_from(["png", "PNG", "image/jpeg", "svg", "svg+xml", "webm", "", " "]),
+        st.sampled_from(
+            ["png", "PNG", "image/jpeg", "svg", "svg+xml", "webm", "", " "]
+        ),
     ),
 )
 def test_oracle_image_type_always_allowlisted(image_type):

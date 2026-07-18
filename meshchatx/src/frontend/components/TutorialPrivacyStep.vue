@@ -49,9 +49,7 @@
                 />
                 <span class="setting-toggle__label">
                     <span class="setting-toggle__title">{{ $t("settings.android_block_screenshots") }}</span>
-                    <span class="setting-toggle__description">{{
-                        $t("settings.android_block_screenshots_desc")
-                    }}</span>
+                    <span class="setting-toggle__description">{{ $t("settings.android_block_screenshots_desc") }}</span>
                 </span>
             </label>
 

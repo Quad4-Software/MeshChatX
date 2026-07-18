@@ -144,7 +144,7 @@ import {
     clampBatteryPercent,
     interpolateBatteryByTime,
 } from "../../../js/telemetryBatteryChartSpec.js";
-import dayjs from "dayjs";
+import { formatDate } from "../../../libs/datetime.js";
 
 export default {
     name: "TelemetryBatteryChart",
@@ -178,11 +178,11 @@ export default {
         },
         startLabel() {
             if (!this.samples.length) return "";
-            return dayjs(this.samples[0].x * 1000).format("MMM D, HH:mm");
+            return formatDate(this.samples[0].x * 1000, "MMM D, HH:mm");
         },
         endLabel() {
             if (!this.samples.length) return "";
-            return dayjs(this.samples[this.samples.length - 1].x * 1000).format("MMM D, HH:mm");
+            return formatDate(this.samples[this.samples.length - 1].x * 1000, "MMM D, HH:mm");
         },
         hoverTipStyle() {
             if (!this.hover) return {};
@@ -226,7 +226,7 @@ export default {
                 gx,
                 gy,
                 pct: Math.round(y),
-                timeLabel: dayjs(ts * 1000).format("MMM D, HH:mm"),
+                timeLabel: formatDate(ts * 1000, "MMM D, HH:mm"),
                 tipLeft,
                 tipTop,
             };

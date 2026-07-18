@@ -20,9 +20,7 @@ function normalizeDesktopPrivacySettings(raw) {
     }
     return {
         screenSecurityEnabled:
-            typeof raw.screenSecurityEnabled === "boolean"
-                ? raw.screenSecurityEnabled
-                : defaults.screenSecurityEnabled,
+            typeof raw.screenSecurityEnabled === "boolean" ? raw.screenSecurityEnabled : defaults.screenSecurityEnabled,
     };
 }
 

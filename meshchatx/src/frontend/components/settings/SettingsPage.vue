@@ -2819,7 +2819,9 @@
                                     v-if="showWindowsScreenSecurity"
                                     class="p-4 rounded-2xl border border-amber-200 dark:border-amber-900/40 bg-amber-50/80 dark:bg-amber-950/30 space-y-3"
                                 >
-                                    <div class="text-xs font-semibold uppercase tracking-wider text-amber-800 dark:text-amber-200">
+                                    <div
+                                        class="text-xs font-semibold uppercase tracking-wider text-amber-800 dark:text-amber-200"
+                                    >
                                         {{ $t("app.screen_security_drm_eyebrow") }}
                                     </div>
                                     <label class="setting-toggle">
