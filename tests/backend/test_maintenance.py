@@ -17,10 +17,11 @@ class TestMaintenance(unittest.TestCase):
 
     def test_delete_all_lxmf_messages(self):
         self.messages_dao.delete_all_lxmf_messages()
-        self.assertEqual(self.provider.execute.call_count, 2)
+        self.assertEqual(self.provider.execute.call_count, 3)
         calls = self.provider.execute.call_args_list
         self.assertIn("DELETE FROM lxmf_messages", calls[0][0][0])
         self.assertIn("DELETE FROM lxmf_conversation_read_state", calls[1][0][0])
+        self.assertIn("DELETE FROM lxmf_conversation_summaries", calls[2][0][0])
 
     def test_delete_all_announces(self):
         # Test without aspect
@@ -64,9 +65,13 @@ class TestMaintenance(unittest.TestCase):
         }
         self.messages_dao.upsert_lxmf_message(msg_data)
         self.provider.execute.assert_called()
-        args, _ = self.provider.execute.call_args
-        self.assertIn("INSERT INTO lxmf_messages", args[0])
-        self.assertIn("ON CONFLICT(hash) DO UPDATE SET", args[0])
+        message_inserts = [
+            call[0][0]
+            for call in self.provider.execute.call_args_list
+            if "INSERT INTO lxmf_messages" in call[0][0]
+        ]
+        self.assertEqual(len(message_inserts), 1)
+        self.assertIn("ON CONFLICT(hash) DO UPDATE SET", message_inserts[0])
 
 
 if __name__ == "__main__":

@@ -405,6 +405,8 @@ class IdentityContext:
         # Only initialize telephone hardware/profile if not in emergency mode
         if not getattr(self.app, "emergency", False):
             self.telephone_manager.init_telephone()
+            with contextlib.suppress(Exception):
+                self.app.sync_telephone_call_policy(context=self)
 
         self.voicemail_manager = VoicemailManager(
             db=self.database,

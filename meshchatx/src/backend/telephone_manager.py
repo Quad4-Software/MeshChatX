@@ -90,6 +90,8 @@ class TelephoneManager:
         self._status_poll_interval_s = 0.1
         self.is_voicemail_session_active = False
         self.preferred_profile_id = None
+        self._caller_allowed = None
+        self._blocked_identity_hashes = None
 
     @property
     def is_recording(self):
@@ -166,7 +168,10 @@ class TelephoneManager:
         if self.config_manager and not self.config_manager.telephone_enabled.get():
             return
 
-        self.telephone = Telephone(self.identity)
+        # Never enable LXST auto_answer. MeshChatX answers only via explicit
+        # user action or the separate voicemail timer after RINGING.
+        self.telephone = Telephone(self.identity, auto_answer=None)
+        self.telephone.auto_answer = None
         # Disable busy tone played on caller side when remote side rejects, or doesn't answer
         self.telephone.set_busy_tone_time(0)
         # Increase connection timeout for slower networks
@@ -176,9 +181,70 @@ class TelephoneManager:
         # preferred profile and pass it into telephone.call() on outbound dial.
         self.preferred_profile_id = self.resolve_audio_profile_id()
 
+        self._install_link_table_cleanup()
+        self.refresh_call_policy()
+
         self.telephone.set_ringing_callback(self.on_telephone_ringing)
         self.telephone.set_established_callback(self.on_telephone_call_established)
         self.telephone.set_ended_callback(self.on_telephone_call_ended)
+
+    def set_call_policy(self, allowed_fn=None, blocked_identity_hashes=None):
+        """Install LXST-level allow/block checks used before RINGING.
+
+        allowed_fn receives the caller identity hash as bytes and must return bool.
+        blocked_identity_hashes is an optional iterable of identity hash bytes.
+        """
+        self._caller_allowed = allowed_fn
+        if blocked_identity_hashes is None:
+            self._blocked_identity_hashes = None
+        else:
+            self._blocked_identity_hashes = [
+                bytes(h) for h in blocked_identity_hashes if h is not None
+            ]
+        self.refresh_call_policy()
+
+    def refresh_call_policy(self):
+        """Push current policy into the live Telephone instance."""
+        if self.telephone is None:
+            return
+
+        self.telephone.auto_answer = None
+
+        if self._blocked_identity_hashes is not None:
+            self.telephone.set_blocked(list(self._blocked_identity_hashes))
+        else:
+            self.telephone.set_blocked(None)
+
+        if callable(self._caller_allowed):
+            self.telephone.set_allowed(self._caller_allowed)
+        else:
+            # Fail closed until MeshChatX installs sync_telephone_call_policy.
+            self.telephone.set_allowed(Telephone.ALLOW_NONE)
+
+    def _install_link_table_cleanup(self):
+        """Ensure closed inbound links are removed from Telephone.links.
+
+        Older LXST builds never popped self.links on close. Patch the bound
+        handler so MeshChatX stays safe even before the LXST bump is installed.
+        """
+        phone = self.telephone
+        if phone is None:
+            return
+        previous = getattr(phone, "_Telephone__link_closed", None)
+        if previous is None or getattr(previous, "_meshchatx_link_cleanup", False) is True:
+            return
+
+        def _link_closed(link, previous=previous, phone=phone):
+            try:
+                previous(link)
+            finally:
+                link_id = getattr(link, "link_id", None)
+                if link_id is not None:
+                    with contextlib.suppress(Exception):
+                        phone.links.pop(link_id, None)
+
+        _link_closed._meshchatx_link_cleanup = True
+        phone._Telephone__link_closed = _link_closed
 
     def teardown(self):
         if self.telephone is not None:
