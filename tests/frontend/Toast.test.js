@@ -120,8 +120,16 @@ describe("Toast.vue", () => {
         const container = wrapper.find("[class*='fixed']");
         expect(container.exists()).toBe(true);
         const cls = container.classes().join(" ");
-        expect(cls).toContain("max-sm:bottom-");
-        expect(cls).not.toContain("max-sm:bottom-[calc(5.75rem");
+        expect(cls).toContain("max-sm:bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px))]");
+        expect(cls).not.toContain("max-sm:bottom-[calc(1rem+env(safe-area-inset-bottom,0px))]");
+    });
+
+    it("close control has a 44px touch target", async () => {
+        GlobalEmitter.emit("toast", { message: "Hi", duration: 0 });
+        await wrapper.vm.$nextTick();
+        const closeButton = wrapper.find("button");
+        expect(closeButton.classes().join(" ")).toContain("min-h-[44px]");
+        expect(closeButton.classes().join(" ")).toContain("min-w-[44px]");
     });
 
     it("dismisses toast on horizontal swipe past threshold", async () => {

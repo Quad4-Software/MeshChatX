@@ -118,7 +118,8 @@
                 />
                 <button
                     v-if="tabs.length > 1"
-                    class="ml-2 opacity-0 group-hover:opacity-100 hover:text-red-500 transition-opacity"
+                    type="button"
+                    class="ml-1 inline-flex min-h-[28px] min-w-[28px] items-center justify-center opacity-100 lg:opacity-0 lg:group-hover:opacity-100 hover:text-red-500 transition-opacity"
                     @click.stop="removeTab(index)"
                 >
                     <MaterialDesignIcon icon-name="close" class="size-3" />
@@ -224,7 +225,7 @@ export default {
     },
     methods: {
         handleResize() {
-            this.isMobileView = window.innerWidth < 1024;
+            this.isMobileView = window.innerWidth < 768;
             if (!this.isMobileView) {
                 this.showEditor = true;
             }

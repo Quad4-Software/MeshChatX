@@ -10666,11 +10666,11 @@ class ReticulumMeshChat:
 
             # get path params
             identity_hash_hex = request.match_info.get("identity_hash", "")
-            try:
-                timeout_seconds = int(request.query.get("timeout", 15))
-            except (TypeError, ValueError):
-                timeout_seconds = 15
-            timeout_seconds = max(1, min(timeout_seconds, 120))
+            from meshchatx.src.backend.call_timeout import clamp_call_timeout_seconds
+
+            timeout_seconds = clamp_call_timeout_seconds(
+                request.query.get("timeout", 15),
+            )
 
             try:
                 # convert hash to bytes

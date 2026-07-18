@@ -507,8 +507,7 @@
                     <Teleport to="body">
                         <div
                             v-if="multilineHintVisible"
-                            class="multiline-hint pointer-events-none fixed bottom-3 right-3 px-2 py-1 rounded text-xs bg-amber-300 text-zinc-900 shadow"
-                            style="z-index: 9999"
+                            class="multiline-hint pointer-events-none fixed z-200 bottom-[max(0.75rem,env(safe-area-inset-bottom))] right-[max(0.75rem,env(safe-area-inset-right))] px-2 py-1 rounded text-xs bg-amber-300 text-zinc-900 shadow"
                         >
                             {{ $t("nomadnet.multiline_hint") }}
                         </div>

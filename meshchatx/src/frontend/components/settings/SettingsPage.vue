@@ -5,7 +5,9 @@
         v-if="config"
         class="flex flex-col flex-1 overflow-hidden min-w-0 bg-linear-to-br from-slate-50 via-slate-100 to-white dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-900"
     >
-        <div class="flex-1 overflow-y-auto overflow-x-hidden w-full min-w-0 px-3 sm:px-5 md:px-5 lg:px-8 py-4 sm:py-6">
+        <div
+            class="flex-1 overflow-y-auto overflow-x-hidden w-full min-w-0 px-3 sm:px-5 md:px-5 lg:px-8 py-4 sm:py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+        >
             <div class="space-y-0 w-full max-w-6xl xl:max-w-7xl 2xl:max-w-360 mx-auto min-w-0">
                 <div class="settings-section settings-section--hero">
                     <div class="flex flex-col lg:flex-row lg:items-center gap-4">
