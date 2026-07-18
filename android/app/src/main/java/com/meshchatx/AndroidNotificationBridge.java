@@ -21,18 +21,78 @@ public final class AndroidNotificationBridge {
     public static final String ACTION_CALL_DECLINE = "com.meshchatx.action.CALL_DECLINE";
     public static final String ACTION_CALL_OPEN = "com.meshchatx.action.CALL_OPEN";
 
+    /** Values stored for {@link #offerTrustedCallAction(String)} / {@link #takeTrustedCallAction()}. */
+    public static final String TRUSTED_CALL_ACTION_ANSWER = "answer";
+    public static final String TRUSTED_CALL_ACTION_DECLINE = "decline";
+    public static final String TRUSTED_CALL_ACTION_OPEN = "open";
+
     private static final int REQ_CALL_OPEN = 0x4c31;
     private static final int REQ_CALL_FULL = 0x4c32;
     private static final int REQ_CALL_ANSWER = 0x4c33;
     private static final int REQ_CALL_DECLINE = 0x4c34;
 
     private static final Object CONTEXT_LOCK = new Object();
+    private static final Object TRUSTED_CALL_LOCK = new Object();
     private static volatile boolean doNotDisturbEnabled = false;
     private static volatile String openConversationHashesCsv = "";
+    private static volatile String pendingTrustedCallAction = null;
     private static final java.util.Set<Integer> postedMessageNotificationIds =
         java.util.Collections.synchronizedSet(new java.util.HashSet<>());
 
     private AndroidNotificationBridge() {
+    }
+
+    /**
+     * Map a notification intent action to a trusted call-control token, or null if unknown.
+     */
+    @Nullable
+    public static String mapCallNotificationAction(@Nullable String action) {
+        if (ACTION_CALL_ANSWER.equals(action)) {
+            return TRUSTED_CALL_ACTION_ANSWER;
+        }
+        if (ACTION_CALL_DECLINE.equals(action)) {
+            return TRUSTED_CALL_ACTION_DECLINE;
+        }
+        if (ACTION_CALL_OPEN.equals(action)) {
+            return TRUSTED_CALL_ACTION_OPEN;
+        }
+        return null;
+    }
+
+    /**
+     * Queue a call action produced only by the non-exported notification trampoline.
+     */
+    public static void offerTrustedCallAction(@Nullable String action) {
+        if (action == null) {
+            return;
+        }
+        if (!TRUSTED_CALL_ACTION_ANSWER.equals(action)
+            && !TRUSTED_CALL_ACTION_DECLINE.equals(action)
+            && !TRUSTED_CALL_ACTION_OPEN.equals(action)) {
+            return;
+        }
+        synchronized (TRUSTED_CALL_LOCK) {
+            pendingTrustedCallAction = action;
+        }
+    }
+
+    /**
+     * Consume the queued trusted call action (one-shot).
+     */
+    @Nullable
+    public static String takeTrustedCallAction() {
+        synchronized (TRUSTED_CALL_LOCK) {
+            String action = pendingTrustedCallAction;
+            pendingTrustedCallAction = null;
+            return action;
+        }
+    }
+
+    /** Test helper: clear any queued trusted action. */
+    public static void clearTrustedCallActionForTests() {
+        synchronized (TRUSTED_CALL_LOCK) {
+            pendingTrustedCallAction = null;
+        }
     }
 
     public static void setDoNotDisturbEnabled(boolean enabled) {
@@ -194,10 +254,21 @@ public final class AndroidNotificationBridge {
     }
 
     private static Intent callIntent(Context ctx, String action) {
-        Intent i = new Intent(ctx, MainActivity.class);
+        // Answer/decline must hit the non-exported trampoline. Content open may
+        // use MainActivity (UI only), but still prefer the trampoline so one path
+        // owns notification call intents.
+        Intent i = new Intent(ctx, CallNotificationTrampolineActivity.class);
         i.setAction(action);
-        i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         return i;
+    }
+
+    private static PendingIntent callPendingIntent(Context ctx, int requestCode, String action) {
+        return PendingIntent.getActivity(
+            ctx,
+            requestCode,
+            callIntent(ctx, action),
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
     }
 
     private static void postIncomingCall(Context ctx, String callerName, @Nullable String dedupeHex) {
@@ -206,30 +277,10 @@ public final class AndroidNotificationBridge {
             return;
         }
 
-        PendingIntent open = PendingIntent.getActivity(
-            ctx,
-            REQ_CALL_OPEN,
-            callIntent(ctx, ACTION_CALL_OPEN),
-            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-        );
-        PendingIntent full = PendingIntent.getActivity(
-            ctx,
-            REQ_CALL_FULL,
-            callIntent(ctx, ACTION_CALL_OPEN),
-            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-        );
-        PendingIntent answer = PendingIntent.getActivity(
-            ctx,
-            REQ_CALL_ANSWER,
-            callIntent(ctx, ACTION_CALL_ANSWER),
-            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-        );
-        PendingIntent decline = PendingIntent.getActivity(
-            ctx,
-            REQ_CALL_DECLINE,
-            callIntent(ctx, ACTION_CALL_DECLINE),
-            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-        );
+        PendingIntent open = callPendingIntent(ctx, REQ_CALL_OPEN, ACTION_CALL_OPEN);
+        PendingIntent full = callPendingIntent(ctx, REQ_CALL_FULL, ACTION_CALL_OPEN);
+        PendingIntent answer = callPendingIntent(ctx, REQ_CALL_ANSWER, ACTION_CALL_ANSWER);
+        PendingIntent decline = callPendingIntent(ctx, REQ_CALL_DECLINE, ACTION_CALL_DECLINE);
 
         Person person = new Person.Builder().setName(callerName).setImportant(true).build();
         String incomingLabel = ctx.getString(R.string.notification_incoming_call_label, callerName);
@@ -297,9 +348,8 @@ public final class AndroidNotificationBridge {
             return;
         }
 
-        Intent open = new Intent(ctx, MainActivity.class);
+        Intent open = new Intent(ctx, CallNotificationTrampolineActivity.class);
         open.setAction(ACTION_CALL_OPEN);
-        open.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pi = PendingIntent.getActivity(
             ctx,
             REQ_CALL_OPEN,

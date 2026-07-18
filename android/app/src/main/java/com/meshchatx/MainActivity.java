@@ -767,16 +767,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void consumeCallIntentForPending(Intent intent) {
-        if (intent == null) {
-            return;
-        }
-        String a = intent.getAction();
-        if (AndroidNotificationBridge.ACTION_CALL_ANSWER.equals(a)) {
-            pendingCallNotificationAction = "answer";
-        } else if (AndroidNotificationBridge.ACTION_CALL_DECLINE.equals(a)) {
-            pendingCallNotificationAction = "decline";
-        } else if (AndroidNotificationBridge.ACTION_CALL_OPEN.equals(a)) {
-            pendingCallNotificationAction = "open";
+        // Answer / decline / open are queued only by CallNotificationTrampolineActivity
+        // (exported=false). Ignore CALL_ANSWER / CALL_DECLINE on this exported activity.
+        String trusted = AndroidNotificationBridge.takeTrustedCallAction();
+        if (trusted != null) {
+            pendingCallNotificationAction = trusted;
         }
     }
 

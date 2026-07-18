@@ -286,7 +286,7 @@ export function prepareVisualiserIconPixels(data, mode = "opaque") {
                 data[i + 3] = alpha;
                 if (alpha >= 24) glyphPixels += 1;
             }
-        } else if (a === 0 && (r | g | b)) {
+        } else if (a === 0 && (r !== 0 || g !== 0 || b !== 0)) {
             // Some RGB PNGs store color with a=0. Promote those only.
             // Never crush existing soft alpha (RNS logo fringe looked jagged).
             data[i + 3] = 255;
