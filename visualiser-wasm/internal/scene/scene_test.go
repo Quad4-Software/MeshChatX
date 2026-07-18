@@ -2,7 +2,10 @@
 
 package scene
 
-import "testing"
+import (
+	"math"
+	"testing"
+)
 
 func TestSetPackAndPick(t *testing.T) {
 	s := New()
@@ -97,5 +100,37 @@ func TestTickMovesUnfixed(t *testing.T) {
 		// Spring may still be near start after few steps; allow tiny motion miss
 		// but Tick must at least run without panic and keep me fixed.
 		_ = before
+	}
+}
+
+func TestTickPersistsVelocityAndSettles(t *testing.T) {
+	s := New()
+	s.Set(SetRequest{
+		Nodes: []Node{
+			{ID: "me", X: 0, Y: 0, Kind: KindMe, Fixed: true, Mass: 4},
+			// Start near spring rest length so live ticks should calm quickly.
+			{ID: "a", X: 170, Y: 0, Kind: KindPeer, Mass: 1},
+			{ID: "b", X: -170, Y: 0, Kind: KindPeer, Mass: 1},
+		},
+		Edges: []Edge{
+			{From: "me", To: "a", Width: 3},
+			{From: "me", To: "b", Width: 3},
+		},
+	})
+	for i := 0; i < 30; i++ {
+		s.Tick(1)
+	}
+	x1 := s.nodes[1].X
+	y1 := s.nodes[1].Y
+	for i := 0; i < 30; i++ {
+		s.Tick(1)
+	}
+	step := math.Hypot(s.nodes[1].X-x1, s.nodes[1].Y-y1)
+	// Near-equilibrium live layout must not keep thrashing.
+	if step > 12 {
+		t.Fatalf("live layout still twitching after settle: moved %v", step)
+	}
+	if math.Hypot(s.vx[1], s.vy[1]) > 1.2 {
+		t.Fatalf("velocity should damp toward rest, got %v %v", s.vx[1], s.vy[1])
 	}
 }

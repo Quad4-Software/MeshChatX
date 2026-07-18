@@ -14,6 +14,8 @@ type Node struct {
 	ID    string  `json:"id"`
 	X     float64 `json:"x"`
 	Y     float64 `json:"y"`
+	Vx    float64 `json:"vx"`
+	Vy    float64 `json:"vy"`
 	Mass  float64 `json:"mass"`
 	Fixed bool    `json:"fixed"`
 }
@@ -75,23 +77,24 @@ func Settle(req Request) Result {
 
 	gravity := req.Gravity
 	if gravity == 0 {
-		gravity = 0.012
+		gravity = 0.01
 	}
 	repulsion := req.Repulsion
 	if repulsion == 0 {
-		repulsion = 1800
+		repulsion = 1200
 	}
 	springK := req.SpringK
 	if springK == 0 {
-		springK = 0.045
+		springK = 0.032
 	}
 	damping := req.Damping
 	if damping == 0 {
-		damping = 0.82
+		// Multiply kept velocity each step. Lower = more friction, less twitch.
+		damping = 0.68
 	}
 	maxSpeed := req.MaxSpeed
 	if maxSpeed == 0 {
-		maxSpeed = 40
+		maxSpeed = 18
 	}
 
 	bodies := make([]body, n)
@@ -106,6 +109,8 @@ func Settle(req Request) Result {
 			id:    nd.ID,
 			x:     nd.X,
 			y:     nd.Y,
+			vx:    nd.Vx,
+			vy:    nd.Vy,
 			mass:  mass,
 			fixed: nd.Fixed || nd.ID == "me",
 		}
@@ -228,6 +233,14 @@ func Settle(req Request) Result {
 
 	for i := range bodies {
 		out.Positions[bodies[i].id] = XY{X: bodies[i].x, Y: bodies[i].y}
+		// Write velocities back onto the request nodes when ids match so
+		// live layout can carry momentum across Tick frames.
+		if idx, ok := index[bodies[i].id]; ok {
+			req.Nodes[idx].X = bodies[i].x
+			req.Nodes[idx].Y = bodies[i].y
+			req.Nodes[idx].Vx = bodies[i].vx
+			req.Nodes[idx].Vy = bodies[i].vy
+		}
 	}
 	out.Iterations = iters
 	return out

@@ -33,10 +33,24 @@ func TestSettleMovesUnfixedNodes(t *testing.T) {
 	}
 }
 
-func TestSettleEmpty(t *testing.T) {
-	res := layout.Settle(layout.Request{})
-	if len(res.Positions) != 0 {
-		t.Fatal("expected empty")
+func TestSettlePreservesAndUpdatesVelocity(t *testing.T) {
+	nodes := []layout.Node{
+		{ID: "me", X: 0, Y: 0, Mass: 4, Fixed: true},
+		{ID: "a", X: 20, Y: 0, Vx: 5, Vy: 0, Mass: 1},
+	}
+	res := layout.Settle(layout.Request{
+		Nodes:      nodes,
+		Edges:      []layout.Edge{{From: "me", To: "a", Length: 180}},
+		Iterations: 3,
+		Damping:    0.5,
+		MaxSpeed:   20,
+	})
+	if len(res.Positions) != 2 {
+		t.Fatalf("positions %d", len(res.Positions))
+	}
+	// Request nodes are updated in place so live Tick can carry momentum.
+	if nodes[1].Vx == 5 && nodes[1].X == 20 {
+		t.Fatalf("expected velocity/position to integrate, got vx=%v x=%v", nodes[1].Vx, nodes[1].X)
 	}
 }
 
