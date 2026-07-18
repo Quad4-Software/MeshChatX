@@ -150,6 +150,38 @@ def test_eect_rejects_decimal_hex_link_local_urls():
             "http://2852039166/",
             "http://0xa9fea9fe/",
             "http://169.254.169.254/",
+            "http://[::ffff:169.254.169.254]/",
+            "http://[::ffff:a9fe:a9fe]/",
+            "http://[fe80::1]/",
         ):
             with pytest.raises(UnsafeOutboundUrlError):
                 normalize_libretranslate_http_service_base(bad)
+
+
+def test_eect_plugin_paths_reject_escape_forms():
+    from meshchatx.src.backend.plugin_guard import (
+        PluginSecurityError,
+        _zip_entry_is_safe,
+        normalize_asset_path,
+    )
+
+    with eect_scenario("hostile.plugin.path_escape") as (_s, _seed, _rng):
+        for bad in ("../x", "/etc/passwd", "C:/Windows/x", "a/\x00/b"):
+            with pytest.raises(PluginSecurityError):
+                normalize_asset_path(bad)
+        assert _zip_entry_is_safe("ok.wasm") is True
+        assert _zip_entry_is_safe("C:/x") is False
+        assert _zip_entry_is_safe("../x") is False
+
+
+def test_eect_overlay_paths_reject_escape_forms():
+    from meshchatx.src.backend.map_overlay_sources import (
+        OverlaySourceParseError,
+        _safe_repo_relpath,
+    )
+
+    with eect_scenario("hostile.overlay.path_escape") as (_s, _seed, _rng):
+        assert _safe_repo_relpath("layers/a.geojson") == "layers/a.geojson"
+        for bad in ("../x", "/x", "C:/Windows/x", "a\x00b", "~/.ssh/id"):
+            with pytest.raises(OverlaySourceParseError):
+                _safe_repo_relpath(bad)

@@ -10,7 +10,7 @@ from meshchatx.src.backend import gif_utils
 class UserGifsDAO:
     """Per-identity library of user-uploaded GIFs.
 
-    Mirrors :class:`UserStickersDAO` but exposes a usage_count/last_used_at
+    Mirrors UserStickersDAO but exposes a usage_count/last_used_at
     pair so the picker can order entries by most-used and the user can quickly
     reuse their favorite GIFs across chats.
     """

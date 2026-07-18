@@ -118,7 +118,7 @@ def _extract(
     """Extract docs/ tree from archive into dest.
 
     Returns (extracted_count, skipped_binary_count). When include_pdf is
-    false, large alternate-format manuals listed in :data:`EXTRA_BINARY_SUFFIXES`
+    false, large alternate-format manuals listed in EXTRA_BINARY_SUFFIXES
     are skipped to keep shipped artifacts small.
     """
     extracted = 0

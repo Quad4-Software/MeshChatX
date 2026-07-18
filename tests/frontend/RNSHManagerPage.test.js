@@ -133,7 +133,7 @@ describe("RNSHManagerPage.vue", () => {
         expect(wrapper.vm.mobileSessionsOpen).toBe(false);
     });
 
-    it("creates a listen session with no_auth enabled by default", async () => {
+    it("creates a listen session with no_auth disabled by default", async () => {
         window.api.post.mockResolvedValueOnce({
             data: { session: makeSession({ id: "listen-1", mode: "listen", name: "Listener" }) },
         });
@@ -141,7 +141,7 @@ describe("RNSHManagerPage.vue", () => {
         const wrapper = mount(RNSHManagerPage, { global: mountToolsPageGlobals() });
         await vi.waitFor(() => expect(wrapper.vm.sessions.length).toBe(1));
 
-        expect(wrapper.vm.listenForm.no_auth).toBe(true);
+        expect(wrapper.vm.listenForm.no_auth).toBe(false);
         wrapper.vm.listenForm.name = "Listener";
         await wrapper.vm.createListenSession();
 
@@ -151,7 +151,7 @@ describe("RNSHManagerPage.vue", () => {
             allowed_hashes: [],
             default_command: undefined,
             config_path: undefined,
-            no_auth: true,
+            no_auth: false,
             autostart: true,
         });
     });

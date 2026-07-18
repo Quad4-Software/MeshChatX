@@ -331,7 +331,7 @@ export default {
                 allowed_hashes_text: "",
                 command: "",
                 config_path: "",
-                no_auth: true,
+                no_auth: false,
             },
             isNarrowScreen: false,
             mobileSessionsOpen: false,

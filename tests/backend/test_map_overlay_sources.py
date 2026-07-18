@@ -101,3 +101,18 @@ def test_parse_create_payload_rejects_bad_ref():
                 "paths": ["a.geojson"],
             },
         )
+
+
+def test_repo_relpath_rejects_drive_and_nul():
+    from meshchatx.src.backend.map_overlay_sources import _safe_repo_relpath
+
+    with pytest.raises(OverlaySourceParseError) as exc:
+        _safe_repo_relpath("C:/Windows/x")
+    assert exc.value.code == "invalid_path"
+    with pytest.raises(OverlaySourceParseError):
+        _safe_repo_relpath("a\x00b")
+
+
+def test_nomadnet_path_rejects_nul():
+    with pytest.raises(OverlaySourceParseError):
+        parse_nomadnet_file_url(f"{HASH}:/file/a\x00b.geojson")

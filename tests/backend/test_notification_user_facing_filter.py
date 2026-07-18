@@ -3,12 +3,12 @@
 """Notification bell must never raise on silent payloads.
 
 Covers:
-  - the pure helper :func:`is_user_facing_lxmf_payload`
+  - the pure helper is_user_facing_lxmf_payload
   - the conversation-row helper
-    :func:`compute_lxmf_conversation_unread_from_latest_row` with
+    compute_lxmf_conversation_unread_from_latest_row with
     require_user_facing=True
   - the DAO method
-    :func:`MessageDAO.get_latest_user_facing_incoming_message`
+    MessageDAO.get_latest_user_facing_incoming_message
   - end-to-end GET /api/v1/notifications integration: reactions,
     generic telemetry-only payloads, icon-only, empty pings and
     delivery-status updates must not produce false unread badges or empty

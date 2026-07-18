@@ -10,7 +10,7 @@ LXST.Sinks.OpusFileSink.
 Decoders, in priority order:
 
 1. wave (built-in) for RIFF/WAVE containers.
-2. `miniaudio <https://pypi.org/project/miniaudio/>`_ for WAV, MP3, FLAC
+2. miniaudio (https://pypi.org/project/miniaudio/) for WAV, MP3, FLAC
    and OGG/Vorbis. Bundled as a runtime dependency on every supported
    target (including Android via the Chaquopy recipe under
    android/chaquopy-recipes/miniaudio-1.70).

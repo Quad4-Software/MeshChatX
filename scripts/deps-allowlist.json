@@ -1,35 +1,35 @@
 {
-  "version": 1,
-  "git_dependencies": [
-    {
-      "name": "micron-parser",
-      "specifiers": [
-        "github:RFnexus/micron-parser-js",
-        "github:RFnexus/micron-parser-js#33feb1054c8b2cb3f5f05abbb8903360d3f0c098"
-      ],
-      "commit": "33feb1054c8b2cb3f5f05abbb8903360d3f0c098",
-      "repository": "https://github.com/RFnexus/micron-parser-js"
-    }
-  ],
-  "git_sources": [
-    {
-      "name": "zypak",
-      "url": "https://github.com/refi64/zypak",
-      "tag": "v2025.09",
-      "commit": "693a71c5ffa80ec9c9ce2ae03b1ccc493c698e53",
-      "declared_in": "package.json#build.flatpak.modules"
-    }
-  ],
-  "download_urls": [
-    {
-      "name": "micron-parser-go-wasm",
-      "pattern": "https://github.com/Quad4-Software/Micron-Parser-Go/releases/download/*/micron-parser-go.wasm",
-      "pinned_tag": "v1.0.5",
-      "tag_source": "scripts/micron-parser-go-version.mjs"
-    },
-    {
-      "name": "golang-wasm-exec",
-      "url": "https://raw.githubusercontent.com/golang/go/go1.26.2/lib/wasm/wasm_exec.js"
-    }
-  ]
+    "version": 1,
+    "git_dependencies": [
+        {
+            "name": "micron-parser",
+            "specifiers": [
+                "github:RFnexus/micron-parser-js",
+                "github:RFnexus/micron-parser-js#33feb1054c8b2cb3f5f05abbb8903360d3f0c098"
+            ],
+            "commit": "33feb1054c8b2cb3f5f05abbb8903360d3f0c098",
+            "repository": "https://github.com/RFnexus/micron-parser-js"
+        }
+    ],
+    "git_sources": [
+        {
+            "name": "zypak",
+            "url": "https://github.com/refi64/zypak",
+            "tag": "v2025.09",
+            "commit": "693a71c5ffa80ec9c9ce2ae03b1ccc493c698e53",
+            "declared_in": "package.json#build.flatpak.modules"
+        }
+    ],
+    "download_urls": [
+        {
+            "name": "micron-parser-go-wasm",
+            "pattern": "https://github.com/Quad4-Software/Micron-Parser-Go/releases/download/*/micron-parser-go.wasm",
+            "pinned_tag": "v1.0.5",
+            "tag_source": "scripts/micron-parser-go-version.mjs"
+        },
+        {
+            "name": "golang-wasm-exec",
+            "url": "https://raw.githubusercontent.com/golang/go/go1.26.2/lib/wasm/wasm_exec.js"
+        }
+    ]
 }

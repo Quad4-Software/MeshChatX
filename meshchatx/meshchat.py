@@ -223,6 +223,7 @@ from meshchatx.src.backend.sideband_commands import SidebandCommands
 from meshchatx.src.backend.sideband_plugin_loader import SidebandPluginLoader
 from meshchatx.src.backend.sticker_utils import (
     build_export_document,
+    detect_image_format_from_magic,
     mime_for_image_type,
     sanitize_sticker_emoji,
     sanitize_sticker_name,
@@ -238,6 +239,7 @@ from meshchatx.src.env_utils import env_bool
 from meshchatx.src.path_utils import (
     get_file_path,
     resolve_log_dir,
+    safe_path_under_dir,
 )
 from meshchatx.src.path_utils import (
     request_client_ip as _request_client_ip,
@@ -1929,7 +1931,7 @@ class ReticulumMeshChat:
 
     @staticmethod
     def _looks_like_meshchat_hot_reload_tail(pid: int, epoch: int) -> bool:
-        """Limit repairs to suffixes :meth:`reload_reticulum` actually writes.
+        """Limit repairs to suffixes reload_reticulum actually writes.
 
         Hot reload uses -reload-{os.getpid()}-{int(time.time())}. Names like
         my-net-reload-peer must not be truncated.
@@ -10440,7 +10442,7 @@ class ReticulumMeshChat:
             return web.json_response({"message": "ok"})
 
         # answer incoming telephone call
-        @routes.get("/api/v1/telephone/answer")
+        @routes.post("/api/v1/telephone/answer")
         async def telephone_answer(request):
             # get incoming caller identity
             active_call = self.telephone_manager.telephone.active_call
@@ -10467,7 +10469,7 @@ class ReticulumMeshChat:
             )
 
         # hangup active telephone call
-        @routes.get("/api/v1/telephone/hangup")
+        @routes.post("/api/v1/telephone/hangup")
         async def telephone_hangup(request):
             self.telephone_manager.request_hangup()
 
@@ -10478,7 +10480,7 @@ class ReticulumMeshChat:
             )
 
         # send active call to voicemail
-        @routes.get("/api/v1/telephone/send-to-voicemail")
+        @routes.post("/api/v1/telephone/send-to-voicemail")
         async def telephone_send_to_voicemail(request):
             active_call = self.telephone_manager.telephone.active_call
             if not active_call:
@@ -10501,23 +10503,23 @@ class ReticulumMeshChat:
             )
 
         # mute/unmute transmit
-        @routes.get("/api/v1/telephone/mute-transmit")
+        @routes.post("/api/v1/telephone/mute-transmit")
         async def telephone_mute_transmit(request):
             await asyncio.to_thread(self.telephone_manager.mute_transmit)
             return web.json_response({"message": "Microphone muted"})
 
-        @routes.get("/api/v1/telephone/unmute-transmit")
+        @routes.post("/api/v1/telephone/unmute-transmit")
         async def telephone_unmute_transmit(request):
             await asyncio.to_thread(self.telephone_manager.unmute_transmit)
             return web.json_response({"message": "Microphone unmuted"})
 
         # mute/unmute receive
-        @routes.get("/api/v1/telephone/mute-receive")
+        @routes.post("/api/v1/telephone/mute-receive")
         async def telephone_mute_receive(request):
             await asyncio.to_thread(self.telephone_manager.mute_receive)
             return web.json_response({"message": "Speaker muted"})
 
-        @routes.get("/api/v1/telephone/unmute-receive")
+        @routes.post("/api/v1/telephone/unmute-receive")
         async def telephone_unmute_receive(request):
             await asyncio.to_thread(self.telephone_manager.unmute_receive)
             return web.json_response({"message": "Speaker unmuted"})
@@ -10583,7 +10585,7 @@ class ReticulumMeshChat:
             return web.json_response({"message": "ok"})
 
         # switch audio profile
-        @routes.get("/api/v1/telephone/switch-audio-profile/{profile_id}")
+        @routes.post("/api/v1/telephone/switch-audio-profile/{profile_id}")
         async def telephone_switch_audio_profile(request):
             profile_id = request.match_info.get("profile_id")
             try:
@@ -10637,7 +10639,7 @@ class ReticulumMeshChat:
 
         # initiate a telephone call
         # initiate outgoing telephone call
-        @routes.get("/api/v1/telephone/call/{identity_hash}")
+        @routes.post("/api/v1/telephone/call/{identity_hash}")
         async def telephone_call(request):
             # make sure telephone enabled
             if self.telephone_manager.telephone is None:
@@ -10817,11 +10819,11 @@ class ReticulumMeshChat:
             voicemail_id = request.match_info.get("id")
             voicemail = self.database.voicemails.get_voicemail(voicemail_id)
             if voicemail:
-                filepath = os.path.join(
+                filepath = safe_path_under_dir(
                     self.voicemail_manager.recordings_dir,
                     voicemail["filename"],
                 )
-                if os.path.exists(filepath):
+                if filepath and os.path.exists(filepath):
                     os.remove(filepath)
                 self.database.voicemails.delete_voicemail(voicemail_id)
                 return web.json_response({"message": "Voicemail deleted"})
@@ -10864,11 +10866,11 @@ class ReticulumMeshChat:
 
             voicemail = self.database.voicemails.get_voicemail(voicemail_id)
             if voicemail:
-                filepath = os.path.join(
+                filepath = safe_path_under_dir(
                     self.voicemail_manager.recordings_dir,
                     voicemail["filename"],
                 )
-                if os.path.exists(filepath):
+                if filepath and os.path.exists(filepath):
                     # Browsers might need a proper content type for .opus files
                     return web.FileResponse(
                         filepath,
@@ -10932,11 +10934,11 @@ class ReticulumMeshChat:
                         status=404,
                     )
 
-                filepath = os.path.join(
+                filepath = safe_path_under_dir(
                     self.telephone_manager.recordings_dir,
                     filename,
                 )
-                if os.path.exists(filepath):
+                if filepath and os.path.exists(filepath):
                     return web.FileResponse(
                         filepath,
                         headers={"Content-Type": "audio/opus"},
@@ -10953,11 +10955,11 @@ class ReticulumMeshChat:
                 for side in ["rx", "tx"]:
                     filename = recording[f"filename_{side}"]
                     if filename:
-                        filepath = os.path.join(
+                        filepath = safe_path_under_dir(
                             self.telephone_manager.recordings_dir,
                             filename,
                         )
-                        if os.path.exists(filepath):
+                        if filepath and os.path.exists(filepath):
                             os.remove(filepath)
                 self.database.telephone.delete_call_recording(recording_id)
             return web.json_response({"message": "ok"})
@@ -11125,12 +11127,19 @@ class ReticulumMeshChat:
             filepath = self.ringtone_manager.get_ringtone_path(
                 ringtone["storage_filename"],
             )
-            if os.path.exists(filepath):
+            if filepath and os.path.exists(filepath):
                 if download:
+                    safe_name = os.path.basename(
+                        str(ringtone.get("filename") or "ringtone.opus"),
+                    )
+                    safe_name = (
+                        safe_name.replace('"', "").replace("\r", "").replace("\n", "")
+                        or "ringtone.opus"
+                    )
                     return web.FileResponse(
                         filepath,
                         headers={
-                            "Content-Disposition": f'attachment; filename="{ringtone["filename"]}"',
+                            "Content-Disposition": f'attachment; filename="{safe_name}"',
                         },
                     )
                 return web.FileResponse(filepath)
@@ -11298,14 +11307,19 @@ class ReticulumMeshChat:
             filepath = self.notification_sound_manager.get_ringtone_path(
                 sound["storage_filename"],
             )
-            if not os.path.exists(filepath):
+            if not filepath or not os.path.exists(filepath):
                 return web.Response(status=404)
 
+            safe_name = os.path.basename(str(sound.get("filename") or "sound.opus"))
+            safe_name = (
+                safe_name.replace('"', "").replace("\r", "").replace("\n", "")
+                or "sound.opus"
+            )
             return web.FileResponse(
                 filepath,
                 headers={
                     "Content-Type": "audio/ogg",
-                    "Content-Disposition": f'attachment; filename="{sound["filename"]}"',
+                    "Content-Disposition": f'attachment; filename="{safe_name}"',
                 },
             )
 
@@ -11701,7 +11715,7 @@ class ReticulumMeshChat:
                 blocked_identity_hashes = [b["destination_hash"] for b in blocked]
 
             if search_query:
-                # `limit` here is the caller's desired page size for the
+                # limit here is the caller's desired page size for the
                 # paginated, filtered results below, not the number of rows
                 # to scan for matches. Always scan up to search_max rows so
                 # matches outside the most-recent page are still found.
@@ -14671,8 +14685,14 @@ class ReticulumMeshChat:
 
             try:
                 if "image" in fields and isinstance(fields.get("image"), dict):
-                    image_type = fields["image"]["image_type"]
                     image_bytes = base64.b64decode(fields["image"]["image_bytes"])
+                    detected = detect_image_format_from_magic(image_bytes)
+                    if detected is None or detected in {"webm", "tgs"}:
+                        return web.json_response(
+                            {"message": "Invalid image attachment"},
+                            status=400,
+                        )
+                    image_type = "jpg" if detected == "jpeg" else detected
                     image_field = LxmfImageField(image_type, image_bytes)
 
                 if "audio" in fields and isinstance(fields.get("audio"), dict):
@@ -14966,12 +14986,14 @@ class ReticulumMeshChat:
                         status=400,
                     )
                 allowed_image_types = {"png", "jpeg", "jpg", "gif", "webp", "bmp"}
-                image_type = image_field.get("image_type") or "png"
-                if not isinstance(image_type, str):
-                    image_type = "png"
-                image_type = image_type.lower().replace("image/", "").strip() or "png"
-                if image_type not in allowed_image_types:
-                    image_type = "png"
+                detected = detect_image_format_from_magic(image_data)
+                if detected is None or detected not in allowed_image_types:
+                    return web.json_response(
+                        {"message": "Invalid image attachment"},
+                        status=400,
+                    )
+                # Serve Content-Type from magic bytes, not the peer-declared type.
+                image_type = "jpeg" if detected == "jpeg" else detected
                 return web.Response(body=image_data, content_type=f"image/{image_type}")
 
             # handle audio
@@ -19101,7 +19123,7 @@ class ReticulumMeshChat:
 
             combined_data = {}
             # parse data from page path
-            # example: hash:/page/index.mu`field1=123|field2=456
+            # example path then backtick then field1=123|field2=456
             page_data = None
             page_path_to_download = page_path
             if "`" in page_path:
@@ -19119,7 +19141,10 @@ class ReticulumMeshChat:
                 combined_data.update(field_data)
 
             # convert destination hash to bytes
-            destination_hash = bytes.fromhex(destination_hash)
+            try:
+                destination_hash = bytes.fromhex(destination_hash)
+            except (TypeError, ValueError):
+                return
 
             local_page = self._try_serve_local_page_node(
                 destination_hash,
@@ -20928,7 +20953,7 @@ class ReticulumMeshChat:
         """Encode a WAV/PCM payload into an OGG/Opus byte string.
 
         Thin compatibility wrapper around
-        :func:`meshchatx.src.backend.audio_codec.encode_audio_bytes_to_ogg_opus`
+        meshchatx.src.backend.audio_codec.encode_audio_bytes_to_ogg_opus
         kept for the existing test surface.
         """
         try:
@@ -20943,7 +20968,7 @@ class ReticulumMeshChat:
         """Convert browser-recorded audio into LXMF-compatible OGG/Opus.
 
         Routes everything through
-        :mod:`meshchatx.src.backend.audio_codec`, which decodes the input
+        meshchatx.src.backend.audio_codec, which decodes the input
         with miniaudio (WAV/MP3/FLAC/OGG-Vorbis) or LXST (OGG/Opus) and
         re-encodes it with LXST's voice-friendly Opus profile. If decoding
         fails the original bytes are returned unchanged so the caller can

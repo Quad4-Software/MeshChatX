@@ -53,6 +53,7 @@ function assertSafeHtmlOracle(html) {
     expect(lower).not.toMatch(/\bhref\s*=\s*["']?\s*vbscript\s*:/);
     expect(lower).not.toMatch(/position\s*:\s*fixed/);
     expect(lower).not.toMatch(/position\s*:\s*sticky/);
+    expect(lower).not.toMatch(/position\s*:\s*absolute/);
 }
 
 function randomStyleValue(len) {

@@ -41,7 +41,7 @@ def test_workflow_references_smoke_script():
     assert "MESHCHATX_ABIS" in workflow
     assert "x86_64" in workflow
     # Runner executes each script: line with /usr/bin/sh (dash). A bare
-    # `set -euo pipefail` there fails with "Illegal option -o pipefail".
+    # set -euo pipefail there fails with "Illegal option -o pipefail".
     smoke_step = workflow.split("name: Run emulator smoke", 1)[1]
     smoke_script = smoke_step.split("script:", 1)[1].split("\n", 1)[0]
     assert "bash scripts/ci/android-emulator-smoke.sh" in smoke_script

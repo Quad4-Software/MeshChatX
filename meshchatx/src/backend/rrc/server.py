@@ -2,9 +2,9 @@
 
 """Reticulum Relay Chat hub hosting.
 
-Provides :class:`RRCHubServer`, a self-contained RRC hub that listens on a
+Provides RRCHubServer, a self-contained RRC hub that listens on a
 Reticulum destination and relays messages between connected clients, and
-:class:`RRCServerManager`, which lets a node host several independent hubs and
+RRCServerManager, which lets a node host several independent hubs and
 manage their public rooms. The wire behaviour mirrors the reference rrcd hub so
 standard RRC clients (including the MeshChatX client) can connect.
 """
@@ -59,7 +59,7 @@ class _LoopbackEndpoint:
     Reticulum does not loop packets back to destinations hosted within the same
     instance, so connecting to a locally hosted hub goes through this direct
     bridge instead of the mesh. It exposes just enough of the
-    :class:`RNS.Link` surface for both sides to treat it like a link.
+    RNS.Link surface for both sides to treat it like a link.
     """
 
     def __init__(self, client_hub, server):

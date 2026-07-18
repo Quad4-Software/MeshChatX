@@ -107,6 +107,10 @@ def test_normalize_libretranslate_private_and_loopback_ips():
         "http://2852039166/",
         "http://0xa9fea9fe/",
         "http://0xA9FEA9FE:80/",
+        # IPv4-mapped IPv6 link-local / metadata forms.
+        "http://[::ffff:169.254.169.254]/",
+        "http://[::ffff:a9fe:a9fe]/",
+        "http://[fe80::1]/",
     ],
 )
 def test_normalize_libretranslate_rejects_ssrf_lit_ips(bad):

@@ -2,11 +2,11 @@
 
 """Regression test: announce search must scan beyond the requested page size.
 
-Previously the `/api/v1/announces` search path capped the number of rows
+Previously the /api/v1/announces search path capped the number of rows
 fetched from the database to the caller's requested page size (e.g. 50,
 used for pagination of already-filtered results) instead of the configured
 search scan limit. This meant a match that was not among the most
-recently-updated `limit` announces for the aspect would never be found by
+recently-updated limit announces for the aspect would never be found by
 search, even though it had briefly been visible client-side because it was
 already loaded from an earlier, non-search page.
 """
@@ -74,7 +74,7 @@ async def test_announce_search_finds_match_older_than_page_size(
 
     # Seed more announces than the page size, with the searched-for node
     # being the *oldest* by updated_at so it would be excluded if the
-    # search scan were (incorrectly) capped to `page_size` rows.
+    # search scan were (incorrectly) capped to page_size rows.
     total_announces = page_size + 10
     with db.provider:
         for i in range(total_announces):
@@ -98,8 +98,8 @@ async def test_announce_search_finds_match_older_than_page_size(
                 (f"2020-01-01T00:{i:02d}:00Z", dest_hash),
             )
 
-    # `RNS.Transport` is patched to a MagicMock by the fixture above, so
-    # give `hops_to` a JSON-serialisable return value.
+    # RNS.Transport is patched to a MagicMock by the fixture above, so
+    # give hops_to a JSON-serialisable return value.
     RNS.Transport.hops_to.return_value = 1
 
     request = MagicMock()

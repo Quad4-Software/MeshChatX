@@ -214,7 +214,7 @@ def download_bundled_wheels_to_directory(
     *,
     on_package: Callable[[int, int, str], None] | None = None,
 ) -> dict[str, Any]:
-    """Populate dest with wheels for :func:`bundled_pip_targets`.
+    """Populate dest with wheels for bundled_pip_targets.
 
     Uses PyPI project metadata JSON and HTTPS downloads via urllib only.
     """

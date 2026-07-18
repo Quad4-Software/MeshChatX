@@ -294,7 +294,7 @@ export default {
         },
         async dialContact(hash) {
             try {
-                await window.api.get(`/api/v1/telephone/call/${hash}`);
+                await window.api.post(`/api/v1/telephone/call/${hash}`);
                 if (this.$route.name !== "call") {
                     this.$router.push({ name: "call" });
                 }

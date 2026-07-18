@@ -127,7 +127,7 @@ describe("CallPage.vue", () => {
 
         // Should be muted immediately (optimistic)
         expect(wrapper.vm.activeCall.is_mic_muted).toBe(true);
-        expect(axiosMock.get).toHaveBeenCalledWith(expect.stringContaining("/api/v1/telephone/mute-transmit"));
+        expect(axiosMock.post).toHaveBeenCalledWith(expect.stringContaining("/api/v1/telephone/mute-transmit"));
     });
 
     it("renders tabs correctly", async () => {
@@ -207,8 +207,8 @@ describe("CallPage.vue", () => {
         const callButton = buttons.find((b) => b.text() === "Call");
         if (callButton) {
             await callButton.trigger("click");
-            // CallPage.vue uses window.api.get(`/api/v1/telephone/call/${hashToCall}`)
-            expect(axiosMock.get).toHaveBeenCalledWith(
+            // CallPage.vue uses window.api.post(`/api/v1/telephone/call/${hashToCall}`)
+            expect(axiosMock.post).toHaveBeenCalledWith(
                 expect.stringContaining("/api/v1/telephone/call/test-destination")
             );
         } else {
@@ -265,7 +265,7 @@ describe("CallPage.vue", () => {
         await wrapper.vm.$nextTick();
         const hash32 = "ab".repeat(16);
         await wrapper.vm.call(`Call me at ${hash32} please`);
-        expect(axiosMock.get).toHaveBeenCalledWith(`/api/v1/telephone/call/${hash32}`);
+        expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/telephone/call/${hash32}`);
     });
 
     it("addContactFromHistory prefers identity hash over destination hashes", async () => {

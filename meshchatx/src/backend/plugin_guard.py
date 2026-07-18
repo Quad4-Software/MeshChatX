@@ -19,12 +19,17 @@ class PluginSecurityError(ValueError):
 
 
 def normalize_asset_path(asset_name: str) -> str:
+    if not isinstance(asset_name, str) or "\x00" in asset_name:
+        raise PluginSecurityError("invalid asset path")
     normalized = os.path.normpath(asset_name).replace("\\", "/")
     if not normalized or normalized in {".", ".."}:
         raise PluginSecurityError("invalid asset path")
     if normalized.startswith("../") or normalized.startswith("/"):
         raise PluginSecurityError("invalid asset path")
     if "/../" in f"/{normalized}/":
+        raise PluginSecurityError("invalid asset path")
+    # Reject Windows drive-absolute forms (C:/...) that can escape on win32 joins.
+    if ":" in normalized:
         raise PluginSecurityError("invalid asset path")
     return normalized
 
@@ -45,10 +50,16 @@ def validate_invoke_payload(payload: bytes) -> None:
 
 
 def _zip_entry_is_safe(name: str) -> bool:
+    if not isinstance(name, str) or "\x00" in name:
+        return False
     normalized = os.path.normpath(name).replace("\\", "/")
     if normalized.startswith("../") or normalized.startswith("/"):
         return False
     if normalized in {"", ".", ".."}:
+        return False
+    if ":" in normalized:
+        return False
+    if "/../" in f"/{normalized}/":
         return False
     return True
 

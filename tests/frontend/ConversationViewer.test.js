@@ -1527,12 +1527,14 @@ describe("ConversationViewer.vue", () => {
             await wrapper.vm.$nextTick();
 
             const drafts = JSON.parse(draftStore["meshchat.drafts"] || "{}");
-            expect(drafts["a".repeat(32)]).toBe("draft for A");
+            expect(drafts["my-hash"]["a".repeat(32)]).toBe("draft for A");
         });
 
         it("loads the stored draft when opening a peer", async () => {
             draftStore["meshchat.drafts"] = JSON.stringify({
-                ["b".repeat(32)]: "remembered",
+                "my-hash": {
+                    ["b".repeat(32)]: "remembered",
+                },
             });
 
             const wrapper = mountConversationViewer({
@@ -1541,6 +1543,37 @@ describe("ConversationViewer.vue", () => {
             await wrapper.vm.$nextTick();
 
             expect(wrapper.vm.newMessageText).toBe("remembered");
+        });
+
+        it("loads legacy flat drafts and re-saves under the active identity", async () => {
+            draftStore["meshchat.drafts"] = JSON.stringify({
+                ["b".repeat(32)]: "legacy",
+            });
+
+            const wrapper = mountConversationViewer({
+                selectedPeer: { destination_hash: "b".repeat(32), display_name: "B" },
+            });
+            await wrapper.vm.$nextTick();
+            expect(wrapper.vm.newMessageText).toBe("legacy");
+
+            wrapper.vm.saveDraft("b".repeat(32));
+            const drafts = JSON.parse(draftStore["meshchat.drafts"] || "{}");
+            expect(drafts["my-hash"]["b".repeat(32)]).toBe("legacy");
+            expect(drafts["b".repeat(32)]).toBeUndefined();
+        });
+
+        it("keeps drafts isolated per local identity hash", async () => {
+            draftStore["meshchat.drafts"] = JSON.stringify({
+                "identity-a": { ["p".repeat(32)]: "from-a" },
+                "identity-b": { ["p".repeat(32)]: "from-b" },
+            });
+
+            const wrapper = mountConversationViewer({
+                selectedPeer: { destination_hash: "p".repeat(32), display_name: "P" },
+                config: { identity_hash: "identity-b" },
+            });
+            await wrapper.vm.$nextTick();
+            expect(wrapper.vm.newMessageText).toBe("from-b");
         });
 
         it("round-trips drafts for A then B then back to A", async () => {
@@ -1566,7 +1599,9 @@ describe("ConversationViewer.vue", () => {
 
         it("removes the draft key when saving an empty compose box for that peer", async () => {
             draftStore["meshchat.drafts"] = JSON.stringify({
-                ["a".repeat(32)]: "will clear",
+                "my-hash": {
+                    ["a".repeat(32)]: "will clear",
+                },
             });
 
             const wrapper = mountConversationViewer({
@@ -1578,7 +1613,7 @@ describe("ConversationViewer.vue", () => {
             wrapper.vm.saveDraft("a".repeat(32));
 
             const drafts = JSON.parse(draftStore["meshchat.drafts"] || "{}");
-            expect(drafts["a".repeat(32)]).toBeUndefined();
+            expect(drafts["my-hash"]["a".repeat(32)]).toBeUndefined();
         });
 
         it("persists the current compose text when the component unmounts", async () => {
@@ -1587,10 +1622,27 @@ describe("ConversationViewer.vue", () => {
             await wrapper.vm.$nextTick();
 
             wrapper.vm.newMessageText = "save on leave";
-            wrapper.unmount();
+            await wrapper.unmount();
 
             const drafts = JSON.parse(draftStore["meshchat.drafts"] || "{}");
-            expect(drafts["a".repeat(32)]).toBe("save on leave");
+            expect(drafts["my-hash"]["a".repeat(32)]).toBe("save on leave");
+        });
+
+        it("clears chat items and audio cache on identity-switched", async () => {
+            const wrapper = mountConversationViewer({
+                selectedPeer: { destination_hash: "a".repeat(32), display_name: "A" },
+            });
+            await wrapper.vm.$nextTick();
+            wrapper.vm.chatItems = [{ lxmf_message: { hash: "deadbeef" } }];
+            wrapper.vm.lxmfMessageAudioAttachmentCache = { x: "blob:fake" };
+            const clearSpy = vi.spyOn(wrapper.vm, "clearAudioAttachmentCache");
+            const loadSpy = vi.spyOn(wrapper.vm, "initialLoad").mockResolvedValue(undefined);
+
+            wrapper.vm.onIdentitySwitched();
+
+            expect(wrapper.vm.chatItems).toEqual([]);
+            expect(clearSpy).toHaveBeenCalled();
+            expect(loadSpy).toHaveBeenCalled();
         });
     });
 

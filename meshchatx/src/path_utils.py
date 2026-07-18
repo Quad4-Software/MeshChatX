@@ -9,6 +9,26 @@ import tempfile
 from aiohttp import web
 
 
+def safe_path_under_dir(directory: str, filename: str) -> str | None:
+    """Resolve filename as a basename under directory, or None if unsafe.
+
+    Rejects NUL, empty names, dot, dot-dot, and drive-letter basenames.
+    The result is realpath-checked so it cannot escape directory.
+    """
+    if not isinstance(directory, str) or not directory:
+        return None
+    if not isinstance(filename, str) or not filename or "\x00" in filename:
+        return None
+    base = os.path.basename(filename.replace("\\", "/"))
+    if not base or base in {".", ".."} or ":" in base:
+        return None
+    path = os.path.realpath(os.path.join(directory, base))
+    root = os.path.realpath(directory)
+    if path != root and not path.startswith(root + os.sep):
+        return None
+    return path
+
+
 def resolve_log_dir():
     """Choose a writable log directory across container, desktop, and Windows."""
     env_dir = os.environ.get("MESHCHAT_LOG_DIR")

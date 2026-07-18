@@ -4,10 +4,10 @@
 
 Leaving a connected RRC room must drop it from the known-rooms list.
 
-`RRCHub.ordered_known_rooms()` treats any room with an entry in
-`self.messages` as "known", even if it was never joined. `part_room()`
+RRCHub.ordered_known_rooms() treats any room with an entry in
+self.messages as "known", even if it was never joined. part_room()
 (used for a connected hub) previously only discarded the room from
-`self.rooms`, leaving its `messages` entry (and unread/member state)
+self.rooms, leaving its messages entry (and unread/member state)
 behind, so the room kept reappearing in the sidebar after leaving it.
 """
 

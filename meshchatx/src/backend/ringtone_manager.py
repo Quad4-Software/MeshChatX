@@ -45,10 +45,28 @@ class RingtoneManager:
         return filename
 
     def remove_ringtone(self, filename):
-        opus_path = os.path.join(self.storage_dir, filename)
+        safe = self._safe_storage_filename(filename)
+        if safe is None:
+            return False
+        opus_path = os.path.join(self.storage_dir, safe)
         if os.path.exists(opus_path):
             os.remove(opus_path)
         return True
 
     def get_ringtone_path(self, filename):
-        return os.path.join(self.storage_dir, filename)
+        safe = self._safe_storage_filename(filename)
+        if safe is None:
+            return None
+        path = os.path.realpath(os.path.join(self.storage_dir, safe))
+        root = os.path.realpath(self.storage_dir)
+        if path != root and not path.startswith(root + os.sep):
+            return None
+        return path
+
+    def _safe_storage_filename(self, filename):
+        if not isinstance(filename, str) or not filename or "\x00" in filename:
+            return None
+        base = os.path.basename(filename.replace("\\", "/"))
+        if not base or base in {".", ".."} or ":" in base:
+            return None
+        return base

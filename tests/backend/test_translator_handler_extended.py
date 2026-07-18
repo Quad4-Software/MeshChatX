@@ -255,7 +255,7 @@ def test_get_translator_languages_response_explicit_bad_override_raises():
         translator_libretranslate_enabled=True,
     )
     handler.has_requests = True
-    with pytest.raises(ValueError, match="IPv4 link-local"):
+    with pytest.raises(ValueError, match="link-local"):
         handler.get_translator_languages_response(
             libretranslate_url="http://169.254.169.254:5000",
         )

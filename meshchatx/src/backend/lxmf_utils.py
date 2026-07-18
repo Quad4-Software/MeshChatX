@@ -146,7 +146,7 @@ def is_user_facing_lxmf_payload(fields, content, title) -> bool:
     treated as user-facing so the bell and previews stay informative.
 
     The helper is intentionally tolerant: fields may be the rich dict
-    produced by :func:`convert_lxmf_message_to_dict` (string keys), the raw
+    produced by convert_lxmf_message_to_dict (string keys), the raw
     LXMF integer-keyed dict, or a JSON-string from the database.
     """
     import json as _json

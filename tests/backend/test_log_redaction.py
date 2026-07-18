@@ -28,11 +28,13 @@ def test_redact_pem_bearer_and_secret_assigns():
     pem = "-----BEGIN PRIVATE KEY-----\nMIIEowIBAAKCAQEA\n-----END PRIVATE KEY-----"
     out = redact_diagnostic_text(
         f"{pem} Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.aaa.bbb "
-        "alias_identity_private_key=YWJjZGVm",
+        "alias_identity_private_key=YWJjZGVm "
+        "Authorization: Basic dXNlcjpwYXNz",
     )
     assert "BEGIN PRIVATE KEY" not in out
     assert "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" not in out
     assert "YWJjZGVm" not in out
+    assert "dXNlcjpwYXNz" not in out
     assert "Bearer" in out
     assert REDACTED in out
 

@@ -124,6 +124,17 @@ def _safe_image_type(raw) -> str:
     return image_type
 
 
+def _resolve_served_image_type(image_data: bytes, declared=None) -> str | None:
+    """Mirror meshchat LXMF image serve: Content-Type from magic only."""
+    from meshchatx.src.backend.sticker_utils import detect_image_format_from_magic
+
+    allowed = {"png", "jpeg", "jpg", "gif", "webp", "bmp"}
+    detected = detect_image_format_from_magic(image_data)
+    if detected is None or detected not in allowed:
+        return None
+    return "jpeg" if detected == "jpeg" else detected
+
+
 def _try_b64(raw):
     if not isinstance(raw, str) or not raw:
         return None
@@ -178,6 +189,8 @@ def test_oracle_known_bad_attachment_shapes_rejected():
     assert _safe_image_type(99) == "png"
     assert _safe_image_type("svg") == "png"
     assert _safe_image_type("image/webp") == "webp"
+    assert _resolve_served_image_type(b"<html>") is None
+    assert _resolve_served_image_type(b"\x89PNG\r\n\x1a\n" + b"\x00" * 8) == "png"
 
 
 # ---------------------------------------------------------------------------

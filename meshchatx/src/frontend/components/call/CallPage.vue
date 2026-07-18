@@ -4306,7 +4306,7 @@ export default {
             this.wasDeclined = false;
 
             try {
-                await window.api.get(`/api/v1/telephone/call/${hashToCall}`);
+                await window.api.post(`/api/v1/telephone/call/${hashToCall}`);
             } catch (e) {
                 this.initiationStatus = null;
                 ToastUtils.error(e.response?.data?.message || "Failed to initiate call");
@@ -4353,7 +4353,7 @@ export default {
         },
         async answerCall() {
             try {
-                await window.api.get("/api/v1/telephone/answer");
+                await window.api.post("/api/v1/telephone/answer");
             } catch {
                 ToastUtils.error(this.$t("call.failed_to_answer_call"));
             }
@@ -4363,14 +4363,14 @@ export default {
                 if (this.activeCall && this.activeCall.is_incoming && this.activeCall.status === 4) {
                     this.wasDeclined = true;
                 }
-                await window.api.get("/api/v1/telephone/hangup");
+                await window.api.post("/api/v1/telephone/hangup");
             } catch {
                 ToastUtils.error(this.$t("call.failed_to_hangup_call"));
             }
         },
         async sendToVoicemail() {
             try {
-                await window.api.get("/api/v1/telephone/send-to-voicemail");
+                await window.api.post("/api/v1/telephone/send-to-voicemail");
                 ToastUtils.success(this.$t("call.call_sent_to_voicemail"));
             } catch {
                 ToastUtils.error(this.$t("call.failed_to_send_to_voicemail"));
@@ -4378,7 +4378,7 @@ export default {
         },
         async switchAudioProfile(audioProfileId) {
             try {
-                const response = await window.api.get(`/api/v1/telephone/switch-audio-profile/${audioProfileId}`);
+                const response = await window.api.post(`/api/v1/telephone/switch-audio-profile/${audioProfileId}`);
                 const resolved = response.data?.profile_id;
                 if (resolved != null) {
                     this.selectedAudioProfileId = resolved;
@@ -4404,7 +4404,7 @@ export default {
                 const endpoint = isCurrentlyMuted
                     ? "/api/v1/telephone/unmute-transmit"
                     : "/api/v1/telephone/mute-transmit";
-                await window.api.get(endpoint);
+                await window.api.post(endpoint);
                 setTimeout(() => {
                     this.isMicMuting = false;
                 }, 500);
@@ -4429,7 +4429,7 @@ export default {
                 const endpoint = isCurrentlyMuted
                     ? "/api/v1/telephone/unmute-receive"
                     : "/api/v1/telephone/mute-receive";
-                await window.api.get(endpoint);
+                await window.api.post(endpoint);
                 setTimeout(() => {
                     this.isSpeakerMuting = false;
                 }, 500);
