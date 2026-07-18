@@ -54,9 +54,14 @@ describe("NetworkVisualiserToolbar", () => {
         expect(icons).not.toContain(undefined);
     });
 
-    it("uses loading icon while updating", () => {
-        const wrapper = mountToolbar({ isUpdating: true });
-        const icons = wrapper.findAll(".mdi-stub").map((n) => n.attributes("data-icon"));
-        expect(icons).toContain("loading");
+    it("uses loading icon only for manual loading, not auto-update busy", () => {
+        const autoBusy = mountToolbar({ isUpdating: true, isLoading: false });
+        const autoIcons = autoBusy.findAll(".mdi-stub").map((n) => n.attributes("data-icon"));
+        expect(autoIcons).toContain("refresh");
+        expect(autoIcons).not.toContain("loading");
+
+        const manualBusy = mountToolbar({ isUpdating: true, isLoading: true });
+        const manualIcons = manualBusy.findAll(".mdi-stub").map((n) => n.attributes("data-icon"));
+        expect(manualIcons).toContain("loading");
     });
 });

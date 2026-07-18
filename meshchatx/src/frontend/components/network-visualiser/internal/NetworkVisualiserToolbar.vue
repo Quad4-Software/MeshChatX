@@ -29,9 +29,9 @@
                         @click.stop="$emit('manual-update')"
                     >
                         <MaterialDesignIcon
-                            :icon-name="isUpdating || isLoading ? 'loading' : 'refresh'"
+                            :icon-name="isLoading ? 'loading' : 'refresh'"
                             class="w-4 h-4 sm:w-5 sm:h-5"
-                            :class="{ 'animate-spin': isUpdating || isLoading }"
+                            :class="{ 'animate-spin': isLoading }"
                         />
                     </button>
                     <div class="w-5 sm:w-6 flex justify-center">
