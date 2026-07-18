@@ -3,7 +3,7 @@
 
 Wheels are written to meshchatx/public/repository-server-bundled/bundled so they
 ship with the same artifact layout as the Vite output. At runtime,
-:class:`~meshchatx.src.backend.repository_server_manager.RepositoryServerManager`
+RepositoryServerManager
 copies any missing *.whl files from that directory into each identity's
 repository-server/bundled folder (no network required).
 

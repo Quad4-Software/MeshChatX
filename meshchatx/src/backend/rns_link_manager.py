@@ -176,7 +176,7 @@ def _reset_failure_count(key: tuple[str, bytes]) -> None:
 
 
 def _record_failure_and_maybe_recycle(key: tuple[str, bytes]) -> tuple[int, bool]:
-    """Increment the failure counter for `key`.
+    """Increment the failure counter for key.
 
     If the threshold is reached, pop the cached link, clear the counter,
     and tear the link down outside the lock (teardown synchronously

@@ -68,6 +68,17 @@ class TestPluginGuard:
             normalize_asset_path("../plugin.json")
         with pytest.raises(PluginSecurityError):
             normalize_asset_path("/etc/passwd")
+        with pytest.raises(PluginSecurityError):
+            normalize_asset_path("C:/Windows/x")
+        with pytest.raises(PluginSecurityError):
+            normalize_asset_path("foo/\x00/bar")
+
+    def test_zip_entry_rejects_windows_drive_and_nul(self):
+        from meshchatx.src.backend.plugin_guard import _zip_entry_is_safe
+
+        assert _zip_entry_is_safe("ok/a.wasm") is True
+        assert _zip_entry_is_safe("C:/Windows/x") is False
+        assert _zip_entry_is_safe("a/\x00/b") is False
 
     def test_validate_zip_bytes_rejects_empty_and_random_payload(self):
         with pytest.raises(PluginSecurityError):

@@ -10,6 +10,18 @@ import { renderNomadHtmlPage, stripOverlayFromCss } from "@/js/NomadPageRenderer
 import DownloadUtils from "@/js/DownloadUtils.js";
 
 describe("hot-path bug regressions", () => {
+    it("strips absolute full-bleed overlays and rejects svg data images", () => {
+        const css = stripOverlayFromCss(".x{position:absolute;top:0;left:0;width:100%;height:100%;z-index:9}");
+        expect(css.toLowerCase()).not.toMatch(/position\s*:\s*absolute/);
+        expect(css.toLowerCase()).toMatch(/position:static/);
+        const svg =
+            "data:image/svg+xml," +
+            encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"></svg>');
+        const html = renderNomadHtmlPage(`<img src="${svg}"><img src="data:image/png;base64,aaa">`);
+        expect(html.toLowerCase()).not.toContain("svg+xml");
+        expect(html).toContain("data:image/png");
+    });
+
     it("strips single-quoted position:fixed overlays", () => {
         const out = MicronParser.stripOverlayStyles(`<div style='position:fixed; color:red'>x</div>`);
         expect(out.toLowerCase()).not.toMatch(/position\s*:\s*fixed/);

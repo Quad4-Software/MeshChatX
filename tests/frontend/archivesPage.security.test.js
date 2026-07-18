@@ -65,11 +65,25 @@ describe("Archives page viewing-archive surface (security / fuzz)", () => {
         const out = wrapper.vm.renderFullContent({
             page_path: "/page/evil.html",
             content: '<body><img src=x onerror=alert(1)><a href="javascript:alert(1)">x</a></body>',
-            destination_hash: "a".repeat(64),
-            hash: "b".repeat(64),
+            destination_hash: "a".repeat(32),
+            hash: "b".repeat(32),
             id: 1,
         });
         assertNoDangerousHtmlPatterns(out);
+    });
+
+    it("heuristic micron archives isolate http and mesh links", () => {
+        const { wrapper } = mountArchives();
+        const hash = "aa".repeat(16);
+        const out = wrapper.vm.renderFullContent({
+            page_path: "/forum/thread",
+            content:
+                "`Hi`\n`[Phish`http://evil.example/login]`\n`[Node`bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:/page/index.mu]`",
+            destination_hash: hash,
+            id: 2,
+        });
+        expect(out.toLowerCase()).not.toMatch(/href\s*=\s*["']?\s*https?:/i);
+        expect(out).toMatch(/data-action\s*=\s*["']openNode["']/i);
     });
 
     it("renderFullContent never throws; returns a string for fuzzed paths and bodies", () => {

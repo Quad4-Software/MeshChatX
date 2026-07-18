@@ -439,8 +439,7 @@ export function createNetworkVisualiserWebGL(canvas, gl) {
     if (typeof document !== "undefined" && canvas?.parentElement) {
         labelCanvas = document.createElement("canvas");
         labelCanvas.className = "network-webgl-labels";
-        labelCanvas.style.cssText =
-            "position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;";
+        labelCanvas.style.cssText = "position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;";
         canvas.parentElement.appendChild(labelCanvas);
         labelCtx = labelCanvas.getContext("2d");
     }

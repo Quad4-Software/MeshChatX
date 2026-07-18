@@ -190,3 +190,17 @@ async def test_nomadnet_file_download_invalid_hex_does_not_raise(mock_app):
             },
         },
     )
+
+
+@pytest.mark.asyncio
+async def test_nomadnet_page_download_invalid_hex_does_not_raise(mock_app):
+    await mock_app.on_websocket_data_received(
+        MagicMock(),
+        {
+            "type": "nomadnet.page.download",
+            "nomadnet_page_download": {
+                "destination_hash": "not-hex",
+                "page_path": "/page/index.mu",
+            },
+        },
+    )

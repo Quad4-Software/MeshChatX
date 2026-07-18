@@ -2519,6 +2519,8 @@ export default {
         // listen for contact updates to refresh stranger banner
         GlobalEmitter.on("contact-updated", this.onContactUpdatedForBanner);
 
+        GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
+
         // check translator
         this.checkTranslator();
 
@@ -2571,6 +2573,7 @@ export default {
         WebSocketConnection.off("message", this.onWebsocketMessage);
         GlobalEmitter.off("compose-new-message", this.onComposeNewMessageEvent);
         GlobalEmitter.off("contact-updated", this.onContactUpdatedForBanner);
+        GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
         if (this.propagationStatusInterval) {
             clearInterval(this.propagationStatusInterval);
         }
@@ -3197,8 +3200,16 @@ export default {
         },
         loadDraft(destinationHash) {
             try {
-                const drafts = JSON.parse(localStorage.getItem("meshchat.drafts") || "{}");
-                this.newMessageText = drafts[destinationHash] || "";
+                const drafts = this._readDraftRoot();
+                const bucket = this._draftBucket(drafts);
+                let text = "";
+                if (bucket && typeof bucket[destinationHash] === "string") {
+                    text = bucket[destinationHash];
+                } else if (typeof drafts[destinationHash] === "string") {
+                    // Legacy flat keys (pre identity-scoped drafts).
+                    text = drafts[destinationHash];
+                }
+                this.newMessageText = text;
                 this.$nextTick(() => {
                     this.adjustTextareaHeight();
                 });
@@ -3208,15 +3219,53 @@ export default {
         },
         saveDraft(destinationHash) {
             try {
-                const drafts = JSON.parse(localStorage.getItem("meshchat.drafts") || "{}");
+                const drafts = this._readDraftRoot();
+                const identityKey = this._draftIdentityKey();
+                let bucket = this._draftBucket(drafts);
+                if (!bucket) {
+                    bucket = {};
+                    drafts[identityKey] = bucket;
+                    if (typeof drafts[destinationHash] === "string") {
+                        delete drafts[destinationHash];
+                    }
+                }
                 if (this.newMessageText) {
-                    drafts[destinationHash] = this.newMessageText;
+                    bucket[destinationHash] = this.newMessageText;
                 } else {
-                    delete drafts[destinationHash];
+                    delete bucket[destinationHash];
                 }
                 localStorage.setItem("meshchat.drafts", JSON.stringify(drafts));
             } catch (e) {
                 console.error("Failed to save draft:", e);
+            }
+        },
+        _draftIdentityKey() {
+            const hash = this.config?.identity_hash || this.myLxmfAddressHash || "";
+            return typeof hash === "string" && hash ? hash : "_";
+        },
+        _readDraftRoot() {
+            const raw = JSON.parse(localStorage.getItem("meshchat.drafts") || "{}");
+            return raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+        },
+        _draftBucket(drafts) {
+            const identityKey = this._draftIdentityKey();
+            const nested = drafts[identityKey];
+            if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+                return nested;
+            }
+            return null;
+        },
+        onIdentitySwitched() {
+            if (this.selectedPeer?.destination_hash) {
+                this.saveDraft(this.selectedPeer.destination_hash);
+            }
+            this.lxmfMessagesRequestSequence += 1;
+            this.chatItems = [];
+            this.messageBubbleTranslation = {};
+            this.clearAudioAttachmentCache();
+            if (this.selectedPeer) {
+                this.loadDraft(this.selectedPeer.destination_hash);
+                this.initialLoad();
             }
         },
         close() {
@@ -4654,10 +4703,8 @@ export default {
                 mime = `image/${raw}`;
             } else if (raw === "webm") {
                 mime = "video/webm";
-            } else if (raw === "svg" || raw === "svg+xml") {
-                mime = "image/svg+xml";
             } else {
-                mime = `image/${raw}`;
+                return null;
             }
             return `data:${mime};base64,${img.image_bytes}`;
         },
@@ -6345,7 +6392,7 @@ export default {
         },
         async onStartCall() {
             try {
-                await window.api.get(`/api/v1/telephone/call/${this.selectedPeer.destination_hash}`);
+                await window.api.post(`/api/v1/telephone/call/${this.selectedPeer.destination_hash}`);
             } catch (e) {
                 const message = e.response?.data?.message ?? "Failed to start call";
                 DialogUtils.alert(message);

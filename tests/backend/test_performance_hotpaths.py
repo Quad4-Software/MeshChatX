@@ -2,8 +2,8 @@
 
 """Performance regression tests for the critical hot paths.
 
-Run as part of the full backend suite (`task test:be`, `make test`, GitHub CI).
-For perf-only: `task test:be:perf`.
+Run as part of the full backend suite (task test:be, make test, GitHub CI).
+For perf-only: task test:be:perf.
 
 Focus areas (user priority):
   - NomadNet browser: load announces, search announces, favourites

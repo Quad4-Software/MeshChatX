@@ -229,7 +229,7 @@ import {
     invalidateNomadMicronWasmPreload,
     isMicronWasmBundled,
 } from "../../js/MicronWasmLoader.js";
-import { renderNomadPageByPath } from "../../js/NomadPageRenderer.js";
+import { renderNomadPageByPath, isolateNomadLinksInHtml } from "../../js/NomadPageRenderer.js";
 import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
 import ArchiveSidebar from "./ArchiveSidebar.vue";
 
@@ -598,11 +598,19 @@ export default {
             const micronOpts = {
                 useWasm: this.nomadMicronWasmActive,
             };
+            const destinationHash = archive.destination_hash || this.viewingArchive?.destination_hash || null;
             try {
                 if (!hasKnownExt && archive.content.includes("`")) {
-                    return new MicronParser().convertMicronToHtml(archive.content, {}, micronOpts);
+                    let out = new MicronParser().convertMicronToHtml(archive.content, {}, micronOpts);
+                    if (destinationHash) {
+                        out = isolateNomadLinksInHtml(out, destinationHash);
+                    }
+                    return out;
                 }
-                return renderNomadPageByPath(pathPart, archive.content, {}, MicronParser, this.nomadRenderOptions);
+                return renderNomadPageByPath(pathPart, archive.content, {}, MicronParser, {
+                    ...this.nomadRenderOptions,
+                    nomadDestinationHash: destinationHash || this.nomadRenderOptions.nomadDestinationHash,
+                });
             } catch (e) {
                 console.error("Archive render failed", e);
                 return String(archive.content)

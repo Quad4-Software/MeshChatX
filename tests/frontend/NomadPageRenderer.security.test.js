@@ -121,12 +121,13 @@ describe("NomadPageRenderer HTML document sanitization", () => {
         expect(html).not.toContain("evil.com");
     });
 
-    it("strips external img src except safe data:image", () => {
+    it("strips external img src except safe raster data:image", () => {
         const html = renderNomadHtmlPage(
-            '<body><img src="https://evil.com/i.png"><img src="data:image/png;base64,iVBORw0KGgo="></body>'
+            '<body><img src="https://evil.com/i.png"><img src="data:image/png;base64,iVBORw0KGgo="><img src="data:image/svg+xml,<svg></svg>"></body>'
         );
         expect(html).not.toContain("evil.com");
         expect(html).toContain("data:image/png");
+        expect(html.toLowerCase()).not.toContain("svg+xml");
     });
 
     it("sanitises style text with network url in document", () => {

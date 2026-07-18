@@ -90,7 +90,21 @@ SCENARIOS: tuple[Scenario, ...] = (
         pack="HostileMediumPack",
         gate="gate3-hostile-medium",
         taxonomy="security_surface",
-        summary="LibreTranslate URL guard rejects decimal/hex link-local SSRF forms",
+        summary="LibreTranslate URL guard rejects decimal/hex/IPv6-mapped link-local SSRF forms",
+    ),
+    Scenario(
+        id="hostile.plugin.path_escape",
+        pack="HostileMediumPack",
+        gate="gate3-hostile-medium",
+        taxonomy="security_surface",
+        summary="plugin asset/zip paths reject drive letters, NULs, and traversal",
+    ),
+    Scenario(
+        id="hostile.overlay.path_escape",
+        pack="HostileMediumPack",
+        gate="gate3-hostile-medium",
+        taxonomy="security_surface",
+        summary="map overlay relpaths reject drive letters, NULs, and traversal",
     ),
     Scenario(
         id="scarcity.conversation.preview_capped",

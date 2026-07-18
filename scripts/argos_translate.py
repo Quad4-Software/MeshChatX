@@ -2,8 +2,8 @@
 """Argos Translate JSON localization script.
 
 This script provides an automated workflow to translate JSON localization files
-(such as `en.json`) to target languages using Argos Translate. It ensures that
-interpolated variables (e.g., `{count}`, `{status}`) are preserved and not
+(such as en.json) to target languages using Argos Translate. It ensures that
+interpolated variables (e.g., {count}, {status}) are preserved and not
 altered during the translation process.
 
 Requirements:
@@ -66,7 +66,7 @@ except ImportError:
 
 
 def ensure_package_installed(from_code, to_code):
-    """Ensure the translation package from `from_code` to `to_code` is installed.
+    """Ensure the translation package from from_code to to_code is installed.
 
     If not installed, attempts to download and install it automatically.
     """
@@ -123,7 +123,7 @@ def get_translation_func(from_code, to_code):
 
 
 def replace_vars_with_tokens(text):
-    """Replaces `{variable}` patterns with a standard token like `XVAR0X`.
+    """Replaces {variable} patterns with a standard token like XVAR0X.
 
     So the translation engine doesn't attempt to translate variable names.
     Returns the modified text and the list of found variables.
@@ -139,9 +139,9 @@ def replace_vars_with_tokens(text):
 
 
 def restore_vars_from_tokens(text, vars_found):
-    """Restores the original `{variable}` patterns back into the translated text.
+    """Restores the original {variable} patterns back into the translated text.
 
-    Looks for the `XVAR0X` tokens.
+    Looks for the XVAR0X tokens.
     """
     for i, var in enumerate(vars_found):
         # The translation engine might change case or spacing around the token
@@ -152,7 +152,7 @@ def restore_vars_from_tokens(text, vars_found):
 def translate_dict(data, translate_func, target_name=None):
     """Recursively iterates over a dictionary and translates all string values.
 
-    Skips the `_languageName` key, which can be explicitly set.
+    Skips the _languageName key, which can be explicitly set.
     """
     if isinstance(data, dict):
         new_dict = {}

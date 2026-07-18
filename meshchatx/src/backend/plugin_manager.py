@@ -771,7 +771,10 @@ class PluginManager:
         self._require_runtime_enabled()
         record = self._require_plugin(plugin_id)
         normalized = normalize_asset_path(asset_name)
-        path = os.path.join(record.install_path, normalized)
+        root = os.path.realpath(record.install_path)
+        path = os.path.realpath(os.path.join(root, normalized))
+        if path != root and not path.startswith(root + os.sep):
+            raise PluginSecurityError("invalid asset path")
         if not os.path.isfile(path):
             raise FileNotFoundError(asset_name)
         return path

@@ -85,13 +85,13 @@ export function stripOverlayFromCss(css) {
     s = s.replace(/[\u00AD\u180E\u200B-\u200F\u202A-\u202E\u2060-\u2064\uFEFF]/g, "");
     s = s.replace(/position\s*:\s*[^;{}]+/gi, (decl) => {
         const lower = decl.toLowerCase().replace(/\s+/g, "");
-        if (/\bfixed\b/.test(lower) || /\bsticky\b/.test(lower)) {
+        if (/\bfixed\b/.test(lower) || /\bsticky\b/.test(lower) || /\babsolute\b/.test(lower)) {
             return "position:static";
         }
         return decl;
     });
     s = s.replace(/\b(?:z-index|inset|top|left|right|bottom|transform)\s*:\s*[^;{}]+/gi, "");
-    s = s.replace(/\b(?:width|height)\s*:\s*[^;{}]*100v[wh][^;{}]*/gi, "");
+    s = s.replace(/\b(?:width|height)\s*:\s*[^;{}]*100(?:v[wh]|%)[^;{}]*/gi, "");
     return s;
 }
 
@@ -213,7 +213,8 @@ function isAllowedImgSrc(src) {
         return false;
     }
     const s = src.trim();
-    return /^data:image\/(png|gif|jpeg|jpg|webp|svg\+xml)/i.test(s);
+    // Disallow svg+xml data URLs (scriptable / overlay-capable in some contexts).
+    return /^data:image\/(png|gif|jpeg|jpg|webp)(;|,)/i.test(s);
 }
 
 let nomadPurifyHooksInstalled = false;

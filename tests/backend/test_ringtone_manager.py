@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: 0BSD
-"""Tests for :mod:`meshchatx.src.backend.ringtone_manager`.
+"""Tests for meshchatx.src.backend.ringtone_manager.
 
 The manager performs conversion in-process via audio_codec
 (miniaudio + LXST). These tests pin the contract that
@@ -84,3 +84,17 @@ def test_remove_ringtone_deletes_file(manager, tmp_path):
 
 def test_remove_ringtone_missing_returns_true(manager):
     assert manager.remove_ringtone("does-not-exist.opus") is True
+
+
+def test_get_ringtone_path_rejects_traversal(manager):
+    assert manager.get_ringtone_path("a\x00b.opus") is None
+    assert manager.get_ringtone_path("..") is None
+    assert manager.get_ringtone_path("") is None
+    # Drive/parent paths collapse to basename under the ringtone storage root.
+    for name in ("C:/Windows/x.opus", "../evil.opus", "C:/escape.opus"):
+        path = manager.get_ringtone_path(name)
+        assert path is not None
+        root = os.path.realpath(manager.storage_dir)
+        assert os.path.realpath(path).startswith(root + os.sep)
+        assert os.path.basename(path) in {"x.opus", "evil.opus", "escape.opus"}
+    assert manager.remove_ringtone("C:/escape.opus") is True

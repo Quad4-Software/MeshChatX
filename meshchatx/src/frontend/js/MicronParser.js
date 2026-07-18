@@ -105,12 +105,15 @@ export default class MicronParser extends BaseMicronParser {
                     .replace(/!important/g, "")
                     .replace(/\s+/g, "")
                     .trim();
-                if (prop === "position" && (/\bfixed\b/.test(val) || /\bsticky\b/.test(val))) {
+                if (
+                    prop === "position" &&
+                    (/\bfixed\b/.test(val) || /\bsticky\b/.test(val) || /\babsolute\b/.test(val))
+                ) {
                     return false;
                 }
                 if (dangerousProps.includes(prop)) return false;
-                if (prop === "width" && /100v[wh]/.test(val)) return false;
-                if (prop === "height" && /100v[hw]/.test(val)) return false;
+                if (prop === "width" && (/100v[wh]/.test(val) || /^100%$/.test(val))) return false;
+                if (prop === "height" && (/100v[hw]/.test(val) || /^100%$/.test(val))) return false;
                 return true;
             });
             return safe.join("; ").trim();

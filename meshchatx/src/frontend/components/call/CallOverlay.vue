@@ -418,7 +418,7 @@ export default {
         },
         async answerCall() {
             try {
-                await window.api.get("/api/v1/telephone/answer");
+                await window.api.post("/api/v1/telephone/answer");
                 // Native Android audio (and desktop web-audio) only attach from
                 // CallPage. Overlay accept must open the phone tab or the call
                 // stays silent after answer.
@@ -432,14 +432,14 @@ export default {
         async hangupCall() {
             try {
                 this.$emit("hangup");
-                await window.api.get("/api/v1/telephone/hangup");
+                await window.api.post("/api/v1/telephone/hangup");
             } catch {
                 ToastUtils.error(this.$t("call.failed_to_hangup_call"));
             }
         },
         async sendToVoicemail() {
             try {
-                await window.api.get("/api/v1/telephone/send-to-voicemail");
+                await window.api.post("/api/v1/telephone/send-to-voicemail");
                 ToastUtils.success(this.$t("call.call_sent_to_voicemail"));
             } catch {
                 ToastUtils.error(this.$t("call.failed_to_send_to_voicemail"));
@@ -457,7 +457,7 @@ export default {
                 const endpoint = isCurrentlyMuted
                     ? "/api/v1/telephone/unmute-transmit"
                     : "/api/v1/telephone/mute-transmit";
-                await window.api.get(endpoint);
+                await window.api.post(endpoint);
 
                 setTimeout(() => {
                     this.isMicMuting = false;
@@ -481,7 +481,7 @@ export default {
                 const endpoint = isCurrentlyMuted
                     ? "/api/v1/telephone/unmute-receive"
                     : "/api/v1/telephone/mute-receive";
-                await window.api.get(endpoint);
+                await window.api.post(endpoint);
 
                 setTimeout(() => {
                     this.isSpeakerMuting = false;

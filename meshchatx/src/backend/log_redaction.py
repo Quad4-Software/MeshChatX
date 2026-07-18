@@ -38,6 +38,7 @@ _PEM_RE = re.compile(
 
 # Bearer / JWT-ish tokens and common secret assignments.
 _BEARER_RE = re.compile(r"\bBearer\s+[A-Za-z0-9._\-+=/]{8,}", re.IGNORECASE)
+_BASIC_AUTH_RE = re.compile(r"\bBasic\s+[A-Za-z0-9+/=]{8,}", re.IGNORECASE)
 _SECRET_ASSIGN_RE = re.compile(
     r"\b(?:alias_identity_private_key|private_key|session|password|passwd|token|"
     r"api[_-]?key|csrf|authorization)\s*[:=]\s*\S+",
@@ -62,5 +63,6 @@ def redact_diagnostic_text(text: str) -> str:
     out = _EMAIL_RE.sub(REDACTED, out)
     out = _IPV4_RE.sub(REDACTED, out)
     out = _BEARER_RE.sub(f"Bearer {REDACTED}", out)
+    out = _BASIC_AUTH_RE.sub(f"Basic {REDACTED}", out)
     out = _SECRET_ASSIGN_RE.sub(REDACTED, out)
     return out

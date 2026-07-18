@@ -26,7 +26,7 @@ def main() -> int:
         "source",
         nargs="?",
         default=None,
-        help=f"Local JSON (directory `data` shape). Default: fetch {DEFAULT_SUBMITTED_URL}",
+        help=f"Local JSON (directory data shape). Default: fetch {DEFAULT_SUBMITTED_URL}",
     )
     parser.add_argument(
         "--url",

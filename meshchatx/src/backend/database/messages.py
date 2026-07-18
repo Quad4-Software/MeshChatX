@@ -449,7 +449,7 @@ class MessageDAO:
         """Return the most recent incoming user-facing message for peer_hash.
 
         Walks recent incoming messages in timestamp-descending order and applies
-        :func:`is_user_facing_lxmf_payload` in Python (the SQLite layer cannot
+        is_user_facing_lxmf_payload in Python (the SQLite layer cannot
         cheaply parse the JSON fields blob). scan_limit bounds the walk
         so a long chain of reactions/telemetry won't degrade the bell endpoint.
 

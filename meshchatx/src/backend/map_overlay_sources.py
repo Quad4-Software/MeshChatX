@@ -86,10 +86,12 @@ def is_commit_like_ref(ref: str) -> bool:
 
 
 def _safe_repo_relpath(path: str) -> str:
-    if not isinstance(path, str):
+    if not isinstance(path, str) or "\x00" in path:
         raise OverlaySourceParseError("invalid_path")
     p = path.strip().replace("\\", "/")
     if not p or p.startswith("/") or p.startswith("~"):
+        raise OverlaySourceParseError("invalid_path")
+    if ":" in p:
         raise OverlaySourceParseError("invalid_path")
     parts = [seg for seg in p.split("/") if seg and seg != "."]
     if not parts or any(seg == ".." for seg in parts):
@@ -101,7 +103,7 @@ def _safe_repo_relpath(path: str) -> str:
 
 
 def _safe_nomadnet_file_path(path: str) -> str:
-    if not isinstance(path, str):
+    if not isinstance(path, str) or "\x00" in path:
         raise OverlaySourceParseError("invalid_path")
     p = path.strip().replace("\\", "/")
     if p.startswith("file/"):
@@ -109,7 +111,7 @@ def _safe_nomadnet_file_path(path: str) -> str:
     if not p.startswith("/file/"):
         raise OverlaySourceParseError("not_file_path")
     rest = p[len("/file/") :]
-    if not rest or rest.endswith("/"):
+    if not rest or rest.endswith("/") or "\x00" in rest or ":" in rest:
         raise OverlaySourceParseError("invalid_path")
     parts = [seg for seg in rest.split("/") if seg and seg != "."]
     if not parts or any(seg == ".." for seg in parts):

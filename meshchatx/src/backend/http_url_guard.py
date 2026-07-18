@@ -114,13 +114,21 @@ def normalize_libretranslate_http_service_base(url: str) -> str:
     host_for_ip_check = host_decoded.lower().strip("[]")
     addr = _coerce_host_to_ip(host_for_ip_check)
     if addr is not None:
-        if addr.version == 4 and addr.is_link_local:
-            msg = "URL must not target an IPv4 link-local address"
+        # Apply policy to the effective IPv4 when the host is IPv4-mapped IPv6
+        # (::ffff:169.254.169.254), and reject native IPv6 link-local (fe80::/10).
+        effective = addr.ipv4_mapped if getattr(addr, "ipv4_mapped", None) else addr
+        if effective.is_link_local or addr.is_link_local:
+            msg = "URL must not target a link-local address"
             raise UnsafeOutboundUrlError(msg)
-        if addr.is_multicast or addr.is_unspecified:
+        if (
+            effective.is_multicast
+            or effective.is_unspecified
+            or addr.is_multicast
+            or addr.is_unspecified
+        ):
             msg = "URL must not target a multicast or unspecified address"
             raise UnsafeOutboundUrlError(msg)
-        if addr.is_reserved:
+        if effective.is_reserved or addr.is_reserved:
             msg = "URL must not target a reserved address"
             raise UnsafeOutboundUrlError(msg)
 

@@ -678,7 +678,7 @@ def validate_export_document(data: object) -> list[dict]:
 
 
 def build_export_document(stickers: list[dict], exported_at_iso: str) -> dict:
-    """Build a `meshchatx-stickers` JSON document for individual stickers."""
+    """Build a meshchatx-stickers JSON document for individual stickers."""
     return {
         "format": _EXPORT_FORMAT,
         "version": _EXPORT_VERSION,

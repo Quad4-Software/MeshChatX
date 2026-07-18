@@ -160,7 +160,7 @@ describe("CallOverlay.vue", () => {
 
     it("navigates to Call phone tab after answering", async () => {
         const push = vi.fn().mockResolvedValue(undefined);
-        global.api = { get: vi.fn().mockResolvedValue({}) };
+        global.api = { get: vi.fn().mockResolvedValue({}), post: vi.fn().mockResolvedValue({}) };
         const wrapper = mount(CallOverlay, {
             props: {
                 ...defaultProps,
@@ -184,7 +184,7 @@ describe("CallOverlay.vue", () => {
             },
         });
         await wrapper.vm.answerCall();
-        expect(global.api.get).toHaveBeenCalledWith("/api/v1/telephone/answer");
+        expect(global.api.post).toHaveBeenCalledWith("/api/v1/telephone/answer");
         expect(push).toHaveBeenCalledWith({ name: "call", query: { tab: "phone" } });
     });
 });

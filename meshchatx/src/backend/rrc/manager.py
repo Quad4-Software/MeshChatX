@@ -2,8 +2,8 @@
 
 """Reticulum Relay Chat session management.
 
-Contains :class:`RRCHub`, which owns the Reticulum link and protocol state for a
-single hub, and :class:`RRCManager`, which tracks the set of configured hubs,
+Contains RRCHub, which owns the Reticulum link and protocol state for a
+single hub, and RRCManager, which tracks the set of configured hubs,
 persists them, and relays change and message notifications to the application.
 """
 
