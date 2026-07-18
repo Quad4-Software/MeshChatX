@@ -674,6 +674,7 @@ export default {
             try {
                 const response = await window.api.get(`/api/v1/lxmf/conversations`, {
                     signal: this.abortController.signal,
+                    params: { limit: 2000 },
                 });
                 this.conversations = {};
                 for (const conversation of response.data.conversations) {

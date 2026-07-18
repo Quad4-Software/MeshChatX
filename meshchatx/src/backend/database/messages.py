@@ -249,6 +249,130 @@ class MessageDAO:
         params.append(updated_at)
 
         self.provider.execute(query, params)
+        peer_hash = data.get("peer_hash")
+        if isinstance(peer_hash, str) and peer_hash.strip():
+            self.refresh_conversation_summary(peer_hash.strip())
+
+    def refresh_conversation_summary(self, peer_hash):
+        """Rebuild the materialized list row for one peer.
+
+        Conversation list queries read lxmf_conversation_summaries so they do
+        not GROUP BY the full messages table on every refresh.
+        """
+        if not peer_hash or not isinstance(peer_hash, str):
+            return
+        peer_hash = peer_hash.strip()
+        if not peer_hash:
+            return
+        row = self.provider.fetchone(
+            """
+            SELECT
+                id, hash, source_hash, destination_hash, peer_hash, state, progress,
+                is_incoming, title,
+                substr(COALESCE(content, ''), 1, 240) AS content_preview,
+                timestamp, is_spam, reply_to_hash, created_at, updated_at,
+                COALESCE(has_image, 0) AS has_image,
+                COALESCE(has_audio, 0) AS has_audio,
+                COALESCE(has_files, 0) AS has_files,
+                COALESCE(has_reaction, 0) AS has_reaction,
+                COALESCE(has_telemetry, 0) AS has_telemetry
+            FROM lxmf_messages
+            WHERE peer_hash = ?
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (peer_hash,),
+        )
+        if not row:
+            self.provider.execute(
+                "DELETE FROM lxmf_conversation_summaries WHERE peer_hash = ?",
+                (peer_hash,),
+            )
+            return
+        failed_row = self.provider.fetchone(
+            """
+            SELECT COUNT(*) AS failed_count
+            FROM lxmf_messages
+            WHERE peer_hash = ? AND state = 'failed'
+            """,
+            (peer_hash,),
+        )
+        failed_count = int(failed_row["failed_count"] or 0) if failed_row else 0
+        self.provider.execute(
+            """
+            INSERT INTO lxmf_conversation_summaries (
+                peer_hash, latest_message_id, latest_message_hash,
+                source_hash, destination_hash, state, progress, is_incoming,
+                title, content_preview, timestamp, is_spam, reply_to_hash,
+                created_at, updated_at,
+                has_image, has_audio, has_files, has_reaction, has_telemetry,
+                failed_count
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(peer_hash) DO UPDATE SET
+                latest_message_id = EXCLUDED.latest_message_id,
+                latest_message_hash = EXCLUDED.latest_message_hash,
+                source_hash = EXCLUDED.source_hash,
+                destination_hash = EXCLUDED.destination_hash,
+                state = EXCLUDED.state,
+                progress = EXCLUDED.progress,
+                is_incoming = EXCLUDED.is_incoming,
+                title = EXCLUDED.title,
+                content_preview = EXCLUDED.content_preview,
+                timestamp = EXCLUDED.timestamp,
+                is_spam = EXCLUDED.is_spam,
+                reply_to_hash = EXCLUDED.reply_to_hash,
+                created_at = EXCLUDED.created_at,
+                updated_at = EXCLUDED.updated_at,
+                has_image = EXCLUDED.has_image,
+                has_audio = EXCLUDED.has_audio,
+                has_files = EXCLUDED.has_files,
+                has_reaction = EXCLUDED.has_reaction,
+                has_telemetry = EXCLUDED.has_telemetry,
+                failed_count = EXCLUDED.failed_count
+            """,
+            (
+                peer_hash,
+                row["id"],
+                row["hash"],
+                row["source_hash"],
+                row["destination_hash"],
+                row["state"],
+                row["progress"],
+                row["is_incoming"],
+                row["title"],
+                row["content_preview"],
+                row["timestamp"],
+                row["is_spam"],
+                row["reply_to_hash"],
+                row["created_at"],
+                row["updated_at"],
+                row["has_image"],
+                row["has_audio"],
+                row["has_files"],
+                row["has_reaction"],
+                row["has_telemetry"],
+                failed_count,
+            ),
+        )
+
+    def refresh_conversation_summaries_for_peers(self, peer_hashes):
+        seen = set()
+        for peer_hash in peer_hashes or []:
+            if not isinstance(peer_hash, str):
+                continue
+            key = peer_hash.strip()
+            if not key or key in seen:
+                continue
+            seen.add(key)
+            self.refresh_conversation_summary(key)
+
+    def delete_conversation_summary(self, peer_hash):
+        if not peer_hash or not isinstance(peer_hash, str):
+            return
+        self.provider.execute(
+            "DELETE FROM lxmf_conversation_summaries WHERE peer_hash = ?",
+            (peer_hash.strip(),),
+        )
 
     def set_lxmf_message_path_at_send_if_unset(
         self,
@@ -319,6 +443,12 @@ class MessageDAO:
                     message_hash,
                 ),
             )
+        row = self.provider.fetchone(
+            "SELECT peer_hash FROM lxmf_messages WHERE hash = ?",
+            (message_hash,),
+        )
+        if row and row.get("peer_hash"):
+            self.refresh_conversation_summary(row["peer_hash"])
 
     def get_lxmf_message_by_hash(self, message_hash):
         return self.provider.fetchone(
@@ -406,21 +536,35 @@ class MessageDAO:
         if not message_hashes:
             return
         placeholders = ", ".join(["?"] * len(message_hashes))
+        peers = self.provider.fetchall(
+            f"SELECT DISTINCT peer_hash FROM lxmf_messages WHERE hash IN ({placeholders})",
+            tuple(message_hashes),
+        )
         self.provider.execute(
             f"DELETE FROM lxmf_messages WHERE hash IN ({placeholders})",
             tuple(message_hashes),
         )
+        self.refresh_conversation_summaries_for_peers(
+            [row["peer_hash"] for row in peers if row and row.get("peer_hash")],
+        )
 
     def delete_lxmf_message_by_hash(self, message_hash):
+        row = self.provider.fetchone(
+            "SELECT peer_hash FROM lxmf_messages WHERE hash = ?",
+            (message_hash,),
+        )
         self.provider.execute(
             "DELETE FROM lxmf_messages WHERE hash = ?",
             (message_hash,),
         )
+        if row and row.get("peer_hash"):
+            self.refresh_conversation_summary(row["peer_hash"])
 
     def delete_all_lxmf_messages(self):
         with self.provider:
             self.provider.execute("DELETE FROM lxmf_messages")
             self.provider.execute("DELETE FROM lxmf_conversation_read_state")
+            self.provider.execute("DELETE FROM lxmf_conversation_summaries")
 
     def get_all_lxmf_messages(self, limit=5000, offset=0):
         return self.provider.fetchall(
@@ -517,14 +661,10 @@ class MessageDAO:
 
     def get_conversations(self):
         query = f"""
-            SELECT {self.CONVERSATION_LIST_COLUMNS} FROM lxmf_messages m1
-            INNER JOIN (
-                SELECT peer_hash, MAX(id) as max_id
-                FROM lxmf_messages
-                WHERE peer_hash IS NOT NULL
-                GROUP BY peer_hash
-            ) m2 ON m1.peer_hash = m2.peer_hash AND m1.id = m2.max_id
-            ORDER BY m1.id DESC
+            SELECT {self.CONVERSATION_LIST_COLUMNS}
+            FROM lxmf_conversation_summaries s
+            INNER JOIN lxmf_messages m1 ON m1.id = s.latest_message_id
+            ORDER BY s.latest_message_id DESC
         """
         return self.provider.fetchall(query)
 

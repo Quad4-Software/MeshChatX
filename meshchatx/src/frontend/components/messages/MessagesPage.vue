@@ -540,6 +540,9 @@ export default {
         clearInterval(this.reloadInterval);
         clearTimeout(this.conversationRefreshTimeout);
         clearTimeout(this.peersRefreshTimeout);
+        if (this._onConversationsVisibility && typeof document !== "undefined") {
+            document.removeEventListener("visibilitychange", this._onConversationsVisibility);
+        }
         this.conversationsAbortController?.abort();
         this.announcesAbortController?.abort();
         this.stopIngestScanner();
@@ -566,11 +569,23 @@ export default {
         this.loadConversationPins();
         this.getFolders();
 
-        // update info every few seconds
+        // Poll while visible. WS refresh-conversations covers most live updates.
         this.reloadInterval = setInterval(() => {
+            if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+                return;
+            }
             this.getConversations();
             this.getFolders();
-        }, 5000);
+        }, 15000);
+
+        this._onConversationsVisibility = () => {
+            if (typeof document !== "undefined" && document.visibilityState === "visible") {
+                this.requestConversationsRefresh();
+            }
+        };
+        if (typeof document !== "undefined") {
+            document.addEventListener("visibilitychange", this._onConversationsVisibility);
+        }
 
         // compose message if a destination hash was provided on page load
         if (this.destinationHash) {

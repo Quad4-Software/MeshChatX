@@ -19,7 +19,7 @@ def _validate_identifier(name: str, label: str = "identifier") -> str:
 
 
 class DatabaseSchema:
-    LATEST_VERSION = 51
+    LATEST_VERSION = 52
 
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -1515,5 +1515,95 @@ class DatabaseSchema:
                     END
                     WHERE (fields_meta IS NULL OR fields_meta = '')
                       AND fields IS NOT NULL AND length(fields) > 16384
+                    """,
+                )
+
+        if current_version < 52:
+            # Materialized per-peer latest row so conversation list queries do not
+            # GROUP BY the full lxmf_messages table on every refresh.
+            self._safe_execute(
+                """
+                CREATE TABLE IF NOT EXISTS lxmf_conversation_summaries (
+                    peer_hash TEXT PRIMARY KEY NOT NULL,
+                    latest_message_id INTEGER NOT NULL,
+                    latest_message_hash TEXT,
+                    source_hash TEXT,
+                    destination_hash TEXT,
+                    state TEXT,
+                    progress REAL,
+                    is_incoming INTEGER,
+                    title TEXT,
+                    content_preview TEXT,
+                    timestamp REAL,
+                    is_spam INTEGER,
+                    reply_to_hash TEXT,
+                    created_at TEXT,
+                    updated_at TEXT,
+                    has_image INTEGER,
+                    has_audio INTEGER,
+                    has_files INTEGER,
+                    has_reaction INTEGER,
+                    has_telemetry INTEGER,
+                    failed_count INTEGER NOT NULL DEFAULT 0
+                )
+                """,
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_conversation_summaries_latest_id "
+                "ON lxmf_conversation_summaries(latest_message_id DESC)",
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_lxmf_conversation_summaries_timestamp "
+                "ON lxmf_conversation_summaries(timestamp DESC)",
+            )
+            has_messages = self.provider.fetchone(
+                "SELECT 1 AS ok FROM lxmf_messages LIMIT 1",
+            )
+            if has_messages:
+                self._safe_execute(
+                    """
+                    INSERT OR REPLACE INTO lxmf_conversation_summaries (
+                        peer_hash, latest_message_id, latest_message_hash,
+                        source_hash, destination_hash, state, progress, is_incoming,
+                        title, content_preview, timestamp, is_spam, reply_to_hash,
+                        created_at, updated_at,
+                        has_image, has_audio, has_files, has_reaction, has_telemetry,
+                        failed_count
+                    )
+                    SELECT
+                        m.peer_hash,
+                        m.id,
+                        m.hash,
+                        m.source_hash,
+                        m.destination_hash,
+                        m.state,
+                        m.progress,
+                        m.is_incoming,
+                        m.title,
+                        substr(COALESCE(m.content, ''), 1, 240),
+                        m.timestamp,
+                        m.is_spam,
+                        m.reply_to_hash,
+                        m.created_at,
+                        m.updated_at,
+                        COALESCE(m.has_image, 0),
+                        COALESCE(m.has_audio, 0),
+                        COALESCE(m.has_files, 0),
+                        COALESCE(m.has_reaction, 0),
+                        COALESCE(m.has_telemetry, 0),
+                        COALESCE(fc.failed_count, 0)
+                    FROM lxmf_messages m
+                    INNER JOIN (
+                        SELECT peer_hash, MAX(id) AS max_id
+                        FROM lxmf_messages
+                        WHERE peer_hash IS NOT NULL
+                        GROUP BY peer_hash
+                    ) latest ON latest.peer_hash = m.peer_hash AND latest.max_id = m.id
+                    LEFT JOIN (
+                        SELECT peer_hash, COUNT(*) AS failed_count
+                        FROM lxmf_messages
+                        WHERE state = 'failed'
+                        GROUP BY peer_hash
+                    ) fc ON fc.peer_hash = m.peer_hash
                     """,
                 )

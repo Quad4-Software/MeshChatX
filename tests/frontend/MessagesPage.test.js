@@ -79,6 +79,68 @@ describe("MessagesPage.vue", () => {
         expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/lxmf/conversations", expect.any(Object));
     });
 
+    it("skips periodic conversation poll while the document is hidden", async () => {
+        vi.useFakeTimers();
+        const wrapper = mountMessagesPage();
+        await wrapper.vm.$nextTick();
+        axiosMock.get.mockClear();
+
+        const previousVisibility = Object.getOwnPropertyDescriptor(document, "visibilityState");
+        Object.defineProperty(document, "visibilityState", {
+            configurable: true,
+            get: () => "hidden",
+        });
+
+        await vi.advanceTimersByTimeAsync(15000);
+        const hiddenCalls = axiosMock.get.mock.calls.filter((c) => c[0] === "/api/v1/lxmf/conversations");
+        expect(hiddenCalls).toHaveLength(0);
+
+        if (previousVisibility) {
+            Object.defineProperty(document, "visibilityState", previousVisibility);
+        } else {
+            delete document.visibilityState;
+        }
+        vi.useRealTimers();
+        wrapper.unmount();
+    });
+
+    it("keeps conversations usable when contact_image is omitted from list payload", async () => {
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/config")
+                return Promise.resolve({ data: { config: { lxmf_address_hash: "my-hash" } } });
+            if (url === "/api/v1/lxmf/conversations") {
+                return Promise.resolve({
+                    data: {
+                        conversations: [
+                            {
+                                destination_hash: "aabbccddeeff00112233445566778899",
+                                display_name: "Peer",
+                                contact_image: null,
+                                has_contact_image: true,
+                                is_unread: false,
+                                failed_messages_count: 0,
+                                has_attachments: false,
+                                latest_message_preview: "hi",
+                                latest_message_created_at: new Date().toISOString(),
+                                is_contact: true,
+                            },
+                        ],
+                    },
+                });
+            }
+            if (url === "/api/v1/lxmf/conversation-pins") return Promise.resolve({ data: { peer_hashes: [] } });
+            if (url === "/api/v1/lxmf/folders") return Promise.resolve({ data: [] });
+            return Promise.resolve({ data: {} });
+        });
+
+        const wrapper = mountMessagesPage();
+        await flushPromises();
+        expect(wrapper.vm.conversations.length).toBeGreaterThanOrEqual(1);
+        expect(wrapper.vm.conversations[0].contact_image).toBeNull();
+        expect(wrapper.vm.conversations[0].has_contact_image).toBe(true);
+        wrapper.unmount();
+    });
+
     it("does not fetch lxmf delivery announces until the announces tab is opened", async () => {
         mountMessagesPage();
         await flushPromises();

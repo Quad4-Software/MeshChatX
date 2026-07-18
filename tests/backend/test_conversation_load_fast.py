@@ -133,6 +133,12 @@ class TestConversationLoadFast(unittest.TestCase):
         self.assertEqual(row["has_image"], 1)
         self.assertEqual(row["has_attachments"], 1)
         self.assertNotIn("fields", row.keys())
+        self.assertIn("has_contact_image", row.keys())
+        summary = self.db.provider.fetchone(
+            "SELECT has_image FROM lxmf_conversation_summaries WHERE peer_hash = ?",
+            (peer,),
+        )
+        self.assertEqual(summary["has_image"], 1)
 
 
 if __name__ == "__main__":
