@@ -194,6 +194,14 @@
         "privacy_subsection_telemetry": "Mesh telemetry",
         "privacy_mode_enabled": "Privacy mode (block external HTTP/HTTPS)",
         "privacy_mode_description": "Blocks map tiles, geocoding, LibreTranslate, firmware downloads, and other outbound HTTP/HTTPS from the app. The browser Content Security Policy is tightened to same-origin only.",
+        "screen_security_enabled": "Screen security (block capture)",
+        "screen_security_description": "Uses a Windows display-affinity flag so MeshChatX is omitted from screenshots, screen recording, and Windows Recall. The window still looks normal on your monitor.",
+        "screen_security_description_short": "Hide this window from screenshots, recorders, and Windows Recall.",
+        "screen_security_drm_eyebrow": "Windows DRM / screen capture protection",
+        "screen_security_drm_note": "This reuses the same OS content-protection flag media apps use for DRM. It is not a hard guarantee: a camera pointed at the display can still capture content, and some accessibility tools may need this setting off.",
+        "screen_security_disable_confirm": "Turn off screen security? Windows Recall and other apps will be able to capture MeshChatX again.",
+        "screen_security_enabled_toast": "Screen security enabled",
+        "screen_security_disabled_toast": "Screen security disabled",
         "web_exposure_title": "Network exposure",
         "web_exposure_description": "The web UI bind address is set at startup via --host or MESHCHAT_HOST. Restrict who can reach it when not bound to loopback.",
         "web_listen_address": "Current bind address",
@@ -3613,6 +3621,9 @@
         "ready": "Ready to Roll!",
         "ready_desc": "Everything is set up. Reticulum has been restarted with your new configuration.",
         "ready_desc_page": "MeshChatX is now configured and Reticulum has been hot-reloaded with your new settings.",
+        "privacy_title": "Privacy & security",
+        "privacy_desc": "Optional hardening for this device. You can change these any time in Settings → Privacy.",
+        "privacy_later_hint": "Recommended for sensitive use. Leaving options off is fine for casual installs.",
         "docker_note": "Reticulum was restarted automatically. If anything looks off, you can restart MeshChatX from the menu.",
         "restart_required": "Reticulum Restarted",
         "restart_desc_page": "Reticulum was hot-reloaded with your new configuration. No manual restart is required for normal use.",
@@ -3735,5 +3746,11 @@
         "action_getting_started_desc": "Open the setup guide",
         "action_changelog": "Changelog",
         "action_changelog_desc": "Recent changes"
+    },
+    "post_install": {
+        "windows_screen_security_title": "Enable Windows screen security?",
+        "windows_screen_security_desc": "MeshChatX can use Windows content protection (the same DRM-style display flag media apps use) so screenshots, recorders, and Windows Recall cannot capture the app window. You can change this later under Settings → Privacy.",
+        "windows_screen_security_enable": "Enable screen security",
+        "windows_screen_security_later": "Not now"
     }
 }

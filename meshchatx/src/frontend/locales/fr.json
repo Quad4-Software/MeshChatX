@@ -164,6 +164,14 @@
         "privacy_subsection_telemetry": "Télémétrie mesh",
         "privacy_mode_enabled": "Mode confidentialité (bloquer HTTP/HTTPS externe)",
         "privacy_mode_description": "Bloque les tuiles de carte, le géocodage, LibreTranslate, les téléchargements de firmware et autres connexions HTTP/HTTPS sortantes de l'application. La politique de sécurité du contenu du navigateur est restreinte à same-origin uniquement.",
+        "screen_security_enabled": "Sécurité d’écran (bloquer la capture)",
+        "screen_security_description": "Utilise un indicateur d’affinité d’affichage Windows pour que MeshChatX soit omis des captures d’écran, de l’enregistrement et de Windows Recall. La fenêtre reste normale sur votre moniteur.",
+        "screen_security_description_short": "Masquer cette fenêtre des captures, enregistreurs et de Windows Recall.",
+        "screen_security_drm_eyebrow": "DRM Windows / protection contre la capture d’écran",
+        "screen_security_drm_note": "Réutilise le même indicateur de protection du contenu du système que les apps multimédias pour le DRM. Ce n’est pas une garantie absolue : un appareil photo pointé vers l’écran peut encore capturer le contenu, et certains outils d’accessibilité peuvent nécessiter de désactiver cette option.",
+        "screen_security_disable_confirm": "Désactiver la sécurité d’écran ? Windows Recall et d’autres applications pourront à nouveau capturer MeshChatX.",
+        "screen_security_enabled_toast": "Sécurité d’écran activée",
+        "screen_security_disabled_toast": "Sécurité d’écran désactivée",
         "web_exposure_title": "Exposition réseau",
         "web_exposure_description": "L'adresse d'écoute de l'interface web est définie au démarrage via --host ou MESHCHAT_HOST. Restreignez l'accès lorsque l'écoute n'est pas sur loopback.",
         "web_listen_address": "Adresse d'écoute actuelle",
@@ -3315,6 +3323,9 @@
         "ready": "Prêt à rouler !",
         "ready_desc": "Tout est arrangé. Reticulum a été redémarré avec votre nouvelle configuration.",
         "ready_desc_page": "MeshChatX est maintenant configuré et Reticulum a été chargé à chaud avec vos nouveaux paramètres.",
+        "privacy_title": "Confidentialité et sécurité",
+        "privacy_desc": "Renforcement facultatif pour cet appareil. Vous pouvez changer ces options à tout moment dans Paramètres → Confidentialité.",
+        "privacy_later_hint": "Recommandé pour un usage sensible. Laisser les options désactivées convient aux installations courantes.",
         "docker_note": "Le réticulum a été redémarré automatiquement. Si quelque chose vous regarde, vous pouvez redémarrer MeshChatX depuis le menu.",
         "restart_required": "Reticulum Recommencé",
         "restart_desc_page": "Reticulum a été chargé à chaud avec votre nouvelle configuration. Aucun redémarrage manuel n'est nécessaire pour une utilisation normale.",
@@ -3735,5 +3746,11 @@
         "identity_created": "Management identity created",
         "failed_load_identities": "Failed to load management identities",
         "failed_create_identity": "Failed to create management identity"
+    },
+    "post_install": {
+        "windows_screen_security_title": "Activer la sécurité d’écran Windows ?",
+        "windows_screen_security_desc": "MeshChatX peut utiliser la protection de contenu Windows (le même indicateur d’affichage de type DRM que les apps multimédias) pour que les captures, enregistreurs et Windows Recall ne capturent pas la fenêtre. Modifiable plus tard dans Paramètres → Confidentialité.",
+        "windows_screen_security_enable": "Activer la sécurité d’écran",
+        "windows_screen_security_later": "Pas maintenant"
     }
 }

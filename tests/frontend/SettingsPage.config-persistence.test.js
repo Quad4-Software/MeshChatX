@@ -43,6 +43,11 @@ vi.mock("../../meshchatx/src/frontend/js/KeyboardShortcuts", () => ({
 vi.mock("../../meshchatx/src/frontend/js/ElectronUtils", () => ({
     default: {
         isElectron: vi.fn(() => false),
+        isWindowsElectron: vi.fn(() => false),
+        getScreenSecuritySettings: vi.fn(async () => null),
+        setScreenSecurityEnabled: vi.fn(async () => null),
+        getCloseSettings: vi.fn(async () => null),
+        setCloseSettings: vi.fn(async () => null),
     },
 }));
 

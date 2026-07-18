@@ -10,6 +10,7 @@ import {
     registerCoreContributions,
     resetCoreContributionsForTests,
 } from "../../meshchatx/src/frontend/js/registries/registerCoreContributions.js";
+import { postInstallPromptRegistry } from "../../meshchatx/src/frontend/js/registries/postInstallPromptRegistry.js";
 
 describe("CommandPalette.vue", () => {
     let axiosMock;
@@ -21,6 +22,7 @@ describe("CommandPalette.vue", () => {
         toolsRegistry.clear();
         commandRegistry.clear();
         settingsSectionRegistry.clear();
+        postInstallPromptRegistry.clear();
         registerCoreContributions();
         axiosMock = {
             get: vi.fn().mockResolvedValue({

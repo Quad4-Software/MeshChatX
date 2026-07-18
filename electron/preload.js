@@ -78,6 +78,18 @@ contextBridge.exposeInMainWorld("electron", {
         return await ipcRenderer.invoke("set-close-settings", partial);
     },
 
+    getPlatform: function () {
+        return process.platform;
+    },
+
+    getScreenSecuritySettings: async function () {
+        return await ipcRenderer.invoke("get-screen-security-settings");
+    },
+
+    setScreenSecurityEnabled: async function (enabled) {
+        return await ipcRenderer.invoke("set-screen-security-enabled", enabled === true);
+    },
+
     // allow getting memory usage in electron browser window
     getMemoryUsage: async function () {
         return await ipcRenderer.invoke("get-memory-usage");

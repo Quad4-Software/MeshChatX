@@ -165,6 +165,14 @@
         "privacy_subsection_telemetry": "Mesh-verkon käyttötiedot",
         "privacy_mode_enabled": "Yksityisyystila (estä ulkoinen HTTP/HTTPS)",
         "privacy_mode_description": "Estää karttalaatat, geokoodaukset, LibreTranslate, laiteohjelmistolataukset, ja muut lähtevät HTTP/HTTPS-yhteydet sovelluksesta. Selaimen sisällön turvallisuuskäytäntö (CSP) kiristetään sallimaan vain samasta lähteestä oleva liikenne.",
+        "screen_security_enabled": "Näytön suojaus (estä kaappaus)",
+        "screen_security_description": "Käyttää Windowsin display-affinity-lippua, jotta MeshChatX jätetään pois kuvakaappauksista, näytön tallennuksesta ja Windows Recallista. Ikkuna näyttää edelleen normaalilta näytölläsi.",
+        "screen_security_description_short": "Piilota tämä ikkuna kuvakaappauksilta, tallentimilta ja Windows Recallilta.",
+        "screen_security_drm_eyebrow": "Windowsin DRM / näytön kaappaussuojaus",
+        "screen_security_drm_note": "Käyttää samaa käyttöjärjestelmän sisällönsuojauslippua kuin mediaohjelmat DRM:ään. Ei ole ehdoton tae: kameraan näyttöön suunnattuna voi yhä kaapata sisältöä, ja jotkin saavutettavuustyökalut voivat vaatia asetuksen pois päältä.",
+        "screen_security_disable_confirm": "Poistetaanko näytön suojaus käytöstä? Windows Recall ja muut sovellukset voivat taas kaapata MeshChatX:n.",
+        "screen_security_enabled_toast": "Näytön suojaus käytössä",
+        "screen_security_disabled_toast": "Näytön suojaus pois käytöstä",
         "web_exposure_title": "Verkon näkyvyys",
         "web_exposure_description": "Verkkokäyttöliittymän sidososoite luodaan käynnistyksessä asettamalla --host tai MESHCHAT_HOST. Rajoita pääsyä, jos osoite ei ole sidottu paluusilmukkaan.",
         "web_listen_address": "Nykyinen sidososoite",
@@ -3522,6 +3530,9 @@
         "ready": "Valmis aloittamaan!",
         "ready_desc": "Kaikki on asetettu. Reticulum on käynnistetty uudelleen uudella kokoonpanollasi.",
         "ready_desc_page": "MeshChatX on nyt määritetty ja Reticulum on ladattu uudelleen kuumana uusilla asetuksillasi.",
+        "privacy_title": "Tietosuoja ja turvallisuus",
+        "privacy_desc": "Valinnainen kovennus tälle laitteelle. Voit muuttaa näitä milloin tahansa kohdassa Asetukset → Tietosuoja.",
+        "privacy_later_hint": "Suositellaan arkaluontoiseen käyttöön. Vaihtoehtojen jättäminen pois on ok tavallisissa asennuksissa.",
         "docker_note": "Reticulum käynnistettiin automaattisesti uudelleen. Jos jokin näyttää vialta, voit käynnistää MeshChatX:n uudelleen valikosta.",
         "restart_required": "Reticulum käynnistettiin uudelleen",
         "restart_desc_page": "Reticulum ladattiin uudelleen kuumana uudella kokoonpanollasi. Manuaalista uudelleenkäynnistystä ei tarvita normaalia käyttöä varten.",
@@ -3735,5 +3746,11 @@
         "identity_created": "Management identity created",
         "failed_load_identities": "Failed to load management identities",
         "failed_create_identity": "Failed to create management identity"
+    },
+    "post_install": {
+        "windows_screen_security_title": "Otetaanko Windowsin näytön suojaus käyttöön?",
+        "windows_screen_security_desc": "MeshChatX voi käyttää Windowsin sisällönsuojausta (samaa DRM-tyylistä näyttölippua kuin mediaohjelmat), jotta kuvakaappaukset, tallentimet ja Windows Recall eivät kaappaa sovellusikkunaa. Voit muuttaa tätä myöhemmin kohdassa Asetukset → Tietosuoja.",
+        "windows_screen_security_enable": "Ota näytön suojaus käyttöön",
+        "windows_screen_security_later": "Ei nyt"
     }
 }

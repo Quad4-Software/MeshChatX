@@ -2815,6 +2815,33 @@
                                 >
                                     {{ $t("app.privacy_eyebrow") }}
                                 </div>
+                                <div
+                                    v-if="showWindowsScreenSecurity"
+                                    class="p-4 rounded-2xl border border-amber-200 dark:border-amber-900/40 bg-amber-50/80 dark:bg-amber-950/30 space-y-3"
+                                >
+                                    <div class="text-xs font-semibold uppercase tracking-wider text-amber-800 dark:text-amber-200">
+                                        {{ $t("app.screen_security_drm_eyebrow") }}
+                                    </div>
+                                    <label class="setting-toggle">
+                                        <Toggle
+                                            id="screen-security-enabled"
+                                            v-model="screenSecurityEnabled"
+                                            :disabled="screenSecuritySaving"
+                                            @update:model-value="onScreenSecurityChange"
+                                        />
+                                        <span class="setting-toggle__label">
+                                            <span class="setting-toggle__title">{{
+                                                $t("app.screen_security_enabled")
+                                            }}</span>
+                                            <span class="setting-toggle__description">{{
+                                                $t("app.screen_security_description")
+                                            }}</span>
+                                        </span>
+                                    </label>
+                                    <p class="text-xs text-amber-900/80 dark:text-amber-100/80">
+                                        {{ $t("app.screen_security_drm_note") }}
+                                    </p>
+                                </div>
                                 <label class="setting-toggle">
                                     <Toggle
                                         id="privacy-mode-enabled"
@@ -3861,6 +3888,9 @@ export default {
                 closeBehavior: "ask",
                 trayEnabled: true,
             },
+            screenSecurityEnabled: false,
+            screenSecuritySaving: false,
+            showWindowsScreenSecurity: false,
             androidShellPrivacy: {
                 blockScreenshots: false,
                 clearClipboardOnBackground: false,
@@ -4105,6 +4135,7 @@ export default {
         this.loadBatterySaverPrefsFromStorage();
         this.loadBatteryInterfaceRows();
         this.loadDesktopCloseSettings();
+        this.loadScreenSecuritySettings();
         this.loadReticulumInstanceSettings();
         this.loadAndroidShellPrivacy();
     },
@@ -4339,6 +4370,48 @@ export default {
                 }
             } catch (e) {
                 console.log(e);
+            }
+        },
+        async loadScreenSecuritySettings() {
+            this.showWindowsScreenSecurity =
+                typeof ElectronUtils.isWindowsElectron === "function" && ElectronUtils.isWindowsElectron();
+            if (!this.showWindowsScreenSecurity) {
+                return;
+            }
+            try {
+                const settings = await ElectronUtils.getScreenSecuritySettings();
+                this.screenSecurityEnabled = settings?.enabled === true;
+            } catch (e) {
+                console.log(e);
+            }
+        },
+        async onScreenSecurityChange(value) {
+            if (this.screenSecuritySaving) {
+                return;
+            }
+            this.screenSecuritySaving = true;
+            const enabled = value === true;
+            try {
+                if (!enabled) {
+                    const confirmed = await DialogUtils.confirm(this.$t("app.screen_security_disable_confirm"));
+                    if (!confirmed) {
+                        this.screenSecurityEnabled = true;
+                        return;
+                    }
+                }
+                const settings = await ElectronUtils.setScreenSecurityEnabled(enabled);
+                this.screenSecurityEnabled = settings?.enabled === true;
+                ToastUtils.success(
+                    this.screenSecurityEnabled
+                        ? this.$t("app.screen_security_enabled_toast")
+                        : this.$t("app.screen_security_disabled_toast")
+                );
+            } catch (e) {
+                console.log(e);
+                this.screenSecurityEnabled = !enabled;
+                ToastUtils.error(this.$t("common.save_failed"));
+            } finally {
+                this.screenSecuritySaving = false;
             }
         },
         async onDesktopTrayEnabledChange(value) {

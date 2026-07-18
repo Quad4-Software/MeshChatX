@@ -35,10 +35,18 @@ const {
     rememberedCloseSettings,
     createCloseRequestGuard,
 } = require("./closeBehavior");
+const {
+    loadDesktopPrivacySettings,
+    saveDesktopPrivacySettings,
+    isScreenSecurityPlatformSupported,
+    applyContentProtection,
+    applyContentProtectionToWindows,
+} = require("./desktopPrivacySettings");
 
 // remember main window
 var mainWindow = null;
 var closeSettings = null;
+var desktopPrivacySettings = null;
 var closeRequestGuard = createCloseRequestGuard();
 
 function getDialogParentWindow() {
@@ -373,6 +381,14 @@ ipcMain.handle("get-close-settings", () => {
 
 ipcMain.handle("set-close-settings", (_event, partial) => {
     return updateCloseSettings(partial || {});
+});
+
+ipcMain.handle("get-screen-security-settings", () => {
+    return getScreenSecuritySettingsPayload();
+});
+
+ipcMain.handle("set-screen-security-enabled", (_event, enabled) => {
+    return updateScreenSecurityEnabled(enabled === true);
 });
 
 ipcMain.handle("get-memory-usage", async () => {
@@ -746,6 +762,42 @@ function updateCloseSettings(partial) {
     return closeSettings;
 }
 
+function getDesktopPrivacySettings() {
+    if (!desktopPrivacySettings) {
+        desktopPrivacySettings = loadDesktopPrivacySettings(getDefaultStorageDir());
+    }
+    return desktopPrivacySettings;
+}
+
+function getScreenSecuritySettingsPayload() {
+    const settings = getDesktopPrivacySettings();
+    const platform = process.platform;
+    return {
+        platform,
+        available: isScreenSecurityPlatformSupported(platform),
+        windowsDrm: platform === "win32",
+        enabled: settings.screenSecurityEnabled === true,
+    };
+}
+
+function applyScreenSecurityToWindow(browserWindow, enabled) {
+    if (!applyContentProtection(browserWindow, enabled === true)) {
+        return;
+    }
+}
+
+function applyScreenSecurityToAllWindows(enabled) {
+    applyContentProtectionToWindows(BrowserWindow.getAllWindows(), enabled === true);
+}
+
+function updateScreenSecurityEnabled(enabled) {
+    desktopPrivacySettings = saveDesktopPrivacySettings(getDefaultStorageDir(), {
+        screenSecurityEnabled: enabled === true,
+    });
+    applyScreenSecurityToAllWindows(desktopPrivacySettings.screenSecurityEnabled);
+    return getScreenSecuritySettingsPayload();
+}
+
 function destroyTray() {
     if (tray && !tray.isDestroyed()) {
         tray.destroy();
@@ -868,6 +920,8 @@ app.whenReady().then(async () => {
         attachDevToolsF12Shortcut(browserWindow);
         attachWindowOpenHandler(browserWindow);
         attachInWindowNavigationGuard(browserWindow);
+        const privacy = getDesktopPrivacySettings();
+        applyScreenSecurityToWindow(browserWindow, privacy.screenSecurityEnabled === true);
     });
 
     // Security: Enforce CSP for all requests as a shell-level fallback

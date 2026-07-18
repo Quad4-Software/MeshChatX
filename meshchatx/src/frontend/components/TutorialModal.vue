@@ -1040,10 +1040,15 @@
                         </div>
                     </div>
 
-                    <!-- Step 7: Finish -->
+                    <!-- Step 7: Privacy -->
+                    <div v-else-if="currentStep === 7" key="step7-privacy" class="space-y-4">
+                        <TutorialPrivacyStep />
+                    </div>
+
+                    <!-- Step 8: Finish -->
                     <div
-                        v-else-if="currentStep === 7"
-                        key="step7-finish"
+                        v-else-if="currentStep === 8"
+                        key="step8-finish"
                         class="flex flex-col items-center text-center space-y-8 py-10"
                     >
                         <div class="w-32 h-32 bg-green-500/10 rounded-full flex items-center justify-center relative">
@@ -2198,10 +2203,15 @@
                         </div>
                     </div>
 
-                    <!-- Step 7: Finish -->
+                    <!-- Step 7: Privacy -->
+                    <div v-else-if="currentStep === 7" key="page-step7-privacy" class="space-y-6 py-8">
+                        <TutorialPrivacyStep />
+                    </div>
+
+                    <!-- Step 8: Finish -->
                     <div
-                        v-else-if="currentStep === 7"
-                        key="page-step7-finish"
+                        v-else-if="currentStep === 8"
+                        key="page-step8-finish"
                         class="flex flex-col items-center text-center space-y-10 py-20"
                     >
                         <div class="w-48 h-48 bg-green-500/10 rounded-full flex items-center justify-center relative">
@@ -2291,6 +2301,7 @@ import { bundledReticulumDocsUrl } from "../js/reticulumDocsEntryUrl.js";
 import LanguageSelector from "./LanguageSelector.vue";
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import Toggle from "./forms/Toggle.vue";
+import TutorialPrivacyStep from "./TutorialPrivacyStep.vue";
 
 export default {
     name: "TutorialModal",
@@ -2298,12 +2309,13 @@ export default {
         LanguageSelector,
         MaterialDesignIcon,
         Toggle,
+        TutorialPrivacyStep,
     },
     data() {
         return {
             visible: false,
             currentStep: 1,
-            totalSteps: 7,
+            totalSteps: 8,
             logoUrl,
             identityMode: "new",
             identityName: "",
