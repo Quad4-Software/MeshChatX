@@ -268,5 +268,3 @@ export function meshDate(input) {
         },
     };
 }
-
-export default meshDate;

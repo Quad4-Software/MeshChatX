@@ -13,7 +13,6 @@ export {
     FROM_NOW_THRESHOLDS,
     SUPPORTED_FORMAT_TOKENS,
     MONTHS_SHORT,
-    default as datetime,
 } from "./datetime.js";
 export {
     default as clickOutside,
