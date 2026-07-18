@@ -10,6 +10,8 @@ No database queries are made in the monitor loop - all reads come
 from in-memory deques kept by PersistentLogHandler and psutil.
 """
 
+from __future__ import annotations
+
 import asyncio
 import collections
 import gc
@@ -130,7 +132,7 @@ class HealthMonitor:
             self._mem_available_history,
             self.MEMORY_RECOVER_MB,
         ):
-            self._recover_memory_pressure()
+            self._recover_memory_pressure(available_mb)
 
         for w in warnings:
             _log.warning("Health warning: %s", w["message"])
@@ -171,15 +173,26 @@ class HealthMonitor:
         except Exception as exc:
             _log.debug("Memory pressure cleanup failed: %s", exc)
 
-    def _recover_memory_pressure(self) -> None:
+    def _recover_memory_pressure(self, available_mb: float | None = None) -> None:
         self._memory_pressure_active = False
         manager = getattr(self.app, "memory_pressure", None) if self.app else None
-        if manager is None:
-            return
-        try:
-            manager.on_memory_recovered()
-        except Exception as exc:
-            _log.debug("Memory pressure recovery failed: %s", exc)
+        if manager is not None:
+            try:
+                manager.on_memory_recovered()
+            except Exception as exc:
+                _log.debug("Memory pressure recovery failed: %s", exc)
+        value = round(float(available_mb), 1) if available_mb is not None else None
+        self._broadcast(
+            {
+                "kind": "memory_recovered",
+                "message": (
+                    f"Available memory recovered: {value:.0f} MB"
+                    if value is not None
+                    else "Available memory recovered"
+                ),
+                "value": value,
+            },
+        )
 
     def _broadcast(self, warning_data):
         if not self.app:

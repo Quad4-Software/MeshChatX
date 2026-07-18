@@ -23,6 +23,9 @@ def _log_debug(msg: str):
 class WebAudioSource(LocalSource):
     """Injects PCM frames (int16 little-endian) received over websocket into the transmit mixer."""
 
+    # ~2.7s of 48 kHz mono int16; normal frames are tens of ms.
+    MAX_PCM_BYTES = 256 * 1024
+
     def __init__(self, target_frame_ms: int, sink: Mixer):
         self.target_frame_ms = target_frame_ms or 60
         self.sink = sink
@@ -48,6 +51,14 @@ class WebAudioSource(LocalSource):
 
     def push_pcm(self, pcm_bytes: bytes):
         try:
+            if pcm_bytes is None:
+                return
+            if len(pcm_bytes) > self.MAX_PCM_BYTES:
+                RNS.log(
+                    f"WebAudioSource: dropping oversized pcm frame ({len(pcm_bytes)} bytes)",
+                    RNS.LOG_WARNING,
+                )
+                return
             samples = (
                 np.frombuffer(pcm_bytes, dtype=np.int16).astype(np.float32) / 32768.0
             )

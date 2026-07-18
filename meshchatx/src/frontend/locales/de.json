@@ -332,6 +332,7 @@
         "restart_backend": "Backend neu starten",
         "restart_backend_started": "Backend wird neu gestartet…",
         "restart_backend_failed": "Backend konnte nicht neu gestartet werden",
+        "memory_pressure_warning": "Hoher Speicherverbrauch erkannt. Schließen Sie große Nomad-Seiten, Sprachnachrichten oder Downloads, falls möglich, und schließen Sie dann diese Warnung. Anhaltender Druck kann von feindlichen Peer-Inhalten stammen.",
         "view_backend_logs": "Absturzprotokoll anzeigen",
         "view_backend_logs_failed": "Kein Absturzprotokoll verfügbar",
         "blackhole_integration_enabled": "Blackhole-Integration",

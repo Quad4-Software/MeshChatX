@@ -359,6 +359,7 @@
         "restart_backend": "Riavvia backend",
         "restart_backend_started": "Riavvio del backend…",
         "restart_backend_failed": "Impossibile riavviare il backend",
+        "memory_pressure_warning": "Rilevato uso elevato di memoria. Chiudi pagine Nomad grandi, note vocali o download se puoi, poi chiudi questo avviso. Una pressione persistente può derivare da contenuti peer ostili.",
         "view_backend_logs": "Visualizza registro crash",
         "view_backend_logs_failed": "Nessun registro crash disponibile",
         "blackhole_integration_enabled": "Integrazione Blackhole",

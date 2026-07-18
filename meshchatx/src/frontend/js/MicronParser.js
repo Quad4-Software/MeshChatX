@@ -78,17 +78,24 @@ export default class MicronParser extends BaseMicronParser {
         if (typeof html !== "string") return html;
         const dangerousProps = ["zindex", "inset", "top", "left", "right", "bottom", "transform"];
         return html.replace(/(\s)style="([^"]*)"/g, (match, space, styleValue) => {
-            const declarations = styleValue.split(";").filter(Boolean);
+            // Strip CSS comments so position/**/:fixed cannot hide the colon.
+            const cleaned = String(styleValue).replace(/\/\*[\s\S]*?\*\//g, "");
+            const declarations = cleaned.split(";").filter(Boolean);
             const safe = declarations.filter((decl) => {
                 const colon = decl.indexOf(":");
                 if (colon <= 0) return false;
                 const rawProp = decl.slice(0, colon).trim();
-                const prop = rawProp.toLowerCase().replace(/-/g, "");
+                const prop = rawProp.toLowerCase().replace(/-/g, "").replace(/\s+/g, "");
+                // Drop !important so "fixed !important" still matches fixed/sticky.
                 const val = decl
                     .slice(colon + 1)
                     .trim()
-                    .toLowerCase();
-                if (prop === "position" && (val === "fixed" || val === "sticky")) return false;
+                    .toLowerCase()
+                    .replace(/!important/g, "")
+                    .trim();
+                if (prop === "position" && (/\bfixed\b/.test(val) || /\bsticky\b/.test(val))) {
+                    return false;
+                }
                 if (dangerousProps.includes(prop)) return false;
                 if (prop === "width" && /100v[wh]/.test(val)) return false;
                 if (prop === "height" && /100v[hw]/.test(val)) return false;

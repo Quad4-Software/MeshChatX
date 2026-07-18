@@ -79,6 +79,22 @@ describe("Toast.vue", () => {
         expect(wrapper.text()).not.toContain("Test Message");
     });
 
+    it("emits toast-dismissed with key when a keyed toast is closed", async () => {
+        const dismissed = vi.fn();
+        GlobalEmitter.on("toast-dismissed", dismissed);
+        GlobalEmitter.emit("toast", {
+            message: "Memory",
+            type: "warning",
+            duration: 0,
+            key: "health-memory-warning",
+        });
+        await wrapper.vm.$nextTick();
+        await wrapper.find("button").trigger("click");
+        await wrapper.vm.$nextTick();
+        expect(dismissed).toHaveBeenCalledWith({ key: "health-memory-warning" });
+        GlobalEmitter.off("toast-dismissed", dismissed);
+    });
+
     it("assigns correct classes for different toast types", async () => {
         GlobalEmitter.emit("toast", { message: "Success", type: "success" });
         GlobalEmitter.emit("toast", { message: "Error", type: "error" });

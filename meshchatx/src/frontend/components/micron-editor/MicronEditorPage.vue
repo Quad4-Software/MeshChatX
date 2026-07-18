@@ -285,7 +285,12 @@ export default {
                 );
             } catch (error) {
                 console.error("Error rendering micron:", error);
-                this.renderedContent = `<p style="color: red;">Error rendering: ${error.message}</p>`;
+                const msg = String(error?.message ?? error ?? "unknown error")
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;");
+                this.renderedContent = `<p style="color: red;">Error rendering: ${msg}</p>`;
             }
         },
         toggleView() {

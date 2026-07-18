@@ -359,6 +359,7 @@
         "restart_backend": "Redémarrer le moteur",
         "restart_backend_started": "Redémarrage du moteur…",
         "restart_backend_failed": "Impossible de redémarrer le moteur",
+        "memory_pressure_warning": "Utilisation mémoire élevée détectée. Fermez les grandes pages Nomad, notes vocales ou téléchargements si possible, puis fermez cet avertissement. Une pression persistante peut venir d'un contenu pair hostile.",
         "view_backend_logs": "Voir le journal de crash",
         "view_backend_logs_failed": "Aucun journal de crash disponible",
         "blackhole_integration_enabled": "Intégration du trou noir",

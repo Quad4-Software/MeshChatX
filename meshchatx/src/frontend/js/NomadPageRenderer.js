@@ -1,5 +1,6 @@
 import DOMPurify from "dompurify";
 import { marked } from "marked";
+import MicronParser from "./MicronParser.js";
 
 marked.setOptions({
     gfm: true,
@@ -66,11 +67,28 @@ export function rewriteCssBodyHtmlSelectors(css) {
     return s;
 }
 
+export function stripOverlayFromCss(css) {
+    if (!css) {
+        return "";
+    }
+    let s = String(css).replace(/\/\*[\s\S]*?\*\//g, "");
+    s = s.replace(/position\s*:\s*[^;{}]+/gi, (decl) => {
+        const lower = decl.toLowerCase();
+        if (/\bfixed\b/.test(lower) || /\bsticky\b/.test(lower)) {
+            return "position:static";
+        }
+        return decl;
+    });
+    s = s.replace(/\b(?:z-index|inset|top|left|right|bottom|transform)\s*:\s*[^;{}]+/gi, "");
+    s = s.replace(/\b(?:width|height)\s*:\s*[^;{}]*100v[wh][^;{}]*/gi, "");
+    return s;
+}
+
 export function stripExternalFromCss(css) {
     if (!css) {
         return "";
     }
-    let s = css;
+    let s = stripOverlayFromCss(css);
     s = s.replace(/@import\s+[^;]+;/gi, "");
     s = s.replace(/@import\s+url\s*\([^)]+\)\s*;?/gi, "");
     s = s.replace(/expression\s*\(/gi, "blocked(");
@@ -234,10 +252,11 @@ function basePurifyConfig() {
 
 export function sanitizeNomadHtmlFragment(html) {
     ensureNomadPurifyHooks();
-    return DOMPurify.sanitize(html, {
+    const sanitized = DOMPurify.sanitize(html, {
         ...basePurifyConfig(),
         WHOLE_DOCUMENT: false,
     });
+    return MicronParser.stripOverlayStyles(sanitized);
 }
 
 export function sanitizeNomadHtmlDocument(html) {
@@ -258,10 +277,11 @@ export function sanitizeNomadHtmlDocument(html) {
         bodyMarkup = html;
     }
     const wrapped = `<div class="${NOMAD_HTML_ROOT_CLASS}">${bodyMarkup}</div>`;
-    return DOMPurify.sanitize(wrapped, {
+    const sanitized = DOMPurify.sanitize(wrapped, {
         ...basePurifyConfig(),
         WHOLE_DOCUMENT: false,
     });
+    return MicronParser.stripOverlayStyles(sanitized);
 }
 
 export function renderNomadMarkdown(markdown, options = {}) {

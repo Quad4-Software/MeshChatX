@@ -558,6 +558,18 @@ Content at depth 1`;
     });
 
     describe("adversarial: XSS bypass attempts", () => {
+        it("strips position fixed even with !important", () => {
+            const html = MicronParser.stripOverlayStyles('<div style="position:fixed !important; color:red">x</div>');
+            expect(html.toLowerCase()).not.toMatch(/position\s*:\s*fixed/);
+            expect(html).toContain("color:red");
+        });
+
+        it("strips position fixed hidden by CSS comments", () => {
+            const html = MicronParser.stripOverlayStyles('<div style="position/**/:fixed; color:blue">x</div>');
+            expect(html.toLowerCase()).not.toMatch(/position/);
+            expect(html).toContain("color:blue");
+        });
+
         it("blocks SVG onload XSS", () => {
             const markup = '<svg onload="alert(1)">';
             const html = parser.convertMicronToHtml(markup);

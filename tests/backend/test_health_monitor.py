@@ -118,6 +118,46 @@ class TestHealthMonitorDetection(unittest.TestCase):
             mem_warnings = [c for c in calls if c["kind"] == "memory_low"]
             self.assertEqual(len(mem_warnings), 1)
 
+    @patch("meshchatx.src.backend.recovery.health_monitor.psutil")
+    def test_memory_single_dip_is_false_positive(self, mock_psutil):
+        """One low reading alone must not warn (needs consecutive samples)."""
+        mem_mock = MagicMock()
+        mem_mock.available = 50 * 1024 * 1024
+        mock_psutil.virtual_memory.return_value = mem_mock
+        with patch.object(self.monitor, "_broadcast") as mock_bc:
+            self.monitor._check()
+            calls = [c[0][0] for c in mock_bc.call_args_list]
+            mem_warnings = [c for c in calls if c["kind"] == "memory_low"]
+            self.assertEqual(len(mem_warnings), 0)
+
+    @patch("meshchatx.src.backend.recovery.health_monitor.psutil")
+    def test_memory_recovered_broadcast_after_pressure(self, mock_psutil):
+        mem_mock = MagicMock()
+        mem_mock.available = 500 * 1024 * 1024
+        mock_psutil.virtual_memory.return_value = mem_mock
+        self.monitor._memory_pressure_active = True
+        self.monitor._mem_available_history.append(450.0)
+        with patch.object(self.monitor, "_broadcast") as mock_bc:
+            self.monitor._check()
+            calls = [c[0][0] for c in mock_bc.call_args_list]
+            recovered = [c for c in calls if c["kind"] == "memory_recovered"]
+            self.assertEqual(len(recovered), 1)
+            self.assertFalse(self.monitor._memory_pressure_active)
+
+    @patch("meshchatx.src.backend.recovery.health_monitor.psutil")
+    def test_memory_still_low_does_not_broadcast_recovered(self, mock_psutil):
+        mem_mock = MagicMock()
+        mem_mock.available = 50 * 1024 * 1024
+        mock_psutil.virtual_memory.return_value = mem_mock
+        self.monitor._memory_pressure_active = True
+        self.monitor._mem_available_history.append(80.0)
+        with patch.object(self.monitor, "_broadcast") as mock_bc:
+            self.monitor._check()
+            calls = [c[0][0] for c in mock_bc.call_args_list]
+            recovered = [c for c in calls if c["kind"] == "memory_recovered"]
+            self.assertEqual(len(recovered), 0)
+            self.assertTrue(self.monitor._memory_pressure_active)
+
     def test_latest_snapshot_structure(self):
         self.monitor._check()
         snap = self.monitor.latest_snapshot

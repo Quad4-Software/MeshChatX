@@ -359,6 +359,7 @@
         "restart_backend": "Reiniciar backend",
         "restart_backend_started": "Reiniciando backend…",
         "restart_backend_failed": "No se pudo reiniciar el backend",
+        "memory_pressure_warning": "Uso alto de memoria detectado. Cierre páginas Nomad grandes, notas de voz o descargas si puede, y luego cierre esta advertencia. La presión persistente puede proceder de contenido hostil de un peer.",
         "view_backend_logs": "Ver registro de fallos",
         "view_backend_logs_failed": "No hay registro de fallos disponible",
         "blackhole_integration_enabled": "Integración de los agujeros negros",

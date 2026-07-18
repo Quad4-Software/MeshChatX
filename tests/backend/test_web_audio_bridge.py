@@ -40,6 +40,13 @@ def test_web_audio_source_empty_pcm_does_not_push():
     assert len(sink.frames) == 0
 
 
+def test_web_audio_source_drops_oversized_pcm_frame():
+    sink = _DummySink()
+    src = WebAudioSource(target_frame_ms=60, sink=sink)
+    src.push_pcm(b"\x00" * (WebAudioSource.MAX_PCM_BYTES + 1))
+    assert len(sink.frames) == 0
+
+
 def test_web_audio_source_respects_sink_can_receive_false():
     sink = MagicMock()
     sink.can_receive.return_value = False

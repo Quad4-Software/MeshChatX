@@ -367,6 +367,7 @@
         "restart_backend": "Käynnistä taustapalvelu uudelleen",
         "restart_backend_started": "Käynnistetään palvelua...",
         "restart_backend_failed": "Taustapalvelun Uudelleenkäynnistys epäonnistui",
+        "memory_pressure_warning": "Korkea muistinkäyttö havaittu. Sulje suuret Nomad-sivut, ääniviestit tai lataukset jos mahdollista, ja sulje sitten tämä varoitus. Jatkuva paine voi johtua vihamielisestä vertaissisällöstä.",
         "view_backend_logs": "Näytä kaatumisloki",
         "view_backend_logs_failed": "Kaatumisloki ei ole saatavilla",
         "blackhole_integration_enabled": "Musta aukko",
