@@ -413,6 +413,113 @@
                                 </div>
                             </header>
                             <div class="settings-section__body space-y-4">
+                                <div
+                                    class="rounded-2xl border border-amber-200 dark:border-amber-900/40 bg-amber-50/60 dark:bg-amber-950/20 p-4 space-y-3"
+                                >
+                                    <div>
+                                        <div class="text-sm font-bold text-gray-900 dark:text-gray-100">
+                                            {{ $t("maintenance.purge_old_title") }}
+                                        </div>
+                                        <div class="text-xs text-gray-600 dark:text-zinc-400 mt-1">
+                                            {{ $t("maintenance.purge_old_desc") }}
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-wrap gap-2">
+                                        <button
+                                            type="button"
+                                            class="px-3 py-1.5 rounded-lg text-xs font-semibold border transition"
+                                            :class="
+                                                messageAgePurgeMode === 'days'
+                                                    ? 'border-amber-500 bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-100'
+                                                    : 'border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-zinc-300'
+                                            "
+                                            @click="messageAgePurgeMode = 'days'"
+                                        >
+                                            {{ $t("maintenance.purge_mode_days") }}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="px-3 py-1.5 rounded-lg text-xs font-semibold border transition"
+                                            :class="
+                                                messageAgePurgeMode === 'date'
+                                                    ? 'border-amber-500 bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-100'
+                                                    : 'border-gray-200 dark:border-zinc-700 text-gray-700 dark:text-zinc-300'
+                                            "
+                                            @click="messageAgePurgeMode = 'date'"
+                                        >
+                                            {{ $t("maintenance.purge_mode_date") }}
+                                        </button>
+                                    </div>
+                                    <div
+                                        v-if="messageAgePurgeMode === 'days'"
+                                        class="flex flex-wrap items-center gap-2"
+                                    >
+                                        <label class="text-sm text-gray-800 dark:text-zinc-200" for="purge-older-days">
+                                            {{ $t("maintenance.purge_older_than_days") }}
+                                        </label>
+                                        <input
+                                            id="purge-older-days"
+                                            v-model.number="messageAgePurgeDays"
+                                            type="number"
+                                            min="1"
+                                            max="10000"
+                                            class="input-field w-24"
+                                            :aria-label="$t('maintenance.purge_older_than_days')"
+                                            @change="refreshMessageAgePurgePreview"
+                                        />
+                                    </div>
+                                    <div v-else class="flex flex-wrap items-center gap-2">
+                                        <label class="text-sm text-gray-800 dark:text-zinc-200" for="purge-before-date">
+                                            {{ $t("maintenance.purge_before_date") }}
+                                        </label>
+                                        <input
+                                            id="purge-before-date"
+                                            v-model="messageAgePurgeBeforeDate"
+                                            type="date"
+                                            class="input-field"
+                                            :aria-label="$t('maintenance.purge_before_date')"
+                                            @change="refreshMessageAgePurgePreview"
+                                        />
+                                    </div>
+                                    <div class="text-xs text-gray-600 dark:text-zinc-400">
+                                        <span v-if="messageAgePurgePreviewLoading">{{
+                                            $t("maintenance.purge_preview_loading")
+                                        }}</span>
+                                        <span v-else-if="messageAgePurgePreviewCount != null">{{
+                                            $t("maintenance.purge_preview_count", {
+                                                count: messageAgePurgePreviewCount,
+                                            })
+                                        }}</span>
+                                        <span v-else>{{ $t("maintenance.purge_preview_hint") }}</span>
+                                    </div>
+                                    <div class="flex flex-wrap gap-2">
+                                        <button
+                                            type="button"
+                                            class="px-3 py-2 rounded-xl text-sm font-semibold border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-700 disabled:opacity-60"
+                                            :disabled="messageAgePurgeBusy"
+                                            @click="refreshMessageAgePurgePreview"
+                                        >
+                                            {{ $t("maintenance.purge_preview") }}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="px-3 py-2 rounded-xl text-sm font-semibold border border-blue-300 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/40 text-blue-800 dark:text-blue-200 hover:bg-blue-100 dark:hover:bg-blue-900/40 disabled:opacity-60"
+                                            :disabled="messageAgePurgeBusy"
+                                            @click="exportOldMessagesArchive"
+                                        >
+                                            {{ $t("maintenance.export_old_archive") }}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            class="px-3 py-2 rounded-xl text-sm font-semibold border border-red-300 dark:border-red-800 bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
+                                            :disabled="messageAgePurgeBusy"
+                                            @click="purgeOldMessages"
+                                        >
+                                            {{ $t("maintenance.purge_old_confirm_btn") }}
+                                        </button>
+                                    </div>
+                                </div>
+
                                 <div class="grid grid-cols-1 gap-3">
                                     <button
                                         type="button"
@@ -426,6 +533,22 @@
                                             </div>
                                             <div class="text-xs opacity-80">
                                                 {{ $t("maintenance.clear_messages_desc") }}
+                                            </div>
+                                        </div>
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        class="btn-maintenance border-violet-200 dark:border-violet-900/30 text-violet-800 dark:text-violet-200 bg-violet-50 dark:bg-violet-900/10 hover:bg-violet-100 dark:hover:bg-violet-900/20"
+                                        @click="clearDuplicateMessages"
+                                    >
+                                        <div class="flex flex-col items-start text-left">
+                                            <div class="font-bold flex items-center gap-2">
+                                                <MaterialDesignIcon icon-name="content-duplicate" class="size-4" />
+                                                {{ $t("maintenance.clear_duplicates") }}
+                                            </div>
+                                            <div class="text-xs opacity-80">
+                                                {{ $t("maintenance.clear_duplicates_desc") }}
                                             </div>
                                         </div>
                                     </button>
@@ -587,6 +710,9 @@
                                             class="size-6 text-blue-500 group-hover:scale-110 transition"
                                         />
                                         <div class="text-sm font-bold">{{ $t("maintenance.export_messages") }}</div>
+                                        <div class="text-xs opacity-70 text-center px-1">
+                                            {{ $t("maintenance.export_messages_desc") }}
+                                        </div>
                                     </button>
 
                                     <button
@@ -599,6 +725,9 @@
                                             class="size-6 text-emerald-500 group-hover:scale-110 transition"
                                         />
                                         <div class="text-sm font-bold">{{ $t("maintenance.import_messages") }}</div>
+                                        <div class="text-xs opacity-70 text-center px-1">
+                                            {{ $t("maintenance.import_messages_desc") }}
+                                        </div>
                                     </button>
                                     <input
                                         ref="importFile"
@@ -3867,6 +3996,12 @@ export default {
             shortcuts: [],
             reloadingRns: false,
             reloadRnsStatusMessage: "",
+            messageAgePurgeMode: "days",
+            messageAgePurgeDays: 90,
+            messageAgePurgeBeforeDate: "",
+            messageAgePurgePreviewCount: null,
+            messageAgePurgePreviewLoading: false,
+            messageAgePurgeBusy: false,
             searchQuery: "",
             activeSettingsTab: DEFAULT_SETTINGS_TAB,
             micronWasmUpdateModalOpen: false,
@@ -5567,6 +5702,80 @@ export default {
                 ToastUtils.error(this.$t("common.error"));
             }
         },
+        async clearDuplicateMessages() {
+            if (!(await DialogUtils.confirm(this.$t("maintenance.clear_duplicates_confirm")))) return;
+            try {
+                const { deleted } = await maintenanceClient.clearDuplicateMessages(window.api);
+                ToastUtils.success(this.$t("maintenance.clear_duplicates_done", { count: deleted }));
+            } catch {
+                ToastUtils.error(this.$t("common.error"));
+            }
+        },
+        messageAgeFilterParams() {
+            return maintenanceClient.buildMessageAgeFilterParams({
+                mode: this.messageAgePurgeMode,
+                days: this.messageAgePurgeDays,
+                beforeDate: this.messageAgePurgeBeforeDate,
+            });
+        },
+        async refreshMessageAgePurgePreview() {
+            const params = this.messageAgeFilterParams();
+            if (!params) {
+                this.messageAgePurgePreviewCount = null;
+                ToastUtils.warning(this.$t("maintenance.purge_filter_invalid"));
+                return;
+            }
+            this.messageAgePurgePreviewLoading = true;
+            try {
+                const { count } = await maintenanceClient.previewMessageAgePurge(window.api, params);
+                this.messageAgePurgePreviewCount = count;
+            } catch {
+                this.messageAgePurgePreviewCount = null;
+                ToastUtils.error(this.$t("common.error"));
+            } finally {
+                this.messageAgePurgePreviewLoading = false;
+            }
+        },
+        async exportOldMessagesArchive() {
+            const params = this.messageAgeFilterParams();
+            if (!params) {
+                ToastUtils.warning(this.$t("maintenance.purge_filter_invalid"));
+                return;
+            }
+            this.messageAgePurgeBusy = true;
+            try {
+                const bundle = await maintenanceClient.exportMessagesBundle(window.api, params);
+                const dataStr = JSON.stringify(bundle, null, 2);
+                const blob = new Blob([dataStr], { type: "application/json" });
+                const stamp =
+                    params.before || (params.older_than_days != null ? `${params.older_than_days}d` : "filtered");
+                const exportFileDefaultName = `meshchat_messages_archive_${stamp}_${new Date().toISOString().slice(0, 10)}.json`;
+                await DownloadUtils.downloadFile(exportFileDefaultName, blob);
+                ToastUtils.success(this.$t("maintenance.export_old_archive_done"));
+            } catch {
+                ToastUtils.error(this.$t("common.error"));
+            } finally {
+                this.messageAgePurgeBusy = false;
+            }
+        },
+        async purgeOldMessages() {
+            const params = this.messageAgeFilterParams();
+            if (!params) {
+                ToastUtils.warning(this.$t("maintenance.purge_filter_invalid"));
+                return;
+            }
+            if (!(await DialogUtils.confirm(this.$t("maintenance.purge_old_confirm")))) return;
+            this.messageAgePurgeBusy = true;
+            try {
+                const { deleted } = await maintenanceClient.purgeMessagesByAge(window.api, params);
+                this.messageAgePurgePreviewCount = 0;
+                ToastUtils.success(this.$t("maintenance.purge_old_done", { count: deleted }));
+            } catch {
+                ToastUtils.error(this.$t("common.error"));
+            } finally {
+                this.messageAgePurgeBusy = false;
+            }
+        },
         async clearAnnounces() {
             if (!(await DialogUtils.confirm(this.$t("maintenance.clear_confirm")))) return;
             try {
@@ -5737,11 +5946,12 @@ export default {
         },
         async exportMessages() {
             try {
-                const response = await window.api.get("/api/v1/maintenance/messages/export");
-                const dataStr = JSON.stringify(response.data, null, 2);
+                const bundle = await maintenanceClient.exportMessagesBundle(window.api);
+                const dataStr = JSON.stringify(bundle, null, 2);
                 const blob = new Blob([dataStr], { type: "application/json" });
                 const exportFileDefaultName = `meshchat_messages_${new Date().toISOString().slice(0, 10)}.json`;
                 await DownloadUtils.downloadFile(exportFileDefaultName, blob);
+                ToastUtils.success(this.$t("maintenance.export_messages_done"));
             } catch {
                 ToastUtils.error(this.$t("common.error"));
             }

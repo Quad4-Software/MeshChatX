@@ -158,6 +158,9 @@ export function createWindowApi(serverConfigRef) {
             if (String(url).includes("/api/v1/stickers") && !String(url).includes("export")) {
                 return Promise.resolve({ data: { stickers: [] } });
             }
+            if (String(url).includes("/api/v1/maintenance/messages/purge-preview")) {
+                return Promise.resolve({ data: { count: 0, cutoff: 1 } });
+            }
             if (String(url).includes("/api/v1/maintenance/messages/export")) {
                 return Promise.resolve({ data: { messages: [] } });
             }

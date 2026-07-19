@@ -25,6 +25,25 @@ MESSAGE_ENVELOPE_SCHEMA: dict = {
     "additionalProperties": True,
 }
 
+MAINTENANCE_MESSAGES_PURGE_PREVIEW_SCHEMA: dict = {
+    "type": "object",
+    "required": ["count", "cutoff"],
+    "properties": {
+        "count": {"type": "integer", "minimum": 0},
+        "cutoff": _NUMBER,
+    },
+    "additionalProperties": False,
+}
+
+MAINTENANCE_MESSAGES_DUPLICATES_SCHEMA: dict = {
+    "type": "object",
+    "required": ["count"],
+    "properties": {
+        "count": {"type": "integer", "minimum": 0},
+    },
+    "additionalProperties": False,
+}
+
 CONFIG_ENVELOPE_SCHEMA: dict = {
     "type": "object",
     "required": ["config"],

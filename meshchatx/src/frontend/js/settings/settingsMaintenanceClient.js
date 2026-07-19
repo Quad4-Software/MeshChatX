@@ -10,6 +10,73 @@ export async function clearMessages(api) {
 }
 
 /**
+ * @param {{ get: (path: string) => Promise<{ data?: { count?: number } }> }} api
+ */
+export async function previewDuplicateMessages(api) {
+    const response = await api.get("/api/v1/maintenance/messages/duplicates");
+    return { count: Number(response?.data?.count) || 0 };
+}
+
+/**
+ * @param {{ delete: (path: string) => Promise<{ data?: { deleted?: number } }> }} api
+ */
+export async function clearDuplicateMessages(api) {
+    const response = await api.delete("/api/v1/maintenance/messages/duplicates");
+    return { deleted: Number(response?.data?.deleted) || 0 };
+}
+
+/**
+ * Build query params for age-based message purge/export.
+ * @param {{ mode: "days"|"date", days?: number, beforeDate?: string }} opts
+ * @returns {{ older_than_days?: number, before?: string }|null}
+ */
+export function buildMessageAgeFilterParams(opts) {
+    if (!opts || typeof opts !== "object") return null;
+    if (opts.mode === "date") {
+        const before = typeof opts.beforeDate === "string" ? opts.beforeDate.trim() : "";
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(before)) return null;
+        return { before };
+    }
+    const days = Number(opts.days);
+    if (!Number.isFinite(days) || days < 1 || days > 10000) return null;
+    return { older_than_days: Math.floor(days) };
+}
+
+/**
+ * @param {{ get: (path: string, config?: object) => Promise<{ data?: { count?: number, cutoff?: number } }> }} api
+ * @param {{ older_than_days?: number, before?: string }} params
+ */
+export async function previewMessageAgePurge(api, params) {
+    const response = await api.get("/api/v1/maintenance/messages/purge-preview", { params });
+    return {
+        count: Number(response?.data?.count) || 0,
+        cutoff: response?.data?.cutoff,
+    };
+}
+
+/**
+ * @param {{ delete: (path: string, config?: object) => Promise<{ data?: { deleted?: number } }> }} api
+ * @param {{ older_than_days?: number, before?: string }} params
+ */
+export async function purgeMessagesByAge(api, params) {
+    const response = await api.delete("/api/v1/maintenance/messages", { params });
+    return {
+        deleted: Number(response?.data?.deleted) || 0,
+        cutoff: response?.data?.cutoff,
+    };
+}
+
+/**
+ * @param {{ get: (path: string, config?: object) => Promise<{ data?: object }> }} api
+ * @param {{ older_than_days?: number, before?: string }|null|undefined} [params]
+ */
+export async function exportMessagesBundle(api, params) {
+    const config = params && Object.keys(params).length ? { params } : undefined;
+    const response = await api.get("/api/v1/maintenance/messages/export", config);
+    return response?.data;
+}
+
+/**
  * @param {{ delete: (path: string) => Promise<unknown> }} api
  */
 export async function clearAnnounces(api) {

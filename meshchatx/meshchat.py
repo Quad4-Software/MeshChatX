@@ -177,6 +177,20 @@ from meshchatx.src.backend.message_blocklist import (
     parse_import_document,
     parse_message_blocklist_json,
 )
+from meshchatx.src.backend.auto_resend_guard import (
+    AUTO_RESEND_COOLDOWN_SECONDS,
+    MAX_AUTO_RESEND_ATTEMPTS,
+    RECENT_SAME_CONTENT_SECONDS,
+    AutoResendCoordinator,
+    cooldown_until,
+    fields_with_auto_resend_count,
+    next_attempt_count,
+    should_skip_for_budget,
+)
+from meshchatx.src.backend.local_message_retention import (
+    purge_messages_before_cutoff,
+    resolve_message_age_cutoff,
+)
 from meshchatx.src.backend.message_export_bundle import (
     build_messages_export_bundle,
     import_messages_export_bundle,
@@ -522,6 +536,7 @@ class ReticulumMeshChat:
         self.contexts: dict[str, IdentityContext] = {}
         self.current_context: IdentityContext | None = None
         self._propagation_sync_metrics: dict[str, dict] = {}
+        self._auto_resend_coordinator = AutoResendCoordinator()
 
         AsyncUtils.ensure_background_loop()
         self.web_audio_bridge = WebAudioBridge(None, None)
@@ -8956,11 +8971,94 @@ class ReticulumMeshChat:
                     status=500,
                 )
 
-        # maintenance - clear messages
+        # maintenance - clear messages (all, or older than days / before date)
         @routes.delete("/api/v1/maintenance/messages")
         async def maintenance_clear_messages(request):
-            self.database.messages.delete_all_lxmf_messages()
-            return web.json_response({"message": "All messages cleared"})
+            try:
+                cutoff = resolve_message_age_cutoff(
+                    older_than_days=request.query.get("older_than_days"),
+                    before=request.query.get("before"),
+                )
+            except ValueError as e:
+                return web.json_response({"message": str(e)}, status=400)
+            if cutoff is None:
+                self.database.messages.delete_all_lxmf_messages()
+                return web.json_response(
+                    {"message": "All messages cleared", "deleted": None}
+                )
+
+            def _cancel(h):
+                try:
+                    if self.message_router is not None:
+                        self.message_router.cancel_outbound(h)
+                except Exception:
+                    pass
+
+            deleted = await asyncio.to_thread(
+                purge_messages_before_cutoff,
+                self.database.messages,
+                _cancel,
+                cutoff,
+            )
+            return web.json_response(
+                {
+                    "message": f"Deleted {deleted} messages older than cutoff",
+                    "deleted": deleted,
+                    "cutoff": cutoff,
+                },
+            )
+
+        @routes.get("/api/v1/maintenance/messages/duplicates")
+        async def maintenance_messages_duplicates_preview(request):
+            count = await asyncio.to_thread(
+                self.database.messages.count_duplicate_lxmf_messages_by_content,
+            )
+            return web.json_response({"count": count})
+
+        @routes.delete("/api/v1/maintenance/messages/duplicates")
+        async def maintenance_messages_duplicates_clear(request):
+            def _clear():
+                hashes = self.database.messages.list_duplicate_lxmf_message_hashes_by_content()
+                if not hashes:
+                    return 0
+                if self.message_router is not None:
+                    for h in hashes:
+                        if not h or len(h) % 2 != 0:
+                            continue
+                        try:
+                            self.message_router.cancel_outbound(bytes.fromhex(h))
+                        except Exception:
+                            pass
+                self.database.messages.delete_lxmf_messages_by_hashes(hashes)
+                self.database.messages.prune_conversation_metadata_for_peers_with_no_messages()
+                return len(hashes)
+
+            deleted = await asyncio.to_thread(_clear)
+            return web.json_response(
+                {
+                    "message": f"Deleted {deleted} duplicate messages",
+                    "deleted": deleted,
+                },
+            )
+
+        @routes.get("/api/v1/maintenance/messages/purge-preview")
+        async def maintenance_messages_purge_preview(request):
+            try:
+                cutoff = resolve_message_age_cutoff(
+                    older_than_days=request.query.get("older_than_days"),
+                    before=request.query.get("before"),
+                )
+            except ValueError as e:
+                return web.json_response({"message": str(e)}, status=400)
+            if cutoff is None:
+                return web.json_response(
+                    {"message": "older_than_days or before is required"},
+                    status=400,
+                )
+            count = self.database.messages.count_lxmf_messages_with_timestamp_before(
+                cutoff,
+            )
+            return web.json_response({"count": count, "cutoff": cutoff})
 
         # maintenance - clear announces
         @routes.delete("/api/v1/maintenance/announces")
@@ -9018,17 +9116,33 @@ class ReticulumMeshChat:
             except Exception as e:
                 return web.json_response({"message": str(e)}, status=500)
 
-        # maintenance - export messages
+        # maintenance - export messages (optional age filter for archive-before-purge)
         @routes.get("/api/v1/maintenance/messages/export")
         async def maintenance_export_messages(request):
+            try:
+                cutoff = resolve_message_age_cutoff(
+                    older_than_days=request.query.get("older_than_days"),
+                    before=request.query.get("before"),
+                )
+            except ValueError as e:
+                return web.json_response({"message": str(e)}, status=400)
             messages_list = []
             page_size = 5000
             offset = 0
             while True:
-                page = self.database.messages.get_all_lxmf_messages(
-                    limit=page_size,
-                    offset=offset,
-                )
+                if cutoff is None:
+                    page = self.database.messages.get_all_lxmf_messages(
+                        limit=page_size,
+                        offset=offset,
+                    )
+                else:
+                    page = (
+                        self.database.messages.get_lxmf_messages_with_timestamp_before(
+                            cutoff,
+                            limit=page_size,
+                            offset=offset,
+                        )
+                    )
                 messages_list.extend(dict(m) for m in page)
                 if len(page) < page_size:
                     break
@@ -23020,12 +23134,17 @@ class ReticulumMeshChat:
 
         # resend all failed messages that were intended for this destination
         if ctx.config.auto_resend_failed_messages_when_announce_received.get():
-            AsyncUtils.run_async(
-                self.resend_failed_messages_for_destination(
-                    destination_hash.hex(),
-                    context=ctx,
-                ),
-            )
+            try:
+                path_ready = RNS.Transport.has_path(destination_hash)
+            except Exception:
+                path_ready = False
+            if path_ready:
+                AsyncUtils.run_async(
+                    self.resend_failed_messages_for_destination(
+                        destination_hash.hex(),
+                        context=ctx,
+                    ),
+                )
 
     def on_lxmf_propagation_announce_received(
         self,
@@ -23091,87 +23210,146 @@ class ReticulumMeshChat:
         if not ctx:
             return
 
-        # get messages that failed to send to this destination
-        failed_messages = ctx.database.messages.get_failed_messages_for_destination(
-            destination_hash,
-        )
+        identity_key = ""
+        try:
+            if ctx.identity is not None and getattr(ctx.identity, "hash", None):
+                identity_key = ctx.identity.hash.hex()
+        except Exception:
+            identity_key = destination_hash
 
-        # resend failed messages
-        for failed_message in failed_messages:
-            try:
-                # parse fields as json
-                fields = json.loads(failed_message["fields"])
+        lock = self._auto_resend_coordinator.lock_for(identity_key, destination_hash)
+        async with lock:
+            failed_messages = ctx.database.messages.get_failed_messages_for_destination(
+                destination_hash,
+            )
+            now = time.time()
 
-                # parse image field
-                image_field = None
-                if "image" in fields:
-                    image_field = LxmfImageField(
-                        fields["image"]["image_type"],
-                        base64.b64decode(fields["image"]["image_bytes"]),
-                    )
-
-                # parse audio field
-                audio_field = None
-                if "audio" in fields:
-                    audio_field = LxmfAudioField(
-                        fields["audio"]["audio_mode"],
-                        base64.b64decode(fields["audio"]["audio_bytes"]),
-                    )
-
-                # parse file attachments field
-                file_attachments_field = None
-                if "file_attachments" in fields:
-                    file_attachments = [
-                        LxmfFileAttachment(
-                            file_attachment["file_name"],
-                            base64.b64decode(file_attachment["file_bytes"]),
-                        )
-                        for file_attachment in fields["file_attachments"]
-                    ]
-                    file_attachments_field = LxmfFileAttachmentsField(file_attachments)
-
-                # don't resend message with attachments if not allowed
-                if not ctx.config.allow_auto_resending_failed_messages_with_attachments.get():
-                    if (
-                        image_field is not None
-                        or audio_field is not None
-                        or file_attachments_field is not None
-                    ):
-                        print(
-                            "Not resending failed message with attachments, as setting is disabled",
-                        )
+            for failed_message in failed_messages:
+                try:
+                    message_hash = failed_message.get("hash")
+                    if not message_hash:
                         continue
 
-                # send new message with failed message content
-                new_message = await self.send_message(
-                    failed_message["destination_hash"],
-                    failed_message["content"],
-                    image_field=image_field,
-                    audio_field=audio_field,
-                    file_attachments_field=file_attachments_field,
-                    context=ctx,
-                )
+                    if should_skip_for_budget(
+                        failed_message.get("fields"),
+                        max_attempts=MAX_AUTO_RESEND_ATTEMPTS,
+                    ):
+                        continue
 
-                # Only drop the old failed row after a replacement was queued.
-                if new_message is None or getattr(new_message, "hash", None) is None:
-                    continue
+                    if ctx.database.messages.has_recent_outbound_with_content(
+                        destination_hash,
+                        failed_message.get("content"),
+                        within_seconds=RECENT_SAME_CONTENT_SECONDS,
+                        now=now,
+                    ):
+                        continue
 
-                ctx.database.messages.delete_lxmf_message_by_hash(
-                    failed_message["hash"],
-                )
+                    claimed = (
+                        ctx.database.messages.try_claim_failed_message_for_auto_resend(
+                            message_hash,
+                            cooldown_until=cooldown_until(
+                                now,
+                                seconds=AUTO_RESEND_COOLDOWN_SECONDS,
+                            ),
+                            now=now,
+                        )
+                    )
+                    if not claimed:
+                        continue
 
-                # tell all websocket clients that old failed message was deleted so it can remove from ui
-                await self.websocket_broadcast(
-                    json.dumps(
-                        {
-                            "type": "lxmf_message_deleted",
-                            "hash": failed_message["hash"],
-                        },
-                    ),
-                )
+                    # parse fields as json
+                    fields = json.loads(failed_message["fields"] or "{}")
+                    if not isinstance(fields, dict):
+                        fields = {}
 
-            except Exception as e:
-                print("Error resending failed message: " + str(e))
+                    # parse image field
+                    image_field = None
+                    if "image" in fields:
+                        image_field = LxmfImageField(
+                            fields["image"]["image_type"],
+                            base64.b64decode(fields["image"]["image_bytes"]),
+                        )
+
+                    # parse audio field
+                    audio_field = None
+                    if "audio" in fields:
+                        audio_field = LxmfAudioField(
+                            fields["audio"]["audio_mode"],
+                            base64.b64decode(fields["audio"]["audio_bytes"]),
+                        )
+
+                    # parse file attachments field
+                    file_attachments_field = None
+                    if "file_attachments" in fields:
+                        file_attachments = [
+                            LxmfFileAttachment(
+                                file_attachment["file_name"],
+                                base64.b64decode(file_attachment["file_bytes"]),
+                            )
+                            for file_attachment in fields["file_attachments"]
+                        ]
+                        file_attachments_field = LxmfFileAttachmentsField(
+                            file_attachments,
+                        )
+
+                    # don't resend message with attachments if not allowed
+                    if not ctx.config.allow_auto_resending_failed_messages_with_attachments.get():
+                        if (
+                            image_field is not None
+                            or audio_field is not None
+                            or file_attachments_field is not None
+                        ):
+                            print(
+                                "Not resending failed message with attachments, as setting is disabled",
+                            )
+                            continue
+
+                    attempt = next_attempt_count(failed_message.get("fields"))
+                    ctx.database.messages.set_message_fields_json(
+                        message_hash,
+                        fields_with_auto_resend_count(
+                            failed_message.get("fields"),
+                            attempt,
+                        ),
+                    )
+
+                    # send new message with failed message content
+                    new_message = await self.send_message(
+                        failed_message["destination_hash"],
+                        failed_message["content"],
+                        image_field=image_field,
+                        audio_field=audio_field,
+                        file_attachments_field=file_attachments_field,
+                        context=ctx,
+                    )
+
+                    # Only drop the old failed row after a replacement was queued.
+                    if (
+                        new_message is None
+                        or getattr(new_message, "hash", None) is None
+                    ):
+                        continue
+
+                    new_hash = new_message.hash.hex()
+                    ctx.database.messages.set_auto_resend_count_on_message(
+                        new_hash,
+                        attempt,
+                    )
+
+                    ctx.database.messages.delete_lxmf_message_by_hash(message_hash)
+
+                    # tell all websocket clients that old failed message was deleted so it can remove from ui
+                    await self.websocket_broadcast(
+                        json.dumps(
+                            {
+                                "type": "lxmf_message_deleted",
+                                "hash": message_hash,
+                            },
+                        ),
+                    )
+
+                except Exception as e:
+                    print("Error resending failed message: " + str(e))
 
     def on_rrc_hub_announce_received(
         self,
