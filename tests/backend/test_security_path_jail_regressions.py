@@ -182,7 +182,9 @@ async def test_rncp_send_path_jails_and_blocks_identity(tmp_path, monkeypatch):
     fake_home = tmp_path / "home"
     fake_home.mkdir()
     monkeypatch.setenv("HOME", str(fake_home))
-    monkeypatch.setattr(os.path, "expanduser", lambda p: str(fake_home) if p == "~" else p)
+    monkeypatch.setattr(
+        os.path, "expanduser", lambda p: str(fake_home) if p == "~" else p
+    )
 
     outside_root = tmp_path.parent / "rncp-outside-root"
     outside_root.mkdir(exist_ok=True)

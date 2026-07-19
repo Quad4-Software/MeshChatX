@@ -24,7 +24,7 @@ def test_safe_path_under_dir_rejects_nul_and_dot(tmp_path):
 
 
 def test_safe_path_under_dir_rejects_symlink_escape(tmp_path):
-    """realpath containment must reject basename symlinks that leave the jail."""
+    """Reject basename symlinks whose real path leaves the jail."""
     outside = tmp_path / "outside.secret"
     outside.write_bytes(b"secret")
     jail = tmp_path / "jail"
