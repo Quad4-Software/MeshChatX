@@ -189,9 +189,7 @@ describe("RelayChatPage.vue", () => {
         expect(wrapper.vm.messages[0].text).toBe("hello");
         expect(wrapper.vm.members.length).toBe(1);
         expect(wrapper.text()).toContain("hello");
-        expect(axiosMock.post).toHaveBeenCalledWith(
-            `/api/v1/rrc/hubs/${HUB_HASH}/rooms/lobby/read`
-        );
+        expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/rrc/hubs/${HUB_HASH}/rooms/lobby/read`);
     });
 
     it("clears local mention unread when marking an open room read", async () => {

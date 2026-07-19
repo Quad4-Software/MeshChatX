@@ -55,11 +55,13 @@
     >
         <span class="mr-1 text-xs text-sem-fg-muted">{{ page.formatTime(entry.msg.ts) }}</span>
         * {{ page.displayName(entry.msg) }}
+        <!-- eslint-disable vue/no-v-html -- sanitized via renderMessageHtml -->
         <span
             class="break-words"
-            v-html="page.renderMessageHtml(entry.msg.text)"
             @click="page.handleMessageHtmlClick($event)"
+            v-html="page.renderMessageHtml(entry.msg.text)"
         ></span>
+        <!-- eslint-enable vue/no-v-html -->
     </div>
     <div
         v-else-if="entry.msg"
@@ -70,11 +72,13 @@
     >
         <span class="mr-1.5 text-xs text-sem-fg-muted">{{ page.formatTime(entry.msg.ts) }}</span>
         <span class="mr-1.5 font-semibold" :style="page.nameStyle(entry.msg)">{{ page.displayName(entry.msg) }}:</span>
+        <!-- eslint-disable vue/no-v-html -- sanitized via renderMessageHtml -->
         <span
             class="whitespace-pre-wrap break-words"
-            v-html="page.renderMessageHtml(entry.msg.text)"
             @click="page.handleMessageHtmlClick($event)"
+            v-html="page.renderMessageHtml(entry.msg.text)"
         ></span>
+        <!-- eslint-enable vue/no-v-html -->
     </div>
 </template>
 

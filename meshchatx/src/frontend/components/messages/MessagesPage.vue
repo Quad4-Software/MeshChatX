@@ -1265,9 +1265,7 @@ export default {
             if (conversation.is_unread) {
                 conversation.is_unread = false;
             }
-            Promise.resolve(
-                window.api.post(`/api/v1/lxmf/conversations/${normalized}/mark-as-read`)
-            )
+            Promise.resolve(window.api.post(`/api/v1/lxmf/conversations/${normalized}/mark-as-read`))
                 .then(() => {
                     GlobalEmitter.emit("notifications-changed");
                     NotificationUtils.clearMessageNotifications(normalized);
