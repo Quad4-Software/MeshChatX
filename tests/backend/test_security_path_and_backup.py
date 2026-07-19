@@ -21,4 +21,10 @@ def test_delete_database_backup_rejects_path_outside_storage(tmp_path):
             "../../../etc/passwd",
             is_backup=True,
         )
+    with pytest.raises(ValueError, match="Invalid path"):
+        db.delete_snapshot_or_backup(
+            storage,
+            "../database-backups_old/secret.zip",
+            is_backup=True,
+        )
     db.close_all()

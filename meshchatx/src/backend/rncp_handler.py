@@ -298,6 +298,37 @@ class RNCPHandler:
 
         return None
 
+    def _resolve_send_path(self, file_path: str) -> str:
+        """Resolve a local send path under storage or home, never identity keys."""
+        if not isinstance(file_path, str) or not file_path or "\x00" in file_path:
+            msg = "Invalid file path"
+            raise ValueError(msg)
+        expanded = os.path.expanduser(file_path)
+        if not os.path.isabs(expanded):
+            expanded = os.path.join(self.storage_dir, expanded)
+        real = os.path.realpath(expanded)
+        allowed_roots = [os.path.realpath(self.storage_dir)]
+        home = os.path.expanduser("~")
+        if home and home != "~":
+            allowed_roots.append(os.path.realpath(home))
+        if not any(
+            real == root or real.startswith(root + os.sep) for root in allowed_roots
+        ):
+            msg = "File path is outside the RNCP send jail"
+            raise PermissionError(msg)
+        base = os.path.basename(real)
+        if base in {"identity", "identity.bak"}:
+            msg = "Refusing to send identity private key material"
+            raise PermissionError(msg)
+        parts = {part for part in real.split(os.sep) if part}
+        if parts & {".ssh", ".gnupg"}:
+            msg = "Refusing to send credential material"
+            raise PermissionError(msg)
+        if not os.path.isfile(real):
+            msg = f"File not found: {file_path}"
+            raise FileNotFoundError(msg)
+        return real
+
     async def send_file(
         self,
         destination_hash: bytes,
@@ -307,10 +338,7 @@ class RNCPHandler:
         no_compress: bool = False,
         on_transfer_started: Callable[[str], None] | None = None,
     ):
-        file_path = os.path.expanduser(file_path)
-        if not os.path.isfile(file_path):
-            msg = f"File not found: {file_path}"
-            raise FileNotFoundError(msg)
+        file_path = self._resolve_send_path(file_path)
 
         if not RNS.Transport.has_path(destination_hash):
             RNS.Transport.request_path(destination_hash)

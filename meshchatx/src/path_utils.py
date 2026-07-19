@@ -9,6 +9,15 @@ import tempfile
 from aiohttp import web
 
 
+def is_path_within_dir(path: str, directory: str) -> bool:
+    """Return True when path resolves inside directory (realpath + separator)."""
+    if not path or not directory:
+        return False
+    candidate = os.path.normcase(os.path.normpath(os.path.realpath(path)))
+    root = os.path.normcase(os.path.normpath(os.path.realpath(directory)))
+    return candidate == root or candidate.startswith(root + os.sep)
+
+
 def safe_path_under_dir(directory: str, filename: str) -> str | None:
     """Resolve filename as a basename under directory, or None if unsafe.
 
@@ -27,6 +36,25 @@ def safe_path_under_dir(directory: str, filename: str) -> str | None:
     if path != root and not path.startswith(root + os.sep):
         return None
     return path
+
+
+def resolve_path_under_dir(directory: str, user_path: str) -> str | None:
+    """Join user_path under directory and return realpath if contained, else None.
+
+    Unlike safe_path_under_dir, relative subpaths are allowed when they stay
+    inside directory after realpath normalization.
+    """
+    if not isinstance(directory, str) or not directory:
+        return None
+    if not isinstance(user_path, str) or not user_path or "\x00" in user_path:
+        return None
+    cleaned = user_path.replace("\\", "/").lstrip("/")
+    if not cleaned or cleaned in {".", ".."}:
+        return None
+    joined = os.path.join(directory, cleaned)
+    if not is_path_within_dir(joined, directory):
+        return None
+    return os.path.realpath(joined)
 
 
 def resolve_log_dir():
@@ -65,13 +93,23 @@ def resolve_log_dir():
     return None
 
 
-def request_client_ip(request: web.Request) -> str:
+def request_client_ip(
+    request: web.Request,
+    trusted_proxy_cidrs: str | None = None,
+) -> str:
+    """Return the client IP, trusting X-Forwarded-For only from configured proxies.
+
+    When trusted_proxy_cidrs is empty, X-Forwarded-For is ignored so clients
+    cannot spoof allowlist or login lockout keys.
+    """
+    remote = (request.remote or "").strip()
     xff = request.headers.get("X-Forwarded-For")
-    if xff:
-        return xff.split(",")[0].strip()
-    if request.remote:
-        return request.remote
-    return ""
+    if xff and trusted_proxy_cidrs:
+        from meshchatx.src.backend.ip_allowlist import client_ip_allowed
+
+        if remote and client_ip_allowed(remote, trusted_proxy_cidrs):
+            return xff.split(",")[0].strip()
+    return remote
 
 
 def get_file_path(filename):

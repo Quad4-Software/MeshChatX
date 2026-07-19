@@ -657,14 +657,21 @@ class Database:
         is_backup: bool = False,
     ):
         """Deletes a database snapshot or auto-backup."""
+        from meshchatx.src.path_utils import safe_path_under_dir
+
+        if not isinstance(filename, str) or not filename or "\x00" in filename:
+            msg = "Invalid path"
+            raise ValueError(msg)
+        normalized = filename.replace("\\", "/")
+        if normalized != os.path.basename(normalized) or ".." in normalized:
+            msg = "Invalid path"
+            raise ValueError(msg)
+
         base_dir = "database-backups" if is_backup else "snapshots"
-        file_path = os.path.join(storage_path, base_dir, filename)
-
-        # Basic security check to ensure we stay within the intended directory
-        abs_path = os.path.abspath(file_path)
-        abs_base = os.path.abspath(os.path.join(storage_path, base_dir))
-
-        if not abs_path.startswith(abs_base):
+        directory = os.path.join(storage_path, base_dir)
+        name = filename if filename.endswith(".zip") else f"{filename}.zip"
+        abs_path = safe_path_under_dir(directory, name)
+        if not abs_path:
             msg = "Invalid path"
             raise ValueError(msg)
 

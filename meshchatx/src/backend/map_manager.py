@@ -22,9 +22,9 @@ MAX_EXPORT_TILES = 200_000
 
 def is_path_within_dir(path, directory):
     """Return True when path resolves to a location inside directory."""
-    candidate = os.path.normcase(os.path.normpath(os.path.realpath(path)))
-    root = os.path.normcase(os.path.normpath(os.path.realpath(directory)))
-    return candidate == root or candidate.startswith(root + os.sep)
+    from meshchatx.src.path_utils import is_path_within_dir as _is_path_within_dir
+
+    return _is_path_within_dir(path, directory)
 
 
 def is_mbtiles_filename(filename):

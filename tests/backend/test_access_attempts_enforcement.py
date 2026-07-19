@@ -47,9 +47,14 @@ def _id_hex(mock_app) -> str:
     return mock_app.identity.hash.hex()
 
 
-def test_request_client_ip_prefers_x_forwarded_for():
+def test_request_client_ip_prefers_x_forwarded_for_only_from_trusted_proxy():
+    r = _make_req("127.0.0.1", "ua", xff="203.0.113.5, 10.0.0.2")
+    assert _request_client_ip(r, trusted_proxy_cidrs="127.0.0.1/32") == "203.0.113.5"
+
+
+def test_request_client_ip_ignores_xff_by_default():
     r = _make_req("10.0.0.1", "ua", xff="203.0.113.5, 10.0.0.2")
-    assert _request_client_ip(r) == "203.0.113.5"
+    assert _request_client_ip(r) == "10.0.0.1"
 
 
 def test_request_client_ip_falls_back_to_remote():

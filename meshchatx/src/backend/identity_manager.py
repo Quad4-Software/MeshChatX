@@ -11,6 +11,8 @@ import RNS
 from meshchatx.src.backend.database.config import ConfigDAO
 from meshchatx.src.backend.database.provider import DatabaseProvider
 from meshchatx.src.backend.database.schema import DatabaseSchema
+from meshchatx.src.backend.meshchat_utils import normalize_identity_storage_hash
+from meshchatx.src.path_utils import is_path_within_dir
 
 
 class IdentityManager:
@@ -240,11 +242,18 @@ class IdentityManager:
             json.dump(existing_metadata, f)
 
     def delete_identity(self, identity_hash: str, current_identity_hash: str | None):
-        if current_identity_hash and identity_hash == current_identity_hash:
+        canonical = normalize_identity_storage_hash(identity_hash)
+        if not canonical:
+            raise ValueError("Invalid identity hash")
+        current_canonical = normalize_identity_storage_hash(current_identity_hash or "")
+        if current_canonical and canonical == current_canonical:
             raise ValueError("Cannot delete the current active identity")
 
-        identity_dir = os.path.join(self.storage_dir, "identities", identity_hash)
-        if os.path.exists(identity_dir):
+        identities_root = os.path.join(self.storage_dir, "identities")
+        identity_dir = os.path.join(identities_root, canonical)
+        if not is_path_within_dir(identity_dir, identities_root):
+            raise ValueError("Invalid identity hash")
+        if os.path.isdir(identity_dir):
             shutil.rmtree(identity_dir)
             return True
         return False
