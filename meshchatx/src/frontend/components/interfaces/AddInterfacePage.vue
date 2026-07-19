@@ -1729,25 +1729,25 @@
                                                 <div>
                                                     <FormLabel class="glass-label">Interface Mode</FormLabel>
                                                     <select v-model="sharedInterfaceSettings.mode" class="input-field">
-                                                        <option :value="undefined">{{
-                                                            $t("interfaces.mode_default_full")
-                                                        }}</option>
+                                                        <option :value="undefined">
+                                                            {{ $t("interfaces.mode_default_full") }}
+                                                        </option>
                                                         <option value="full">{{ $t("interfaces.mode_full") }}</option>
-                                                        <option value="gateway">{{
-                                                            $t("interfaces.mode_gateway")
-                                                        }}</option>
-                                                        <option value="access_point">{{
-                                                            $t("interfaces.mode_access_point")
-                                                        }}</option>
-                                                        <option value="roaming">{{
-                                                            $t("interfaces.mode_roaming")
-                                                        }}</option>
-                                                        <option value="boundary">{{
-                                                            $t("interfaces.mode_boundary")
-                                                        }}</option>
-                                                        <option value="internal">{{
-                                                            $t("interfaces.mode_internal")
-                                                        }}</option>
+                                                        <option value="gateway">
+                                                            {{ $t("interfaces.mode_gateway") }}
+                                                        </option>
+                                                        <option value="access_point">
+                                                            {{ $t("interfaces.mode_access_point") }}
+                                                        </option>
+                                                        <option value="roaming">
+                                                            {{ $t("interfaces.mode_roaming") }}
+                                                        </option>
+                                                        <option value="boundary">
+                                                            {{ $t("interfaces.mode_boundary") }}
+                                                        </option>
+                                                        <option value="internal">
+                                                            {{ $t("interfaces.mode_internal") }}
+                                                        </option>
                                                     </select>
                                                 </div>
                                                 <div>
@@ -1781,9 +1781,7 @@
                                                             {{ $t("interfaces.announces_from_internal_hint") }}
                                                         </p>
                                                     </div>
-                                                    <Toggle
-                                                        v-model="sharedInterfaceSettings.announces_from_internal"
-                                                    />
+                                                    <Toggle v-model="sharedInterfaceSettings.announces_from_internal" />
                                                 </div>
                                             </div>
                                             <div class="space-y-4 pt-4 border-t border-gray-100 dark:border-zinc-800">
@@ -2970,9 +2968,7 @@ export default {
                 config.announces_from_internal !== null &&
                 config.announces_from_internal !== ""
             ) {
-                this.sharedInterfaceSettings.announces_from_internal = this.parseBool(
-                    config.announces_from_internal
-                );
+                this.sharedInterfaceSettings.announces_from_internal = this.parseBool(config.announces_from_internal);
             }
             if (
                 config.block_fast_flapping !== undefined &&
@@ -2985,8 +2981,7 @@ export default {
                 this.newInterfaceFastFlappingBlockTime = Number(config.fast_flapping_block_time);
             if (config.fast_flapping_threshold)
                 this.newInterfaceFastFlappingThreshold = Number(config.fast_flapping_threshold);
-            if (config.fast_flapping_grace)
-                this.newInterfaceFastFlappingGrace = Number(config.fast_flapping_grace);
+            if (config.fast_flapping_grace) this.newInterfaceFastFlappingGrace = Number(config.fast_flapping_grace);
 
             if (config.discoverable !== undefined && config.discoverable !== null && config.discoverable !== "") {
                 this.discovery.discoverable = this.parseBool(config.discoverable);
@@ -3345,9 +3340,7 @@ export default {
                         latitude: discoveryEnabled ? this.numOrNull(this.discovery.latitude) : null,
                         longitude: discoveryEnabled ? this.numOrNull(this.discovery.longitude) : null,
                         height: discoveryEnabled ? this.numOrNull(this.discovery.height) : null,
-                        location_cmd: discoveryEnabled
-                            ? (this.discovery.location_cmd || "").trim() || null
-                            : null,
+                        location_cmd: discoveryEnabled ? (this.discovery.location_cmd || "").trim() || null : null,
                         discovery_frequency: discoveryEnabled
                             ? this.numOrNull(this.discovery.discovery_frequency)
                             : null,
@@ -3359,8 +3352,7 @@ export default {
                             : null,
                         mode: this.sharedInterfaceSettings.mode || null,
                         recursive_prs: this.sharedInterfaceSettings.recursive_prs === true,
-                        announces_from_internal:
-                            this.sharedInterfaceSettings.announces_from_internal !== false,
+                        announces_from_internal: this.sharedInterfaceSettings.announces_from_internal !== false,
                         bitrate: this.sharedInterfaceSettings.bitrate,
                         network_name: this.sharedInterfaceSettings.network_name,
                         passphrase: this.sharedInterfaceSettings.passphrase,
@@ -3410,9 +3402,7 @@ export default {
                     fast_flapping_threshold: isBackboneListener
                         ? this.numOrNull(this.newInterfaceFastFlappingThreshold)
                         : null,
-                    fast_flapping_grace: isBackboneListener
-                        ? this.numOrNull(this.newInterfaceFastFlappingGrace)
-                        : null,
+                    fast_flapping_grace: isBackboneListener ? this.numOrNull(this.newInterfaceFastFlappingGrace) : null,
                     kiss_framing: this.newInterfaceKISSFramingEnabled === true,
                     i2p_tunneled: this.newInterfaceI2PTunnelingEnabled === true,
                     connect_timeout: this.numOrNull(this.newInterfaceConnectTimeout),

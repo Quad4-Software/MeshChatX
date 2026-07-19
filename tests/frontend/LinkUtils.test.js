@@ -39,8 +39,7 @@ describe("LinkUtils.js", () => {
         });
 
         it("keeps Nomad field params when wrapped with nomadnet:// prefix", () => {
-            const text =
-                "nomadnet://1dfeb0d794963579bd21ac8f153c77a4:/page/forum/thread.mu`cat=general|thread=slug";
+            const text = "nomadnet://1dfeb0d794963579bd21ac8f153c77a4:/page/forum/thread.mu`cat=general|thread=slug";
             const result = LinkUtils.renderReticulumLinks(text);
             expect(result).toContain(
                 'data-nomadnet-url="1dfeb0d794963579bd21ac8f153c77a4:/page/forum/thread.mu`cat=general|thread=slug"'
@@ -48,8 +47,7 @@ describe("LinkUtils.js", () => {
         });
 
         it("trims trailing sentence punctuation after Nomad field params", () => {
-            const text =
-                "see 1dfeb0d794963579bd21ac8f153c77a4:/page/forum/thread.mu`cat=general|thread=slug.";
+            const text = "see 1dfeb0d794963579bd21ac8f153c77a4:/page/forum/thread.mu`cat=general|thread=slug.";
             const result = LinkUtils.renderReticulumLinks(text);
             expect(result).toContain(
                 'data-nomadnet-url="1dfeb0d794963579bd21ac8f153c77a4:/page/forum/thread.mu`cat=general|thread=slug"'
