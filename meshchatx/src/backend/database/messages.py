@@ -852,26 +852,38 @@ class MessageDAO:
         """Hashes of duplicate rows (same peer, direction, and text), excluding the oldest keep.
 
         Empty or whitespace-only content is ignored so attachment-only or blank
-        rows are not collapsed together.
+        rows are not collapsed together. Oldest is by timestamp then id.
         """
-        rows = self.provider.fetchall(
+        groups = self.provider.fetchall(
             """
-            SELECT m.hash AS hash
-            FROM lxmf_messages m
-            INNER JOIN (
-                SELECT peer_hash, is_incoming, content, MIN(id) AS keep_id
-                FROM lxmf_messages
-                WHERE content IS NOT NULL AND TRIM(content) != ''
-                GROUP BY peer_hash, is_incoming, content
-                HAVING COUNT(*) > 1
-            ) d
-              ON m.peer_hash = d.peer_hash
-             AND m.is_incoming = d.is_incoming
-             AND m.content = d.content
-            WHERE m.id != d.keep_id
+            SELECT peer_hash, is_incoming, content
+            FROM lxmf_messages
+            WHERE content IS NOT NULL AND TRIM(content) != ''
+            GROUP BY peer_hash, is_incoming, content
+            HAVING COUNT(*) > 1
             """,
         )
-        return [r["hash"] for r in rows if r.get("hash")]
+        to_delete: list[str] = []
+        for group in groups:
+            rows = self.provider.fetchall(
+                """
+                SELECT hash
+                FROM lxmf_messages
+                WHERE peer_hash = ?
+                  AND is_incoming = ?
+                  AND content = ?
+                ORDER BY
+                    CASE WHEN timestamp IS NULL THEN 1 ELSE 0 END,
+                    timestamp ASC,
+                    id ASC
+                """,
+                (group["peer_hash"], group["is_incoming"], group["content"]),
+            )
+            # Keep the first (oldest); delete the rest.
+            for row in rows[1:]:
+                if row.get("hash"):
+                    to_delete.append(row["hash"])
+        return to_delete
 
     def count_duplicate_lxmf_messages_by_content(self) -> int:
         return len(self.list_duplicate_lxmf_message_hashes_by_content())

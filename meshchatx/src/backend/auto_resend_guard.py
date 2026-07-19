@@ -67,6 +67,20 @@ class AutoResendCoordinator:
         return lock
 
 
+def fields_have_attachments(fields_raw: Any) -> bool:
+    fields = _parse_fields(fields_raw)
+    if not fields:
+        return False
+    if fields.get("image") or fields.get("audio"):
+        return True
+    files = fields.get("file_attachments")
+    return isinstance(files, list) and len(files) > 0
+
+
+def parse_fields_dict(fields_raw: Any) -> dict:
+    return _parse_fields(fields_raw)
+
+
 def should_skip_for_budget(
     fields_raw: Any, *, max_attempts: int = MAX_AUTO_RESEND_ATTEMPTS
 ) -> bool:

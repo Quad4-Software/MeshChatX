@@ -183,8 +183,10 @@ from meshchatx.src.backend.auto_resend_guard import (
     RECENT_SAME_CONTENT_SECONDS,
     AutoResendCoordinator,
     cooldown_until,
+    fields_have_attachments,
     fields_with_auto_resend_count,
     next_attempt_count,
+    parse_fields_dict,
     should_skip_for_budget,
 )
 from meshchatx.src.backend.local_message_retention import (
@@ -23244,6 +23246,16 @@ class ReticulumMeshChat:
                     ):
                         continue
 
+                    fields = parse_fields_dict(failed_message.get("fields"))
+                    allow_attachments = (
+                        ctx.config.allow_auto_resending_failed_messages_with_attachments.get()
+                    )
+                    if not allow_attachments and fields_have_attachments(fields):
+                        print(
+                            "Not resending failed message with attachments, as setting is disabled",
+                        )
+                        continue
+
                     claimed = (
                         ctx.database.messages.try_claim_failed_message_for_auto_resend(
                             message_hash,
@@ -23257,14 +23269,9 @@ class ReticulumMeshChat:
                     if not claimed:
                         continue
 
-                    # parse fields as json
-                    fields = json.loads(failed_message["fields"] or "{}")
-                    if not isinstance(fields, dict):
-                        fields = {}
-
                     # parse image field
                     image_field = None
-                    if "image" in fields:
+                    if "image" in fields and isinstance(fields.get("image"), dict):
                         image_field = LxmfImageField(
                             fields["image"]["image_type"],
                             base64.b64decode(fields["image"]["image_bytes"]),
@@ -23272,7 +23279,7 @@ class ReticulumMeshChat:
 
                     # parse audio field
                     audio_field = None
-                    if "audio" in fields:
+                    if "audio" in fields and isinstance(fields.get("audio"), dict):
                         audio_field = LxmfAudioField(
                             fields["audio"]["audio_mode"],
                             base64.b64decode(fields["audio"]["audio_bytes"]),
@@ -23280,29 +23287,21 @@ class ReticulumMeshChat:
 
                     # parse file attachments field
                     file_attachments_field = None
-                    if "file_attachments" in fields:
+                    if "file_attachments" in fields and isinstance(
+                        fields.get("file_attachments"),
+                        list,
+                    ):
                         file_attachments = [
                             LxmfFileAttachment(
                                 file_attachment["file_name"],
                                 base64.b64decode(file_attachment["file_bytes"]),
                             )
                             for file_attachment in fields["file_attachments"]
+                            if isinstance(file_attachment, dict)
                         ]
                         file_attachments_field = LxmfFileAttachmentsField(
                             file_attachments,
                         )
-
-                    # don't resend message with attachments if not allowed
-                    if not ctx.config.allow_auto_resending_failed_messages_with_attachments.get():
-                        if (
-                            image_field is not None
-                            or audio_field is not None
-                            or file_attachments_field is not None
-                        ):
-                            print(
-                                "Not resending failed message with attachments, as setting is disabled",
-                            )
-                            continue
 
                     attempt = next_attempt_count(failed_message.get("fields"))
                     ctx.database.messages.set_message_fields_json(
