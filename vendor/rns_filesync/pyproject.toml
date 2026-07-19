@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rns-filesync"
+version = "1.0.0"
+description = "Peer-to-peer file synchronization over the Reticulum Network Stack"
+readme = "README.md"
+license = { text = "BSD-2-Clause" }
+requires-python = ">=3.10"
+dependencies = [
+    "rns>=1.3.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-timeout>=2.3",
+    "hypothesis>=6.100",
+    "coverage>=7.0",
+]
+
+[project.scripts]
+rns-filesync = "rns_filesync.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["rns_filesync*"]
+
+[tool.pytest.ini_options]
+markers = [
+    "unit: fast isolated unit tests",
+    "acceptance: behavior and policy acceptance tests",
+    "smoke: basic import and CLI smoke tests",
+    "e2e: end-to-end sync over isolated Reticulum",
+    "fuzz: property and fuzz tests",
+    "live: tests against a real Reticulum config",
+    "exploratory: longer stress and edge-case exploration",
+]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+timeout = 120
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.coverage.run]
+source = ["rns_filesync"]
+omit = ["rns_filesync/cli.py"]

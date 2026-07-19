@@ -184,6 +184,9 @@ def mock_app(db, tmp_path, temp_db):
         )
         stack.enter_context(patch("meshchatx.src.backend.identity_context.RNCPHandler"))
         stack.enter_context(
+            patch("meshchatx.src.backend.identity_context.RnsFilesyncHandler"),
+        )
+        stack.enter_context(
             patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
         )
         stack.enter_context(

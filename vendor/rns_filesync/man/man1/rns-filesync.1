@@ -1,0 +1,128 @@
+.\" Man page for rns-filesync
+.\" vim: ft=man
+.TH RNS-FILESYNC 1 "2026-07-19" "1.0.0" "User Commands"
+.SH NAME
+rns-filesync \- peer-to-peer directory sync over the Reticulum Network Stack
+.SH SYNOPSIS
+.B rns-filesync
+[\fB-v\fR|\fB--version\fR]
+[\fB--config\fR \fIDIR\fR]
+[\fB--rnsconfig\fR \fIDIR\fR]
+[\fB-d\fR \fIDIR\fR]
+[\fB-i\fR \fINAME\fR]
+[\fB-p\fR \fIHASH\fR]...
+[\fB-n\fR]
+[\fB-a\fR \fISECONDS\fR]
+[\fB--allowed\fR \fIFILE\fR]
+[\fB--allow\fR \fIRULE\fR]...
+[\fB--perms\fR \fIPERMS\fR]
+[\fB--verbose\fR]...
+[\fB-q\fR]
+[\fB--no-repl\fR]
+.SH DESCRIPTION
+.B rns-filesync
+synchronizes a directory with peers on the Reticulum network.
+It is an embeddable library (MeshChatX, Sideband) with a thin CLI.
+There is no TUI.
+.PP
+Configuration and ACL follow an rngit-like layout under
+.I ~/.rns_filesync/
+by default.
+.SH OPTIONS
+.TP
+.BR \-v ", " \-\-version
+Print version, build date, and git commit (when baked), then exit.
+.TP
+.BI \-\-config " DIR"
+FileSync config directory (default:
+.IR ~/.rns_filesync ).
+.TP
+.BI \-\-rnsconfig " DIR"
+Reticulum config directory (default:
+.IR ~/.reticulum ).
+.TP
+.BR \-d ", " \-\-directory " " \fIDIR\fR
+Directory to synchronize (overrides
+.B [filesync] directory
+in config).
+.TP
+.BR \-i ", " \-\-identity " " \fINAME\fR
+Identity name stored under the FileSync config directory.
+.TP
+.BR \-p ", " \-\-peer " " \fIHASH\fR
+Peer identity hash to connect on start (repeatable).
+A destination hash is accepted as fallback after the peer has announced.
+.TP
+.BR \-n ", " \-\-no\-monitor
+Disable filesystem monitoring.
+.TP
+.BR \-a ", " \-\-announce\-interval " " \fISECONDS\fR
+Announce interval in seconds.
+.TP
+.BI \-\-allowed " FILE"
+Path to an
+.B .allowed
+ACL file (rngit-style
+.I permission:target
+lines).
+.TP
+.BI \-\-allow " RULE"
+ACL rule such as
+.I r:all
+or
+.IR w:HASH
+(repeatable).
+.TP
+.BI \-\-perms " PERMS"
+Legacy shorthand for bare
+.B \-\-allow
+hashes (
+.IR r ,
+.IR w ,
+.IR d ,
+.IR rw ,
+.IR rwd ).
+.TP
+.B \-\-verbose
+Increase Reticulum log verbosity (repeatable).
+.TP
+.BR \-q ", " \-\-quiet
+Reduce logging.
+.TP
+.B \-\-no\-repl
+Run without the interactive command prompt.
+.SH INTERACTIVE COMMANDS
+When the REPL is enabled:
+.BR status ,
+.BR peers ,
+.BR files ,
+.BR connect ,
+.BR disconnect ,
+.BR browse ,
+.BR download ,
+.BR announce ,
+.BR quit .
+.SH FILES
+.TP
+.I ~/.rns_filesync/config
+Main FileSync configuration (ConfigObj).
+.TP
+.I ~/.rns_filesync/identities/
+Stored identities.
+.TP
+.I <sync_dir>.allowed
+Optional sidecar ACL next to the sync directory.
+.SH EXAMPLES
+.nf
+rns-filesync -d ~/shared
+rns-filesync -d ~/shared -p 9710b86ba12c42d1d8f30f74fe509286
+rns-filesync -v
+.fi
+.SH SEE ALSO
+.BR rnsd (1),
+.BR rnstatus (1)
+.PP
+Documentation and Sideband plugins:
+.I https://github.com/Quad4-Software/RNS-Filesync
+.SH AUTHOR
+Quad4 Software

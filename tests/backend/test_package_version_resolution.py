@@ -65,6 +65,28 @@ def test_get_package_version_resolves_lxmfy_when_metadata_missing():
     assert v[0].isdigit()
 
 
+def test_get_package_version_resolves_rns_filesync_when_metadata_missing():
+    def _missing(*_a, **_k):
+        raise importlib.metadata.PackageNotFoundError
+
+    real_import = __import__
+
+    def _import_module(name, package=None):
+        if name == "rns_filesync":
+            return real_import(name)
+        return real_import(name, package=package)
+
+    with (
+        patch("importlib.metadata.version", side_effect=_missing),
+        patch("importlib.metadata.distribution", side_effect=_missing),
+        patch("importlib.metadata.packages_distributions", return_value={}),
+        patch("importlib.import_module", side_effect=_import_module),
+    ):
+        v = ReticulumMeshChat.get_package_version("rns-filesync")
+    assert v != "unknown"
+    assert v[0].isdigit()
+
+
 @pytest.mark.parametrize(
     "package",
     (
@@ -76,6 +98,8 @@ def test_get_package_version_resolves_lxmfy_when_metadata_missing():
         "ply",
         "bcrypt",
         "lxmfy",
+        "rns-filesync",
+        "rns_filesync",
     ),
 )
 def test_app_info_dependency_keys_resolve_in_dev_env(package: str):

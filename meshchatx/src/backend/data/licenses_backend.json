@@ -96,6 +96,12 @@
         "license": "BSD-0-Clause"
     },
     {
+        "name": "rns-filesync",
+        "version": "1.0.0",
+        "author": "Sudo-Ivan / Quad4.io",
+        "license": "BSD-2-Clause"
+    },
+    {
         "name": "lxst",
         "version": "0.5.0",
         "author": "Mark Qvist",

@@ -109,8 +109,8 @@ func TestTickPersistsVelocityAndSettles(t *testing.T) {
 		Nodes: []Node{
 			{ID: "me", X: 0, Y: 0, Kind: KindMe, Fixed: true, Mass: 4},
 			// Start near spring rest length so live ticks should calm quickly.
-			{ID: "a", X: 170, Y: 0, Kind: KindPeer, Mass: 1},
-			{ID: "b", X: -170, Y: 0, Kind: KindPeer, Mass: 1},
+			{ID: "a", X: 260, Y: 0, Kind: KindPeer, Mass: 1},
+			{ID: "b", X: -260, Y: 0, Kind: KindPeer, Mass: 1},
 		},
 		Edges: []Edge{
 			{From: "me", To: "a", Width: 3},

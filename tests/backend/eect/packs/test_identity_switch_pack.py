@@ -45,6 +45,7 @@ def mock_rns(tmp_path):
             patch("meshchatx.src.backend.identity_context.VoicemailManager"),
             patch("meshchatx.src.backend.identity_context.RingtoneManager"),
             patch("meshchatx.src.backend.identity_context.RNCPHandler"),
+            patch("meshchatx.src.backend.identity_context.RnsFilesyncHandler"),
             patch("meshchatx.src.backend.identity_context.RNStatusHandler"),
             patch("meshchatx.src.backend.identity_context.RNProbeHandler"),
             patch("meshchatx.src.backend.identity_context.TranslatorHandler"),

@@ -1,7 +1,7 @@
 {
     "include": ["meshchatx/src/backend", "meshchatx/src/env_utils.py"],
     "exclude": ["**/vendor/**", "**/build/**", "**/node_modules/**", "**/__pycache__/**"],
-    "extraPaths": [".", "vendor/lxmfy"],
+    "extraPaths": [".", "vendor/lxmfy", "vendor/rns_filesync"],
     "stubPath": "typings",
     "pythonVersion": "3.11",
     "typeCheckingMode": "basic",

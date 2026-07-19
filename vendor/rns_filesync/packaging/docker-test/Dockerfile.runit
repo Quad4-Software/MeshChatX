@@ -1,0 +1,8 @@
+# Void Linux + runit.
+FROM ghcr.io/void-linux/void-glibc:latest
+
+RUN xbps-install -Syu \
+ && xbps-install -Sy python3 python3-pip runit procps-ng shadow \
+ && xbps-remove -yO || true
+
+CMD ["/bin/sh"]

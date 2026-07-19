@@ -260,9 +260,11 @@ func (s *Scene) Tick(steps int) {
 	layoutEdges := make([]layout.Edge, 0, len(s.edges))
 	for i := range s.edges {
 		e := &s.edges[i]
-		length := 200.0
+		// WebGL node radii are ~18-48. Rest lengths must clear diameters
+		// like vis-network springLength 200 does for smaller canvas glyphs.
+		length := 300.0
 		if e.Width >= 2.5 {
-			length = 170
+			length = 260
 		}
 		layoutEdges = append(layoutEdges, layout.Edge{
 			From:   e.From,
@@ -277,9 +279,9 @@ func (s *Scene) Tick(steps int) {
 		Edges:      layoutEdges,
 		Iterations: steps,
 		Gravity:    -1,
-		Repulsion:  550,
-		SpringK:    0.018,
-		Damping:    0.52,
+		Repulsion:  1800,
+		SpringK:    0.014,
+		Damping:    0.58,
 		MaxSpeed:   6,
 	})
 	const restSpeed = 0.12

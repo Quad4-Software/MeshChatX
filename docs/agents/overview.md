@@ -80,7 +80,7 @@ Critical lifecycle facts:
 | `tests/frontend/`         | vitest                                    |
 | `tests/e2e/`              | Playwright                                |
 | `docs/en/`                | In-app / shipped English docs             |
-| `vendor/`                 | Vendored deps (for example LXMFy)         |
+| `vendor/`                 | Vendored deps (LXMFy, RNS FileSync)       |
 | `Taskfile.yml`            | Preferred command entrypoints             |
 | `docs/agents/`            | Agent guidance (this tree)                |
 | `AGENTS.md`               | Short pointer to `docs/agents/`           |

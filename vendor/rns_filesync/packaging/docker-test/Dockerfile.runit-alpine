@@ -1,0 +1,8 @@
+# Alpine fallback when Void image cannot be pulled.
+FROM alpine:3.21
+
+RUN apk add --no-cache \
+      runit python3 py3-pip procps shadow \
+      runit-openrc 2>/dev/null || apk add --no-cache runit python3 py3-pip procps shadow
+
+CMD ["/bin/sh"]

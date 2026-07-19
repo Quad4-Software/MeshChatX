@@ -24,7 +24,7 @@ Keep Chaquopy backend boot, WebView file choosers, storage locks, and external n
 ## Navigation and packaging
 
 - External http(s) links open in the system browser. Do not navigate the WebView away from the app.
-- Vendored `lxmfy` is synced into Chaquopy `src/main/python/`. Android pip does not install it like desktop setuptools.
+- Vendored `lxmfy` and `rns_filesync` are synced into Chaquopy `src/main/python/`. Android pip does not install them like desktop setuptools.
 - RNS panic containment matters on Android (see `deferred-network-startup`).
 
 ## RNode on Android

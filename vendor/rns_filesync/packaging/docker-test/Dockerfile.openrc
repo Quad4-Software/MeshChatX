@@ -1,0 +1,9 @@
+# Alpine + OpenRC: validate and start via openrc-run style command path.
+FROM alpine:3.21
+
+RUN apk add --no-cache \
+      openrc python3 py3-pip procps shadow \
+ && mkdir -p /run/openrc \
+ && touch /run/openrc/softlevel
+
+CMD ["/bin/sh"]

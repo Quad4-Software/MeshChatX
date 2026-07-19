@@ -172,6 +172,11 @@ const router = createRouter({
             component: () => import("./components/rncp/RNCPPage.vue"),
         },
         {
+            name: "rns-filesync",
+            path: "/rns-filesync",
+            component: () => import("./components/filesync/RnsFilesyncPage.vue"),
+        },
+        {
             name: "rnsh",
             path: "/rnsh",
             component: () => import("./components/tools/RNSHManagerPage.vue"),

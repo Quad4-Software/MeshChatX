@@ -17,12 +17,15 @@ Use these when messages or pages fail despite interfaces showing as enabled.
 
 ## File transfer and shell
 
-| Tool | Purpose                                    |
-| ---- | ------------------------------------------ |
-| RNCP | Send or fetch files over Reticulum         |
-| RNSH | Remote shell sessions with streamed output |
+| Tool         | Purpose                                              |
+| ------------ | ---------------------------------------------------- |
+| RNCP         | Send or fetch files over Reticulum                   |
+| RNS FileSync | Sync a directory with peers over `rns_filesync.filesync` |
+| RNSH         | Remote shell sessions with streamed output           |
 
 RNCP progress events arrive on the WebSocket as `rncp.transfer.progress`.
+FileSync progress and peer events use `filesync.sync.progress`, `filesync.peer.connected`, `filesync.peer.disconnected`, `filesync.file.updated`, `filesync.file.deleted`, and `filesync.error`.
+FileSync uses the bundled `rns_filesync` package and keeps sync state under the active identity storage directory.
 
 ## Messaging helpers
 
@@ -69,7 +72,7 @@ Translator calls respect **privacy mode**. When privacy mode blocks outbound HTT
 
 ## Coming soon
 
-The registry marks **RNS Tunnel** and **RNS FileSync** as coming soon. They do not have routes in the current release.
+The registry marks **RNS Tunnel** as coming soon. It does not have a route in the current release.
 
 ## Relay chat server
 

@@ -1,0 +1,132 @@
+# SPDX-License-Identifier: 0BSD
+
+from __future__ import annotations
+
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+from meshchatx.src.backend.rns_filesync_handler import RnsFilesyncHandler
+
+
+@pytest.fixture
+def mock_identity():
+    return SimpleNamespace(hash=b"\xaa" * 16)
+
+
+@pytest.fixture
+def handler(mock_identity, tmp_path):
+    storage = tmp_path / "identity"
+    storage.mkdir()
+    return RnsFilesyncHandler(
+        reticulum_instance=MagicMock(name="reticulum"),
+        identity=mock_identity,
+        storage_dir=str(storage),
+    )
+
+
+def test_default_status_not_running(handler, mock_identity):
+    status = handler.get_status()
+    assert status["running"] is False
+    assert status["destination_hash"] is None
+    assert status["identity_hash"] == mock_identity.hash.hex()
+    assert status["sync_directory"].endswith("filesync/sync")
+    assert "filesync" in status["config_directory"]
+
+
+def test_update_settings_persists_sync_directory(handler):
+    result = handler.update_settings(sync_directory="/tmp/filesync-alt", monitor=False)
+    assert result["ok"] is True
+    assert result["monitor"] is False
+    status = handler.get_status()
+    assert status["sync_directory"] == "/tmp/filesync-alt"
+    assert status["monitor"] is False
+
+
+def test_acl_grant_and_persist(handler, tmp_path):
+    peer = "bb" * 16
+    result = handler.update_acl(
+        identity_hash=peer,
+        perms=["read", "write"],
+        enforce=True,
+    )
+    assert result["ok"] is True
+    assert result["enforce"] is True
+    assert peer in result["rules"]["read"]
+    assert peer in result["rules"]["write"]
+
+    acl_path = tmp_path / "identity" / "filesync" / "acl.txt"
+    assert acl_path.is_file()
+    text = acl_path.read_text(encoding="utf-8")
+    assert f"r:{peer}" in text
+    assert f"w:{peer}" in text
+
+    again = handler.get_acl()
+    assert again["enforce"] is True
+    assert peer in again["rules"]["read"]
+
+
+def test_connect_requires_running(handler):
+    result = handler.connect_peer("cc" * 16)
+    assert result["ok"] is False
+    assert "not running" in result["error"]
+
+
+@patch("meshchatx.src.backend.rns_filesync_handler.FileSyncService")
+def test_start_stop_and_teardown(mock_service_cls, handler):
+    service = MagicMock()
+    service.start.return_value = "dd" * 16
+    service.get_status.return_value = {
+        "running": True,
+        "sync_directory": handler._sync_directory,
+        "identity_hash": "aa" * 16,
+        "destination_hash": "dd" * 16,
+        "peers": 0,
+        "files": 0,
+        "whitelist": False,
+        "monitor": True,
+    }
+    service.list_peers.return_value = [{"peer_id": "ee" * 16, "status": 1}]
+    service.list_files.return_value = [{"path": "a.txt", "size": 1}]
+    service.connect_peer.return_value = {"ok": True, "peer_id": "ee" * 16}
+    service.browse_peer.return_value = [{"path": "remote.txt", "size": 2}]
+    service.download_file.return_value = {"ok": True, "path": "remote.txt"}
+    mock_service_cls.return_value = service
+
+    started = handler.start(monitor=True, announce_interval=120)
+    assert started["ok"] is True
+    assert started["destination_hash"] == "dd" * 16
+    mock_service_cls.assert_called_once()
+    kwargs = mock_service_cls.call_args.kwargs
+    assert kwargs["own_reticulum"] is False
+    assert kwargs["reticulum"] is handler.reticulum
+    service.start.assert_called_once()
+
+    assert handler.list_peers()[0]["peer_id"] == "ee" * 16
+    assert handler.list_files()[0]["path"] == "a.txt"
+    assert handler.connect_peer("ee" * 16)["ok"] is True
+    assert handler.browse_peer("ee" * 16)["ok"] is True
+    assert handler.download_file("ee" * 16, "remote.txt")["ok"] is True
+    assert handler.announce_now()["ok"] is True
+    assert handler.disconnect_peer("ee" * 16)["ok"] is True
+
+    stopped = handler.stop()
+    assert stopped["ok"] is True
+    assert stopped["running"] is False
+    service.stop.assert_called()
+    assert handler.service is None
+
+    service.stop.reset_mock()
+    handler.service = service
+    handler.teardown()
+    service.stop.assert_called()
+    assert handler.service is None
+
+
+def test_settings_reject_sync_dir_change_while_running(handler):
+    handler.service = MagicMock()
+    handler.service.get_status.return_value = {"running": True}
+    result = handler.update_settings(sync_directory="/tmp/other")
+    assert result["ok"] is False
+    assert "stop filesync" in result["error"]

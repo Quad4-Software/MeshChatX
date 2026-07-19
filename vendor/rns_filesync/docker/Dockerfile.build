@@ -1,0 +1,29 @@
+# Wheel builder image. Writes .whl artifacts to /output.
+# Build and extract:
+#   docker build -f docker/Dockerfile.build -t rns-filesync-build .
+#   docker run --rm -v "$PWD/dist:/output" rns-filesync-build
+
+ARG PYTHON_VERSION=3.12
+
+FROM python:${PYTHON_VERSION}-alpine
+
+WORKDIR /build
+
+RUN apk add --no-cache gcc musl-dev libffi-dev openssl-dev git \
+ && adduser -D -u 1000 builder \
+ && mkdir -p /output \
+ && chown builder:builder /output /build
+
+COPY --chown=builder:builder pyproject.toml README.md LICENSE ./
+COPY --chown=builder:builder rns_filesync ./rns_filesync
+COPY --chown=builder:builder scripts ./scripts
+COPY --chown=builder:builder man ./man
+
+USER builder
+
+RUN python -m pip install --user --no-cache-dir --upgrade pip build \
+ && python scripts/bake_meta.py \
+ && python -m build --wheel --outdir /output \
+ && ls -la /output
+
+CMD ["sh", "-c", "cp -a /output/. /dist/ 2>/dev/null || true; ls -la /output"]

@@ -381,7 +381,7 @@ export function buildFullGraph(req) {
         layout_edges: (path.edges || []).map((e) => ({
             from: e.from,
             to: e.to,
-            length: e.width >= 2 ? 150 : 180,
+            length: e.width >= 2 ? 260 : 300,
         })),
     };
 }

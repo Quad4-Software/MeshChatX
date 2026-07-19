@@ -86,7 +86,7 @@ func Settle(req Request) Result {
 	}
 	repulsion := req.Repulsion
 	if repulsion == 0 {
-		repulsion = 1200
+		repulsion = 1800
 	}
 	springK := req.SpringK
 	if springK == 0 {
@@ -136,12 +136,12 @@ func Settle(req Request) Result {
 		}
 		length := e.Length
 		if length <= 0 {
-			length = 180
+			length = 280
 		}
 		springs = append(springs, spring{a: ai, b: bi, len: length})
 	}
 
-	cellSize := 160.0
+	cellSize := 220.0
 	for step := 0; step < iters; step++ {
 		fx := make([]float64, n)
 		fy := make([]float64, n)

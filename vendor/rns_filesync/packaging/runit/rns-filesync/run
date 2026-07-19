@@ -1,0 +1,26 @@
+#!/bin/sh
+exec 2>&1
+install -d -o rns-filesync -g rns-filesync -m 0700 /var/lib/rns-filesync
+install -d -o rns-filesync -g rns-filesync -m 0700 /var/lib/rns-filesync/config
+install -d -o rns-filesync -g rns-filesync -m 0700 /var/lib/rns-filesync/reticulum
+install -d -o rns-filesync -g rns-filesync -m 0700 /var/lib/rns-filesync/sync
+export HOME=/var/lib/rns-filesync
+cd /var/lib/rns-filesync || exit 1
+if command -v chpst >/dev/null 2>&1; then
+  exec chpst -u rns-filesync:rns-filesync /usr/bin/rns-filesync \
+    --config /var/lib/rns-filesync/config \
+    --rnsconfig /var/lib/rns-filesync/reticulum \
+    -d /var/lib/rns-filesync/sync \
+    --no-repl \
+    -q
+fi
+if command -v setuidgid >/dev/null 2>&1; then
+  exec setuidgid rns-filesync /usr/bin/rns-filesync \
+    --config /var/lib/rns-filesync/config \
+    --rnsconfig /var/lib/rns-filesync/reticulum \
+    -d /var/lib/rns-filesync/sync \
+    --no-repl \
+    -q
+fi
+exec su -s /bin/sh rns-filesync -c \
+  'exec /usr/bin/rns-filesync --config /var/lib/rns-filesync/config --rnsconfig /var/lib/rns-filesync/reticulum -d /var/lib/rns-filesync/sync --no-repl -q'

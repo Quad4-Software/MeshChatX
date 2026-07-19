@@ -134,10 +134,19 @@ def _python_roots_from_pyproject(repo_root: Path) -> tuple[str, ...]:
     return tuple(sorted(set(names), key=lambda n: n.lower()))
 
 
-def _bundled_lxmfy_license_row(repo_root: Path) -> dict[str, Any] | None:
-    if _dist_for_requirement_name("lxmfy") is not None:
+def _bundled_vendor_license_row(
+    repo_root: Path,
+    *,
+    vendor_dir: str,
+    dist_name: str,
+    package_name: str | None = None,
+) -> dict[str, Any] | None:
+    lookup_name = package_name or dist_name
+    if _dist_for_requirement_name(lookup_name) is not None:
         return None
-    vp = repo_root / "vendor" / "lxmfy" / "pyproject.toml"
+    if _dist_for_requirement_name(dist_name) is not None:
+        return None
+    vp = repo_root / "vendor" / vendor_dir / "pyproject.toml"
     if not vp.is_file():
         return None
     try:
@@ -149,7 +158,7 @@ def _bundled_lxmfy_license_row(repo_root: Path) -> dict[str, Any] | None:
     if not isinstance(proj, dict):
         return None
     name = proj.get("name")
-    if name != "lxmfy":
+    if name != dist_name and name != lookup_name:
         return None
     version = proj.get("version")
     version_s = version.strip() if isinstance(version, str) and version.strip() else "—"
@@ -165,36 +174,72 @@ def _bundled_lxmfy_license_row(repo_root: Path) -> dict[str, Any] | None:
             elif an or ae:
                 author = an or ae
     lic = proj.get("license")
-    license_s = lic.strip() if isinstance(lic, str) and lic.strip() else "—"
+    if isinstance(lic, dict):
+        license_s = str(lic.get("text") or lic.get("file") or "—").strip() or "—"
+    elif isinstance(lic, str) and lic.strip():
+        license_s = lic.strip()
+    else:
+        license_s = "—"
     return {
-        "name": "lxmfy",
+        "name": dist_name,
         "version": version_s,
         "author": author,
         "license": license_s,
     }
 
 
+def _bundled_lxmfy_license_row(repo_root: Path) -> dict[str, Any] | None:
+    return _bundled_vendor_license_row(
+        repo_root,
+        vendor_dir="lxmfy",
+        dist_name="lxmfy",
+    )
+
+
+def _bundled_rns_filesync_license_row(repo_root: Path) -> dict[str, Any] | None:
+    return _bundled_vendor_license_row(
+        repo_root,
+        vendor_dir="rns_filesync",
+        dist_name="rns-filesync",
+        package_name="rns_filesync",
+    )
+
+
+def _merge_bundled_vendor_rows(
+    repo_root: Path,
+    rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    merged = list(rows)
+    existing = {str(r.get("name") or "").lower() for r in merged}
+    for row_fn, names in (
+        (_bundled_lxmfy_license_row, ("lxmfy",)),
+        (_bundled_rns_filesync_license_row, ("rns-filesync", "rns_filesync")),
+    ):
+        if any(n in existing for n in names):
+            continue
+        row = row_fn(repo_root)
+        if row is None:
+            continue
+        merged.append(row)
+        existing.add(str(row.get("name") or "").lower())
+    merged.sort(key=lambda r: str(r.get("name", "")).lower())
+    return merged
+
+
 def _merge_bundled_lxmfy(
     repo_root: Path,
     rows: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    if any(str(r.get("name") or "").lower() == "lxmfy" for r in rows):
-        return rows
-    row = _bundled_lxmfy_license_row(repo_root)
-    if row is None:
-        return rows
-    merged = [*rows, row]
-    merged.sort(key=lambda r: str(r.get("name", "")).lower())
-    return merged
+    return _merge_bundled_vendor_rows(repo_root, rows)
 
 
 def _collect_backend_licenses_live() -> list[dict[str, Any]]:
     repo = _repo_root()
     for root in _ROOT_DIST_CANDIDATES:
         if _dist_for_requirement_name(root) is not None:
-            return _merge_bundled_lxmfy(repo, _collect_python_transitive((root,)))
+            return _merge_bundled_vendor_rows(repo, _collect_python_transitive((root,)))
     roots = _python_roots_from_pyproject(repo)
-    return _merge_bundled_lxmfy(repo, _collect_python_transitive(roots))
+    return _merge_bundled_vendor_rows(repo, _collect_python_transitive(roots))
 
 
 def _load_embedded_backend_licenses() -> list[dict[str, Any]] | None:

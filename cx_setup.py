@@ -8,6 +8,9 @@ ROOT = Path(__file__).resolve().parent
 _vendor_lxmfy = ROOT / "vendor" / "lxmfy"
 if _vendor_lxmfy.is_dir() and (_vendor_lxmfy / "lxmfy").is_dir():
     sys.path.insert(0, str(_vendor_lxmfy))
+_vendor_rns_filesync = ROOT / "vendor" / "rns_filesync"
+if _vendor_rns_filesync.is_dir() and (_vendor_rns_filesync / "rns_filesync").is_dir():
+    sys.path.insert(0, str(_vendor_rns_filesync))
 
 from cx_Freeze import Executable, setup  # noqa: E402
 
@@ -59,6 +62,7 @@ packages = [
     "LXMF",
     "LXST",
     "lxmfy",
+    "rns_filesync",
     "websockets",
     "pycparser",
     "cffi",

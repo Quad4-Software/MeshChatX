@@ -52,6 +52,9 @@ lxmf 1.0.1
 lxmfy 1.6.5
   License: BSD-0-Clause
   Author: Quad4 <team@quad4.io>
+rns-filesync 1.0.0
+  License: BSD-2-Clause
+  Author: Sudo-Ivan / Quad4.io
 lxst 0.5.0
   License: Other/Proprietary License
   Author: Mark Qvist

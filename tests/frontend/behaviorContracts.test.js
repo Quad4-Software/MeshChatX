@@ -174,11 +174,16 @@ describe("behavior contracts: Android Chaquopy Python sync", () => {
         expect(gradle).toContain("vendor/lxmfy/lxmfy");
         expect(gradle).toContain("syncLxmfyPython");
         expect(gradle).toContain("src/main/python/lxmfy");
-        expect(gradle).toMatch(
-            /dependsOn\(tasks\.named\("syncMeshchatPython"\),\s*tasks\.named\("syncLxmfyPython"\)\)/
-        );
-        const initPy = readSource("vendor/lxmfy/lxmfy/__init__.py");
-        expect(initPy.length).toBeGreaterThan(0);
+        expect(gradle).toContain("syncRnsFilesyncPython");
+        expect(gradle).toContain("vendor/rns_filesync/rns_filesync");
+        expect(gradle).toContain("src/main/python/rns_filesync");
+        expect(gradle).toMatch(/syncMeshchatPython/);
+        expect(gradle).toMatch(/syncLxmfyPython/);
+        expect(gradle).toMatch(/syncRnsFilesyncPython/);
+        const lxmfyInit = readSource("vendor/lxmfy/lxmfy/__init__.py");
+        expect(lxmfyInit.length).toBeGreaterThan(0);
+        const filesyncInit = readSource("vendor/rns_filesync/rns_filesync/__init__.py");
+        expect(filesyncInit.length).toBeGreaterThan(0);
     });
 
     it("Android wrapper clears stale storage lock before main()", () => {

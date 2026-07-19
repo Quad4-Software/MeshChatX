@@ -1,0 +1,23 @@
+[Unit]
+Description=RNS FileSync (user session)
+Documentation=man:rns-filesync(1)
+After=default.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/rns-filesync \
+  --config %h/.rns_filesync \
+  --rnsconfig %h/.reticulum \
+  -d %h/Filesync \
+  --no-repl \
+  -q
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+
+NoNewPrivileges=true
+PrivateTmp=true
+UMask=0077
+
+[Install]
+WantedBy=default.target
