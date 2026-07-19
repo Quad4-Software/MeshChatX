@@ -67,6 +67,6 @@ def load_route_fixture(fixture_path: Path) -> list[dict[str, str]]:
 def write_route_fixture(fixture_path: Path, routes: list[dict[str, str]]) -> None:
     fixture_path.parent.mkdir(parents=True, exist_ok=True)
     fixture_path.write_text(
-        json.dumps({"routes": routes}, indent=2) + "\n",
+        json.dumps({"routes": routes}, indent=4) + "\n",
         encoding="utf-8",
     )

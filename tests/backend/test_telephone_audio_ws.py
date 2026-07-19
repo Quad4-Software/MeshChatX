@@ -27,7 +27,12 @@ def web_audio_app(mock_app):
 
 
 @pytest.mark.asyncio
-async def test_telephone_audio_ws_disabled_config_returns_error(web_audio_app):
+async def test_telephone_audio_ws_disabled_config_returns_error(
+    web_audio_app,
+    monkeypatch,
+):
+    monkeypatch.setattr(web_audio_app, "web_audio_required", lambda: False)
+
     bridge = MagicMock()
     bridge.config_enabled.return_value = False
     bridge.send_status = AsyncMock()
