@@ -21,3 +21,14 @@ def test_safe_path_under_dir_rejects_nul_and_dot(tmp_path):
     assert safe_path_under_dir(str(tmp_path), "a\x00b.opus") is None
     assert safe_path_under_dir(str(tmp_path), "..") is None
     assert safe_path_under_dir(str(tmp_path), "") is None
+
+
+def test_safe_path_under_dir_rejects_symlink_escape(tmp_path):
+    """realpath containment must reject basename symlinks that leave the jail."""
+    outside = tmp_path / "outside.secret"
+    outside.write_bytes(b"secret")
+    jail = tmp_path / "jail"
+    jail.mkdir()
+    link = jail / "escape.opus"
+    link.symlink_to(outside)
+    assert safe_path_under_dir(str(jail), "escape.opus") is None
