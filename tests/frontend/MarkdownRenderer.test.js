@@ -193,6 +193,16 @@ describe("MarkdownRenderer.js", () => {
             expect(result).toContain("1dfeb0d794963579bd21ac8f153c77a4:/page/index.mu");
         });
 
+        it("keeps Nomad backtick parameters inside conversation links", () => {
+            const text =
+                "read 9ce92808be498e9e05590ff27cbfdfe4:/page/forum/thread.mu`cat=general|thread=critical-security-update-rns-139-fixes-severe-rnsh-security-flaw";
+            const result = MarkdownRenderer.render(text);
+            expect(result).toContain(
+                'data-nomadnet-url="9ce92808be498e9e05590ff27cbfdfe4:/page/forum/thread.mu`cat=general|thread=critical-security-update-rns-139-fixes-severe-rnsh-security-flaw"'
+            );
+            expect(result).not.toMatch(/thread\.mu<\/a>`cat=/);
+        });
+
         it("detects nomadnet:// links with just hash", () => {
             const text = "nomadnet://1dfeb0d794963579bd21ac8f153c77a4";
             const result = MarkdownRenderer.render(text);

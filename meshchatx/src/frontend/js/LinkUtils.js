@@ -86,10 +86,14 @@ export default class LinkUtils {
 
         // Hash is 32 hex chars. Path is optional (NomadNet only).
         const hashPattern = "[a-fA-F0-9]{32}";
+        // NomadNet paths may include field data after a backtick, e.g.
+        // hash:/page/forum/thread.mu`cat=general|thread=slug
+        // Path charset: URL path chars plus Nomad field separators (` | =).
+        const pathPattern = "/[\\w./?%&=_+~|`-]*";
         // Optional prefix, then hash, optional path. Bare hashes with no prefix and no
         // path are intentionally skipped to avoid false positives inside URLs.
         const reticulumRegex = new RegExp(
-            `(nomadnet://|nomadnet@|lxmf://|lxmf@|lxmf:)?(${hashPattern})(?::(/[\\w\\d./?%&=_-]*))?`,
+            `(nomadnet://|nomadnet@|lxmf://|lxmf@|lxmf:)?(${hashPattern})(?::(${pathPattern}))?`,
             "g"
         );
 
@@ -102,10 +106,15 @@ export default class LinkUtils {
                 (prefix && (prefix.startsWith("nomadnet://") || prefix.startsWith("nomadnet@"))) || !!path;
 
             if (isNomadNet) {
-                const fullPath = path || defaultNomadPagePath();
+                const { core: pathCore, suffix: pathSuffix } = path
+                    ? this.splitTrailingPunctuation(path)
+                    : { core: "", suffix: "" };
+                const fullPath = pathCore || defaultNomadPagePath();
                 const url = `${hash}:${fullPath}`;
                 const safeAttr = Utils.escapeHtml(url);
-                return `<a href="#" class="nomadnet-link text-blue-600 dark:text-blue-400 hover:underline font-mono" data-nomadnet-url="${safeAttr}">${match}</a>`;
+                const labelMatch = path ? `${prefix || ""}${hash}:${fullPath}` : match;
+                const label = Utils.escapeHtml(labelMatch);
+                return `<a href="#" class="nomadnet-link text-blue-600 dark:text-blue-400 hover:underline font-mono" data-nomadnet-url="${safeAttr}">${label}</a>${pathSuffix}`;
             } else {
                 return `<a href="#" class="lxmf-link text-blue-600 dark:text-blue-400 hover:underline font-mono" data-lxmf-address="${hash}">${match}</a>`;
             }
