@@ -293,9 +293,11 @@ class RNSHSession:
         # same shared instance and rpc_key) as the MeshChatX app. Without this
         # rnsh bootstraps its own default config, becomes a mismatched shared
         # instance client and fails RPC auth with "digest sent was rejected".
+        # RNS 1.3.9+: --rnsconfig is the Reticulum config dir. -c/--config is
+        # the rnsh config directory (HOME/.rnsh via _build_env).
         config_path = self.resolved_config_dir
         if config_path:
-            command.extend(["-c", config_path])
+            command.extend(["--rnsconfig", config_path])
 
         identity_path = (self.config.get("identity_path") or "").strip()
         if identity_path:
