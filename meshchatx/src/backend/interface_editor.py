@@ -1,10 +1,44 @@
 # SPDX-License-Identifier: 0BSD AND MIT
 
+import os
 import re
 
 import RNS
 
 _IPV4_HOST_PORT = re.compile(r"^(\d{1,3}(?:\.\d{1,3}){3}):(\d{1,5})$")
+
+# Canonical Reticulum interface mode strings (RNS 1.3.7+ includes internal).
+ALLOWED_INTERFACE_MODES = frozenset(
+    {
+        "full",
+        "gateway",
+        "gw",
+        "access_point",
+        "accesspoint",
+        "ap",
+        "pointtopoint",
+        "ptp",
+        "roaming",
+        "boundary",
+        "internal",
+    }
+)
+
+# Prefer writing the long form when aliases are supplied via the API.
+_INTERFACE_MODE_CANONICAL = {
+    "gw": "gateway",
+    "accesspoint": "access_point",
+    "ap": "access_point",
+    "pointtopoint": "pointtopoint",
+    "ptp": "pointtopoint",
+}
+
+_YES_NO_TRUE = frozenset({"true", "yes", "1", "y", "on"})
+_YES_NO_FALSE = frozenset({"false", "no", "0", "n", "off"})
+
+# location_cmd is executed by RNS Discovery via subprocess.run([path]).
+# Reject shell metacharacters and relative traversal before persisting.
+_LOCATION_CMD_FORBIDDEN = re.compile(r"[\x00-\x1f\x7f;&|`$<>\\\"'*?\[\]{}()!#]")
 
 
 def normalize_rnode_tcp_port(port: str) -> str:
@@ -162,3 +196,214 @@ class InterfaceEditor:
 
         # otherwise remove existing value
         interface_details.pop(key, None)
+
+    @staticmethod
+    def normalize_interface_mode(value) -> str | None:
+        """Return a canonical Reticulum mode string, or None when unset."""
+        if value is None or value == "":
+            return None
+        mode = str(value).strip().lower()
+        if mode not in ALLOWED_INTERFACE_MODES:
+            return None
+        return _INTERFACE_MODE_CANONICAL.get(mode, mode)
+
+    @staticmethod
+    def apply_interface_mode(interface_details: dict, data: dict) -> str | None:
+        """Persist mode when valid. Return an API error message otherwise."""
+        if "mode" not in data:
+            return None
+        value = data.get("mode")
+        if value is None or value == "":
+            interface_details.pop("mode", None)
+            return None
+        mode = InterfaceEditor.normalize_interface_mode(value)
+        if mode is None:
+            return (
+                "mode must be one of: full, gateway, access_point, "
+                "pointtopoint, roaming, boundary, internal"
+            )
+        interface_details["mode"] = mode
+        return None
+
+    @staticmethod
+    def request_yes_no(value) -> str | None:
+        """Map common truthy/falsey request values to Reticulum yes/no."""
+        if value is None or value == "":
+            return None
+        if isinstance(value, bool):
+            return "yes" if value else "no"
+        s = str(value).strip().lower()
+        if s in _YES_NO_TRUE:
+            return "yes"
+        if s in _YES_NO_FALSE:
+            return "no"
+        return None
+
+    @staticmethod
+    def apply_yes_no_option(
+        interface_details: dict,
+        data: dict,
+        key: str,
+        *,
+        default_when_missing: str | None = None,
+    ) -> str | None:
+        """Persist a Reticulum yes/no option. Return error text on bad input.
+
+        When the key is absent from data, leave existing config alone unless
+        default_when_missing is set (then write that yes/no or pop when None).
+        """
+        if key not in data:
+            if default_when_missing is None:
+                return None
+            if default_when_missing in ("yes", "no"):
+                interface_details[key] = default_when_missing
+            else:
+                interface_details.pop(key, None)
+            return None
+        yn = InterfaceEditor.request_yes_no(data.get(key))
+        if yn is None:
+            interface_details.pop(key, None)
+            raw = data.get(key)
+            if raw is None or raw == "":
+                return None
+            return f"{key} must be a boolean or yes/no value"
+        interface_details[key] = yn
+        return None
+
+    @staticmethod
+    def validate_location_cmd(value) -> str | None:
+        """Return an error when location_cmd is unsafe for RNS Discovery exec."""
+        if value is None or value == "":
+            return None
+        raw = str(value).strip()
+        if not raw:
+            return None
+        if _LOCATION_CMD_FORBIDDEN.search(raw):
+            return (
+                "location_cmd must be an absolute executable path without "
+                "shell metacharacters or control characters"
+            )
+        if ".." in raw.replace("\\", "/").split("/"):
+            return "location_cmd must not contain parent-directory segments"
+        expanded = os.path.expanduser(raw)
+        if not os.path.isabs(expanded):
+            return "location_cmd must be an absolute path or start with ~/"
+        return None
+
+    @staticmethod
+    def apply_location_cmd(interface_details: dict, data: dict) -> str | None:
+        """Persist discovery location_cmd when valid."""
+        if "location_cmd" not in data:
+            return None
+        value = data.get("location_cmd")
+        if value is None or value == "":
+            interface_details.pop("location_cmd", None)
+            return None
+        error = InterfaceEditor.validate_location_cmd(value)
+        if error is not None:
+            return error
+        interface_details["location_cmd"] = os.path.normpath(
+            os.path.expanduser(str(value).strip()),
+        )
+        return None
+
+    @staticmethod
+    def apply_positive_number(
+        interface_details: dict,
+        data: dict,
+        key: str,
+        *,
+        as_int: bool = False,
+        minimum: float = 0,
+        maximum: float | None = None,
+    ) -> str | None:
+        """Persist a numeric option with bounds. Return error text if invalid."""
+        if key not in data:
+            return None
+        value = data.get(key)
+        if value is None or value == "":
+            interface_details.pop(key, None)
+            return None
+        try:
+            number = int(value) if as_int else float(value)
+        except (TypeError, ValueError):
+            return f"{key} must be a number"
+        if number < minimum:
+            return f"{key} must be at least {minimum}"
+        if maximum is not None and number > maximum:
+            return f"{key} must be at most {maximum}"
+        interface_details[key] = int(number) if as_int else number
+        return None
+
+    @staticmethod
+    def apply_backbone_fast_flapping(
+        interface_details: dict,
+        data: dict,
+    ) -> str | None:
+        """Persist BackboneInterface fast-flapping options (RNS 1.3.9)."""
+        err = InterfaceEditor.apply_yes_no_option(
+            interface_details,
+            data,
+            "block_fast_flapping",
+        )
+        if err:
+            return err
+        err = InterfaceEditor.apply_positive_number(
+            interface_details,
+            data,
+            "fast_flapping_block_time",
+            as_int=True,
+            minimum=1,
+            maximum=60 * 24 * 30,
+        )
+        if err:
+            return err
+        err = InterfaceEditor.apply_positive_number(
+            interface_details,
+            data,
+            "fast_flapping_threshold",
+            as_int=False,
+            minimum=0.1,
+            maximum=3600,
+        )
+        if err:
+            return err
+        return InterfaceEditor.apply_positive_number(
+            interface_details,
+            data,
+            "fast_flapping_grace",
+            as_int=True,
+            minimum=0,
+            maximum=10_000,
+        )
+
+    @staticmethod
+    def sanitize_imported_rns_options(iface_body: dict) -> str | None:
+        """Normalize/validate RNS 1.3.7+ options on import. Return error or None."""
+        if "mode" in iface_body:
+            mode = InterfaceEditor.normalize_interface_mode(iface_body.get("mode"))
+            if mode is None:
+                return (
+                    "Imported interface mode must be one of: full, gateway, "
+                    "access_point, pointtopoint, roaming, boundary, internal"
+                )
+            iface_body["mode"] = mode
+        for key in ("recursive_prs", "announces_from_internal", "block_fast_flapping"):
+            if key not in iface_body:
+                continue
+            yn = InterfaceEditor.request_yes_no(iface_body.get(key))
+            if yn is None:
+                return f"Imported interface {key} must be a boolean or yes/no value"
+            iface_body[key] = yn
+        if "location_cmd" in iface_body:
+            loc = iface_body.get("location_cmd")
+            if loc is None or loc == "":
+                iface_body.pop("location_cmd", None)
+            else:
+                error = InterfaceEditor.validate_location_cmd(loc)
+                if error is not None:
+                    return error
+                iface_body["location_cmd"] = os.path.normpath(
+                    os.path.expanduser(str(loc).strip()),
+                )
+        return None

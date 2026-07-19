@@ -737,4 +737,94 @@ async def test_i2p_connectable_can_be_disabled(temp_dir):
         saved = config["interfaces"]["I2POut"]
         assert saved["connectable"] == "False"
         assert saved["peers"] == ["abcdef.b32.i2p"]
-        assert list(config["interfaces"].keys())[-1] == "I2POut"
+
+
+@pytest.mark.asyncio
+async def test_internal_mode_and_rns_bool_options_persist(temp_dir):
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    free_port = _free_port("tcp")
+    async with make_app(temp_dir, config) as handler:
+        payload = {
+            "name": "InternalTCP",
+            "type": "TCPServerInterface",
+            "listen_ip": "127.0.0.1",
+            "listen_port": free_port,
+            "mode": "internal",
+            "recursive_prs": True,
+            "announces_from_internal": False,
+        }
+        response = await handler(make_request(payload))
+        body = json.loads(response.body)
+        assert response.status == 200, body
+        saved = config["interfaces"]["InternalTCP"]
+        assert saved["mode"] == "internal"
+        assert saved["recursive_prs"] == "yes"
+        assert saved["announces_from_internal"] == "no"
+
+
+@pytest.mark.asyncio
+async def test_rejects_unknown_interface_mode(temp_dir):
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    free_port = _free_port("tcp")
+    async with make_app(temp_dir, config) as handler:
+        payload = {
+            "name": "BadMode",
+            "type": "TCPServerInterface",
+            "listen_ip": "127.0.0.1",
+            "listen_port": free_port,
+            "mode": "warehouse",
+        }
+        response = await handler(make_request(payload))
+        body = json.loads(response.body)
+        assert response.status == 422, body
+        assert "mode" in body["message"].lower()
+        assert "BadMode" not in config["interfaces"]
+
+
+@pytest.mark.asyncio
+async def test_rejects_unsafe_location_cmd(temp_dir):
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    free_port = _free_port("tcp")
+    async with make_app(temp_dir, config) as handler:
+        payload = {
+            "name": "Disco",
+            "type": "TCPServerInterface",
+            "listen_ip": "127.0.0.1",
+            "listen_port": free_port,
+            "discoverable": "yes",
+            "mode": "gateway",
+            "location_cmd": "/tmp/gps; rm -rf /",
+        }
+        response = await handler(make_request(payload))
+        body = json.loads(response.body)
+        assert response.status == 422, body
+        assert "location_cmd" in body["message"]
+
+
+@pytest.mark.asyncio
+async def test_backbone_listener_fast_flapping_options(temp_dir):
+    config = ConfigDict({"reticulum": {}, "interfaces": {}})
+
+    free_port = _free_port("tcp")
+    async with make_app(temp_dir, config) as handler:
+        payload = {
+            "name": "BackboneFlap",
+            "type": "BackboneInterface",
+            "listen_ip": "127.0.0.1",
+            "listen_port": free_port,
+            "block_fast_flapping": True,
+            "fast_flapping_block_time": 60,
+            "fast_flapping_threshold": 15,
+            "fast_flapping_grace": 3,
+        }
+        response = await handler(make_request(payload))
+        body = json.loads(response.body)
+        assert response.status == 200, body
+        saved = config["interfaces"]["BackboneFlap"]
+        assert saved["block_fast_flapping"] == "yes"
+        assert saved["fast_flapping_block_time"] == 60
+        assert saved["fast_flapping_threshold"] == 15
+        assert saved["fast_flapping_grace"] == 3

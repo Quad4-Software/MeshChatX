@@ -19,6 +19,7 @@ All notable changes to this project will be documented in this file.
 - Notification sound settings
 - LXMFy 1.6.5 vendor refresh, wasmtime, mutation test tasks
 - Network visualiser WebGL + WASM renderer (vis-network fallback) and Settings renderer preference
+- Interfaces: internal mode, recursive path requests, announces-from-internal, discovery location command, and Backbone fast-flapping options (RNS 1.3.7 to 1.3.9)
 
 ### Changed
 
@@ -61,6 +62,7 @@ All notable changes to this project will be documented in this file.
 - Open conversations mark as read when a new message arrives without needing to reselect the thread
 - Startup stage logs no longer print the same stage twice
 - Ctrl+C shutdown no longer floods reentrant logging errors from RNS.exit containment
+- RN Status interface mode labels match Reticulum modes again, including Internal
 
 ## [4.7.2] - 2026-07-06
 

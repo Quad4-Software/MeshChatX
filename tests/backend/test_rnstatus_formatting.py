@@ -30,3 +30,37 @@ def test_speed_str_bitrate_not_scaled():
     assert speed_str(100) == "100.00 bps"
     assert speed_str(5_000_000) == "5.00 Mbps"
     assert speed_str(8_000_000) == "8.00 Mbps"
+
+
+def test_rnstatus_mode_labels_match_rns_constants():
+    from unittest.mock import MagicMock
+
+    import RNS
+
+    from meshchatx.src.backend.rnstatus_handler import RNStatusHandler
+
+    iface = RNS.Interfaces.Interface.Interface
+    cases = {
+        iface.MODE_FULL: "Full",
+        iface.MODE_POINT_TO_POINT: "Point-to-Point",
+        iface.MODE_ACCESS_POINT: "Access Point",
+        iface.MODE_ROAMING: "Roaming",
+        iface.MODE_BOUNDARY: "Boundary",
+        iface.MODE_GATEWAY: "Gateway",
+        iface.MODE_INTERNAL: "Internal",
+    }
+    handler = RNStatusHandler(MagicMock())
+    for mode_value, label in cases.items():
+        status = handler.get_status(
+            stats={
+                "interfaces": [
+                    {
+                        "name": "TestInterface",
+                        "status": True,
+                        "mode": mode_value,
+                    },
+                ],
+            },
+            include_local_blackhole=False,
+        )
+        assert status["interfaces"][0]["mode"] == label, mode_value
