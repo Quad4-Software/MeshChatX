@@ -24,7 +24,7 @@
         {
             "name": "micron-parser-go-wasm",
             "pattern": "https://github.com/Quad4-Software/Micron-Parser-Go/releases/download/*/micron-parser-go.wasm",
-            "pinned_tag": "v1.0.5",
+            "pinned_tag": "v1.0.6",
             "tag_source": "scripts/micron-parser-go-version.mjs"
         },
         {

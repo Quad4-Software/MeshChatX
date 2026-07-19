@@ -1895,7 +1895,7 @@
         "micron_wasm_update_upload_heading": "Install from file",
         "micron_wasm_update_upload_warning": "Uploaded WASM is not authenticity-checked. Only use files you trust.",
         "micron_wasm_update_revert_bundled": "Remove override (use bundled WASM)",
-        "micron_wasm_update_err_empty_tag": "Enter a release tag (for example v1.0.5).",
+        "micron_wasm_update_err_empty_tag": "Enter a release tag (for example v1.0.6).",
         "micron_wasm_update_err_not_wasm": "Choose a file whose name ends with .wasm.",
         "micron_wasm_update_err_too_large": "That file is too large to store as a runtime override.",
         "micron_wasm_update_err_too_small": "That file is too small to be a valid WASM module.",

@@ -137,7 +137,7 @@ export default {
     computed: {
         defaultTag() {
             const t = import.meta.env.VITE_MICRON_PARSER_GO_RELEASE;
-            return typeof t === "string" && t.trim() ? t.trim() : "v1.0.5";
+            return typeof t === "string" && t.trim() ? t.trim() : "v1.0.6";
         },
         downloadBase() {
             return MICRON_PARSER_GO_RELEASE_DOWNLOAD_BASE;
