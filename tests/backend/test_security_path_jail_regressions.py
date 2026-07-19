@@ -159,13 +159,22 @@ def test_plugin_wasm_resolve_does_not_delete_outside_install(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_rncp_send_path_jails_and_blocks_identity(tmp_path):
+async def test_rncp_send_path_jails_and_blocks_identity(tmp_path, monkeypatch):
     handler = RNCPHandler(MagicMock(), MagicMock(), str(tmp_path))
     allowed = tmp_path / "payload.bin"
     allowed.write_bytes(b"data")
     identity_file = tmp_path / "identity"
     identity_file.write_bytes(b"secret-key")
-    outside = tmp_path.parent / "outside-rncp.bin"
+
+    # Keep home jail separate from pytest tmp so sibling paths do not pass.
+    fake_home = tmp_path / "home"
+    fake_home.mkdir()
+    monkeypatch.setenv("HOME", str(fake_home))
+    monkeypatch.setattr(os.path, "expanduser", lambda p: str(fake_home) if p == "~" else p)
+
+    outside_root = tmp_path.parent / "rncp-outside-root"
+    outside_root.mkdir(exist_ok=True)
+    outside = outside_root / "outside-rncp.bin"
     outside.write_bytes(b"nope")
 
     assert handler._resolve_send_path(str(allowed)).endswith("payload.bin")
