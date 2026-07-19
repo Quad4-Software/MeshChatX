@@ -633,7 +633,7 @@ export function createNetworkVisualiserWebGL(canvas, gl) {
      * @param {Float32Array} edges packed EDGE_STRIDE
      * @param {{x:number,y:number,zoom:number}} camera
      * @param {boolean} dark
-     * @param {{x:number,y:number,size:number,text:string}[]} [labels]
+     * @param {{x:number,y:number,size:number,text:string,fontSize?:number}[]} [labels]
      */
     function draw(nodes, edges, camera, dark, labels) {
         const size = resize();
@@ -716,18 +716,17 @@ export function createNetworkVisualiserWebGL(canvas, gl) {
         if (labelCtx && labelCanvas) {
             labelCtx.setTransform(1, 0, 0, 1, 0, 0);
             labelCtx.clearRect(0, 0, labelCanvas.width, labelCanvas.height);
-            if (zoom >= 0.45 && Array.isArray(labels) && labels.length > 0) {
-                // Draw in device pixels so glyph AA matches the HiDPI canvas.
-                const fontPx = Math.max(12, Math.round(12 * dpr));
+            // LOD (when labels appear) is decided by the engine via collectWebGLLabels.
+            if (Array.isArray(labels) && labels.length > 0) {
                 labelCtx.textAlign = "center";
                 labelCtx.textBaseline = "top";
-                labelCtx.font = `500 ${fontPx}px Inter, system-ui, -apple-system, "Segoe UI", sans-serif`;
                 labelCtx.imageSmoothingEnabled = true;
                 const fill = dark ? "#f4f4f5" : "#18181b";
                 const stroke = dark ? "rgba(9,9,11,0.75)" : "rgba(255,255,255,0.88)";
                 labelCtx.lineJoin = "round";
                 labelCtx.miterLimit = 2;
                 labelCtx.lineWidth = Math.max(2, Math.round(2.25 * dpr));
+                let lastFontKey = "";
                 for (const lab of labels) {
                     if (!lab?.text) continue;
                     const sx = (lab.x - camX) * zoom + cssW * 0.5;
@@ -737,6 +736,13 @@ export function createNetworkVisualiserWebGL(canvas, gl) {
                     // Snap to device pixels to avoid blurry half-pixel text.
                     const tx = Math.round(sx * dpr);
                     const ty = Math.round((sy + r + 4) * dpr);
+                    const cssFont = Math.max(11, Number(lab.fontSize) || 11);
+                    const fontPx = Math.max(11, Math.round(cssFont * dpr));
+                    const fontKey = String(fontPx);
+                    if (fontKey !== lastFontKey) {
+                        labelCtx.font = `500 ${fontPx}px Inter, system-ui, -apple-system, "Segoe UI", sans-serif`;
+                        lastFontKey = fontKey;
+                    }
                     labelCtx.strokeStyle = stroke;
                     labelCtx.fillStyle = fill;
                     labelCtx.strokeText(lab.text, tx, ty);

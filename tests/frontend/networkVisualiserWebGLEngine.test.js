@@ -11,6 +11,9 @@ import {
     pointerMidpoint,
     canUseVisualiserWebGL,
     createVisualiserWebGLEngine,
+    collectWebGLLabels,
+    truncateWebGLLabel,
+    WEBGL_LABEL_MAX_CHARS,
 } from "@/js/networkVisualiserWebGLEngine.js";
 import {
     atlasUvForSlot,
@@ -183,6 +186,37 @@ describe("networkVisualiserWebGLEngine", () => {
 
     it("canUseVisualiserWebGL is false without scene readiness", () => {
         expect(canUseVisualiserWebGL()).toBe(false);
+    });
+
+    it("truncateWebGLLabel caps long names", () => {
+        expect(truncateWebGLLabel("")).toBeNull();
+        expect(truncateWebGLLabel(null)).toBeNull();
+        expect(truncateWebGLLabel("short")).toBe("short");
+        const long = "a".repeat(WEBGL_LABEL_MAX_CHARS + 10);
+        const out = truncateWebGLLabel(long);
+        expect(out.length).toBe(WEBGL_LABEL_MAX_CHARS);
+        expect(out.endsWith("...")).toBe(true);
+    });
+
+    it("collectWebGLLabels follows canvas LOD bands", () => {
+        const nodes = new Float32Array([
+            0, 0, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            10, 20, 25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            30, 40, 25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ]);
+        const labelByIndex = ["Local", "eth0", "Alice"];
+        const idByIndex = ["me", "eth0", "peer1"];
+        const base = { sceneCount: 3, nodes, labelByIndex, idByIndex };
+
+        expect(collectWebGLLabels({ ...base, zoom: 0.1 })).toEqual([]);
+        expect(collectWebGLLabels({ ...base, zoom: 0.3 }).map((l) => l.text)).toEqual(["Local"]);
+        expect(
+            collectWebGLLabels({ ...base, zoom: 0.3, hoverId: "peer1" }).map((l) => l.text).sort()
+        ).toEqual(["Alice", "Local"]);
+        const high = collectWebGLLabels({ ...base, zoom: 0.8 });
+        expect(high.map((l) => l.text)).toEqual(["Local", "eth0", "Alice"]);
+        expect(high[0].fontSize).toBe(16);
+        expect(high[1].fontSize).toBe(11);
     });
 
     it("graphToSceneRequest maps me/iface/peer colors and kinds", () => {
