@@ -257,16 +257,22 @@ class Database:
             return True
         return False
 
-    def check_db_health_at_open(self, storage_path):
+    def check_db_health_at_open(self, storage_path, *, quick: bool = False):
         """Run integrity and baseline checks after opening the database.
 
         Returns human-readable issue strings. Empty if healthy.
+        When quick is True, use PRAGMA quick_check instead of full integrity_check.
         """
         issues = []
         try:
-            integrity_rows = self.provider.integrity_check()
+            integrity_rows = (
+                self.provider.quick_check()
+                if quick
+                else self.provider.integrity_check()
+            )
+            check_label = "quick check" if quick else "integrity check"
             if not integrity_rows:
-                issues.append("Database integrity check failed: no result")
+                issues.append(f"Database {check_label} failed: no result")
                 _log.warning("DB open health check: no result")
             else:
                 first = integrity_rows[0]
@@ -274,7 +280,7 @@ class Database:
                     next(iter(first.values())) if isinstance(first, dict) else first[0]
                 )
                 if val != "ok":
-                    issues.append(f"Database integrity check failed: {val!s}")
+                    issues.append(f"Database {check_label} failed: {val!s}")
                     _log.warning("DB open health check: %s", val)
         except Exception as e:
             msg = f"Database integrity check error: {e!s}"

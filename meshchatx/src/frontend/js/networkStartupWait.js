@@ -11,47 +11,63 @@ export const STARTUP_STAGE_LABELS = {
 
 /**
  * Interpret a /api/v1/status JSON body for boot gating.
+ * Only own properties are trusted so prototype pollution cannot spoof readiness.
  * @param {unknown} data
- * @returns {{ kind: "ready" | "degraded" | "failed" | "starting" | "invalid", stage?: string, error?: string, label?: string }}
+ * @returns {{ kind: "ready" | "ui" | "degraded" | "failed" | "starting" | "invalid", stage?: string, error?: string, label?: string }}
  */
 export function interpretStartupStatus(data) {
-    if (!data || typeof data !== "object") {
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
         return { kind: "invalid" };
     }
-    const status = data.status;
-    const stage = typeof data.stage === "string" ? data.stage : undefined;
+    const own = (key) => Object.prototype.hasOwnProperty.call(data, key);
+    const status = own("status") ? data.status : undefined;
+    const stage = own("stage") && typeof data.stage === "string" ? data.stage : undefined;
+    const networkReady = own("network_ready") && data.network_ready === true;
+    const uiReady = own("ui_ready") && data.ui_ready === true;
+    const networkDegraded = own("network_degraded") && data.network_degraded === true;
+    const error = own("error") && typeof data.error === "string" ? data.error : undefined;
+
     if (status === "failed") {
         // HTTP is up and the backend marked UI as usable: mount the app in
         // degraded mode so interfaces/settings remain reachable for recovery.
-        if (data.ui_ready === true || data.network_degraded === true) {
+        if (uiReady || networkDegraded) {
             return {
                 kind: "degraded",
                 stage: stage || "failed",
-                error: typeof data.error === "string" ? data.error : undefined,
+                error,
             };
         }
         return {
             kind: "failed",
             stage: stage || "failed",
-            error: typeof data.error === "string" ? data.error : undefined,
+            error,
         };
     }
-    if (status === "ok" || data.network_ready === true) {
+    if (status === "ok" || networkReady) {
         return { kind: "ready", stage: stage || "ready" };
     }
     if (status === "starting" || status === undefined) {
         const resolvedStage = stage || "starting";
+        const label = STARTUP_STAGE_LABELS[resolvedStage] || "Starting network…";
+        // HTTP is bound and the shell may mount while RNS/identity finish.
+        if (uiReady) {
+            return {
+                kind: "ui",
+                stage: resolvedStage,
+                label,
+            };
+        }
         return {
             kind: "starting",
             stage: resolvedStage,
-            label: STARTUP_STAGE_LABELS[resolvedStage] || "Starting network…",
+            label,
         };
     }
     return { kind: "invalid", stage };
 }
 
 /**
- * Poll /api/v1/status until the network stack is ready or degraded-but-usable.
+ * Poll /api/v1/status until the UI may mount (ui_ready), mesh is ready, or degraded.
  * @param {{
  *   fetchImpl?: typeof fetch,
  *   now?: () => number,
@@ -61,8 +77,9 @@ export function interpretStartupStatus(data) {
  *   onErrorState?: () => void,
  *   onDegraded?: (error?: string) => void,
  *   statusUrl?: string,
+ *   mountOnUiReady?: boolean,
  * }} [options]
- * @returns {Promise<"ready" | "degraded" | false>}
+ * @returns {Promise<"ready" | "ui" | "degraded" | false>}
  */
 export async function waitForNetworkReady(options = {}) {
     const fetchImpl = options.fetchImpl || fetch;
@@ -73,6 +90,7 @@ export async function waitForNetworkReady(options = {}) {
     const onErrorState = options.onErrorState || (() => {});
     const onDegraded = options.onDegraded || (() => {});
     const statusUrl = options.statusUrl || "/api/v1/status";
+    const mountOnUiReady = options.mountOnUiReady !== false;
 
     const deadline = now() + timeoutMs;
     let delayMs = 200;
@@ -95,7 +113,11 @@ export async function waitForNetworkReady(options = {}) {
                 if (interpreted.kind === "ready") {
                     return "ready";
                 }
-                if (interpreted.kind === "starting") {
+                if (interpreted.kind === "ui" && mountOnUiReady) {
+                    onLine(interpreted.label || "Opening the app…");
+                    return "ui";
+                }
+                if (interpreted.kind === "starting" || interpreted.kind === "ui") {
                     onLine(interpreted.label || "Getting things ready…");
                 }
             }
@@ -108,4 +130,26 @@ export async function waitForNetworkReady(options = {}) {
     onLine("Network startup timed out. Try reloading.");
     onErrorState();
     return false;
+}
+
+/**
+ * Continue polling until mesh network_ready or degraded/failed.
+ * Used after an early UI mount on ui_ready.
+ * @param {{
+ *   fetchImpl?: typeof fetch,
+ *   now?: () => number,
+ *   sleep?: (ms: number) => Promise<void>,
+ *   timeoutMs?: number,
+ *   onLine?: (text: string) => void,
+ *   onErrorState?: () => void,
+ *   onDegraded?: (error?: string) => void,
+ *   statusUrl?: string,
+ * }} [options]
+ * @returns {Promise<"ready" | "degraded" | false>}
+ */
+export async function waitForMeshReady(options = {}) {
+    return waitForNetworkReady({
+        ...options,
+        mountOnUiReady: false,
+    });
 }

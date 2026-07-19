@@ -17,6 +17,8 @@
             :view-backend-logs-label="$t('app.view_backend_logs')"
             :show-ws-reconnected="wsReconnectedBanner"
             :ws-reconnected-label="$t('app.backend_reconnected')"
+            :show-network-starting="showNetworkStartingBanner"
+            :network-starting-label="$t('app.network_starting')"
             :show-network-degraded="showNetworkDegradedBanner"
             :network-degraded-label="networkDegradedBannerLabel"
             :network-recovering="networkRecovering"
@@ -653,6 +655,7 @@ import {
     BATTERY_SAVER_CHANGED_EVENT,
     loadBatterySaverPrefs,
 } from "../js/settings/batterySaverPrefs.js";
+import { setLocale } from "../js/localeLoader.js";
 
 export default {
     name: "App",
@@ -806,6 +809,14 @@ export default {
         showNetworkDegradedBanner() {
             return Boolean(GlobalState.networkDegraded) && this.$route?.name !== "auth";
         },
+        showNetworkStartingBanner() {
+            return (
+                Boolean(GlobalState.networkStarting) &&
+                !GlobalState.networkDegraded &&
+                !GlobalState.networkReady &&
+                this.$route?.name !== "auth"
+            );
+        },
         networkDegradedBannerLabel() {
             const detail = GlobalState.networkDegradedError;
             if (detail) {
@@ -841,7 +852,7 @@ export default {
         config: {
             handler(newConfig) {
                 if (newConfig && newConfig.language) {
-                    this.$i18n.locale = newConfig.language;
+                    void this.applyLocale(newConfig.language);
                 }
                 if (newConfig && newConfig.custom_ringtone_enabled !== undefined) {
                     this.updateRingtonePlayer();
@@ -993,10 +1004,33 @@ export default {
             }
             const needShell = !GlobalState.authEnabled || (GlobalState.authenticated && this.$route.name !== "auth");
             if (needShell && !this.shellRunning) {
+                if (GlobalState.networkStarting && !GlobalState.networkReady && !GlobalState.networkDegraded) {
+                    this.waitForMeshThenStartShell();
+                    return;
+                }
                 this.startShell();
             } else if (!needShell && this.shellRunning) {
                 this.stopShell();
             }
+        },
+        waitForMeshThenStartShell() {
+            if (this._meshWaitStarted) {
+                return;
+            }
+            this._meshWaitStarted = true;
+            const stopWatch = watch(
+                () => [GlobalState.networkReady, GlobalState.networkDegraded, GlobalState.networkStarting],
+                () => {
+                    if (GlobalState.networkReady || GlobalState.networkDegraded || !GlobalState.networkStarting) {
+                        stopWatch();
+                        this._meshWaitStarted = false;
+                        if (!this.shellRunning) {
+                            this.applyShellAuthState();
+                        }
+                    }
+                },
+                { immediate: true }
+            );
         },
         startShell() {
             if (this.shellRunning) {
@@ -1808,6 +1842,16 @@ export default {
                 "theme"
             );
         },
+        async applyLocale(langCode) {
+            if (!langCode) {
+                return;
+            }
+            try {
+                await setLocale(this.$i18n, langCode);
+            } catch {
+                this.$i18n.locale = langCode;
+            }
+        },
         async onLanguageChange(langCode) {
             await this.updateConfig(
                 {
@@ -1815,7 +1859,7 @@ export default {
                 },
                 "language"
             );
-            this.$i18n.locale = langCode;
+            await this.applyLocale(langCode);
         },
         async composeNewMessage() {
             // go to messages route

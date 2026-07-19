@@ -120,7 +120,9 @@
                             <div class="flex flex-wrap gap-x-4 gap-y-1">
                                 <span>
                                     {{ $t("rns_filesync.running") }}:
-                                    <strong>{{ status.running ? $t("rns_filesync.yes") : $t("rns_filesync.no") }}</strong>
+                                    <strong>{{
+                                        status.running ? $t("rns_filesync.yes") : $t("rns_filesync.no")
+                                    }}</strong>
                                 </span>
                                 <span>
                                     {{ $t("rns_filesync.peers_count") }}:
@@ -302,9 +304,9 @@
                                 {{ $t("rns_filesync.acl_grant") }}
                             </button>
                         </div>
-                        <pre
-                            class="p-3 rounded-lg bg-zinc-100 dark:bg-zinc-900 text-xs overflow-x-auto"
-                        >{{ aclRulesText }}</pre>
+                        <pre class="p-3 rounded-lg bg-zinc-100 dark:bg-zinc-900 text-xs overflow-x-auto">{{
+                            aclRulesText
+                        }}</pre>
                     </div>
                 </div>
             </div>
@@ -357,7 +359,7 @@ export default {
             aclDelete: false,
             aclRules: {},
             lastProgress: "",
-            _wsHandlers: [],
+            wsHandlers: [],
         };
     },
     computed: {
@@ -374,16 +376,16 @@ export default {
         await this.refreshAll();
     },
     beforeUnmount() {
-        for (const [type, handler] of this._wsHandlers) {
+        for (const [type, handler] of this.wsHandlers) {
             offWsEvent(type, handler);
         }
-        this._wsHandlers = [];
+        this.wsHandlers = [];
     },
     methods: {
         bindWs() {
             const bind = (type, handler) => {
                 onWsEvent(type, handler);
-                this._wsHandlers.push([type, handler]);
+                this.wsHandlers.push([type, handler]);
             };
             bind("filesync.sync.progress", (payload) => {
                 this.lastProgress = JSON.stringify(payload);
@@ -406,18 +408,11 @@ export default {
             });
             bind("filesync.error", (payload) => {
                 const detail = payload?.error || payload?.message || "";
-                ToastUtils.error(
-                    `${this.$t("rns_filesync.error")}${detail ? ": " + detail : ""}`,
-                );
+                ToastUtils.error(`${this.$t("rns_filesync.error")}${detail ? ": " + detail : ""}`);
             });
         },
         async refreshAll() {
-            await Promise.all([
-                this.refreshStatus(),
-                this.refreshPeers(),
-                this.refreshFiles(),
-                this.refreshAcl(),
-            ]);
+            await Promise.all([this.refreshStatus(), this.refreshPeers(), this.refreshFiles(), this.refreshAcl()]);
         },
         async refreshStatus() {
             try {

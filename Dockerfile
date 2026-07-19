@@ -69,10 +69,12 @@ RUN uv sync --no-group dev --no-install-project && \
 COPY meshchatx ./meshchatx
 COPY scripts/docker-bake-lxst-filterlib-musl.py ./scripts/docker-bake-lxst-filterlib-musl.py
 COPY scripts/patch_lxst_pyogg_ogg_ctypes.py ./scripts/patch_lxst_pyogg_ogg_ctypes.py
+COPY scripts/patch_lxst_codec2_optional.py ./scripts/patch_lxst_codec2_optional.py
 COPY --from=build-frontend /src/meshchatx/public ./meshchatx/public
 
 RUN pip install --no-cache-dir . && \
     python scripts/patch_lxst_pyogg_ogg_ctypes.py && \
+    python scripts/patch_lxst_codec2_optional.py && \
     python scripts/docker-bake-lxst-filterlib-musl.py && \
     rm -rf /opt/venv/lib/python*/site-packages/LXST/Platforms/android && \
     find /opt/venv -type d -name "tests" -exec rm -rf {} + && \
@@ -109,6 +111,8 @@ LABEL org.opencontainers.image.created="${OCI_CREATED}"
 ENV PATH="/opt/venv/bin:$PATH"
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
+# No PulseAudio in the image: LXST LineSource/LineSink cannot open host devices.
+ENV MESHCHAT_FORCE_WEB_AUDIO=1
 
 USER meshchat
 

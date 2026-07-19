@@ -488,6 +488,7 @@
         "rpc_key_hide": "Nascondi chiave RPC",
         "refresh_community_interfaces": "Aggiorna da directory.rns.recipes",
         "refresh_community_interfaces_busy": "Aggiornamento…",
+        "network_starting": "Connessione alla mesh…",
         "network_degraded": "Rete mesh non disponibile. L'app resta attiva così puoi riparare le interfacce senza cancellare i dati.",
         "recover_network": "Riprova rete",
         "open_interfaces": "Apri interfacce",

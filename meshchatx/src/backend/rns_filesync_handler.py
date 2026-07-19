@@ -12,8 +12,26 @@ from collections.abc import Callable
 from typing import Any
 
 from rns_filesync.constants import ANNOUNCE_INTERVAL_DEFAULT
+from rns_filesync.paths import PathJailError, normalize_relpath
 from rns_filesync.permissions import PermissionStore
 from rns_filesync.service import FileSyncService
+
+_ALL_ALIASES = frozenset({"all", "a", "everyone", "*"})
+
+
+def _normalize_peer_hash(value: str | None) -> str | None:
+    cleaned = str(value or "").strip().lower().replace(":", "")
+    if not cleaned:
+        return None
+    if cleaned in _ALL_ALIASES:
+        return "all"
+    if len(cleaned) != 32:
+        return None
+    try:
+        bytes.fromhex(cleaned)
+    except ValueError:
+        return None
+    return cleaned
 
 
 class RnsFilesyncHandler:
@@ -28,12 +46,13 @@ class RnsFilesyncHandler:
     ):
         self.reticulum = reticulum_instance
         self.identity = identity
-        self.storage_dir = storage_dir
+        self.storage_dir = os.path.realpath(storage_dir)
         self._emit_callback = emit_callback
         self._lock = threading.RLock()
         self.service: FileSyncService | None = None
+        self._permissions_cache: PermissionStore | None = None
 
-        self._root = os.path.join(storage_dir, "filesync")
+        self._root = os.path.join(self.storage_dir, "filesync")
         self._settings_path = os.path.join(self._root, "settings.json")
         self._acl_path = os.path.join(self._root, "acl.txt")
         self._sync_directory = os.path.join(self._root, "sync")
@@ -52,8 +71,15 @@ class RnsFilesyncHandler:
         except Exception:
             pass
 
-    def _default_sync_directory(self) -> str:
-        return os.path.join(self._root, "sync")
+    def _resolve_sync_directory(self, path: str) -> str | None:
+        cleaned = str(path or "").strip()
+        if not cleaned:
+            return None
+        resolved = os.path.realpath(os.path.expanduser(cleaned))
+        root = self.storage_dir
+        if resolved != root and not resolved.startswith(root + os.sep):
+            return None
+        return resolved
 
     def _load_settings(self) -> None:
         os.makedirs(self._root, exist_ok=True)
@@ -68,7 +94,9 @@ class RnsFilesyncHandler:
             return
         sync_dir = data.get("sync_directory")
         if isinstance(sync_dir, str) and sync_dir.strip():
-            self._sync_directory = os.path.realpath(os.path.expanduser(sync_dir.strip()))
+            resolved = self._resolve_sync_directory(sync_dir)
+            if resolved is not None:
+                self._sync_directory = resolved
         monitor = data.get("monitor")
         if isinstance(monitor, bool):
             self._monitor = monitor
@@ -91,9 +119,23 @@ class RnsFilesyncHandler:
 
     def _load_permissions(self) -> PermissionStore:
         permissions = PermissionStore()
+        enforce_override: bool | None = None
         if os.path.isfile(self._acl_path):
-            with contextlib.suppress(Exception):
-                permissions.load_file(self._acl_path)
+            try:
+                with open(self._acl_path, encoding="utf-8") as handle:
+                    text = handle.read()
+                lines = text.splitlines()
+                if lines:
+                    first = lines[0].strip()
+                    if first == "# enforce=false":
+                        enforce_override = False
+                    elif first == "# enforce=true":
+                        enforce_override = True
+                permissions.load_allowed_text(text)
+                if enforce_override is not None:
+                    permissions._enforce = enforce_override
+            except Exception:
+                pass
         return permissions
 
     def _save_acl(self, permissions: PermissionStore) -> None:
@@ -104,16 +146,15 @@ class RnsFilesyncHandler:
             for target in rules.get(perm, []):
                 short = {"read": "r", "write": "w", "delete": "d"}[perm]
                 lines.append(f"{short}:{target}")
-        if permissions.enabled and not lines:
-            lines.append("# enforce=true")
-        elif not permissions.enabled:
-            lines.insert(0, "# enforce=false")
-        else:
+        if permissions.enabled:
             lines.insert(0, "# enforce=true")
+        else:
+            lines.insert(0, "# enforce=false")
         tmp = f"{self._acl_path}.tmp"
         with open(tmp, "w", encoding="utf-8") as handle:
             handle.write("\n".join(lines) + "\n")
         os.replace(tmp, self._acl_path)
+        self._permissions_cache = permissions
 
     def _wire_callbacks(self, service: FileSyncService) -> None:
         service.on_peer_connected = lambda payload: self._emit(
@@ -144,7 +185,10 @@ class RnsFilesyncHandler:
     def _permissions(self) -> PermissionStore:
         if self.service is not None:
             return self.service.permissions
-        return self._load_permissions()
+        if self._permissions_cache is not None:
+            return self._permissions_cache
+        self._permissions_cache = self._load_permissions()
+        return self._permissions_cache
 
     def get_status(self) -> dict[str, Any]:
         with self._lock:
@@ -180,10 +224,13 @@ class RnsFilesyncHandler:
     ) -> dict[str, Any]:
         with self._lock:
             if sync_directory is not None:
-                cleaned = str(sync_directory).strip()
-                if not cleaned:
-                    return {"ok": False, "error": "sync_directory is required"}
-                self._sync_directory = os.path.realpath(os.path.expanduser(cleaned))
+                resolved = self._resolve_sync_directory(sync_directory)
+                if resolved is None:
+                    return {
+                        "ok": False,
+                        "error": "sync_directory must stay under identity storage",
+                    }
+                self._sync_directory = resolved
             if monitor is not None:
                 self._monitor = bool(monitor)
             if announce_interval is not None:
@@ -202,14 +249,7 @@ class RnsFilesyncHandler:
 
             os.makedirs(self._sync_directory, exist_ok=True)
             permissions = self._load_permissions()
-            if os.path.isfile(self._acl_path):
-                try:
-                    with open(self._acl_path, encoding="utf-8") as handle:
-                        first = handle.readline().strip()
-                    if first == "# enforce=false":
-                        permissions._enforce = False
-                except Exception:
-                    pass
+            self._permissions_cache = permissions
 
             service = FileSyncService(
                 identity=self.identity,
@@ -244,6 +284,7 @@ class RnsFilesyncHandler:
 
     def teardown(self) -> None:
         self.stop()
+        self._permissions_cache = None
 
     def list_peers(self) -> list[dict[str, Any]]:
         with self._lock:
@@ -261,9 +302,9 @@ class RnsFilesyncHandler:
         with self._lock:
             if self.service is None:
                 return {"ok": False, "error": "filesync is not running"}
-            cleaned = str(identity_hash or "").strip().lower().replace(":", "")
-            if not cleaned:
-                return {"ok": False, "error": "identity_hash is required"}
+            cleaned = _normalize_peer_hash(identity_hash)
+            if cleaned is None or cleaned == "all":
+                return {"ok": False, "error": "invalid identity_hash"}
             return self.service.connect_peer(cleaned)
 
     def disconnect_peer(self, peer_id: str) -> dict[str, Any]:
@@ -294,6 +335,10 @@ class RnsFilesyncHandler:
                 timeout_f = float(timeout)
             except (TypeError, ValueError):
                 timeout_f = 10.0
+            if timeout_f < 0.1:
+                timeout_f = 0.1
+            if timeout_f > 120.0:
+                timeout_f = 120.0
             files = self.service.browse_peer(cleaned, timeout=timeout_f)
             return {"ok": True, "peer_id": cleaned, "files": files}
 
@@ -307,7 +352,11 @@ class RnsFilesyncHandler:
                 return {"ok": False, "error": "peer_id is required"}
             if not cleaned_path:
                 return {"ok": False, "error": "path is required"}
-            return self.service.download_file(cleaned_peer, cleaned_path)
+            try:
+                safe_path = normalize_relpath(cleaned_path)
+            except PathJailError as exc:
+                return {"ok": False, "error": str(exc)}
+            return self.service.download_file(cleaned_peer, safe_path)
 
     def get_acl(self) -> dict[str, Any]:
         with self._lock:
@@ -333,12 +382,12 @@ class RnsFilesyncHandler:
                     permissions.load_allowed_text(rules_text)
             else:
                 permissions = self._permissions()
-                if self.service is None:
-                    # Work on a fresh copy so we can persist even when stopped.
-                    permissions = self._load_permissions()
 
-            if identity_hash and perms is not None:
-                granted = permissions.grant(identity_hash, perms)
+            if identity_hash is not None and perms is not None:
+                peer = _normalize_peer_hash(identity_hash)
+                if peer is None:
+                    return {"ok": False, "error": "invalid identity_hash"}
+                granted = permissions.grant(peer, perms)
                 if not granted and perms:
                     return {"ok": False, "error": "no valid permissions provided"}
 
@@ -373,10 +422,13 @@ class RnsFilesyncHandler:
                         "ok": False,
                         "error": "stop filesync before changing sync directory",
                     }
-                cleaned = str(sync_directory).strip()
-                if not cleaned:
-                    return {"ok": False, "error": "sync_directory is required"}
-                self._sync_directory = os.path.realpath(os.path.expanduser(cleaned))
+                resolved = self._resolve_sync_directory(sync_directory)
+                if resolved is None:
+                    return {
+                        "ok": False,
+                        "error": "sync_directory must stay under identity storage",
+                    }
+                self._sync_directory = resolved
 
             if monitor is not None:
                 self._monitor = bool(monitor)

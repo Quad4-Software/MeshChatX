@@ -158,6 +158,18 @@ def test_build_export_document_shape():
     assert doc["exported_at"] == "2026-01-01T00:00:00Z"
 
 
+_GIF_REJECT_REASONS = frozenset(
+    {
+        "invalid_image_bytes",
+        "empty_image",
+        "image_too_large",
+        "invalid_image_type",
+        "invalid_image_signature",
+        "magic_type_mismatch",
+    },
+)
+
+
 @settings(max_examples=200, deadline=None)
 @given(
     raw=st.binary(min_size=0, max_size=4096),
@@ -167,16 +179,35 @@ def test_build_export_document_shape():
         st.sampled_from(["gif", "webp", "image/gif", "image/webp", "png", ""]),
     ),
 )
-def test_validate_gif_payload_fuzz_never_raises_unexpected(raw, typ):
-    """Fuzz: validation either succeeds or raises ValueError with known reasons."""
+def test_validate_gif_payload_accept_reject_oracle(raw, typ):
+    """Accept only when type and magic agree and size is in range."""
+    nt = gif_utils.normalize_image_type(typ)
+    detected = gif_utils.detect_image_format_from_magic(raw)
+    expect_ok = (
+        bool(raw)
+        and len(raw) <= gif_utils.MAX_GIF_BYTES
+        and nt is not None
+        and detected is not None
+        and detected == nt
+    )
     try:
-        gif_utils.validate_gif_payload(raw, typ)
-    except ValueError:
-        pass
+        out_type, out_hash = gif_utils.validate_gif_payload(raw, typ)
+    except ValueError as exc:
+        assert not expect_ok
+        assert str(exc) in _GIF_REJECT_REASONS
+        return
+    assert expect_ok
+    assert out_type == detected
+    assert len(out_hash) == 64
+    assert all(c in "0123456789abcdef" for c in out_hash)
 
 
 @settings(max_examples=500, deadline=None)
 @given(raw=st.binary(min_size=0, max_size=4096))
-def test_detect_image_format_from_magic_fuzz_never_raises(raw):
+def test_detect_image_format_from_magic_closed_set(raw):
     out = gif_utils.detect_image_format_from_magic(raw)
     assert out is None or out in {"gif", "webp"}
+    if raw.startswith((b"GIF87a", b"GIF89a")):
+        assert out == "gif"
+    elif len(raw) >= 12 and raw.startswith(b"RIFF") and raw[8:12] == b"WEBP":
+        assert out == "webp"

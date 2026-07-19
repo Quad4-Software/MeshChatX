@@ -261,7 +261,9 @@ async def test_send_status_uses_tele_frame_ms():
     client = AsyncMock()
     await bridge.send_status(client)
     payload = json.loads(client.send_str.await_args.args[0])
-    assert payload == {"type": "web_audio.ready", "frame_ms": 52}
+    assert payload["type"] == "web_audio.ready"
+    assert payload["frame_ms"] == 52
+    assert payload["required"] is False
 
 
 @pytest.mark.asyncio
@@ -283,7 +285,19 @@ async def test_send_status_defaults_when_no_telephone():
     client = AsyncMock()
     await bridge.send_status(client)
     payload = json.loads(client.send_str.await_args.args[0])
-    assert payload == {"type": "web_audio.ready", "frame_ms": 60}
+    assert payload["type"] == "web_audio.ready"
+    assert payload["frame_ms"] == 60
+    assert payload["required"] is False
+
+
+@pytest.mark.asyncio
+async def test_send_status_marks_required_when_force_enabled():
+    bridge = WebAudioBridge(_TeleMgrNoTelephone(), MagicMock(), force_enabled=True)
+    client = AsyncMock()
+    await bridge.send_status(client)
+    payload = json.loads(client.send_str.await_args.args[0])
+    assert payload["required"] is True
+    assert bridge.get_diagnostics()["force_enabled"] is True
 
 
 @patch("meshchatx.src.backend.web_audio_bridge.Pipeline")

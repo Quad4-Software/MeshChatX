@@ -757,4 +757,21 @@ describe("CallPage.vue", () => {
             expect(wrapper.vm.callMinimized).toBe(false);
         });
     });
+
+    describe("web audio required (headless / Android)", () => {
+        it("oracle: required status forces webAudioBridgeEnabled and blocks disable", async () => {
+            const wrapper = mountCallPage();
+            await flushPromises();
+            wrapper.vm.config = { telephone_enabled: true, telephone_web_audio_enabled: false };
+            await wrapper.vm.ensureWebAudio({
+                enabled: true,
+                required: true,
+                frame_ms: 60,
+            });
+            expect(wrapper.vm.webAudioBridgeRequired).toBe(true);
+            expect(wrapper.vm.webAudioBridgeEnabled).toBe(true);
+            await wrapper.vm.onToggleWebAudio(false);
+            expect(wrapper.vm.webAudioBridgeEnabled).toBe(true);
+        });
+    });
 });

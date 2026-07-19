@@ -265,11 +265,17 @@ class RNCPHandler:
         if not self.fetch_jail:
             return self.REQ_FETCH_NOT_ALLOWED
 
+        if not isinstance(data, str) or "\x00" in data:
+            return self.REQ_FETCH_NOT_ALLOWED
+
         if data.startswith(self.fetch_jail + "/"):
             data = data.replace(self.fetch_jail + "/", "")
-        file_path = os.path.realpath(
-            os.path.join(self.fetch_jail, data.lstrip("/")),
-        )
+        try:
+            file_path = os.path.realpath(
+                os.path.join(self.fetch_jail, data.lstrip("/")),
+            )
+        except (OSError, ValueError):
+            return self.REQ_FETCH_NOT_ALLOWED
         jail_real = os.path.realpath(self.fetch_jail)
         if file_path != jail_real and not file_path.startswith(jail_real + os.sep):
             return self.REQ_FETCH_NOT_ALLOWED

@@ -271,6 +271,58 @@ describe("behavior contracts: plugin install permissions", () => {
     });
 });
 
+describe("behavior contracts: phased startup and early UI mount", () => {
+    it("frontend mounts on ui_ready and continues polling for mesh ready", () => {
+        const wait = readSource("meshchatx/src/frontend/js/networkStartupWait.js");
+        expect(wait).toContain('kind: "ui"');
+        expect(wait).toContain("mountOnUiReady");
+        expect(wait).toContain("waitForMeshReady");
+        expect(wait).toContain("hasOwnProperty.call");
+        const main = readSource("meshchatx/src/frontend/main.js");
+        expect(main).toContain("waitForMeshReady");
+        expect(main).toContain('networkReady === "ui"');
+        expect(main).toContain("networkStarting");
+        expect(main).toContain('from "./locales/en.json"');
+        expect(main).not.toMatch(/import\.meta\.glob\(\s*["'].*locales.*["']\s*,\s*\{\s*eager:\s*true/);
+    });
+
+    it("App gates shell until mesh ready and shows starting banner", () => {
+        const app = readSource("meshchatx/src/frontend/components/App.vue");
+        expect(app).toContain("waitForMeshThenStartShell");
+        expect(app).toContain("showNetworkStartingBanner");
+        expect(app).toContain("networkStarting");
+        expect(app).toContain("network_starting");
+        const banners = readSource("meshchatx/src/frontend/components/layout/AppShellBanners.vue");
+        expect(banners).toContain("showNetworkStarting");
+        expect(banners).toContain("networkStartingLabel");
+    });
+
+    it("backend publishes ui_ready early and defers secondary identity services", () => {
+        const mesh = readSource("meshchatx/meshchat.py");
+        expect(mesh).toContain("self._ui_ready = True");
+        expect(mesh).toContain("_finish_deferred_startup_services");
+        expect(mesh).toContain("_start_deferred_reticulum_services");
+        const identity = readSource("meshchatx/src/backend/identity_context.py");
+        expect(identity).toContain("def setup_deferred_services");
+        expect(identity).toContain("_deferred_setup_in_progress");
+        expect(identity).toContain("_deferred_setup_finished");
+        expect(identity).toContain("critical_only=True");
+        expect(identity).toContain("quick=True");
+        expect(identity).toContain("populate=False");
+    });
+
+    it("integrity critical path and docs populate helpers stay available", () => {
+        const integrity = readSource("meshchatx/src/backend/integrity_manager.py");
+        expect(integrity).toContain("critical_only");
+        const docs = readSource("meshchatx/src/backend/docs_manager.py");
+        expect(docs).toContain("ensure_meshchatx_docs_populated");
+        expect(docs).toContain("populate: bool = True");
+        const database = readSource("meshchatx/src/backend/database/__init__.py");
+        expect(database).toContain("quick: bool = False");
+        expect(database).toContain("quick_check");
+    });
+});
+
 describe("behavior contracts: network visualiser performance", () => {
     it("keeps lean physics and edge-hide options for large meshes", () => {
         const src = readSource("meshchatx/src/frontend/components/network-visualiser/NetworkVisualiser.vue");

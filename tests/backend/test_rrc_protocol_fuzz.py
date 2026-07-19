@@ -32,13 +32,19 @@ def _envelope_dict_strategy():
 
 @given(data=st.binary(min_size=0, max_size=4096))
 @settings(max_examples=200, deadline=None)
-def test_decode_random_bytes_never_raises_unexpected(data):
+def test_decode_random_bytes_accept_reject_oracle(data):
     try:
         obj = proto.decode(data)
     except Exception as exc:
         assert isinstance(exc, (cbor2.CBORDecodeError, ValueError, TypeError, EOFError))
         return
-    assert obj is not None or obj is None
+    # Successful decode yields a value. Prefer round-trip when CBOR can encode it.
+    try:
+        encoded = cbor2.dumps(obj)
+    except cbor2.CBOREncodeError:
+        return
+    assert isinstance(encoded, (bytes, bytearray))
+    assert proto.decode(encoded) == obj
 
 
 @given(env=_envelope_dict_strategy())
@@ -58,7 +64,7 @@ def test_encode_decode_roundtrip_dict(env):
     nick=st.one_of(st.none(), st.text(max_size=64)),
 )
 @settings(max_examples=120, deadline=None)
-def test_make_envelope_encode_decode_never_raises(msg_type, src, room, body, nick):
+def test_make_envelope_encode_decode_roundtrip(msg_type, src, room, body, nick):
     env = proto.make_envelope(msg_type, src, room=room, body=body, nick=nick)
     decoded = proto.decode(proto.encode(env))
     assert decoded[proto.K_T] == int(msg_type)
@@ -67,12 +73,15 @@ def test_make_envelope_encode_decode_never_raises(msg_type, src, room, body, nic
 
 @given(nick=st.text(max_size=128))
 @settings(max_examples=100, deadline=None)
-def test_normalize_nick_never_raises(nick):
+def test_normalize_nick_shape_oracle(nick):
     result = proto.normalize_nick(nick)
     if result is not None:
         assert isinstance(result, str)
         assert result.strip() == result
         assert len(result.encode("utf-8")) <= proto.DEFAULT_MAX_NICK_BYTES
+    stripped = (nick or "").strip()
+    if not stripped:
+        assert result is None
 
 
 @given(nick=st.text(max_size=128), max_bytes=st.integers(min_value=1, max_value=256))
@@ -96,14 +105,17 @@ def test_normalize_room_only_raises_on_empty_or_whitespace(room):
 
 @given(text=st.text(max_size=256), nick=st.text(max_size=64))
 @settings(max_examples=120, deadline=None)
-def test_text_mentions_never_raises(text, nick):
+def test_text_mentions_bool_oracle(text, nick):
     result = proto.text_mentions(text, nick)
     assert isinstance(result, bool)
+    n = proto.normalize_nick(nick)
+    if n is None:
+        assert result is False
 
 
 @given(text=st.one_of(st.none(), st.integers(), st.binary(), st.text(max_size=256)))
 @settings(max_examples=80, deadline=None)
-def test_parse_who_notice_never_raises(text):
+def test_parse_who_notice_shape_oracle(text):
     result = proto.parse_who_notice(text)
     if result is not None:
         room, entries = result
@@ -114,7 +126,7 @@ def test_parse_who_notice_never_raises(text):
 
 @given(text=st.one_of(st.none(), st.integers(), st.binary(), st.text(max_size=512)))
 @settings(max_examples=80, deadline=None)
-def test_parse_room_list_notice_never_raises(text):
+def test_parse_room_list_notice_shape_oracle(text):
     result = proto.parse_room_list_notice(text)
     if result is not None:
         assert isinstance(result, dict)
@@ -133,19 +145,18 @@ def test_parse_room_list_notice_never_raises(text):
     ts=st.one_of(st.integers(), st.floats(allow_nan=False), st.text(max_size=16)),
 )
 @settings(max_examples=100, deadline=None)
-def test_rrc_message_to_dict_never_raises(kind, room, src, nick, text, ts):
+def test_rrc_message_to_dict_shape_oracle(kind, room, src, nick, text, ts):
     msg = proto.RRCMessage(kind, room, src, nick, text, ts)
     d = msg.to_dict()
     assert isinstance(d, dict)
-    assert "kind" in d
-    assert "text" in d
+    assert d["kind"] == kind
     assert isinstance(d["text"], str)
     assert isinstance(d["ts"], int)
 
 
 @given(app_data=st.one_of(st.none(), st.text(max_size=256), st.binary(max_size=128)))
 @settings(max_examples=100, deadline=None)
-def test_display_name_from_hub_app_data_never_raises(app_data):
+def test_display_name_from_hub_app_data_shape_oracle(app_data):
     if isinstance(app_data, bytes):
         b64 = base64.b64encode(app_data).decode("ascii")
     elif isinstance(app_data, str):

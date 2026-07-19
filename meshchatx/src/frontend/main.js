@@ -26,19 +26,15 @@ installWsEventBridge();
 import App from "./components/App.vue";
 import ChangelogModal from "./components/ChangelogModal.vue";
 import TutorialModal from "./components/TutorialModal.vue";
-
-const localeModules = import.meta.glob("./locales/*.json", { eager: true });
-const messages = {};
-for (const filePath in localeModules) {
-    const code = filePath.match(/\/([^/]+)\.json$/)[1];
-    messages[code] = localeModules[filePath].default;
-}
+import enMessages from "./locales/en.json";
 
 const i18n = createI18n({
     legacy: false,
     locale: "en",
     fallbackLocale: "en",
-    messages,
+    messages: {
+        en: enMessages,
+    },
 });
 
 // init vuetify
@@ -342,7 +338,7 @@ window.api = createApiClient({
     },
 });
 
-import { waitForNetworkReady } from "./js/networkStartupWait.js";
+import { waitForMeshReady, waitForNetworkReady } from "./js/networkStartupWait.js";
 
 function setBootSplashLine(text) {
     const splash = typeof document !== "undefined" ? document.getElementById("meshchatx-boot-splash") : null;
@@ -365,11 +361,21 @@ const networkReady = await waitForNetworkReady({
     onDegraded: (error) => {
         GlobalState.networkDegraded = true;
         GlobalState.networkDegradedError = error || "Mesh network unavailable";
+        GlobalState.networkStarting = false;
+        GlobalState.networkReady = false;
     },
 });
 if (networkReady) {
     if (networkReady === "degraded") {
         GlobalState.networkDegraded = true;
+        GlobalState.networkStarting = false;
+        GlobalState.networkReady = false;
+    } else if (networkReady === "ui") {
+        GlobalState.networkStarting = true;
+        GlobalState.networkReady = false;
+    } else {
+        GlobalState.networkStarting = false;
+        GlobalState.networkReady = true;
     }
     try {
         await fetchCsrfToken(window.api);
@@ -477,8 +483,38 @@ if (networkReady) {
             });
         });
         preloadCriticalRouteChunks();
-        void startCodec2ScriptsBackgroundLoad();
-        void loadPluginsIfEnabled();
+        if (GlobalState.networkReady) {
+            void startCodec2ScriptsBackgroundLoad();
+            void loadPluginsIfEnabled();
+        } else if (GlobalState.networkStarting) {
+            void waitForMeshReady({
+                onLine: () => {},
+                onDegraded: (error) => {
+                    GlobalState.networkDegraded = true;
+                    GlobalState.networkDegradedError = error || "Mesh network unavailable";
+                    GlobalState.networkStarting = false;
+                    GlobalState.networkReady = false;
+                },
+            }).then((meshState) => {
+                if (meshState === "ready") {
+                    GlobalState.networkStarting = false;
+                    GlobalState.networkReady = true;
+                    GlobalState.networkDegraded = false;
+                    GlobalState.networkDegradedError = null;
+                    void startCodec2ScriptsBackgroundLoad();
+                    void loadPluginsIfEnabled();
+                } else if (meshState === "degraded") {
+                    GlobalState.networkStarting = false;
+                    GlobalState.networkReady = false;
+                } else {
+                    GlobalState.networkStarting = false;
+                    GlobalState.networkReady = false;
+                    GlobalState.networkDegraded = true;
+                    GlobalState.networkDegradedError =
+                        GlobalState.networkDegradedError || "Mesh network startup timed out";
+                }
+            });
+        }
         if (GlobalState.networkDegraded) {
             try {
                 router.replace({ name: "interfaces" });

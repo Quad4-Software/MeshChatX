@@ -164,8 +164,12 @@ class IntegrityManager:
         except Exception as e:
             return False, str(e)
 
-    def check_integrity(self):
-        """Verify the current state against the last saved manifest using advanced analytics."""
+    def check_integrity(self, critical_only: bool = False):
+        """Verify the current state against the last saved manifest using advanced analytics.
+
+        When critical_only is True, only identity and database markers are checked.
+        The full storage walk runs later so startup is not blocked by hashing every file.
+        """
         if not self.manifest_path.exists():
             return True, ["Initial run - no manifest yet"]
 
@@ -204,6 +208,32 @@ class IntegrityManager:
                             issues.append(
                                 f"Database structural anomaly (Entropy Δ: {abs(actual_entropy - saved_entropy):.2f})",
                             )
+
+            # Critical identity/config files only during fast startup path.
+            if critical_only:
+                for rel_path, expected_hash in manifest_files.items():
+                    if self._should_ignore(rel_path):
+                        continue
+                    if not any(marker in rel_path for marker in ("identity", "config")):
+                        continue
+                    full_path = self.storage_dir / rel_path
+                    if not full_path.exists():
+                        issues.append(f"File missing: {rel_path}")
+                        continue
+                    actual_hash = self._hash_file(full_path)
+                    if actual_hash != expected_hash:
+                        issues.append(
+                            f"Critical security component integrity compromised: {rel_path}",
+                        )
+                if issues:
+                    m_date = manifest.get("date", "Unknown")
+                    m_time = manifest.get("time", "Unknown")
+                    issues.insert(
+                        0,
+                        f"Last integrity snapshot: {m_date} {m_time} (Identity: {m_id})",
+                    )
+                self.issues = issues
+                return len(issues) == 0, issues
 
             # Check other critical files in storage_dir
             for root, _, files_in_dir in os.walk(self.storage_dir):
