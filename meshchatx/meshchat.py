@@ -10006,6 +10006,10 @@ class ReticulumMeshChat:
             except ValueError as e:
                 return web.json_response({"message": str(e)}, status=400)
             manager.set_active(hub, room)
+            self._mark_rrc_mention_notifications_viewed(
+                request.match_info.get("hub_hash", ""),
+                room,
+            )
             return web.json_response(
                 {"messages": messages, "members": members, "has_more": has_more},
             )
@@ -10047,6 +10051,17 @@ class ReticulumMeshChat:
                 room,
             )
             return web.json_response({"message": "Marked read"})
+
+        @routes.post("/api/v1/rrc/active/clear")
+        async def rrc_clear_active(request):
+            manager = self.rrc_manager
+            if manager is None:
+                return web.json_response(
+                    {"message": "Relay chat is not available"},
+                    status=503,
+                )
+            manager.set_active(None, None)
+            return web.json_response({"message": "Active room cleared"})
 
         @routes.post("/api/v1/rrc/hubs/{hub_hash}/command")
         async def rrc_hub_command(request):

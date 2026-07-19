@@ -61,6 +61,7 @@ All notable changes to this project will be documented in this file.
 - Notification bell removed from the header
 - Unread badge stays circular and remains visible when the sidebar is collapsed
 - Open conversations mark as read when a new message arrives without needing to reselect the thread
+- Unread badges dismiss when navigating back to an already-open Messages or Relay Chat room
 - Startup stage logs no longer print the same stage twice
 - Ctrl+C shutdown no longer floods reentrant logging errors from RNS.exit containment
 - RN Status interface mode labels match Reticulum modes again, including Internal

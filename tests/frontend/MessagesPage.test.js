@@ -28,7 +28,7 @@ describe("MessagesPage.vue", () => {
         localStorage.clear();
         axiosMock = {
             get: vi.fn(),
-            post: vi.fn(),
+            post: vi.fn().mockResolvedValue({ data: {} }),
         };
         window.api = axiosMock;
 
@@ -618,16 +618,21 @@ describe("MessagesPage.vue", () => {
         await wrapper.vm.$nextTick();
 
         // simulate a conversation already opened in the focused pane (as onPeerClick does)
-        wrapper.vm.selectedPeer = { destination_hash: destHash, display_name: "Peer" };
+        wrapper.vm.selectedPeer = { destination_hash: destHash, display_name: "Peer", is_unread: true };
+        wrapper.vm.conversations = [
+            { destination_hash: destHash, display_name: "Peer", is_unread: true },
+        ];
         await wrapper.vm.$nextTick();
 
         const composeSpy = vi.spyOn(wrapper.vm, "onComposeNewMessage");
+        const dismissSpy = vi.spyOn(wrapper.vm, "dismissUnreadForOpenDestination");
 
         // simulate router.replace propagating the same hash back into the prop
         await wrapper.setProps({ destinationHash: destHash });
         await wrapper.vm.$nextTick();
 
         expect(composeSpy).not.toHaveBeenCalled();
+        expect(dismissSpy).toHaveBeenCalledWith(destHash);
     });
 
     it("composes the conversation when the route hash differs from the selected peer", async () => {
