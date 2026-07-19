@@ -45,6 +45,18 @@ def test_delete_identity_rejects_path_traversal(tmp_path):
     assert marker.exists()
 
 
+def test_delete_identity_rejects_wrong_length_hex(tmp_path):
+    """Hash length must be enforced even when the path would stay in-tree."""
+    manager = IdentityManager(str(tmp_path))
+    short_hash = "ab" * 15
+    target = tmp_path / "identities" / short_hash
+    target.mkdir(parents=True)
+    (target / "identity").write_bytes(b"x")
+    with pytest.raises(ValueError, match="Invalid identity hash"):
+        manager.delete_identity(short_hash, current_identity_hash=None)
+    assert target.exists()
+
+
 def test_delete_identity_removes_only_canonical_dir(tmp_path):
     manager = IdentityManager(str(tmp_path))
     identity_hash = "cd" * 16
