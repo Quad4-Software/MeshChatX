@@ -87,6 +87,14 @@ export const CORE_COMMAND_ENTRIES = [
         route: { name: "rncp" },
     },
     {
+        id: "nav-rns-filesync",
+        title: "nav_rns_filesync",
+        description: "nav_rns_filesync_desc",
+        icon: "folder-sync",
+        type: "navigation",
+        route: { name: "rns-filesync" },
+    },
+    {
         id: "nav-rnsh",
         title: "nav_rnsh",
         description: "nav_rnsh_desc",

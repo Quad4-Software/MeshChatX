@@ -212,7 +212,7 @@ export const CORE_TOOLS_ENTRIES = [
     },
     {
         name: "rns-filesync",
-        comingSoon: true,
+        route: { name: "rns-filesync" },
         icon: "folder-sync",
         iconBg: "tool-card__icon bg-emerald-50 text-emerald-500 dark:bg-emerald-900/30 dark:text-emerald-200",
         titleKey: "tools.rns_filesync.title",

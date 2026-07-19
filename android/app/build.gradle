@@ -6,6 +6,7 @@ plugins {
 def repoRoot = rootProject.projectDir.parentFile
 def meshchatSourceDir = new File(repoRoot, "meshchatx")
 def lxmfySourceDir = new File(repoRoot, "vendor/lxmfy/lxmfy")
+def rnsFilesyncSourceDir = new File(repoRoot, "vendor/rns_filesync/rns_filesync")
 def repositoryBundledWheelsDir = new File(meshchatSourceDir, "public/repository-server-bundled/bundled")
 def chaquopyBuildPython = System.getenv("CHAQUOPY_BUILD_PYTHON")
 def pythonTempDir = new File(buildDir, "python-tmp")
@@ -268,9 +269,37 @@ tasks.register("syncLxmfyPython", Sync) {
     into(file("$projectDir/src/main/python/lxmfy"))
 }
 
+/*
+ * Desktop installs rns_filesync via setuptools (pyproject where includes vendor/rns_filesync).
+ * Chaquopy only sees android/app/src/main/python plus pip installs, so the
+ * vendored package must be synced here or FileSync imports fail at boot.
+ */
+tasks.register("syncRnsFilesyncPython", Sync) {
+    if (!rnsFilesyncSourceDir.exists()) {
+        throw new org.gradle.api.GradleException(
+            "Missing vendored rns_filesync package at ${rnsFilesyncSourceDir}. " +
+                "Expected vendor/rns_filesync/rns_filesync from the MeshChatX tree."
+        )
+    }
+    def initPy = new File(rnsFilesyncSourceDir, "__init__.py")
+    if (!initPy.exists()) {
+        throw new org.gradle.api.GradleException("Missing ${initPy}; vendored rns_filesync tree looks incomplete.")
+    }
+    doFirst {
+        delete(file("$projectDir/src/main/python/rns_filesync"))
+    }
+    from(rnsFilesyncSourceDir)
+    includeEmptyDirs = false
+    into(file("$projectDir/src/main/python/rns_filesync"))
+}
+
 tasks.configureEach { task ->
     if (task.name.toLowerCase().contains("merge") && task.name.toLowerCase().contains("pythonsources")) {
-        task.dependsOn(tasks.named("syncMeshchatPython"), tasks.named("syncLxmfyPython"))
+        task.dependsOn(
+            tasks.named("syncMeshchatPython"),
+            tasks.named("syncLxmfyPython"),
+            tasks.named("syncRnsFilesyncPython"),
+        )
     }
 }
 

@@ -742,6 +742,17 @@ class ReticulumMeshChat:
             self.current_context.rncp_handler = value
 
     @property
+    def rns_filesync_handler(self):
+        return (
+            self.current_context.rns_filesync_handler if self.current_context else None
+        )
+
+    @rns_filesync_handler.setter
+    def rns_filesync_handler(self, value):
+        if self.current_context:
+            self.current_context.rns_filesync_handler = value
+
+    @property
     def rnsh_manager(self):
         return self.current_context.rnsh_manager if self.current_context else None
 
@@ -2892,6 +2903,15 @@ class ReticulumMeshChat:
             except Exception:
                 pass
 
+        if top_level == "rns_filesync":
+            try:
+                module = importlib.import_module("rns_filesync")
+                ver = getattr(module, "__version__", None)
+                if ver:
+                    return str(ver)
+            except Exception:
+                pass
+
         embedded_specs: dict[str, tuple[str, str]] = {
             "aiohttp": ("aiohttp", "__version__"),
             "aiohttp-session": ("aiohttp_session", "__version__"),
@@ -2901,6 +2921,8 @@ class ReticulumMeshChat:
             "bcrypt": ("bcrypt", "__version__"),
             "ply": ("ply", "__version__"),
             "lxmfy": ("lxmfy", "__version__"),
+            "rns-filesync": ("rns_filesync", "__version__"),
+            "rns_filesync": ("rns_filesync", "__version__"),
         }
         if package_name in embedded_specs:
             mod_name, attr = embedded_specs[package_name]
@@ -8082,6 +8104,7 @@ class ReticulumMeshChat:
                             "ply": self.get_package_version("ply"),
                             "bcrypt": self.get_package_version("bcrypt"),
                             "lxmfy": self.get_package_version("lxmfy"),
+                            "rns_filesync": self.get_package_version("rns-filesync"),
                         },
                         "storage_path": self.storage_path,
                         "database_path": _safe_database_path(),
@@ -13540,6 +13563,250 @@ class ReticulumMeshChat:
                 return web.json_response(result)
             except Exception as e:
                 return web.json_response({"message": str(e)}, status=500)
+
+        # --- RNS FileSync ---
+
+        def _filesync_require_handler():
+            return self._require_rns_tool_handler(
+                self.rns_filesync_handler,
+                "RNS FileSync",
+            )
+
+        @routes.get("/api/v1/filesync/status")
+        async def filesync_status(_request):
+            not_ready = _filesync_require_handler()
+            if not_ready is not None:
+                return not_ready
+            return web.json_response(self.rns_filesync_handler.get_status())
+
+        @routes.post("/api/v1/filesync/start")
+        async def filesync_start(request):
+            not_ready = _filesync_require_handler()
+            if not_ready is not None:
+                return not_ready
+            data = {}
+            with contextlib.suppress(Exception):
+                data = await request.json()
+            if not isinstance(data, dict):
+                data = {}
+            try:
+                result = await asyncio.to_thread(
+                    self.rns_filesync_handler.start,
+                    sync_directory=data.get("sync_directory"),
+                    monitor=data.get("monitor"),
+                    announce_interval=data.get("announce_interval"),
+                )
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+            if not result.get("ok"):
+                return web.json_response(
+                    {"message": result.get("error", "failed to start")},
+                    status=400,
+                )
+            return web.json_response(result)
+
+        @routes.post("/api/v1/filesync/stop")
+        async def filesync_stop(_request):
+            not_ready = _filesync_require_handler()
+            if not_ready is not None:
+                return not_ready
+            try:
+                result = await asyncio.to_thread(self.rns_filesync_handler.stop)
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+            return web.json_response(result)
+
+        @routes.get("/api/v1/filesync/peers")
+        async def filesync_peers(_request):
+            not_ready = _filesync_require_handler()
+            if not_ready is not None:
+                return not_ready
+            return web.json_response({"peers": self.rns_filesync_handler.list_peers()})
+
+        @routes.get("/api/v1/filesync/files")
+        async def filesync_files(_request):
+            not_ready = _filesync_require_handler()
+            if not_ready is not None:
+                return not_ready
+            return web.json_response({"files": self.rns_filesync_handler.list_files()})
+
+        @routes.post("/api/v1/filesync/connect")
+        async def filesync_connect(request):
+            not_ready = _filesync_require_handler()
+            if not_ready is not None:
+                return not_ready
+            data = await request.json()
+            if not isinstance(data, dict):
+                return web.json_response({"message": "Invalid JSON body"}, status=400)
+            identity_hash = data.get("identity_hash", "")
+            try:
+                result = await asyncio.to_thread(
+                    self.rns_filesync_handler.connect_peer,
+                    identity_hash,
+                )
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+            if not result.get("ok"):
+                return web.json_response(
+                    {"message": result.get("error", "connect failed"), **result},
+                    status=400,
+                )
+            return web.json_response(result)
+
+        @routes.post("/api/v1/filesync/disconnect")
+        async def filesync_disconnect(request):
+            not_ready = _filesync_require_handler()
+            if not_ready is not None:
+                return not_ready
+            data = await request.json()
+            if not isinstance(data, dict):
+                return web.json_response({"message": "Invalid JSON body"}, status=400)
+            peer_id = data.get("peer_id", "")
+            try:
+                result = await asyncio.to_thread(
+                    self.rns_filesync_handler.disconnect_peer,
+                    peer_id,
+                )
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+            if not result.get("ok"):
+                return web.json_response(
+                    {"message": result.get("error", "disconnect failed")},
+                    status=400,
+                )
+            return web.json_response(result)
+
+        @routes.post("/api/v1/filesync/announce")
+        async def filesync_announce(_request):
+            not_ready = _filesync_require_handler()
+            if not_ready is not None:
+                return not_ready
+            try:
+                result = await asyncio.to_thread(self.rns_filesync_handler.announce_now)
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+            if not result.get("ok"):
+                return web.json_response(
+                    {"message": result.get("error", "announce failed")},
+                    status=400,
+                )
+            return web.json_response(result)
+
+        @routes.post("/api/v1/filesync/browse")
+        async def filesync_browse(request):
+            not_ready = _filesync_require_handler()
+            if not_ready is not None:
+                return not_ready
+            data = await request.json()
+            if not isinstance(data, dict):
+                return web.json_response({"message": "Invalid JSON body"}, status=400)
+            peer_id = data.get("peer_id", "")
+            timeout = data.get("timeout", 10.0)
+            try:
+                result = await asyncio.to_thread(
+                    self.rns_filesync_handler.browse_peer,
+                    peer_id,
+                    timeout,
+                )
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+            if not result.get("ok"):
+                return web.json_response(
+                    {
+                        "message": result.get("error", "browse failed"),
+                        "files": result.get("files", []),
+                    },
+                    status=400,
+                )
+            return web.json_response(result)
+
+        @routes.post("/api/v1/filesync/download")
+        async def filesync_download(request):
+            not_ready = _filesync_require_handler()
+            if not_ready is not None:
+                return not_ready
+            data = await request.json()
+            if not isinstance(data, dict):
+                return web.json_response({"message": "Invalid JSON body"}, status=400)
+            peer_id = data.get("peer_id", "")
+            path = data.get("path", "")
+            try:
+                result = await asyncio.to_thread(
+                    self.rns_filesync_handler.download_file,
+                    peer_id,
+                    path,
+                )
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+            if not result.get("ok"):
+                return web.json_response(
+                    {"message": result.get("error", "download failed"), **result},
+                    status=400,
+                )
+            return web.json_response(result)
+
+        @routes.get("/api/v1/filesync/acl")
+        async def filesync_acl_get(_request):
+            not_ready = _filesync_require_handler()
+            if not_ready is not None:
+                return not_ready
+            return web.json_response(self.rns_filesync_handler.get_acl())
+
+        @routes.post("/api/v1/filesync/acl")
+        async def filesync_acl_post(request):
+            not_ready = _filesync_require_handler()
+            if not_ready is not None:
+                return not_ready
+            data = await request.json()
+            if not isinstance(data, dict):
+                return web.json_response({"message": "Invalid JSON body"}, status=400)
+            perms = data.get("perms")
+            if perms is not None and not isinstance(perms, list):
+                return web.json_response(
+                    {"message": "perms must be a list"},
+                    status=400,
+                )
+            try:
+                result = await asyncio.to_thread(
+                    self.rns_filesync_handler.update_acl,
+                    identity_hash=data.get("identity_hash"),
+                    perms=perms,
+                    enforce=data.get("enforce"),
+                    rules_text=data.get("rules_text"),
+                    replace=bool(data.get("replace", False)),
+                )
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+            if not result.get("ok"):
+                return web.json_response(
+                    {"message": result.get("error", "acl update failed")},
+                    status=400,
+                )
+            return web.json_response(result)
+
+        @routes.patch("/api/v1/filesync/settings")
+        async def filesync_settings(request):
+            not_ready = _filesync_require_handler()
+            if not_ready is not None:
+                return not_ready
+            data = await request.json()
+            if not isinstance(data, dict):
+                return web.json_response({"message": "Invalid JSON body"}, status=400)
+            try:
+                result = await asyncio.to_thread(
+                    self.rns_filesync_handler.update_settings,
+                    sync_directory=data.get("sync_directory"),
+                    monitor=data.get("monitor"),
+                    announce_interval=data.get("announce_interval"),
+                )
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+            if not result.get("ok"):
+                return web.json_response(
+                    {"message": result.get("error", "settings update failed")},
+                    status=400,
+                )
+            return web.json_response(result)
 
         # --- Plugin API ---
 

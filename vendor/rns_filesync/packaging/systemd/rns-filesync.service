@@ -1,0 +1,47 @@
+[Unit]
+Description=RNS FileSync peer-to-peer directory sync
+Documentation=man:rns-filesync(1)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=rns-filesync
+Group=rns-filesync
+Environment=HOME=/var/lib/rns-filesync
+EnvironmentFile=-/etc/default/rns-filesync
+EnvironmentFile=-/etc/rns-filesync/env
+ExecStart=/usr/bin/rns-filesync \
+  --config /var/lib/rns-filesync/config \
+  --rnsconfig /var/lib/rns-filesync/reticulum \
+  -d /var/lib/rns-filesync/sync \
+  --no-repl \
+  -q
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+KillMode=mixed
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ProtectHostname=true
+ProtectClock=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictRealtime=true
+RestrictNamespaces=true
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+ReadWritePaths=/var/lib/rns-filesync
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

@@ -275,6 +275,7 @@ tasks:
                 tests/backend/test_rns_link_manager.py
                 tests/backend/test_rns_link_fuzzing.py
                 tests/backend/test_rns_link_plugin.py
+                tests/backend/test_rns_filesync_security.py
                 -q
             - task: test:eect
 
@@ -282,6 +283,11 @@ tasks:
         desc: Extended Edge Case Tester packs (seeded identity/path/auth/hostile/scarcity scenarios)
         cmds:
             - uv run pytest tests/backend/eect/packs -m eect -q --tb=short
+
+    test:filesync:security:
+        desc: Adversarial and Hypothesis fuzz tests for RNS FileSync
+        cmds:
+            - uv run pytest tests/backend/test_rns_filesync_security.py tests/backend/test_rns_filesync_handler.py -q --tb=short
 
     test:lv:
         desc: Live Validation ladder (set MESHCHAT_LIVE_VALIDATION=1 for L2-L3)

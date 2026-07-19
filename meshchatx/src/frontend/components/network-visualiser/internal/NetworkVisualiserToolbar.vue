@@ -53,16 +53,26 @@
                 <div class="grid grid-cols-2 gap-2">
                     <div
                         class="rounded-xl px-3 py-2 border border-gray-100 dark:border-zinc-700/50 bg-gray-50/60 dark:bg-zinc-800/40"
-                        :title="engineModeTitle"
+                        :title="engineSelectTitle"
                     >
-                        <div
-                            class="text-[10px] font-bold text-gray-500 dark:text-zinc-500 uppercase tracking-wider mb-0.5"
+                        <label
+                            for="visualiser-engine-select"
+                            class="text-[10px] font-bold text-gray-500 dark:text-zinc-500 uppercase tracking-wider mb-0.5 block"
                         >
                             {{ $t("visualiser.engine") }}
-                        </div>
-                        <div class="text-xs font-bold truncate" :class="engineModeClass">
-                            {{ engineModeLabel }}
-                        </div>
+                        </label>
+                        <select
+                            id="visualiser-engine-select"
+                            class="w-full bg-transparent text-xs font-bold truncate border-0 p-0 pr-5 focus:outline-hidden focus:ring-0 cursor-pointer"
+                            :class="engineSelectClass"
+                            :value="preferredRenderer"
+                            :aria-label="$t('visualiser.engine')"
+                            @change="onEngineSelectChange"
+                        >
+                            <option value="auto">{{ $t("visualiser.renderer_option_auto") }}</option>
+                            <option value="webgl">{{ $t("visualiser.renderer_option_webgl") }}</option>
+                            <option value="vis">{{ $t("visualiser.renderer_option_vis") }}</option>
+                        </select>
                     </div>
                     <div
                         class="rounded-xl px-3 py-2 border border-gray-100 dark:border-zinc-700/50 bg-gray-50/60 dark:bg-zinc-800/40"
@@ -239,11 +249,18 @@ export default {
         onlineInterfaceCount: { type: Number, default: 0 },
         offlineInterfaceCount: { type: Number, default: 0 },
         searchQuery: { type: String, default: "" },
+        preferredRenderer: {
+            type: String,
+            default: "auto",
+            validator(v) {
+                return ["auto", "webgl", "vis"].includes(v);
+            },
+        },
         engineMode: {
             type: String,
             default: "checking",
             validator(v) {
-                return ["checking", "wasm", "fallback"].includes(v);
+                return ["checking", "wasm", "fallback", "webgl"].includes(v);
             },
         },
         fps: { type: Number, default: 0 },
@@ -254,6 +271,7 @@ export default {
         "update:enablePhysics",
         "update:hopMaxFilter",
         "update:searchQuery",
+        "update:preferredRenderer",
         "manual-update",
     ],
     data() {
@@ -277,23 +295,17 @@ export default {
             if (this.hopMaxFilter === null) return this.$t("visualiser.all");
             return String(this.hopMaxFilter);
         },
-        engineModeLabel() {
-            if (this.engineMode === "webgl") return this.$t("visualiser.engine_webgl");
-            if (this.engineMode === "wasm") return this.$t("visualiser.engine_wasm");
-            if (this.engineMode === "fallback") return this.$t("visualiser.engine_fallback");
-            return this.$t("visualiser.engine_checking");
-        },
-        engineModeTitle() {
+        engineSelectTitle() {
             if (this.engineMode === "webgl") return this.$t("visualiser.engine_webgl_hint");
             if (this.engineMode === "wasm") return this.$t("visualiser.engine_wasm_hint");
             if (this.engineMode === "fallback") return this.$t("visualiser.engine_fallback_hint");
-            return this.$t("visualiser.engine_checking_hint");
+            return this.$t("visualiser.renderer_desc");
         },
-        engineModeClass() {
+        engineSelectClass() {
             if (this.engineMode === "webgl") return "text-sky-600 dark:text-sky-400";
             if (this.engineMode === "wasm") return "text-emerald-600 dark:text-emerald-400";
             if (this.engineMode === "fallback") return "text-amber-600 dark:text-amber-400";
-            return "text-gray-500 dark:text-zinc-400";
+            return "text-gray-800 dark:text-zinc-100";
         },
         fpsDisplay() {
             const n = Number(this.fps);
@@ -302,6 +314,12 @@ export default {
         },
     },
     methods: {
+        onEngineSelectChange(e) {
+            const next = e?.target?.value;
+            if (next === "auto" || next === "webgl" || next === "vis") {
+                this.$emit("update:preferredRenderer", next);
+            }
+        },
         onHopSliderInput(e) {
             const v = hopSliderPosToMaxHops(Number(e.target.value));
             this.$emit("update:hopMaxFilter", v);

@@ -13,6 +13,13 @@ recursive-exclude vendor/offline *
 recursive-exclude vendor/lxmfy/tests *
 recursive-exclude vendor/lxmfy/docs *
 recursive-exclude vendor/lxmfy/docker *
+recursive-exclude vendor/rns_filesync/tests *
+recursive-exclude vendor/rns_filesync/docs *
+recursive-exclude vendor/rns_filesync/docker *
+recursive-exclude vendor/rns_filesync/packaging *
+recursive-exclude vendor/rns_filesync/sideband *
+recursive-exclude vendor/rns_filesync/man *
+recursive-exclude vendor/rns_filesync/scripts *
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
 

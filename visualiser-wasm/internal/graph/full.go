@@ -177,7 +177,7 @@ func BuildFullGraph(req FullRequest) FullResult {
 			if !entry.Online {
 				col = edgeOffline(req.DarkMode)
 			}
-			addEdge(EdgeOut{ID: eid, From: "me", To: entry.Name, Color: col, Width: 3, Hidden: false}, 200)
+			addEdge(EdgeOut{ID: eid, From: "me", To: entry.Name, Color: col, Width: 3, Hidden: false}, 300)
 		}
 	}
 
@@ -214,7 +214,7 @@ func BuildFullGraph(req FullRequest) FullResult {
 		addNode(node, 2.5, false)
 		if _, ok := seen["me"]; ok {
 			eid := "me~" + entry.Name
-			addEdge(EdgeOut{ID: eid, From: "me", To: entry.Name, Color: edgeDirect(req.DarkMode), Width: 3, Hidden: false}, 200)
+			addEdge(EdgeOut{ID: eid, From: "me", To: entry.Name, Color: edgeDirect(req.DarkMode), Width: 3, Hidden: false}, 300)
 		}
 	}
 
@@ -274,9 +274,9 @@ func BuildFullGraph(req FullRequest) FullResult {
 		addNode(n, 1, false)
 	}
 	for _, e := range pathRes.Edges {
-		length := 180.0
+		length := 300.0
 		if e.Width >= 2 {
-			length = 150
+			length = 260
 		}
 		addEdge(e, length)
 	}

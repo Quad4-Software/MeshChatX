@@ -40,6 +40,7 @@
             :online-interface-count="onlineInterfaces.length"
             :offline-interface-count="offlineInterfaces.length"
             :search-query="searchQuery"
+            :preferred-renderer="preferredRenderer"
             :engine-mode="engineMode"
             :fps="fps"
             @update:is-showing-controls="isShowingControls = $event"
@@ -47,6 +48,7 @@
             @update:enable-physics="enablePhysics = $event"
             @update:hop-max-filter="onUserHopMaxFilterChange"
             @update:search-query="searchQuery = $event"
+            @update:preferred-renderer="onPreferredRendererChange"
             @manual-update="manualUpdate"
         />
         <NetworkVisualiserLegend
@@ -93,6 +95,7 @@ import {
     loadVisualiserDisplayPrefs,
     persistVisualiserAutoReload,
     persistVisualiserLiveLayout,
+    persistVisualiserRenderer,
     VISUALISER_DISPLAY_PREFS_CHANGED,
 } from "../../js/settings/settingsVisualiserPrefs.js";
 import ToastUtils from "../../js/ToastUtils";
@@ -821,6 +824,13 @@ export default {
             this.autoReload = p.autoReload;
             this.preferredRenderer = p.renderer || "auto";
         },
+        async onPreferredRendererChange(next) {
+            const normalized = next === "webgl" || next === "vis" || next === "auto" ? next : "auto";
+            if (normalized === this.preferredRenderer) return;
+            this.preferredRenderer = normalized;
+            persistVisualiserRenderer(normalized, { emit: false });
+            await this.reinitRenderer();
+        },
         destroyActiveRenderer() {
             this.hoverTooltip = null;
             if (this.webglEngine) {
@@ -926,7 +936,7 @@ export default {
             const layoutEdges = this.edges.get().map((e) => ({
                 from: e.from,
                 to: e.to,
-                length: e.width >= 2.5 ? 150 : 180,
+                length: e.width >= 2.5 ? 260 : 300,
             }));
             const settled = settleLayout({ nodes: layoutNodes, edges: layoutEdges, iterations: 0 });
             const positions = settled?.positions || {};
@@ -1642,7 +1652,7 @@ export default {
                 graph.layout_edges = graphEdges.map((e) => ({
                     from: e.from,
                     to: e.to,
-                    length: e.width >= 2.5 ? 150 : 180,
+                    length: e.width >= 2.5 ? 260 : 300,
                 }));
             }
 

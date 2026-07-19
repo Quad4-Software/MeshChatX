@@ -24,6 +24,15 @@ _MUTATING_SAMPLES = (
     ("PATCH", "/api/v1/server/security", {"web_ui_ip_allowlist": ""}),
     ("POST", "/api/v1/app/tutorial/seen", {}),
     ("POST", "/api/v1/app/changelog/seen", {"version": "999.999.999"}),
+    ("POST", "/api/v1/filesync/start", {}),
+    ("POST", "/api/v1/filesync/stop", {}),
+    ("POST", "/api/v1/filesync/announce", {}),
+    ("POST", "/api/v1/filesync/connect", {"identity_hash": "aa" * 16}),
+    ("POST", "/api/v1/filesync/disconnect", {"peer_id": "bb" * 16}),
+    ("POST", "/api/v1/filesync/browse", {"peer_id": "bb" * 16}),
+    ("POST", "/api/v1/filesync/download", {"peer_id": "bb" * 16, "path": "a.txt"}),
+    ("POST", "/api/v1/filesync/acl", {"enforce": False}),
+    ("PATCH", "/api/v1/filesync/settings", {"monitor": True}),
 )
 
 
@@ -40,6 +49,28 @@ def _make_aio_app(mock_app, use_https: bool = False):
     extend_meshchat_middlewares(aio_app, middlewares)
     aio_app.add_routes(routes)
     return aio_app
+
+
+def _stub_filesync_handler(mock_app):
+    handler = mock_app.rns_filesync_handler
+    if handler is None:
+        return
+    handler.reticulum = object()
+    handler.start.return_value = {"ok": True, "running": True}
+    handler.stop.return_value = {"ok": True, "running": False}
+    handler.announce_now.return_value = {"ok": True}
+    handler.connect_peer.return_value = {"ok": True, "peer_id": "aa" * 16}
+    handler.disconnect_peer.return_value = {"ok": True, "peer_id": "bb" * 16}
+    handler.browse_peer.return_value = {"ok": True, "files": []}
+    handler.download_file.return_value = {"ok": True, "path": "a.txt"}
+    handler.update_acl.return_value = {"ok": True, "enforce": False, "rules": {}}
+    handler.update_settings.return_value = {
+        "ok": True,
+        "sync_directory": "/tmp",
+        "monitor": True,
+        "announce_interval": 300,
+        "running": False,
+    }
 
 
 @pytest.mark.asyncio
@@ -65,6 +96,7 @@ async def test_eect_mutating_without_csrf_rejected(mock_app, monkeypatch):
 async def test_eect_mutating_with_csrf_accepted(mock_app, monkeypatch):
     with eect_scenario("auth.csrf.mutating_with_token") as (_s, _seed, rng):
         monkeypatch.delenv("MESHCHAT_DISABLE_CSRF", raising=False)
+        _stub_filesync_handler(mock_app)
         aio_app = _make_aio_app(mock_app)
         samples = list(_MUTATING_SAMPLES)
         rng.shuffle(samples)

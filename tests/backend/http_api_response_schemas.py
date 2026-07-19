@@ -528,6 +528,48 @@ RNCP_STATUS_SCHEMA: dict = {
     "additionalProperties": True,
 }
 
+FILESYNC_STATUS_SCHEMA: dict = {
+    "type": "object",
+    "required": ["running", "sync_directory"],
+    "properties": {
+        "running": _BOOLEAN,
+        "sync_directory": _STRING,
+        "identity_hash": {"type": ["string", "null"]},
+        "destination_hash": {"type": ["string", "null"]},
+        "peers": _INTEGER,
+        "files": _INTEGER,
+        "whitelist": _BOOLEAN,
+        "monitor": _BOOLEAN,
+        "announce_interval": _INTEGER,
+        "config_directory": _STRING,
+    },
+    "additionalProperties": True,
+}
+
+FILESYNC_PEERS_SCHEMA: dict = {
+    "type": "object",
+    "required": ["peers"],
+    "properties": {"peers": _ARRAY},
+    "additionalProperties": True,
+}
+
+FILESYNC_FILES_SCHEMA: dict = {
+    "type": "object",
+    "required": ["files"],
+    "properties": {"files": _ARRAY},
+    "additionalProperties": True,
+}
+
+FILESYNC_ACL_SCHEMA: dict = {
+    "type": "object",
+    "required": ["enforce", "rules"],
+    "properties": {
+        "enforce": _BOOLEAN,
+        "rules": _OBJECT,
+    },
+    "additionalProperties": True,
+}
+
 RNCP_TRANSFER_SCHEMA: dict = {
     "type": "object",
     "required": ["transfer"],

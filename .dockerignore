@@ -6,6 +6,13 @@ screenshots/
 vendor/lxmfy/tests/
 vendor/lxmfy/docs/
 vendor/lxmfy/.gitea/
+vendor/rns_filesync/tests/
+vendor/rns_filesync/docs/
+vendor/rns_filesync/docker/
+vendor/rns_filesync/packaging/
+vendor/rns_filesync/sideband/
+vendor/rns_filesync/man/
+vendor/rns_filesync/scripts/
 vendor/offline/
 
 # Development files

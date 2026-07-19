@@ -44,13 +44,14 @@ meshchatx = "meshchatx.meshchat:main"
 meshchat = "meshchatx.meshchat:main"
 meshchatx-repository-http = "meshchatx.repository_http_standalone:main"
 lxmfy = "lxmfy.cli:main"
+rns-filesync = "rns_filesync.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/Quad4-Software/MeshChatX"
 
 [tool.setuptools.packages.find]
-where = [".", "vendor/lxmfy"]
-include = ["meshchatx*", "lxmfy*"]
+where = [".", "vendor/lxmfy", "vendor/rns_filesync"]
+include = ["meshchatx*", "lxmfy*", "rns_filesync*"]
 exclude = ["tests*"]
 namespaces = false
 

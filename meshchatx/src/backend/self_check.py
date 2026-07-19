@@ -20,6 +20,7 @@ _CRITICAL_IMPORTS = (
     "RNS",
     "LXMF",
     "lxmfy",
+    "rns_filesync",
     "aiohttp",
     "bcrypt",
     "cbor2",

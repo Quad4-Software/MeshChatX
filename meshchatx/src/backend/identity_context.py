@@ -34,6 +34,7 @@ from meshchatx.src.backend.rnpath_handler import RNPathHandler
 from meshchatx.src.backend.rnpath_trace_handler import RNPathTraceHandler
 from meshchatx.src.backend.rnprobe_handler import RNProbeHandler
 from meshchatx.src.backend.rnsh_manager import RNSHManager
+from meshchatx.src.backend.rns_filesync_handler import RnsFilesyncHandler
 from meshchatx.src.backend.rnstatus_handler import RNStatusHandler
 from meshchatx.src.backend.rnx_manager import RNXManager
 from meshchatx.src.backend.rrc import RRCManager, RRCServerManager
@@ -93,6 +94,7 @@ class IdentityContext:
         self.notification_sound_manager = None
         self.auto_propagation_manager = None
         self.rncp_handler = None
+        self.rns_filesync_handler = None
         self.rnsh_manager = None
         self.rnx_manager = None
         self.rnstatus_handler = None
@@ -132,6 +134,14 @@ class IdentityContext:
                     {"type": "rncp.receive.completed", **payload},
                 ),
             )
+        except Exception:
+            pass
+
+    def _filesync_emit(self, message):
+        try:
+            from meshchatx.src.backend.async_utils import AsyncUtils
+
+            AsyncUtils.run_async(self.app._broadcast_websocket_message(message))
         except Exception:
             pass
 
@@ -306,6 +316,12 @@ class IdentityContext:
             storage_dir=self.app.storage_dir,
         )
         self.rncp_handler.on_receive_completed = self._rncp_emit_receive_completed
+        self.rns_filesync_handler = RnsFilesyncHandler(
+            reticulum_instance=getattr(self.app, "reticulum", None),
+            identity=self.identity,
+            storage_dir=self.storage_path,
+            emit_callback=self._filesync_emit,
+        )
         self.rnsh_manager = RNSHManager(
             storage_dir=self.storage_path,
             reticulum_config_dir=getattr(self.app, "reticulum_config_dir", None),
@@ -732,6 +748,11 @@ class IdentityContext:
                 with contextlib.suppress(Exception):
                     self.rncp_handler.teardown_receive_destination()
                 self.rncp_handler = None
+
+            if self.rns_filesync_handler:
+                with contextlib.suppress(Exception):
+                    self.rns_filesync_handler.teardown()
+                self.rns_filesync_handler = None
 
             self.rnstatus_handler = None
             self.rnpath_handler = None

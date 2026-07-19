@@ -12,6 +12,7 @@ describe("ToolsPage.vue", () => {
             { path: "/ping", name: "ping", component: { template: "div" } },
             { path: "/rnprobe", name: "rnprobe", component: { template: "div" } },
             { path: "/rncp", name: "rncp", component: { template: "div" } },
+            { path: "/rns-filesync", name: "rns-filesync", component: { template: "div" } },
             { path: "/rnsh", name: "rnsh", component: { template: "div" } },
             { path: "/rnstatus", name: "rnstatus", component: { template: "div" } },
             { path: "/rnpath", name: "rnpath", component: { template: "div" } },

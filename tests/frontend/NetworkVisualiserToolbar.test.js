@@ -11,6 +11,7 @@ describe("NetworkVisualiserToolbar", () => {
                 edgeCount: 8,
                 onlineInterfaceCount: 2,
                 offlineInterfaceCount: 1,
+                preferredRenderer: "auto",
                 engineMode: "wasm",
                 fps: 58,
                 ...props,
@@ -27,23 +28,33 @@ describe("NetworkVisualiserToolbar", () => {
             },
         });
 
-    it("shows WASM engine label and FPS", () => {
+    it("shows engine select and FPS", () => {
         const wrapper = mountToolbar();
-        expect(wrapper.text()).toContain("visualiser.engine_wasm");
+        const select = wrapper.find("#visualiser-engine-select");
+        expect(select.exists()).toBe(true);
+        expect(select.element.value).toBe("auto");
         expect(wrapper.text()).toContain("58");
         expect(wrapper.text()).toContain("visualiser.fps");
+        expect(wrapper.text()).toContain("visualiser.renderer_option_webgl");
+        expect(wrapper.text()).toContain("visualiser.renderer_option_vis");
     });
 
-    it("shows JS fallback engine label", () => {
-        const wrapper = mountToolbar({ engineMode: "fallback", fps: 0 });
-        expect(wrapper.text()).toContain("visualiser.engine_fallback");
-        expect(wrapper.text()).toContain("--");
+    it("emits preferred renderer when engine select changes", async () => {
+        const wrapper = mountToolbar({ preferredRenderer: "auto", engineMode: "webgl" });
+        const select = wrapper.find("#visualiser-engine-select");
+        await select.setValue("webgl");
+        expect(wrapper.emitted("update:preferredRenderer")?.[0]).toEqual(["webgl"]);
+        await select.setValue("vis");
+        expect(wrapper.emitted("update:preferredRenderer")?.[1]).toEqual(["vis"]);
     });
 
-    it("shows WebGL engine label", () => {
-        const wrapper = mountToolbar({ engineMode: "webgl", fps: 60 });
-        expect(wrapper.text()).toContain("visualiser.engine_webgl");
-        expect(wrapper.text()).toContain("60");
+    it("styles select from active engine mode", () => {
+        const webgl = mountToolbar({ engineMode: "webgl", preferredRenderer: "webgl", fps: 60 });
+        expect(webgl.find("#visualiser-engine-select").classes().join(" ")).toContain("text-sky-600");
+
+        const fallback = mountToolbar({ engineMode: "fallback", preferredRenderer: "vis", fps: 0 });
+        expect(fallback.find("#visualiser-engine-select").classes().join(" ")).toContain("text-amber-600");
+        expect(fallback.text()).toContain("--");
     });
 
     it("uses MDI magnify for search and refresh for update button", () => {
