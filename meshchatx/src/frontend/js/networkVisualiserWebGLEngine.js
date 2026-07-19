@@ -4,6 +4,7 @@
  */
 
 import { callVisualiserWasmJson, isVisualiserWebGLSceneReady } from "./VisualiserWasmLoader.js";
+import { lodLevelFromScale } from "./networkVisualiserPerf.js";
 import {
     createNetworkVisualiserWebGL,
     mergeSceneNodesWithTextures,
@@ -19,6 +20,70 @@ export const KIND_IFACE_ON = 1;
 export const KIND_IFACE_OFF = 2;
 export const KIND_PEER = 3;
 export const KIND_DISCOVERED = 4;
+
+/** Max characters drawn on a WebGL node label before ellipsis. */
+export const WEBGL_LABEL_MAX_CHARS = 28;
+
+/**
+ * Truncate a node label for the WebGL overlay.
+ * @param {string|null|undefined} text
+ * @param {number} [maxChars]
+ * @returns {string|null}
+ */
+export function truncateWebGLLabel(text, maxChars = WEBGL_LABEL_MAX_CHARS) {
+    if (typeof text !== "string" || !text) return null;
+    const limit = Number.isFinite(maxChars) && maxChars > 1 ? Math.floor(maxChars) : WEBGL_LABEL_MAX_CHARS;
+    if (text.length <= limit) return text;
+    return `${text.slice(0, Math.max(1, limit - 3))}...`;
+}
+
+/**
+ * Build overlay labels using the same LOD bands as the vis-network canvas path.
+ * low: none, medium: me + hover only, high: all in-scene labels.
+ *
+ * @param {{
+ *   zoom: number,
+ *   sceneCount: number,
+ *   nodes: Float32Array|number[]|null|undefined,
+ *   labelByIndex: (string|null|undefined)[],
+ *   idByIndex: (string|null|undefined)[],
+ *   hoverId?: string|null,
+ * }} opts
+ * @returns {{x:number,y:number,size:number,text:string,fontSize:number}[]}
+ */
+export function collectWebGLLabels(opts) {
+    const zoom = opts?.zoom > 0 ? opts.zoom : 1;
+    const lod = lodLevelFromScale(zoom);
+    if (lod === "low") return [];
+
+    const sceneCount = Math.max(0, opts?.sceneCount | 0);
+    const nodes = opts?.nodes;
+    const labelByIndex = opts?.labelByIndex || [];
+    const idByIndex = opts?.idByIndex || [];
+    const hoverId = opts?.hoverId ? String(opts.hoverId) : null;
+    const out = [];
+
+    for (let i = 0; i < sceneCount; i++) {
+        const id = idByIndex[i] != null ? String(idByIndex[i]) : null;
+        const isMe = id === "me";
+        const isHover = hoverId != null && id === hoverId;
+        if (lod === "medium" && !isMe && !isHover) continue;
+
+        const raw = labelByIndex[i];
+        const text = truncateWebGLLabel(raw);
+        if (!text) continue;
+
+        const o = i * SCENE_NODE_STRIDE;
+        out.push({
+            x: nodes?.[o] ?? 0,
+            y: nodes?.[o + 1] ?? 0,
+            size: nodes?.[o + 2] ?? 10,
+            text,
+            fontSize: isMe ? 16 : 11,
+        });
+    }
+    return out;
+}
 
 const DEFAULT_ICON_BY_KIND = {
     [KIND_ME]: "/assets/images/reticulum_logo_512.png",
@@ -220,6 +285,8 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
     let imageByIndex = [];
     /** @type {(string|null)[]} */
     let labelByIndex = [];
+    /** @type {(string|null)[]} */
+    let idByIndex = [];
     /** @type {{useTex:number,u:number,v:number}[]} */
     let texMeta = [];
     let drawNodeScratch = new Float32Array(0);
@@ -231,6 +298,8 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
     let lastY = 0;
     let nodeCount = 0;
     let edgeCount = 0;
+    /** @type {string|null} */
+    let hoverId = null;
     /** @type {Map<number,{x:number,y:number}>} */
     const pointers = new Map();
     let pinchLastDist = 0;
@@ -282,6 +351,8 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
         indexById.clear();
         imageByIndex = [];
         labelByIndex = [];
+        idByIndex = [];
+        hoverId = null;
         let idx = 0;
         for (const n of graphNodes || []) {
             if (!n?.id) continue;
@@ -295,6 +366,7 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
                 announce: n._announce || null,
             });
             indexById.set(id, idx);
+            idByIndex[idx] = id;
             imageByIndex[idx] = imageForNode(n, kind);
             labelByIndex[idx] = typeof n.label === "string" && n.label ? n.label : null;
             idx += 1;
@@ -390,20 +462,14 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
             drawNodeScratch = new Float32Array(need);
         }
         const drawNodes = mergeSceneNodesWithTextures(buf.nodes, texMeta, drawNodeScratch);
-        const labels = [];
-        if (camera.zoom >= 0.45) {
-            for (let i = 0; i < sceneCount; i++) {
-                const text = labelByIndex[i];
-                if (!text) continue;
-                const o = i * SCENE_NODE_STRIDE;
-                labels.push({
-                    x: buf.nodes[o],
-                    y: buf.nodes[o + 1],
-                    size: buf.nodes[o + 2],
-                    text,
-                });
-            }
-        }
+        const labels = collectWebGLLabels({
+            zoom: camera.zoom,
+            sceneCount,
+            nodes: buf.nodes,
+            labelByIndex,
+            idByIndex,
+            hoverId,
+        });
         const size = renderer.draw(drawNodes, buf.edges, camera, dark, labels);
         callScene("meshchatxVisualiserSceneResize", size.width, size.height);
         nodeCount = buf.nodeCount || nodeCount;
@@ -475,9 +541,15 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
             lastX = p.x;
             lastY = p.y;
             dirty = true;
-        } else if (typeof hooks.onHover === "function") {
+        } else {
             const id = callScene("meshchatxVisualiserScenePick", p.x, p.y, 14) || null;
-            hooks.onHover(id, id ? metaById.get(id) || null : null, p.x, p.y);
+            if (id !== hoverId) {
+                hoverId = id;
+                dirty = true;
+            }
+            if (typeof hooks.onHover === "function") {
+                hooks.onHover(id, id ? metaById.get(id) || null : null, p.x, p.y);
+            }
         }
     }
 
@@ -564,6 +636,8 @@ export function createVisualiserWebGLEngine(canvas, hooks = {}) {
         indexById.clear();
         imageByIndex = [];
         labelByIndex = [];
+        idByIndex = [];
+        hoverId = null;
         texMeta = [];
     }
 

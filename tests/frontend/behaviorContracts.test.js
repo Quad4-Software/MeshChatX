@@ -292,11 +292,14 @@ describe("behavior contracts: network visualiser performance", () => {
         expect(engine).toContain("meshchatxVisualiserSceneZoomAt");
         expect(engine).toContain("updateNodeImages");
         expect(engine).toContain("labelByIndex");
+        expect(engine).toContain("collectWebGLLabels");
+        expect(engine).toContain("lodLevelFromScale");
         const webgl = readSource("meshchatx/src/frontend/js/networkVisualiserWebGL.js");
         expect(webgl).toContain("u_atlas");
         expect(webgl).toContain("network-webgl-labels");
         expect(webgl).toContain("resolveVisualiserAssetUrl");
         expect(webgl).toContain("mergeSceneNodesWithTextures");
+        expect(webgl).not.toContain("zoom >= 0.45");
         const prefs = readSource("meshchatx/src/frontend/js/settings/settingsVisualiserPrefs.js");
         expect(prefs).toContain("persistVisualiserRenderer");
         expect(prefs).toContain('"auto"');
