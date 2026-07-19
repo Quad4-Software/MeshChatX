@@ -48,12 +48,27 @@ describe("networkStartupWait", () => {
         });
     });
 
+    it("interpretStartupStatus marks ui when ui_ready during starting", () => {
+        expect(
+            interpretStartupStatus({
+                status: "starting",
+                stage: "rns",
+                network_ready: false,
+                ui_ready: true,
+            })
+        ).toEqual({
+            kind: "ui",
+            stage: "rns",
+            label: STARTUP_STAGE_LABELS.rns,
+        });
+    });
+
     it("interpretStartupStatus maps starting stages to labels", () => {
         for (const stage of Object.keys(STARTUP_STAGE_LABELS)) {
             if (stage === "ready" || stage === "failed") {
                 continue;
             }
-            const result = interpretStartupStatus({ status: "starting", stage });
+            const result = interpretStartupStatus({ status: "starting", stage, ui_ready: false });
             expect(result.kind).toBe("starting");
             expect(result.label).toBe(STARTUP_STAGE_LABELS[stage]);
         }
@@ -73,7 +88,12 @@ describe("networkStartupWait", () => {
             if (calls < 3) {
                 return {
                     ok: true,
-                    json: async () => ({ status: "starting", stage: "rns", network_ready: false }),
+                    json: async () => ({
+                        status: "starting",
+                        stage: "rns",
+                        network_ready: false,
+                        ui_ready: false,
+                    }),
                 };
             }
             return {
@@ -86,10 +106,31 @@ describe("networkStartupWait", () => {
             sleep: async () => {},
             timeoutMs: 5000,
             onLine: (text) => lines.push(text),
+            mountOnUiReady: false,
         });
         expect(ready).toBe("ready");
         expect(lines).toContain(STARTUP_STAGE_LABELS.rns);
         expect(fetchImpl).toHaveBeenCalled();
+    });
+
+    it("waitForNetworkReady mounts early when ui_ready", async () => {
+        const lines = [];
+        const ready = await waitForNetworkReady({
+            fetchImpl: async () => ({
+                ok: true,
+                json: async () => ({
+                    status: "starting",
+                    stage: "identity",
+                    network_ready: false,
+                    ui_ready: true,
+                }),
+            }),
+            sleep: async () => {},
+            timeoutMs: 1000,
+            onLine: (text) => lines.push(text),
+        });
+        expect(ready).toBe("ui");
+        expect(lines).toContain(STARTUP_STAGE_LABELS.identity);
     });
 
     it("waitForNetworkReady returns false on failed status", async () => {
@@ -158,7 +199,12 @@ describe("networkStartupWait", () => {
         const ready = await waitForNetworkReady({
             fetchImpl: async () => ({
                 ok: true,
-                json: async () => ({ status: "starting", stage: "identity", network_ready: false }),
+                json: async () => ({
+                    status: "starting",
+                    stage: "identity",
+                    network_ready: false,
+                    ui_ready: false,
+                }),
             }),
             now: () => now,
             sleep: async () => {
@@ -167,6 +213,7 @@ describe("networkStartupWait", () => {
             timeoutMs: 1000,
             onLine: (text) => lines.push(text),
             onErrorState: () => errors.push("error"),
+            mountOnUiReady: false,
         });
         expect(ready).toBe(false);
         expect(errors).toEqual(["error"]);

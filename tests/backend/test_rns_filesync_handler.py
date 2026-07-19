@@ -36,11 +36,12 @@ def test_default_status_not_running(handler, mock_identity):
 
 
 def test_update_settings_persists_sync_directory(handler):
-    result = handler.update_settings(sync_directory="/tmp/filesync-alt", monitor=False)
+    nested = f"{handler.storage_dir}/filesync/alt"
+    result = handler.update_settings(sync_directory=nested, monitor=False)
     assert result["ok"] is True
     assert result["monitor"] is False
     status = handler.get_status()
-    assert status["sync_directory"] == "/tmp/filesync-alt"
+    assert status["sync_directory"] == nested
     assert status["monitor"] is False
 
 

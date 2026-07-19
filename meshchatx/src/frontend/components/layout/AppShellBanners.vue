@@ -46,6 +46,14 @@
             {{ wsReconnectedLabel }}
         </div>
         <div
+            v-if="showNetworkStarting"
+            class="relative z-100 bg-sky-800 text-white px-4 py-2 text-center text-sm font-medium shadow-md border-b border-sky-900/80"
+            role="status"
+            aria-live="polite"
+        >
+            {{ networkStartingLabel }}
+        </div>
+        <div
             v-if="showNetworkDegraded"
             class="relative z-100 bg-amber-700 text-white px-4 py-3 text-center text-sm font-medium shadow-md border-b border-amber-800/80"
             role="status"
@@ -117,6 +125,14 @@ export default {
             default: false,
         },
         wsReconnectedLabel: {
+            type: String,
+            default: "",
+        },
+        showNetworkStarting: {
+            type: Boolean,
+            default: false,
+        },
+        networkStartingLabel: {
             type: String,
             default: "",
         },

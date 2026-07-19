@@ -98,9 +98,7 @@ def _bind_resend_app(db):
     ctx = MagicMock()
     ctx.identity.hash.hex.return_value = "aa" * 16
     ctx.database = db
-    ctx.config.allow_auto_resending_failed_messages_with_attachments.get.return_value = (
-        True
-    )
+    ctx.config.allow_auto_resending_failed_messages_with_attachments.get.return_value = True
     return app, ctx
 
 
@@ -169,9 +167,7 @@ async def test_resend_skips_attachments_before_claim(db):
     )
     _insert_failed(db, msg_hash=msg, peer=peer, content="pic", fields=fields)
     app, ctx = _bind_resend_app(db)
-    ctx.config.allow_auto_resending_failed_messages_with_attachments.get.return_value = (
-        False
-    )
+    ctx.config.allow_auto_resending_failed_messages_with_attachments.get.return_value = False
     await app.resend_failed_messages_for_destination(peer, context=ctx)
     app.send_message.assert_not_called()
     row = db.provider.fetchone(
@@ -257,10 +253,13 @@ async def test_resend_does_not_delete_old_when_send_returns_none(db):
     app, ctx = _bind_resend_app(db)
     app.send_message.return_value = None
     await app.resend_failed_messages_for_destination(peer, context=ctx)
-    assert db.provider.fetchone(
-        "SELECT state FROM lxmf_messages WHERE hash = ?",
-        (old_hash,),
-    )["state"] == "failed"
+    assert (
+        db.provider.fetchone(
+            "SELECT state FROM lxmf_messages WHERE hash = ?",
+            (old_hash,),
+        )["state"]
+        == "failed"
+    )
     # Cooldown claimed, attempt counted.
     row = db.provider.fetchone(
         "SELECT fields, next_delivery_attempt_at FROM lxmf_messages WHERE hash = ?",

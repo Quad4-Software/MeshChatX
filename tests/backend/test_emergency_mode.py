@@ -95,6 +95,9 @@ def test_emergency_mode_startup_logic(mock_rns, temp_dir):
         patch(
             "meshchatx.src.backend.identity_context.IdentityContext.start_background_threads",
         ),
+        patch(
+            "meshchatx.src.backend.identity_context.IdentityContext.setup_deferred_services",
+        ),
     ):
         # Initialize app in emergency mode
         app = ReticulumMeshChat(
@@ -143,6 +146,9 @@ def test_emergency_mode_env_var(mock_rns, temp_dir):
         patch("meshchatx.src.backend.identity_context.CommunityInterfacesManager"),
         patch(
             "meshchatx.src.backend.identity_context.IdentityContext.start_background_threads",
+        ),
+        patch(
+            "meshchatx.src.backend.identity_context.IdentityContext.setup_deferred_services",
         ),
     ):
         # We need to simulate the argparse processing that happens in main()
@@ -208,14 +214,15 @@ def test_normal_mode_startup_logic(mock_rns, temp_dir):
         assert db_path_arg != ":memory:"
         assert db_path_arg.endswith("database.db")
 
-        # Verify IntegrityManager.check_integrity WAS called
-        assert mock_integrity_instance.check_integrity.call_count == 1
+        # Critical integrity at core setup, full walk during deferred services
+        assert mock_integrity_instance.check_integrity.call_count >= 1
+        mock_integrity_instance.check_integrity.assert_any_call(critical_only=True)
 
         # Verify TelephoneManager.init_telephone WAS called
         mock_tel_instance = mock_tel_class.return_value
         assert mock_tel_instance.init_telephone.call_count == 1
 
-        # Verify IntegrityManager.save_manifest WAS called
+        # Manifest is saved after deferred integrity pass
         assert mock_integrity_instance.save_manifest.call_count == 1
 
 

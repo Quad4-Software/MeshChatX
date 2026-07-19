@@ -453,11 +453,13 @@ class ReticulumMeshChat:
         memory_diag_enabled: bool = False,
         plugins_enabled: bool = True,
         defer_network_setup: bool = False,
+        headless: bool = False,
     ):
         self.running = True
         self.plugins_enabled = plugins_enabled
         self._memory_diag_enabled = memory_diag_enabled
         self._mem_diag = None
+        self._headless = bool(headless)
         self.migration_context = (
             migration_context if migration_context is not None else {}
         )
@@ -506,8 +508,10 @@ class ReticulumMeshChat:
         self._startup_error: str | None = None
         self._network_ready = not defer_network_setup
         self._network_degraded = False
-        self._ui_ready = not defer_network_setup
+        # HTTP can serve the shell immediately while RNS/identity finish.
+        self._ui_ready = True
         self._rns_recovery_actions: list[str] = []
+        self._reticulum_secondary_started = False
 
         # track announce timestamps for rate calculation
         self.announce_timestamps = []
@@ -541,7 +545,11 @@ class ReticulumMeshChat:
         self._auto_resend_coordinator = AutoResendCoordinator()
 
         AsyncUtils.ensure_background_loop()
-        self.web_audio_bridge = WebAudioBridge(None, None)
+        self.web_audio_bridge = WebAudioBridge(
+            None,
+            None,
+            force_enabled=self.web_audio_required(),
+        )
         self.rns_link_manager = RnsLinkManager(
             self_identity_getter=lambda: self.identity,
             reticulum_getter=lambda: getattr(self, "reticulum", None),
@@ -568,6 +576,41 @@ class ReticulumMeshChat:
         else:
             self.setup_identity(identity)
             self._mark_network_ready()
+            self._finish_deferred_startup_services()
+
+    def web_audio_required(self) -> bool:
+        """True when LXST host audio is unusable and the browser bridge is mandatory.
+
+        Chaquopy Android has no usable LXST LineSource path. Docker/Alpine images
+        typically lack PulseAudio. Do not key this off --headless alone: frozen
+        Electron also uses headless (no auto browser) while still having host audio.
+
+        MESHCHAT_FORCE_WEB_AUDIO=1 forces the bridge for debugging or custom hosts.
+        """
+        if _is_chaquopy_android():
+            return True
+        force = os.environ.get("MESHCHAT_FORCE_WEB_AUDIO", "").strip().lower()
+        if force in ("1", "true", "yes", "on"):
+            return True
+        cached = getattr(self, "_host_audio_unavailable_cached", None)
+        if cached is not None:
+            return cached
+        unavailable = self._probe_host_audio_unavailable()
+        self._host_audio_unavailable_cached = unavailable
+        return unavailable
+
+    @staticmethod
+    def _probe_host_audio_unavailable() -> bool:
+        """Return True when LXST cannot open a host capture device."""
+        try:
+            from LXST.Sources import Backend
+
+            if Backend is None:
+                return True
+            Backend()
+            return False
+        except Exception:
+            return True
 
     # Proxy properties for backward compatibility
     @property
@@ -1600,6 +1643,7 @@ class ReticulumMeshChat:
                 except Exception as exc:
                     print(f"Failed to persist session secret into config: {exc}")
             self._mark_network_ready()
+            self._finish_deferred_startup_services()
             print("Network stack ready", flush=True)
             if self.websocket_clients:
                 try:
@@ -1649,7 +1693,10 @@ class ReticulumMeshChat:
             self.web_audio_bridge = WebAudioBridge(
                 self.current_context.telephone_manager,
                 self.current_context.config,
+                force_enabled=self.web_audio_required(),
             )
+            if self._network_ready:
+                self._finish_deferred_startup_services()
             return
 
         # Initialize Reticulum if not already done
@@ -1663,18 +1710,7 @@ class ReticulumMeshChat:
             )
             _restore_rns_console_logging_after_reticulum_init(self)
             self.page_node_manager.load_nodes()
-            self.page_node_manager.start_all()
             self.plugin_manager.set_app(self)
-            if self.plugins_enabled:
-                try:
-                    self.plugin_manager.install_bundled_examples()
-                except Exception as exc:
-                    print(f"Bundled plugin sync failed: {exc}", flush=True)
-            try:
-                self.sideband_plugin_loader.reload()
-                self._ensure_sideband_telemetry_loop()
-            except Exception as exc:
-                print(f"Sideband plugin loader init failed: {exc}")
 
         # Create new context
         self._set_startup_stage("identity")
@@ -1685,6 +1721,7 @@ class ReticulumMeshChat:
         self.web_audio_bridge = WebAudioBridge(
             context.telephone_manager,
             context.config,
+            force_enabled=self.web_audio_required(),
         )
 
         for node in self.page_node_manager.nodes.values():
@@ -1706,6 +1743,43 @@ class ReticulumMeshChat:
                 app=self,
             )
             self._health_monitor.start()
+
+        if self._network_ready:
+            self._finish_deferred_startup_services()
+
+    def _finish_deferred_startup_services(self) -> None:
+        """Start non-critical services after network_ready is published."""
+        context = self.current_context
+        if context is not None:
+            try:
+                context.setup_deferred_services()
+            except Exception as exc:
+                print(f"Deferred identity services failed: {exc}", flush=True)
+        self._start_deferred_reticulum_services()
+
+    def _start_deferred_reticulum_services(self) -> None:
+        if self._reticulum_secondary_started:
+            return
+        if not hasattr(self, "reticulum"):
+            return
+        self._reticulum_secondary_started = True
+        try:
+            self.page_node_manager.start_all()
+            for node in self.page_node_manager.nodes.values():
+                if node.running and node.destination:
+                    self._register_local_page_node_announce(node)
+        except Exception as exc:
+            print(f"Deferred page node start failed: {exc}", flush=True)
+        if self.plugins_enabled:
+            try:
+                self.plugin_manager.install_bundled_examples()
+            except Exception as exc:
+                print(f"Bundled plugin sync failed: {exc}", flush=True)
+        try:
+            self.sideband_plugin_loader.reload()
+            self._ensure_sideband_telemetry_loop()
+        except Exception as exc:
+            print(f"Sideband plugin loader init failed: {exc}")
 
     def _checkpoint_and_close(self):
         # delegated to database instance
@@ -2563,6 +2637,7 @@ class ReticulumMeshChat:
                 if switched_instance_name:
                     self._write_reticulum_instance_name(instance_restore_name)
             self._mark_network_ready()
+            self._finish_deferred_startup_services()
             await self._send_rns_reload_status(
                 "done",
                 "RNS reload complete.",
@@ -2587,6 +2662,7 @@ class ReticulumMeshChat:
                 try:
                     self.setup_identity(identity_to_restore)
                     self._mark_network_ready()
+                    self._finish_deferred_startup_services()
                     return False
                 except Exception as recover_exc:
                     self._mark_network_degraded(
@@ -5531,6 +5607,7 @@ class ReticulumMeshChat:
             self._network_degraded = False
             self._ui_ready = True
             self._network_ready = False
+            self._reticulum_secondary_started = False
             if hasattr(self, "reticulum"):
                 with contextlib.suppress(Exception):
                     delattr(self, "reticulum")
@@ -5538,6 +5615,7 @@ class ReticulumMeshChat:
             try:
                 self.setup_identity(identity)
                 self._mark_network_ready()
+                self._finish_deferred_startup_services()
                 return web.json_response(
                     {
                         "message": "Network stack recovered",
@@ -7784,9 +7862,10 @@ class ReticulumMeshChat:
             )
             await websocket_response.prepare(request)
 
-            # Chaquopy Android has no LXST host audio device, so always allow the websocket bridge.
+            # Chaquopy Android and headless/web deployments have no usable LXST
+            # host audio device, so always allow the websocket bridge.
             web_audio_allowed = (
-                self.web_audio_bridge.config_enabled() or _is_chaquopy_android()
+                self.web_audio_bridge.config_enabled() or self.web_audio_required()
             )
             if not web_audio_allowed:
                 await websocket_response.send_str(
@@ -10680,16 +10759,18 @@ class ReticulumMeshChat:
                                 "get",
                                 lambda: False,
                             )()
-                            or _is_chaquopy_android()
+                            or self.web_audio_required()
                         )
                         and not bool(
                             getattr(self.voicemail_manager, "is_recording", False),
                         ),
+                        "required": self.web_audio_required(),
                         "allow_fallback": getattr(
                             self.config.telephone_web_audio_allow_fallback,
                             "get",
                             lambda: True,
-                        )(),
+                        )()
+                        and not self.web_audio_required(),
                         "has_client": bool(
                             getattr(self.web_audio_bridge, "clients", []),
                         ),
@@ -23514,9 +23595,7 @@ class ReticulumMeshChat:
                         continue
 
                     fields = parse_fields_dict(failed_message.get("fields"))
-                    allow_attachments = (
-                        ctx.config.allow_auto_resending_failed_messages_with_attachments.get()
-                    )
+                    allow_attachments = ctx.config.allow_auto_resending_failed_messages_with_attachments.get()
                     if not allow_attachments and fields_have_attachments(fields):
                         print(
                             "Not resending failed message with attachments, as setting is disabled",
@@ -24252,6 +24331,7 @@ def main():
         memory_diag_enabled=args.memory_diag,
         plugins_enabled=not args.disable_plugins,
         defer_network_setup=not needs_immediate_network,
+        headless=bool(args.headless),
     )
 
     # store recovery on app for wiring with identity context
@@ -24332,6 +24412,7 @@ def main():
             )
             reticulum_meshchat.setup_identity(identity)
             reticulum_meshchat._mark_network_ready()
+            reticulum_meshchat._finish_deferred_startup_services()
         else:
             print(f"Error: Snapshot not found at {snapshot_path}")
 

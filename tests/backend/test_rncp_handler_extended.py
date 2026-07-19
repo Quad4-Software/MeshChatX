@@ -5,6 +5,8 @@ import shutil
 from unittest.mock import MagicMock, patch
 
 import pytest
+from hypothesis import HealthCheck, given, settings
+from hypothesis import strategies as st
 
 from meshchatx.src.backend.rncp_handler import RNCPHandler
 
@@ -289,6 +291,33 @@ def test_fetch_request_jail_serves_file_inside_jail(rncp_handler, tmp_path):
     assert _CapturingResource.served_path == str(shared)
 
 
+def test_fetch_request_jail_blocks_null_byte(rncp_handler, tmp_path):
+    """Null bytes in fetch paths are denied, not raised."""
+    jail = tmp_path / "share"
+    jail.mkdir()
+    rncp_handler.fetch_jail = str(jail)
+    _CapturingResource.served_path = None
+    link = _FakeLink(link_id=b"link-null")
+    with (
+        patch("meshchatx.src.backend.rncp_handler.RNS.Transport") as transport,
+        patch(
+            "meshchatx.src.backend.rncp_handler.RNS.Resource",
+            _CapturingResource,
+        ),
+    ):
+        transport.active_links = [link]
+        result = rncp_handler._fetch_request(
+            path="fetch_file",
+            data="\0../x",
+            request_id=None,
+            link_id=link.link_id,
+            remote_identity=None,
+            requested_at=0,
+        )
+    assert result == RNCPHandler.REQ_FETCH_NOT_ALLOWED
+    assert _CapturingResource.served_path is None
+
+
 @patch("meshchatx.src.backend.rncp_handler.RNS.Identity")
 @patch("meshchatx.src.backend.rncp_handler.RNS.Destination")
 @patch("meshchatx.src.backend.rncp_handler.RNS.Reticulum")
@@ -363,3 +392,106 @@ def test_fetch_resource_concluded_sets_resolved_on_save_error(rncp_handler, tmp_
     assert resource_status["value"] == "error"
     assert save_error["value"]
     os.chmod(effective_save_path, 0o700)
+
+
+_TRAVERSAL_PATHS = (
+    "../etc/passwd",
+    "../../host_secret.key",
+    "/etc/passwd",
+    "....//....//evil",
+    "share/../../outside.txt",
+    "\0../x",
+)
+
+
+@settings(
+    max_examples=80,
+    deadline=None,
+    suppress_health_check=[HealthCheck.function_scoped_fixture],
+)
+@given(
+    data=st.one_of(
+        st.sampled_from(_TRAVERSAL_PATHS),
+        st.text(min_size=0, max_size=200),
+    ),
+)
+def test_fetch_request_path_oracle(rncp_handler, tmp_path, data):
+    """Fetch never serves outside the jail. Success only for files inside it."""
+    jail = tmp_path / "share"
+    jail.mkdir(exist_ok=True)
+    inside = jail / "ok.txt"
+    if not inside.exists():
+        inside.write_text("ok")
+    outside = tmp_path / "host_secret.key"
+    if not outside.exists():
+        outside.write_text("PRIVATE")
+    rncp_handler.fetch_jail = str(jail)
+    _CapturingResource.served_path = None
+
+    link = _FakeLink(link_id=b"link-oracle")
+    with (
+        patch("meshchatx.src.backend.rncp_handler.RNS.Transport") as transport,
+        patch(
+            "meshchatx.src.backend.rncp_handler.RNS.Resource",
+            _CapturingResource,
+        ),
+    ):
+        transport.active_links = [link]
+        result = rncp_handler._fetch_request(
+            path="fetch_file",
+            data=data,
+            request_id=None,
+            link_id=link.link_id,
+            remote_identity=None,
+            requested_at=0,
+        )
+
+    assert result in (
+        True,
+        False,
+        None,
+        RNCPHandler.REQ_FETCH_NOT_ALLOWED,
+    )
+    jail_real = os.path.realpath(str(jail))
+    outside_real = os.path.realpath(str(outside))
+    if result is True:
+        served = _CapturingResource.served_path
+        assert served is not None
+        served_real = os.path.realpath(served)
+        assert served_real == jail_real or served_real.startswith(jail_real + os.sep)
+        assert served_real != outside_real
+    else:
+        assert _CapturingResource.served_path is None
+
+
+@settings(
+    max_examples=80,
+    deadline=None,
+    suppress_health_check=[HealthCheck.function_scoped_fixture],
+)
+@given(
+    file_path=st.one_of(
+        st.sampled_from(_TRAVERSAL_PATHS + ("identity", "identity.bak", "")),
+        st.text(min_size=0, max_size=200),
+    ),
+)
+def test_resolve_send_path_oracle(rncp_handler, file_path):
+    """Resolved send paths stay under storage or home and never expose identity keys."""
+    storage = os.path.realpath(rncp_handler.storage_dir)
+    home = os.path.expanduser("~")
+    home_real = os.path.realpath(home) if home and home != "~" else None
+    try:
+        real = rncp_handler._resolve_send_path(file_path)
+    except (ValueError, PermissionError, FileNotFoundError, OSError, TypeError):
+        return
+    assert isinstance(real, str)
+    real = os.path.realpath(real)
+    under_storage = real == storage or real.startswith(storage + os.sep)
+    under_home = home_real is not None and (
+        real == home_real or real.startswith(home_real + os.sep)
+    )
+    assert under_storage or under_home
+    assert os.path.basename(real) not in {"identity", "identity.bak"}
+    parts = {part for part in real.split(os.sep) if part}
+    assert not (parts & {".ssh", ".gnupg"})
+    assert os.path.isfile(real)

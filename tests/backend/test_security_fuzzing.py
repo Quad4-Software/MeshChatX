@@ -3,7 +3,6 @@
 import base64
 import math
 import os
-import time
 from contextlib import ExitStack
 from unittest.mock import MagicMock, patch
 
@@ -1118,61 +1117,14 @@ def test_archive_page_content_fuzzing(mock_app, destination_hash, page_path, con
 
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
 @given(
-    file_path=st.text(min_size=0, max_size=1000),
-)
-def test_rncp_file_path_traversal_fuzzing(mock_app, file_path):
-    """Fuzz RNCP file path handling for directory traversal."""
-    try:
-        import asyncio
-
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(
-            mock_app.rncp_handler.send_file(
-                os.urandom(16),
-                file_path,
-                timeout=1.0,
-            ),
-        )
-    except Exception:
-        pass
-
-
-@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
-@given(
-    path=st.text(min_size=0, max_size=1000),
-    data=st.one_of(st.text(), st.binary()),
-    request_id=st.one_of(st.integers(), st.text()),
-)
-def test_rncp_fetch_request_path_fuzzing(mock_app, path, data, request_id):
-    """Fuzz RNCP fetch request path handling."""
-    try:
-        mock_identity = MagicMock()
-        mock_identity.hash = os.urandom(16)
-        mock_app.rncp_handler._fetch_request(
-            path,
-            data,
-            request_id,
-            os.urandom(16),
-            mock_identity,
-            time.time(),
-        )
-    except Exception:
-        pass
-
-
-@settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)
-@given(
     app_data_base64=st.text(min_size=0, max_size=10000),
 )
-def test_parse_lxmf_stamp_cost_fuzzing(mock_app, app_data_base64):
-    """Fuzz LXMF stamp cost parsing from base64 app_data."""
-    try:
-        from meshchatx.src.backend.meshchat_utils import parse_lxmf_stamp_cost
+def test_parse_lxmf_stamp_cost_oracle(mock_app, app_data_base64):
+    """Stamp cost parse returns None or a non-negative number. Never raises."""
+    from meshchatx.src.backend.meshchat_utils import parse_lxmf_stamp_cost
 
-        parse_lxmf_stamp_cost(app_data_base64)
-    except Exception:
-        pass
+    cost = parse_lxmf_stamp_cost(app_data_base64)
+    assert cost is None or (isinstance(cost, (int, float)) and cost >= 0)
 
 
 @settings(suppress_health_check=[HealthCheck.function_scoped_fixture], deadline=None)

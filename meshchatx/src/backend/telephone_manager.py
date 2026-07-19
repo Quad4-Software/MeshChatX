@@ -92,6 +92,9 @@ class TelephoneManager:
         self.preferred_profile_id = None
         self._caller_allowed = None
         self._blocked_identity_hashes = None
+        # When True, LXST must not open PulseAudio LineSource/LineSink (Docker /
+        # headless / Android web bridge). Set by ReticulumMeshChat.
+        self.web_audio_required = False
 
     @property
     def is_recording(self):
@@ -167,6 +170,13 @@ class TelephoneManager:
             return
         if self.config_manager and not self.config_manager.telephone_enabled.get():
             return
+
+        if self.web_audio_required:
+            from meshchatx.src.backend.web_audio_bridge import (
+                install_hostless_lxst_audio,
+            )
+
+            install_hostless_lxst_audio()
 
         # Never enable LXST auto_answer. MeshChatX answers only via explicit
         # user action or the separate voicemail timer after RINGING.

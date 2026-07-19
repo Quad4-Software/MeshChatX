@@ -71,6 +71,7 @@ def test_deferred_init_skips_reticulum_until_background_setup(mock_identity, tem
         payload = app._startup_status_payload()
         assert payload["status"] == "starting"
         assert payload["network_ready"] is False
+        assert payload["ui_ready"] is True
         assert payload["stage"] == "http"
         assert_matches_schema(payload, API_V1_STATUS_SCHEMA)
 
@@ -266,6 +267,7 @@ def test_startup_status_payload_stages(mock_identity, temp_dir):
         assert payload["status"] == "starting"
         assert payload["stage"] == stage
         assert payload["network_ready"] is False
+        assert payload["ui_ready"] is True
         assert_matches_schema(payload, API_V1_STATUS_SCHEMA)
 
 

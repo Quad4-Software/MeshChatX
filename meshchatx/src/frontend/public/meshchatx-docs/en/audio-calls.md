@@ -37,6 +37,8 @@ Voicemail events surface as `new_voicemail` on the WebSocket.
 
 The **Call** area keeps history of placed, received, and missed calls. You can record calls when the feature is enabled and policy allows storage on your device.
 
+Unread missed calls show as a red count on the Calls sidebar icon and the header phone button. Opening the Call page clears that count. Desktop and Android still show a one-shot missed-call notification when the event happens.
+
 ## Ringtones
 
 Upload custom ringtones and assign them per contact. Default sounds are used when no override exists.
@@ -79,6 +81,8 @@ Callee UI: ring, answer, or decline
 - Use headphones on mobile and Quest builds to prevent echo.
 - Review microphone permissions in Electron or the Android system settings if the UI shows no input level.
 - Keep LXST and Reticulum versions aligned with MeshChatX release notes when upgrading.
+- **Docker / headless web**: containers have no PulseAudio host devices. MeshChatX forces the web audio bridge (`MESHCHAT_FORCE_WEB_AUDIO=1`) and installs hostless LXST backends so calls can use the browser mic/speaker. Enable telephone in settings, then place a call from the web UI over HTTPS.
+- **Android Codec2**: native `libcodec2.so` must be preloaded before `pycodec2`. If Codec2 profiles are hidden, check `/api/v1/telephone/codec2/status` and rebuild with vendor wheels that bundle `pycodec2/libcodec2.so`.
 
 ## See also
 

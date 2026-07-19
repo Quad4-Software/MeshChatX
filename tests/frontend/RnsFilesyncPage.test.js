@@ -96,7 +96,7 @@ describe("RnsFilesyncPage.vue", () => {
             expect.objectContaining({
                 sync_directory: "/tmp/sync",
                 monitor: true,
-            }),
+            })
         );
         expect(ToastUtils.success).toHaveBeenCalledWith("rns_filesync.started");
     });

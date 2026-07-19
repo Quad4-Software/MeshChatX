@@ -78,12 +78,33 @@ def test_filter_discovered_interfaces_long_names_and_scripts():
         max_size=8,
     ),
 )
-def test_discovery_filter_candidates_never_raises(name, typ, host, port, extra):
+def test_discovery_filter_candidates_field_oracle(name, typ, host, port, extra):
     iface = {"name": name, "type": typ, "reachable_on": host, "port": port, **extra}
     c = ReticulumMeshChat.discovery_filter_candidates(iface)
     assert isinstance(c, list)
     for x in c:
         assert isinstance(x, str)
+    for key in (
+        "name",
+        "type",
+        "reachable_on",
+        "target_host",
+        "remote",
+        "listen_ip",
+        "port",
+        "target_port",
+        "listen_port",
+        "discovery_hash",
+        "transport_id",
+        "network_id",
+        "network_name",
+        "ifac_netname",
+    ):
+        value = iface.get(key)
+        if value is not None and value != "":
+            assert str(value) in c
+    if host and port:
+        assert f"{host}:{port}" in c
 
 
 @settings(
@@ -115,13 +136,19 @@ def test_discovery_filter_candidates_never_raises(name, typ, host, port, extra):
 def test_matches_discovery_pattern_fuzzing(wl, bl, iface):
     patterns_wl = ",".join(wl) if wl else ""
     patterns_bl = ",".join(bl) if bl else ""
-    ReticulumMeshChat.matches_discovery_pattern(
-        ReticulumMeshChat.sanitize_discovery_patterns(patterns_wl),
-        iface,
+    assert isinstance(
+        ReticulumMeshChat.matches_discovery_pattern(
+            ReticulumMeshChat.sanitize_discovery_patterns(patterns_wl),
+            iface,
+        ),
+        bool,
     )
-    ReticulumMeshChat.matches_discovery_pattern(
-        ReticulumMeshChat.sanitize_discovery_patterns(patterns_bl),
-        iface,
+    assert isinstance(
+        ReticulumMeshChat.matches_discovery_pattern(
+            ReticulumMeshChat.sanitize_discovery_patterns(patterns_bl),
+            iface,
+        ),
+        bool,
     )
 
 

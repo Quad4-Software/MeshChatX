@@ -44,18 +44,24 @@
 <script>
 import MaterialDesignIcon from "./MaterialDesignIcon.vue";
 import { clampFloatingToViewport } from "../js/clampFloatingToViewport.js";
+import { ensureLocaleMessages, listLocaleCodes } from "../js/localeLoader.js";
 
-const localeModules = import.meta.glob("../locales/*.json", { eager: true });
-const discoveredLanguages = Object.entries(localeModules)
-    .map(([filePath, mod]) => ({
-        code: filePath.match(/\/([^/]+)\.json$/)[1],
-        name: mod.default?._languageName || filePath.match(/\/([^/]+)\.json$/)[1],
-    }))
-    .sort((a, b) => {
-        if (a.code === "en") return -1;
-        if (b.code === "en") return 1;
-        return a.name.localeCompare(b.name);
-    });
+const LANGUAGE_NAMES = {
+    de: "Deutsch",
+    en: "English",
+    es: "Español",
+    fi: "Suomi",
+    fr: "Français",
+    it: "Italiano",
+    nl: "Nederlands",
+    ru: "Русский",
+    zh: "中文",
+};
+
+const discoveredLanguages = listLocaleCodes().map((code) => ({
+    code,
+    name: LANGUAGE_NAMES[code] || code,
+}));
 
 export default {
     name: "LanguageSelector",
@@ -139,6 +145,11 @@ export default {
                 return;
             }
 
+            try {
+                await ensureLocaleMessages(this.$i18n, langCode);
+            } catch {
+                // Locale pack may be unavailable in tests or offline shells.
+            }
             this.$emit("language-change", langCode);
             this.closeDropdown();
         },

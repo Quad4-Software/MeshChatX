@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import ctypes
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -51,12 +52,24 @@ def _libcodec2_candidates() -> list[Path]:
         seen.add(key)
         candidates.append(path)
 
+    explicit = Path(os.environ.get("MESHCHAT_LIBCODEC2_PATH", "") or "")
+    if explicit.is_file():
+        add(explicit)
+
     for entry in sys.path:
         if not entry:
             continue
         root = Path(entry)
         add(root / "pycodec2" / "libcodec2.so")
         add(root / "chaquopy" / "lib" / "libcodec2.so")
+        # Some Chaquopy layouts nest native libs under site-packages directly.
+        add(root / "libcodec2.so")
+
+    # Extracted APK native lib dirs (ABI-specific jniLibs sync target).
+    for env_key in ("MESHCHAT_NATIVE_LIB_DIR", "ANDROID_NATIVE_LIBRARY_DIR"):
+        native_dir = Path(os.environ.get(env_key, "") or "")
+        if native_dir.is_dir():
+            add(native_dir / "libcodec2.so")
 
     return candidates
 

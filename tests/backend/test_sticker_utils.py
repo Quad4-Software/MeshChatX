@@ -147,6 +147,40 @@ def test_mime_for_image_type():
     assert sticker_utils.mime_for_image_type("unknown") == "application/octet-stream"
 
 
+_STICKER_REJECT_REASONS = frozenset(
+    {
+        "invalid_image_bytes",
+        "empty_image",
+        "invalid_image_type",
+        "invalid_image_signature",
+        "magic_type_mismatch",
+        "image_too_large",
+        "animated_too_large",
+        "animated_dimensions_invalid",
+        "animated_fps_out_of_range",
+        "animated_duration_too_long",
+        "video_too_large",
+        "video_has_audio",
+        "video_codec_not_vp9",
+        "video_fps_too_high",
+        "video_duration_too_long",
+        "static_too_large",
+        "static_dimensions_unknown",
+        "strict_format_not_supported",
+    },
+)
+
+_STICKER_EXPORT_PREFIXES = (
+    "invalid_document",
+    "invalid_format",
+    "unsupported_version",
+    "invalid_stickers_array",
+    "invalid_sticker_at_",
+    "missing_image_bytes_at_",
+    "invalid_base64_at_",
+)
+
+
 @settings(max_examples=200, deadline=None)
 @given(
     raw=st.binary(min_size=0, max_size=sticker_utils.MAX_STICKER_BYTES + 1),
@@ -158,19 +192,44 @@ def test_mime_for_image_type():
         ),
     ),
 )
-def test_validate_sticker_payload_fuzz_never_raises_unexpected(raw, typ):
-    """Fuzz: validation either succeeds or raises ValueError with known reasons."""
+def test_validate_sticker_payload_accept_reject_oracle(raw, typ):
+    """Accept only when type, magic, and size agree. Else known ValueError reason."""
+    nt = sticker_utils.normalize_image_type(typ)
+    detected = sticker_utils.detect_image_format_from_magic(raw)
+    expect_ok = (
+        bool(raw)
+        and nt is not None
+        and detected is not None
+        and detected == nt
+        and nt in {"png", "jpeg", "jpg", "gif", "webp", "bmp"}
+        and len(raw) <= sticker_utils.MAX_STICKER_BYTES
+    )
     try:
-        sticker_utils.validate_sticker_payload(raw, typ)
-    except ValueError:
-        pass
+        out_type, out_hash = sticker_utils.validate_sticker_payload(raw, typ)
+    except ValueError as exc:
+        assert not expect_ok
+        assert str(exc) in _STICKER_REJECT_REASONS
+        return
+    assert expect_ok
+    assert out_type == detected
+    assert len(out_hash) == 64
+    assert all(c in "0123456789abcdef" for c in out_hash)
 
 
 @settings(max_examples=500, deadline=None)
 @given(raw=st.binary(min_size=0, max_size=4096))
-def test_detect_image_format_from_magic_fuzz_never_raises(raw):
+def test_detect_image_format_from_magic_closed_set(raw):
     out = sticker_utils.detect_image_format_from_magic(raw)
     assert out is None or out in {"png", "jpeg", "gif", "webp", "bmp", "tgs", "webm"}
+    if len(raw) < 4:
+        assert out is None
+        return
+    if raw.startswith(b"\x89PNG\r\n\x1a\n"):
+        assert out == "png"
+    elif raw.startswith(b"\xff\xd8\xff"):
+        assert out == "jpeg"
+    elif raw.startswith((b"GIF87a", b"GIF89a")):
+        assert out == "gif"
 
 
 @settings(max_examples=100, deadline=None)
@@ -192,11 +251,22 @@ def test_detect_image_format_from_magic_fuzz_never_raises(raw):
         max_size=8,
     ),
 )
-def test_validate_export_document_fuzz_never_raises_unexpected(doc):
+def test_validate_export_document_accept_reject_oracle(doc):
     try:
-        sticker_utils.validate_export_document(doc)
-    except ValueError:
-        pass
+        items = sticker_utils.validate_export_document(doc)
+    except ValueError as exc:
+        reason = str(exc)
+        assert any(
+            reason == p or reason.startswith(p) for p in _STICKER_EXPORT_PREFIXES
+        )
+        return
+    assert isinstance(items, list)
+    assert doc.get("format") == "meshchatx-stickers"
+    assert int(doc["version"]) == 1
+    assert isinstance(doc.get("stickers"), list)
+    for item in items:
+        assert isinstance(item["image_bytes_b64"], str)
+        assert item["image_bytes_b64"]
 
 
 def _build_tgs(

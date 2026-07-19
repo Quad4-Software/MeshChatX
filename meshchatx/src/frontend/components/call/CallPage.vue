@@ -672,14 +672,21 @@
                                                     <div class="flex flex-col gap-1">
                                                         <Toggle
                                                             id="web-audio-toggle"
-                                                            :model-value="config?.telephone_web_audio_enabled"
+                                                            :model-value="webAudioBridgeEnabled"
+                                                            :disabled="webAudioBridgeRequired"
                                                             label="Web Audio Bridge"
                                                             @update:model-value="onToggleWebAudio"
                                                         />
                                                         <div class="text-xs text-gray-500 dark:text-zinc-400 px-1">
-                                                            Web audio bridge allows web/electron to hook into LXST
-                                                            backend for passing microphone and audio streams to active
-                                                            telephone calls.
+                                                            <template v-if="webAudioBridgeRequired">
+                                                                Required on this host (no LXST host audio device).
+                                                                Browser mic and speaker are used for calls.
+                                                            </template>
+                                                            <template v-else>
+                                                                Web audio bridge allows web/electron to hook into LXST
+                                                                backend for passing microphone and audio streams to
+                                                                active telephone calls.
+                                                            </template>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -719,10 +726,7 @@
                                                 </div>
 
                                                 <!-- Web Audio Device Selection -->
-                                                <div
-                                                    v-if="config?.telephone_web_audio_enabled"
-                                                    class="flex flex-col gap-2 mt-2"
-                                                >
+                                                <div v-if="webAudioBridgeEnabled" class="flex flex-col gap-2 mt-2">
                                                     <div class="flex flex-col gap-1">
                                                         <div
                                                             class="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-1"
@@ -2371,6 +2375,7 @@ export default {
         return {
             config: null,
             activeCall: null,
+            webAudioBridgeRequired: false,
             audioProfiles: [],
             selectedAudioProfileId: null,
             destinationHash: "",
@@ -2472,6 +2477,9 @@ export default {
         };
     },
     computed: {
+        webAudioBridgeEnabled() {
+            return Boolean(this.webAudioBridgeRequired || this.config?.telephone_web_audio_enabled);
+        },
         isMicMuted() {
             return this.localMicMuted;
         },
@@ -2906,10 +2914,9 @@ export default {
         async disableWebAudioBridgeWithError(errorKey, error, stage = "unknown") {
             this.logWebAudioFailure(stage, error);
             ToastUtils.error(this.$t(errorKey));
-            // On Android the backend forces web_audio.enabled while Chaquopy is
-            // present. Permanently clearing the config flag just creates a 1s
-            // retry/toast loop without helping recovery.
-            if (!this.isMeshChatXAndroid()) {
+            // On Android / headless hosts the backend forces web audio. Permanently
+            // clearing the config flag just creates a retry/toast loop.
+            if (!this.isMeshChatXAndroid() && !this.webAudioBridgeRequired) {
                 if (this.config) {
                     this.config.telephone_web_audio_enabled = false;
                 }
@@ -2922,6 +2929,9 @@ export default {
             this.stopWebAudio();
         },
         async ensureWebAudio(webAudioStatus) {
+            if (webAudioStatus && typeof webAudioStatus.required === "boolean") {
+                this.webAudioBridgeRequired = webAudioStatus.required;
+            }
             if (!webAudioStatus?.enabled) {
                 this.stopWebAudio();
                 return;
@@ -2940,6 +2950,9 @@ export default {
         },
         async onToggleWebAudio(newVal) {
             if (!this.config) return;
+            if (this.webAudioBridgeRequired && !newVal) {
+                return;
+            }
             const previousValue = this.config.telephone_web_audio_enabled;
             this.config.telephone_web_audio_enabled = newVal;
             try {
@@ -3202,7 +3215,7 @@ export default {
                             if (msg.type === "error") {
                                 const errMsg = typeof msg.message === "string" ? msg.message : "";
                                 if (errMsg.includes("Web audio is disabled in config")) {
-                                    if (this.config) {
+                                    if (!this.webAudioBridgeRequired && this.config) {
                                         this.config.telephone_web_audio_enabled = false;
                                     }
                                     this.stopWebAudio();

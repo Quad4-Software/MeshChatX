@@ -27,7 +27,15 @@ class DocsManager:
     build time with scripts/build/fetch_reticulum_manual.py (pnpm run build-docs).
     """
 
-    def __init__(self, config, public_dir, project_root=None, storage_dir=None):
+    def __init__(
+        self,
+        config,
+        public_dir,
+        project_root=None,
+        storage_dir=None,
+        *,
+        populate: bool = True,
+    ):
         self.config = config
         self.public_dir = public_dir
         self.project_root = project_root
@@ -65,6 +73,11 @@ class DocsManager:
             logging.exception(f"Failed to create documentation directories: {e}")
             self.last_error = str(e)
 
+        if populate:
+            self.ensure_meshchatx_docs_populated()
+
+    def ensure_meshchatx_docs_populated(self):
+        """Copy/render MeshChatX docs into storage when writable."""
         if os.path.exists(self.meshchatx_docs_dir) and os.access(
             self.meshchatx_docs_dir,
             os.W_OK,

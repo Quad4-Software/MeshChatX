@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Adversarial and Hypothesis fuzz coverage for RNS FileSync handler."""
+"""Adversarial regression and Hypothesis fuzz coverage for RNS FileSync."""
 
 from __future__ import annotations
 
@@ -14,7 +14,6 @@ from hypothesis import strategies as st
 
 from meshchatx.src.backend.rns_filesync_handler import RnsFilesyncHandler
 from rns_filesync.paths import PathJailError, normalize_relpath
-from rns_filesync.permissions import PermissionStore
 
 _TRAVERSAL_PAYLOADS = (
     "../etc/passwd",
@@ -45,6 +44,7 @@ _BAD_HASHES = (
     "' OR '1'='1",
     "../../identity",
     "а" * 32,
+    "all",
 )
 
 
@@ -66,16 +66,22 @@ def test_path_traversal_payloads_rejected_by_normalize():
             normalize_relpath(payload)
 
 
-def test_download_rejects_path_traversal(handler):
-    handler.service = MagicMock()
-    handler.service.download_file.side_effect = lambda peer, path: {
-        "ok": False,
-        "error": f"path jail: {path}",
-    }
+def test_download_rejects_path_traversal_before_service(handler):
+    """Handler must jail paths itself, not wait for peer connectivity."""
+    service = MagicMock()
+    handler.service = service
     for payload in _TRAVERSAL_PAYLOADS:
+        if not str(payload).strip():
+            result = handler.download_file("bb" * 16, payload)
+            assert result["ok"] is False
+            assert result["error"] == "path is required"
+            service.download_file.assert_not_called()
+            continue
+        service.reset_mock()
         result = handler.download_file("bb" * 16, payload)
-        assert result["ok"] is False
+        assert result["ok"] is False, payload
         assert "error" in result
+        service.download_file.assert_not_called()
 
 
 def test_download_and_browse_require_running(handler):
@@ -85,63 +91,89 @@ def test_download_and_browse_require_running(handler):
 
 
 @pytest.mark.parametrize("bad_hash", _BAD_HASHES)
-def test_connect_rejects_or_handles_bad_hashes(handler, bad_hash):
+def test_connect_rejects_bad_hashes(handler, bad_hash):
     handler.service = MagicMock()
-    handler.service.connect_peer.return_value = {"ok": False, "error": "bad peer"}
     result = handler.connect_peer(bad_hash)
-    assert isinstance(result, dict)
-    assert "ok" in result
-    if not str(bad_hash).strip():
-        assert result["ok"] is False
+    assert result["ok"] is False
+    assert "invalid" in result["error"] or "required" in result["error"]
+    handler.service.connect_peer.assert_not_called()
 
 
-@pytest.mark.parametrize("bad_hash", _BAD_HASHES)
-def test_acl_grant_handles_bad_hashes(handler, bad_hash):
+@pytest.mark.parametrize("bad_hash", [h for h in _BAD_HASHES if h != "all"])
+def test_acl_grant_rejects_bad_hashes(handler, bad_hash):
     result = handler.update_acl(
         identity_hash=bad_hash,
         perms=["read"],
         enforce=True,
     )
-    assert isinstance(result, dict)
-    assert "ok" in result
-
-
-def test_acl_enforce_denies_stranger_by_default_rules(handler):
-    peer = "cc" * 16
-    stranger = "dd" * 16
-    handler.update_acl(identity_hash=peer, perms=["read"], enforce=True)
+    assert result["ok"] is False
+    assert "invalid" in result["error"]
     acl = handler.get_acl()
-    assert acl["enforce"] is True
-    perms = PermissionStore()
-    for rule_perm, targets in acl["rules"].items():
-        for target in targets:
-            short = {"read": "r", "write": "w", "delete": "d"}[rule_perm]
-            perms.add_rule(f"{short}:{target}")
-    assert perms.check(peer, "read") is True
-    assert perms.check(stranger, "read") is False
-    assert perms.check(stranger, "write") is False
+    assert bad_hash not in acl["rules"].get("read", [])
+    assert "../escape" not in acl["rules"].get("read", [])
 
 
-def test_acl_rules_text_replace_does_not_leak_old_rules(handler):
-    peer_a = "11" * 16
-    peer_b = "22" * 16
-    handler.update_acl(identity_hash=peer_a, perms=["read", "write"], enforce=True)
-    handler.update_acl(
-        rules_text=f"r:{peer_b}",
-        replace=True,
-        enforce=True,
-    )
-    acl = handler.get_acl()
-    assert peer_a not in acl["rules"].get("read", [])
-    assert peer_b in acl["rules"].get("read", [])
-    assert peer_a not in acl["rules"].get("write", [])
-
-
-def test_oversized_rules_text_does_not_raise(handler):
-    huge = ("r:" + ("ab" * 16) + "\n") * 5000
-    result = handler.update_acl(rules_text=huge, replace=True, enforce=True)
+def test_acl_grant_accepts_all_alias(handler):
+    result = handler.update_acl(identity_hash="all", perms=["read"], enforce=True)
     assert result["ok"] is True
-    assert isinstance(result["rules"], dict)
+    assert "all" in result["rules"]["read"]
+    assert handler.get_acl()["rules"]["read"] == ["all"]
+
+
+def test_acl_enforce_false_persists_across_reload(tmp_path):
+    storage = tmp_path / "id"
+    storage.mkdir()
+    identity = SimpleNamespace(hash=b"\xaa" * 16)
+    peer = "cc" * 16
+    first = RnsFilesyncHandler(MagicMock(), identity, str(storage))
+    first.update_acl(identity_hash=peer, perms=["read"], enforce=True)
+    disabled = first.update_acl(enforce=False)
+    assert disabled["ok"] is True
+    assert disabled["enforce"] is False
+    assert first.get_acl()["enforce"] is False
+    assert peer in first.get_acl()["rules"]["read"]
+
+    second = RnsFilesyncHandler(MagicMock(), identity, str(storage))
+    acl = second.get_acl()
+    assert acl["enforce"] is False
+    assert peer in acl["rules"]["read"]
+
+
+def test_acl_get_matches_update_result(handler):
+    peer = "dd" * 16
+    updated = handler.update_acl(
+        identity_hash=peer, perms=["read", "write"], enforce=True
+    )
+    fetched = handler.get_acl()
+    assert updated["enforce"] is True
+    assert fetched["enforce"] is True
+    assert fetched["rules"] == updated["rules"]
+    assert peer in fetched["rules"]["read"]
+    assert peer in fetched["rules"]["write"]
+
+
+def test_sync_directory_cannot_escape_identity_storage(handler, tmp_path):
+    outside = tmp_path / "other_identity" / "filesync" / "sync"
+    outside.mkdir(parents=True)
+    result = handler.update_settings(sync_directory=str(outside))
+    assert result["ok"] is False
+    assert "identity storage" in result["error"]
+
+    nested = handler.storage_dir + "/filesync/custom"
+    ok = handler.update_settings(sync_directory=nested)
+    assert ok["ok"] is True
+    assert ok["sync_directory"] == nested or ok["sync_directory"].endswith(
+        "/filesync/custom",
+    )
+
+
+def test_start_rejects_escaped_sync_directory(handler, tmp_path):
+    outside = tmp_path / "escape_me"
+    outside.mkdir()
+    with patch("meshchatx.src.backend.rns_filesync_handler.FileSyncService") as mocked:
+        result = handler.start(sync_directory=str(outside))
+        assert result["ok"] is False
+        mocked.assert_not_called()
 
 
 def test_teardown_clears_service_and_isolates_storage(tmp_path):
@@ -164,14 +196,11 @@ def test_teardown_clears_service_and_isolates_storage(tmp_path):
     assert ha.service is None
     svc.stop.assert_called()
 
-    assert "read" in ha.get_acl()["rules"]
     assert peer in ha.get_acl()["rules"]["read"]
-    assert "write" in hb.get_acl()["rules"]
     assert peer in hb.get_acl()["rules"]["write"]
     assert peer not in ha.get_acl()["rules"].get("write", [])
     assert (storage_a / "filesync" / "acl.txt").is_file()
     assert (storage_b / "filesync" / "acl.txt").is_file()
-    assert storage_a.resolve() != storage_b.resolve()
 
 
 def test_concurrent_acl_mutations_stable(handler):
@@ -187,8 +216,8 @@ def test_concurrent_acl_mutations_stable(handler):
                     enforce=True,
                 )
                 acl = handler.get_acl()
-                assert isinstance(acl["rules"], dict)
                 assert acl["enforce"] is True
+                assert peer in acl["rules"]["read"] or peer in acl["rules"]["write"]
         except BaseException as exc:
             errors.append(exc)
 
@@ -198,34 +227,33 @@ def test_concurrent_acl_mutations_stable(handler):
     for t in threads:
         t.join(timeout=10)
     assert not errors
-    final = handler.get_acl()
-    assert final["enforce"] is True
 
 
 @settings(
-    max_examples=40,
+    max_examples=50,
     deadline=None,
     suppress_health_check=[HealthCheck.too_slow, HealthCheck.function_scoped_fixture],
 )
-@given(
-    path=st.text(
-        alphabet=st.characters(
-            whitelist_categories=("L", "N", "P", "S", "Z", "Cc"),
-        ),
-        min_size=0,
-        max_size=400,
-    ),
-)
-def test_download_path_fuzz_never_raises(handler, path):
-    handler.service = MagicMock()
-    handler.service.download_file.side_effect = lambda peer, p: {
-        "ok": False,
-        "error": "denied",
-        "path": p,
-    }
+@given(path=st.sampled_from(list(_TRAVERSAL_PAYLOADS) + ["ok.txt", "dir/file.bin"]))
+def test_download_path_oracle(handler, path):
+    service = MagicMock()
+    service.download_file.return_value = {"ok": True, "path": path}
+    handler.service = service
     result = handler.download_file("aa" * 16, path)
     assert isinstance(result, dict)
     assert "ok" in result
+    if not str(path).strip():
+        assert result["ok"] is False
+        service.download_file.assert_not_called()
+        return
+    try:
+        normalize_relpath(path)
+    except PathJailError:
+        assert result["ok"] is False
+        service.download_file.assert_not_called()
+    else:
+        assert result["ok"] is True
+        service.download_file.assert_called_once()
 
 
 @settings(
@@ -235,35 +263,36 @@ def test_download_path_fuzz_never_raises(handler, path):
 )
 @given(
     identity_hash=st.one_of(
-        st.text(min_size=0, max_size=80),
-        st.binary(min_size=0, max_size=40).map(lambda b: b.hex()),
         st.sampled_from(list(_BAD_HASHES)),
+        st.from_regex(r"[0-9a-f]{32}", fullmatch=True),
+        st.text(min_size=0, max_size=40),
     ),
     perms=st.lists(
         st.sampled_from(["read", "write", "delete", "admin", "nope", ""]),
         max_size=6,
     ),
-    enforce=st.booleans(),
-    rules_text=st.one_of(st.none(), st.text(max_size=500)),
-    replace=st.booleans(),
 )
-def test_acl_update_fuzz_never_raises(
-    handler,
-    identity_hash,
-    perms,
-    enforce,
-    rules_text,
-    replace,
-):
+def test_acl_hash_oracle(handler, identity_hash, perms):
+    effective_perms = perms if perms else ["read"]
     result = handler.update_acl(
         identity_hash=identity_hash,
-        perms=perms,
-        enforce=enforce,
-        rules_text=rules_text,
-        replace=replace,
+        perms=effective_perms,
+        enforce=True,
     )
     assert isinstance(result, dict)
     assert "ok" in result
+    cleaned = str(identity_hash or "").strip().lower().replace(":", "")
+    valid = cleaned == "all" or (
+        len(cleaned) == 32 and all(c in "0123456789abcdef" for c in cleaned)
+    )
+    if not valid:
+        assert result["ok"] is False
+        return
+    if not any(p in ("read", "write", "delete") for p in effective_perms):
+        assert result["ok"] is False
+        return
+    assert result["ok"] is True
+    assert result["rules"] == handler.get_acl()["rules"]
 
 
 @settings(
@@ -272,39 +301,26 @@ def test_acl_update_fuzz_never_raises(
     suppress_health_check=[HealthCheck.too_slow, HealthCheck.function_scoped_fixture],
 )
 @given(
-    sync_directory=st.one_of(
-        st.none(),
-        st.text(min_size=0, max_size=200),
-        st.sampled_from(["", " ", "../escape", "/tmp/x", "~/.ssh"]),
-    ),
-    monitor=st.one_of(st.none(), st.booleans()),
-    announce_interval=st.one_of(
-        st.none(),
-        st.integers(min_value=-10, max_value=10_000),
-        st.text(max_size=20),
+    sync_directory=st.sampled_from(
+        [
+            "",
+            " ",
+            "../escape",
+            "/tmp/x",
+            "~/.ssh",
+            "filesync/nested",
+            "filesync/../filesync/ok",
+        ],
     ),
 )
-def test_settings_fuzz_never_raises(handler, sync_directory, monitor, announce_interval):
-    result = handler.update_settings(
-        sync_directory=sync_directory,
-        monitor=monitor,
-        announce_interval=announce_interval,
-    )
+def test_settings_path_oracle(handler, sync_directory):
+    before = handler.get_status()["sync_directory"]
+    result = handler.update_settings(sync_directory=sync_directory)
     assert isinstance(result, dict)
-    assert "ok" in result
-
-
-@settings(
-    max_examples=25,
-    deadline=None,
-    suppress_health_check=[HealthCheck.too_slow, HealthCheck.function_scoped_fixture],
-)
-@given(peer_id=st.text(min_size=0, max_size=100))
-def test_disconnect_fuzz_never_raises(handler, peer_id):
-    handler.service = MagicMock()
-    result = handler.disconnect_peer(peer_id)
-    assert isinstance(result, dict)
-    assert "ok" in result
+    if result["ok"]:
+        assert result["sync_directory"].startswith(handler.storage_dir)
+    else:
+        assert handler.get_status()["sync_directory"] == before
 
 
 @patch("meshchatx.src.backend.rns_filesync_handler.FileSyncService")

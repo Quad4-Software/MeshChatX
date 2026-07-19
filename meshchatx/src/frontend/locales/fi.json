@@ -488,6 +488,7 @@
         "rpc_key_hide": "Piilota RPC-avain",
         "refresh_community_interfaces": "Päivitä lähteestä directory.rns.recipes",
         "refresh_community_interfaces_busy": "Päivitetään…",
+        "network_starting": "Yhdistetään mesh-verkkoon…",
         "network_degraded": "Mesh-verkko ei ole käytettävissä. Sovellus pysyy käynnissä, jotta voit korjata liittymiä ilman tietojen tyhjennystä.",
         "recover_network": "Yritä verkkoa uudelleen",
         "open_interfaces": "Avaa liittymät",

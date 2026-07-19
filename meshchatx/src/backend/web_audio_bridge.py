@@ -15,9 +15,155 @@ from LXST.Sources import LocalSource
 
 from .telephone_manager import Tee
 
+_HOSTLESS_AUDIO_INSTALLED = False
+_ORIG_LINE_SOURCE = None
+_ORIG_LINE_SINK = None
+
 
 def _log_debug(msg: str):
     RNS.log(msg, RNS.LOG_DEBUG)
+
+
+class HostlessAudioSource(LocalSource):
+    """LineSource stand-in that never opens PulseAudio / host capture devices.
+
+    Docker headless and other web deployments have no usable host mic. LXST still
+    constructs LineSource during call setup before the websocket bridge attaches.
+    This class accepts the LineSource constructor shape and later yields to
+    WebAudioSource once a browser client connects.
+    """
+
+    def __init__(
+        self,
+        preferred_device=None,
+        target_frame_ms=60,
+        codec=None,
+        sink=None,
+        filters=None,
+        gain=0.0,
+        ease_in=0.0,
+        skip=0.0,
+    ):
+        self.preferred_device = preferred_device
+        self.target_frame_ms = target_frame_ms or 60
+        self.sink = sink
+        self.filters = filters
+        self.gain = gain
+        self.ease_in = ease_in
+        self.skip = skip
+        self.codec = codec or Raw(channels=1, bitdepth=16)
+        self.channels = 1
+        self.samplerate = 48000
+        self.bitdepth = 16
+        self.should_run = False
+        self.samples_per_frame = max(
+            1,
+            int(round((self.target_frame_ms / 1000.0) * self.samplerate)),
+        )
+
+    def start(self):
+        self.should_run = True
+
+    def stop(self):
+        self.should_run = False
+
+    def can_receive(self, from_source=None):
+        return True
+
+    def handle_frame(self, frame, source=None):
+        pass
+
+    def push_pcm(self, pcm_bytes: bytes):
+        # Used if a bridge client attaches before WebAudioSource swap.
+        if not pcm_bytes or not self.sink:
+            return
+        try:
+            samples = (
+                np.frombuffer(pcm_bytes, dtype=np.int16).astype(np.float32) / 32768.0
+            )
+            if samples.size == 0:
+                return
+            samples = samples.reshape(-1, 1)
+            frame = Raw(channels=1, bitdepth=16).encode(samples)
+            if self.sink.can_receive(from_source=self):
+                self.sink.handle_frame(frame, self)
+        except Exception as exc:
+            RNS.log(f"HostlessAudioSource: push_pcm failed: {exc}", RNS.LOG_ERROR)
+
+
+class HostlessAudioSink(LocalSink):
+    """LineSink stand-in that discards PCM when no host speaker exists."""
+
+    def __init__(self, preferred_device=None, autodigest=True, low_latency=False):
+        self.preferred_device = preferred_device
+        self.autodigest = autodigest
+        self.low_latency = low_latency
+        self.should_run = False
+        self.samplerate = 48000
+        self.channels = 1
+        self._wants_low_latency = False
+
+    def can_receive(self, from_source=None):
+        return True
+
+    def handle_frame(self, frame, source=None):
+        pass
+
+    def start(self):
+        self.should_run = True
+
+    def stop(self):
+        self.should_run = False
+
+    def enable_low_latency(self):
+        self._wants_low_latency = True
+
+
+def install_hostless_lxst_audio() -> bool:
+    """Replace LXST LineSource/LineSink with hostless stand-ins (idempotent)."""
+    global _HOSTLESS_AUDIO_INSTALLED, _ORIG_LINE_SOURCE, _ORIG_LINE_SINK
+    if _HOSTLESS_AUDIO_INSTALLED:
+        return True
+    try:
+        from LXST.Primitives import Telephony as lxst_telephony
+    except Exception as exc:
+        RNS.log(
+            f"WebAudioBridge: cannot install hostless audio backends: {exc}",
+            RNS.LOG_ERROR,
+        )
+        return False
+
+    _ORIG_LINE_SOURCE = getattr(lxst_telephony, "LineSource", None)
+    _ORIG_LINE_SINK = getattr(lxst_telephony, "LineSink", None)
+    lxst_telephony.LineSource = HostlessAudioSource
+    lxst_telephony.LineSink = HostlessAudioSink
+    _HOSTLESS_AUDIO_INSTALLED = True
+    RNS.log(
+        "WebAudioBridge: installed hostless LXST audio backends (no PulseAudio)",
+        RNS.LOG_INFO,
+    )
+    return True
+
+
+def hostless_lxst_audio_installed() -> bool:
+    return _HOSTLESS_AUDIO_INSTALLED
+
+
+def reset_hostless_lxst_audio_for_tests() -> None:
+    """Restore original LXST LineSource/LineSink (tests only)."""
+    global _HOSTLESS_AUDIO_INSTALLED, _ORIG_LINE_SOURCE, _ORIG_LINE_SINK
+    if not _HOSTLESS_AUDIO_INSTALLED:
+        return
+    with contextlib.suppress(Exception):
+        from LXST.Primitives import Telephony as lxst_telephony
+
+        if _ORIG_LINE_SOURCE is not None:
+            lxst_telephony.LineSource = _ORIG_LINE_SOURCE
+        if _ORIG_LINE_SINK is not None:
+            lxst_telephony.LineSink = _ORIG_LINE_SINK
+    _HOSTLESS_AUDIO_INSTALLED = False
+    _ORIG_LINE_SOURCE = None
+    _ORIG_LINE_SINK = None
 
 
 class WebAudioSource(LocalSource):
@@ -98,9 +244,10 @@ class WebAudioSink(LocalSink):
 class WebAudioBridge:
     """Coordinates websocket audio transport with an active LXST telephone call."""
 
-    def __init__(self, telephone_manager, config_manager):
+    def __init__(self, telephone_manager, config_manager, force_enabled: bool = False):
         self.telephone_manager = telephone_manager
         self.config_manager = config_manager
+        self.force_enabled = bool(force_enabled)
         self.clients = set()
         self.tx_source: WebAudioSource | None = None
         self.rx_sink: WebAudioSink | None = None
@@ -127,6 +274,8 @@ class WebAudioBridge:
         return getattr(self.telephone_manager, "telephone", None)
 
     def config_enabled(self):
+        if self.force_enabled:
+            return True
         return (
             self.config_manager
             and hasattr(self.config_manager, "telephone_web_audio_enabled")
@@ -134,11 +283,27 @@ class WebAudioBridge:
         )
 
     def allow_fallback(self):
+        if self.force_enabled:
+            # Never restore PulseAudio host paths on headless/web-required hosts.
+            return False
         return (
             self.config_manager
             and hasattr(self.config_manager, "telephone_web_audio_allow_fallback")
             and self.config_manager.telephone_web_audio_allow_fallback.get()
         )
+
+    def get_diagnostics(self):
+        """Return a small status snapshot for /api/v1/telephone/status."""
+        tele = self._tele()
+        return {
+            "force_enabled": self.force_enabled,
+            "config_enabled": bool(self.config_enabled()),
+            "hostless_backends": hostless_lxst_audio_installed(),
+            "client_count": len(self.clients),
+            "has_tx_source": self.tx_source is not None,
+            "has_rx_sink": self.rx_sink is not None,
+            "has_active_call": bool(tele and getattr(tele, "active_call", None)),
+        }
 
     def attach_client(self, client):
         with self.lock:
@@ -168,6 +333,7 @@ class WebAudioBridge:
                 {
                     "type": "web_audio.ready",
                     "frame_ms": frame_ms,
+                    "required": self.force_enabled,
                 },
             ),
         )
@@ -175,6 +341,17 @@ class WebAudioBridge:
     def push_client_frame(self, pcm_bytes: bytes):
         with self.lock:
             if not self.tx_source:
+                # Hostless LineSource stand-in still accepts PCM until swap.
+                tele = self._tele()
+                audio_in = getattr(tele, "audio_input", None) if tele else None
+                if audio_in is not None and hasattr(audio_in, "push_pcm"):
+                    if getattr(
+                        self.telephone_manager,
+                        "is_voicemail_session_active",
+                        False,
+                    ):
+                        return
+                    audio_in.push_pcm(pcm_bytes)
                 return
             # Drop frames during voicemail
             if getattr(self.telephone_manager, "is_voicemail_session_active", False):

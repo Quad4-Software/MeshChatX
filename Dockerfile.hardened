@@ -60,10 +60,12 @@ RUN uv sync --no-group dev --no-install-project && \
 
 COPY meshchatx ./meshchatx
 COPY scripts/patch_lxst_pyogg_ogg_ctypes.py ./scripts/patch_lxst_pyogg_ogg_ctypes.py
+COPY scripts/patch_lxst_codec2_optional.py ./scripts/patch_lxst_codec2_optional.py
 COPY --from=build-frontend /src/meshchatx/public ./meshchatx/public
 
 RUN pip install --no-cache-dir . && \
     python scripts/patch_lxst_pyogg_ogg_ctypes.py && \
+    python scripts/patch_lxst_codec2_optional.py && \
     rm -rf /opt/venv/lib/python*/site-packages/LXST/Platforms/android && \
     find /opt/venv -type d -name "tests" -exec rm -rf {} + && \
     find /opt/venv -type d -name "test" -exec rm -rf {} + && \
@@ -99,6 +101,7 @@ LABEL org.opencontainers.image.created="${OCI_CREATED}"
 ENV PATH="/opt/venv/bin:$PATH"
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
+ENV MESHCHAT_FORCE_WEB_AUDIO=1
 
 USER meshchat
 

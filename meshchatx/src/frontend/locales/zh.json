@@ -488,6 +488,7 @@
         "rpc_key_hide": "隐藏 RPC 密钥",
         "refresh_community_interfaces": "从 directory.rns.recipes 刷新",
         "refresh_community_interfaces_busy": "正在刷新…",
+        "network_starting": "正在连接 mesh…",
         "network_degraded": "Mesh 网络不可用。应用仍在运行，便于修复接口而无需清除数据。",
         "recover_network": "重试网络",
         "open_interfaces": "打开接口",

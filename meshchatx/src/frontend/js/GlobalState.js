@@ -18,6 +18,8 @@ const globalState = reactive({
     hasPendingInterfaceChanges: false,
     networkDegraded: false,
     networkDegradedError: null,
+    networkStarting: false,
+    networkReady: true,
     config: {
         show_unknown_contact_banner: true,
         banished_effect_enabled: true,

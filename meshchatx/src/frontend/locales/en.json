@@ -410,6 +410,7 @@
         "backend_process_stopped": "Reticulum backend stopped",
         "backend_reconnected": "Reconnected to backend",
         "restart_backend": "Restart backend",
+        "network_starting": "Connecting to the mesh…",
         "network_degraded": "Mesh network unavailable. The app is still running so you can fix interfaces without wiping data.",
         "recover_network": "Retry network",
         "open_interfaces": "Open interfaces",
