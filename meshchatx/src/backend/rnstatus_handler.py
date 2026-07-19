@@ -233,16 +233,19 @@ class RNStatusHandler:
             }
 
             mode = ifstat.get("mode")
-            if mode == 1:
+            iface_modes = RNS.Interfaces.Interface.Interface
+            if mode == iface_modes.MODE_ACCESS_POINT:
                 formatted_if["mode"] = "Access Point"
-            elif mode == 2:
+            elif mode == iface_modes.MODE_POINT_TO_POINT:
                 formatted_if["mode"] = "Point-to-Point"
-            elif mode == 3:
+            elif mode == iface_modes.MODE_ROAMING:
                 formatted_if["mode"] = "Roaming"
-            elif mode == 4:
+            elif mode == iface_modes.MODE_BOUNDARY:
                 formatted_if["mode"] = "Boundary"
-            elif mode == 5:
+            elif mode == iface_modes.MODE_GATEWAY:
                 formatted_if["mode"] = "Gateway"
+            elif mode == iface_modes.MODE_INTERNAL:
+                formatted_if["mode"] = "Internal"
             else:
                 formatted_if["mode"] = "Full"
 

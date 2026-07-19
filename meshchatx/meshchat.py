@@ -6793,6 +6793,17 @@ class ReticulumMeshChat:
                         data,
                         "prefer_ipv6",
                     )
+                    flap_error = InterfaceEditor.apply_backbone_fast_flapping(
+                        interface_details,
+                        data,
+                    )
+                    if flap_error is not None:
+                        return web.json_response(
+                            {
+                                "message": flap_error,
+                            },
+                            status=422,
+                        )
                 else:
                     remote = data.get("remote") or data.get("target_host")
                     if remote is None or str(remote).strip() == "":
@@ -7326,6 +7337,18 @@ class ReticulumMeshChat:
             ):
                 InterfaceEditor.update_value(interface_details, data, discovery_key)
 
+            location_cmd_error = InterfaceEditor.apply_location_cmd(
+                interface_details,
+                data,
+            )
+            if location_cmd_error is not None:
+                return web.json_response(
+                    {
+                        "message": location_cmd_error,
+                    },
+                    status=422,
+                )
+
             if interface_type == "TCPClientInterface" or (
                 interface_type == "BackboneInterface"
                 and str(interface_details.get("remote") or "").strip() != ""
@@ -7344,7 +7367,38 @@ class ReticulumMeshChat:
 
             # set common interface options
             InterfaceEditor.update_value(interface_details, data, "bitrate")
-            InterfaceEditor.update_value(interface_details, data, "mode")
+            mode_error = InterfaceEditor.apply_interface_mode(interface_details, data)
+            if mode_error is not None:
+                return web.json_response(
+                    {
+                        "message": mode_error,
+                    },
+                    status=422,
+                )
+            recursive_prs_error = InterfaceEditor.apply_yes_no_option(
+                interface_details,
+                data,
+                "recursive_prs",
+            )
+            if recursive_prs_error is not None:
+                return web.json_response(
+                    {
+                        "message": recursive_prs_error,
+                    },
+                    status=422,
+                )
+            announces_error = InterfaceEditor.apply_yes_no_option(
+                interface_details,
+                data,
+                "announces_from_internal",
+            )
+            if announces_error is not None:
+                return web.json_response(
+                    {
+                        "message": announces_error,
+                    },
+                    status=422,
+                )
             InterfaceEditor.update_value(interface_details, data, "network_name")
             InterfaceEditor.update_value(interface_details, data, "passphrase")
             InterfaceEditor.update_value(interface_details, data, "ifac_size")
@@ -7540,6 +7594,16 @@ class ReticulumMeshChat:
                         return web.json_response(
                             {
                                 "message": i2p_support.MSG_IMPORT_FORBIDDEN,
+                            },
+                            status=422,
+                        )
+                    import_option_error = (
+                        InterfaceEditor.sanitize_imported_rns_options(iface_body)
+                    )
+                    if import_option_error is not None:
+                        return web.json_response(
+                            {
+                                "message": import_option_error,
                             },
                             status=422,
                         )

@@ -93,3 +93,80 @@ def test_normalize_rnode_tcp_port_bracket_ipv6_with_port():
 
 def test_normalize_rnode_tcp_port_non_tcp_unchanged():
     assert InterfaceEditor.normalize_rnode_tcp_port("/dev/ttyUSB0") == "/dev/ttyUSB0"
+
+
+def test_normalize_interface_mode_aliases():
+    assert InterfaceEditor.normalize_interface_mode("internal") == "internal"
+    assert InterfaceEditor.normalize_interface_mode("GW") == "gateway"
+    assert InterfaceEditor.normalize_interface_mode("ap") == "access_point"
+    assert InterfaceEditor.normalize_interface_mode("evil") is None
+    assert InterfaceEditor.normalize_interface_mode("") is None
+
+
+def test_apply_interface_mode_rejects_unknown():
+    details = {}
+    err = InterfaceEditor.apply_interface_mode(details, {"mode": "not-a-mode"})
+    assert err is not None
+    assert "mode" not in details
+
+
+def test_apply_interface_mode_canonicalizes():
+    details = {}
+    assert InterfaceEditor.apply_interface_mode(details, {"mode": "internal"}) is None
+    assert details["mode"] == "internal"
+    assert InterfaceEditor.apply_interface_mode(details, {"mode": "gw"}) is None
+    assert details["mode"] == "gateway"
+
+
+def test_apply_yes_no_option_recursive_prs():
+    details = {}
+    assert (
+        InterfaceEditor.apply_yes_no_option(
+            details, {"recursive_prs": True}, "recursive_prs"
+        )
+        is None
+    )
+    assert details["recursive_prs"] == "yes"
+    assert (
+        InterfaceEditor.apply_yes_no_option(
+            details,
+            {"announces_from_internal": False},
+            "announces_from_internal",
+        )
+        is None
+    )
+    assert details["announces_from_internal"] == "no"
+
+
+def test_validate_location_cmd_rejects_shell_metacharacters():
+    assert InterfaceEditor.validate_location_cmd("/usr/bin/true") is None
+    assert InterfaceEditor.validate_location_cmd("~/bin/gps.sh") is None
+    assert InterfaceEditor.validate_location_cmd("relative/path") is not None
+    assert InterfaceEditor.validate_location_cmd("/tmp/evil;rm -rf /") is not None
+    assert InterfaceEditor.validate_location_cmd("/tmp/$(id)") is not None
+    assert InterfaceEditor.validate_location_cmd("/tmp/../etc/passwd") is not None
+
+
+def test_apply_location_cmd_normalizes_home():
+    details = {}
+    err = InterfaceEditor.apply_location_cmd(details, {"location_cmd": "~/gps-loc"})
+    assert err is None
+    assert details["location_cmd"].endswith("gps-loc")
+    assert details["location_cmd"].startswith("/")
+
+
+def test_sanitize_imported_rns_options_rejects_bad_mode():
+    body = {"mode": "warehouse"}
+    assert InterfaceEditor.sanitize_imported_rns_options(body) is not None
+
+
+def test_sanitize_imported_rns_options_accepts_internal():
+    body = {
+        "mode": "internal",
+        "recursive_prs": "yes",
+        "announces_from_internal": "no",
+    }
+    assert InterfaceEditor.sanitize_imported_rns_options(body) is None
+    assert body["mode"] == "internal"
+    assert body["recursive_prs"] == "yes"
+    assert body["announces_from_internal"] == "no"

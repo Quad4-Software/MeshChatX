@@ -325,4 +325,77 @@ describe("AddInterfacePage.vue interface options", () => {
 
         expect(ToastUtils.error).toHaveBeenCalledWith(expect.stringContaining("already in use"));
     });
+
+    it("sends internal mode and recursive_prs / announces_from_internal", async () => {
+        const wrapper = mountPage();
+
+        wrapper.vm.newInterfaceName = "InternalLAN";
+        wrapper.vm.newInterfaceType = "TCPServerInterface";
+        wrapper.vm.newInterfaceListenIp = "127.0.0.1";
+        wrapper.vm.newInterfaceListenPort = 4242;
+        wrapper.vm.sharedInterfaceSettings.mode = "internal";
+        wrapper.vm.sharedInterfaceSettings.recursive_prs = true;
+        wrapper.vm.sharedInterfaceSettings.announces_from_internal = false;
+
+        await wrapper.vm.saveInterface();
+
+        expect(mockAxios.post).toHaveBeenCalledWith(
+            "/api/v1/reticulum/interfaces/add",
+            expect.objectContaining({
+                mode: "internal",
+                recursive_prs: true,
+                announces_from_internal: false,
+            })
+        );
+    });
+
+    it("sends BackboneInterface fast-flapping options in listener mode", async () => {
+        const wrapper = mountPage();
+
+        wrapper.vm.newInterfaceName = "Backbone";
+        wrapper.vm.newInterfaceType = "BackboneInterface";
+        wrapper.vm.newInterfaceBackboneListenMode = true;
+        wrapper.vm.newInterfaceBackboneListenIp = "0.0.0.0";
+        wrapper.vm.newInterfaceBackboneListenPort = 5151;
+        wrapper.vm.newInterfaceBlockFastFlapping = false;
+        wrapper.vm.newInterfaceFastFlappingBlockTime = 30;
+        wrapper.vm.newInterfaceFastFlappingThreshold = 10;
+        wrapper.vm.newInterfaceFastFlappingGrace = 2;
+
+        await wrapper.vm.saveInterface();
+
+        expect(mockAxios.post).toHaveBeenCalledWith(
+            "/api/v1/reticulum/interfaces/add",
+            expect.objectContaining({
+                block_fast_flapping: false,
+                fast_flapping_block_time: 30,
+                fast_flapping_threshold: 10,
+                fast_flapping_grace: 2,
+            })
+        );
+    });
+
+    it("sends discovery location_cmd when discoverable", async () => {
+        const wrapper = mountPage();
+
+        wrapper.vm.newInterfaceName = "TCPS";
+        wrapper.vm.newInterfaceType = "TCPServerInterface";
+        wrapper.vm.newInterfaceListenIp = "0.0.0.0";
+        wrapper.vm.newInterfaceListenPort = 4242;
+        wrapper.vm.discovery.discoverable = true;
+        wrapper.vm.discovery.discovery_name = "Public";
+        wrapper.vm.discovery.location_cmd = "/usr/local/bin/gps-loc";
+        wrapper.vm.sharedInterfaceSettings.mode = "gateway";
+
+        await wrapper.vm.saveInterface();
+
+        expect(mockAxios.post).toHaveBeenCalledWith(
+            "/api/v1/reticulum/interfaces/add",
+            expect.objectContaining({
+                discoverable: "yes",
+                location_cmd: "/usr/local/bin/gps-loc",
+                mode: "gateway",
+            })
+        );
+    });
 });

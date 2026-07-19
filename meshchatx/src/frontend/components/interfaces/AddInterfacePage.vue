@@ -445,6 +445,57 @@
                                                         >Prefer IPv6</FormLabel
                                                     >
                                                 </div>
+                                                <div
+                                                    class="rounded-xl border border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-900/30 p-3 space-y-3"
+                                                >
+                                                    <div class="flex items-start justify-between gap-4">
+                                                        <div class="min-w-0">
+                                                            <FormLabel class="glass-label mb-0!">{{
+                                                                $t("interfaces.block_fast_flapping_label")
+                                                            }}</FormLabel>
+                                                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                                {{ $t("interfaces.block_fast_flapping_hint") }}
+                                                            </p>
+                                                        </div>
+                                                        <Toggle v-model="newInterfaceBlockFastFlapping" />
+                                                    </div>
+                                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                                        <div>
+                                                            <FormLabel class="glass-label">{{
+                                                                $t("interfaces.fast_flapping_block_time_label")
+                                                            }}</FormLabel>
+                                                            <input
+                                                                v-model.number="newInterfaceFastFlappingBlockTime"
+                                                                type="number"
+                                                                min="1"
+                                                                class="input-field"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <FormLabel class="glass-label">{{
+                                                                $t("interfaces.fast_flapping_threshold_label")
+                                                            }}</FormLabel>
+                                                            <input
+                                                                v-model.number="newInterfaceFastFlappingThreshold"
+                                                                type="number"
+                                                                min="0.1"
+                                                                step="0.1"
+                                                                class="input-field"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <FormLabel class="glass-label">{{
+                                                                $t("interfaces.fast_flapping_grace_label")
+                                                            }}</FormLabel>
+                                                            <input
+                                                                v-model.number="newInterfaceFastFlappingGrace"
+                                                                type="number"
+                                                                min="0"
+                                                                class="input-field"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -1557,6 +1608,21 @@
                                                         />
                                                     </div>
                                                 </div>
+                                                <div>
+                                                    <FormLabel class="glass-label">{{
+                                                        $t("interfaces.location_cmd_label")
+                                                    }}</FormLabel>
+                                                    <input
+                                                        v-model="discovery.location_cmd"
+                                                        type="text"
+                                                        :placeholder="$t('interfaces.location_cmd_placeholder')"
+                                                        class="input-field font-mono text-xs"
+                                                        autocomplete="off"
+                                                    />
+                                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                        {{ $t("interfaces.location_cmd_hint") }}
+                                                    </p>
+                                                </div>
                                                 <div class="grid grid-cols-2 gap-4">
                                                     <div>
                                                         <FormLabel class="glass-label">Discovery stamp value</FormLabel>
@@ -1663,12 +1729,25 @@
                                                 <div>
                                                     <FormLabel class="glass-label">Interface Mode</FormLabel>
                                                     <select v-model="sharedInterfaceSettings.mode" class="input-field">
-                                                        <option :value="undefined">Default (Full)</option>
-                                                        <option value="full">Full</option>
-                                                        <option value="gateway">Gateway</option>
-                                                        <option value="access_point">Access Point</option>
-                                                        <option value="roaming">Roaming</option>
-                                                        <option value="boundary">Boundary</option>
+                                                        <option :value="undefined">{{
+                                                            $t("interfaces.mode_default_full")
+                                                        }}</option>
+                                                        <option value="full">{{ $t("interfaces.mode_full") }}</option>
+                                                        <option value="gateway">{{
+                                                            $t("interfaces.mode_gateway")
+                                                        }}</option>
+                                                        <option value="access_point">{{
+                                                            $t("interfaces.mode_access_point")
+                                                        }}</option>
+                                                        <option value="roaming">{{
+                                                            $t("interfaces.mode_roaming")
+                                                        }}</option>
+                                                        <option value="boundary">{{
+                                                            $t("interfaces.mode_boundary")
+                                                        }}</option>
+                                                        <option value="internal">{{
+                                                            $t("interfaces.mode_internal")
+                                                        }}</option>
                                                     </select>
                                                 </div>
                                                 <div>
@@ -1678,6 +1757,32 @@
                                                         type="number"
                                                         placeholder="bps"
                                                         class="input-field"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div class="space-y-4 pt-2">
+                                                <div class="flex items-start justify-between gap-4">
+                                                    <div class="min-w-0 max-w-md">
+                                                        <FormLabel class="glass-label mb-0!">{{
+                                                            $t("interfaces.recursive_prs_label")
+                                                        }}</FormLabel>
+                                                        <p class="text-xs text-gray-400 mt-1">
+                                                            {{ $t("interfaces.recursive_prs_hint") }}
+                                                        </p>
+                                                    </div>
+                                                    <Toggle v-model="sharedInterfaceSettings.recursive_prs" />
+                                                </div>
+                                                <div class="flex items-start justify-between gap-4">
+                                                    <div class="min-w-0 max-w-md">
+                                                        <FormLabel class="glass-label mb-0!">{{
+                                                            $t("interfaces.announces_from_internal_label")
+                                                        }}</FormLabel>
+                                                        <p class="text-xs text-gray-400 mt-1">
+                                                            {{ $t("interfaces.announces_from_internal_hint") }}
+                                                        </p>
+                                                    </div>
+                                                    <Toggle
+                                                        v-model="sharedInterfaceSettings.announces_from_internal"
                                                     />
                                                 </div>
                                             </div>
@@ -2013,6 +2118,10 @@ export default {
             newInterfaceBackboneListenPort: null,
             newInterfaceBackboneListenIp: null,
             newInterfaceBackboneListenDevice: null,
+            newInterfaceBlockFastFlapping: true,
+            newInterfaceFastFlappingBlockTime: 720,
+            newInterfaceFastFlappingThreshold: 20,
+            newInterfaceFastFlappingGrace: 5,
             reticulumInstance: {
                 share_instance: true,
                 local_hops_delta: false,
@@ -2033,6 +2142,8 @@ export default {
                 passphrase: null,
                 ifac_size: null,
                 bitrate: null,
+                recursive_prs: false,
+                announces_from_internal: true,
             },
 
             discovery: {
@@ -2046,6 +2157,7 @@ export default {
                 latitude: null,
                 longitude: null,
                 height: null,
+                location_cmd: "",
                 discovery_frequency: null,
                 discovery_bandwidth: null,
                 discovery_modulation: null,
@@ -2590,6 +2702,22 @@ export default {
                     this.newInterfaceBackboneListenIp = iface.listen_ip ?? null;
                     this.newInterfaceBackboneListenPort = iface.listen_port ?? null;
                     this.newInterfaceBackboneListenDevice = iface.device ?? null;
+                    this.newInterfaceBlockFastFlapping =
+                        iface.block_fast_flapping === undefined || iface.block_fast_flapping === null
+                            ? true
+                            : this.parseBool(iface.block_fast_flapping);
+                    this.newInterfaceFastFlappingBlockTime =
+                        iface.fast_flapping_block_time != null && iface.fast_flapping_block_time !== ""
+                            ? Number(iface.fast_flapping_block_time)
+                            : 720;
+                    this.newInterfaceFastFlappingThreshold =
+                        iface.fast_flapping_threshold != null && iface.fast_flapping_threshold !== ""
+                            ? Number(iface.fast_flapping_threshold)
+                            : 20;
+                    this.newInterfaceFastFlappingGrace =
+                        iface.fast_flapping_grace != null && iface.fast_flapping_grace !== ""
+                            ? Number(iface.fast_flapping_grace)
+                            : 5;
                 }
 
                 if (
@@ -2651,6 +2779,11 @@ export default {
                 this.sharedInterfaceSettings.bitrate = iface.bitrate;
                 this.sharedInterfaceSettings.network_name = iface.network_name;
                 this.sharedInterfaceSettings.passphrase = iface.passphrase;
+                this.sharedInterfaceSettings.recursive_prs = this.parseBool(iface.recursive_prs);
+                this.sharedInterfaceSettings.announces_from_internal =
+                    iface.announces_from_internal === undefined || iface.announces_from_internal === null
+                        ? true
+                        : this.parseBool(iface.announces_from_internal);
 
                 if (iface.frequency) {
                     this.RNodeGHzValue = Math.floor(iface.frequency / 1e9);
@@ -2676,6 +2809,7 @@ export default {
                 this.discovery.longitude =
                     iface.longitude != null && iface.longitude !== "" ? Number(iface.longitude) : null;
                 this.discovery.height = iface.height != null && iface.height !== "" ? Number(iface.height) : null;
+                this.discovery.location_cmd = iface.location_cmd ?? "";
                 this.discovery.discovery_frequency =
                     iface.discovery_frequency != null && iface.discovery_frequency !== ""
                         ? Number(iface.discovery_frequency)
@@ -2828,6 +2962,31 @@ export default {
             if (config.bitrate) this.sharedInterfaceSettings.bitrate = Number(config.bitrate);
             if (config.network_name) this.sharedInterfaceSettings.network_name = config.network_name;
             if (config.passphrase) this.sharedInterfaceSettings.passphrase = config.passphrase;
+            if (config.recursive_prs !== undefined && config.recursive_prs !== null && config.recursive_prs !== "") {
+                this.sharedInterfaceSettings.recursive_prs = this.parseBool(config.recursive_prs);
+            }
+            if (
+                config.announces_from_internal !== undefined &&
+                config.announces_from_internal !== null &&
+                config.announces_from_internal !== ""
+            ) {
+                this.sharedInterfaceSettings.announces_from_internal = this.parseBool(
+                    config.announces_from_internal
+                );
+            }
+            if (
+                config.block_fast_flapping !== undefined &&
+                config.block_fast_flapping !== null &&
+                config.block_fast_flapping !== ""
+            ) {
+                this.newInterfaceBlockFastFlapping = this.parseBool(config.block_fast_flapping);
+            }
+            if (config.fast_flapping_block_time)
+                this.newInterfaceFastFlappingBlockTime = Number(config.fast_flapping_block_time);
+            if (config.fast_flapping_threshold)
+                this.newInterfaceFastFlappingThreshold = Number(config.fast_flapping_threshold);
+            if (config.fast_flapping_grace)
+                this.newInterfaceFastFlappingGrace = Number(config.fast_flapping_grace);
 
             if (config.discoverable !== undefined && config.discoverable !== null && config.discoverable !== "") {
                 this.discovery.discoverable = this.parseBool(config.discoverable);
@@ -2843,6 +3002,7 @@ export default {
             if (config.latitude) this.discovery.latitude = Number(config.latitude);
             if (config.longitude) this.discovery.longitude = Number(config.longitude);
             if (config.height) this.discovery.height = Number(config.height);
+            if (config.location_cmd) this.discovery.location_cmd = String(config.location_cmd);
 
             ToastUtils.success(`Imported configuration for "${config.name}"`);
 
@@ -2913,10 +3073,25 @@ export default {
                 latitude: discoveryEnabled ? this.numOrNull(config.latitude) : null,
                 longitude: discoveryEnabled ? this.numOrNull(config.longitude) : null,
                 height: discoveryEnabled ? this.numOrNull(config.height) : null,
+                location_cmd: discoveryEnabled
+                    ? config.location_cmd
+                        ? String(config.location_cmd).trim() || null
+                        : null
+                    : null,
                 discovery_frequency: discoveryEnabled ? this.numOrNull(config.discovery_frequency) : null,
                 discovery_bandwidth: discoveryEnabled ? this.numOrNull(config.discovery_bandwidth) : null,
                 discovery_modulation: discoveryEnabled ? this.numOrNull(config.discovery_modulation) : null,
                 mode: config.mode || null,
+                recursive_prs:
+                    config.recursive_prs !== undefined && config.recursive_prs !== null && config.recursive_prs !== ""
+                        ? this.parseBool(config.recursive_prs)
+                        : false,
+                announces_from_internal:
+                    config.announces_from_internal !== undefined &&
+                    config.announces_from_internal !== null &&
+                    config.announces_from_internal !== ""
+                        ? this.parseBool(config.announces_from_internal)
+                        : true,
                 bitrate: this.numOrNull(config.bitrate),
                 network_name: config.network_name || null,
                 passphrase: config.passphrase || null,
@@ -2926,6 +3101,34 @@ export default {
                 prefer_ipv6:
                     config.prefer_ipv6 !== undefined && config.prefer_ipv6 !== null && config.prefer_ipv6 !== ""
                         ? this.parseBool(config.prefer_ipv6)
+                        : null,
+                block_fast_flapping:
+                    config.type === "BackboneInterface" &&
+                    config.listen_port != null &&
+                    String(config.listen_port).trim() !== ""
+                        ? config.block_fast_flapping !== undefined &&
+                          config.block_fast_flapping !== null &&
+                          config.block_fast_flapping !== ""
+                            ? this.parseBool(config.block_fast_flapping)
+                            : true
+                        : null,
+                fast_flapping_block_time:
+                    config.type === "BackboneInterface" &&
+                    config.listen_port != null &&
+                    String(config.listen_port).trim() !== ""
+                        ? this.numOrNull(config.fast_flapping_block_time)
+                        : null,
+                fast_flapping_threshold:
+                    config.type === "BackboneInterface" &&
+                    config.listen_port != null &&
+                    String(config.listen_port).trim() !== ""
+                        ? this.numOrNull(config.fast_flapping_threshold)
+                        : null,
+                fast_flapping_grace:
+                    config.type === "BackboneInterface" &&
+                    config.listen_port != null &&
+                    String(config.listen_port).trim() !== ""
+                        ? this.numOrNull(config.fast_flapping_grace)
                         : null,
                 kiss_framing:
                     config.kiss_framing !== undefined && config.kiss_framing !== null && config.kiss_framing !== ""
@@ -3142,6 +3345,9 @@ export default {
                         latitude: discoveryEnabled ? this.numOrNull(this.discovery.latitude) : null,
                         longitude: discoveryEnabled ? this.numOrNull(this.discovery.longitude) : null,
                         height: discoveryEnabled ? this.numOrNull(this.discovery.height) : null,
+                        location_cmd: discoveryEnabled
+                            ? (this.discovery.location_cmd || "").trim() || null
+                            : null,
                         discovery_frequency: discoveryEnabled
                             ? this.numOrNull(this.discovery.discovery_frequency)
                             : null,
@@ -3152,6 +3358,9 @@ export default {
                             ? this.numOrNull(this.discovery.discovery_modulation)
                             : null,
                         mode: this.sharedInterfaceSettings.mode || null,
+                        recursive_prs: this.sharedInterfaceSettings.recursive_prs === true,
+                        announces_from_internal:
+                            this.sharedInterfaceSettings.announces_from_internal !== false,
                         bitrate: this.sharedInterfaceSettings.bitrate,
                         network_name: this.sharedInterfaceSettings.network_name,
                         passphrase: this.sharedInterfaceSettings.passphrase,
@@ -3194,6 +3403,16 @@ export default {
                         ? (this.newInterfaceBackboneListenDevice || "").trim() || null
                         : (this.newInterfaceNetworkDevice || "").trim() || null,
                     prefer_ipv6: this.newInterfacePreferIPV6 === true,
+                    block_fast_flapping: isBackboneListener ? this.newInterfaceBlockFastFlapping === true : null,
+                    fast_flapping_block_time: isBackboneListener
+                        ? this.numOrNull(this.newInterfaceFastFlappingBlockTime)
+                        : null,
+                    fast_flapping_threshold: isBackboneListener
+                        ? this.numOrNull(this.newInterfaceFastFlappingThreshold)
+                        : null,
+                    fast_flapping_grace: isBackboneListener
+                        ? this.numOrNull(this.newInterfaceFastFlappingGrace)
+                        : null,
                     kiss_framing: this.newInterfaceKISSFramingEnabled === true,
                     i2p_tunneled: this.newInterfaceI2PTunnelingEnabled === true,
                     connect_timeout: this.numOrNull(this.newInterfaceConnectTimeout),
@@ -3256,10 +3475,13 @@ export default {
                     latitude: discoveryEnabled ? this.numOrNull(this.discovery.latitude) : null,
                     longitude: discoveryEnabled ? this.numOrNull(this.discovery.longitude) : null,
                     height: discoveryEnabled ? this.numOrNull(this.discovery.height) : null,
+                    location_cmd: discoveryEnabled ? (this.discovery.location_cmd || "").trim() || null : null,
                     discovery_frequency: discoveryEnabled ? this.numOrNull(this.discovery.discovery_frequency) : null,
                     discovery_bandwidth: discoveryEnabled ? this.numOrNull(this.discovery.discovery_bandwidth) : null,
                     discovery_modulation: discoveryEnabled ? this.numOrNull(this.discovery.discovery_modulation) : null,
                     mode: this.sharedInterfaceSettings.mode || null,
+                    recursive_prs: this.sharedInterfaceSettings.recursive_prs === true,
+                    announces_from_internal: this.sharedInterfaceSettings.announces_from_internal !== false,
                     bitrate: this.sharedInterfaceSettings.bitrate,
                     network_name: this.sharedInterfaceSettings.network_name,
                     passphrase: this.sharedInterfaceSettings.passphrase,
