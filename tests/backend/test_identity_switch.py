@@ -107,7 +107,7 @@ async def test_hotswap_identity_success(mock_rns, temp_dir):
     )
 
     # Setup new identity
-    new_hash = "new_hash_123"
+    new_hash = "aa" * 16
     identity_dir = os.path.join(temp_dir, "identities", new_hash)
     os.makedirs(identity_dir)
     identity_file = os.path.join(identity_dir, "identity")
@@ -115,7 +115,7 @@ async def test_hotswap_identity_success(mock_rns, temp_dir):
         f.write(b"new_private_key")
 
     new_id_instance = MagicMock()
-    new_id_instance.hash = b"new_hash_32_bytes_long_012345678"
+    new_id_instance.hash = bytes.fromhex(new_hash)
     mock_rns["Identity"].from_file.return_value = new_id_instance
 
     # Configure mock context
@@ -157,7 +157,7 @@ async def test_hotswap_identity_keep_alive(mock_rns, temp_dir):
     )
 
     # Setup new identity
-    new_hash = "new_hash_123"
+    new_hash = "bb" * 16
     identity_dir = os.path.join(temp_dir, "identities", new_hash)
     os.makedirs(identity_dir)
     identity_file = os.path.join(identity_dir, "identity")
@@ -165,7 +165,7 @@ async def test_hotswap_identity_keep_alive(mock_rns, temp_dir):
         f.write(b"new_private_key")
 
     new_id_instance = MagicMock()
-    new_id_instance.hash = b"new_hash_32_bytes_long_012345678"
+    new_id_instance.hash = bytes.fromhex(new_hash)
     mock_rns["Identity"].from_file.return_value = new_id_instance
 
     # Configure mock context
@@ -196,8 +196,8 @@ async def test_hotswap_identity_file_missing(mock_rns, temp_dir):
         reticulum_config_dir=temp_dir,
     )
 
-    # Attempt hotswap with non-existent hash
-    result = await app.hotswap_identity("non_existent_hash")
+    # Attempt hotswap with valid hex that has no on-disk identity
+    result = await app.hotswap_identity("cc" * 16)
 
     assert result is False
 
@@ -211,7 +211,7 @@ async def test_hotswap_identity_corrupted(mock_rns, temp_dir):
     )
 
     # Setup "corrupted" identity
-    new_hash = "corrupted_hash"
+    new_hash = "dd" * 16
     identity_dir = os.path.join(temp_dir, "identities", new_hash)
     os.makedirs(identity_dir)
     identity_file = os.path.join(identity_dir, "identity")
@@ -240,7 +240,7 @@ async def test_hotswap_identity_recovery(mock_rns, temp_dir):
         f.write(b"initial_private_key")
 
     # Setup new identity
-    new_hash = "new_hash_123"
+    new_hash = "ee" * 16
     identity_dir = os.path.join(temp_dir, "identities", new_hash)
     os.makedirs(identity_dir)
     identity_file = os.path.join(identity_dir, "identity")
@@ -248,7 +248,7 @@ async def test_hotswap_identity_recovery(mock_rns, temp_dir):
         f.write(b"new_private_key")
 
     new_id_instance = MagicMock()
-    new_id_instance.hash = b"new_hash_32_bytes_long_012345678"
+    new_id_instance.hash = bytes.fromhex(new_hash)
     mock_rns["Identity"].from_file.return_value = new_id_instance
 
     # Mock setup_identity to fail first time (after hotswap start),
@@ -277,7 +277,7 @@ async def test_hotswap_identity_ultimate_failure_emergency_identity(mock_rns, te
     )
 
     # Setup new identity
-    new_hash = "new_hash_123"
+    new_hash = "ff" * 16
     identity_dir = os.path.join(temp_dir, "identities", new_hash)
     os.makedirs(identity_dir)
     identity_file = os.path.join(identity_dir, "identity")
@@ -285,7 +285,7 @@ async def test_hotswap_identity_ultimate_failure_emergency_identity(mock_rns, te
         f.write(b"new_private_key")
 
     new_id_instance = MagicMock()
-    new_id_instance.hash = b"new_hash_32_bytes_long_012345678"
+    new_id_instance.hash = bytes.fromhex(new_hash)
     mock_rns["Identity"].from_file.return_value = new_id_instance
 
     # Mock setup_identity to fail ALL THE TIME
@@ -294,12 +294,12 @@ async def test_hotswap_identity_ultimate_failure_emergency_identity(mock_rns, te
     app.websocket_broadcast = AsyncMock()
 
     # Mock create_identity to return a new hash
-    emergency_hash = "emergency_hash_456"
+    emergency_hash = "11" * 16
     app.create_identity = MagicMock(return_value={"hash": emergency_hash})
 
     # Mock RNS.Identity.from_file for the emergency identity
     emergency_id = MagicMock()
-    emergency_id.hash = b"emergency_hash_32_bytes_long_012"
+    emergency_id.hash = bytes.fromhex(emergency_hash)
 
     # Ensure from_file returns the new identity when called for the emergency one
     def side_effect_from_file(path):

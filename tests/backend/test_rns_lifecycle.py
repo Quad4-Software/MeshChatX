@@ -519,7 +519,7 @@ async def test_hotswap_identity(mock_rns, temp_dir):
         )
 
         # Create a mock identity file for the new identity
-        new_identity_hash = "new_hash"
+        new_identity_hash = "22" * 16
         new_identity_dir = os.path.join(temp_dir, "identities", new_identity_hash)
         os.makedirs(new_identity_dir)
         with open(os.path.join(new_identity_dir, "identity"), "wb") as f:
