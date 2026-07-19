@@ -7597,8 +7597,8 @@ class ReticulumMeshChat:
                             },
                             status=422,
                         )
-                    import_option_error = (
-                        InterfaceEditor.sanitize_imported_rns_options(iface_body)
+                    import_option_error = InterfaceEditor.sanitize_imported_rns_options(
+                        iface_body
                     )
                     if import_option_error is not None:
                         return web.json_response(
