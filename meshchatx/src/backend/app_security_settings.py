@@ -22,6 +22,7 @@ def _settings_path(storage_dir: str) -> str:
 def _default_settings() -> dict[str, Any]:
     return {
         "web_ui_ip_allowlist": "",
+        "trusted_proxy_cidrs": "",
     }
 
 
@@ -54,6 +55,11 @@ def save_app_security_settings(
         if text:
             parse_allowlist_networks(text)
         current["web_ui_ip_allowlist"] = text
+    if "trusted_proxy_cidrs" in updates:
+        text = normalize_allowlist_text(updates.get("trusted_proxy_cidrs"))
+        if text:
+            parse_allowlist_networks(text)
+        current["trusted_proxy_cidrs"] = text
     path = _settings_path(storage_dir)
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     with _LOCK, open(path, "w", encoding="utf-8") as f:
@@ -65,4 +71,14 @@ def save_app_security_settings(
 def get_web_ui_ip_allowlist(storage_dir: str) -> str:
     return normalize_allowlist_text(
         load_app_security_settings(storage_dir).get("web_ui_ip_allowlist"),
+    )
+
+
+def get_trusted_proxy_cidrs(storage_dir: str) -> str:
+    """CIDRs allowed to supply X-Forwarded-For (env overrides file settings)."""
+    env = normalize_allowlist_text(os.environ.get("MESHCHAT_TRUSTED_PROXIES"))
+    if env:
+        return env
+    return normalize_allowlist_text(
+        load_app_security_settings(storage_dir).get("trusted_proxy_cidrs"),
     )

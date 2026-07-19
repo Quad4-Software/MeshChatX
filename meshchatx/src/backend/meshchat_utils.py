@@ -260,6 +260,19 @@ def hex_identifier_to_bytes(value: str | None) -> bytes | None:
         return None
 
 
+_IDENTITY_STORAGE_HASH_HEX_LEN = 32
+
+
+def normalize_identity_storage_hash(value: str | None) -> str:
+    """Return canonical 32-char hex identity directory name, or empty if invalid."""
+    h = normalize_hex_identifier(value)
+    if len(h) != _IDENTITY_STORAGE_HASH_HEX_LEN:
+        return ""
+    if hex_identifier_to_bytes(h) is None:
+        return ""
+    return h
+
+
 _LXMF_CONTENT_HASH_HEX_LEN = 64
 
 

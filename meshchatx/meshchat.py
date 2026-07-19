@@ -66,6 +66,7 @@ from meshchatx.src.backend.announce_manager import (
     filter_announced_dicts_by_search_query,
 )
 from meshchatx.src.backend.app_security_settings import (
+    get_trusted_proxy_cidrs,
     get_web_ui_ip_allowlist,
     load_app_security_settings,
     save_app_security_settings,
@@ -141,7 +142,6 @@ from meshchatx.src.backend.map_manager import (
     MAX_EXPORT_TILES,
     TRANSPARENT_TILE,
     is_mbtiles_filename,
-    is_path_within_dir,
 )
 from meshchatx.src.backend.map_overlay_export import OverlayExportError
 from meshchatx.src.backend.map_overlay_manager import (
@@ -159,6 +159,7 @@ from meshchatx.src.backend.meshchat_utils import (
     interval_action_due,
     message_fields_have_attachments,
     normalize_hex_identifier,
+    normalize_identity_storage_hash,
     parse_bool_query_param,
     parse_lxmf_display_name,
     parse_lxmf_propagation_node_app_data,
@@ -238,6 +239,7 @@ from meshchatx.src.backend.websocket_config_guard import (
 from meshchatx.src.env_utils import env_bool
 from meshchatx.src.path_utils import (
     get_file_path,
+    is_path_within_dir,
     resolve_log_dir,
     safe_path_under_dir,
 )
@@ -250,10 +252,7 @@ from meshchatx.src.version import __version__ as app_version
 
 def _truncated_hash32_hex_ok(value: str | None) -> bool:
     """32 lowercase hex chars (Reticulum truncated hash) without relying on live RNS constants."""
-    n = normalize_hex_identifier(value or "")
-    if len(n) != 32:
-        return False
-    return hex_identifier_to_bytes(n) is not None
+    return bool(normalize_identity_storage_hash(value))
 
 
 # Global log handler
@@ -1321,6 +1320,33 @@ class ReticulumMeshChat:
         if relaunch:
             self._schedule_process_restart()
         return result
+
+    def _resolve_database_restore_path(self, path: str) -> str | None:
+        """Resolve a restore zip under identity snapshots or database-backups only."""
+        if not isinstance(path, str) or not path or "\x00" in path:
+            return None
+        storage = self.storage_path
+        if not storage:
+            return None
+        allowed_roots = [
+            os.path.join(storage, "snapshots"),
+            os.path.join(storage, "database-backups"),
+        ]
+        candidates: list[str] = []
+        if os.path.isabs(path):
+            candidates.append(path)
+        else:
+            for root in allowed_roots:
+                candidates.append(os.path.join(root, path))
+                if not path.endswith(".zip"):
+                    candidates.append(os.path.join(root, path + ".zip"))
+        for candidate in candidates:
+            real = os.path.realpath(candidate)
+            if not os.path.isfile(real):
+                continue
+            if any(is_path_within_dir(real, root) for root in allowed_roots):
+                return real
+        return None
 
     def reset_password(self):
         """Clear the stored password hash so a new password can be set via the web UI."""
@@ -2554,9 +2580,15 @@ class ReticulumMeshChat:
         backup_created = False
 
         try:
+            canonical = normalize_identity_storage_hash(identity_hash)
+            if not canonical:
+                raise ValueError("Invalid identity hash")
             # load the new identity
-            identity_dir = os.path.join(self.storage_dir, "identities", identity_hash)
+            identities_root = os.path.join(self.storage_dir, "identities")
+            identity_dir = os.path.join(identities_root, canonical)
             identity_file = os.path.join(identity_dir, "identity")
+            if not is_path_within_dir(identity_dir, identities_root):
+                raise ValueError("Invalid identity hash")
             if not os.path.exists(identity_file):
                 raise ValueError("Identity file not found")
 
@@ -2589,7 +2621,7 @@ class ReticulumMeshChat:
                 json.dumps(
                     {
                         "type": "identity_switched",
-                        "identity_hash": identity_hash,
+                        "identity_hash": canonical,
                         "display_name": (
                             self.config.display_name.get()
                             if hasattr(self, "config")
@@ -4746,7 +4778,9 @@ class ReticulumMeshChat:
                 return await handler(request)
             allowlist = get_web_ui_ip_allowlist(self.storage_dir)
             if allowlist:
-                ip = _request_client_ip(request)
+                ip = _request_client_ip(
+                    request, get_trusted_proxy_cidrs(self.storage_dir)
+                )
                 if not client_ip_allowed(ip, allowlist):
                     if path.startswith("/api/"):
                         return web.json_response(
@@ -5239,21 +5273,14 @@ class ReticulumMeshChat:
                         status=400,
                     )
 
-                # Verify path is within identity storage snapshots or provided directly
-                if not os.path.exists(path):
-                    # Try relative to snapshots dir
-                    potential_path = os.path.join(self.storage_path, "snapshots", path)
-                    if os.path.exists(potential_path):
-                        path = potential_path
-                    elif os.path.exists(potential_path + ".zip"):
-                        path = potential_path + ".zip"
-                    else:
-                        return web.json_response(
-                            {"status": "error", "message": "Snapshot not found"},
-                            status=404,
-                        )
+                resolved = self._resolve_database_restore_path(path)
+                if not resolved:
+                    return web.json_response(
+                        {"status": "error", "message": "Snapshot not found"},
+                        status=404,
+                    )
 
-                result = self.restore_database(path, relaunch=True)
+                result = self.restore_database(resolved, relaunch=True)
                 return web.json_response(
                     {
                         "status": "success",
@@ -5341,11 +5368,9 @@ class ReticulumMeshChat:
                 if not filename.endswith(".zip"):
                     filename += ".zip"
                 backup_dir = os.path.join(self.storage_path, "database-backups")
-                full_path = os.path.join(backup_dir, filename)
+                full_path = safe_path_under_dir(backup_dir, filename)
 
-                if not os.path.exists(full_path) or not full_path.startswith(
-                    backup_dir,
-                ):
+                if not full_path or not os.path.isfile(full_path):
                     return web.json_response(
                         {"status": "error", "message": "Backup not found"},
                         status=404,
@@ -5354,7 +5379,7 @@ class ReticulumMeshChat:
                 return web.FileResponse(
                     path=full_path,
                     headers={
-                        "Content-Disposition": f'attachment; filename="{filename}"',
+                        "Content-Disposition": f'attachment; filename="{os.path.basename(full_path)}"',
                     },
                 )
             except Exception as e:
@@ -5370,11 +5395,9 @@ class ReticulumMeshChat:
                 if not filename.endswith(".zip"):
                     filename += ".zip"
                 snapshot_dir = os.path.join(self.storage_path, "snapshots")
-                full_path = os.path.join(snapshot_dir, filename)
+                full_path = safe_path_under_dir(snapshot_dir, filename)
 
-                if not os.path.exists(full_path) or not full_path.startswith(
-                    snapshot_dir,
-                ):
+                if not full_path or not os.path.isfile(full_path):
                     return web.json_response(
                         {"status": "error", "message": "Snapshot not found"},
                         status=404,
@@ -5383,7 +5406,7 @@ class ReticulumMeshChat:
                 return web.FileResponse(
                     path=full_path,
                     headers={
-                        "Content-Disposition": f'attachment; filename="{filename}"',
+                        "Content-Disposition": f'attachment; filename="{os.path.basename(full_path)}"',
                     },
                 )
             except Exception as e:
@@ -5511,6 +5534,7 @@ class ReticulumMeshChat:
                     "https_enabled": self.use_https,
                     "is_loopback_bind": _is_loopback_bind_host(self.listen_host),
                     "web_ui_ip_allowlist": settings.get("web_ui_ip_allowlist", ""),
+                    "trusted_proxy_cidrs": settings.get("trusted_proxy_cidrs", ""),
                     **self._landlock_status_dict(),
                     "privacy_mode_enabled": privacy_mode_enabled(self.config),
                     "auth_enabled": self.auth_enabled,
@@ -5526,11 +5550,13 @@ class ReticulumMeshChat:
             if not isinstance(data, dict):
                 return web.json_response({"error": "Invalid request body"}, status=400)
             try:
+                updates = {}
                 if "web_ui_ip_allowlist" in data:
-                    settings = save_app_security_settings(
-                        self.storage_dir,
-                        {"web_ui_ip_allowlist": data.get("web_ui_ip_allowlist")},
-                    )
+                    updates["web_ui_ip_allowlist"] = data.get("web_ui_ip_allowlist")
+                if "trusted_proxy_cidrs" in data:
+                    updates["trusted_proxy_cidrs"] = data.get("trusted_proxy_cidrs")
+                if updates:
+                    settings = save_app_security_settings(self.storage_dir, updates)
                 else:
                     settings = load_app_security_settings(self.storage_dir)
             except ValueError as exc:
@@ -5542,6 +5568,7 @@ class ReticulumMeshChat:
                     "https_enabled": self.use_https,
                     "is_loopback_bind": _is_loopback_bind_host(self.listen_host),
                     "web_ui_ip_allowlist": settings.get("web_ui_ip_allowlist", ""),
+                    "trusted_proxy_cidrs": settings.get("trusted_proxy_cidrs", ""),
                     **self._landlock_status_dict(),
                     "privacy_mode_enabled": privacy_mode_enabled(self.config),
                     "auth_enabled": self.auth_enabled,
@@ -5614,7 +5641,7 @@ class ReticulumMeshChat:
             blocked = self._enforce_login_access(request, SETUP_PATH)
             if blocked is not None:
                 return blocked
-            ip = _request_client_ip(request)
+            ip = _request_client_ip(request, get_trusted_proxy_cidrs(self.storage_dir))
             ua = request.headers.get("User-Agent", "") or ""
             ua_h = user_agent_hash(ua)
             id_hash = self.identity.hash.hex()
@@ -5710,7 +5737,7 @@ class ReticulumMeshChat:
             blocked = self._enforce_login_access(request, LOGIN_PATH)
             if blocked is not None:
                 return blocked
-            ip = _request_client_ip(request)
+            ip = _request_client_ip(request, get_trusted_proxy_cidrs(self.storage_dir))
             ua = request.headers.get("User-Agent", "") or ""
             ua_h = user_agent_hash(ua)
             id_hash = self.identity.hash.hex()
@@ -5905,11 +5932,12 @@ class ReticulumMeshChat:
 
             allowed = [
                 "https://github.com/",
+                "https://codeload.github.com/",
                 "https://objects.githubusercontent.com/",
                 "https://release-assets.githubusercontent.com/",
             ]
             if gitea_url:
-                allowed.insert(0, gitea_url + "/")
+                allowed.insert(0, gitea_url.rstrip("/") + "/")
 
             if not any(url.startswith(a) for a in allowed):
                 return web.json_response({"error": "Invalid download URL"}, status=403)
@@ -5922,6 +5950,12 @@ class ReticulumMeshChat:
                     )
                 async with aiohttp.ClientSession() as session:
                     async with session.get(url, allow_redirects=True) as response:
+                        final_url = str(response.url)
+                        if not any(final_url.startswith(a) for a in allowed):
+                            return web.json_response(
+                                {"error": "Invalid download redirect URL"},
+                                status=403,
+                            )
                         if response.status != 200:
                             return web.json_response(
                                 {"error": f"Failed to download: {response.status}"},
@@ -8747,7 +8781,14 @@ class ReticulumMeshChat:
         @routes.delete("/api/v1/identities/{identity_hash}")
         async def identities_delete(request):
             try:
-                identity_hash = request.match_info.get("identity_hash")
+                identity_hash = normalize_identity_storage_hash(
+                    request.match_info.get("identity_hash"),
+                )
+                if not identity_hash:
+                    return web.json_response(
+                        {"message": "Invalid identity hash"},
+                        status=400,
+                    )
                 if self.delete_identity(identity_hash):
                     return web.json_response(
                         {
@@ -8759,6 +8800,13 @@ class ReticulumMeshChat:
                         "message": "Identity not found",
                     },
                     status=404,
+                )
+            except ValueError as e:
+                return web.json_response(
+                    {
+                        "message": str(e),
+                    },
+                    status=400,
                 )
             except Exception as e:
                 return web.json_response(
@@ -8772,7 +8820,14 @@ class ReticulumMeshChat:
         async def identities_switch(request):
             try:
                 data = await request.json()
-                identity_hash = data.get("identity_hash")
+                identity_hash = normalize_identity_storage_hash(
+                    data.get("identity_hash"),
+                )
+                if not identity_hash:
+                    return web.json_response(
+                        {"message": "Invalid identity hash"},
+                        status=400,
+                    )
                 keep_alive = data.get("keep_alive", False)
 
                 # attempt hotswap first
@@ -8801,12 +8856,14 @@ class ReticulumMeshChat:
                     self.storage_dir,
                     "identity",
                 )
-                identity_dir = os.path.join(
-                    self.storage_dir,
-                    "identities",
-                    identity_hash,
-                )
+                identities_root = os.path.join(self.storage_dir, "identities")
+                identity_dir = os.path.join(identities_root, identity_hash)
                 identity_file = os.path.join(identity_dir, "identity")
+                if not is_path_within_dir(identity_dir, identities_root):
+                    return web.json_response(
+                        {"message": "Invalid identity hash"},
+                        status=400,
+                    )
 
                 shutil.copy2(identity_file, main_identity_file)
 
@@ -17401,7 +17458,7 @@ class ReticulumMeshChat:
     def _enforce_login_access(self, request, path: str):
         if not self.database:
             return None
-        ip = _request_client_ip(request)
+        ip = _request_client_ip(request, get_trusted_proxy_cidrs(self.storage_dir))
         ua = request.headers.get("User-Agent", "") or ""
         ua_h = user_agent_hash(ua)
         id_hash = self.identity.hash.hex()

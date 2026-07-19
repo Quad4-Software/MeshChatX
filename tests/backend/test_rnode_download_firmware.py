@@ -30,18 +30,20 @@ def web_app(mock_app):
 
 
 class _FakeResponse:
-    def __init__(self, status: int, body: bytes):
+    def __init__(self, status: int, body: bytes, url: str = "https://github.com/x"):
         self.status = status
         self._body = body
+        self.url = url
 
     async def read(self):
         return self._body
 
 
 class _FakeSession:
-    def __init__(self, status: int, body: bytes):
+    def __init__(self, status: int, body: bytes, final_url: str | None = None):
         self._status = status
         self._body = body
+        self._final_url = final_url
         self.requested_urls: list[str] = []
 
     async def __aenter__(self):
@@ -54,10 +56,11 @@ class _FakeSession:
         self.requested_urls.append(url)
         status = self._status
         body = self._body
+        final_url = self._final_url or url
 
         @asynccontextmanager
         async def _cm():
-            yield _FakeResponse(status, body)
+            yield _FakeResponse(status, body, url=final_url)
 
         return _cm()
 
@@ -73,16 +76,44 @@ async def test_download_firmware_requires_url(web_app):
 
 
 @pytest.mark.asyncio
-async def test_download_firmware_rejects_disallowed_url(web_app):
+async def test_download_firmware_rejects_disallowed_redirect_target(web_app):
     aio_app = _build_aio_app(web_app)
-    async with TestClient(TestServer(aio_app)) as client:
-        r = await client.get(
-            "/api/v1/tools/rnode/download_firmware",
-            params={"url": "https://evil.example.com/firmware.zip"},
-        )
-        assert r.status == 403
-        body = await r.json()
-        assert "Invalid" in body["error"]
+    fake_session = _FakeSession(
+        200,
+        b"PK\x03\x04ssrf",
+        final_url="http://127.0.0.1:9337/secret",
+    )
+
+    with patch("aiohttp.ClientSession", MagicMock(return_value=fake_session)):
+        async with TestClient(TestServer(aio_app)) as client:
+            r = await client.get(
+                "/api/v1/tools/rnode/download_firmware",
+                params={
+                    "url": "https://github.com/owner/repo/releases/download/v1/firmware.zip",
+                },
+            )
+            assert r.status == 403
+            body = await r.json()
+            assert "redirect" in body["error"].lower()
+
+
+@pytest.mark.asyncio
+async def test_download_firmware_allows_codeload_redirect(web_app):
+    aio_app = _build_aio_app(web_app)
+    fake_zip = b"PK\x03\x04ok"
+    final = "https://codeload.github.com/owner/repo/zip/refs/tags/v1"
+    fake_session = _FakeSession(200, fake_zip, final_url=final)
+
+    with patch("aiohttp.ClientSession", MagicMock(return_value=fake_session)):
+        async with TestClient(TestServer(aio_app)) as client:
+            r = await client.get(
+                "/api/v1/tools/rnode/download_firmware",
+                params={
+                    "url": "https://github.com/owner/repo/archive/refs/tags/v1.zip",
+                },
+            )
+            assert r.status == 200
+            assert await r.read() == fake_zip
 
 
 @pytest.mark.asyncio

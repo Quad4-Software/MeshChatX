@@ -67,6 +67,7 @@ from meshchatx.src.backend.plugin_wasm_bundle import (
     validate_embedded_bundle,
     write_wasm_bundle,
 )
+from meshchatx.src.path_utils import is_path_within_dir
 
 SUPPORTED_API_VERSION = 1
 PLUGIN_ID_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$")
@@ -328,6 +329,10 @@ class PluginManager:
             entry = backend.get("entry")
             if not isinstance(entry, str) or not entry.strip():
                 raise ValueError("plugin backend.entry is required")
+            try:
+                normalize_asset_path(entry.strip())
+            except PluginSecurityError as exc:
+                raise ValueError(f"plugin backend.entry is invalid: {exc}") from exc
             backend_type = backend.get("type") or "wasm"
             if backend_type not in ("wasm", "python"):
                 raise ValueError("plugin backend.type must be wasm or python")
@@ -748,7 +753,11 @@ class PluginManager:
         entry = backend.get("entry")
         if not isinstance(entry, str) or not entry.strip():
             raise ValueError("python backend entry is missing")
-        path = os.path.join(record.install_path, entry)
+        normalized = normalize_asset_path(entry.strip())
+        root = os.path.realpath(record.install_path)
+        path = os.path.realpath(os.path.join(root, normalized))
+        if path != root and not path.startswith(root + os.sep):
+            raise PluginSecurityError("python backend entry escapes install tree")
         if not os.path.isfile(path):
             raise ValueError("python backend entry not found")
         return path
@@ -1289,7 +1298,14 @@ class PluginManager:
 
     def _resolve_backend_wasm_path(self, record: PluginRecord) -> str:
         backend = record.manifest["backend"]
-        wasm_path = os.path.join(record.install_path, backend["entry"])
+        entry = backend["entry"]
+        if not isinstance(entry, str) or not entry.strip():
+            raise PluginSecurityError("backend wasm entry missing")
+        normalized = normalize_asset_path(entry.strip())
+        root = os.path.realpath(record.install_path)
+        wasm_path = os.path.realpath(os.path.join(root, normalized))
+        if wasm_path != root and not wasm_path.startswith(root + os.sep):
+            raise PluginSecurityError("backend wasm entry escapes install tree")
         if not os.path.isfile(wasm_path):
             return self._ensure_minimal_wasm(record)
         try:
@@ -1299,9 +1315,9 @@ class PluginManager:
                     raise PluginSecurityError("invalid wasm module")
         except (PluginSecurityError, OSError, ValueError):
             parent = os.path.dirname(wasm_path)
-            if parent:
+            if parent and is_path_within_dir(parent, root):
                 os.makedirs(parent, exist_ok=True)
-            if os.path.isfile(wasm_path):
+            if os.path.isfile(wasm_path) and is_path_within_dir(wasm_path, root):
                 os.remove(wasm_path)
             return self._ensure_minimal_wasm(record)
         return wasm_path
@@ -1359,8 +1375,17 @@ class PluginManager:
         wasmtime = self._load_wasmtime()
         wasm_bytes = wasmtime.wat2wasm(MINIMAL_PLUGIN_WAT)
         backend = record.manifest["backend"]
-        wasm_path = os.path.join(record.install_path, backend["entry"])
-        os.makedirs(os.path.dirname(wasm_path), exist_ok=True)
+        entry = backend["entry"]
+        if not isinstance(entry, str) or not entry.strip():
+            raise PluginSecurityError("backend wasm entry missing")
+        normalized = normalize_asset_path(entry.strip())
+        root = os.path.realpath(record.install_path)
+        wasm_path = os.path.realpath(os.path.join(root, normalized))
+        if wasm_path != root and not wasm_path.startswith(root + os.sep):
+            raise PluginSecurityError("backend wasm entry escapes install tree")
+        parent = os.path.dirname(wasm_path)
+        if parent:
+            os.makedirs(parent, exist_ok=True)
         with open(wasm_path, "wb") as handle:
             handle.write(wasm_bytes)
         return wasm_path
