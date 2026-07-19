@@ -506,6 +506,27 @@ class MessageDAO:
         )
         return [r["hash"] for r in rows if r.get("hash")]
 
+    def count_lxmf_messages_with_timestamp_before(self, cutoff_ts: float) -> int:
+        row = self.provider.fetchone(
+            "SELECT COUNT(*) AS count FROM lxmf_messages "
+            "WHERE timestamp IS NOT NULL AND timestamp < ?",
+            (cutoff_ts,),
+        )
+        return int(row["count"]) if row and row["count"] is not None else 0
+
+    def get_lxmf_messages_with_timestamp_before(
+        self,
+        cutoff_ts: float,
+        limit: int = 5000,
+        offset: int = 0,
+    ):
+        return self.provider.fetchall(
+            "SELECT * FROM lxmf_messages "
+            "WHERE timestamp IS NOT NULL AND timestamp < ? "
+            "ORDER BY id LIMIT ? OFFSET ?",
+            (cutoff_ts, limit, offset),
+        )
+
     def prune_conversation_metadata_for_peers_with_no_messages(self) -> None:
         self.provider.execute(
             """
@@ -827,11 +848,127 @@ class MessageDAO:
             (datetime.now(UTC).isoformat(),),
         )
 
+    def list_duplicate_lxmf_message_hashes_by_content(self) -> list[str]:
+        """Hashes of duplicate rows (same peer, direction, and text), excluding the oldest keep.
+
+        Empty or whitespace-only content is ignored so attachment-only or blank
+        rows are not collapsed together.
+        """
+        rows = self.provider.fetchall(
+            """
+            SELECT m.hash AS hash
+            FROM lxmf_messages m
+            INNER JOIN (
+                SELECT peer_hash, is_incoming, content, MIN(id) AS keep_id
+                FROM lxmf_messages
+                WHERE content IS NOT NULL AND TRIM(content) != ''
+                GROUP BY peer_hash, is_incoming, content
+                HAVING COUNT(*) > 1
+            ) d
+              ON m.peer_hash = d.peer_hash
+             AND m.is_incoming = d.is_incoming
+             AND m.content = d.content
+            WHERE m.id != d.keep_id
+            """,
+        )
+        return [r["hash"] for r in rows if r.get("hash")]
+
+    def count_duplicate_lxmf_messages_by_content(self) -> int:
+        return len(self.list_duplicate_lxmf_message_hashes_by_content())
+
+    def delete_duplicate_lxmf_messages_by_content(self) -> int:
+        """Delete content-duplicate message rows, keeping the oldest per group."""
+        hashes = self.list_duplicate_lxmf_message_hashes_by_content()
+        if not hashes:
+            return 0
+        self.delete_lxmf_messages_by_hashes(hashes)
+        self.prune_conversation_metadata_for_peers_with_no_messages()
+        return len(hashes)
+
     def get_failed_messages_for_destination(self, destination_hash):
         return self.provider.fetchall(
             "SELECT * FROM lxmf_messages WHERE state = 'failed' AND peer_hash = ? ORDER BY id ASC",
             (destination_hash,),
         )
+
+    def try_claim_failed_message_for_auto_resend(
+        self,
+        message_hash: str,
+        *,
+        cooldown_until: float,
+        now: float,
+    ) -> bool:
+        """Atomically claim a failed row for one auto-resend attempt.
+
+        Sets next_delivery_attempt_at into the future so overlapping announce,
+        ping, and path handlers cannot claim the same row again until cooldown.
+        """
+        now_iso = datetime.now(UTC).isoformat()
+        cursor = self.provider.execute(
+            """
+            UPDATE lxmf_messages
+            SET next_delivery_attempt_at = ?, updated_at = ?
+            WHERE hash = ?
+              AND state = 'failed'
+              AND (
+                next_delivery_attempt_at IS NULL
+                OR next_delivery_attempt_at <= ?
+              )
+            """,
+            (float(cooldown_until), now_iso, message_hash, float(now)),
+        )
+        return bool(cursor and cursor.rowcount and cursor.rowcount > 0)
+
+    def set_message_fields_json(self, message_hash: str, fields_json: str) -> None:
+        now_iso = datetime.now(UTC).isoformat()
+        self.provider.execute(
+            "UPDATE lxmf_messages SET fields = ?, updated_at = ? WHERE hash = ?",
+            (fields_json, now_iso, message_hash),
+        )
+
+    def set_auto_resend_count_on_message(self, message_hash: str, count: int) -> None:
+        from meshchatx.src.backend.auto_resend_guard import (
+            fields_with_auto_resend_count,
+        )
+
+        row = self.provider.fetchone(
+            "SELECT fields FROM lxmf_messages WHERE hash = ?",
+            (message_hash,),
+        )
+        if not row:
+            return
+        self.set_message_fields_json(
+            message_hash,
+            fields_with_auto_resend_count(row.get("fields"), count),
+        )
+
+    def has_recent_outbound_with_content(
+        self,
+        peer_hash: str,
+        content: str | None,
+        *,
+        within_seconds: float,
+        now: float | None = None,
+    ) -> bool:
+        """True when a recent non-failed outbound already carries the same body."""
+        import time as _time
+
+        now_ts = float(now if now is not None else _time.time())
+        cutoff = now_ts - float(within_seconds)
+        row = self.provider.fetchone(
+            """
+            SELECT 1 AS ok FROM lxmf_messages
+            WHERE peer_hash = ?
+              AND is_incoming = 0
+              AND state != 'failed'
+              AND content = ?
+              AND timestamp IS NOT NULL
+              AND timestamp >= ?
+            LIMIT 1
+            """,
+            (peer_hash, content if content is not None else "", cutoff),
+        )
+        return bool(row)
 
     def get_failed_messages_count(self, destination_hash):
         row = self.provider.fetchone(

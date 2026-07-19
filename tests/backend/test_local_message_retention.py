@@ -218,3 +218,78 @@ def test_apply_calls_cancel_for_hex_hashes(_db_path):
     assert db.messages.count_lxmf_messages() == 0
     db.close_all()
     provider.close_all()
+
+
+def test_parse_before_cutoff_date_and_unix():
+    assert lmr.parse_before_cutoff("1705276800") == 1705276800.0
+    assert lmr.parse_before_cutoff("2024-01-15") == 1705276800.0
+    try:
+        lmr.parse_before_cutoff("not-a-date")
+        raise AssertionError("expected ValueError")
+    except ValueError:
+        pass
+
+
+def test_resolve_message_age_cutoff_prefers_before():
+    now = 2_000_000.0
+    assert (
+        lmr.resolve_message_age_cutoff(older_than_days=10, now=now) == now - 10 * 86400
+    )
+    assert (
+        lmr.resolve_message_age_cutoff(
+            older_than_days=10,
+            before="2024-01-15",
+            now=now,
+        )
+        == 1705276800.0
+    )
+    assert lmr.resolve_message_age_cutoff() is None
+    try:
+        lmr.resolve_message_age_cutoff(older_than_days=0)
+        raise AssertionError("expected ValueError")
+    except ValueError:
+        pass
+
+
+def test_purge_messages_before_cutoff_and_count(_db_path):
+    provider = DatabaseProvider(_db_path)
+    DatabaseSchema(provider).initialize()
+    db = Database(_db_path)
+    now = time.time()
+    peer = "c" * 32
+    base = {
+        "source_hash": peer,
+        "destination_hash": peer,
+        "peer_hash": peer,
+        "state": "delivered",
+        "progress": 1.0,
+        "is_incoming": 1,
+        "method": "ephemeral",
+        "delivery_attempts": 0,
+        "next_delivery_attempt_at": None,
+        "title": "t",
+        "content": "c",
+        "fields": '{"file_attachments":[{"name":"a.bin"}]}',
+        "rssi": None,
+        "snr": None,
+        "quality": None,
+        "is_spam": 0,
+        "reply_to_hash": None,
+        "attachments_stripped": 0,
+    }
+    db.messages.upsert_lxmf_message(
+        {**base, "hash": "d" * 32, "timestamp": now - 40 * 86400}
+    )
+    db.messages.upsert_lxmf_message(
+        {**base, "hash": "e" * 32, "timestamp": now - 5 * 86400}
+    )
+    cutoff = now - 30 * 86400
+    assert db.messages.count_lxmf_messages_with_timestamp_before(cutoff) == 1
+    rows = db.messages.get_lxmf_messages_with_timestamp_before(cutoff)
+    assert len(rows) == 1
+    assert rows[0]["hash"] == "d" * 32
+    deleted = lmr.purge_messages_before_cutoff(db.messages, None, cutoff)
+    assert deleted == 1
+    assert db.messages.count_lxmf_messages() == 1
+    db.close_all()
+    provider.close_all()

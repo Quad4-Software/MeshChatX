@@ -541,6 +541,18 @@
             "path": "/api/v1/maintenance/messages/export"
         },
         {
+            "method": "GET",
+            "path": "/api/v1/maintenance/messages/duplicates"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/maintenance/messages/duplicates"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/maintenance/messages/purge-preview"
+        },
+        {
             "method": "POST",
             "path": "/api/v1/maintenance/messages/import"
         },

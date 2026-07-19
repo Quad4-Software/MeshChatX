@@ -61,6 +61,8 @@ from tests.backend.http_api_response_schemas import (
     LXMF_PROPAGATION_NODES_SCHEMA,
     LXMF_PROPAGATION_STATUS_SCHEMA,
     LXMF_SIEVE_FILTERS_SCHEMA,
+    MAINTENANCE_MESSAGES_PURGE_PREVIEW_SCHEMA,
+    MAINTENANCE_MESSAGES_DUPLICATES_SCHEMA,
     MAP_DRAWINGS_SCHEMA,
     MAP_MBTILES_SCHEMA,
     MAP_OFFLINE_SCHEMA,
@@ -133,6 +135,17 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
     HttpJsonContract("GET", "/api/v1/auth/csrf", CSRF_ENVELOPE_SCHEMA),
     HttpJsonContract("GET", "/api/v1/server/security", SERVER_SECURITY_SCHEMA),
     HttpJsonContract("GET", "/api/v1/config", CONFIG_ENVELOPE_SCHEMA),
+    HttpJsonContract(
+        "GET",
+        "/api/v1/maintenance/messages/purge-preview",
+        MAINTENANCE_MESSAGES_PURGE_PREVIEW_SCHEMA,
+        query={"older_than_days": "30"},
+    ),
+    HttpJsonContract(
+        "GET",
+        "/api/v1/maintenance/messages/duplicates",
+        MAINTENANCE_MESSAGES_DUPLICATES_SCHEMA,
+    ),
     HttpJsonContract(
         "GET",
         "/api/v1/blocked-destinations",

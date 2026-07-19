@@ -604,6 +604,13 @@ describe("SettingsPage — maintenance, exports, telemetry trust, RNS reload", (
         expect(api.delete).toHaveBeenCalledWith("/api/v1/maintenance/messages");
     });
 
+    it("clearDuplicateMessages DELETEs duplicates endpoint", async () => {
+        const w = await mountSettingsPage(api);
+        api.delete.mockResolvedValue({ data: { deleted: 5 } });
+        await w.vm.clearDuplicateMessages();
+        expect(api.delete).toHaveBeenCalledWith("/api/v1/maintenance/messages/duplicates");
+    });
+
     it("clearAnnounces DELETEs announces", async () => {
         const w = await mountSettingsPage(api);
         await w.vm.clearAnnounces();
@@ -645,7 +652,41 @@ describe("SettingsPage — maintenance, exports, telemetry trust, RNS reload", (
     it("exportMessages GETs export endpoint", async () => {
         const w = await mountSettingsPage(api);
         await w.vm.exportMessages();
-        expect(api.get).toHaveBeenCalledWith("/api/v1/maintenance/messages/export");
+        expect(api.get).toHaveBeenCalledWith("/api/v1/maintenance/messages/export", undefined);
+    });
+
+    it("purgeOldMessages DELETEs with older_than_days", async () => {
+        const w = await mountSettingsPage(api);
+        w.vm.messageAgePurgeMode = "days";
+        w.vm.messageAgePurgeDays = 30;
+        api.delete.mockResolvedValue({ data: { deleted: 2 } });
+        await w.vm.purgeOldMessages();
+        expect(api.delete).toHaveBeenCalledWith("/api/v1/maintenance/messages", {
+            params: { older_than_days: 30 },
+        });
+    });
+
+    it("refreshMessageAgePurgePreview GETs purge-preview", async () => {
+        const w = await mountSettingsPage(api);
+        w.vm.messageAgePurgeMode = "date";
+        w.vm.messageAgePurgeBeforeDate = "2024-01-15";
+        api.get.mockResolvedValue({ data: { count: 4, cutoff: 1 } });
+        await w.vm.refreshMessageAgePurgePreview();
+        expect(api.get).toHaveBeenCalledWith("/api/v1/maintenance/messages/purge-preview", {
+            params: { before: "2024-01-15" },
+        });
+        expect(w.vm.messageAgePurgePreviewCount).toBe(4);
+    });
+
+    it("exportOldMessagesArchive GETs filtered export", async () => {
+        const w = await mountSettingsPage(api);
+        w.vm.messageAgePurgeMode = "days";
+        w.vm.messageAgePurgeDays = 90;
+        api.get.mockResolvedValue({ data: { format: "meshchatx/messages/v2", messages: [] } });
+        await w.vm.exportOldMessagesArchive();
+        expect(api.get).toHaveBeenCalledWith("/api/v1/maintenance/messages/export", {
+            params: { older_than_days: 90 },
+        });
     });
 
     it("exportFolders GETs folders export", async () => {
