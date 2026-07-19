@@ -1662,6 +1662,9 @@ export default {
         if (this.smMq) {
             this.smMq.removeEventListener("change", this.onSmMqChange);
         }
+        // Leaving the page must stop treating the last room as "viewed" so new
+        // mentions while away can bump unread again.
+        window.api.post("/api/v1/rrc/active/clear").catch(() => {});
     },
     methods: {
         selectView(view) {
@@ -2487,15 +2490,57 @@ export default {
                 this.members = response.data?.members || [];
                 this.hasMorePrevious = Boolean(response.data?.has_more);
                 this.scrollToBottom();
-                if (!options.restore) {
-                    await this.fetchHubs();
-                }
+                // Always dismiss unread for the opened room (including layout restore /
+                // page navigation when the room was already selected).
+                await this.markRoomRead(hubHash, room, { refreshHubs: true });
                 this.persistRelayLayout();
             } catch {
                 if (seq !== this.roomSelectSequence) {
                     return;
                 }
                 this.hasMorePrevious = false;
+            }
+        },
+        clearLocalRoomUnread(hubHash, room) {
+            const hub = this.hubs.find((h) => h.hub_hash === hubHash);
+            if (!hub) {
+                return;
+            }
+            if (Array.isArray(hub.mention_rooms)) {
+                hub.mention_rooms = hub.mention_rooms.filter((r) => r !== room);
+            }
+            if (Array.isArray(hub.unread_rooms)) {
+                hub.unread_rooms = hub.unread_rooms.filter((r) => r !== room);
+            }
+            if (hub.unread_counts && typeof hub.unread_counts === "object") {
+                const next = { ...hub.unread_counts };
+                delete next[room];
+                hub.unread_counts = next;
+            }
+            if (typeof hub.total_unread === "number") {
+                hub.total_unread = Object.values(hub.unread_counts || {}).reduce(
+                    (sum, n) => sum + (Number(n) || 0),
+                    0
+                );
+            }
+            this.updateUnreadBadge();
+        },
+        async markRoomRead(hubHash, room, { refreshHubs = false } = {}) {
+            if (!hubHash || !room) {
+                return;
+            }
+            this.clearLocalRoomUnread(hubHash, room);
+            try {
+                await window.api.post(`/api/v1/rrc/hubs/${hubHash}/rooms/${this.encodeRoom(room)}/read`);
+            } catch {
+                // GET messages already marks active/read on the server; ignore duplicate failures.
+            }
+            if (refreshHubs) {
+                await this.fetchHubs();
+                // Keep dismiss sticky if a concurrent hubs fetch still had the old unread.
+                this.clearLocalRoomUnread(hubHash, room);
+            } else {
+                this.updateUnreadBadge();
             }
         },
         async loadPreviousMessages() {
@@ -3085,13 +3130,18 @@ export default {
                     if (json.message.kind === "system" || json.message.kind === "notice") {
                         this.refreshMembers();
                     }
+                    // Chat is already open: dismiss unread/mention badge without waiting
+                    // for a later hub list refresh race.
+                    this.markRoomRead(json.hub_hash, json.room);
                 } else if (json.message && json.message.kind === "msg") {
                     const onRelayPage = this.$route?.name === "relay-chat" || this.$route?.name === "relay-chat-popout";
                     if (!onRelayPage || json.hub_hash !== this.selectedHubHash || json.room !== this.selectedRoom) {
                         ToastUtils.info(this.$t("relay_chat.new_message_toast", { room: json.room || "" }));
                     }
+                    this.fetchHubs();
+                } else {
+                    this.fetchHubs();
                 }
-                this.fetchHubs();
             } else if (json.type === "rrc.server.change") {
                 this.fetchServers();
             } else if (json.type === "announce" && json.announce && json.announce.aspect === "rrc.hub") {

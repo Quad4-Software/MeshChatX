@@ -189,6 +189,31 @@ describe("RelayChatPage.vue", () => {
         expect(wrapper.vm.messages[0].text).toBe("hello");
         expect(wrapper.vm.members.length).toBe(1);
         expect(wrapper.text()).toContain("hello");
+        expect(axiosMock.post).toHaveBeenCalledWith(
+            `/api/v1/rrc/hubs/${HUB_HASH}/rooms/lobby/read`
+        );
+    });
+
+    it("clears local mention unread when marking an open room read", async () => {
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+
+        wrapper.vm.hubs = [
+            makeHub({
+                mention_rooms: ["lobby"],
+                unread_rooms: ["lobby"],
+                unread_counts: { lobby: 2 },
+                total_unread: 2,
+            }),
+        ];
+        wrapper.vm.updateUnreadBadge();
+        expect(wrapper.vm.hubs[0].mention_rooms).toEqual(["lobby"]);
+
+        await wrapper.vm.markRoomRead(HUB_HASH, "lobby", { refreshHubs: false });
+
+        expect(wrapper.vm.hubs[0].mention_rooms).toEqual([]);
+        expect(wrapper.vm.hubs[0].unread_rooms).toEqual([]);
+        expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/rrc/hubs/${HUB_HASH}/rooms/lobby/read`);
     });
 
     it("keeps websocket messages that arrive while selectRoom is loading", async () => {

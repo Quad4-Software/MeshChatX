@@ -523,6 +523,8 @@ export default {
             const currentHash = this.selectedPeer?.destination_hash;
             const normalizedNew = Utils.normalizeMeshchatHashHex(newHash);
             if (currentHash && Utils.normalizeMeshchatHashHex(currentHash) === normalizedNew) {
+                // Still dismiss unread / nav badge when the chat is already open.
+                this.dismissUnreadForOpenDestination(normalizedNew);
                 return;
             }
             this.onComposeNewMessage(newHash);
@@ -1242,6 +1244,38 @@ export default {
             // mark conversation as read in the pane that now displays it
             const viewer = this.paneViewers?.[this.focusedPaneId];
             viewer?.markConversationAsRead?.(conversation);
+        },
+        dismissUnreadForOpenDestination(destinationHash) {
+            const normalized = Utils.normalizeMeshchatHashHex(destinationHash || "");
+            if (!normalized) {
+                return;
+            }
+            const conversation =
+                this.conversations.find((c) => Utils.normalizeMeshchatHashHex(c.destination_hash) === normalized) ||
+                this.selectedPeer;
+            if (!conversation) {
+                return;
+            }
+            const viewer = this.paneViewers?.[this.focusedPaneId];
+            if (viewer?.markConversationAsRead) {
+                viewer.markConversationAsRead(conversation, { force: true });
+                return;
+            }
+            // Viewer not mounted yet (restored panes). Optimistically clear local unread.
+            if (conversation.is_unread) {
+                conversation.is_unread = false;
+            }
+            Promise.resolve(
+                window.api.post(`/api/v1/lxmf/conversations/${normalized}/mark-as-read`)
+            )
+                .then(() => {
+                    GlobalEmitter.emit("notifications-changed");
+                    NotificationUtils.clearMessageNotifications(normalized);
+                    if (GlobalState.unreadConversationsCount > 0) {
+                        GlobalState.unreadConversationsCount -= 1;
+                    }
+                })
+                .catch(() => {});
         },
         onCloseConversationViewer: function () {
             // clear selected peer
