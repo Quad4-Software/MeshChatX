@@ -24,6 +24,39 @@ describe("LinkUtils.js", () => {
             expect(result).toContain('data-nomadnet-url="1dfeb0d794963579bd21ac8f153c77a4:/page/index.mu"');
         });
 
+        it("includes Nomad backtick field parameters in the link", () => {
+            const text =
+                "9ce92808be498e9e05590ff27cbfdfe4:/page/forum/thread.mu`cat=general|thread=critical-security-update-rns-139-fixes-severe-rnsh-security-flaw";
+            const result = LinkUtils.renderReticulumLinks(text);
+            expect(result).toContain('class="nomadnet-link');
+            expect(result).toContain(
+                'data-nomadnet-url="9ce92808be498e9e05590ff27cbfdfe4:/page/forum/thread.mu`cat=general|thread=critical-security-update-rns-139-fixes-severe-rnsh-security-flaw"'
+            );
+            expect(result).toContain(
+                ">9ce92808be498e9e05590ff27cbfdfe4:/page/forum/thread.mu`cat=general|thread=critical-security-update-rns-139-fixes-severe-rnsh-security-flaw</a>"
+            );
+            expect(result).not.toMatch(/thread\.mu<\/a>`cat=/);
+        });
+
+        it("keeps Nomad field params when wrapped with nomadnet:// prefix", () => {
+            const text =
+                "nomadnet://1dfeb0d794963579bd21ac8f153c77a4:/page/forum/thread.mu`cat=general|thread=slug";
+            const result = LinkUtils.renderReticulumLinks(text);
+            expect(result).toContain(
+                'data-nomadnet-url="1dfeb0d794963579bd21ac8f153c77a4:/page/forum/thread.mu`cat=general|thread=slug"'
+            );
+        });
+
+        it("trims trailing sentence punctuation after Nomad field params", () => {
+            const text =
+                "see 1dfeb0d794963579bd21ac8f153c77a4:/page/forum/thread.mu`cat=general|thread=slug.";
+            const result = LinkUtils.renderReticulumLinks(text);
+            expect(result).toContain(
+                'data-nomadnet-url="1dfeb0d794963579bd21ac8f153c77a4:/page/forum/thread.mu`cat=general|thread=slug"'
+            );
+            expect(result).toContain("</a>.");
+        });
+
         it("does not detect bare hash without prefix as lxmf", () => {
             const text = "1dfeb0d794963579bd21ac8f153c77a4";
             const result = LinkUtils.renderReticulumLinks(text);
