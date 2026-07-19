@@ -86,6 +86,48 @@ export default class MarkdownRenderer {
     }
 
     /**
+     * Minimal markdown for chat surfaces (RRC): links, inline code, bold, italic, strikethrough.
+     * Links run before inline code so Nomad field data after a single backtick stays intact.
+     */
+    static renderBasic(text) {
+        if (text == null) {
+            return "";
+        }
+        if (typeof text !== "string") {
+            text = String(text);
+        }
+
+        text = Utils.escapeHtml(text);
+        text = LinkUtils.renderAllLinks(text);
+
+        const { protectedText, anchors } = LinkUtils.protectAnchors(text);
+        text = protectedText;
+
+        const inline_codes = [];
+        const pushInline = (code) => {
+            const placeholder = `[[IC${inline_codes.length}]]`;
+            inline_codes.push(
+                `<code class="bg-black/10 dark:bg-white/10 px-1 rounded-sm font-mono text-[0.9em]">${code}</code>`
+            );
+            return placeholder;
+        };
+        text = text.replace(/``([^`]+)``/g, (_m, code) => pushInline(code));
+        text = text.replace(/`([^`]+)`/g, (_m, code) => pushInline(code));
+
+        text = text.replace(/~~(.*?)~~/g, "<del>$1</del>");
+        text = text.replace(/\*\*\*(.*?)\*\*\*/g, "<strong><em>$1</em></strong>");
+        text = text.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+        text = text.replace(/\*(.*?)\*/g, "<em>$1</em>");
+        text = text.replace(/(^|[^\w])___(.*?)___(?=[^\w]|$)/g, "$1<strong><em>$2</em></strong>");
+        text = text.replace(/(^|[^\w])__(.*?)__(?=[^\w]|$)/g, "$1<strong>$2</strong>");
+        text = text.replace(/(^|[^\w])_(.*?)_(?=[^\w]|$)/g, "$1<em>$2</em>");
+
+        text = text.replace(/\[\[IC(\d+)\]\]/g, (_m, idx) => inline_codes[Number(idx)] ?? _m);
+        text = LinkUtils.restoreAnchors(text, anchors);
+        return text.replace(/\n/g, "<br>");
+    }
+
+    /**
      * True when the body is only a single emoji (after markdown strip), for large bubble rendering.
      */
     static isSingleEmojiMessage(raw) {
@@ -131,7 +173,8 @@ export default class MarkdownRenderer {
         // Strip headers
         text = text.replace(/^#+ (.*)$/gm, "$1");
 
-        // Strip bold and italic
+        // Strip strikethrough, bold and italic
+        text = text.replace(/~~(.*?)~~/g, "$1");
         text = text.replace(/\*\*\*(.*?)\*\*\*/g, "$1");
         text = text.replace(/\*\*(.*?)\*\*/g, "$1");
         text = text.replace(/\*(.*?)\*/g, "$1");

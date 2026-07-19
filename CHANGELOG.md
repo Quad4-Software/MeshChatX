@@ -30,6 +30,7 @@ All notable changes to this project will be documented in this file.
 - Messages page conversation poll is slower and skips while the tab is hidden
 - Schema v51 message-flag backfill skips empty databases so fresh init stays fast
 - Relay Chat: denser hub UI, announce interval, collapsed system lines, reconnect notices
+- Relay Chat: clickable Nomad and LXMF links plus basic markdown for code, bold, italic, and strikethrough
 - Low-memory cleanup and SQLite pragmas under memory pressure
 - CI benches use median-of-medians and quieter regression gates
 - Backend benchmarks cover slim conversation list, mark-as-read, call history, and missed-call notification paths
