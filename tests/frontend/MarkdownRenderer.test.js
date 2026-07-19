@@ -527,3 +527,44 @@ describe("MarkdownRenderer.js", () => {
         });
     });
 });
+
+describe("renderBasic (RRC / limited chat markdown)", () => {
+    it("renders bold, italic, strikethrough, and inline code", () => {
+        const result = MarkdownRenderer.renderBasic("**bold** *italic* ~~gone~~ `code`");
+        expect(result).toContain("<strong>bold</strong>");
+        expect(result).toContain("<em>italic</em>");
+        expect(result).toContain("<del>gone</del>");
+        expect(result).toContain("<code");
+        expect(result).toContain("code");
+    });
+
+    it("does not render headers or blockquotes", () => {
+        const result = MarkdownRenderer.renderBasic("# Title\n> quote");
+        expect(result).not.toContain("<h1");
+        expect(result).not.toContain("blockquote");
+        expect(result).toContain("# Title");
+    });
+
+    it("keeps Nomad path field data after a single backtick as one link", () => {
+        const text =
+            "9ce92808be498e9e05590ff27cbfdfe4:/page/forum/thread.mu`cat=general|thread=critical-security-update-rns-139-fixes-severe-rnsh-security-flaw";
+        const result = MarkdownRenderer.renderBasic(text);
+        expect(result).toContain("nomadnet-link");
+        expect(result).toContain(
+            'data-nomadnet-url="9ce92808be498e9e05590ff27cbfdfe4:/page/forum/thread.mu`cat=general|thread=critical-security-update-rns-139-fixes-severe-rnsh-security-flaw"'
+        );
+        expect(result).not.toContain("<code");
+    });
+
+    it("renders https links and escapes HTML", () => {
+        const result = MarkdownRenderer.renderBasic('hi <script>alert(1)</script> https://example.com/a');
+        expect(result).not.toContain("<script>");
+        expect(result).toContain("&lt;script&gt;");
+        expect(result).toContain('href="https://example.com/a"');
+    });
+
+    it("preserves line breaks as br tags", () => {
+        const result = MarkdownRenderer.renderBasic("line1\nline2");
+        expect(result).toBe("line1<br>line2");
+    });
+});

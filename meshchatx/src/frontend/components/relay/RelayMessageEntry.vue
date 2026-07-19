@@ -54,7 +54,12 @@
         :data-msg-key="page.messageKey(entry.msg)"
     >
         <span class="mr-1 text-xs text-sem-fg-muted">{{ page.formatTime(entry.msg.ts) }}</span>
-        * {{ page.displayName(entry.msg) }} {{ entry.msg.text }}
+        * {{ page.displayName(entry.msg) }}
+        <span
+            class="break-words"
+            v-html="page.renderMessageHtml(entry.msg.text)"
+            @click="page.handleMessageHtmlClick($event)"
+        ></span>
     </div>
     <div
         v-else-if="entry.msg"
@@ -65,7 +70,11 @@
     >
         <span class="mr-1.5 text-xs text-sem-fg-muted">{{ page.formatTime(entry.msg.ts) }}</span>
         <span class="mr-1.5 font-semibold" :style="page.nameStyle(entry.msg)">{{ page.displayName(entry.msg) }}:</span>
-        <span class="whitespace-pre-wrap break-words">{{ entry.msg.text }}</span>
+        <span
+            class="whitespace-pre-wrap break-words"
+            v-html="page.renderMessageHtml(entry.msg.text)"
+            @click="page.handleMessageHtmlClick($event)"
+        ></span>
     </div>
 </template>
 

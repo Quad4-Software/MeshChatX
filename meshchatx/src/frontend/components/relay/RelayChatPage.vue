@@ -1325,6 +1325,8 @@ import { loadRelayLayout, saveRelayLayout } from "../../js/relayLayoutStore.js";
 import { loadFeatureSidebarCollapsed, saveFeatureSidebarCollapsed } from "../../js/browserLayoutStore.js";
 import { RELAY_HOST_MODAL_OVERLAY, RELAY_HOST_MODAL_PANEL_COMPACT } from "../../js/relayHostModalClasses.js";
 import { buildRelayShareMessage } from "../../js/relayLinkUtils.js";
+import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
+import MarkdownRenderer from "../../js/MarkdownRenderer.js";
 import {
     ANNOUNCE_SLIDER_POS_MAX,
     announceMinutesToSliderPos,
@@ -2406,6 +2408,33 @@ export default {
             } catch {
                 return "";
             }
+        },
+        renderMessageHtml(text) {
+            return MarkdownRenderer.renderBasic(text);
+        },
+        handleMessageHtmlClick(event) {
+            const hex32 = /^[a-fA-F0-9]{32}$/;
+            const routeName = this.$route?.meta?.isPopout ? "nomadnetwork-popout" : "nomadnetwork";
+            handleRichHtmlLinkClick(event, {
+                onNomadUrl: (url) => {
+                    const [hash, ...pathParts] = url.split(":");
+                    const path = pathParts.join(":");
+                    if (!hex32.test(hash)) {
+                        return;
+                    }
+                    this.$router.push({
+                        name: routeName,
+                        params: { destinationHash: hash },
+                        query: { path },
+                    });
+                },
+                onLxmfAddress: (address) => {
+                    this.$router.push({
+                        name: "messages",
+                        params: { destinationHash: address },
+                    });
+                },
+            });
         },
         formatHash(hash) {
             if (!hash) {
