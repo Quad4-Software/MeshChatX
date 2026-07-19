@@ -611,6 +611,14 @@ describe("SettingsPage — maintenance, exports, telemetry trust, RNS reload", (
         expect(api.delete).toHaveBeenCalledWith("/api/v1/maintenance/messages/duplicates");
     });
 
+    it("maintenance UI exposes duplicate cleanup and age purge", async () => {
+        const w = await mountSettingsPage(api);
+        const html = w.html();
+        expect(html).toContain("maintenance.clear_duplicates");
+        expect(html).toContain("maintenance.purge_old_title");
+        expect(html).toContain("maintenance.export_old_archive");
+    });
+
     it("clearAnnounces DELETEs announces", async () => {
         const w = await mountSettingsPage(api);
         await w.vm.clearAnnounces();

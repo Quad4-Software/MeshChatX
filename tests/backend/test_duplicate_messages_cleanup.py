@@ -65,6 +65,24 @@ def test_delete_duplicate_messages_by_content_keeps_oldest(tmp_path):
     provider.close_all()
 
 
+def test_delete_duplicate_prefers_earlier_timestamp_over_lower_id(tmp_path):
+    path = str(tmp_path / "d3.db")
+    provider = DatabaseProvider(path)
+    DatabaseSchema(provider).initialize()
+    db = Database(path)
+    peer = "d" * 32
+    base = time.time()
+    # Insert newer timestamp first (lower id), then older timestamp.
+    _msg(db, msg_hash="1" * 32, peer=peer, content="z", ts=base - 1)
+    _msg(db, msg_hash="2" * 32, peer=peer, content="z", ts=base - 100)
+    deleted = db.messages.delete_duplicate_lxmf_messages_by_content()
+    assert deleted == 1
+    left = db.provider.fetchone("SELECT hash FROM lxmf_messages")
+    assert left["hash"] == "2" * 32
+    db.close_all()
+    provider.close_all()
+
+
 def test_duplicates_are_scoped_by_peer_and_direction(tmp_path):
     path = str(tmp_path / "d2.db")
     provider = DatabaseProvider(path)
