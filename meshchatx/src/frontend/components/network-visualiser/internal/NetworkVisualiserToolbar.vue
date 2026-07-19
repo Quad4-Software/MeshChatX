@@ -5,7 +5,7 @@
         class="absolute top-2 left-2 right-2 sm:top-4 sm:left-4 sm:right-4 z-10 flex flex-col sm:flex-row gap-2 pointer-events-none"
     >
         <div
-            class="pointer-events-auto border border-gray-200/50 dark:border-zinc-800/50 bg-white/90 dark:bg-zinc-900/90 rounded-2xl overflow-hidden w-full sm:min-w-[280px] sm:w-auto transition-all duration-300"
+            class="pointer-events-auto border border-gray-200/50 dark:border-zinc-800/50 bg-white/90 dark:bg-zinc-900/90 rounded-2xl overflow-hidden w-full sm:w-[280px] sm:max-w-[280px] transition-all duration-300"
         >
             <div
                 class="flex items-center px-4 sm:px-5 py-3 sm:py-4 cursor-pointer hover:bg-gray-50/50 dark:hover:bg-zinc-800/50 transition-colors"
@@ -52,30 +52,67 @@
 
                 <div class="grid grid-cols-2 gap-2">
                     <div
-                        class="rounded-xl px-3 py-2 border border-gray-100 dark:border-zinc-700/50 bg-gray-50/60 dark:bg-zinc-800/40"
+                        class="relative min-w-0 rounded-xl px-3 py-2 border border-gray-100 dark:border-zinc-700/50 bg-gray-50/60 dark:bg-zinc-800/40"
                         :title="engineSelectTitle"
                     >
-                        <label
-                            for="visualiser-engine-select"
-                            class="text-[10px] font-bold text-gray-500 dark:text-zinc-500 uppercase tracking-wider mb-0.5 block"
+                        <div
+                            class="text-[10px] font-bold text-gray-500 dark:text-zinc-500 uppercase tracking-wider mb-0.5"
                         >
                             {{ $t("visualiser.engine") }}
-                        </label>
-                        <select
+                        </div>
+                        <button
                             id="visualiser-engine-select"
-                            class="w-full bg-transparent text-xs font-bold truncate border-0 p-0 pr-5 focus:outline-hidden focus:ring-0 cursor-pointer"
+                            type="button"
+                            class="flex w-full min-w-0 items-center gap-1 bg-transparent text-left text-xs font-bold focus:outline-hidden focus-visible:ring-1 focus-visible:ring-blue-500/50 rounded"
                             :class="engineSelectClass"
-                            :value="preferredRenderer"
                             :aria-label="$t('visualiser.engine')"
-                            @change="onEngineSelectChange"
+                            :aria-expanded="engineMenuOpen ? 'true' : 'false'"
+                            aria-haspopup="listbox"
+                            @click.stop="toggleEngineMenu"
                         >
-                            <option value="auto">{{ $t("visualiser.renderer_option_auto") }}</option>
-                            <option value="webgl">{{ $t("visualiser.renderer_option_webgl") }}</option>
-                            <option value="vis">{{ $t("visualiser.renderer_option_vis") }}</option>
-                        </select>
+                            <span class="min-w-0 flex-1 truncate">{{ engineTriggerLabel }}</span>
+                            <MaterialDesignIcon
+                                icon-name="chevron-down"
+                                class="w-3.5 h-3.5 shrink-0 text-gray-400 transition-transform duration-200"
+                                :class="{ 'rotate-180': engineMenuOpen }"
+                            />
+                        </button>
+                        <Teleport to="body">
+                            <div
+                                v-if="engineMenuOpen"
+                                ref="engineMenuPanel"
+                                v-click-outside="closeEngineMenu"
+                                class="fixed z-200 w-56 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+                                :style="engineMenuStyle"
+                                role="listbox"
+                                :aria-label="$t('visualiser.engine')"
+                            >
+                                <button
+                                    v-for="opt in engineOptions"
+                                    :key="opt.value"
+                                    type="button"
+                                    role="option"
+                                    class="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-xs font-semibold transition-colors hover:bg-gray-100 dark:hover:bg-zinc-800"
+                                    :class="
+                                        preferredRenderer === opt.value
+                                            ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300'
+                                            : 'text-gray-800 dark:text-zinc-100'
+                                    "
+                                    :aria-selected="preferredRenderer === opt.value ? 'true' : 'false'"
+                                    @click.stop="selectEngine(opt.value)"
+                                >
+                                    <span class="min-w-0 flex-1">{{ opt.label }}</span>
+                                    <MaterialDesignIcon
+                                        v-if="preferredRenderer === opt.value"
+                                        icon-name="check"
+                                        class="w-4 h-4 shrink-0"
+                                    />
+                                </button>
+                            </div>
+                        </Teleport>
                     </div>
                     <div
-                        class="rounded-xl px-3 py-2 border border-gray-100 dark:border-zinc-700/50 bg-gray-50/60 dark:bg-zinc-800/40"
+                        class="min-w-0 rounded-xl px-3 py-2 border border-gray-100 dark:border-zinc-700/50 bg-gray-50/60 dark:bg-zinc-800/40"
                     >
                         <div
                             class="text-[10px] font-bold text-gray-500 dark:text-zinc-500 uppercase tracking-wider mb-0.5"
@@ -227,7 +264,10 @@
 <script>
 import Toggle from "../../forms/Toggle.vue";
 import MaterialDesignIcon from "../../MaterialDesignIcon.vue";
+import { clampFloatingToViewport } from "../../../js/clampFloatingToViewport.js";
 import { HOP_SLIDER_POS_ALL, hopSliderPosToMaxHops, hopMaxHopsToSliderPos } from "./hopMaxFilterSliderMap.js";
+
+const ENGINE_VALUES = ["auto", "webgl", "vis"];
 
 export default {
     name: "NetworkVisualiserToolbar",
@@ -253,7 +293,7 @@ export default {
             type: String,
             default: "auto",
             validator(v) {
-                return ["auto", "webgl", "vis"].includes(v);
+                return ENGINE_VALUES.includes(v);
             },
         },
         engineMode: {
@@ -277,6 +317,8 @@ export default {
     data() {
         return {
             hopMaxInputDraft: null,
+            engineMenuOpen: false,
+            engineMenuPosition: null,
         };
     },
     computed: {
@@ -295,6 +337,18 @@ export default {
             if (this.hopMaxFilter === null) return this.$t("visualiser.all");
             return String(this.hopMaxFilter);
         },
+        engineOptions() {
+            return [
+                { value: "auto", label: this.$t("visualiser.renderer_option_auto") },
+                { value: "webgl", label: this.$t("visualiser.renderer_option_webgl") },
+                { value: "vis", label: this.$t("visualiser.renderer_option_vis") },
+            ];
+        },
+        engineTriggerLabel() {
+            if (this.preferredRenderer === "webgl") return this.$t("visualiser.renderer_option_webgl_short");
+            if (this.preferredRenderer === "vis") return this.$t("visualiser.renderer_option_vis_short");
+            return this.$t("visualiser.renderer_option_auto_short");
+        },
         engineSelectTitle() {
             if (this.engineMode === "webgl") return this.$t("visualiser.engine_webgl_hint");
             if (this.engineMode === "wasm") return this.$t("visualiser.engine_wasm_hint");
@@ -312,13 +366,65 @@ export default {
             if (!Number.isFinite(n) || n <= 0) return "--";
             return String(Math.round(n));
         },
+        engineMenuStyle() {
+            if (!this.engineMenuPosition) return {};
+            const style = {
+                left: `${this.engineMenuPosition.left}px`,
+                top: `${this.engineMenuPosition.top}px`,
+            };
+            if (this.engineMenuPosition.maxHeight != null) {
+                style.maxHeight = `${this.engineMenuPosition.maxHeight}px`;
+                style.overflowY = "auto";
+            }
+            return style;
+        },
+    },
+    watch: {
+        isShowingControls(open) {
+            if (!open) this.closeEngineMenu();
+        },
+    },
+    beforeUnmount() {
+        this.closeEngineMenu();
     },
     methods: {
-        onEngineSelectChange(e) {
-            const next = e?.target?.value;
-            if (next === "auto" || next === "webgl" || next === "vis") {
-                this.$emit("update:preferredRenderer", next);
+        toggleEngineMenu() {
+            if (this.engineMenuOpen) {
+                this.closeEngineMenu();
+                return;
             }
+            this.openEngineMenu();
+        },
+        openEngineMenu() {
+            this.engineMenuOpen = true;
+            this.$nextTick(() => this.positionEngineMenu());
+        },
+        closeEngineMenu() {
+            this.engineMenuOpen = false;
+            this.engineMenuPosition = null;
+        },
+        positionEngineMenu() {
+            const trigger = this.$el?.querySelector?.("#visualiser-engine-select");
+            if (!trigger) return;
+            const rect = trigger.getBoundingClientRect();
+            this.engineMenuPosition = {
+                left: Math.max(8, rect.left),
+                top: rect.bottom + 6,
+                maxHeight: null,
+            };
+            this.$nextTick(() => {
+                const panel = this.$refs.engineMenuPanel;
+                if (!panel) return;
+                const pr = panel.getBoundingClientRect();
+                const { left, top, maxHeight } = clampFloatingToViewport(pr.left, pr.top, pr.width, pr.height);
+                this.engineMenuPosition = { left, top, maxHeight };
+            });
+        },
+        selectEngine(value) {
+            if (ENGINE_VALUES.includes(value)) {
+                this.$emit("update:preferredRenderer", value);
+            }
+            this.closeEngineMenu();
         },
         onHopSliderInput(e) {
             const v = hopSliderPosToMaxHops(Number(e.target.value));
