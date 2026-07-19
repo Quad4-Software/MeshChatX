@@ -302,6 +302,58 @@
         },
         {
             "method": "GET",
+            "path": "/api/v1/filesync/acl"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/filesync/acl"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/filesync/announce"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/filesync/browse"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/filesync/connect"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/filesync/disconnect"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/filesync/download"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/filesync/files"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/filesync/peers"
+        },
+        {
+            "method": "PATCH",
+            "path": "/api/v1/filesync/settings"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/filesync/start"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/filesync/status"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/filesync/stop"
+        },
+        {
+            "method": "GET",
             "path": "/api/v1/gifs"
         },
         {
@@ -537,20 +589,16 @@
             "path": "/api/v1/maintenance/messages"
         },
         {
-            "method": "GET",
-            "path": "/api/v1/maintenance/messages/export"
-        },
-        {
-            "method": "GET",
-            "path": "/api/v1/maintenance/messages/duplicates"
-        },
-        {
             "method": "DELETE",
             "path": "/api/v1/maintenance/messages/duplicates"
         },
         {
             "method": "GET",
-            "path": "/api/v1/maintenance/messages/purge-preview"
+            "path": "/api/v1/maintenance/messages/duplicates"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/maintenance/messages/export"
         },
         {
             "method": "POST",
@@ -559,6 +607,10 @@
         {
             "method": "POST",
             "path": "/api/v1/maintenance/messages/import-file"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/maintenance/messages/purge-preview"
         },
         {
             "method": "DELETE",
@@ -1113,6 +1165,10 @@
             "path": "/api/v1/rnx/sessions/{session_id}/stop"
         },
         {
+            "method": "POST",
+            "path": "/api/v1/rrc/active/clear"
+        },
+        {
             "method": "GET",
             "path": "/api/v1/rrc/hubs"
         },
@@ -1171,10 +1227,6 @@
         {
             "method": "POST",
             "path": "/api/v1/rrc/hubs/{hub_hash}/rooms/{room}/read"
-        },
-        {
-            "method": "POST",
-            "path": "/api/v1/rrc/active/clear"
         },
         {
             "method": "GET",

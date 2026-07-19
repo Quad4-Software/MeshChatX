@@ -26,6 +26,13 @@ def _make_json_request(body):
     return request
 
 
+def _make_export_request(**query):
+    """GET export reads request.query. Bare MagicMock makes .get() truthy junk."""
+    request = MagicMock()
+    request.query = dict(query)
+    return request
+
+
 @pytest.fixture
 def temp_dir():
     dir_path = tempfile.mkdtemp()
@@ -111,7 +118,7 @@ async def test_messages_export_includes_contacts_names_and_read_state(
                 handler = route.handler
                 break
         assert handler is not None
-        response = await handler(MagicMock())
+        response = await handler(_make_export_request())
         data = json.loads(response.body)
 
         assert data["format"] == MESSAGE_EXPORT_FORMAT

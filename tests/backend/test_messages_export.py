@@ -21,6 +21,13 @@ def _make_json_request(body):
     return request
 
 
+def _make_export_request(**query):
+    """GET export reads request.query. Bare MagicMock makes .get() truthy junk."""
+    request = MagicMock()
+    request.query = dict(query)
+    return request
+
+
 def _make_multipart_file_request(body: bytes):
     class _MultipartField:
         name = "file"
@@ -165,7 +172,7 @@ async def test_messages_export_with_icons(mock_rns_minimal, temp_dir):
                 break
         assert handler is not None
 
-        request = MagicMock()
+        request = _make_export_request()
         response = await handler(request)
         data = json.loads(response.body)
         assert "messages" in data
@@ -227,7 +234,7 @@ async def test_messages_export_without_icons(mock_rns_minimal, temp_dir):
                 break
         assert handler is not None
 
-        request = MagicMock()
+        request = _make_export_request()
         response = await handler(request)
         data = json.loads(response.body)
         assert len(data["messages"]) == 1
@@ -283,7 +290,7 @@ async def test_messages_import_export_roundtrip(mock_rns_minimal, temp_dir):
         assert export_handler is not None
         assert import_handler is not None
 
-        export_response = await export_handler(MagicMock())
+        export_response = await export_handler(_make_export_request())
         export_data = json.loads(export_response.body)
         assert len(export_data["messages"]) == 1
         assert "lxmf_icon" not in export_data["messages"][0]
