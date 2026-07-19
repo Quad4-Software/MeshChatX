@@ -288,8 +288,8 @@ def test_rnsh_frozen_listen_command_keeps_mirror_flag_separate(monkeypatch):
     ]
     assert command.count("-m") == 1
     assert command.index("-m") > command.index(rnsh_mod._RNSH_MODULE)
-    assert "-c" in command
-    assert command[command.index("-c") + 1] == "/tmp/session-config"
+    assert "--rnsconfig" in command
+    assert command[command.index("--rnsconfig") + 1] == "/tmp/session-config"
     assert "-l" in command
     assert "-n" in command
     assert "-q" in command
@@ -315,8 +315,8 @@ def test_rnsh_connect_command_includes_destination_and_remote(monkeypatch):
     )
     command = session._build_command()
     assert command[:3] == [rnsh_mod.sys.executable, "-m", rnsh_mod._RNSH_MODULE]
-    assert "-c" in command
-    assert command[command.index("-c") + 1] == "/shared/rns"
+    assert "--rnsconfig" in command
+    assert command[command.index("--rnsconfig") + 1] == "/shared/rns"
     assert "-N" in command
     assert "aabbccddeeff0011" in command
     assert "--" in command
