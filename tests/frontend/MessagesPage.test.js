@@ -619,9 +619,7 @@ describe("MessagesPage.vue", () => {
 
         // simulate a conversation already opened in the focused pane (as onPeerClick does)
         wrapper.vm.selectedPeer = { destination_hash: destHash, display_name: "Peer", is_unread: true };
-        wrapper.vm.conversations = [
-            { destination_hash: destHash, display_name: "Peer", is_unread: true },
-        ];
+        wrapper.vm.conversations = [{ destination_hash: destHash, display_name: "Peer", is_unread: true }];
         await wrapper.vm.$nextTick();
 
         const composeSpy = vi.spyOn(wrapper.vm, "onComposeNewMessage");

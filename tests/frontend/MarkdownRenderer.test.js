@@ -557,7 +557,7 @@ describe("renderBasic (RRC / limited chat markdown)", () => {
     });
 
     it("renders https links and escapes HTML", () => {
-        const result = MarkdownRenderer.renderBasic('hi <script>alert(1)</script> https://example.com/a');
+        const result = MarkdownRenderer.renderBasic("hi <script>alert(1)</script> https://example.com/a");
         expect(result).not.toContain("<script>");
         expect(result).toContain("&lt;script&gt;");
         expect(result).toContain('href="https://example.com/a"');

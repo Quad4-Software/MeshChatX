@@ -1718,9 +1718,9 @@ export default {
                 const hub = this.hubs.find((h) => h.hub_hash === saved.selectedHubHash);
                 const rooms = hub ? this.orderedRoomsFor(hub) : [];
                 if (saved.selectedRoom && rooms.includes(saved.selectedRoom)) {
-                    this.selectRoom(saved.selectedHubHash, saved.selectedRoom, { restore: true });
+                    this.selectRoom(saved.selectedHubHash, saved.selectedRoom);
                 } else if (rooms.length > 0) {
-                    this.selectRoom(saved.selectedHubHash, rooms[0], { restore: true });
+                    this.selectRoom(saved.selectedHubHash, rooms[0]);
                 }
             }
         },
@@ -2467,7 +2467,7 @@ export default {
         selectHub(hubHash) {
             this.selectedHubHash = hubHash;
         },
-        async selectRoom(hubHash, room, options = {}) {
+        async selectRoom(hubHash, room) {
             this.selectedHubHash = hubHash;
             this.selectedRoom = room;
             this.expandedHubs[hubHash] = true;
@@ -2518,10 +2518,7 @@ export default {
                 hub.unread_counts = next;
             }
             if (typeof hub.total_unread === "number") {
-                hub.total_unread = Object.values(hub.unread_counts || {}).reduce(
-                    (sum, n) => sum + (Number(n) || 0),
-                    0
-                );
+                hub.total_unread = Object.values(hub.unread_counts || {}).reduce((sum, n) => sum + (Number(n) || 0), 0);
             }
             this.updateUnreadBadge();
         },

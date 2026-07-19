@@ -200,9 +200,8 @@ describe("networkVisualiserWebGLEngine", () => {
 
     it("collectWebGLLabels follows canvas LOD bands", () => {
         const nodes = new Float32Array([
-            0, 0, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            10, 20, 25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            30, 40, 25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 20, 25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 30, 40,
+            25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         ]);
         const labelByIndex = ["Local", "eth0", "Alice"];
         const idByIndex = ["me", "eth0", "peer1"];
@@ -211,7 +210,9 @@ describe("networkVisualiserWebGLEngine", () => {
         expect(collectWebGLLabels({ ...base, zoom: 0.1 })).toEqual([]);
         expect(collectWebGLLabels({ ...base, zoom: 0.3 }).map((l) => l.text)).toEqual(["Local"]);
         expect(
-            collectWebGLLabels({ ...base, zoom: 0.3, hoverId: "peer1" }).map((l) => l.text).sort()
+            collectWebGLLabels({ ...base, zoom: 0.3, hoverId: "peer1" })
+                .map((l) => l.text)
+                .sort()
         ).toEqual(["Alice", "Local"]);
         const high = collectWebGLLabels({ ...base, zoom: 0.8 });
         expect(high.map((l) => l.text)).toEqual(["Local", "eth0", "Alice"]);
