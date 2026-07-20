@@ -37,7 +37,7 @@ MeshChatX sits on Reticulum. Agents must not invent cloud-era or IP-era designs 
 - Philosophy: [Zen of Reticulum](https://reticulum.network/manual/zen.html)
 - Conventions: `docs/agents/conventions/reticulum-zen.md`
 - Checklist skill: `docs/agents/skills/reticulum-design-gates/SKILL.md`
-- Cursor always-on rule: `.cursor/rules/reticulum-zen-gates.mdc`
+- Always-on editor rule (when present): reticulum Zen gates under project rules
 
 Short form: no mandatory cloud center, address destination hashes, assume hostile links, design for scarcity and delay, keep code transport-agnostic, keep identity state scoped.
 
@@ -302,12 +302,13 @@ meshchatx --restore-db /path/to/backup.zip
 1. No emojis in code, markdown, or docs you write for this repo.
 2. No TODO / FIXME noise comments.
 3. No emdashes or semicolons in comments or docs you write.
-4. Do not create markdown docs unless asked (except agent guidance under `docs/agents/` when requested).
-5. Do not commit or push unless the user asks.
-6. Do not generate exploit PoCs, malware, or attack tooling.
-7. Prefer minimal diffs. Match nearby style.
-8. Do not invent install/run flows when Taskfile already covers them.
-9. Mesh-facing designs must pass Zen / architecture gates (`reticulum-zen.md` / `reticulum-design-gates`).
+4. No backticks in code comments. Prefer plain words or quoted identifiers.
+5. Do not create markdown docs unless asked (except agent guidance under `docs/agents/` when requested).
+6. Do not commit or push unless the user asks.
+7. Do not generate exploit PoCs, malware, or attack tooling.
+8. Prefer minimal diffs. Match nearby style.
+9. Do not invent install/run flows when Taskfile already covers them.
+10. Mesh-facing designs must pass Zen / architecture gates (`reticulum-zen.md` / `reticulum-design-gates`).
 
 ## High-risk change checklist
 
@@ -337,5 +338,5 @@ Before finishing work in these areas, verify the matching invariants:
 ## Agent guidance index
 
 - `docs/agents/README.md` - index of conventions and skills
-- `docs/agents/conventions/` - surface-specific rules including Reticulum Zen
-- `docs/agents/skills/` - focused workflows including reticulum-design-gates, pages, registries, identity restore/switch, Landlock/SQLite, migrations/backups, auth/CSRF/WS, plugins, RNS Link API, deferred startup, Electron packaging, Android bridge, and test loop
+- `docs/agents/conventions/` - surface-specific rules including Reticulum Zen and test oracles
+- `docs/agents/skills/` - focused workflows including reticulum-design-gates, RRC / LXMF / LXST, pages, registries, identity restore/switch, Landlock/SQLite, migrations/backups, auth/CSRF/WS, plugins, RNS Link API, deferred startup, Electron packaging, Android bridge, test loop, test-oracles, and exploratory-testing

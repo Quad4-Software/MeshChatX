@@ -27,6 +27,9 @@ Prefer:
 - Closed reason sets: on `ValueError`, the message is one of the known machine reasons
 - Round-trip or shape invariants when the API is pure parsing
 
+Full skill: `docs/agents/skills/test-oracles/SKILL.md`.
+Exploratory bug hunting: `docs/agents/skills/exploratory-testing/SKILL.md`.
+
 ## Extended Edge Case Tester (EECT) and Live Validation (LV)
 
 - EECT packs live under `tests/backend/eect/packs/` and use marker `eect`.
