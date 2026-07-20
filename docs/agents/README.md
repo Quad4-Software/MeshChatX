@@ -1,7 +1,7 @@
 # Agent guidance for MeshChatX
 
 Neutral, tool-agnostic notes for automated agents and human contributors who work like agents.
-This tree is **not** part of the in-app user documentation. End-user docs live under `docs/en/`.
+This tree is not part of the in-app user documentation. End-user docs live under `docs/en/`.
 
 ## Start here
 
@@ -11,10 +11,11 @@ This tree is **not** part of the in-app user documentation. End-user docs live u
 4. Open a [skills/](skills/) guide when the task matches that workflow.
 
 Root [AGENTS.md](../../AGENTS.md) is a short pointer to this directory.
-Cursor rules under `.cursor/rules/`:
 
-- Always on: `meshchatx-core.mdc`, `reticulum-zen-gates.mdc`
-- Globs: `meshchatx-backend.mdc`, `meshchatx-frontend.mdc`, `meshchatx-android.mdc`, `meshchatx-tests.mdc`
+Optional editor rules (if present under `.cursor/rules/` or similar):
+
+- Always on: MeshChatX core standards and Reticulum Zen gates
+- Globs: backend, frontend, Android, tests
 
 ## Layout
 
@@ -26,7 +27,7 @@ Cursor rules under `.cursor/rules/`:
 | [conventions/frontend.md](conventions/frontend.md)           | Vue UI                                |
 | [conventions/backend.md](conventions/backend.md)             | Python / HTTP / SQLite                |
 | [conventions/android.md](conventions/android.md)             | Android WebView bridge                |
-| [conventions/tests.md](conventions/tests.md)                 | Test placement and verification       |
+| [conventions/tests.md](conventions/tests.md)                 | Test placement, oracles, verification |
 
 ## Skills
 
@@ -36,6 +37,16 @@ Cursor rules under `.cursor/rules/`:
 | ------------------------------------------------------------------ | ------------------------------------------------------ |
 | [page-toast-tests](skills/page-toast-tests/SKILL.md)               | New pages, toasts, i18n, tests                         |
 | [contribution-registries](skills/contribution-registries/SKILL.md) | Nav, tools, commands, settings search, WS event wiring |
+
+### Mesh protocols (RNS / LXMF / LXST / RRC)
+
+| Skill                                                            | Use when                                                  |
+| ---------------------------------------------------------------- | --------------------------------------------------------- |
+| [reticulum-design-gates](skills/reticulum-design-gates/SKILL.md) | Any mesh design review against Zen of Reticulum           |
+| [rns-link-api](skills/rns-link-api/SKILL.md)                     | Generic RNS Link WebSocket / plugin transport             |
+| [lxmf-messaging](skills/lxmf-messaging/SKILL.md)                 | LXMF send/receive, stamps, propagation, attachments       |
+| [lxst-telephony](skills/lxst-telephony/SKILL.md)                 | LXST calls, audio WS, telephony managers                  |
+| [rrc-relay-chat](skills/rrc-relay-chat/SKILL.md)                 | Relay Chat hubs, rooms, +k keys, moderation, client state |
 
 ### Identity and data
 
@@ -48,26 +59,26 @@ Cursor rules under `.cursor/rules/`:
 
 ### Security and plugins
 
-| Skill                                                              | Use when                                      |
-| ------------------------------------------------------------------ | --------------------------------------------- |
-| [reticulum-design-gates](skills/reticulum-design-gates/SKILL.md)   | Mesh design review against Zen of Reticulum   |
-| [auth-csrf-ws-security](skills/auth-csrf-ws-security/SKILL.md)     | CSRF, auth, WS mutator denylist               |
-| [plugin-install-security](skills/plugin-install-security/SKILL.md) | Plugin install, RSG, permissions, integrity   |
-| [rns-link-api](skills/rns-link-api/SKILL.md)                       | Generic RNS Link WebSocket / plugin transport |
+| Skill                                                              | Use when                                    |
+| ------------------------------------------------------------------ | ------------------------------------------- |
+| [auth-csrf-ws-security](skills/auth-csrf-ws-security/SKILL.md)     | CSRF, auth, WS mutator denylist             |
+| [plugin-install-security](skills/plugin-install-security/SKILL.md) | Plugin install, RSG, permissions, integrity |
 
 ### Platforms and boot
 
-| Skill                                                                  | Use when                                          |
-| ---------------------------------------------------------------------- | ------------------------------------------------- |
-| [deferred-network-startup](skills/deferred-network-startup/SKILL.md)   | HTTP-up vs RNS-ready, status, 503s, RNS panic     |
-| [electron-frozen-packaging](skills/electron-frozen-packaging/SKILL.md) | Frozen desktop spawn, loading, crash recovery     |
-| [android-webview-bridge](skills/android-webview-bridge/SKILL.md)       | Android chooser MIME, storage, WebView navigation |
+| Skill                                                                  | Use when                                      |
+| ---------------------------------------------------------------------- | --------------------------------------------- |
+| [deferred-network-startup](skills/deferred-network-startup/SKILL.md)   | HTTP-up vs RNS-ready, status, 503s, RNS panic |
+| [electron-frozen-packaging](skills/electron-frozen-packaging/SKILL.md) | Frozen desktop spawn, loading, crash recovery |
+| [android-webview-bridge](skills/android-webview-bridge/SKILL.md)       | Android chooser MIME, storage, WebView nav    |
 
 ### Verification
 
-| Skill                                  | Use when                                 |
-| -------------------------------------- | ---------------------------------------- |
-| [test-loop](skills/test-loop/SKILL.md) | Focused verification without hung shells |
+| Skill                                                      | Use when                                             |
+| ---------------------------------------------------------- | ---------------------------------------------------- |
+| [test-loop](skills/test-loop/SKILL.md)                     | Focused verification without hung shells             |
+| [test-oracles](skills/test-oracles/SKILL.md)               | Property/fuzz oracles: accept/reject, not soft fuzz  |
+| [exploratory-testing](skills/exploratory-testing/SKILL.md) | Adversarial exploration to find bugs with hypotheses |
 
 ## Product docs (users)
 
