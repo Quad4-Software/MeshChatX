@@ -138,7 +138,9 @@ export default class LinkUtils {
                 return match;
             }
             const label = Utils.escapeHtml(core);
-            return `${prefix}<a href="${href}" target="_blank" rel="noopener noreferrer" class="text-blue-600 dark:text-blue-400 hover:underline">${label}</a>${suffix}`;
+            // Keep real URL off href so middle-click / target=_blank cannot bypass
+            // in-app stranger-link confirmation handlers.
+            return `${prefix}<a href="#" data-http-url="${Utils.escapeHtml(href)}" rel="noopener noreferrer" class="text-blue-600 dark:text-blue-400 hover:underline">${label}</a>${suffix}`;
         });
     }
 

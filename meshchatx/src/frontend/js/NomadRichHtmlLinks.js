@@ -67,10 +67,15 @@ export function handleRichHtmlLinkClick(event, options = {}) {
         return true;
     }
 
-    const externalAnchor = event.target.closest("a[href]");
+    const externalAnchor = event.target.closest("a[href], a[data-http-url]");
     if (externalAnchor && !externalAnchor.classList.contains("nomadnet-link")) {
+        const dataHttp = externalAnchor.getAttribute("data-http-url");
         const href = externalAnchor.getAttribute("href");
-        const httpHref = href ? LinkUtils.httpUrlHrefOrNull(href.trim()) : null;
+        const httpHref = dataHttp
+            ? LinkUtils.httpUrlHrefOrNull(dataHttp.trim())
+            : href
+              ? LinkUtils.httpUrlHrefOrNull(href.trim())
+              : null;
         if (httpHref) {
             stopEvent(event);
             openExternalHttp(httpHref);

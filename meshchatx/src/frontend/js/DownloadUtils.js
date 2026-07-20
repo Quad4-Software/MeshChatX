@@ -43,11 +43,28 @@ class DownloadUtils {
         return defaultFilename;
     }
 
+    static headerValue(headers, name) {
+        if (!headers) {
+            return undefined;
+        }
+        if (typeof headers.get === "function") {
+            const fromGet = headers.get(name);
+            return fromGet == null || fromGet === "" ? undefined : fromGet;
+        }
+        const lower = String(name).toLowerCase();
+        for (const key of Object.keys(headers)) {
+            if (String(key).toLowerCase() === lower) {
+                return headers[key];
+            }
+        }
+        return undefined;
+    }
+
     static async downloadFromApiResponse(response, defaultFilename) {
         const headers = response?.headers || {};
-        const cd = headers["content-disposition"] || headers["Content-Disposition"];
+        const cd = DownloadUtils.headerValue(headers, "content-disposition");
         const filename = DownloadUtils.parseFilenameFromContentDisposition(cd, defaultFilename);
-        const type = headers["content-type"] || headers["Content-Type"] || "application/octet-stream";
+        const type = DownloadUtils.headerValue(headers, "content-type") || "application/octet-stream";
         const blob = new Blob([response.data], { type });
         await DownloadUtils.downloadFile(filename, blob);
     }

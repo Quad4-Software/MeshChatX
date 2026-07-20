@@ -143,7 +143,10 @@ export default {
                 }
                 this.newFolderName = "";
                 const start = String(this.initialPath || "").trim();
-                await this.load(start || undefined);
+                const loaded = await this.load(start || undefined);
+                if (!loaded && start) {
+                    await this.load(undefined);
+                }
             },
         },
     },
@@ -160,8 +163,10 @@ export default {
                 this.current = data.current || "";
                 this.parent = data.parent || null;
                 this.directories = Array.isArray(data.directories) ? data.directories : [];
+                return true;
             } catch (err) {
                 ToastUtils.error(err?.message || this.$t("rns_filesync.error"));
+                return false;
             } finally {
                 this.busy = false;
             }

@@ -621,11 +621,7 @@ class RRCHub:
     def _redact_command_for_history(text):
         """Omit +k secrets from locally recorded command history."""
         parts = text.split()
-        if (
-            len(parts) >= 4
-            and parts[0].lower() == "/mode"
-            and parts[2].lower() == "+k"
-        ):
+        if len(parts) >= 4 and parts[0].lower() == "/mode" and parts[2].lower() == "+k":
             return " ".join([*parts[:3], "***"])
         return text
 

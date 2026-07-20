@@ -36,8 +36,6 @@ Quick start with Compose:
 docker compose up -d
 ```
 
-For [Coolify](https://coolify.io/docs/knowledge-base/docker/compose), deploy with `docker-compose.coolify.yml`. Assign a domain that includes container port `8000` (for example `https://mesh.example.com:8000`). That file serves HTTP inside the container so Coolify can terminate TLS at the proxy.
-
 Manual run with a named volume for persistence:
 
 ```bash

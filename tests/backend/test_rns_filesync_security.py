@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import os
 import threading
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
@@ -97,7 +98,10 @@ def test_list_directories_rejects_traversal(handler):
         if result.get("ok"):
             assert result["current"].startswith(handler.storage_dir)
         else:
-            assert "identity storage" in result["error"] or "not a directory" in result["error"]
+            assert (
+                "identity storage" in result["error"]
+                or "not a directory" in result["error"]
+            )
 
 
 def test_create_directory_rejects_dotfiles_and_separators(handler):
@@ -181,6 +185,14 @@ def test_sync_directory_cannot_escape_identity_storage(handler, tmp_path):
     assert ok["sync_directory"] == nested or ok["sync_directory"].endswith(
         "/filesync/custom",
     )
+
+    # Identity root and reserved top-level trees must never be sync roots.
+    root_reject = handler.update_settings(sync_directory=handler.storage_dir)
+    assert root_reject["ok"] is False
+    bots = os.path.join(handler.storage_dir, "bots")
+    os.makedirs(bots, exist_ok=True)
+    bots_reject = handler.update_settings(sync_directory=bots)
+    assert bots_reject["ok"] is False
 
 
 def test_start_rejects_escaped_sync_directory(handler, tmp_path):

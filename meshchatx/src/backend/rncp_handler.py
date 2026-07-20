@@ -41,6 +41,29 @@ class RNCPHandler:
         os.makedirs(path, exist_ok=True)
         return path
 
+    @staticmethod
+    def _safe_received_filename(name) -> str:
+        """Basename-only filename that cannot escape the receive directory."""
+        try:
+            if isinstance(name, (bytes, bytearray)):
+                name = name.decode("utf-8", errors="replace")
+            raw = str(name).replace("\\", "/")
+            base = os.path.basename(raw)
+        except (AttributeError, TypeError, ValueError):
+            return "downloaded_file"
+        if not base or base in {".", ".."} or "\x00" in base:
+            return "downloaded_file"
+        return base
+
+    def _path_under_dir(self, directory: str, filename: str) -> str:
+        """Join and require the final real path stays under directory."""
+        directory = os.path.realpath(directory)
+        candidate = os.path.realpath(os.path.join(directory, filename))
+        if candidate != directory and not candidate.startswith(directory + os.sep):
+            msg = "Refusing path escape outside receive directory"
+            raise PermissionError(msg)
+        return candidate
+
     def cancel_transfer(self, transfer_id: str | None = None) -> dict:
         """Mark one or all active transfers as cancelled."""
         if transfer_id:
@@ -185,13 +208,13 @@ class RNCPHandler:
         if resource.status == RNS.Resource.COMPLETE:
             if resource.metadata:
                 try:
-                    filename = os.path.basename(
-                        resource.metadata["name"].decode("utf-8"),
+                    filename = self._safe_received_filename(
+                        resource.metadata["name"],
                     )
                     save_dir = os.path.join(self.storage_dir, "rncp_received")
                     os.makedirs(save_dir, exist_ok=True)
 
-                    saved_filename = os.path.join(save_dir, filename)
+                    saved_filename = self._path_under_dir(save_dir, filename)
                     counter = 0
 
                     if self.allow_overwrite_on_receive:
@@ -206,7 +229,7 @@ class RNCPHandler:
                     while os.path.isfile(saved_filename):
                         counter += 1
                         base, ext = os.path.splitext(filename)
-                        saved_filename = os.path.join(
+                        saved_filename = self._path_under_dir(
                             save_dir,
                             f"{base}.{counter}{ext}",
                         )
@@ -303,6 +326,30 @@ class RNCPHandler:
                 return False
 
         return None
+
+    def _resolve_fetch_save_dir(self, save_path: str) -> str:
+        """Jail fetch downloads under identity storage (or default downloads dir)."""
+        if (
+            not isinstance(save_path, str)
+            or not save_path.strip()
+            or "\x00" in save_path
+        ):
+            msg = "Invalid save path"
+            raise ValueError(msg)
+        expanded = os.path.expanduser(save_path.strip())
+        if not os.path.isabs(expanded):
+            expanded = os.path.join(self.storage_dir, expanded)
+        real = os.path.realpath(expanded)
+        root = os.path.realpath(self.storage_dir)
+        if real != root and not real.startswith(root + os.sep):
+            msg = "Save path is outside the RNCP download jail"
+            raise PermissionError(msg)
+        parts = {part for part in real.split(os.sep) if part}
+        if parts & {".ssh", ".gnupg"}:
+            msg = "Refusing to save into credential directories"
+            raise PermissionError(msg)
+        os.makedirs(real, exist_ok=True)
+        return real
 
     def _resolve_send_path(self, file_path: str) -> str:
         """Resolve a local send path under storage or home, never identity keys."""
@@ -522,11 +569,14 @@ class RNCPHandler:
 
         saved_filename = None
         save_error = None
-        effective_save_path = (
-            os.path.abspath(os.path.expanduser(save_path))
-            if isinstance(save_path, str) and save_path.strip()
-            else self._default_fetch_save_dir()
-        )
+        if isinstance(save_path, str) and save_path.strip():
+            try:
+                effective_save_path = self._resolve_fetch_save_dir(save_path)
+            except (OSError, PermissionError, ValueError) as exc:
+                link.teardown()
+                raise PermissionError(str(exc)) from exc
+        else:
+            effective_save_path = self._default_fetch_save_dir()
 
         def fetch_resource_concluded(resource):
             nonlocal resource_resolved, resource_status, saved_filename, save_error
@@ -534,12 +584,12 @@ class RNCPHandler:
                 if resource.status == RNS.Resource.COMPLETE:
                     if resource.metadata:
                         try:
-                            filename = os.path.basename(
-                                resource.metadata["name"].decode("utf-8"),
+                            filename = self._safe_received_filename(
+                                resource.metadata["name"],
                             )
                             save_dir = effective_save_path
                             os.makedirs(save_dir, exist_ok=True)
-                            saved_filename = os.path.join(save_dir, filename)
+                            saved_filename = self._path_under_dir(save_dir, filename)
 
                             counter = 0
                             if allow_overwrite:
@@ -552,7 +602,7 @@ class RNCPHandler:
                             while os.path.isfile(saved_filename):
                                 counter += 1
                                 base, ext = os.path.splitext(filename)
-                                saved_filename = os.path.join(
+                                saved_filename = self._path_under_dir(
                                     save_dir,
                                     f"{base}.{counter}{ext}",
                                 )

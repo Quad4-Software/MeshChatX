@@ -600,7 +600,11 @@
 import MicronParser from "../../js/MicronParser";
 import LinkUtils from "../../js/LinkUtils";
 import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
-import { renderNomadPageByPath, resolveNomadPageShellBackground, isolateNomadLinksInHtml } from "../../js/NomadPageRenderer";
+import {
+    renderNomadPageByPath,
+    resolveNomadPageShellBackground,
+    isolateNomadLinksInHtml,
+} from "../../js/NomadPageRenderer";
 import DialogUtils from "../../js/DialogUtils";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import NomadNetworkSidebar from "./NomadNetworkSidebar.vue";
@@ -1025,10 +1029,12 @@ export default {
         this.teardownMultilineExpansion();
 
         WebSocketConnection.off("message", this.onWebsocketMessage);
+        GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
     },
     mounted() {
         // listen for websocket messages
         WebSocketConnection.on("message", this.onWebsocketMessage);
+        GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
 
         this.$watch(
             () => GlobalState.config?.nomad_micron_wasm_enabled,
@@ -1098,6 +1104,16 @@ export default {
         this.$nextTick(() => this.scheduleProcessPartials());
     },
     methods: {
+        onIdentitySwitched() {
+            this.favourites = [];
+            this.nodePageCache = {};
+            this.nodes = {};
+            this.selectedNode = null;
+            this.nodePageContent = null;
+            this.clearPartials?.();
+            this.getFavourites();
+            this.getNomadnetworkNodeAnnounces();
+        },
         getEmbeddedTabStateHash() {
             return (this.selectedNode?.destination_hash || "").trim();
         },
@@ -2431,8 +2447,7 @@ export default {
                 this.isArchiveDropdownOpen = false;
 
                 // use parsed destination hash, or fallback to selected node destination hash
-                const destinationHash =
-                    parsedUrl.destination_hash || this.selectedNode?.destination_hash || null;
+                const destinationHash = parsedUrl.destination_hash || this.selectedNode?.destination_hash || null;
                 if (!destinationHash) {
                     ToastUtils.warning(this.$t("nomadnet.select_node_to_browse"));
                     return;
