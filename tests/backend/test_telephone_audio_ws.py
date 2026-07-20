@@ -42,7 +42,9 @@ def _bridge_with_clients(*, config_enabled=True, attach_ok=True, send_ready=None
     bridge = MagicMock()
     bridge.clients = clients
     bridge.config_enabled.return_value = config_enabled
-    bridge.send_status = AsyncMock(side_effect=send_ready) if send_ready else AsyncMock()
+    bridge.send_status = (
+        AsyncMock(side_effect=send_ready) if send_ready else AsyncMock()
+    )
     bridge.attach_client.side_effect = attach_client
     bridge.detach_client.side_effect = detach_client
     bridge.push_client_frame = MagicMock()
