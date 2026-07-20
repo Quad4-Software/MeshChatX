@@ -114,6 +114,11 @@ export default class MicronParser extends BaseMicronParser {
                 if (dangerousProps.includes(prop)) return false;
                 if (prop === "width" && (/100v[wh]/.test(val) || /^100%$/.test(val))) return false;
                 if (prop === "height" && (/100v[hw]/.test(val) || /^100%$/.test(val))) return false;
+                // Block clearnet / protocol-relative url() and @import in inline styles.
+                if (/url\s*\(\s*["']?(?:https?:|\/\/)/i.test(decl)) return false;
+                if (/@import/i.test(decl)) return false;
+                if (/expression\s*\(/i.test(decl)) return false;
+                if (/javascript\s*:/i.test(decl)) return false;
                 return true;
             });
             return safe.join("; ").trim();
@@ -129,22 +134,45 @@ export default class MicronParser extends BaseMicronParser {
         return out;
     }
 
+    /**
+     * Scrub network CSS from style tag bodies (WASM micron path).
+     * Kept local to avoid a circular import with NomadPageRenderer.
+     */
+    static scrubNetworkCss(css) {
+        if (!css) {
+            return "";
+        }
+        let s = String(css);
+        s = s.replace(/@import\s+[^;]+;/gi, "");
+        s = s.replace(/@import\s+url\s*\([^)]+\)\s*;?/gi, "");
+        s = s.replace(/expression\s*\(/gi, "blocked(");
+        s = s.replace(/javascript\s*:/gi, "blocked:");
+        s = s.replace(/-moz-binding/gi, "blocked-binding");
+        s = s.replace(/url\s*\(\s*["']?(?:https?:|\/\/)/gi, "url(blocked:");
+        return s;
+    }
+
     static sanitizeRenderedMicronHtml(html) {
         if (html == null) {
             return "";
         }
         const s = typeof html === "string" ? html : String(html);
         try {
-            const sanitized = DOMPurify.sanitize(s, {
+            let sanitized = DOMPurify.sanitize(s, {
                 USE_PROFILES: { html: true },
                 ALLOWED_URI_REGEXP,
             });
             try {
-                return MicronParser.stripOverlayStyles(sanitized);
+                sanitized = MicronParser.stripOverlayStyles(sanitized);
             } catch (e) {
                 console.warn("MicronParser: stripOverlayStyles failed", e);
-                return sanitized;
             }
+            try {
+                sanitized = MicronParser.scrubNetworkCssInStyleTags(sanitized);
+            } catch (e) {
+                console.warn("MicronParser: scrubNetworkCss failed", e);
+            }
+            return sanitized;
         } catch (error) {
             console.warn(
                 "DOMPurify is not installed or sanitization failed. Include dompurify or check the build.",
@@ -152,6 +180,40 @@ export default class MicronParser extends BaseMicronParser {
             );
             return `<p style="color: red;">DOMPurify is not installed or sanitization failed.</p>`;
         }
+    }
+
+    /**
+     * Scrub network CSS inside &lt;style&gt; blocks without nested regex backtracking.
+     */
+    static scrubNetworkCssInStyleTags(html) {
+        if (typeof html !== "string" || !html) {
+            return html == null ? "" : html;
+        }
+        const lower = html.toLowerCase();
+        let out = "";
+        let i = 0;
+        while (i < html.length) {
+            const openIdx = lower.indexOf("<style", i);
+            if (openIdx < 0) {
+                out += html.slice(i);
+                break;
+            }
+            const tagEnd = html.indexOf(">", openIdx);
+            if (tagEnd < 0) {
+                out += html.slice(i);
+                break;
+            }
+            const closeIdx = lower.indexOf("</style>", tagEnd + 1);
+            if (closeIdx < 0) {
+                out += html.slice(i);
+                break;
+            }
+            out += html.slice(i, tagEnd + 1);
+            out += MicronParser.scrubNetworkCss(html.slice(tagEnd + 1, closeIdx));
+            out += html.slice(closeIdx, closeIdx + "</style>".length);
+            i = closeIdx + "</style>".length;
+        }
+        return out;
     }
 
     /**

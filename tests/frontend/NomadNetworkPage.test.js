@@ -346,6 +346,41 @@ describe("NomadNetworkPage.vue", () => {
             downloadSpy.mockRestore();
         });
 
+        it("processPartials floors hostile 1s refresh to at least 5s", async () => {
+            vi.useFakeTimers();
+            const dest = "c".repeat(32);
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.selectedNode = { destination_hash: dest, display_name: "Test" };
+            wrapper.vm.nodePagePath = `${dest}:/page/index.mu`;
+            wrapper.vm.nodePageContent = "`{" + dest + ":/page/nested.mu`1}";
+            wrapper.vm.isShowingNodePageSource = false;
+
+            const downloadSpy = vi
+                .spyOn(wrapper.vm, "downloadNomadNetPage")
+                .mockImplementation((_d, _p, _f, onSuccess) => {
+                    onSuccess("# ok");
+                });
+
+            await wrapper.vm.$nextTick();
+            await wrapper.vm.$nextTick();
+            wrapper.vm.processPartials();
+            await wrapper.vm.$nextTick();
+
+            const afterFirst = downloadSpy.mock.calls.length;
+            expect(afterFirst).toBeGreaterThanOrEqual(1);
+            expect(wrapper.vm.partialRefreshByKey[`${dest}:/page/nested.mu`]).toBe(5);
+
+            vi.advanceTimersByTime(1000);
+            expect(downloadSpy.mock.calls.length).toBe(afterFirst);
+
+            vi.advanceTimersByTime(4000);
+            await wrapper.vm.$nextTick();
+            expect(downloadSpy.mock.calls.length).toBeGreaterThan(afterFirst);
+
+            downloadSpy.mockRestore();
+            vi.useRealTimers();
+        });
+
         it("does not re-run Micron conversion when only favourites list updates", async () => {
             const dest = "b".repeat(32);
             const wrapper = mountNomadNetworkPage();

@@ -14,6 +14,7 @@ from meshchatx.src.backend.reticulum_pathfinding import ReticulumLike
 
 # Global cache for Nomad Network links (reuse instead of reconnecting per request).
 # Protected by _nomadnet_links_lock for callers that may touch Reticulum from multiple threads.
+# Cleared on identity switch / RNS reload. Must not outlive the active IdentityContext.
 nomadnet_cached_links: dict[bytes, object] = {}
 _nomadnet_link_last_used: dict[bytes, float] = {}
 _nomadnet_links_lock = threading.Lock()
@@ -56,6 +57,21 @@ def _teardown_links(links) -> None:
             link.teardown()
         except Exception:
             pass
+
+
+def clear_all_nomadnet_cached_links() -> int:
+    """Tear down every cached Nomad link (identity switch / RNS reload).
+
+    sweep_stale_links leaves ACTIVE links alone. Those objects are tied to the
+    prior identity / transport and must not be reused after switch.
+    """
+    with _nomadnet_links_lock:
+        to_teardown = list(nomadnet_cached_links.values())
+        count = len(to_teardown)
+        nomadnet_cached_links.clear()
+        _nomadnet_link_last_used.clear()
+    _teardown_links(to_teardown)
+    return count
 
 
 def sweep_stale_links():
@@ -381,6 +397,24 @@ class NomadnetFileDownloader(NomadnetDownloader):
             reticulum=reticulum,
         )
 
+    @staticmethod
+    def _safe_file_name(name) -> str:
+        try:
+            if isinstance(name, (bytes, bytearray)):
+                name = name.decode("utf-8", errors="replace")
+            base = os.path.basename(str(name).replace("\\", "/"))
+        except (AttributeError, TypeError, ValueError):
+            return "downloaded_file"
+        return base or "downloaded_file"
+
+    @staticmethod
+    def _payload_bytes(payload) -> bytes | None:
+        if isinstance(payload, io.BufferedReader):
+            return payload.read()
+        if isinstance(payload, (bytes, bytearray, memoryview)):
+            return bytes(payload)
+        return None
+
     def on_download_success(self, request_receipt: RNS.RequestReceipt):
         response = request_receipt.response
 
@@ -388,13 +422,12 @@ class NomadnetFileDownloader(NomadnetDownloader):
             file_name = "downloaded_file"
             metadata = request_receipt.metadata
             if isinstance(metadata, dict) and "name" in metadata:
-                try:
-                    file_path = metadata["name"].decode("utf-8", errors="replace")
-                    file_name = os.path.basename(file_path)
-                except (AttributeError, TypeError):
-                    pass
+                file_name = self._safe_file_name(metadata["name"])
 
-            payload = response.read()
+            payload = self._payload_bytes(response)
+            if payload is None:
+                self.on_file_download_failure("unsupported_response")
+                return
 
             self.on_file_download_success(file_name, payload)
             return
@@ -404,23 +437,25 @@ class NomadnetFileDownloader(NomadnetDownloader):
             and len(response) > 1
             and isinstance(response[1], dict)
         ):
-            payload = response[0]
+            payload = self._payload_bytes(response[0])
+            if payload is None:
+                self.on_file_download_failure("unsupported_response")
+                return
             metadata = response[1]
 
             file_name = "downloaded_file"
             if "name" in metadata:
-                try:
-                    file_path = metadata["name"].decode("utf-8", errors="replace")
-                    file_name = os.path.basename(file_path)
-                except (AttributeError, TypeError):
-                    pass
+                file_name = self._safe_file_name(metadata["name"])
 
             self.on_file_download_success(file_name, payload)
             return
 
         try:
-            file_name = str(response[0])
-            payload = response[1]
+            file_name = self._safe_file_name(response[0])
+            payload = self._payload_bytes(response[1])
+            if payload is None:
+                self.on_file_download_failure("unsupported_response")
+                return
             self.on_file_download_success(file_name, payload)
         except Exception:
             self.on_download_failure("unsupported_response")

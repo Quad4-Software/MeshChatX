@@ -21,6 +21,10 @@ from meshchatx.src.backend.rrc import protocol as proto
 from meshchatx.src.backend.rrc.hub_commands import HubCommandHandler
 from meshchatx.src.backend.rrc.hub_policy import HubPolicy
 from meshchatx.src.backend.rrc.identity_util import parse_identity_hash
+from meshchatx.src.backend.rrc.room_key_crypto import (
+    normalize_room_key,
+    room_keys_equal,
+)
 from meshchatx.src.backend.rrc.room_registry import RoomRegistry
 from meshchatx.src.backend.rrc.rooms_toml import RoomsTomlStore
 
@@ -498,41 +502,52 @@ class RRCHubServer:
 
         peer = sess.peer if isinstance(sess.peer, (bytes, bytearray)) else None
         join_body = env.get(proto.K_BODY)
-        if peer is not None and self.rooms.is_room_banned(r, peer):
+        # Missing identity must deny ACL paths. Skipping checks would bypass +k/+i.
+        if peer is None:
+            self._queue_error(outgoing, link, "not identified")
+            return
+        if self.rooms.is_room_banned(r, peer):
             self._queue_error(outgoing, link, "banned from room", room=r)
             return
 
-        st = self.rooms.ensure_state(r, founder=peer)
+        # Do not promote founder/ops until +i/+k checks pass. Otherwise the
+        # first JOIN into a keyed room with no founder bypasses the key.
+        st = self.rooms.ensure_state(r)
         if bool(st.get("invite_only")):
-            if (
-                peer is not None
-                and not self.rooms.is_room_op(r, peer)
-                and not self.rooms.is_invited(r, peer)
+            if not self.rooms.is_room_op(r, peer) and not self.rooms.is_invited(
+                r,
+                peer,
             ):
                 self._queue_error(outgoing, link, "invite-only (+i)", room=r)
                 return
 
         key = st.get("key")
         if isinstance(key, str) and key:
-            if (
-                peer is not None
-                and not self.rooms.is_room_op(r, peer)
-                and not self.rooms.is_invited(r, peer)
+            if not self.rooms.is_room_op(r, peer) and not self.rooms.is_invited(
+                r,
+                peer,
             ):
-                provided = join_body if isinstance(join_body, str) else None
-                if provided != key:
+                if not room_keys_equal(
+                    join_body if isinstance(join_body, str) else None, key
+                ):
                     self._queue_error(outgoing, link, "bad key (+k)", room=r)
                     return
 
         if not self._room_members.get(r):
             self.rooms.ensure_state(r, founder=peer)
 
+        # One-shot invite: consume after a successful ACL pass so PART+reJOIN
+        # cannot reuse the same invite forever while TTL is live.
+        if self.rooms.consume_invite(r, peer):
+            self.rooms.persist(r)
+
         members = self._room_members.setdefault(r, set())
+        already = link in members
         existing = [m for m in members if m != link]
         members.add(link)
         sess.rooms.add(r)
 
-        if existing:
+        if existing and not already:
             fanout = proto.encode(
                 proto.make_envelope(
                     proto.T_JOINED,
@@ -590,6 +605,30 @@ class RRCHubServer:
             self._queue_error(outgoing, link, str(e))
             return
 
+        if r not in sess.rooms:
+            self._queue_error(outgoing, link, "not in room", room=r)
+            return
+
+        self._force_leave_room(
+            link,
+            sess,
+            r,
+            outgoing,
+            ack_parted=True,
+        )
+
+    def _force_leave_room(
+        self,
+        link,
+        sess,
+        room,
+        outgoing,
+        *,
+        error_text=None,
+        ack_parted=False,
+    ):
+        """Remove a link from a room and fan out PARTED to remaining members."""
+        r = room
         sess.rooms.discard(r)
         members = self._room_members.get(r)
         remaining = []
@@ -613,19 +652,22 @@ class RRCHubServer:
             for member in remaining:
                 outgoing.append((member, fanout))
 
-        outgoing.append(
-            (
-                link,
-                proto.encode(
-                    proto.make_envelope(
-                        proto.T_PARTED,
-                        src=self.identity.hash,
-                        room=r,
-                        body=[sess.peer] if sess.peer is not None else None,
+        if error_text:
+            self._queue_error(outgoing, link, error_text, room=r)
+        elif ack_parted:
+            outgoing.append(
+                (
+                    link,
+                    proto.encode(
+                        proto.make_envelope(
+                            proto.T_PARTED,
+                            src=self.identity.hash,
+                            room=r,
+                            body=[sess.peer] if sess.peer is not None else None,
+                        ),
                     ),
                 ),
-            ),
-        )
+            )
         self.manager._notify_change(self)
 
     def _handle_message(self, link, sess, env, outgoing):
@@ -807,6 +849,24 @@ class RRCHubServer:
         if st.get("registered"):
             self.rooms.persist(r)
 
+    def set_room_key(self, name, key):
+        """Set or clear the +k room key. Empty/None clears the key."""
+        r = proto.normalize_room(name)
+        st = self.rooms.ensure_state(r)
+        if key is None or (isinstance(key, str) and not key.strip()):
+            st["key"] = None
+        elif isinstance(key, str):
+            st["key"] = normalize_room_key(key)
+        else:
+            msg = "room key must be a string or null"
+            raise TypeError(msg)
+        if st.get("registered"):
+            self.rooms.persist(r)
+        outgoing = []
+        self.rooms.broadcast_mode(r, outgoing)
+        self._flush_outgoing(outgoing)
+        return r
+
     def client_count(self):
         with self._lock:
             return sum(1 for s in self._sessions.values() if s.welcomed)
@@ -907,8 +967,8 @@ class RRCHubServer:
             raise ValueError(msg)
         r = self._norm_room(room)
         outgoing = []
+        target_link = None
         with self._lock:
-            target_link = None
             for link, sess in self._sessions.items():
                 if (
                     isinstance(sess.peer, (bytes, bytearray))
@@ -917,15 +977,17 @@ class RRCHubServer:
                 ):
                     target_link = link
                     break
-            if target_link is None:
-                msg = "peer not in room"
-                raise ValueError(msg)
-            tsess = self._sessions[target_link]
-            tsess.rooms.discard(r)
-            members = self._room_members.get(r)
-            if members is not None:
-                members.discard(target_link)
-        self._queue_error(outgoing, target_link, "kicked from " + r, room=r)
+        if target_link is None:
+            msg = "peer not in room"
+            raise ValueError(msg)
+        tsess = self._sessions[target_link]
+        self._force_leave_room(
+            target_link,
+            tsess,
+            r,
+            outgoing,
+            error_text="kicked from " + r,
+        )
         self._flush_outgoing(outgoing)
         return True
 
@@ -958,13 +1020,12 @@ class RRCHubServer:
                 ms = self._sessions.get(member)
                 if ms is not None and isinstance(ms.peer, (bytes, bytearray)):
                     if bytes(ms.peer) == peer:
-                        ms.rooms.discard(r)
-                        self._room_members[r].discard(member)
-                        self._queue_error(
-                            outgoing,
+                        self._force_leave_room(
                             member,
-                            "banned from " + r,
-                            room=r,
+                            ms,
+                            r,
+                            outgoing,
+                            error_text="banned from " + r,
                         )
         self._flush_outgoing(outgoing)
         return True

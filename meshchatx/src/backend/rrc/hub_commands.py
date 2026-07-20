@@ -12,6 +12,7 @@ from meshchatx.src.backend.rrc.identity_util import (
     parse_identity_hash,
     resolve_identity_hash,
 )
+from meshchatx.src.backend.rrc.room_key_crypto import normalize_room_key
 from meshchatx.src.backend.rrc.rooms_toml import INVITE_DEFAULT_TTL_S
 
 HELP_TEXT = (
@@ -106,13 +107,23 @@ class HubCommandHandler:
             server._queue_notice(outgoing, link, None, "bad room: " + str(e))
             return True
         st = server.rooms.get_state(r)
-        if (
-            st is not None
-            and st.get("private")
-            and not server.policy.is_server_op(peer)
-        ):
-            server._queue_notice(outgoing, link, None, f"room {r} is private")
-            return True
+        if st is not None and st.get("private"):
+            is_member = link in server._room_members.get(r, set())
+            can_see = (
+                is_member
+                or server.rooms.is_room_op(r, peer)
+                or server.policy.is_server_op(peer)
+            )
+            if not can_see:
+                # Same shape as an empty/unknown room so outsiders cannot
+                # distinguish private registered rooms from nonexistent ones.
+                server._queue_notice(
+                    outgoing,
+                    link,
+                    None,
+                    "members in " + r + ": (none)",
+                )
+                return True
         members = []
         for member in server._room_members.get(r, set()):
             s = server._sessions.get(member)
@@ -212,11 +223,13 @@ class HubCommandHandler:
         if tsess is None or r not in tsess.rooms:
             server._queue_notice(outgoing, link, room, "target not in room")
             return True
-        tsess.rooms.discard(r)
-        members = server._room_members.get(r)
-        if members is not None:
-            members.discard(target_link)
-        server._queue_error(outgoing, target_link, f"kicked from {r}", room=r)
+        server._force_leave_room(
+            target_link,
+            tsess,
+            r,
+            outgoing,
+            error_text=f"kicked from {r}",
+        )
         server._queue_notice(outgoing, link, room, f"kicked {parts[2]} from {r}")
         return True
 
@@ -462,7 +475,11 @@ class HubCommandHandler:
                 if not key:
                     server._queue_notice(outgoing, link, room, "key must not be empty")
                     return True
-                st["key"] = key
+                try:
+                    st["key"] = normalize_room_key(key)
+                except ValueError as e:
+                    server._queue_notice(outgoing, link, room, str(e))
+                    return True
             else:
                 st["key"] = None
         elif flag in ("+r", "-r"):
@@ -541,6 +558,9 @@ class HubCommandHandler:
         op = parts[2].lower()
         st = server.rooms.ensure_state(r)
         bans = st.setdefault("bans", set())
+        if not server.rooms.is_room_op(r, peer):
+            server._queue_error(outgoing, link, "not authorized", room=r)
+            return True
         if op == "list":
             if not bans:
                 server._queue_notice(outgoing, link, room, f"no bans in {r}")
@@ -569,9 +589,6 @@ class HubCommandHandler:
                 f"usage: /ban {r} {op} <nick|hashprefix|hash>",
             )
             return True
-        if not server.rooms.is_room_op(r, peer):
-            server._queue_error(outgoing, link, "not authorized", room=r)
-            return True
         target_hash, matches = resolve_identity_hash(server, parts[3], room=r)
         if target_hash is None:
             server._queue_notice(
@@ -589,13 +606,12 @@ class HubCommandHandler:
                 ms = server._sessions.get(member)
                 if ms is not None and isinstance(ms.peer, (bytes, bytearray)):
                     if bytes(ms.peer) == target_hash:
-                        ms.rooms.discard(r)
-                        server._room_members[r].discard(member)
-                        server._queue_error(
-                            outgoing,
+                        server._force_leave_room(
                             member,
-                            f"banned from {r}",
-                            room=r,
+                            ms,
+                            r,
+                            outgoing,
+                            error_text=f"banned from {r}",
                         )
             server._queue_notice(outgoing, link, room, f"ban added in {r}")
         else:

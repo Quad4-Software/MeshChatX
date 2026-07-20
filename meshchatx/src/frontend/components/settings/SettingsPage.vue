@@ -3699,10 +3699,7 @@
                                         {{ $t("app.propagation_stamp_description") }}
                                     </div>
                                 </div>
-                                <label
-                                    v-if="config.lxmf_local_propagation_node_enabled"
-                                    class="setting-toggle"
-                                >
+                                <label v-if="config.lxmf_local_propagation_node_enabled" class="setting-toggle">
                                     <Toggle
                                         id="propagation-sequential-validation"
                                         v-model="config.lxmf_propagation_sequential_validation"
@@ -3717,10 +3714,7 @@
                                         }}</span>
                                     </span>
                                 </label>
-                                <label
-                                    v-if="config.lxmf_local_propagation_node_enabled"
-                                    class="setting-toggle"
-                                >
+                                <label v-if="config.lxmf_local_propagation_node_enabled" class="setting-toggle">
                                     <Toggle
                                         id="propagation-static-peers-bypass-sequential"
                                         v-model="config.lxmf_propagation_static_peers_bypass_sequential"

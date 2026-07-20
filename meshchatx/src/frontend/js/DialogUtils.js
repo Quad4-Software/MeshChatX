@@ -31,8 +31,10 @@ class DialogUtils {
         });
     }
 
-    static async prompt(message, defaultValue = "") {
-        if (window.electron && typeof window.electron.prompt === "function") {
+    static async prompt(message, defaultValue = "", options = {}) {
+        const inputType =
+            options && typeof options === "object" && options.inputType ? String(options.inputType) : "text";
+        if (window.electron && typeof window.electron.prompt === "function" && inputType === "text") {
             try {
                 return await window.electron.prompt(message, defaultValue);
             } catch {
@@ -43,6 +45,7 @@ class DialogUtils {
             GlobalEmitter.emit("prompt", {
                 message,
                 defaultValue: defaultValue == null ? "" : String(defaultValue),
+                inputType,
                 resolve,
             });
         });

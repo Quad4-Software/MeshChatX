@@ -22,6 +22,7 @@ from .misc import MiscDAO
 from .notification_sounds import NotificationSoundDAO
 from .provider import DatabaseProvider
 from .ringtones import RingtoneDAO
+from .rrc_room_keys import RrcRoomKeysDAO
 from .schema import DatabaseSchema
 from .sticker_packs import UserStickerPacksDAO
 from .stickers import UserStickersDAO
@@ -89,6 +90,7 @@ class Database:
         self.debug_logs = DebugLogsDAO(self.provider)
         self.access_attempts = AccessAttemptsDAO(self.provider)
         self.crash_history = CrashHistoryDAO(self.provider)
+        self.rrc_room_keys = RrcRoomKeysDAO(self.provider)
         self._sqlite_memory_relaxed = False
 
     def initialize(self):
@@ -504,9 +506,19 @@ class Database:
         member: str,
         target_dir: str,
     ) -> None:
-        dest_path = os.path.abspath(os.path.join(target_dir, member))
-        abs_target = os.path.abspath(target_dir)
-        if not dest_path.startswith(abs_target + os.sep) and dest_path != abs_target:
+        # Normalize separators and reject absolute / parent traversal early.
+        normalized = member.replace("\\", "/")
+        if (
+            not normalized
+            or normalized.startswith("/")
+            or any(part == ".." for part in normalized.split("/"))
+        ):
+            msg = f"Unsafe zip entry path: {member}"
+            raise DatabaseRestoreError(msg)
+        abs_target = os.path.realpath(target_dir)
+        # realpath resolves existing symlink prefixes (e.g. identity_dir/plugins -> outside).
+        abs_dest = os.path.realpath(os.path.join(target_dir, normalized))
+        if abs_dest != abs_target and not abs_dest.startswith(abs_target + os.sep):
             msg = f"Unsafe zip entry path: {member}"
             raise DatabaseRestoreError(msg)
         zf.extract(member, target_dir)

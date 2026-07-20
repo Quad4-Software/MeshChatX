@@ -4,6 +4,7 @@
 
 import time
 
+from meshchatx.src.backend.rrc.room_key_crypto import normalize_room_key
 from meshchatx.src.backend.rrc.rooms_toml import INVITE_DEFAULT_TTL_S
 
 
@@ -94,7 +95,12 @@ class RoomRegistry:
                 st[flag] = bool(kwargs[flag])
         if "key" in kwargs:
             key = kwargs["key"]
-            st["key"] = key if isinstance(key, str) and key else None
+            if key is None or (isinstance(key, str) and not str(key).strip()):
+                st["key"] = None
+            elif isinstance(key, str):
+                st["key"] = normalize_room_key(key)
+            else:
+                st["key"] = None
         if "founder" in kwargs and kwargs["founder"] is not None:
             st["founder"] = kwargs["founder"]
             st.setdefault("ops", set()).add(kwargs["founder"])
@@ -216,6 +222,16 @@ class RoomRegistry:
             inv.pop(bytes(peer_hash), None)
             return False
         return True
+
+    def consume_invite(self, room, peer_hash) -> bool:
+        """Remove a still-valid invite. Returns True if one was present."""
+        if not self.is_invited(room, peer_hash):
+            return False
+        st = self.ensure_state(room)
+        inv = st.get("invited")
+        if not isinstance(inv, dict):
+            return False
+        return inv.pop(bytes(peer_hash), None) is not None
 
     def prune_expired_invites(self, room):
         st = self.ensure_state(room)

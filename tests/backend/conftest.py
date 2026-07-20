@@ -286,6 +286,8 @@ def mock_app(db, tmp_path, temp_db):
         app.database = Database(temp_db)
         app.current_context.config = ConfigManager(app.database)
         app.config = app.current_context.config
+        if app.rrc_manager is not None:
+            app.rrc_manager.set_database(app.database)
         app.websocket_broadcast = MagicMock(side_effect=lambda data: None)
 
         yield app

@@ -27,7 +27,9 @@ def _install_simple(manager, tmp_path):
     return manager.install_from_directory(str(source))
 
 
-def test_tamper_disables_and_reenable_refreshes_hash(tmp_path):
+def test_tamper_disables_and_reenable_refuses_without_reinstall(tmp_path):
+    from meshchatx.src.backend.plugin_guard import PluginSecurityError
+
     manager = PluginManager(str(tmp_path / "storage"))
     installed = _install_simple(manager, tmp_path)
     plugin_id = installed["id"]
@@ -52,6 +54,11 @@ def test_tamper_disables_and_reenable_refreshes_hash(tmp_path):
     assert view["tampered"] is True
     assert INTEGRITY_TAMPER_MESSAGE in (view["auto_disabled_reason"] or "")
 
-    enabled = reloaded.enable(plugin_id)
-    assert enabled["enabled"] is True
-    assert enabled["tampered"] is False
+    try:
+        reloaded.enable(plugin_id)
+        raise AssertionError("enable must refuse tampered plugin trees")
+    except PluginSecurityError as exc:
+        assert "tampered" in str(exc).lower()
+    still = reloaded.get_plugin(plugin_id)
+    assert still["enabled"] is False
+    assert still["tampered"] is True

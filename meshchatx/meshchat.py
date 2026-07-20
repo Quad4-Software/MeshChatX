@@ -200,6 +200,7 @@ from meshchatx.src.backend.message_export_bundle import (
 from meshchatx.src.backend.nomadnet_downloader import (
     NomadnetFileDownloader,
     NomadnetPageDownloader,
+    clear_all_nomadnet_cached_links,
     get_cached_active_link,
 )
 from meshchatx.src.backend.nomadnet_utils import (
@@ -1841,6 +1842,11 @@ class ReticulumMeshChat:
         except Exception as e:
             print(f"Error while cleaning up RNS links: {e}")
 
+    def _clear_mesh_link_caches(self):
+        """Drop process-global mesh links so identity switch cannot reuse sessions."""
+        clear_all_cached_links()
+        clear_all_nomadnet_cached_links()
+
     def teardown_identity(self):
         if self.current_context:
             self.running = False
@@ -1849,6 +1855,8 @@ class ReticulumMeshChat:
             if identity_hash in self.contexts:
                 del self.contexts[identity_hash]
             self.current_context = None
+            # Drop Nomad and RNS links that may have identified as the prior identity.
+            self._clear_mesh_link_caches()
             gc.collect()
 
     def _teardown_all_contexts_for_reload(self):
@@ -2290,6 +2298,7 @@ class ReticulumMeshChat:
 
                 self._reset_transport_globals_for_reload()
                 clear_all_cached_links()
+                clear_all_nomadnet_cached_links()
 
                 # Clear Identity globals
                 RNS.Identity.known_destinations = {}
@@ -2711,6 +2720,10 @@ class ReticulumMeshChat:
                 self.teardown_identity()
                 # Give a moment for destinations to clear from transport
                 await asyncio.sleep(2)
+            else:
+                # Even when keeping the old context alive, never reuse mesh links
+                # that may already be identified as the prior identity.
+                self._clear_mesh_link_caches()
 
             # 3. update main identity file
             shutil.copy2(identity_file, main_identity_file)
@@ -10162,7 +10175,9 @@ class ReticulumMeshChat:
 
         @routes.post("/api/v1/rrc/hubs/{hub_hash}/rooms")
         async def rrc_hub_join_room(request):
-            _, hub, error = _rrc_require_hub(request.match_info.get("hub_hash", ""))
+            manager, hub, error = _rrc_require_hub(
+                request.match_info.get("hub_hash", "")
+            )
             if error is not None:
                 return error
             data = await request.json()
@@ -10172,15 +10187,86 @@ class ReticulumMeshChat:
                     {"message": "A room name is required"},
                     status=400,
                 )
-            key = data.get("key") or None
+            key = data.get("key")
+            if isinstance(key, str):
+                key = key.strip() or None
+            else:
+                key = None
+            remember = bool(data.get("remember", True))
+            if key is None:
+                with contextlib.suppress(Exception):
+                    key = manager.get_room_key(hub, room)
             try:
                 if hub.status == hub.STATUS_CONNECTED:
                     hub.join_room(room, key=key)
                 else:
                     hub.add_room(room)
+                # Persist even while offline so WELCOME auto-rejoin can supply +k.
+                if key and remember:
+                    with contextlib.suppress(Exception):
+                        manager.remember_room_key(hub, room, key)
             except (ValueError, RuntimeError) as e:
                 return web.json_response({"message": str(e)}, status=400)
-            return web.json_response({"hub": hub.to_dict()})
+            return web.json_response(
+                {
+                    "hub": hub.to_dict(),
+                    "has_stored_key": manager.has_stored_room_key(hub, room),
+                },
+            )
+
+        @routes.get("/api/v1/rrc/hubs/{hub_hash}/room-keys")
+        async def rrc_hub_list_room_keys(request):
+            manager, hub, error = _rrc_require_hub(
+                request.match_info.get("hub_hash", "")
+            )
+            if error is not None:
+                return error
+            return web.json_response({"keys": manager.list_stored_room_keys(hub)})
+
+        @routes.put("/api/v1/rrc/hubs/{hub_hash}/rooms/{room}/key")
+        async def rrc_hub_store_room_key(request):
+            manager, hub, error = _rrc_require_hub(
+                request.match_info.get("hub_hash", "")
+            )
+            if error is not None:
+                return error
+            room = request.match_info.get("room", "")
+            data = await request.json()
+            key = data.get("key")
+            if not isinstance(key, str) or not key.strip():
+                return web.json_response(
+                    {"message": "A room key is required"},
+                    status=400,
+                )
+            try:
+                manager.remember_room_key(hub, room, key.strip())
+            except (TypeError, ValueError, RuntimeError) as e:
+                return web.json_response({"message": str(e)}, status=400)
+            return web.json_response(
+                {
+                    "message": "Room key saved",
+                    "has_stored_key": True,
+                },
+            )
+
+        @routes.delete("/api/v1/rrc/hubs/{hub_hash}/rooms/{room}/key")
+        async def rrc_hub_delete_room_key(request):
+            manager, hub, error = _rrc_require_hub(
+                request.match_info.get("hub_hash", "")
+            )
+            if error is not None:
+                return error
+            room = request.match_info.get("room", "")
+            try:
+                deleted = manager.forget_room_key(hub, room)
+            except ValueError as e:
+                return web.json_response({"message": str(e)}, status=400)
+            return web.json_response(
+                {
+                    "message": "Room key removed" if deleted else "No stored room key",
+                    "deleted": int(deleted or 0),
+                },
+            )
 
         @routes.delete("/api/v1/rrc/hubs/{hub_hash}/rooms/{room}")
         async def rrc_hub_part_room(request):
@@ -10481,6 +10567,32 @@ class ReticulumMeshChat:
             if error is not None:
                 return error
             manager.delete_room(hub.hub_id, request.match_info.get("room", ""))
+            return web.json_response({"hub": hub.to_dict()})
+
+        @routes.put("/api/v1/rrc/servers/{hub_id}/rooms/{room}/key")
+        async def rrc_server_room_set_key(request):
+            manager, hub, error = _rrc_server_require_hub(
+                request.match_info.get("hub_id", ""),
+            )
+            if error is not None:
+                return error
+            room = request.match_info.get("room", "")
+            data = await request.json()
+            raw_key = data.get("key")
+            if raw_key is None or raw_key == "":
+                key = None
+            elif isinstance(raw_key, str):
+                key = raw_key.strip() or None
+            else:
+                return web.json_response(
+                    {"message": "Room key must be a string or null"},
+                    status=400,
+                )
+            try:
+                hub.set_room_key(room, key)
+                manager.save()
+            except (TypeError, ValueError) as e:
+                return web.json_response({"message": str(e)}, status=400)
             return web.json_response({"hub": hub.to_dict()})
 
         @routes.get("/api/v1/rrc/servers/{hub_id}/members")
@@ -18687,6 +18799,10 @@ class ReticulumMeshChat:
                     self.local_lxmf_destination.hash,
                     value,
                 )
+                if value > 0:
+                    self.message_router.enforce_stamps()
+                elif hasattr(self.message_router, "ignore_stamps"):
+                    self.message_router.ignore_stamps()
                 # re-announce to update the stamp cost in announces
                 self.local_lxmf_destination.display_name = (
                     self.config.display_name.get()
@@ -19010,6 +19126,7 @@ class ReticulumMeshChat:
                         self.local_lxmf_destination.hash,
                         254,
                     )
+                    self.message_router.enforce_stamps()
                     self.local_lxmf_destination.display_name = (
                         self.config.display_name.get()
                     )
@@ -19030,6 +19147,10 @@ class ReticulumMeshChat:
                         self.local_lxmf_destination.hash,
                         restore_cost,
                     )
+                    if restore_cost > 0:
+                        self.message_router.enforce_stamps()
+                    elif hasattr(self.message_router, "ignore_stamps"):
+                        self.message_router.ignore_stamps()
                     self.local_lxmf_destination.display_name = (
                         self.config.display_name.get()
                     )
@@ -21930,6 +22051,10 @@ class ReticulumMeshChat:
             ctx.local_lxmf_destination.hash,
             cost,
         )
+        if cost > 0:
+            ctx.message_router.enforce_stamps()
+        elif hasattr(ctx.message_router, "ignore_stamps"):
+            ctx.message_router.ignore_stamps()
         try:
             ctx.local_lxmf_destination.display_name = ctx.config.display_name.get()
             ctx.message_router.announce(

@@ -622,8 +622,29 @@ class PluginManager:
         with self._lock:
             record = self._require_plugin(plugin_id)
             self._validate_plugin_runtime(record)
-            integrity_hash = compute_dir_integrity_hash(record.install_path)
-            record.integrity_hash = integrity_hash
+            # Never re-bless a tampered tree. Reinstall is required to refresh
+            # the integrity hash after on-disk changes.
+            if record.tampered:
+                raise PluginSecurityError(
+                    "plugin tree was tampered; reinstall the plugin to enable it",
+                )
+            current_hash = compute_dir_integrity_hash(record.install_path)
+            if record.integrity_hash and current_hash != record.integrity_hash:
+                record.enabled = False
+                record.tampered = True
+                record.auto_disabled_reason = INTEGRITY_TAMPER_MESSAGE
+                self._write_plugin_state(
+                    plugin_id,
+                    False,
+                    INTEGRITY_TAMPER_MESSAGE,
+                    integrity_hash=record.integrity_hash,
+                    tampered=True,
+                )
+                raise PluginSecurityError(
+                    "plugin tree was tampered; reinstall the plugin to enable it",
+                )
+            if not record.integrity_hash:
+                record.integrity_hash = current_hash
             record.tampered = False
             record.enabled = True
             record.auto_disabled_reason = None
@@ -633,7 +654,7 @@ class PluginManager:
                 plugin_id,
                 True,
                 None,
-                integrity_hash=integrity_hash,
+                integrity_hash=record.integrity_hash,
                 tampered=False,
             )
             if self._backend_type(record) == "python":

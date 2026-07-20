@@ -3696,7 +3696,22 @@
         "presence_joined": "{count} ont rejoint",
         "presence_left": "{count} sont partis",
         "presence_events": "{count} événements entrée/sortie",
-        "presence_connection": "{count} événements de connexion"
+        "presence_connection": "{count} événements de connexion",
+        "join_room_key_placeholder": "Clé de salon (si requise)",
+        "room_key_prompt": "Entrez la clé pour #{room}",
+        "bad_key": "Mauvaise clé de salon. Entrez la bonne clé pour rejoindre.",
+        "join_requested": "Demande d'adhésion envoyée",
+        "host_room_key_placeholder": "Clé de salon (facultative)",
+        "host_room_keyed": "Ce salon nécessite une clé",
+        "host_room_unkeyed": "Ce salon n'a pas de clé",
+        "host_set_room_key": "Définir la clé",
+        "host_change_room_key": "Modifier la clé",
+        "host_clear_room_key": "Supprimer la clé",
+        "host_room_key_prompt": "Entrez une nouvelle clé pour #{room}",
+        "host_room_key_required": "Une clé de salon est requise",
+        "host_room_key_saved": "Clé de salon enregistrée",
+        "host_clear_room_key_confirm": "Supprimer la clé de ce salon ? N'importe qui pourra rejoindre.",
+        "host_room_key_cleared": "Clé de salon supprimée"
     },
     "android_storage": {
         "setup_title": "Choisissez où MeshChatX stocke les données",

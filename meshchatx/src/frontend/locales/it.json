@@ -3696,7 +3696,22 @@
         "presence_joined": "{count} entrati",
         "presence_left": "{count} usciti",
         "presence_events": "{count} eventi entrata/uscita",
-        "presence_connection": "{count} eventi di connessione"
+        "presence_connection": "{count} eventi di connessione",
+        "join_room_key_placeholder": "Chiave della stanza (se richiesta)",
+        "room_key_prompt": "Inserisci la chiave per #{room}",
+        "bad_key": "Chiave della stanza errata. Inserisci la chiave corretta per entrare.",
+        "join_requested": "Richiesta di accesso inviata",
+        "host_room_key_placeholder": "Chiave della stanza (facoltativa)",
+        "host_room_keyed": "Questa stanza richiede una chiave",
+        "host_room_unkeyed": "Questa stanza non ha una chiave",
+        "host_set_room_key": "Imposta chiave",
+        "host_change_room_key": "Cambia chiave",
+        "host_clear_room_key": "Rimuovi chiave",
+        "host_room_key_prompt": "Inserisci una nuova chiave per #{room}",
+        "host_room_key_required": "È richiesta una chiave della stanza",
+        "host_room_key_saved": "Chiave della stanza salvata",
+        "host_clear_room_key_confirm": "Rimuovere la chiave da questa stanza? Chiunque potrà entrare.",
+        "host_room_key_cleared": "Chiave della stanza rimossa"
     },
     "android_storage": {
         "setup_title": "Scegli dove MeshChatX archivia i dati",

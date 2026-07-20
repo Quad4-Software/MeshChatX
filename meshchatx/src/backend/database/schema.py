@@ -19,7 +19,7 @@ def _validate_identifier(name: str, label: str = "identifier") -> str:
 
 
 class DatabaseSchema:
-    LATEST_VERSION = 52
+    LATEST_VERSION = 53
 
     def __init__(self, provider: DatabaseProvider):
         self.provider = provider
@@ -1607,3 +1607,23 @@ class DatabaseSchema:
                     ) fc ON fc.peer_hash = m.peer_hash
                     """,
                 )
+
+        if current_version < 53:
+            # Encrypted client-side RRC room keys for +k rooms (identity-scoped).
+            self._safe_execute(
+                """
+                CREATE TABLE IF NOT EXISTS rrc_room_keys (
+                    hub_hash TEXT NOT NULL,
+                    dest_name TEXT NOT NULL,
+                    room TEXT NOT NULL,
+                    nonce BLOB NOT NULL,
+                    ciphertext BLOB NOT NULL,
+                    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (hub_hash, dest_name, room)
+                )
+                """,
+            )
+            self._safe_execute(
+                "CREATE INDEX IF NOT EXISTS idx_rrc_room_keys_hub "
+                "ON rrc_room_keys(hub_hash, dest_name)",
+            )

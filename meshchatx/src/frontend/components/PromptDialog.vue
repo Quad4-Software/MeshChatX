@@ -29,8 +29,9 @@
                     <input
                         ref="promptInput"
                         v-model="inputValue"
-                        type="text"
+                        :type="inputType"
                         class="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-800 text-gray-900 dark:text-zinc-100 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
+                        autocomplete="off"
                         @keydown.enter.prevent="confirm"
                         @keydown.esc.prevent="cancel"
                     />
@@ -71,6 +72,7 @@ export default {
             pendingPrompt: null,
             resolvePromise: null,
             inputValue: "",
+            inputType: "text",
         };
     },
     mounted() {
@@ -80,9 +82,10 @@ export default {
         GlobalEmitter.off("prompt", this.show);
     },
     methods: {
-        show({ message, defaultValue, resolve }) {
+        show({ message, defaultValue, resolve, inputType }) {
             this.pendingPrompt = { message };
             this.inputValue = defaultValue == null ? "" : String(defaultValue);
+            this.inputType = inputType === "password" ? "password" : "text";
             this.resolvePromise = resolve;
             this.$nextTick(() => {
                 const input = this.$refs.promptInput;
@@ -99,6 +102,7 @@ export default {
             }
             this.pendingPrompt = null;
             this.inputValue = "";
+            this.inputType = "text";
         },
         cancel() {
             if (this.resolvePromise) {
@@ -107,6 +111,7 @@ export default {
             }
             this.pendingPrompt = null;
             this.inputValue = "";
+            this.inputType = "text";
         },
     },
 };

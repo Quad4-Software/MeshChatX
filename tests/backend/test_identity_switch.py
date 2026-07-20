@@ -175,6 +175,7 @@ async def test_hotswap_identity_keep_alive(mock_rns, temp_dir):
 
     # Mock methods
     app.teardown_identity = MagicMock()
+    app._clear_mesh_link_caches = MagicMock()
     app.setup_identity = MagicMock(
         side_effect=lambda id: setattr(app, "current_context", mock_context),
     )
@@ -185,6 +186,7 @@ async def test_hotswap_identity_keep_alive(mock_rns, temp_dir):
 
     assert result is True
     app.teardown_identity.assert_not_called()
+    app._clear_mesh_link_caches.assert_called_once()
     app.setup_identity.assert_called_once_with(new_id_instance)
 
 

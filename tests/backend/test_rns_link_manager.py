@@ -96,6 +96,27 @@ def test_clear_all_cached_links_tears_down_active():
         assert rlm._link_failure_counts == {}
 
 
+def test_clear_mesh_link_caches_clears_rns_and_nomad(monkeypatch):
+    from meshchatx.meshchat import ReticulumMeshChat
+    from meshchatx.src.backend import nomadnet_downloader as nd
+
+    rns_cleared = []
+    nomad_cleared = []
+    monkeypatch.setattr(
+        "meshchatx.meshchat.clear_all_cached_links",
+        lambda: rns_cleared.append(1) or 1,
+    )
+    monkeypatch.setattr(
+        "meshchatx.meshchat.clear_all_nomadnet_cached_links",
+        lambda: nomad_cleared.append(1) or 1,
+    )
+    app = ReticulumMeshChat.__new__(ReticulumMeshChat)
+    app._clear_mesh_link_caches()
+    assert rns_cleared == [1]
+    assert nomad_cleared == [1]
+    assert nd is not None
+
+
 @pytest.mark.asyncio
 async def test_open_link_reuses_cached_active():
     dest = bytes.fromhex("bb" * 16)

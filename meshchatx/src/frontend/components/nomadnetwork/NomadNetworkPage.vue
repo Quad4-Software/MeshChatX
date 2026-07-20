@@ -1967,17 +1967,33 @@ export default {
             const placeholders = container.querySelectorAll(".mu-partial");
             if (placeholders.length === 0) return;
 
+            // Hostile pages can emit many partials / 1s refresh loops. Cap fan-out
+            // and floor refresh so browsing cannot coerce unbounded mesh traffic.
+            const MAX_PARTIAL_PLACEHOLDERS = 32;
+            const MAX_PARTIAL_FETCHES_PER_PASS = 8;
+            const MIN_PARTIAL_REFRESH_SEC = 5;
+
             const idsByKey = {};
             const refreshByKey = {};
             const needLoad = new Set();
 
             const fieldsByKey = {};
+            let seenPlaceholders = 0;
             placeholders.forEach((el) => {
+                if (seenPlaceholders >= MAX_PARTIAL_PLACEHOLDERS) {
+                    return;
+                }
+                seenPlaceholders += 1;
                 const id = el.getAttribute("data-partial-id");
                 const dest = el.getAttribute("data-dest");
                 const path = el.getAttribute("data-path");
                 const refreshAttr = el.getAttribute("data-refresh");
-                const refresh = refreshAttr ? parseInt(refreshAttr, 10) : null;
+                let refresh = refreshAttr ? parseInt(refreshAttr, 10) : null;
+                if (Number.isFinite(refresh) && refresh > 0) {
+                    refresh = Math.max(refresh, MIN_PARTIAL_REFRESH_SEC);
+                } else {
+                    refresh = null;
+                }
                 const fieldsStr = el.getAttribute("data-fields");
                 const key = dest + ":" + path;
                 if (!idsByKey[key]) idsByKey[key] = [];
@@ -2018,7 +2034,12 @@ export default {
                     }
                 }
             };
+            let fetchBudget = MAX_PARTIAL_FETCHES_PER_PASS;
             needLoad.forEach((key) => {
+                if (fetchBudget <= 0) {
+                    return;
+                }
+                fetchBudget -= 1;
                 const colon = key.indexOf(":");
                 const dest = key.slice(0, colon);
                 const path = colon >= 0 ? key.slice(colon + 1) : "";
