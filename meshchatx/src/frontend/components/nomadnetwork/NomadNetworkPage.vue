@@ -600,7 +600,7 @@
 import MicronParser from "../../js/MicronParser";
 import LinkUtils from "../../js/LinkUtils";
 import { handleRichHtmlLinkClick } from "../../js/NomadRichHtmlLinks.js";
-import { renderNomadPageByPath, resolveNomadPageShellBackground } from "../../js/NomadPageRenderer";
+import { renderNomadPageByPath, resolveNomadPageShellBackground, isolateNomadLinksInHtml } from "../../js/NomadPageRenderer";
 import DialogUtils from "../../js/DialogUtils";
 import WebSocketConnection from "../../js/WebSocketConnection";
 import NomadNetworkSidebar from "./NomadNetworkSidebar.vue";
@@ -2049,7 +2049,8 @@ export default {
                     path,
                     fields,
                     (pageContent) => {
-                        const html = muParser.convertMicronToHtml(pageContent, {}, micronOpts);
+                        let html = muParser.convertMicronToHtml(pageContent, {}, micronOpts);
+                        html = isolateNomadLinksInHtml(html, dest);
                         const ids = this.partialIdsByKey[key];
                         if (ids) {
                             updatePartialDom(html, ids);
@@ -2065,7 +2066,8 @@ export default {
                             const scheduleRefresh = () => {
                                 this.partialRefreshTimers[key] = setTimeout(() => {
                                     this.downloadNomadNetPage(dest, path, fields, (content) => {
-                                        const h = muParser.convertMicronToHtml(content, {}, micronOpts);
+                                        let h = muParser.convertMicronToHtml(content, {}, micronOpts);
+                                        h = isolateNomadLinksInHtml(h, dest);
                                         const idList = this.partialIdsByKey[key];
                                         if (idList) {
                                             updatePartialDom(h, idList);
@@ -2352,7 +2354,8 @@ export default {
 
             if (options === "*") {
                 useCache = false; // we want to send another request with the field data
-                const inputs = document.querySelectorAll(".nodeContainer input, .nodeContainer textarea");
+                // Scope to this tab only. Inactive tabs stay mounted with v-show.
+                const inputs = this.$el.querySelectorAll(".nodeContainer input, .nodeContainer textarea");
 
                 const inputValues = {};
 
@@ -2374,8 +2377,8 @@ export default {
                 // split options into an array of names
                 const validNames = options.split("|");
 
-                // Select inputs within the container
-                const inputs = document.querySelectorAll(".nodeContainer input, .nodeContainer textarea");
+                // Select inputs within this tab's container only
+                const inputs = this.$el.querySelectorAll(".nodeContainer input, .nodeContainer textarea");
 
                 const inputValues = {};
 
@@ -2396,8 +2399,6 @@ export default {
 
                 fieldData = inputValues;
             }
-
-            console.log(fieldData);
 
             const httpHref = typeof url === "string" ? LinkUtils.httpUrlHrefOrNull(url.trim()) : null;
             if (httpHref) {
@@ -2430,7 +2431,12 @@ export default {
                 this.isArchiveDropdownOpen = false;
 
                 // use parsed destination hash, or fallback to selected node destination hash
-                const destinationHash = parsedUrl.destination_hash || this.selectedNode.destination_hash;
+                const destinationHash =
+                    parsedUrl.destination_hash || this.selectedNode?.destination_hash || null;
+                if (!destinationHash) {
+                    ToastUtils.warning(this.$t("nomadnet.select_node_to_browse"));
+                    return;
+                }
 
                 // download file
                 if (parsedUrl.path.startsWith("/file/")) {

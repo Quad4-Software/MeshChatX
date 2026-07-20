@@ -90,6 +90,22 @@ def test_download_and_browse_require_running(handler):
     assert handler.connect_peer("bb" * 16)["ok"] is False
 
 
+def test_list_directories_rejects_traversal(handler):
+    for payload in ("../etc", "/etc/passwd", handler.storage_dir + "/../"):
+        result = handler.list_directories(payload)
+        # parent of storage may resolve outside and fail jail
+        if result.get("ok"):
+            assert result["current"].startswith(handler.storage_dir)
+        else:
+            assert "identity storage" in result["error"] or "not a directory" in result["error"]
+
+
+def test_create_directory_rejects_dotfiles_and_separators(handler):
+    assert handler.create_directory(handler._root, ".hidden")["ok"] is False
+    assert handler.create_directory(handler._root, "a/b")["ok"] is False
+    assert handler.create_directory("/etc", "nope")["ok"] is False
+
+
 @pytest.mark.parametrize("bad_hash", _BAD_HASHES)
 def test_connect_rejects_bad_hashes(handler, bad_hash):
     handler.service = MagicMock()

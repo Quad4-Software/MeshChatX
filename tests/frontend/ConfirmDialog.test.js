@@ -75,4 +75,18 @@ describe("ConfirmDialog UI", () => {
         expect(resolve).toHaveBeenCalledWith(false);
         expect(wrapper.vm.pendingConfirm).toBeNull();
     });
+
+    it("resolves the previous waiter with false when a second confirm opens", async () => {
+        const first = vi.fn();
+        const second = vi.fn();
+        const wrapper = mountDialog();
+        const showFn = GlobalEmitter.on.mock.calls.find((c) => c[0] === "confirm")?.[1];
+        showFn({ message: "First?", resolve: first });
+        await wrapper.vm.$nextTick();
+        showFn({ message: "Second?", resolve: second });
+        await wrapper.vm.$nextTick();
+        expect(first).toHaveBeenCalledWith(false);
+        expect(wrapper.vm.pendingConfirm).toEqual({ message: "Second?" });
+        expect(second).not.toHaveBeenCalled();
+    });
 });

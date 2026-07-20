@@ -13880,6 +13880,49 @@ class ReticulumMeshChat:
                 return not_ready
             return web.json_response({"files": self.rns_filesync_handler.list_files()})
 
+        @routes.get("/api/v1/filesync/directories")
+        async def filesync_directories(request):
+            not_ready = _filesync_require_handler()
+            if not_ready is not None:
+                return not_ready
+            path = request.rel_url.query.get("path")
+            try:
+                result = await asyncio.to_thread(
+                    self.rns_filesync_handler.list_directories,
+                    path,
+                )
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+            if not result.get("ok"):
+                return web.json_response(
+                    {"message": result.get("error", "list directories failed")},
+                    status=400,
+                )
+            return web.json_response(result)
+
+        @routes.post("/api/v1/filesync/directories")
+        async def filesync_directories_create(request):
+            not_ready = _filesync_require_handler()
+            if not_ready is not None:
+                return not_ready
+            data = await request.json()
+            if not isinstance(data, dict):
+                return web.json_response({"message": "Invalid JSON body"}, status=400)
+            try:
+                result = await asyncio.to_thread(
+                    self.rns_filesync_handler.create_directory,
+                    data.get("parent"),
+                    data.get("name", ""),
+                )
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+            if not result.get("ok"):
+                return web.json_response(
+                    {"message": result.get("error", "create directory failed")},
+                    status=400,
+                )
+            return web.json_response(result)
+
         @routes.post("/api/v1/filesync/connect")
         async def filesync_connect(request):
             not_ready = _filesync_require_handler()
@@ -22495,6 +22538,7 @@ class ReticulumMeshChat:
             if not is_reaction_delivery and self.check_spam_keywords(
                 message_title,
                 message_content,
+                context=ctx,
             ):
                 is_spam = True
                 print(
@@ -22504,7 +22548,7 @@ class ReticulumMeshChat:
             # reject attachments from blocked sources (already checked above, but double-check)
             attachments_stripped = False
             if has_attachments(lxmf_fields):
-                if self.is_destination_blocked(source_hash):
+                if self.is_destination_blocked(source_hash, context=ctx):
                     print(
                         f"Rejecting LXMF message with attachments from blocked source: {source_hash}",
                     )

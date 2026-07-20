@@ -595,13 +595,14 @@ class RRCHub:
             r = proto.normalize_room(room)
         nick = self.get_effective_nick()
         if record_local:
+            history_text = self._redact_command_for_history(text)
             self._record_message(
                 proto.RRCMessage(
                     "msg",
                     r,
                     self.manager.identity.hash,
                     nick,
-                    text,
+                    history_text,
                     proto.now_ms(),
                 ),
                 local=True,
@@ -615,6 +616,18 @@ class RRCHub:
         if nick:
             env[proto.K_NICK] = nick
         self._send_env(env)
+
+    @staticmethod
+    def _redact_command_for_history(text):
+        """Omit +k secrets from locally recorded command history."""
+        parts = text.split()
+        if (
+            len(parts) >= 4
+            and parts[0].lower() == "/mode"
+            and parts[2].lower() == "+k"
+        ):
+            return " ".join([*parts[:3], "***"])
+        return text
 
     def send_ping(self, room=None):
         body = os.urandom(8)

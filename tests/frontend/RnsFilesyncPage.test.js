@@ -17,6 +17,14 @@ vi.mock("@/js/registries/wsEventRegistry.js", () => ({
     offWsEvent: vi.fn(),
 }));
 
+vi.mock("@/js/ElectronUtils", () => ({
+    default: {
+        openDirectoryOrCopy: vi.fn().mockResolvedValue(true),
+        isElectron: vi.fn().mockReturnValue(false),
+        pickDirectory: vi.fn().mockResolvedValue(null),
+    },
+}));
+
 describe("RnsFilesyncPage.vue", () => {
     let apiMock;
 
@@ -34,6 +42,7 @@ describe("RnsFilesyncPage.vue", () => {
                     data: {
                         running: false,
                         sync_directory: "/tmp/sync",
+                        storage_directory: "/tmp",
                         peers: 0,
                         files: 0,
                         monitor: true,
@@ -49,6 +58,17 @@ describe("RnsFilesyncPage.vue", () => {
             }
             if (url === "/api/v1/filesync/acl") {
                 return Promise.resolve({ data: { enforce: false, rules: {} } });
+            }
+            if (String(url).startsWith("/api/v1/filesync/directories")) {
+                return Promise.resolve({
+                    data: {
+                        ok: true,
+                        root: "/tmp",
+                        current: "/tmp/sync",
+                        parent: "/tmp",
+                        directories: [{ name: "docs", path: "/tmp/sync/docs" }],
+                    },
+                });
             }
             return Promise.resolve({ data: {} });
         });
@@ -76,6 +96,11 @@ describe("RnsFilesyncPage.vue", () => {
                         template: "<div class='header-stub'>{{ title }}</div>",
                         props: ["title", "description", "eyebrow", "icon", "accent"],
                     },
+                    FilesyncDirectoryBrowserModal: {
+                        template: "<div class='browser-stub' v-if='open'></div>",
+                        props: ["open", "initialPath"],
+                        emits: ["close", "select"],
+                    },
                 },
             },
         });
@@ -85,6 +110,33 @@ describe("RnsFilesyncPage.vue", () => {
         await vi.waitFor(() => expect(apiMock.get).toHaveBeenCalledWith("/api/v1/filesync/status"));
         expect(wrapper.text()).toContain("rns_filesync.title");
         expect(wrapper.vm.syncDirectory).toBe("/tmp/sync");
+    });
+
+    it("uses themed input-field classes", async () => {
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.syncDirectory).toBe("/tmp/sync"));
+        expect(wrapper.find("input.input-field").exists()).toBe(true);
+        expect(wrapper.find("input.glass-input").exists()).toBe(false);
+    });
+
+    it("opens directory browser from browse button", async () => {
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.syncDirectory).toBe("/tmp/sync"));
+        expect(wrapper.vm.directoryBrowserOpen).toBe(false);
+        await wrapper.vm.openDirectoryBrowser();
+        expect(wrapper.vm.directoryBrowserOpen).toBe(true);
+        wrapper.vm.onDirectorySelected("/tmp/sync/docs");
+        expect(wrapper.vm.syncDirectory).toBe("/tmp/sync/docs");
+        expect(ToastUtils.success).toHaveBeenCalledWith("rns_filesync.folder_selected");
+    });
+
+    it("warns when browsing while syncing", async () => {
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.syncDirectory).toBe("/tmp/sync"));
+        wrapper.vm.status.running = true;
+        await wrapper.vm.openDirectoryBrowser();
+        expect(wrapper.vm.directoryBrowserOpen).toBe(false);
+        expect(ToastUtils.warning).toHaveBeenCalledWith("rns_filesync.stop_before_change_folder");
     });
 
     it("starts filesync and toasts success", async () => {
@@ -132,5 +184,81 @@ describe("RnsFilesyncPage.vue", () => {
             path: "notes.txt",
         });
         expect(ToastUtils.info).toHaveBeenCalledWith("rns_filesync.download_started");
+    });
+
+    it("builds friendly ACL rows", async () => {
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.syncDirectory).toBe("/tmp/sync"));
+        wrapper.vm.aclRules = {
+            read: ["aa".repeat(16)],
+            write: ["aa".repeat(16)],
+            delete: [],
+        };
+        expect(wrapper.vm.aclRows).toHaveLength(1);
+        expect(wrapper.vm.aclRows[0].permsLabel).toContain("rns_filesync.perm_read");
+        expect(wrapper.vm.aclRows[0].permsLabel).toContain("rns_filesync.perm_write");
+    });
+
+    it("humanizes progress payloads", async () => {
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.syncDirectory).toBe("/tmp/sync"));
+        wrapper.vm.lastProgress = { path: "a.txt", status: "sending", bytes: 10, total: 100 };
+        expect(wrapper.vm.lastProgressLabel).toContain("a.txt");
+        expect(wrapper.vm.lastProgressLabel).toContain("sending");
+    });
+});
+
+describe("FilesyncDirectoryBrowserModal.vue", () => {
+    let apiMock;
+
+    beforeEach(async () => {
+        apiMock = {
+            get: vi.fn().mockResolvedValue({
+                data: {
+                    ok: true,
+                    root: "/tmp",
+                    current: "/tmp/filesync",
+                    parent: "/tmp",
+                    directories: [{ name: "sync", path: "/tmp/filesync/sync" }],
+                },
+            }),
+            post: vi.fn().mockResolvedValue({ data: { ok: true, path: "/tmp/filesync/new" } }),
+        };
+        window.api = apiMock;
+    });
+
+    afterEach(() => {
+        delete window.api;
+        vi.clearAllMocks();
+    });
+
+    it("loads directories when opened and selects a path", async () => {
+        const { default: FilesyncDirectoryBrowserModal } = await import(
+            "@/components/filesync/FilesyncDirectoryBrowserModal.vue"
+        );
+        const wrapper = mount(FilesyncDirectoryBrowserModal, {
+            props: {
+                open: true,
+                initialPath: "/tmp/filesync/sync",
+            },
+            global: {
+                mocks: { $t: (key) => key },
+                stubs: {
+                    MaterialDesignIcon: {
+                        template: "<div></div>",
+                        props: ["iconName"],
+                    },
+                },
+            },
+        });
+        await vi.waitFor(() =>
+            expect(apiMock.get).toHaveBeenCalledWith(
+                expect.stringContaining("/api/v1/filesync/directories")
+            )
+        );
+        expect(wrapper.vm.directories).toHaveLength(1);
+        await wrapper.vm.confirmSelection();
+        expect(wrapper.emitted("select")[0]).toEqual(["/tmp/filesync"]);
+        expect(wrapper.emitted("close")).toBeTruthy();
     });
 });

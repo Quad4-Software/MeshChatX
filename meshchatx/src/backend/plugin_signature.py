@@ -34,8 +34,12 @@ def build_canonical_zip(entries: dict[str, bytes]) -> bytes:
 
 def canonical_dir_payload(directory: str) -> bytes:
     entries: dict[str, bytes] = {}
-    for root, _dirs, files in os.walk(directory):
+    for root, dirs, files in os.walk(directory):
+        # Interpreter bytecode is created on import and must not affect integrity.
+        dirs[:] = [name for name in dirs if name != "__pycache__"]
         for filename in files:
+            if filename.endswith((".pyc", ".pyo")):
+                continue
             path = os.path.join(root, filename)
             rel = os.path.relpath(path, directory).replace("\\", "/")
             if is_signature_basename(rel):

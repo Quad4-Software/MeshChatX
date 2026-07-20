@@ -83,6 +83,9 @@ export default {
     },
     methods: {
         show({ message, defaultValue, resolve, inputType }) {
+            if (typeof this.resolvePromise === "function") {
+                this.resolvePromise(null);
+            }
             this.pendingPrompt = { message };
             this.inputValue = defaultValue == null ? "" : String(defaultValue);
             this.inputType = inputType === "password" ? "password" : "text";

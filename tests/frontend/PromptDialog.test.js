@@ -66,4 +66,18 @@ describe("PromptDialog UI", () => {
         expect(resolve).toHaveBeenCalledWith(null);
         expect(wrapper.vm.pendingPrompt).toBeNull();
     });
+
+    it("resolves the previous waiter with null when a second prompt opens", async () => {
+        const first = vi.fn();
+        const second = vi.fn();
+        const wrapper = mountDialog();
+        const showFn = GlobalEmitter.on.mock.calls.find((c) => c[0] === "prompt")?.[1];
+        showFn({ message: "First?", defaultValue: "a", resolve: first });
+        await wrapper.vm.$nextTick();
+        showFn({ message: "Second?", defaultValue: "b", resolve: second });
+        await wrapper.vm.$nextTick();
+        expect(first).toHaveBeenCalledWith(null);
+        expect(wrapper.vm.pendingPrompt).toEqual({ message: "Second?" });
+        expect(second).not.toHaveBeenCalled();
+    });
 });

@@ -30,7 +30,7 @@
                     </div>
 
                     <div
-                        class="border-b border-gray-200 dark:border-zinc-700 overflow-x-auto overscroll-x-contain -mx-4 px-4 sm:mx-0 sm:px-0"
+                        class="border-b border-sem-border overflow-x-auto overscroll-x-contain -mx-4 px-4 sm:mx-0 sm:px-0"
                     >
                         <div class="flex w-max min-w-full sm:w-auto gap-1 sm:gap-2">
                             <button
@@ -40,7 +40,7 @@
                                 :class="[
                                     activeTab === tab.id
                                         ? 'border-b-2 border-emerald-500 text-emerald-600 dark:text-emerald-400'
-                                        : 'text-gray-600 dark:text-gray-400',
+                                        : 'text-sem-fg-muted',
                                     'shrink-0 px-3 sm:px-4 py-2 text-sm font-semibold transition',
                                 ]"
                                 @click="activeTab = tab.id"
@@ -50,111 +50,165 @@
                         </div>
                     </div>
 
-                    <div v-if="activeTab === 'status'" class="space-y-4">
-                        <div class="grid gap-3 sm:grid-cols-2">
+                    <div v-if="activeTab === 'folder'" class="space-y-4">
+                        <div class="rounded-xl border border-sem-border bg-sem-surface-muted/40 p-4 space-y-4">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span
+                                    class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
+                                    :class="
+                                        status.running
+                                            ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                                            : 'bg-sem-surface-muted text-sem-fg-muted'
+                                    "
+                                >
+                                    <span
+                                        class="size-1.5 rounded-full"
+                                        :class="status.running ? 'bg-emerald-500' : 'bg-sem-fg-muted'"
+                                    ></span>
+                                    {{
+                                        status.running
+                                            ? $t("rns_filesync.status_syncing")
+                                            : $t("rns_filesync.status_stopped")
+                                    }}
+                                </span>
+                                <span class="text-xs text-sem-fg-muted">
+                                    {{ $t("rns_filesync.peers_count") }}:
+                                    <strong class="text-sem-fg">{{ status.peers || 0 }}</strong>
+                                </span>
+                                <span class="text-xs text-sem-fg-muted">
+                                    {{ $t("rns_filesync.files_count") }}:
+                                    <strong class="text-sem-fg">{{ status.files || 0 }}</strong>
+                                </span>
+                            </div>
+
                             <div>
                                 <label class="glass-label">{{ $t("rns_filesync.sync_directory") }}</label>
-                                <input
-                                    v-model="syncDirectory"
-                                    type="text"
-                                    class="glass-input w-full font-mono text-sm"
-                                    :disabled="status.running"
-                                    :placeholder="$t('rns_filesync.sync_directory_placeholder')"
-                                />
+                                <div class="flex gap-2">
+                                    <input
+                                        v-model="syncDirectory"
+                                        type="text"
+                                        class="input-field flex-1 min-w-0 font-mono text-sm"
+                                        :disabled="status.running"
+                                        :placeholder="$t('rns_filesync.sync_directory_placeholder')"
+                                    />
+                                    <button
+                                        type="button"
+                                        class="secondary-chip px-3 py-2 text-xs shrink-0"
+                                        :disabled="busy || status.running"
+                                        :title="$t('rns_filesync.browse_folder')"
+                                        @click="openDirectoryBrowser"
+                                    >
+                                        <MaterialDesignIcon icon-name="folder-open-outline" class="w-4 h-4" />
+                                        <span class="hidden sm:inline">{{ $t("rns_filesync.browse_folder") }}</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="secondary-chip px-3 py-2 text-xs shrink-0"
+                                        :disabled="busy || !syncDirectory"
+                                        :title="$t('rns_filesync.open_folder')"
+                                        @click="openSyncFolder"
+                                    >
+                                        <MaterialDesignIcon icon-name="folder" class="w-4 h-4" />
+                                        <span class="hidden sm:inline">{{ $t("rns_filesync.open_folder") }}</span>
+                                    </button>
+                                </div>
+                                <p class="mt-1.5 text-xs text-sem-fg-muted">
+                                    {{ $t("rns_filesync.sync_directory_help") }}
+                                </p>
                             </div>
-                            <div>
-                                <label class="glass-label">{{ $t("rns_filesync.announce_interval") }}</label>
-                                <input
-                                    v-model.number="announceInterval"
-                                    type="number"
-                                    min="10"
-                                    class="glass-input w-full"
-                                />
+
+                            <div class="grid gap-3 sm:grid-cols-2">
+                                <div>
+                                    <label class="glass-label">{{ $t("rns_filesync.announce_interval") }}</label>
+                                    <input
+                                        v-model.number="announceInterval"
+                                        type="number"
+                                        min="10"
+                                        class="input-field w-full"
+                                    />
+                                    <p class="mt-1 text-xs text-sem-fg-muted">
+                                        {{ $t("rns_filesync.announce_interval_help") }}
+                                    </p>
+                                </div>
+                                <div class="flex items-end">
+                                    <label class="flex items-center gap-2 text-sm text-sem-fg pb-2">
+                                        <input v-model="monitor" type="checkbox" class="rounded" />
+                                        {{ $t("rns_filesync.monitor") }}
+                                    </label>
+                                </div>
                             </div>
-                        </div>
-                        <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                            <input v-model="monitor" type="checkbox" class="rounded" />
-                            {{ $t("rns_filesync.monitor") }}
-                        </label>
-                        <div class="flex flex-wrap gap-2">
-                            <button
-                                v-if="!status.running"
-                                type="button"
-                                class="primary-chip px-4 py-2 text-sm"
-                                :disabled="busy"
-                                @click="startService"
-                            >
-                                <MaterialDesignIcon icon-name="play" class="w-4 h-4" />
-                                {{ $t("rns_filesync.start") }}
-                            </button>
-                            <button
-                                v-else
-                                type="button"
-                                class="secondary-chip px-4 py-2 text-sm text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/50"
-                                :disabled="busy"
-                                @click="stopService"
-                            >
-                                <MaterialDesignIcon icon-name="stop" class="w-4 h-4" />
-                                {{ $t("rns_filesync.stop") }}
-                            </button>
-                            <button
-                                type="button"
-                                class="secondary-chip px-4 py-2 text-sm"
-                                :disabled="busy || !status.running"
-                                @click="announceNow"
-                            >
-                                <MaterialDesignIcon icon-name="bullhorn" class="w-4 h-4" />
-                                {{ $t("rns_filesync.announce") }}
-                            </button>
-                            <button
-                                type="button"
-                                class="secondary-chip px-4 py-2 text-sm"
-                                :disabled="busy"
-                                @click="refreshStatus"
-                            >
-                                <MaterialDesignIcon icon-name="refresh" class="w-4 h-4" />
-                                {{ $t("rns_filesync.refresh") }}
-                            </button>
-                        </div>
-                        <div class="space-y-2 text-sm">
-                            <div class="flex flex-wrap gap-x-4 gap-y-1">
-                                <span>
-                                    {{ $t("rns_filesync.running") }}:
-                                    <strong>{{
-                                        status.running ? $t("rns_filesync.yes") : $t("rns_filesync.no")
-                                    }}</strong>
-                                </span>
-                                <span>
-                                    {{ $t("rns_filesync.peers_count") }}:
-                                    <strong>{{ status.peers || 0 }}</strong>
-                                </span>
-                                <span>
-                                    {{ $t("rns_filesync.files_count") }}:
-                                    <strong>{{ status.files || 0 }}</strong>
-                                </span>
-                            </div>
-                            <div v-if="status.destination_hash" class="font-mono text-xs break-all">
-                                <div class="font-semibold mb-1">{{ $t("rns_filesync.destination_hash") }}</div>
+
+                            <div class="flex flex-wrap gap-2">
+                                <button
+                                    v-if="!status.running"
+                                    type="button"
+                                    class="primary-chip px-4 py-2 text-sm"
+                                    :disabled="busy"
+                                    @click="startService"
+                                >
+                                    <MaterialDesignIcon icon-name="play" class="w-4 h-4" />
+                                    {{ $t("rns_filesync.start") }}
+                                </button>
+                                <button
+                                    v-else
+                                    type="button"
+                                    class="secondary-chip px-4 py-2 text-sm text-red-600 dark:text-red-300 border-red-200 dark:border-red-500/50"
+                                    :disabled="busy"
+                                    @click="stopService"
+                                >
+                                    <MaterialDesignIcon icon-name="stop" class="w-4 h-4" />
+                                    {{ $t("rns_filesync.stop") }}
+                                </button>
                                 <button
                                     type="button"
-                                    class="text-left hover:underline"
-                                    @click="copyHash(status.destination_hash)"
+                                    class="secondary-chip px-4 py-2 text-sm"
+                                    :disabled="busy || !status.running"
+                                    @click="announceNow"
                                 >
-                                    {{ status.destination_hash }}
+                                    <MaterialDesignIcon icon-name="bullhorn" class="w-4 h-4" />
+                                    {{ $t("rns_filesync.announce") }}
+                                </button>
+                                <button
+                                    type="button"
+                                    class="secondary-chip px-4 py-2 text-sm"
+                                    :disabled="busy"
+                                    @click="refreshStatus"
+                                >
+                                    <MaterialDesignIcon icon-name="refresh" class="w-4 h-4" />
+                                    {{ $t("rns_filesync.refresh") }}
                                 </button>
                             </div>
-                            <div v-if="lastProgress" class="text-xs text-gray-600 dark:text-gray-400">
-                                {{ $t("rns_filesync.last_progress") }}: {{ lastProgress }}
+                        </div>
+
+                        <div v-if="status.destination_hash" class="rounded-xl border border-sem-border p-4 space-y-2">
+                            <div class="text-sm font-semibold text-sem-fg">
+                                {{ $t("rns_filesync.share_id") }}
                             </div>
+                            <p class="text-xs text-sem-fg-muted">{{ $t("rns_filesync.share_id_help") }}</p>
+                            <button
+                                type="button"
+                                class="w-full text-left font-mono text-xs break-all rounded-lg border border-sem-border bg-sem-surface-muted/50 px-3 py-2 hover:border-emerald-500"
+                                @click="copyHash(status.destination_hash)"
+                            >
+                                {{ status.destination_hash }}
+                            </button>
+                        </div>
+
+                        <div
+                            v-if="lastProgressLabel"
+                            class="rounded-lg border border-sem-border px-3 py-2 text-xs text-sem-fg-muted"
+                        >
+                            {{ $t("rns_filesync.last_progress") }}: {{ lastProgressLabel }}
                         </div>
                     </div>
 
-                    <div v-else-if="activeTab === 'peers'" class="space-y-4">
+                    <div v-else-if="activeTab === 'devices'" class="space-y-4">
+                        <p class="text-sm text-sem-fg-muted">{{ $t("rns_filesync.devices_help") }}</p>
                         <div class="flex flex-col sm:flex-row gap-2">
                             <input
                                 v-model="connectHash"
                                 type="text"
-                                class="glass-input flex-1 font-mono text-sm"
+                                class="input-field flex-1 font-mono text-sm"
                                 :placeholder="$t('rns_filesync.peer_hash_placeholder')"
                             />
                             <button
@@ -163,6 +217,7 @@
                                 :disabled="busy || !status.running"
                                 @click="connectPeer"
                             >
+                                <MaterialDesignIcon icon-name="link-variant" class="w-4 h-4" />
                                 {{ $t("rns_filesync.connect") }}
                             </button>
                         </div>
@@ -174,19 +229,22 @@
                         >
                             {{ $t("rns_filesync.refresh") }}
                         </button>
-                        <div v-if="peers.length === 0" class="text-sm text-gray-500 dark:text-gray-400">
+                        <div v-if="peers.length === 0" class="text-sm text-sem-fg-muted">
                             {{ $t("rns_filesync.no_peers") }}
                         </div>
                         <ul v-else class="space-y-2">
                             <li
                                 v-for="peer in peers"
                                 :key="peer.peer_id"
-                                class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg border border-gray-200 dark:border-zinc-700"
+                                class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg border border-sem-border"
                             >
-                                <div class="min-w-0 font-mono text-xs break-all">
-                                    <div>{{ peer.peer_id }}</div>
-                                    <div class="text-gray-500 dark:text-gray-400">
-                                        {{ peer.destination_hash }} · {{ peer.status }}
+                                <div class="min-w-0">
+                                    <div class="font-mono text-xs break-all text-sem-fg">{{ peer.peer_id }}</div>
+                                    <div class="text-xs text-sem-fg-muted mt-1">
+                                        {{ peerStatusLabel(peer) }}
+                                        <span v-if="peer.destination_hash" class="font-mono">
+                                            · {{ peer.destination_hash }}
+                                        </span>
                                     </div>
                                 </div>
                                 <button
@@ -202,34 +260,43 @@
                     </div>
 
                     <div v-else-if="activeTab === 'files'" class="space-y-4">
-                        <button
-                            type="button"
-                            class="secondary-chip px-3 py-1.5 text-sm"
-                            :disabled="busy"
-                            @click="refreshFiles"
-                        >
-                            {{ $t("rns_filesync.refresh") }}
-                        </button>
-                        <div v-if="files.length === 0" class="text-sm text-gray-500 dark:text-gray-400">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button
+                                type="button"
+                                class="secondary-chip px-3 py-1.5 text-sm"
+                                :disabled="busy"
+                                @click="refreshFiles"
+                            >
+                                {{ $t("rns_filesync.refresh") }}
+                            </button>
+                            <button
+                                type="button"
+                                class="secondary-chip px-3 py-1.5 text-sm"
+                                :disabled="busy || !syncDirectory"
+                                @click="openSyncFolder"
+                            >
+                                <MaterialDesignIcon icon-name="folder-open-outline" class="w-4 h-4" />
+                                {{ $t("rns_filesync.open_folder") }}
+                            </button>
+                        </div>
+                        <div v-if="files.length === 0" class="text-sm text-sem-fg-muted">
                             {{ $t("rns_filesync.no_files") }}
                         </div>
                         <ul v-else class="space-y-2">
-                            <li
-                                v-for="file in files"
-                                :key="file.path"
-                                class="p-3 rounded-lg border border-gray-200 dark:border-zinc-700 font-mono text-xs"
-                            >
-                                <div class="break-all">{{ file.path }}</div>
-                                <div class="text-gray-500 dark:text-gray-400 mt-1">
-                                    {{ file.size }} B · {{ file.hash }}
+                            <li v-for="file in files" :key="file.path" class="p-3 rounded-lg border border-sem-border">
+                                <div class="break-all text-sm text-sem-fg">{{ file.path }}</div>
+                                <div class="text-xs text-sem-fg-muted mt-1">
+                                    {{ formatFileSize(file.size) }}
+                                    <span v-if="file.hash" class="font-mono"> · {{ shortHash(file.hash) }}</span>
                                 </div>
                             </li>
                         </ul>
                     </div>
 
-                    <div v-else-if="activeTab === 'browse'" class="space-y-4">
+                    <div v-else-if="activeTab === 'remote'" class="space-y-4">
+                        <p class="text-sm text-sem-fg-muted">{{ $t("rns_filesync.remote_help") }}</p>
                         <div class="flex flex-col sm:flex-row gap-2">
-                            <select v-model="browsePeerId" class="glass-input flex-1 font-mono text-sm">
+                            <select v-model="browsePeerId" class="input-field flex-1 font-mono text-sm">
                                 <option value="">{{ $t("rns_filesync.select_peer") }}</option>
                                 <option v-for="peer in peers" :key="peer.peer_id" :value="peer.peer_id">
                                     {{ peer.peer_id }}
@@ -241,21 +308,24 @@
                                 :disabled="busy || !status.running || !browsePeerId"
                                 @click="browsePeer"
                             >
+                                <MaterialDesignIcon icon-name="folder-open-outline" class="w-4 h-4" />
                                 {{ $t("rns_filesync.browse") }}
                             </button>
                         </div>
-                        <div v-if="remoteFiles.length === 0" class="text-sm text-gray-500 dark:text-gray-400">
+                        <div v-if="remoteFiles.length === 0" class="text-sm text-sem-fg-muted">
                             {{ $t("rns_filesync.no_remote_files") }}
                         </div>
                         <ul v-else class="space-y-2">
                             <li
                                 v-for="file in remoteFiles"
                                 :key="file.path || file"
-                                class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg border border-gray-200 dark:border-zinc-700"
+                                class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg border border-sem-border"
                             >
-                                <div class="min-w-0 font-mono text-xs break-all">
+                                <div class="min-w-0 text-sm break-all text-sem-fg">
                                     {{ file.path || file }}
-                                    <span v-if="file.size != null" class="text-gray-500"> · {{ file.size }} B</span>
+                                    <span v-if="file.size != null" class="text-xs text-sem-fg-muted">
+                                        · {{ formatFileSize(file.size) }}
+                                    </span>
                                 </div>
                                 <button
                                     type="button"
@@ -269,48 +339,66 @@
                         </ul>
                     </div>
 
-                    <div v-else-if="activeTab === 'acl'" class="space-y-4">
-                        <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                    <div v-else-if="activeTab === 'sharing'" class="space-y-4">
+                        <p class="text-sm text-sem-fg-muted">{{ $t("rns_filesync.sharing_help") }}</p>
+                        <label class="flex items-center gap-2 text-sm text-sem-fg">
                             <input v-model="aclEnforce" type="checkbox" class="rounded" @change="saveEnforce" />
                             {{ $t("rns_filesync.acl_enforce") }}
                         </label>
-                        <div class="flex flex-col sm:flex-row gap-2">
+                        <div class="flex flex-col gap-3">
                             <input
                                 v-model="aclHash"
                                 type="text"
-                                class="glass-input flex-1 font-mono text-sm"
+                                class="input-field w-full font-mono text-sm"
                                 :placeholder="$t('rns_filesync.peer_hash_placeholder')"
                             />
-                            <div class="flex items-center gap-3 text-sm">
-                                <label class="flex items-center gap-1">
-                                    <input v-model="aclRead" type="checkbox" />
-                                    r
+                            <div class="flex flex-wrap items-center gap-4 text-sm text-sem-fg">
+                                <label class="flex items-center gap-1.5">
+                                    <input v-model="aclRead" type="checkbox" class="rounded" />
+                                    {{ $t("rns_filesync.perm_read") }}
                                 </label>
-                                <label class="flex items-center gap-1">
-                                    <input v-model="aclWrite" type="checkbox" />
-                                    w
+                                <label class="flex items-center gap-1.5">
+                                    <input v-model="aclWrite" type="checkbox" class="rounded" />
+                                    {{ $t("rns_filesync.perm_write") }}
                                 </label>
-                                <label class="flex items-center gap-1">
-                                    <input v-model="aclDelete" type="checkbox" />
-                                    d
+                                <label class="flex items-center gap-1.5">
+                                    <input v-model="aclDelete" type="checkbox" class="rounded" />
+                                    {{ $t("rns_filesync.perm_delete") }}
                                 </label>
                             </div>
                             <button
                                 type="button"
-                                class="primary-chip px-4 py-2 text-sm"
+                                class="primary-chip px-4 py-2 text-sm self-start"
                                 :disabled="busy"
                                 @click="grantAcl"
                             >
                                 {{ $t("rns_filesync.acl_grant") }}
                             </button>
                         </div>
-                        <pre class="p-3 rounded-lg bg-zinc-100 dark:bg-zinc-900 text-xs overflow-x-auto">{{
-                            aclRulesText
-                        }}</pre>
+                        <div v-if="aclRows.length === 0" class="text-sm text-sem-fg-muted">
+                            {{ $t("rns_filesync.no_acl_rules") }}
+                        </div>
+                        <ul v-else class="space-y-2">
+                            <li
+                                v-for="row in aclRows"
+                                :key="row.hash"
+                                class="p-3 rounded-lg border border-sem-border text-sm"
+                            >
+                                <div class="font-mono text-xs break-all text-sem-fg">{{ row.hash }}</div>
+                                <div class="text-xs text-sem-fg-muted mt-1">{{ row.permsLabel }}</div>
+                            </li>
+                        </ul>
                     </div>
                 </div>
             </div>
         </div>
+
+        <FilesyncDirectoryBrowserModal
+            :open="directoryBrowserOpen"
+            :initial-path="syncDirectory"
+            @close="directoryBrowserOpen = false"
+            @select="onDirectorySelected"
+        />
     </div>
 </template>
 
@@ -318,6 +406,9 @@
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
+import FilesyncDirectoryBrowserModal from "./FilesyncDirectoryBrowserModal.vue";
+import ElectronUtils from "../../js/ElectronUtils";
+import Utils from "../../js/Utils";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
 
 export default {
@@ -325,16 +416,17 @@ export default {
     components: {
         MaterialDesignIcon,
         ToolsPageHeader,
+        FilesyncDirectoryBrowserModal,
     },
     data() {
         return {
-            activeTab: "status",
+            activeTab: "folder",
             tabs: [
-                { id: "status", labelKey: "rns_filesync.tab_status" },
-                { id: "peers", labelKey: "rns_filesync.tab_peers" },
+                { id: "folder", labelKey: "rns_filesync.tab_folder" },
+                { id: "devices", labelKey: "rns_filesync.tab_devices" },
                 { id: "files", labelKey: "rns_filesync.tab_files" },
-                { id: "browse", labelKey: "rns_filesync.tab_browse" },
-                { id: "acl", labelKey: "rns_filesync.tab_acl" },
+                { id: "remote", labelKey: "rns_filesync.tab_remote" },
+                { id: "sharing", labelKey: "rns_filesync.tab_sharing" },
             ],
             busy: false,
             status: {
@@ -343,6 +435,7 @@ export default {
                 files: 0,
                 destination_hash: null,
                 sync_directory: "",
+                storage_directory: "",
             },
             syncDirectory: "",
             announceInterval: 300,
@@ -358,17 +451,71 @@ export default {
             aclWrite: false,
             aclDelete: false,
             aclRules: {},
-            lastProgress: "",
+            lastProgress: null,
+            directoryBrowserOpen: false,
             wsHandlers: [],
         };
     },
     computed: {
-        aclRulesText() {
-            try {
-                return JSON.stringify(this.aclRules || {}, null, 2);
-            } catch {
-                return "{}";
+        lastProgressLabel() {
+            const payload = this.lastProgress;
+            if (!payload) {
+                return "";
             }
+            if (typeof payload === "string") {
+                return payload;
+            }
+            const path = payload.path || payload.file || payload.name || "";
+            const status = payload.status || payload.state || payload.phase || "";
+            const bytes = payload.bytes ?? payload.transferred ?? payload.done;
+            const total = payload.total ?? payload.size;
+            const parts = [];
+            if (path) {
+                parts.push(String(path));
+            }
+            if (status) {
+                parts.push(String(status));
+            }
+            if (bytes != null && total != null) {
+                parts.push(`${this.formatFileSize(bytes)} / ${this.formatFileSize(total)}`);
+            } else if (bytes != null) {
+                parts.push(this.formatFileSize(bytes));
+            }
+            if (parts.length === 0) {
+                try {
+                    return JSON.stringify(payload);
+                } catch {
+                    return String(payload);
+                }
+            }
+            return parts.join(" · ");
+        },
+        aclRows() {
+            const rules = this.aclRules || {};
+            const byHash = {};
+            for (const perm of ["read", "write", "delete"]) {
+                const targets = Array.isArray(rules[perm]) ? rules[perm] : [];
+                for (const hash of targets) {
+                    if (!byHash[hash]) {
+                        byHash[hash] = new Set();
+                    }
+                    byHash[hash].add(perm);
+                }
+            }
+            const labelMap = {
+                read: this.$t("rns_filesync.perm_read"),
+                write: this.$t("rns_filesync.perm_write"),
+                delete: this.$t("rns_filesync.perm_delete"),
+            };
+            return Object.keys(byHash)
+                .sort()
+                .map((hash) => ({
+                    hash,
+                    permsLabel: ["read", "write", "delete"]
+                        .filter((p) => byHash[hash].has(p))
+                        .map((p) => labelMap[p])
+                        .join(", "),
+                }));
         },
     },
     async mounted() {
@@ -388,7 +535,7 @@ export default {
                 this.wsHandlers.push([type, handler]);
             };
             bind("filesync.sync.progress", (payload) => {
-                this.lastProgress = JSON.stringify(payload);
+                this.lastProgress = payload && typeof payload === "object" ? payload : { status: String(payload) };
             });
             bind("filesync.peer.connected", async () => {
                 await this.refreshPeers();
@@ -410,6 +557,53 @@ export default {
                 const detail = payload?.error || payload?.message || "";
                 ToastUtils.error(`${this.$t("rns_filesync.error")}${detail ? ": " + detail : ""}`);
             });
+        },
+        formatFileSize(bytes) {
+            return Utils.formatBytes(bytes || 0);
+        },
+        shortHash(hash) {
+            const value = String(hash || "");
+            if (value.length <= 12) {
+                return value;
+            }
+            return `${value.slice(0, 8)}...`;
+        },
+        peerStatusLabel(peer) {
+            const raw = peer?.status;
+            if (raw === 1 || raw === "connected" || raw === true) {
+                return this.$t("rns_filesync.peer_connected");
+            }
+            if (raw === 0 || raw === "disconnected" || raw === false) {
+                return this.$t("rns_filesync.peer_disconnected");
+            }
+            return raw != null ? String(raw) : this.$t("rns_filesync.peer_unknown");
+        },
+        openDirectoryBrowser() {
+            if (this.status.running) {
+                ToastUtils.warning(this.$t("rns_filesync.stop_before_change_folder"));
+                return;
+            }
+            this.directoryBrowserOpen = true;
+        },
+        onDirectorySelected(path) {
+            const cleaned = String(path || "").trim();
+            if (!cleaned) {
+                return;
+            }
+            this.syncDirectory = cleaned;
+            ToastUtils.success(this.$t("rns_filesync.folder_selected"));
+        },
+        async openSyncFolder() {
+            const path = String(this.syncDirectory || "").trim();
+            if (!path) {
+                return;
+            }
+            const ok = await ElectronUtils.openDirectoryOrCopy(path, () =>
+                ToastUtils.success(this.$t("rns_filesync.path_copied"))
+            );
+            if (!ok) {
+                ToastUtils.info(path);
+            }
         },
         async refreshAll() {
             await Promise.all([this.refreshStatus(), this.refreshPeers(), this.refreshFiles(), this.refreshAcl()]);

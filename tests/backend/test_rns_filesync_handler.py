@@ -33,6 +33,39 @@ def test_default_status_not_running(handler, mock_identity):
     assert status["identity_hash"] == mock_identity.hash.hex()
     assert status["sync_directory"].endswith("filesync/sync")
     assert "filesync" in status["config_directory"]
+    assert status["storage_directory"] == handler.storage_dir
+
+
+def test_list_directories_defaults_to_filesync_root(handler):
+    nested = f"{handler.storage_dir}/filesync/photos"
+    import os
+
+    os.makedirs(nested, exist_ok=True)
+    result = handler.list_directories()
+    assert result["ok"] is True
+    assert result["current"].endswith("filesync")
+    names = {entry["name"] for entry in result["directories"]}
+    assert "photos" in names or "sync" in names
+
+
+def test_list_directories_rejects_outside_jail(handler):
+    result = handler.list_directories("/tmp/outside")
+    assert result["ok"] is False
+    assert "identity storage" in result["error"]
+
+
+def test_create_directory_under_filesync(handler):
+    result = handler.create_directory(None, "shared")
+    assert result["ok"] is True
+    assert result["path"].endswith("filesync/shared")
+    listed = handler.list_directories(handler._root)
+    assert any(entry["name"] == "shared" for entry in listed["directories"])
+
+
+def test_create_directory_rejects_traversal_name(handler):
+    result = handler.create_directory(handler._root, "../escape")
+    assert result["ok"] is False
+    assert "invalid" in result["error"]
 
 
 def test_update_settings_persists_sync_directory(handler):

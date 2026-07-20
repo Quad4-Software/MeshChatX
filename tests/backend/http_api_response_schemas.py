@@ -542,6 +542,7 @@ FILESYNC_STATUS_SCHEMA: dict = {
         "monitor": _BOOLEAN,
         "announce_interval": _INTEGER,
         "config_directory": _STRING,
+        "storage_directory": _STRING,
     },
     "additionalProperties": True,
 }
@@ -557,6 +558,19 @@ FILESYNC_FILES_SCHEMA: dict = {
     "type": "object",
     "required": ["files"],
     "properties": {"files": _ARRAY},
+    "additionalProperties": True,
+}
+
+FILESYNC_DIRECTORIES_SCHEMA: dict = {
+    "type": "object",
+    "required": ["ok", "root", "current", "directories"],
+    "properties": {
+        "ok": _BOOLEAN,
+        "root": _STRING,
+        "current": _STRING,
+        "parent": {"type": ["string", "null"]},
+        "directories": _ARRAY,
+    },
     "additionalProperties": True,
 }
 

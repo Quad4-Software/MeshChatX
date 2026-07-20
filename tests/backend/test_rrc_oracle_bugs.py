@@ -238,6 +238,30 @@ def test_oracle_register_room_key_strips_like_join_paths():
     )
 
 
+def test_oracle_topic_private_hides_from_outsiders_and_blocks_set():
+    server = make_server()
+    link_a, sess_a = add_session(server, b"\xaa" * 16, nick="alice")
+    link_spy, sess_spy = add_session(server, b"\xbb" * 16, nick="spy")
+    server.register_room("secret", private=True, founder=sess_a.peer, topic="hidden")
+    join(server, link_a, sess_a, "secret")
+
+    read = msg(server, link_spy, sess_spy, "lobby", "/topic secret")
+    notices = envs_of_type(read, proto.T_NOTICE, to_link=link_spy)
+    assert notices
+    assert notices[0][proto.K_BODY] == "topic for secret: (none)"
+
+    vandal = msg(server, link_spy, sess_spy, "lobby", "/topic secret owned")
+    assert envs_of_type(vandal, proto.T_ERROR, to_link=link_spy)
+    assert server.rooms.get_state("secret")["topic"] == "hidden"
+
+
+def test_oracle_topic_read_does_not_create_ghost_state():
+    server = make_server()
+    link, sess = add_session(server, b"\xaa" * 16, nick="alice")
+    msg(server, link, sess, "lobby", "/topic ghostroom")
+    assert server.rooms.get_state("ghostroom") is None
+
+
 def test_oracle_who_on_private_room_requires_membership():
     server = make_server()
     link_a, sess_a = add_session(server, b"\xaa" * 16, nick="alice")
