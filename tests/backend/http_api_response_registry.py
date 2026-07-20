@@ -101,6 +101,7 @@ from tests.backend.http_api_response_schemas import (
     RRC_HUBS_SCHEMA,
     RRC_MEMBERS_SCHEMA,
     RRC_MESSAGES_SCHEMA,
+    RRC_ROOM_KEYS_SCHEMA,
     RRC_SERVERS_SCHEMA,
     SERVER_SECURITY_SCHEMA,
     SPAM_KEYWORDS_SCHEMA,
@@ -413,6 +414,14 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
     ),
     HttpJsonContract("GET", "/api/v1/rrc/hubs", RRC_HUBS_SCHEMA),
     HttpJsonContract("GET", "/api/v1/rrc/servers", RRC_SERVERS_SCHEMA),
+    HttpJsonContract(
+        "GET",
+        "/api/v1/rrc/hubs/{hub_hash}/room-keys",
+        RRC_ROOM_KEYS_SCHEMA,
+        match_info={"hub_hash": _HEX32},
+        allow_statuses=(200, 404),
+        alt_schemas=(MESSAGE_ENVELOPE_SCHEMA,),
+    ),
     HttpJsonContract(
         "GET",
         "/api/v1/rrc/hubs/{hub_hash}/rooms/{room}/messages",

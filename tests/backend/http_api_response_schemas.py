@@ -523,6 +523,13 @@ RRC_ACTIVITY_SCHEMA: dict = {
     "additionalProperties": True,
 }
 
+RRC_ROOM_KEYS_SCHEMA: dict = {
+    "type": "object",
+    "required": ["keys"],
+    "properties": {"keys": _ARRAY},
+    "additionalProperties": True,
+}
+
 RNCP_STATUS_SCHEMA: dict = {
     "type": "object",
     "additionalProperties": True,
