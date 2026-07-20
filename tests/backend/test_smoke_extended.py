@@ -227,5 +227,31 @@ def test_lxmf_router_creation_smoke():
     identity = RNS.Identity()
     with tempfile.TemporaryDirectory() as tmpdir:
         with patch("LXMF.LXMRouter") as mock_router:
-            create_lxmf_router(identity, tmpdir)
-            mock_router.assert_called()
+            create_lxmf_router(
+                identity,
+                tmpdir,
+                propagation_cost=16,
+                max_inbound_syncs=2,
+                sequential_validation=True,
+                static_sequential=False,
+            )
+            mock_router.assert_called_once()
+            kwargs = mock_router.call_args.kwargs
+            assert kwargs["propagation_cost"] == 16
+            assert kwargs["max_inbound_syncs"] == 2
+            assert kwargs["sequential_validation"] is True
+            assert kwargs["static_sequential"] is False
+
+
+def test_lxmf_router_creation_accepts_new_defaults():
+    """LXMF 1.1.0 LXMRouter accepts sequential/inbound sync kwargs."""
+    import inspect
+
+    import LXMF
+
+    params = inspect.signature(LXMF.LXMRouter.__init__).parameters
+    assert "max_inbound_syncs" in params
+    assert "sequential_validation" in params
+    assert "static_sequential" in params
+    assert hasattr(LXMF.LXMRouter, "inbound_count")
+    assert hasattr(LXMF.LXMRouter, "cancel_all_inbound")

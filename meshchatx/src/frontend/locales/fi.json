@@ -501,7 +501,13 @@
         "remote_management_allowed": "Remote management allow-list",
         "remote_management_allowed_description": "Identity hashes allowed to query this instance remotely with rnstatus/rnpath. One 32-character hex hash per line.",
         "remote_management_allowed_placeholder": "9fb6d773498fb3feda407ed8ef2c3229",
-        "remote_management_allowed_save": "Save allow-list"
+        "remote_management_allowed_save": "Save allow-list",
+        "propagation_sequential_validation": "Sequential PN Stamp Validation",
+        "propagation_sequential_validation_description": "Validate inbound propagation sync stamp batches one at a time. Other peers receive a throttle response while a batch is validating. Disable only on fast hosts.",
+        "propagation_static_peers_bypass_sequential": "Static Peers Bypass Sequential Validation",
+        "propagation_static_peers_bypass_sequential_description": "Allow configured static peers to sync immediately even when another stamp batch is already validating.",
+        "propagation_max_inbound_syncs": "Max Concurrent Inbound Syncs",
+        "propagation_max_inbound_syncs_description": "How many concurrent inbound propagation sync transfers to accept. Extra offers are throttled. Range: 1-64. Default: 3."
     },
     "common": {
         "open": "Avaa",
@@ -1334,7 +1340,7 @@
         "location_cmd_placeholder": "/path/to/gps-script",
         "location_cmd_hint": "Absoluuttinen polku ohjelmaan, joka tulostaa latitude,longitude,height. Reticulum ajaa sen discovery-announceja varten (RNS location_cmd).",
         "block_fast_flapping_label": "Estaa nopea flapping",
-        "block_fast_flapping_hint": "Ohittaa asiakkaat, jotka yhdistavat ja katkaisevat liian nopeasti (RNS 1.3.9 BackboneInterface-oletukset).",
+        "block_fast_flapping_hint": "Ohittaa asiakkaat, jotka yhdistavat ja katkaisevat liian nopeasti (RNS 1.4.0 BackboneInterface-oletukset).",
         "fast_flapping_block_time_label": "Estoaika (minuuttia)",
         "fast_flapping_threshold_label": "Kynnys (sekuntia)",
         "fast_flapping_grace_label": "Armo-flapit"

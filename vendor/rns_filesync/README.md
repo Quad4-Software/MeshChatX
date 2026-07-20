@@ -51,7 +51,7 @@ pip install -e ".[dev]"
 # or: make install-user
 ```
 
-Requires rns>=1.3.9. Current package version: **1.0.0**.
+Requires rns>=1.4.0. Current package version: **1.0.0**.
 
 ```bash
 rns-filesync -v

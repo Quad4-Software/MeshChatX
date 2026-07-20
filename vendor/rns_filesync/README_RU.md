@@ -2,7 +2,7 @@
 
 English README is the source of truth: [README.md](README.md).
 
-Кратко: библиотека и CLI для синхронизации каталогов через Reticulum (`rns>=1.3.9`).
+Кратко: библиотека и CLI для синхронизации каталогов через Reticulum (`rns>=1.4.0`).
 Конфиг и ACL как у rngit: `~/.rns_filesync/config`, правила `r:hash` / `w:all`, файлы `.allowed`.
 
 ```bash

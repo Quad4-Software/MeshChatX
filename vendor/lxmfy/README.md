@@ -19,7 +19,7 @@ Easily create LXMF bots for the Reticulum Network with this extensible framework
 
 ## Installation
 
-**Requirements:** Python 3.11+, [RNS](https://pypi.org/project/rns/) 1.3.5+, [LXMF](https://pypi.org/project/lxmf/) 1.0.1+ (installed automatically with LXMFy).
+**Requirements:** Python 3.11+, [RNS](https://pypi.org/project/rns/) 1.4.0+, [LXMF](https://pypi.org/project/lxmf/) 1.1.0+ (installed automatically with LXMFy).
 
 There are many ways to install LXMFy, you pick:
 

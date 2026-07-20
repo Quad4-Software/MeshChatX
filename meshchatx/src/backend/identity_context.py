@@ -256,10 +256,22 @@ class IdentityContext:
 
         # 4. Initialize LXMF Router
         propagation_stamp_cost = self.config.lxmf_propagation_node_stamp_cost.get()
+        max_inbound_syncs = self.config.lxmf_propagation_max_inbound_syncs.get()
+        if not isinstance(max_inbound_syncs, int) or max_inbound_syncs < 1:
+            max_inbound_syncs = 3
+        sequential_validation = bool(
+            self.config.lxmf_propagation_sequential_validation.get(),
+        )
+        static_sequential = not bool(
+            self.config.lxmf_propagation_static_peers_bypass_sequential.get(),
+        )
         self.message_router = create_lxmf_router(
             identity=self.identity,
             storagepath=self.lxmf_router_path,
             propagation_cost=propagation_stamp_cost,
+            max_inbound_syncs=max_inbound_syncs,
+            sequential_validation=sequential_validation,
+            static_sequential=static_sequential,
         )
         self.message_router.PROCESSING_INTERVAL = 1
         self.message_router.delivery_per_transfer_limit = (

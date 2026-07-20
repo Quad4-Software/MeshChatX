@@ -20,6 +20,7 @@ All notable changes to this project will be documented in this file.
 - LXMFy 1.6.5 vendor refresh, wasmtime, mutation test tasks
 - Network visualiser WebGL + WASM renderer (vis-network fallback) and Settings renderer preference
 - Interfaces: internal mode, recursive path requests, announces-from-internal, discovery location command, and Backbone fast-flapping options (RNS 1.3.7 to 1.3.9)
+- Dependencies: **RNS** 1.4.0 and **LXMF** 1.1.0, with local propagation node controls for sequential stamp validation, static-peer bypass, max inbound syncs, transfer size reporting, and inbound delivery cancel
 
 ### Changed
 

@@ -358,6 +358,12 @@ export const CORE_SETTINGS_SECTION_KEYWORDS = {
         "app.auto_sync_interval",
         "app.propagation_stamp_cost",
         "app.propagation_stamp_description",
+        "app.propagation_sequential_validation",
+        "app.propagation_sequential_validation_description",
+        "app.propagation_static_peers_bypass_sequential",
+        "app.propagation_static_peers_bypass_sequential_description",
+        "app.propagation_max_inbound_syncs",
+        "app.propagation_max_inbound_syncs_description",
     ],
     location: [
         "app.location",

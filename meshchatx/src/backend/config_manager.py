@@ -106,6 +106,21 @@ class ConfigManager:
             "lxmf_propagation_node_stamp_cost",
             16,
         )  # for propagation node messages
+        self.lxmf_propagation_sequential_validation = self.BoolConfig(
+            self,
+            "lxmf_propagation_sequential_validation",
+            True,
+        )
+        self.lxmf_propagation_static_peers_bypass_sequential = self.BoolConfig(
+            self,
+            "lxmf_propagation_static_peers_bypass_sequential",
+            True,
+        )
+        self.lxmf_propagation_max_inbound_syncs = self.IntConfig(
+            self,
+            "lxmf_propagation_max_inbound_syncs",
+            3,
+        )
         self.lxmf_inbound_stamp_cost_before_block = self.IntConfig(
             self,
             "lxmf_inbound_stamp_cost_before_block",
