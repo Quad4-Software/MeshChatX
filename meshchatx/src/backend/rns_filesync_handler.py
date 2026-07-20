@@ -197,6 +197,7 @@ class RnsFilesyncHandler:
                 status["monitor"] = self._monitor
                 status["announce_interval"] = self._announce_interval
                 status["config_directory"] = self._root
+                status["storage_directory"] = self.storage_dir
                 return status
             return {
                 "running": False,
@@ -213,7 +214,97 @@ class RnsFilesyncHandler:
                 "monitor": self._monitor,
                 "announce_interval": self._announce_interval,
                 "config_directory": self._root,
+                "storage_directory": self.storage_dir,
             }
+
+    def list_directories(self, path: str | None = None) -> dict[str, Any]:
+        """List subdirectories under identity storage for the folder browser."""
+        with self._lock:
+            root = self.storage_dir
+            cleaned = str(path or "").strip()
+            if cleaned:
+                target = self._resolve_sync_directory(cleaned)
+                if target is None:
+                    return {
+                        "ok": False,
+                        "error": "path must stay under identity storage",
+                    }
+            else:
+                os.makedirs(self._root, exist_ok=True)
+                target = self._root
+
+            if not os.path.isdir(target):
+                return {"ok": False, "error": "path is not a directory"}
+
+            entries: list[dict[str, str]] = []
+            try:
+                for name in sorted(os.listdir(target), key=str.lower):
+                    if name.startswith("."):
+                        continue
+                    full = os.path.join(target, name)
+                    if not os.path.isdir(full):
+                        continue
+                    resolved = os.path.realpath(full)
+                    if resolved != root and not resolved.startswith(root + os.sep):
+                        continue
+                    entries.append({"name": name, "path": resolved})
+            except OSError as exc:
+                return {"ok": False, "error": str(exc)}
+
+            current = os.path.realpath(target)
+            parent = None
+            if current != root:
+                candidate = os.path.dirname(current)
+                if candidate == root or candidate.startswith(root + os.sep):
+                    parent = candidate
+
+            return {
+                "ok": True,
+                "root": root,
+                "current": current,
+                "parent": parent,
+                "directories": entries,
+            }
+
+    def create_directory(self, parent: str | None, name: str) -> dict[str, Any]:
+        """Create a subdirectory under identity storage for sync folders."""
+        with self._lock:
+            cleaned_name = str(name or "").strip()
+            if (
+                not cleaned_name
+                or cleaned_name in (".", "..")
+                or "/" in cleaned_name
+                or "\\" in cleaned_name
+                or cleaned_name.startswith(".")
+            ):
+                return {"ok": False, "error": "invalid directory name"}
+
+            parent_cleaned = str(parent or "").strip()
+            if parent_cleaned:
+                parent_resolved = self._resolve_sync_directory(parent_cleaned)
+            else:
+                os.makedirs(self._root, exist_ok=True)
+                parent_resolved = self._root
+            if parent_resolved is None:
+                return {
+                    "ok": False,
+                    "error": "parent must stay under identity storage",
+                }
+
+            new_path = os.path.join(parent_resolved, cleaned_name)
+            resolved = self._resolve_sync_directory(new_path)
+            if resolved is None:
+                return {
+                    "ok": False,
+                    "error": "path must stay under identity storage",
+                }
+            try:
+                os.makedirs(resolved, exist_ok=False)
+            except FileExistsError:
+                return {"ok": False, "error": "directory already exists"}
+            except OSError as exc:
+                return {"ok": False, "error": str(exc)}
+            return {"ok": True, "path": resolved}
 
     def start(
         self,

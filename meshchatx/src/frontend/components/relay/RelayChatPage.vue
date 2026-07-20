@@ -2223,7 +2223,11 @@ export default {
             if (!this.selectedHub || !this.selectedRoom || !msg) {
                 return;
             }
-            const target = this.displayName(msg);
+            // Prefer identity hash so spaced/ambiguous nicks cannot mis-target.
+            const target =
+                typeof msg.src === "string" && /^[a-fA-F0-9]{8,64}$/.test(msg.src.trim())
+                    ? msg.src.trim().toLowerCase()
+                    : this.displayName(msg);
             const room = this.selectedRoom;
             const text = template.replace("{room}", room).replace("{target}", target);
             try {
@@ -2686,7 +2690,8 @@ export default {
                 return false;
             }
             const lowered = text.trim().toLowerCase();
-            return lowered.includes("bad key") || lowered.includes("+k");
+            // Match backend: require "bad key" so mode hints like "enable +k" do not wipe storage.
+            return lowered.includes("bad key (+k)") || lowered.includes("bad key");
         },
         async promptForRoomKey(room) {
             const entered = await DialogUtils.prompt(this.$t("relay_chat.room_key_prompt", { room: room || "" }), "", {

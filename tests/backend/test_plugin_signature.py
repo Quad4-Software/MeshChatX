@@ -46,6 +46,21 @@ def test_canonical_dir_zip_roundtrip(tmp_path):
     assert PRIMARY_SIGNATURE_FILE not in names
 
 
+def test_canonical_dir_ignores_pycache_bytecode(tmp_path):
+    plugin_dir = tmp_path / "plugin"
+    _write_plugin_dir(plugin_dir)
+    before = canonical_dir_payload(str(plugin_dir))
+    cache = plugin_dir / "backend" / "__pycache__"
+    cache.mkdir(parents=True)
+    (cache / "main.cpython-314.pyc").write_bytes(b"bytecode")
+    (plugin_dir / "frontend" / "main.pyc").write_bytes(b"also-bytecode")
+    after = canonical_dir_payload(str(plugin_dir))
+    assert before == after
+    with zipfile.ZipFile(io.BytesIO(after)) as archive:
+        names = archive.namelist()
+    assert not any("__pycache__" in name or name.endswith(".pyc") for name in names)
+
+
 def test_unsigned_ok_invalid_blocks(tmp_path):
     plugin_dir = tmp_path / "plugin"
     _write_plugin_dir(plugin_dir)

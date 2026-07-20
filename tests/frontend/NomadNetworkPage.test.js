@@ -381,6 +381,13 @@ describe("NomadNetworkPage.vue", () => {
             vi.useRealTimers();
         });
 
+        it("relative page URL without selected node toasts instead of crashing", async () => {
+            const wrapper = mountNomadNetworkPage();
+            wrapper.vm.selectedNode = null;
+            await expect(wrapper.vm.onNodePageUrlClick(":/page/index.mu")).resolves.toBeUndefined();
+            expect(ToastUtils.warning).toHaveBeenCalled();
+        });
+
         it("does not re-run Micron conversion when only favourites list updates", async () => {
             const dest = "b".repeat(32);
             const wrapper = mountNomadNetworkPage();

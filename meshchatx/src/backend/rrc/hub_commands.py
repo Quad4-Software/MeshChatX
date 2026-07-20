@@ -165,9 +165,30 @@ class HubCommandHandler:
         except ValueError as e:
             server._queue_notice(outgoing, link, None, "bad room: " + str(e))
             return True
-        st = server.rooms.ensure_state(r)
+        is_member = link in server._room_members.get(r, set())
+        is_server_op = server.policy.is_server_op(peer)
+        st = server.rooms.get_state(r)
+        is_room_op = False
+        if st is not None and isinstance(peer, (bytes, bytearray)):
+            founder = st.get("founder")
+            ops = st.get("ops") or set()
+            peer_b = bytes(peer)
+            if isinstance(founder, (bytes, bytearray)) and bytes(founder) == peer_b:
+                is_room_op = True
+            elif isinstance(ops, set) and peer_b in {bytes(x) for x in ops}:
+                is_room_op = True
+        can_see = is_member or is_room_op or is_server_op
         if len(parts) == 2:
-            topic = st.get("topic")
+            # Do not create ghost room state on read. Hide private topics from outsiders.
+            if st is not None and st.get("private") and not can_see:
+                server._queue_notice(
+                    outgoing,
+                    link,
+                    room,
+                    f"topic for {r}: (none)",
+                )
+                return True
+            topic = st.get("topic") if st is not None else None
             server._queue_notice(
                 outgoing,
                 link,
@@ -175,6 +196,10 @@ class HubCommandHandler:
                 f"topic for {r}: {topic or '(none)'}",
             )
             return True
+        if not is_member and not is_server_op:
+            server._queue_error(outgoing, link, "not in room", room=r)
+            return True
+        st = server.rooms.ensure_state(r)
         if not server.rooms.is_room_op(r, peer):
             if bool(st.get("topic_ops_only")):
                 server._queue_error(outgoing, link, "not authorized (+t)", room=r)

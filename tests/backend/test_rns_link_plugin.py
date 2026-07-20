@@ -287,7 +287,10 @@ class TestRnsLinkPluginCapabilities:
         deadline=None,
         suppress_health_check=[HealthCheck.function_scoped_fixture],
     )
-    def test_open_close_property(self, tmp_path, dest, aspect):
+    def test_open_close_property(self, tmp_path_factory, dest, aspect):
+        # Fresh plugin storage per Hypothesis example avoids integrity flakes
+        # when a prior example activated Python bytecode under the install tree.
+        tmp_path = tmp_path_factory.mktemp("rns_link")
         fake = FakeLinkManager()
 
         class FakeApp:

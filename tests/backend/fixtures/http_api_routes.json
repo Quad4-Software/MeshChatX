@@ -321,6 +321,14 @@
             "path": "/api/v1/filesync/connect"
         },
         {
+            "method": "GET",
+            "path": "/api/v1/filesync/directories"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/filesync/directories"
+        },
+        {
             "method": "POST",
             "path": "/api/v1/filesync/disconnect"
         },
@@ -527,6 +535,10 @@
         {
             "method": "POST",
             "path": "/api/v1/lxmf/message-blocklist/import"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/lxmf/propagation-node/cancel-inbound"
         },
         {
             "method": "POST",
@@ -1201,6 +1213,10 @@
             "path": "/api/v1/rrc/hubs/{hub_hash}/disconnect"
         },
         {
+            "method": "GET",
+            "path": "/api/v1/rrc/hubs/{hub_hash}/room-keys"
+        },
+        {
             "method": "POST",
             "path": "/api/v1/rrc/hubs/{hub_hash}/rooms"
         },
@@ -1211,6 +1227,14 @@
         {
             "method": "DELETE",
             "path": "/api/v1/rrc/hubs/{hub_hash}/rooms/{room}"
+        },
+        {
+            "method": "DELETE",
+            "path": "/api/v1/rrc/hubs/{hub_hash}/rooms/{room}/key"
+        },
+        {
+            "method": "PUT",
+            "path": "/api/v1/rrc/hubs/{hub_hash}/rooms/{room}/key"
         },
         {
             "method": "DELETE",
@@ -1271,6 +1295,10 @@
         {
             "method": "DELETE",
             "path": "/api/v1/rrc/servers/{hub_id}/rooms/{room}"
+        },
+        {
+            "method": "PUT",
+            "path": "/api/v1/rrc/servers/{hub_id}/rooms/{room}/key"
         },
         {
             "method": "POST",

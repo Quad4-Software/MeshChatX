@@ -1634,6 +1634,8 @@ class PluginManager:
         existing = self._plugins.get(plugin_id)
         if existing is None:
             return True
+        if existing.tampered:
+            return True
         if existing.version != manifest.get("version"):
             return True
         target_dir = os.path.join(self.installed_dir, plugin_id)

@@ -169,6 +169,15 @@ def test_bad_key_error_detector():
     assert RRCManager.is_bad_key_error(None) is False
 
 
+def test_redact_mode_plus_k_for_history():
+    assert (
+        RRCHub._redact_command_for_history("/mode vault +k supersecret")
+        == "/mode vault +k ***"
+    )
+    assert RRCHub._redact_command_for_history("/who lobby") == "/who lobby"
+    assert RRCHub._redact_command_for_history("/mode vault -k") == "/mode vault -k"
+
+
 def test_handle_error_forgets_bad_key(db, tmp_path):
     identity = _Identity(b"\x11" * 16, PRIVATE_A)
     manager = RRCManager(identity, str(tmp_path), database=db)

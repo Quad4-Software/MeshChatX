@@ -69,6 +69,9 @@ export default {
     },
     methods: {
         show({ message, resolve }) {
+            if (typeof this.resolvePromise === "function") {
+                this.resolvePromise(false);
+            }
             this.pendingConfirm = { message };
             this.resolvePromise = resolve;
         },

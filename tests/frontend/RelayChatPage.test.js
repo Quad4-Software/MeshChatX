@@ -709,4 +709,32 @@ describe("RelayChatPage.vue", () => {
 
         await vi.waitFor(() => expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/rrc/servers"));
     });
+
+    it("isBadKeyErrorText requires bad key wording not bare +k", () => {
+        const wrapper = mountPage();
+        expect(wrapper.vm.isBadKeyErrorText("bad key (+k)")).toBe(true);
+        expect(wrapper.vm.isBadKeyErrorText("ERROR: Bad Key (+K)")).toBe(true);
+        expect(wrapper.vm.isBadKeyErrorText("failed: enable +k first")).toBe(false);
+        expect(wrapper.vm.isBadKeyErrorText("+k")).toBe(false);
+    });
+
+    it("sendModerationCommand prefers peer hash over display nick", async () => {
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBeGreaterThan(0));
+        wrapper.vm.selectedHubHash = HUB_HASH;
+        wrapper.vm.selectedRoom = "lobby";
+        axiosMock.post.mockResolvedValueOnce({ data: {} });
+        await wrapper.vm.sendModerationCommand("/kick {room} {target}", {
+            src: "aabbccddeeff00112233445566778899",
+            nick: "Alice With Spaces",
+            text: "hi",
+        });
+        expect(axiosMock.post).toHaveBeenCalledWith(
+            `/api/v1/rrc/hubs/${HUB_HASH}/command`,
+            expect.objectContaining({
+                text: "/kick lobby aabbccddeeff00112233445566778899",
+                room: "lobby",
+            })
+        );
+    });
 });
