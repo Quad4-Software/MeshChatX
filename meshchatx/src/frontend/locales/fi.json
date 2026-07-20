@@ -3024,7 +3024,22 @@
         "presence_joined": "{count} liittyi",
         "presence_left": "{count} lähti",
         "presence_events": "{count} liittymis-/lähtötapahtumaa",
-        "presence_connection": "{count} yhteystapahtumaa"
+        "presence_connection": "{count} yhteystapahtumaa",
+        "join_room_key_placeholder": "Huoneen avain (jos tarvitaan)",
+        "room_key_prompt": "Anna avain huoneelle #{room}",
+        "bad_key": "Väärä huoneen avain. Anna oikea avain liittyäksesi.",
+        "join_requested": "Liittymispyyntö lähetetty",
+        "host_room_key_placeholder": "Huoneen avain (valinnainen)",
+        "host_room_keyed": "Tämä huone vaatii avaimen",
+        "host_room_unkeyed": "Tällä huoneella ei ole avainta",
+        "host_set_room_key": "Aseta avain",
+        "host_change_room_key": "Vaihda avain",
+        "host_clear_room_key": "Poista avain",
+        "host_room_key_prompt": "Anna uusi avain huoneelle #{room}",
+        "host_room_key_required": "Huoneen avain vaaditaan",
+        "host_room_key_saved": "Huoneen avain tallennettu",
+        "host_clear_room_key_confirm": "Poistetaanko avain tästä huoneesta? Kuka tahansa voi liittyä.",
+        "host_room_key_cleared": "Huoneen avain poistettu"
     },
     "rncp": {
         "file_transfer": "Tiedostonsiirto",

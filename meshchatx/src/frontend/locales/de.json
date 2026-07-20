@@ -3696,7 +3696,22 @@
         "presence_joined": "{count} beigetreten",
         "presence_left": "{count} verlassen",
         "presence_events": "{count} Beitritts-/Austrittsereignisse",
-        "presence_connection": "{count} Verbindungsereignisse"
+        "presence_connection": "{count} Verbindungsereignisse",
+        "join_room_key_placeholder": "Raumschlüssel (falls nötig)",
+        "room_key_prompt": "Schlüssel für #{room} eingeben",
+        "bad_key": "Falscher Raumschlüssel. Bitte den richtigen Schlüssel eingeben.",
+        "join_requested": "Beitrittsanfrage gesendet",
+        "host_room_key_placeholder": "Raumschlüssel (optional)",
+        "host_room_keyed": "Dieser Raum erfordert einen Schlüssel",
+        "host_room_unkeyed": "Dieser Raum hat keinen Schlüssel",
+        "host_set_room_key": "Schlüssel setzen",
+        "host_change_room_key": "Schlüssel ändern",
+        "host_clear_room_key": "Schlüssel entfernen",
+        "host_room_key_prompt": "Neuen Schlüssel für #{room} eingeben",
+        "host_room_key_required": "Ein Raumschlüssel ist erforderlich",
+        "host_room_key_saved": "Raumschlüssel gespeichert",
+        "host_clear_room_key_confirm": "Schlüssel aus diesem Raum entfernen? Dann kann jeder beitreten.",
+        "host_room_key_cleared": "Raumschlüssel entfernt"
     },
     "android_storage": {
         "setup_title": "Wählen Sie, wo MeshChatX Daten speichert",

@@ -46,4 +46,24 @@ describe("DialogUtils.prompt", () => {
         payload.resolve(null);
         await expect(pending).resolves.toBeNull();
     });
+
+    it("uses in-app password prompt and skips electron.prompt for password type", async () => {
+        window.electron = {
+            prompt: vi.fn().mockResolvedValue("should-not-use"),
+        };
+        const pending = DialogUtils.prompt("Room key", "", { inputType: "password" });
+        expect(window.electron.prompt).not.toHaveBeenCalled();
+        expect(GlobalEmitter.emit).toHaveBeenCalledWith(
+            "prompt",
+            expect.objectContaining({
+                message: "Room key",
+                defaultValue: "",
+                inputType: "password",
+                resolve: expect.any(Function),
+            })
+        );
+        const payload = GlobalEmitter.emit.mock.calls.find((c) => c[0] === "prompt")[1];
+        payload.resolve("secret");
+        await expect(pending).resolves.toBe("secret");
+    });
 });

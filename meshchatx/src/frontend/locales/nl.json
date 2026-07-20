@@ -3696,7 +3696,22 @@
         "presence_joined": "{count} toegetreden",
         "presence_left": "{count} vertrokken",
         "presence_events": "{count} join/leave-gebeurtenissen",
-        "presence_connection": "{count} verbindingsgebeurtenissen"
+        "presence_connection": "{count} verbindingsgebeurtenissen",
+        "join_room_key_placeholder": "Kamersleutel (indien vereist)",
+        "room_key_prompt": "Voer de sleutel in voor #{room}",
+        "bad_key": "Verkeerde kamersleutel. Voer de juiste sleutel in om toe te treden.",
+        "join_requested": "Toetredingsverzoek verzonden",
+        "host_room_key_placeholder": "Kamersleutel (optioneel)",
+        "host_room_keyed": "Deze kamer vereist een sleutel",
+        "host_room_unkeyed": "Deze kamer heeft geen sleutel",
+        "host_set_room_key": "Sleutel instellen",
+        "host_change_room_key": "Sleutel wijzigen",
+        "host_clear_room_key": "Sleutel wissen",
+        "host_room_key_prompt": "Voer een nieuwe sleutel in voor #{room}",
+        "host_room_key_required": "Een kamersleutel is vereist",
+        "host_room_key_saved": "Kamersleutel opgeslagen",
+        "host_clear_room_key_confirm": "Sleutel van deze kamer verwijderen? Iedereen kan dan toetreden.",
+        "host_room_key_cleared": "Kamersleutel verwijderd"
     },
     "android_storage": {
         "setup_title": "Kies waar MeshChatX gegevens opslaat",

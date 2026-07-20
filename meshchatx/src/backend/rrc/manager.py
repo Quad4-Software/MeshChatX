@@ -18,7 +18,12 @@ from collections import deque
 import RNS
 
 from meshchatx.src.backend.rrc import protocol as proto
+from meshchatx.src.backend.rrc.room_key_crypto import decrypt_room_key, encrypt_room_key
 from meshchatx.src.backend.rrc.server import _LoopbackEndpoint
+
+DEFAULT_DEST_NAME = proto.DEFAULT_DEST_NAME
+BAD_KEY_MARKERS = ("bad key (+k)", "bad key")
+FORCED_LEAVE_MARKERS = ("kicked from", "banned from")
 
 HISTORY_DIR_NAME = "rrc_history"
 HISTORY_FILENAME_SANITIZE_RE = re.compile(r"[^a-z0-9._-]+")
@@ -557,7 +562,11 @@ class RRCHub:
 
     def join_room(self, room, key=None, silent=False):
         r = proto.normalize_room(room)
-        body = key if (isinstance(key, str) and key) else None
+        body = None
+        if isinstance(key, str):
+            stripped = key.strip()
+            if stripped:
+                body = stripped
         env = proto.make_envelope(
             proto.T_JOIN,
             src=self.manager.identity.hash,
@@ -1233,6 +1242,7 @@ class RRCHub:
         text = body if isinstance(body, str) else "(error)"
         r = room.strip().lower() if isinstance(room, str) else None
         rollback_join = False
+        forced_leave = False
         if r:
             with self._lock:
                 if r in self._pending_joins:
@@ -1242,8 +1252,18 @@ class RRCHub:
                 self._pending_parts.discard(r)
                 if rollback_join:
                     self.rooms.discard(r)
-            if rollback_join:
+                elif self.manager.is_forced_leave_error(text) and r in self.rooms:
+                    forced_leave = True
+                    self.rooms.discard(r)
+                    self.members.pop(r, None)
+                    self.unread_rooms.discard(r)
+                    self.mention_rooms.discard(r)
+            if rollback_join or forced_leave:
                 self.manager.save()
+            # Drop a remembered key that the hub rejected so reconnect does not loop.
+            if self.manager.is_bad_key_error(text):
+                with contextlib.suppress(Exception):
+                    self.manager.forget_room_key(self, r)
         msg = proto.RRCMessage("error", r, None, None, text, proto.now_ms())
         self._record_notice(msg)
 
@@ -1356,6 +1376,11 @@ class RRCHub:
 
     def to_dict(self):
         """Return a JSON-serializable summary of this hub's state."""
+        stored_key_rooms = []
+        with contextlib.suppress(Exception):
+            stored_key_rooms = [
+                entry["room"] for entry in self.manager.list_stored_room_keys(self)
+            ]
         with self._lock:
             rooms = sorted(self.rooms)
             known_rooms = self.ordered_known_rooms()
@@ -1382,6 +1407,7 @@ class RRCHub:
                 "total_unread": total_unread,
                 "mention_rooms": sorted(self.mention_rooms),
                 "available_rooms": dict(self.available_rooms),
+                "stored_key_rooms": stored_key_rooms,
                 "auto_reconnect": bool(self.auto_reconnect),
                 "auto_list": bool(self.auto_list),
                 "auto_who": bool(self.auto_who),
@@ -1428,6 +1454,7 @@ class RRCManager:
         history_per_room_cap=0,
         filter_loaded_history=True,
         ephemeral_notices=RRCHub.SYS_NOTICE_TIMEOUT,
+        database=None,
     ):
         self.identity = identity
         self.storage_dir = storage_dir
@@ -1436,6 +1463,7 @@ class RRCManager:
         self.history_per_room_cap = history_per_room_cap
         self.filter_loaded_history = filter_loaded_history
         self.ephemeral_notices = ephemeral_notices
+        self.database = database
 
         self.hubs = []
         self._server_manager = None
@@ -1447,6 +1475,136 @@ class RRCManager:
         self._loaded = False
         self._loading = False
         self._save_lock = threading.Lock()
+
+    def set_database(self, database):
+        self.database = database
+
+    def _private_key_bytes(self):
+        identity = self.identity
+        if identity is None:
+            return None
+        with contextlib.suppress(Exception):
+            key = identity.get_private_key()
+            if isinstance(key, (bytes, bytearray)) and key:
+                return bytes(key)
+        return None
+
+    def _room_key_dao(self):
+        db = self.database
+        if db is None:
+            return None
+        return getattr(db, "rrc_room_keys", None)
+
+    @staticmethod
+    def _hub_hash_hex(hub_or_hash):
+        if isinstance(hub_or_hash, RRCHub):
+            return hub_or_hash.hub_hash.hex()
+        if isinstance(hub_or_hash, (bytes, bytearray)):
+            return bytes(hub_or_hash).hex()
+        if isinstance(hub_or_hash, str):
+            return hub_or_hash.strip().lower()
+        msg = "invalid hub hash"
+        raise TypeError(msg)
+
+    @staticmethod
+    def _dest_name_for(hub_or_dest):
+        if isinstance(hub_or_dest, RRCHub):
+            return hub_or_dest.dest_name or DEFAULT_DEST_NAME
+        if isinstance(hub_or_dest, str) and hub_or_dest.strip():
+            return hub_or_dest.strip()
+        return DEFAULT_DEST_NAME
+
+    def remember_room_key(self, hub, room, key):
+        """Encrypt and persist a room key for later joins."""
+        dao = self._room_key_dao()
+        private_key = self._private_key_bytes()
+        if dao is None or private_key is None:
+            msg = "room key storage is unavailable"
+            raise RuntimeError(msg)
+        room_n = proto.normalize_room(room)
+        nonce, ciphertext = encrypt_room_key(private_key, key)
+        dao.upsert(
+            self._hub_hash_hex(hub),
+            self._dest_name_for(hub),
+            room_n,
+            nonce,
+            ciphertext,
+        )
+
+    def forget_room_key(self, hub, room):
+        dao = self._room_key_dao()
+        if dao is None:
+            return 0
+        room_n = proto.normalize_room(room)
+        return dao.delete(
+            self._hub_hash_hex(hub),
+            self._dest_name_for(hub),
+            room_n,
+        )
+
+    def get_room_key(self, hub, room):
+        """Return the decrypted room key, or None when missing or undecryptable."""
+        dao = self._room_key_dao()
+        private_key = self._private_key_bytes()
+        if dao is None or private_key is None:
+            return None
+        room_n = proto.normalize_room(room)
+        row = dao.get(
+            self._hub_hash_hex(hub),
+            self._dest_name_for(hub),
+            room_n,
+        )
+        if not row:
+            return None
+        try:
+            return decrypt_room_key(private_key, row["nonce"], row["ciphertext"])
+        except Exception:
+            return None
+
+    def has_stored_room_key(self, hub, room):
+        dao = self._room_key_dao()
+        if dao is None:
+            return False
+        room_n = proto.normalize_room(room)
+        row = dao.get(
+            self._hub_hash_hex(hub),
+            self._dest_name_for(hub),
+            room_n,
+        )
+        return row is not None
+
+    def list_stored_room_keys(self, hub):
+        dao = self._room_key_dao()
+        if dao is None:
+            return []
+        rows = dao.list_for_hub(
+            self._hub_hash_hex(hub),
+            self._dest_name_for(hub),
+        )
+        return [
+            {
+                "hub_hash": row["hub_hash"],
+                "dest_name": row["dest_name"],
+                "room": row["room"],
+                "updated_at": row.get("updated_at"),
+            }
+            for row in rows or []
+        ]
+
+    @staticmethod
+    def is_bad_key_error(text):
+        if not isinstance(text, str):
+            return False
+        lowered = text.strip().lower()
+        # Require the words "bad key" so mode hints like "enable +k" do not wipe storage.
+        return any(marker in lowered for marker in BAD_KEY_MARKERS)
+
+    @staticmethod
+    def is_forced_leave_error(text):
+        if not isinstance(text, str):
+            return False
+        lowered = text.strip().lower()
+        return any(marker in lowered for marker in FORCED_LEAVE_MARKERS)
 
     def get_nickname(self):
         if self._get_nickname is None:
@@ -1490,7 +1648,8 @@ class RRCManager:
     def _on_welcome(self, hub):
         for r in list(hub.rooms):
             with contextlib.suppress(Exception):
-                hub.join_room(r, silent=True)
+                key = self.get_room_key(hub, r)
+                hub.join_room(r, key=key, silent=True)
 
     def set_active(self, hub, room):
         self._active_hub = hub
@@ -1526,6 +1685,13 @@ class RRCManager:
                 self.hubs.remove(hub)
         with contextlib.suppress(Exception):
             hub.disconnect()
+        dao = self._room_key_dao()
+        if dao is not None:
+            with contextlib.suppress(Exception):
+                dao.delete_for_hub(
+                    self._hub_hash_hex(hub),
+                    self._dest_name_for(hub),
+                )
         self.save()
         self._notify_change()
 

@@ -126,7 +126,7 @@ def dump_rooms_registry(path, registry):
         st = registry[room]
         if not st.get("registered"):
             continue
-        lines.append(f"[rooms.{room}]")
+        lines.append(f"[rooms.{_toml_escape_string(room)}]")
         founder = st.get("founder")
         if isinstance(founder, (bytes, bytearray)):
             lines.append(f"founder = {_toml_escape_string(bytes(founder).hex())}")

@@ -187,3 +187,34 @@ def test_nomad_link_cache_evicts_over_cap():
         assert get_cached_active_link(links[2][0]) is links[2][1]
     finally:
         nd.MAX_CACHED_LINKS = original_max
+
+
+def test_clear_all_nomadnet_cached_links_tears_down_active():
+    from meshchatx.src.backend.nomadnet_downloader import (
+        clear_all_nomadnet_cached_links,
+    )
+
+    link = MagicMock()
+    link.status = RNS.Link.ACTIVE
+    with _nomadnet_links_lock:
+        nomadnet_cached_links[b"x" * 16] = link
+    assert clear_all_nomadnet_cached_links() == 1
+    assert get_cached_active_link(b"x" * 16) is None
+    link.teardown.assert_called_once()
+
+
+def test_file_downloader_sanitizes_fallback_name():
+    on_ok = MagicMock()
+    on_fail = MagicMock()
+    fd = NomadnetFileDownloader(
+        b"ab" * 8,
+        "/f.bin",
+        on_ok,
+        on_fail,
+        MagicMock(),
+    )
+    rr = MagicMock()
+    rr.response = ["../../etc/passwd", b"ok"]
+    fd.on_download_success(rr)
+    on_ok.assert_called_once_with("passwd", b"ok")
+    on_fail.assert_not_called()

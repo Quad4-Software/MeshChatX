@@ -102,6 +102,13 @@
                             :placeholder="$t('relay_chat.host_room_topic')"
                             class="input-field w-full !py-2.5 !text-sm"
                         />
+                        <input
+                            v-model="newRoom.key"
+                            type="password"
+                            :placeholder="$t('relay_chat.host_room_key_placeholder')"
+                            autocomplete="off"
+                            class="input-field w-full !py-2.5 !text-sm"
+                        />
                         <div class="flex gap-2 pt-0.5">
                             <button
                                 type="submit"
@@ -146,7 +153,19 @@
                         >
                             <div class="flex items-start justify-between gap-2">
                                 <div class="min-w-0">
-                                    <div class="font-medium text-sem-fg">#{{ room.name }}</div>
+                                    <div class="flex items-center gap-1.5 font-medium text-sem-fg">
+                                        <span>#{{ room.name }}</span>
+                                        <span
+                                            v-if="room.has_key"
+                                            class="inline-flex"
+                                            :title="$t('relay_chat.host_room_keyed')"
+                                        >
+                                            <MaterialDesignIcon
+                                                icon-name="lock"
+                                                class="size-3.5 shrink-0 text-sem-fg-muted"
+                                            />
+                                        </span>
+                                    </div>
                                     <div v-if="room.topic" class="truncate text-xs text-sem-fg-muted">
                                         {{ room.topic }}
                                     </div>
@@ -191,6 +210,37 @@
                     <div :class="[RELAY_HOST_DETAIL_HEADER, 'hidden lg:block']">
                         <div class="font-semibold text-sem-fg">#{{ selectedRoom }}</div>
                         <div class="text-xs text-sem-fg-muted">{{ $t("relay_chat.host_room_activity") }}</div>
+                    </div>
+                    <div
+                        v-if="selectedRoomObj"
+                        class="flex flex-wrap items-center gap-2 border-b border-sem-border px-3 py-2 text-xs text-sem-fg-muted"
+                    >
+                        <MaterialDesignIcon
+                            :icon-name="selectedRoomObj.has_key ? 'lock' : 'lock-open-variant'"
+                            class="size-4 shrink-0"
+                        />
+                        <span class="flex-1">
+                            {{
+                                selectedRoomObj.has_key
+                                    ? $t("relay_chat.host_room_keyed")
+                                    : $t("relay_chat.host_room_unkeyed")
+                            }}
+                        </span>
+                        <button type="button" class="font-medium text-sem-accent hover:underline" @click="setRoomKey">
+                            {{
+                                selectedRoomObj.has_key
+                                    ? $t("relay_chat.host_change_room_key")
+                                    : $t("relay_chat.host_set_room_key")
+                            }}
+                        </button>
+                        <button
+                            v-if="selectedRoomObj.has_key"
+                            type="button"
+                            class="font-medium text-sem-danger hover:underline"
+                            @click="clearRoomKey"
+                        >
+                            {{ $t("relay_chat.host_clear_room_key") }}
+                        </button>
                     </div>
                     <div class="min-h-0 flex-1 overflow-y-auto custom-scrollbar p-3 sm:p-4">
                         <ul v-if="roomMessages.length > 0" class="space-y-2">
@@ -414,7 +464,7 @@ export default {
             selectedRoom: null,
             selectedMember: null,
             memberMessages: [],
-            newRoom: { name: "", topic: "" },
+            newRoom: { name: "", topic: "", key: "" },
             localIdentityHash: "",
             uptimeTick: 0,
             uptimeAnchorMs: 0,
@@ -458,6 +508,12 @@ export default {
                 const topic = (room.topic || "").toLowerCase();
                 return name.includes(q) || topic.includes(q);
             });
+        },
+        selectedRoomObj() {
+            if (!this.selectedRoom) {
+                return null;
+            }
+            return this.rooms.find((room) => room.name === this.selectedRoom) || null;
         },
         pageTitle() {
             if (!this.hub?.name) {
@@ -552,7 +608,7 @@ export default {
             this.selectedRoom = null;
             this.selectedMember = null;
             this.memberMessages = [];
-            this.newRoom = { name: "", topic: "" };
+            this.newRoom = { name: "", topic: "", key: "" };
             this.showAddRoomForm = false;
             this.roomsSearch = "";
             if (this.hub?.running) {
@@ -566,7 +622,7 @@ export default {
         },
         cancelAddRoom() {
             this.showAddRoomForm = false;
-            this.newRoom = { name: "", topic: "" };
+            this.newRoom = { name: "", topic: "", key: "" };
         },
         async fetchActivity() {
             if (!this.hub?.id) {
@@ -609,8 +665,9 @@ export default {
                 await window.api.post(`/api/v1/rrc/servers/${this.hub.id}/rooms`, {
                     name,
                     topic: (this.newRoom.topic || "").trim() || undefined,
+                    key: (this.newRoom.key || "").trim() || undefined,
                 });
-                this.newRoom = { name: "", topic: "" };
+                this.newRoom = { name: "", topic: "", key: "" };
                 this.showAddRoomForm = false;
                 ToastUtils.success(this.$t("relay_chat.host_room_created"));
                 this.$emit("refresh");
@@ -619,6 +676,55 @@ export default {
                 ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.action_failed"));
             } finally {
                 this.creatingRoom = false;
+            }
+        },
+        async setRoomKey() {
+            if (!this.hub?.id || !this.selectedRoom) {
+                return;
+            }
+            const entered = await DialogUtils.prompt(
+                this.$t("relay_chat.host_room_key_prompt", { room: this.selectedRoom }),
+                "",
+                { inputType: "password" }
+            );
+            if (entered == null) {
+                return;
+            }
+            const key = String(entered).trim();
+            if (!key) {
+                ToastUtils.warning(this.$t("relay_chat.host_room_key_required"));
+                return;
+            }
+            try {
+                await window.api.put(
+                    `/api/v1/rrc/servers/${this.hub.id}/rooms/${encodeURIComponent(this.selectedRoom)}/key`,
+                    { key }
+                );
+                ToastUtils.success(this.$t("relay_chat.host_room_key_saved"));
+                this.$emit("refresh");
+                await this.fetchActivity();
+            } catch (e) {
+                ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.action_failed"));
+            }
+        },
+        async clearRoomKey() {
+            if (!this.hub?.id || !this.selectedRoom) {
+                return;
+            }
+            const confirmed = await DialogUtils.confirm(this.$t("relay_chat.host_clear_room_key_confirm"));
+            if (!confirmed) {
+                return;
+            }
+            try {
+                await window.api.put(
+                    `/api/v1/rrc/servers/${this.hub.id}/rooms/${encodeURIComponent(this.selectedRoom)}/key`,
+                    { key: null }
+                );
+                ToastUtils.success(this.$t("relay_chat.host_room_key_cleared"));
+                this.$emit("refresh");
+                await this.fetchActivity();
+            } catch (e) {
+                ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.action_failed"));
             }
         },
         async deleteRoom(room) {

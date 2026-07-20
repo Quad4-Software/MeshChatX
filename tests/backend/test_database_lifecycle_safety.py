@@ -239,6 +239,31 @@ def test_restore_rejects_non_sqlite_backup(temp_dir):
     db.close_all()
 
 
+@pytest.mark.skipif(os.name == "nt", reason="symlink semantics differ on Windows")
+def test_safe_zip_extract_rejects_symlink_jail_escape(temp_dir):
+    """Restore must not follow identity-dir symlinks outside the jail."""
+    import zipfile
+
+    identity_dir = os.path.join(temp_dir, "identity")
+    outside = os.path.join(temp_dir, "OUTSIDE")
+    os.makedirs(identity_dir)
+    os.makedirs(outside)
+    link = os.path.join(identity_dir, "plugins")
+    os.symlink(outside, link)
+
+    zip_path = os.path.join(temp_dir, "evil.zip")
+    with zipfile.ZipFile(zip_path, "w") as zf:
+        zf.writestr("plugins/stolen_write.txt", b"pwned")
+
+    with zipfile.ZipFile(zip_path, "r") as zf:
+        with pytest.raises(DatabaseRestoreError, match="Unsafe zip entry"):
+            Database._safe_zip_extract_member(
+                zf, "plugins/stolen_write.txt", identity_dir
+            )
+
+    assert not os.path.exists(os.path.join(outside, "stolen_write.txt"))
+
+
 def test_looks_like_sqlite_header():
     path = tempfile.NamedTemporaryFile(delete=False).name
     try:

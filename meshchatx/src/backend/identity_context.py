@@ -297,6 +297,12 @@ class IdentityContext:
             display_name=self.config.display_name.get(),
             stamp_cost=inbound_stamp_cost,
         )
+        # Announce stamp cost alone does not drop invalid stamps. Enforce when
+        # a non-zero inbound cost is configured so flood/inbound controls work.
+        if isinstance(inbound_stamp_cost, int) and inbound_stamp_cost > 0:
+            self.message_router.enforce_stamps()
+        elif hasattr(self.message_router, "ignore_stamps"):
+            self.message_router.ignore_stamps()
 
         self.forwarding_manager = ForwardingManager(
             self.database,
@@ -592,6 +598,7 @@ class IdentityContext:
                         self.config.display_name.get() if self.config else None
                     ),
                     get_name_for_identity_hash=self._rrc_name_for_identity_hash,
+                    database=self.database,
                 )
                 self.rrc_manager.set_change_callback(
                     lambda hub: self.app.on_rrc_change(hub, context=self),

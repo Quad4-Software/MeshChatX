@@ -175,7 +175,65 @@ describe("RelayChatPage.vue", () => {
 
         await wrapper.vm.joinAvailableRoom(wrapper.vm.hubs[0], "random");
 
-        expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/rrc/hubs/${HUB_HASH}/rooms`, { room: "random" });
+        expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/rrc/hubs/${HUB_HASH}/rooms`, {
+            room: "random",
+            remember: true,
+        });
+    });
+
+    it("includes an optional room key when joining a room", async () => {
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+        wrapper.vm.joinRoomName = "vault";
+        wrapper.vm.joinRoomKey = "hunter2";
+        await wrapper.vm.joinRoom(wrapper.vm.hubs[0]);
+        expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/rrc/hubs/${HUB_HASH}/rooms`, {
+            room: "vault",
+            remember: true,
+            key: "hunter2",
+        });
+        expect(wrapper.vm.joinRoomName).toBe("");
+        expect(wrapper.vm.joinRoomKey).toBe("");
+    });
+
+    it("prompts for a password after a bad key websocket error", async () => {
+        const DialogUtils = (await import("@/js/DialogUtils")).default;
+        const ToastUtils = (await import("@/js/ToastUtils")).default;
+        vi.spyOn(DialogUtils, "prompt").mockResolvedValue("correct-key");
+        vi.spyOn(ToastUtils, "warning").mockImplementation(() => {});
+        vi.spyOn(ToastUtils, "info").mockImplementation(() => {});
+        vi.spyOn(ToastUtils, "error").mockImplementation(() => {});
+        vi.spyOn(ToastUtils, "success").mockImplementation(() => {});
+
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.hubs.length).toBe(1));
+
+        await wrapper.vm.onWebsocketMessage({
+            data: JSON.stringify({
+                type: "rrc.message",
+                hub_hash: HUB_HASH,
+                room: "vault",
+                message: {
+                    kind: "error",
+                    room: "vault",
+                    text: "bad key (+k)",
+                },
+            }),
+        });
+
+        await vi.waitFor(() =>
+            expect(DialogUtils.prompt).toHaveBeenCalledWith(expect.stringContaining("vault"), "", {
+                inputType: "password",
+            })
+        );
+        await vi.waitFor(() =>
+            expect(axiosMock.post).toHaveBeenCalledWith(`/api/v1/rrc/hubs/${HUB_HASH}/rooms`, {
+                room: "vault",
+                remember: true,
+                key: "correct-key",
+            })
+        );
+        expect(axiosMock.delete).toHaveBeenCalledWith(`/api/v1/rrc/hubs/${HUB_HASH}/rooms/vault/key`);
     });
 
     it("loads messages and members when selecting a room", async () => {

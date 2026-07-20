@@ -3511,7 +3511,7 @@
     "relay_chat": {
         "title": "Chat de retransmision",
         "subtitle": "Hubs y salas de Reticulum Relay Chat",
-        "hubs": "Hubs",
+        "hubs": "Concentradores",
         "add_hub": "Anadir hub",
         "add_hub_title": "Anadir un hub de chat de retransmision",
         "hub_hash": "Hash de destino del hub",
@@ -3696,7 +3696,22 @@
         "presence_joined": "{count} se unieron",
         "presence_left": "{count} salieron",
         "presence_events": "{count} eventos de entrada/salida",
-        "presence_connection": "{count} eventos de conexión"
+        "presence_connection": "{count} eventos de conexión",
+        "join_room_key_placeholder": "Clave de sala (si se requiere)",
+        "room_key_prompt": "Introduce la clave de #{room}",
+        "bad_key": "Clave de sala incorrecta. Introduce la clave correcta para unirte.",
+        "join_requested": "Solicitud de unión enviada",
+        "host_room_key_placeholder": "Clave de sala (opcional)",
+        "host_room_keyed": "Esta sala requiere una clave",
+        "host_room_unkeyed": "Esta sala no tiene clave",
+        "host_set_room_key": "Establecer clave",
+        "host_change_room_key": "Cambiar clave",
+        "host_clear_room_key": "Quitar clave",
+        "host_room_key_prompt": "Introduce una nueva clave para #{room}",
+        "host_room_key_required": "Se requiere una clave de sala",
+        "host_room_key_saved": "Clave de sala guardada",
+        "host_clear_room_key_confirm": "¿Quitar la clave de esta sala? Cualquiera podrá unirse.",
+        "host_room_key_cleared": "Clave de sala eliminada"
     },
     "android_storage": {
         "setup_title": "Elige dónde almacena datos MeshChatX",

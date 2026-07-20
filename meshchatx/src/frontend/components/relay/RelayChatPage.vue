@@ -295,20 +295,29 @@
                                     </ul>
                                 </div>
 
-                                <form class="flex gap-1" @submit.prevent="joinRoom(hub)">
+                                <form class="flex flex-col gap-1" @submit.prevent="joinRoom(hub)">
+                                    <div class="flex gap-1">
+                                        <input
+                                            v-model="joinRoomName"
+                                            type="text"
+                                            :placeholder="$t('relay_chat.join_room_placeholder')"
+                                            class="min-w-0 flex-1 border border-sem-border bg-sem-canvas px-2 py-1 text-xs text-sem-fg outline-none focus:border-sem-accent focus:ring-1 focus:ring-sem-accent/30"
+                                        />
+                                        <button
+                                            type="submit"
+                                            class="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-sem-fg-muted transition-colors hover:bg-sem-surface/60 hover:text-sem-accent"
+                                            :title="$t('relay_chat.join_room')"
+                                        >
+                                            <MaterialDesignIcon icon-name="plus" class="size-4" />
+                                        </button>
+                                    </div>
                                     <input
-                                        v-model="joinRoomName"
-                                        type="text"
-                                        :placeholder="$t('relay_chat.join_room_placeholder')"
-                                        class="min-w-0 flex-1 border border-sem-border bg-sem-canvas px-2 py-1 text-xs text-sem-fg outline-none focus:border-sem-accent focus:ring-1 focus:ring-sem-accent/30"
+                                        v-model="joinRoomKey"
+                                        type="password"
+                                        :placeholder="$t('relay_chat.join_room_key_placeholder')"
+                                        autocomplete="off"
+                                        class="w-full border border-sem-border bg-sem-canvas px-2 py-1 text-xs text-sem-fg outline-none focus:border-sem-accent focus:ring-1 focus:ring-sem-accent/30"
                                     />
-                                    <button
-                                        type="submit"
-                                        class="inline-flex size-7 shrink-0 items-center justify-center rounded-md text-sem-fg-muted transition-colors hover:bg-sem-surface/60 hover:text-sem-accent"
-                                        :title="$t('relay_chat.join_room')"
-                                    >
-                                        <MaterialDesignIcon icon-name="plus" class="size-4" />
-                                    </button>
                                 </form>
                             </div>
                         </div>
@@ -1480,6 +1489,8 @@ export default {
             composer: "",
             sending: false,
             joinRoomName: "",
+            joinRoomKey: "",
+            badKeyPromptInFlight: null,
             showAddHub: false,
             addHubAdvancedOpen: false,
             addHubForm: {
@@ -2660,22 +2671,87 @@ export default {
                 ToastUtils.warning(this.$t("relay_chat.room_required"));
                 return;
             }
-            const joined = await this.joinRoomByName(hub, room);
+            const key = this.joinRoomKey.trim() || null;
+            const joined = await this.joinRoomByName(hub, room, { key });
             if (joined) {
                 this.joinRoomName = "";
+                this.joinRoomKey = "";
             }
         },
         async joinAvailableRoom(hub, room) {
             await this.joinRoomByName(hub, room);
         },
-        async joinRoomByName(hub, room) {
+        isBadKeyErrorText(text) {
+            if (typeof text !== "string") {
+                return false;
+            }
+            const lowered = text.trim().toLowerCase();
+            return lowered.includes("bad key") || lowered.includes("+k");
+        },
+        async promptForRoomKey(room) {
+            const entered = await DialogUtils.prompt(this.$t("relay_chat.room_key_prompt", { room: room || "" }), "", {
+                inputType: "password",
+            });
+            if (entered == null) {
+                return null;
+            }
+            const key = String(entered).trim();
+            return key || null;
+        },
+        async handleBadKeyError(hubHash, room, messageText) {
+            const roomName = (room || "").trim().toLowerCase();
+            if (!hubHash || !roomName) {
+                ToastUtils.error(messageText || this.$t("relay_chat.bad_key"));
+                return;
+            }
+            const flightKey = `${hubHash}:${roomName}`;
+            if (this.badKeyPromptInFlight === flightKey) {
+                return;
+            }
+            this.badKeyPromptInFlight = flightKey;
             try {
-                await window.api.post(`/api/v1/rrc/hubs/${hub.hub_hash}/rooms`, { room });
-                ToastUtils.success(this.$t("relay_chat.joined_room"));
+                ToastUtils.warning(this.$t("relay_chat.bad_key"));
+                const hub = this.hubs.find((h) => h.hub_hash === hubHash);
+                if (!hub) {
+                    return;
+                }
+                try {
+                    await window.api.delete(`/api/v1/rrc/hubs/${hubHash}/rooms/${this.encodeRoom(roomName)}/key`);
+                } catch {
+                    // Stored key may already be gone after the hub ERROR path.
+                }
+                const key = await this.promptForRoomKey(roomName);
+                if (!key) {
+                    return;
+                }
+                await this.joinRoomByName(hub, roomName, { key, prompted: true });
+            } finally {
+                if (this.badKeyPromptInFlight === flightKey) {
+                    this.badKeyPromptInFlight = null;
+                }
+            }
+        },
+        async joinRoomByName(hub, room, { key = null, prompted = false } = {}) {
+            try {
+                const payload = { room, remember: true };
+                if (key) {
+                    payload.key = key;
+                }
+                await window.api.post(`/api/v1/rrc/hubs/${hub.hub_hash}/rooms`, payload);
+                if (hub.connected || hub.status === 2) {
+                    ToastUtils.info(this.$t("relay_chat.join_requested"));
+                } else {
+                    ToastUtils.success(this.$t("relay_chat.joined_room"));
+                }
                 await this.fetchHubs();
                 return true;
             } catch (e) {
-                ToastUtils.error(e.response?.data?.message || this.$t("relay_chat.action_failed"));
+                const message = e.response?.data?.message || this.$t("relay_chat.action_failed");
+                if (!prompted && this.isBadKeyErrorText(message)) {
+                    await this.handleBadKeyError(hub.hub_hash, room, message);
+                    return false;
+                }
+                ToastUtils.error(message);
                 return false;
             }
         },
@@ -3119,6 +3195,9 @@ export default {
             if (json.type === "rrc.change") {
                 this.fetchHubs();
             } else if (json.type === "rrc.message") {
+                if (json.message && json.message.kind === "error" && this.isBadKeyErrorText(json.message.text)) {
+                    this.handleBadKeyError(json.hub_hash, json.room || json.message.room, json.message.text);
+                }
                 if (json.hub_hash === this.selectedHubHash && json.room === this.selectedRoom && json.message) {
                     if (!relayMessageAlreadyPresent(this.messages, json.message)) {
                         this.messages.push(json.message);

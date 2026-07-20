@@ -604,6 +604,23 @@ Content at depth 1`;
             expect(html).not.toMatch(/<style[\s>]/i);
         });
 
+        it("sanitizeRenderedMicronHtml strips @import and https url from style blocks", () => {
+            const html = MicronParser.sanitizeRenderedMicronHtml(
+                '<style>@import url("https://evil.com/a.css"); p{background:url(https://evil.com/x.png)}</style><p>ok</p>'
+            );
+            expect(html.toLowerCase()).not.toContain("@import");
+            expect(html).not.toMatch(/url\s*\(\s*["']?https?:\/\//i);
+            expect(html).toContain("ok");
+        });
+
+        it("stripOverlayStyles drops inline network url()", () => {
+            const html = MicronParser.stripOverlayStyles(
+                `<div style="color:red; background:url(https://evil.com/x)">x</div>`
+            );
+            expect(html).not.toMatch(/url\s*\(\s*["']?https?:\/\//i);
+            expect(html).toContain("color:red");
+        });
+
         it("blocks javascript: in link with encoding", () => {
             const markup = "`[click`java\tscript:alert(1)]";
             const html = parser.convertMicronToHtml(markup);

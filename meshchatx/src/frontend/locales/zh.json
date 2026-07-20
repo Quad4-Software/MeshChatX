@@ -3696,7 +3696,22 @@
         "presence_joined": "{count} 人加入",
         "presence_left": "{count} 人离开",
         "presence_events": "{count} 条加入/离开事件",
-        "presence_connection": "{count} 条连接事件"
+        "presence_connection": "{count} 条连接事件",
+        "join_room_key_placeholder": "房间密钥（如需要）",
+        "room_key_prompt": "请输入 #{room} 的密钥",
+        "bad_key": "房间密钥错误。请输入正确密钥以加入。",
+        "join_requested": "已发送加入请求",
+        "host_room_key_placeholder": "房间密钥（可选）",
+        "host_room_keyed": "此房间需要密钥",
+        "host_room_unkeyed": "此房间没有密钥",
+        "host_set_room_key": "设置密钥",
+        "host_change_room_key": "更改密钥",
+        "host_clear_room_key": "清除密钥",
+        "host_room_key_prompt": "请为 #{room} 输入新密钥",
+        "host_room_key_required": "需要房间密钥",
+        "host_room_key_saved": "房间密钥已保存",
+        "host_clear_room_key_confirm": "移除此房间的密钥？之后任何人都可以加入。",
+        "host_room_key_cleared": "房间密钥已清除"
     },
     "android_storage": {
         "setup_title": "选择MeshChatX存储数据的位置",

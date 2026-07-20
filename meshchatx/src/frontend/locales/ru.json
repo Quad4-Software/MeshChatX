@@ -3696,7 +3696,22 @@
         "presence_joined": "{count} вошли",
         "presence_left": "{count} вышли",
         "presence_events": "{count} событий входа/выхода",
-        "presence_connection": "{count} событий соединения"
+        "presence_connection": "{count} событий соединения",
+        "join_room_key_placeholder": "Ключ комнаты (если нужен)",
+        "room_key_prompt": "Введите ключ для #{room}",
+        "bad_key": "Неверный ключ комнаты. Введите правильный ключ, чтобы войти.",
+        "join_requested": "Запрос на вход отправлен",
+        "host_room_key_placeholder": "Ключ комнаты (необязательно)",
+        "host_room_keyed": "Для этой комнаты нужен ключ",
+        "host_room_unkeyed": "У этой комнаты нет ключа",
+        "host_set_room_key": "Установить ключ",
+        "host_change_room_key": "Изменить ключ",
+        "host_clear_room_key": "Удалить ключ",
+        "host_room_key_prompt": "Введите новый ключ для #{room}",
+        "host_room_key_required": "Требуется ключ комнаты",
+        "host_room_key_saved": "Ключ комнаты сохранён",
+        "host_clear_room_key_confirm": "Удалить ключ из этой комнаты? Войти сможет кто угодно.",
+        "host_room_key_cleared": "Ключ комнаты удалён"
     },
     "android_storage": {
         "setup_title": "Выберите, где MeshChatX хранит данные",
