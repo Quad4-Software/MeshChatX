@@ -618,6 +618,7 @@ import IconButton from "../IconButton.vue";
 import DropDownMenu from "../DropDownMenu.vue";
 import DropDownMenuItem from "../DropDownMenuItem.vue";
 import GlobalState, { mergeGlobalConfig } from "../../js/GlobalState";
+import GlobalEmitter from "../../js/GlobalEmitter";
 import { patchServerConfig } from "../../js/settings/settingsConfigService";
 import {
     preloadNomadMicronWasm,
