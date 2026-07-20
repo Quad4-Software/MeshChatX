@@ -59,7 +59,7 @@ describe("MarkdownRenderer.js", () => {
         it("keeps underscores intact in long https links", () => {
             const url = "https://github.com/Quad4-Software/MeshChatX/src/branch/dev/docs/meshchatx_on_raspberry_pi.md";
             const result = MarkdownRenderer.render(`visit ${url}`);
-            expect(result).toContain(`href="${url}"`);
+            expect(result).toContain(`data-http-url="${url}"`);
             expect(result).toContain(url);
             expect(result).not.toContain("<em>on</em>");
             expect(result).not.toContain("<em>raspberry</em>");
@@ -90,7 +90,7 @@ describe("MarkdownRenderer.js", () => {
             const url =
                 "https://example.com/docs/meshchatx_on_raspberry_pi.md?file=meshchatx_on_raspberry_pi.md#meshchatx_on_raspberry_pi";
             const result = MarkdownRenderer.render(`see ${url} now`);
-            expect(result).toContain(`href="${url}"`);
+            expect(result).toContain(`data-http-url="${url}"`);
             expect(result).toContain(url);
             expect(result).not.toContain("<em>on</em>");
             expect(result).not.toContain("<em>raspberry</em>");
@@ -100,34 +100,34 @@ describe("MarkdownRenderer.js", () => {
             const a = "https://example.com/docs/meshchatx_on_pi.md";
             const b = "https://example.com/plain";
             const result = MarkdownRenderer.render(`links: ${a} and ${b}`);
-            expect(result).toContain(`href="${a}"`);
-            expect(result).toContain(`href="${b}"`);
-            expect((result.match(/<a href=/g) || []).length).toBe(2);
+            expect(result).toContain(`data-http-url="${a}"`);
+            expect(result).toContain(`data-http-url="${b}"`);
+            expect((result.match(/data-http-url=/g) || []).length).toBe(2);
         });
 
         it("trims trailing punctuation around links while keeping display punctuation", () => {
             const result = MarkdownRenderer.render("Check (https://example.com/path_(v1)), and continue.");
-            expect(result).toContain('href="https://example.com/path_(v1)"');
+            expect(result).toContain('data-http-url="https://example.com/path_(v1)"');
             expect(result).toContain("</a>), and continue.");
         });
 
         it("supports encoded chars and balanced parentheses in link path", () => {
             const url = "https://example.com/docs/file%5Fname_(v1).md";
             const result = MarkdownRenderer.render(`open ${url}`);
-            expect(result).toContain(`href="${url}"`);
+            expect(result).toContain(`data-http-url="${url}"`);
         });
 
         it("keeps escaped entities in query string links", () => {
             const url = "https://example.com/search?q=a&amp;lang=en";
             const result = MarkdownRenderer.render(`lookup ${url}`);
-            expect(result).toContain('href="https://example.com/search?q=a&amp;amp;lang=en"');
-            expect(result).toContain("https://example.com/search?q=a&amp;amp;lang=en");
+            expect(result).toContain('data-http-url="https://example.com/search?q=a&amp;amp;amp;lang=en"');
+            expect(result).toContain("https://example.com/search?q=a&amp;amp;amp;lang=en");
         });
 
         it("handles links at line boundaries with newline conversion", () => {
             const url = "https://example.com/meshchatx_on_pi.md";
             const result = MarkdownRenderer.render(`${url}\nnext line`);
-            expect(result).toContain(`href="${url}"`);
+            expect(result).toContain(`data-http-url="${url}"`);
             expect(result).toContain("<br>next line");
         });
 
@@ -136,7 +136,7 @@ describe("MarkdownRenderer.js", () => {
             const result = MarkdownRenderer.render(`_label_ ${url} _tail_`);
             expect(result).toContain("<em>label</em>");
             expect(result).toContain("<em>tail</em>");
-            expect(result).toContain(`href="${url}"`);
+            expect(result).toContain(`data-http-url="${url}"`);
             expect(result).not.toContain("<em>on</em>");
         });
 
@@ -518,7 +518,7 @@ describe("MarkdownRenderer.js", () => {
             const result = MarkdownRenderer.render(msg);
             expect(result).toContain("<h1");
             expect(result).toContain(
-                'href="https://github.com/Quad4-Software/MeshChatX/src/branch/dev/docs/meshchatx_on_raspberry_pi.md"'
+                'data-http-url="https://github.com/Quad4-Software/MeshChatX/src/branch/dev/docs/meshchatx_on_raspberry_pi.md"'
             );
             expect(result).toContain('data-nomadnet-url="1dfeb0d794963579bd21ac8f153c77a4:/page/meshchatx_on_pi.mu"');
             expect(result).toContain("<code");
@@ -560,7 +560,7 @@ describe("renderBasic (RRC / limited chat markdown)", () => {
         const result = MarkdownRenderer.renderBasic("hi <script>alert(1)</script> https://example.com/a");
         expect(result).not.toContain("<script>");
         expect(result).toContain("&lt;script&gt;");
-        expect(result).toContain('href="https://example.com/a"');
+        expect(result).toContain('data-http-url="https://example.com/a"');
     });
 
     it("preserves line breaks as br tags", () => {

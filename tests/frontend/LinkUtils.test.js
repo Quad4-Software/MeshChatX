@@ -97,34 +97,36 @@ describe("LinkUtils.js", () => {
         it("detects http links", () => {
             const text = "visit http://example.com";
             const result = LinkUtils.renderStandardLinks(text);
-            expect(result).toMatch(/<a href="http:\/\/example\.com\/?"/);
+            expect(result).toContain('href="#"');
+            expect(result).toMatch(/data-http-url="http:\/\/example\.com\/?"/);
         });
 
         it("detects https links", () => {
             const text = "visit https://example.com/path?query=1";
             const result = LinkUtils.renderStandardLinks(text);
-            expect(result).toContain('<a href="https://example.com/path?query=1"');
+            expect(result).toContain('href="#"');
+            expect(result).toContain('data-http-url="https://example.com/path?query=1"');
         });
 
         it("trims trailing punctuation from detected urls", () => {
             const result = LinkUtils.renderStandardLinks("visit https://example.com/path?x=1, now");
-            expect(result).toContain('href="https://example.com/path?x=1"');
+            expect(result).toContain('data-http-url="https://example.com/path?x=1"');
             expect(result).toContain("</a>, now");
         });
 
         it("keeps balanced parenthesis in url but trims unmatched trailing one", () => {
             const withBalanced = LinkUtils.renderStandardLinks("see https://example.com/path_(v1)");
-            expect(withBalanced).toContain('href="https://example.com/path_(v1)"');
+            expect(withBalanced).toContain('data-http-url="https://example.com/path_(v1)"');
 
             const withTrailing = LinkUtils.renderStandardLinks("see (https://example.com/path_(v1))");
-            expect(withTrailing).toContain('href="https://example.com/path_(v1)"');
+            expect(withTrailing).toContain('data-http-url="https://example.com/path_(v1)"');
             expect(withTrailing).toContain("</a>)");
         });
 
-        it("keeps escaped entity query content in href", () => {
+        it("keeps escaped entity query content in data-http-url", () => {
             const text = "visit https://example.com/search?q=a&amp;lang=en";
             const result = LinkUtils.renderStandardLinks(text);
-            expect(result).toContain('href="https://example.com/search?q=a&amp;lang=en"');
+            expect(result).toContain('data-http-url="https://example.com/search?q=a&amp;amp;lang=en"');
         });
     });
 
@@ -132,7 +134,7 @@ describe("LinkUtils.js", () => {
         it("detects both types of links", () => {
             const text = "Check https://google.com and nomadnet://1dfeb0d794963579bd21ac8f153c77a4";
             const result = LinkUtils.renderAllLinks(text);
-            expect(result).toMatch(/<a href="https:\/\/google\.com\/?"/);
+            expect(result).toMatch(/data-http-url="https:\/\/google\.com\/?"/);
             expect(result).toContain('data-nomadnet-url="1dfeb0d794963579bd21ac8f153c77a4:/page/index.mu"');
         });
 
@@ -166,7 +168,7 @@ describe("LinkUtils.js", () => {
             expect(result).not.toContain("lxmf-link");
             expect(result).not.toContain("nomadnet-link");
             expect(result).toContain(
-                'href="https://github.com/org/repo/blob/9a47f3fc51dd3318aec0d2eb9ab6fc497c0f1aef/electron-builder.yml#L29"'
+                'data-http-url="https://github.com/org/repo/blob/9a47f3fc51dd3318aec0d2eb9ab6fc497c0f1aef/electron-builder.yml#L29"'
             );
         });
 
@@ -201,7 +203,7 @@ describe("LinkUtils.js", () => {
         it("stops URL at space so no script in same line", () => {
             const text = "https://example.com javascript:alert(1)";
             const result = LinkUtils.renderStandardLinks(text);
-            expect(result).toMatch(/<a href="https:\/\/example\.com\/?"/);
+            expect(result).toMatch(/data-http-url="https:\/\/example\.com\/?"/);
             expect(result).not.toMatch(/href="[^"]*javascript:/);
         });
 

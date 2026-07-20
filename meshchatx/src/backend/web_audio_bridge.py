@@ -340,21 +340,16 @@ class WebAudioBridge:
 
     def push_client_frame(self, pcm_bytes: bytes):
         with self.lock:
+            tele = self._tele()
+            if not tele or not getattr(tele, "active_call", None):
+                return
+            if getattr(self.telephone_manager, "is_voicemail_session_active", False):
+                return
             if not self.tx_source:
                 # Hostless LineSource stand-in still accepts PCM until swap.
-                tele = self._tele()
-                audio_in = getattr(tele, "audio_input", None) if tele else None
+                audio_in = getattr(tele, "audio_input", None)
                 if audio_in is not None and hasattr(audio_in, "push_pcm"):
-                    if getattr(
-                        self.telephone_manager,
-                        "is_voicemail_session_active",
-                        False,
-                    ):
-                        return
                     audio_in.push_pcm(pcm_bytes)
-                return
-            # Drop frames during voicemail
-            if getattr(self.telephone_manager, "is_voicemail_session_active", False):
                 return
             self.tx_source.push_pcm(pcm_bytes)
 

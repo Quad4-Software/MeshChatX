@@ -6,6 +6,8 @@ MeshChatX uses LXMF (LXMF Message Format) for direct and store-and-forward messa
 
 Open **Messages** to see your conversation list. Each row is a peer destination you have exchanged traffic with or selected from announces.
 
+The Messages sidebar icon shows a red count when you have unread LXMF conversations. Opening a thread marks it read. If a new message arrives while that thread is already open, it is marked read without needing to switch away and back.
+
 From a conversation you can:
 
 - Send and receive text messages

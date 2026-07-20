@@ -34,6 +34,27 @@ def _normalize_peer_hash(value: str | None) -> str | None:
     return cleaned
 
 
+_RESERVED_SYNC_TOP = frozenset(
+    {
+        "identity",
+        "identity.bak",
+        "bots",
+        "plugins",
+        "lxmf",
+        "lxmf_router",
+        "telephone",
+        "rrc_history",
+        "rrc_server",
+        "rncp_received",
+        "rncp_shared",
+        "rncp",
+        "database-backups",
+        "snapshots",
+        "database.db",
+    },
+)
+
+
 class RnsFilesyncHandler:
     """Host FileSync against the shared Reticulum stack for one identity."""
 
@@ -59,6 +80,8 @@ class RnsFilesyncHandler:
         self._monitor = True
         self._announce_interval = ANNOUNCE_INTERVAL_DEFAULT
         self._load_settings()
+        os.makedirs(self._root, exist_ok=True)
+        os.makedirs(self._sync_directory, exist_ok=True)
 
     def _emit(self, event_type: str, payload: dict[str, Any] | None = None) -> None:
         if not self._emit_callback:
@@ -77,7 +100,14 @@ class RnsFilesyncHandler:
             return None
         resolved = os.path.realpath(os.path.expanduser(cleaned))
         root = self.storage_dir
-        if resolved != root and not resolved.startswith(root + os.sep):
+        # Never sync the whole identity tree (would expose keys / DB).
+        if resolved == root:
+            return None
+        if not resolved.startswith(root + os.sep):
+            return None
+        rel = os.path.relpath(resolved, root)
+        first = rel.split(os.sep, 1)[0]
+        if first in _RESERVED_SYNC_TOP or first.endswith(".db"):
             return None
         return resolved
 
@@ -234,7 +264,22 @@ class RnsFilesyncHandler:
                 target = self._root
 
             if not os.path.isdir(target):
-                return {"ok": False, "error": "path is not a directory"}
+                # Default sync path can appear in status before the folder exists.
+                # Walk up to the nearest existing directory still inside the jail.
+                cursor = target
+                while True:
+                    parent = os.path.dirname(cursor)
+                    if parent == cursor:
+                        break
+                    if parent != root and not parent.startswith(root + os.sep):
+                        break
+                    cursor = parent
+                    if os.path.isdir(cursor):
+                        target = cursor
+                        break
+                if not os.path.isdir(target):
+                    os.makedirs(self._root, exist_ok=True)
+                    target = self._root
 
             entries: list[dict[str, str]] = []
             try:

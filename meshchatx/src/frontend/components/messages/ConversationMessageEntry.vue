@@ -707,6 +707,7 @@
                                     'font-size': cv.bubbleMessageBodyFontSizePx(cv.bubbleViewModel(chatItem)) + 'px',
                                 }"
                                 @click="cv.handleMessageClick"
+                                @auxclick="cv.handleMessageClick"
                                 v-html="cv.renderMarkdown(cv.bubbleViewModel(chatItem).textForRender)"
                             ></div>
                             <div

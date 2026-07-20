@@ -1356,10 +1356,12 @@ export default {
 
             GlobalState.unreadConversationsCount = 0;
             GlobalState.missedCallsCount = 0;
+            GlobalState.blockedDestinations = [];
 
             await this.getConfig();
             await this.updateRingtonePlayer();
             await this.getAppInfo();
+            await this.getBlockedDestinations();
             this.updateTelephoneStatus();
 
             this.isSwitchingIdentity = false;

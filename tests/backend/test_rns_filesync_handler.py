@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -36,10 +37,16 @@ def test_default_status_not_running(handler, mock_identity):
     assert status["storage_directory"] == handler.storage_dir
 
 
+def test_list_directories_missing_sync_path_falls_back(handler):
+    missing = f"{handler.storage_dir}/filesync/sync/does-not-exist-yet"
+    result = handler.list_directories(missing)
+    assert result["ok"] is True
+    assert result["current"].startswith(handler.storage_dir)
+    assert os.path.isdir(result["current"])
+
+
 def test_list_directories_defaults_to_filesync_root(handler):
     nested = f"{handler.storage_dir}/filesync/photos"
-    import os
-
     os.makedirs(nested, exist_ok=True)
     result = handler.list_directories()
     assert result["ok"] is True

@@ -5,7 +5,9 @@ import logging
 import os
 import re
 import shutil
+import tempfile
 import zipfile
+from contextlib import suppress
 from datetime import UTC, datetime
 
 from .access_attempts import AccessAttemptsDAO
@@ -485,12 +487,19 @@ class Database:
         identity_dir = self._identity_storage_dir()
         excluded = {os.path.abspath(path) for path in (exclude_paths or ())}
         included: list[str] = []
-        for root, dirs, files in os.walk(identity_dir):
-            dirs[:] = [d for d in dirs if d not in BACKUP_SKIP_DIR_NAMES]
+        for root, dirs, files in os.walk(identity_dir, followlinks=False):
+            dirs[:] = [
+                d
+                for d in dirs
+                if d not in BACKUP_SKIP_DIR_NAMES
+                and not os.path.islink(os.path.join(root, d))
+            ]
             for name in files:
                 if name in db_basenames or name == BACKUP_MANIFEST_NAME:
                     continue
                 full_path = os.path.join(root, name)
+                if os.path.islink(full_path):
+                    continue
                 if os.path.abspath(full_path) in excluded:
                     continue
                 rel_path = os.path.relpath(full_path, identity_dir).replace("\\", "/")
@@ -714,44 +723,134 @@ class Database:
         paths = self._database_paths()
         self._checkpoint_and_close()
 
-        for p in paths.values():
-            if os.path.exists(p):
-                os.remove(p)
-
-        if zipfile.is_zipfile(backup_path):
-            target_dir = os.path.dirname(paths["main"])
-            with zipfile.ZipFile(backup_path, "r") as zf:
-                for member in zf.namelist():
-                    if member.endswith("/"):
-                        continue
-                    self._safe_zip_extract_member(zf, member, target_dir)
-        else:
-            shutil.copy2(backup_path, paths["main"])
-
-        if not self._looks_like_sqlite(paths["main"]):
-            raise DatabaseRestoreError("Restored file is not a valid SQLite database")
-
+        target_dir = os.path.dirname(paths["main"])
+        main_name = os.path.basename(paths["main"])
+        staging_dir = tempfile.mkdtemp(prefix=".meshchatx-restore-", dir=target_dir)
+        integrity_rows = None
         try:
-            self.initialize()
-        except Exception as exc:
-            raise DatabaseRestoreError(
-                f"Restored files from backup but database failed to open: {exc!s}",
-            ) from exc
-        self._tune_sqlite_pragmas()
-        integrity_rows = self.provider.integrity_check()
-        integrity = []
-        for row in integrity_rows or []:
-            if isinstance(row, dict):
-                integrity.append(next(iter(row.values())))
+            if zipfile.is_zipfile(backup_path):
+                with zipfile.ZipFile(backup_path, "r") as zf:
+                    for member in zf.namelist():
+                        if member.endswith("/"):
+                            continue
+                        self._safe_zip_extract_member(zf, member, staging_dir)
             else:
-                integrity.append(row[0])
-        if integrity and integrity[0] != "ok":
-            raise DatabaseRestoreError(
-                f"Restored backup failed integrity check: {integrity[0]!s}",
+                shutil.copy2(backup_path, os.path.join(staging_dir, main_name))
+
+            staging_main = os.path.join(staging_dir, main_name)
+            if not os.path.exists(staging_main):
+                # Zip may use a different basename for the primary db file.
+                candidates = [
+                    os.path.join(staging_dir, name)
+                    for name in os.listdir(staging_dir)
+                    if name.endswith(".db") and not name.endswith(("-wal", "-shm"))
+                ]
+                if len(candidates) == 1:
+                    staging_main = candidates[0]
+                else:
+                    raise DatabaseRestoreError(
+                        "Backup does not contain a primary database file",
+                    )
+
+            if not self._looks_like_sqlite(staging_main):
+                raise DatabaseRestoreError(
+                    "Restored file is not a valid SQLite database",
+                )
+
+            aside_dir = tempfile.mkdtemp(
+                prefix=".meshchatx-aside-",
+                dir=target_dir,
             )
+            try:
+                for key, live_path in paths.items():
+                    if os.path.exists(live_path):
+                        shutil.move(
+                            live_path,
+                            os.path.join(aside_dir, os.path.basename(live_path)),
+                        )
+
+                shutil.move(staging_main, paths["main"])
+                for suffix, key in (("-wal", "wal"), ("-shm", "shm")):
+                    staged = os.path.join(
+                        staging_dir,
+                        os.path.basename(paths["main"]) + suffix,
+                    )
+                    if not os.path.exists(staged):
+                        staged = os.path.join(
+                            staging_dir,
+                            os.path.basename(staging_main) + suffix,
+                        )
+                    if os.path.exists(staged):
+                        shutil.move(staged, paths[key])
+
+                # Copy any remaining identity-storage files from the zip staging tree.
+                for root, _dirs, files in os.walk(staging_dir, followlinks=False):
+                    for name in files:
+                        src = os.path.join(root, name)
+                        rel = os.path.relpath(src, staging_dir)
+                        if rel in {main_name, f"{main_name}-wal", f"{main_name}-shm"}:
+                            continue
+                        if name.endswith(("-wal", "-shm")) and name.startswith(
+                            os.path.splitext(main_name)[0],
+                        ):
+                            continue
+                        dest = os.path.join(target_dir, rel)
+                        dest_dir = os.path.dirname(dest)
+                        if dest_dir:
+                            os.makedirs(dest_dir, exist_ok=True)
+                        if os.path.islink(src):
+                            continue
+                        shutil.copy2(src, dest)
+
+                try:
+                    self.initialize()
+                except Exception as exc:
+                    self._restore_aside_files(aside_dir, paths)
+                    with suppress(Exception):
+                        self.initialize()
+                    raise DatabaseRestoreError(
+                        f"Restored files from backup but database failed to open: {exc!s}",
+                    ) from exc
+                self._tune_sqlite_pragmas()
+                integrity_rows = self.provider.integrity_check()
+                integrity = []
+                for row in integrity_rows or []:
+                    if isinstance(row, dict):
+                        integrity.append(next(iter(row.values())))
+                    else:
+                        integrity.append(row[0])
+                if integrity and integrity[0] != "ok":
+                    self.close_all()
+                    self._restore_aside_files(aside_dir, paths)
+                    with suppress(Exception):
+                        self.initialize()
+                    raise DatabaseRestoreError(
+                        f"Restored backup failed integrity check: {integrity[0]!s}",
+                    )
+            finally:
+                shutil.rmtree(aside_dir, ignore_errors=True)
+        finally:
+            shutil.rmtree(staging_dir, ignore_errors=True)
 
         return {
             "restored_from": backup_path,
             "integrity_check": integrity_rows,
             "health": self.get_database_health_snapshot(),
         }
+
+    @staticmethod
+    def _restore_aside_files(aside_dir: str, paths: dict) -> None:
+        """Put previously moved live DB files back after a failed restore."""
+        for live_path in paths.values():
+            aside = os.path.join(aside_dir, os.path.basename(live_path))
+            if not os.path.exists(aside):
+                continue
+            if os.path.exists(live_path):
+                try:
+                    os.remove(live_path)
+                except OSError:
+                    pass
+            try:
+                shutil.move(aside, live_path)
+            except OSError:
+                pass

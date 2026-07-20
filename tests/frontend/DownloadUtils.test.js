@@ -64,4 +64,26 @@ describe("DownloadUtils", () => {
         expect(append).toHaveBeenCalledWith(link);
         expect(remove).toHaveBeenCalledTimes(1);
     });
+
+    it("downloadFromApiResponse reads Fetch Headers via .get()", async () => {
+        const saveDownload = vi.fn();
+        window.MeshChatXAndroid = { saveDownload };
+        const headers = new Headers({
+            "content-disposition": 'attachment; filename="from-headers.zip"',
+            "content-type": "application/zip",
+        });
+        await DownloadUtils.downloadFromApiResponse(
+            {
+                data: new Uint8Array([1]),
+                headers,
+            },
+            "fallback.zip"
+        );
+        expect(saveDownload).toHaveBeenCalledWith("from-headers.zip", expect.any(String));
+    });
+
+    it("headerValue works for plain objects and Headers", () => {
+        expect(DownloadUtils.headerValue({ "Content-Type": "text/plain" }, "content-type")).toBe("text/plain");
+        expect(DownloadUtils.headerValue(new Headers({ "content-type": "a/b" }), "Content-Type")).toBe("a/b");
+    });
 });

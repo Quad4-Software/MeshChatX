@@ -166,6 +166,20 @@ export function readLocalNomadFavouritesLayout() {
     return null;
 }
 
+export function clearLocalNomadFavouritesLayout() {
+    try {
+        if (typeof window === "undefined" || !window.localStorage) {
+            return;
+        }
+        window.localStorage.removeItem(NOMAD_FAVOURITES_LAYOUT_KEY);
+        window.localStorage.removeItem(NOMAD_FAVOURITES_LEGACY_ORDER_KEY);
+    } catch {
+        // ignore
+    }
+    lastSavedSerialized = "";
+    pendingSaveLayout = null;
+}
+
 function writeLocalLayout(layout) {
     try {
         if (typeof window === "undefined" || !window.localStorage) {

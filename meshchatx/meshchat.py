@@ -7900,20 +7900,24 @@ class ReticulumMeshChat:
                         {"type": "error", "message": "Web audio is disabled in config"},
                     ),
                 )
-            else:
-                await self.web_audio_bridge.send_status(websocket_response)
-                attached = self.web_audio_bridge.attach_client(websocket_response)
-                if not attached:
-                    await websocket_response.send_str(
-                        json.dumps(
-                            {"type": "error", "message": "No active call to attach"},
-                        ),
-                    )
+                await websocket_response.close()
+                return websocket_response
+
+            await self.web_audio_bridge.send_status(websocket_response)
+            attached = self.web_audio_bridge.attach_client(websocket_response)
+            if not attached:
+                await websocket_response.send_str(
+                    json.dumps(
+                        {"type": "error", "message": "No active call to attach"},
+                    ),
+                )
 
             async for msg in websocket_response:
                 message = cast("WSMessage", msg)
                 if message.type == WSMsgType.BINARY:
-                    self.web_audio_bridge.push_client_frame(message.data)
+                    # Only accept PCM after a successful attach for this socket.
+                    if websocket_response in self.web_audio_bridge.clients:
+                        self.web_audio_bridge.push_client_frame(message.data)
                 elif message.type == WSMsgType.TEXT:
                     try:
                         data = json.loads(message.data)

@@ -233,9 +233,8 @@ describe("FilesyncDirectoryBrowserModal.vue", () => {
     });
 
     it("loads directories when opened and selects a path", async () => {
-        const { default: FilesyncDirectoryBrowserModal } = await import(
-            "@/components/filesync/FilesyncDirectoryBrowserModal.vue"
-        );
+        const { default: FilesyncDirectoryBrowserModal } =
+            await import("@/components/filesync/FilesyncDirectoryBrowserModal.vue");
         const wrapper = mount(FilesyncDirectoryBrowserModal, {
             props: {
                 open: true,
@@ -252,9 +251,7 @@ describe("FilesyncDirectoryBrowserModal.vue", () => {
             },
         });
         await vi.waitFor(() =>
-            expect(apiMock.get).toHaveBeenCalledWith(
-                expect.stringContaining("/api/v1/filesync/directories")
-            )
+            expect(apiMock.get).toHaveBeenCalledWith(expect.stringContaining("/api/v1/filesync/directories"))
         );
         expect(wrapper.vm.directories).toHaveLength(1);
         await wrapper.vm.confirmSelection();

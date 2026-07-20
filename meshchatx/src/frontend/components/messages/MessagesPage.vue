@@ -557,6 +557,7 @@ export default {
         GlobalEmitter.off("compose-new-message", this.onComposeNewMessage);
         GlobalEmitter.off("refresh-conversations", this.requestConversationsRefresh);
         GlobalEmitter.off("websocket-reconnected", this.requestConversationsRefresh);
+        GlobalEmitter.off("identity-switched", this.onIdentitySwitched);
     },
     mounted() {
         this.setupPaneViewportWatchers();
@@ -564,7 +565,9 @@ export default {
         // listen for websocket messages
         WebSocketConnection.on("message", this.onWebsocketMessage);
         GlobalEmitter.on("compose-new-message", this.onComposeNewMessage);
+        GlobalEmitter.on("refresh-conversations", this.requestConversationsRefresh);
         GlobalEmitter.on("websocket-reconnected", this.requestConversationsRefresh);
+        GlobalEmitter.on("identity-switched", this.onIdentitySwitched);
 
         this.getConfig();
         this.getConversations();
@@ -597,6 +600,25 @@ export default {
     methods: {
         syncUnreadCount() {
             GlobalState.unreadConversationsCount = countUnreadConversations(this.conversations);
+        },
+        onIdentitySwitched() {
+            this.conversationsAbortController?.abort();
+            this.conversations = [];
+            this.conversationListSignature = "";
+            this.hasMoreConversations = true;
+            this.hasLoadedConversations = false;
+            this.lxmfDeliveryAnnounces = [];
+            this.announcesLoaded = false;
+            this.folders = [];
+            this.selectedFolderId = null;
+            for (const pane of this.panes || []) {
+                if (pane && typeof pane === "object") {
+                    pane.peer = null;
+                }
+            }
+            this.getConversations();
+            this.getFolders();
+            this.loadConversationPins();
         },
         onAnnouncesTabActivated() {
             if (this.announcesLoaded) {

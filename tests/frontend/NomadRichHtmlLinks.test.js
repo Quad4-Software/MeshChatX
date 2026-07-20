@@ -53,6 +53,15 @@ describe("NomadRichHtmlLinks", () => {
             expect(ev.defaultPrevented).toBe(true);
         });
 
+        it("opens data-http-url links even when href is #", () => {
+            holder.innerHTML = '<a href="#" data-http-url="https://example.com/safe">x</a>';
+            const openExternalHttp = vi.fn();
+            const ev = clickEvent(holder.querySelector("a"));
+            expect(handleRichHtmlLinkClick(ev, { openExternalHttp })).toBe(true);
+            expect(openExternalHttp).toHaveBeenCalledWith("https://example.com/safe");
+            expect(ev.defaultPrevented).toBe(true);
+        });
+
         it("scrolls fragment anchors within scrollRoot", () => {
             holder.innerHTML = '<div id="target">t</div><a href="#target">f</a>';
             const target = holder.querySelector("#target");

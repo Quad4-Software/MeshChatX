@@ -717,6 +717,7 @@ import ToastUtils from "../../js/ToastUtils";
 import DownloadUtils from "../../js/DownloadUtils";
 import { isUnknownNodeDisplayName } from "../../js/nomadUnknownNodeName.js";
 import {
+    clearLocalNomadFavouritesLayout,
     loadNomadFavouritesLayout,
     readLocalNomadFavouritesLayout,
     saveNomadFavouritesLayout,
@@ -963,6 +964,12 @@ export default {
             this.reloadFavouriteLayoutFromStore();
         };
         GlobalEmitter.on("nomadnet-favourites-layout-imported", this._onNomadnetFavouritesLayoutImported);
+        this._onIdentitySwitched = () => {
+            clearLocalNomadFavouritesLayout();
+            this.resetDefaultSections();
+            this.reloadFavouriteLayoutFromStore();
+        };
+        GlobalEmitter.on("identity-switched", this._onIdentitySwitched);
     },
     unmounted() {
         if (this._layoutPersistTimer) {
@@ -975,6 +982,9 @@ export default {
         }
         if (this._onNomadnetFavouritesLayoutImported) {
             GlobalEmitter.off("nomadnet-favourites-layout-imported", this._onNomadnetFavouritesLayoutImported);
+        }
+        if (this._onIdentitySwitched) {
+            GlobalEmitter.off("identity-switched", this._onIdentitySwitched);
         }
     },
     methods: {

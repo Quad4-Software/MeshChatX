@@ -305,6 +305,11 @@ class BotHandler:
             bot_id = bot_id or uuid.uuid4().hex
             bot_storage_dir = storage_dir or os.path.join(self.bots_dir, bot_id)
             bot_storage_dir = os.path.abspath(bot_storage_dir)
+            jailed = self._jailed_bot_storage_dir(bot_storage_dir)
+            if not jailed:
+                msg = "Bot storage directory must be under the identity bots directory"
+                raise ValueError(msg)
+            bot_storage_dir = jailed
             entry = {
                 "id": bot_id,
                 "template_id": template_id,
@@ -317,7 +322,12 @@ class BotHandler:
             }
             self.bots_state.append(entry)
         else:
-            bot_storage_dir = entry["storage_dir"]
+            jailed = self._jailed_bot_storage_dir(entry.get("storage_dir"))
+            if not jailed:
+                msg = "Bot storage directory must be under the identity bots directory"
+                raise ValueError(msg)
+            bot_storage_dir = jailed
+            entry["storage_dir"] = bot_storage_dir
             entry["template_id"] = template_id
             entry["name"] = name or entry.get("name") or f"{template_id.title()} Bot"
             if not entry.get("bot_config_dir"):
@@ -513,6 +523,16 @@ class BotHandler:
             raise RuntimeError("failed to write announce request") from exc
         return True
 
+    def _jailed_bot_storage_dir(self, storage_dir):
+        """Return realpath only when storage_dir is under this identity's bots dir."""
+        if not storage_dir:
+            return None
+        bots_root = os.path.realpath(self.bots_dir)
+        real = os.path.realpath(storage_dir)
+        if real != bots_root and not real.startswith(bots_root + os.sep):
+            return None
+        return real
+
     def delete_bot(self, bot_id):
         # Stop it first
         self.stop_bot(bot_id)
@@ -526,8 +546,8 @@ class BotHandler:
                 break
 
         if entry:
-            # Delete storage dir
-            storage_dir = entry.get("storage_dir")
+            # Delete storage dir only when jailed under bots/
+            storage_dir = self._jailed_bot_storage_dir(entry.get("storage_dir"))
             if storage_dir and os.path.exists(storage_dir):
                 try:
                     shutil.rmtree(storage_dir)
