@@ -13,7 +13,7 @@ def pythonTempDir = new File(buildDir, "python-tmp")
 def vendorWheelDir = new File(rootProject.projectDir, "vendor")
 def lxstPatchedWheel = new File(rootProject.projectDir, "vendor/lxst-0.4.8-py3-none-any.whl")
 def bleakPatchedWheel = new File(rootProject.projectDir, "vendor/bleak-3.0.2-py3-none-any.whl")
-def rnsPatchedWheel = new File(rootProject.projectDir, "vendor/rns-1.3.9-py3-none-any.whl")
+def rnsPatchedWheel = new File(rootProject.projectDir, "vendor/rns-1.4.0-py3-none-any.whl")
 def allAndroidAbis = ["arm64-v8a", "x86_64", "armeabi-v7a"]
 def selectedAndroidAbis = (
     project.findProperty("meshchatxAbis")
@@ -341,7 +341,7 @@ chaquopy {
             // shim, usb4a context bridge, and able BLE stack so USB/BT/BLE RNode can
             // run. RNode over TCP needs neither native module and always works.
             install rnsPatchedWheel.absolutePath
-            install "lxmf>=1.0.1"
+            install "lxmf>=1.1.0"
             install "numpy==1.26.2"
             install "chaquopy-libcodec2==1.2.0"
             install "pycodec2==4.1.1"

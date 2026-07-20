@@ -542,9 +542,9 @@ idna==3.18 \
     --hash=sha256:7f952cbe720b688055e3f87de14f5c3e5fdaa8bc3928985c4077ca689de849a2 \
     --hash=sha256:ffb385a7e039654cef1ab9ef32c6fafe283c0c0467bba1d9029738ce4a14a848
     # via yarl
-lxmf==1.0.1 \
-    --hash=sha256:96fbf9a02dcd311fd31129724c08faa5f42a0e4e1bab63bea7552fbc983f4fb8 \
-    --hash=sha256:d12ead448296cbd09203462d8dc96a26eb71ef168b4197b133a970d483a607ea
+lxmf==1.1.0 \
+    --hash=sha256:187e5cba257163ba1cffa1b49a33dc8893cf3b982397ccd77461ceaa5cd54af1 \
+    --hash=sha256:3836550364e059aa94eb955f9a862d20287643518d7a0b2a167b3b58c1d07cbd
     # via
     #   lxst
     #   reticulum-meshchatx
@@ -985,9 +985,9 @@ pyserial==3.5 \
     # via
     #   reticulum-meshchatx
     #   rns
-rns==1.3.9 \
-    --hash=sha256:ceeac4799dda72b48a34b1e36de538e64009cba5b7b28d086918c0120ca8bfa4 \
-    --hash=sha256:fd3745c1aba4dcbf8833fa87a3157ec9900745a32d6d96ba330d623a98932a15
+rns==1.4.0 \
+    --hash=sha256:a88c6ae15c289867b2d8ee8f6ba4363f4dc728283f892b0790dba226f7dddcae \
+    --hash=sha256:fa9e76d0a78bf253eae66137e6bbdc65f470db3950a95b034ce32ca845ff0e44
     # via
     #   lxmf
     #   lxst

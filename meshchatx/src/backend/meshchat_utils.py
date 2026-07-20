@@ -11,7 +11,14 @@ import RNS.vendor.umsgpack as msgpack
 from LXMF import LXMRouter
 
 
-def create_lxmf_router(identity, storagepath, propagation_cost=None):
+def create_lxmf_router(
+    identity,
+    storagepath,
+    propagation_cost=None,
+    max_inbound_syncs=None,
+    sequential_validation=None,
+    static_sequential=None,
+):
     """Construct an LXMF.LXMRouter without signal-handler crashes off the main thread.
 
     signal.signal only works on the main thread; on workers it is temporarily
@@ -20,23 +27,27 @@ def create_lxmf_router(identity, storagepath, propagation_cost=None):
     if propagation_cost is None:
         propagation_cost = 0
 
+    kwargs = {
+        "identity": identity,
+        "storagepath": storagepath,
+        "propagation_cost": propagation_cost,
+    }
+    if max_inbound_syncs is not None:
+        kwargs["max_inbound_syncs"] = max_inbound_syncs
+    if sequential_validation is not None:
+        kwargs["sequential_validation"] = sequential_validation
+    if static_sequential is not None:
+        kwargs["static_sequential"] = static_sequential
+
     if threading.current_thread() != threading.main_thread():
         original_signal = signal.signal
         try:
             signal.signal = lambda s, h: None
-            return LXMF.LXMRouter(
-                identity=identity,
-                storagepath=storagepath,
-                propagation_cost=propagation_cost,
-            )
+            return LXMF.LXMRouter(**kwargs)
         finally:
             signal.signal = original_signal
     else:
-        return LXMF.LXMRouter(
-            identity=identity,
-            storagepath=storagepath,
-            propagation_cost=propagation_cost,
-        )
+        return LXMF.LXMRouter(**kwargs)
 
 
 def parse_bool_query_param(value: str | None) -> bool:

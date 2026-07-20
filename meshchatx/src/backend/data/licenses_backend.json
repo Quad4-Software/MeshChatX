@@ -8,7 +8,7 @@
     {
         "name": "aiohttp",
         "version": "3.14.1",
-        "author": "—",
+        "author": "\u2014",
         "license": "Apache-2.0 AND MIT"
     },
     {
@@ -32,7 +32,7 @@
     {
         "name": "audioop-lts",
         "version": "0.2.2",
-        "author": "—",
+        "author": "\u2014",
         "license": "PSF-2.0"
     },
     {
@@ -50,7 +50,7 @@
     {
         "name": "cbor2",
         "version": "6.1.1",
-        "author": "Alex Grönholm <alex.gronholm@nextday.fi>",
+        "author": "Alex Gr\u00f6nholm <alex.gronholm@nextday.fi>",
         "license": "MIT"
     },
     {
@@ -85,7 +85,7 @@
     },
     {
         "name": "lxmf",
-        "version": "1.0.1",
+        "version": "1.1.0",
         "author": "Mark Qvist",
         "license": "Reticulum License"
     },
@@ -169,7 +169,7 @@
     },
     {
         "name": "rns",
-        "version": "1.3.9",
+        "version": "1.4.0",
         "author": "Mark Qvist",
         "license": "Reticulum License"
     },

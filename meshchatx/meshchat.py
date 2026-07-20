@@ -3851,7 +3851,7 @@ class ReticulumMeshChat:
             if isinstance(stats, dict)
             else _numeric(getattr(router, "propagation_per_sync_limit", 0))
         )
-        return {
+        result = {
             "is_running": is_running,
             "identity_hash": ctx.identity.hash.hex(),
             "destination_hash": destination_hash,
@@ -3890,7 +3890,21 @@ class ReticulumMeshChat:
                     else getattr(router, "propagation_stamp_cost", 0)
                 ),
             ),
+            "inbound_delivery_count": 0,
+            "max_inbound_syncs": int(
+                getattr(router, "propagation_max_inbound_syncs", 0) or 0,
+            ),
+            "sequential_validation": bool(
+                getattr(router, "propagation_sequential_validation", True),
+            ),
+            "static_peers_bypass_sequential": not bool(
+                getattr(router, "propagation_static_peer_sequential", False),
+            ),
         }
+        if hasattr(router, "inbound_count"):
+            with contextlib.suppress(Exception):
+                result["inbound_delivery_count"] = int(router.inbound_count() or 0)
+        return result
 
     def _get_reticulum_section(self):
         try:
@@ -12494,16 +12508,24 @@ class ReticulumMeshChat:
             router = self.message_router
             current_state = None
             current_progress = 0.0
+            transfer_size = None
             if router is not None:
                 try:
                     current_state = router.propagation_transfer_state
                     current_progress = router.propagation_transfer_progress
+                    transfer_size = getattr(
+                        router,
+                        "propagation_transfer_size",
+                        None,
+                    )
                     # COMPLETE is terminal, so reset to idle so the UI does not keep
                     # looking "busy" after a finished auto/manual sync.
                     if current_state == router.PR_COMPLETE:
                         with contextlib.suppress(Exception):
                             router.propagation_transfer_state = router.PR_IDLE
                             router.propagation_transfer_progress = 0.0
+                            if hasattr(router, "propagation_transfer_size"):
+                                router.propagation_transfer_size = None
                 except Exception:
                     pass
             sync_metrics = self._collect_propagation_sync_metrics()
@@ -12521,6 +12543,13 @@ class ReticulumMeshChat:
                 last_result = None
             if current_state is None:
                 current_state = 0
+            transfer_size_bytes = None
+            if isinstance(transfer_size, (int, float)) and transfer_size > 0:
+                transfer_size_bytes = int(transfer_size)
+            inbound_delivery_count = 0
+            if router is not None and hasattr(router, "inbound_count"):
+                with contextlib.suppress(Exception):
+                    inbound_delivery_count = int(router.inbound_count() or 0)
             return web.json_response(
                 {
                     "propagation_node_status": {
@@ -12528,6 +12557,8 @@ class ReticulumMeshChat:
                             current_state,
                         ),
                         "progress": progress_pct,
+                        "transfer_size_bytes": transfer_size_bytes,
+                        "inbound_delivery_count": inbound_delivery_count,
                         "messages_received": last_result,
                         "messages_stored": sync_metrics["messages_stored"],
                         "delivery_confirmations": sync_metrics[
@@ -12575,6 +12606,32 @@ class ReticulumMeshChat:
             return web.json_response(
                 {
                     "message": "Sync is stopping",
+                },
+            )
+
+        @routes.post("/api/v1/lxmf/propagation-node/cancel-inbound")
+        async def propagation_node_cancel_inbound(request):
+            router = self.message_router
+            if router is None or not hasattr(router, "cancel_all_inbound"):
+                return web.json_response(
+                    {
+                        "message": "Inbound delivery cancellation is unavailable.",
+                    },
+                    status=503,
+                )
+            try:
+                cancelled = int(router.cancel_all_inbound() or 0)
+            except Exception as exc:
+                return web.json_response(
+                    {
+                        "message": f"Failed to cancel inbound deliveries: {exc}",
+                    },
+                    status=500,
+                )
+            return web.json_response(
+                {
+                    "message": f"Cancelled {cancelled} inbound deliveries",
+                    "cancelled": cancelled,
                 },
             )
 
@@ -18655,6 +18712,34 @@ class ReticulumMeshChat:
             if self.config.lxmf_local_propagation_node_enabled.get():
                 self.message_router.announce_propagation_node()
 
+        if "lxmf_propagation_sequential_validation" in data:
+            value = self._parse_bool(
+                data["lxmf_propagation_sequential_validation"],
+            )
+            self.config.lxmf_propagation_sequential_validation.set(value)
+            if self.message_router is not None:
+                self.message_router.propagation_sequential_validation = value
+
+        if "lxmf_propagation_static_peers_bypass_sequential" in data:
+            value = self._parse_bool(
+                data["lxmf_propagation_static_peers_bypass_sequential"],
+            )
+            self.config.lxmf_propagation_static_peers_bypass_sequential.set(value)
+            if self.message_router is not None:
+                self.message_router.propagation_static_peer_sequential = not value
+
+        if "lxmf_propagation_max_inbound_syncs" in data:
+            value = self._coerce_int(data["lxmf_propagation_max_inbound_syncs"])
+            if value is None:
+                value = self.config.lxmf_propagation_max_inbound_syncs.get()
+            if value < 1:
+                value = 1
+            elif value > 64:
+                value = 64
+            self.config.lxmf_propagation_max_inbound_syncs.set(value)
+            if self.message_router is not None:
+                self.message_router.propagation_max_inbound_syncs = value
+
         # update auto sync interval
         if "lxmf_preferred_propagation_node_auto_sync_interval_seconds" in data:
             value = self._coerce_int(
@@ -20896,6 +20981,9 @@ class ReticulumMeshChat:
             "lxmf_user_icon_background_colour": ctx.config.lxmf_user_icon_background_colour.get(),
             "lxmf_inbound_stamp_cost": ctx.config.lxmf_inbound_stamp_cost.get(),
             "lxmf_propagation_node_stamp_cost": ctx.config.lxmf_propagation_node_stamp_cost.get(),
+            "lxmf_propagation_sequential_validation": ctx.config.lxmf_propagation_sequential_validation.get(),
+            "lxmf_propagation_static_peers_bypass_sequential": ctx.config.lxmf_propagation_static_peers_bypass_sequential.get(),
+            "lxmf_propagation_max_inbound_syncs": ctx.config.lxmf_propagation_max_inbound_syncs.get(),
             "lxmf_flood_protection_enabled": ctx.config.lxmf_flood_protection_enabled.get(),
             "lxmf_flood_threshold_per_minute": ctx.config.lxmf_flood_threshold_per_minute.get(),
             "lxmf_flood_max_stamp_cost": ctx.config.lxmf_flood_max_stamp_cost.get(),

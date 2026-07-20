@@ -340,7 +340,7 @@ class InterfaceEditor:
         interface_details: dict,
         data: dict,
     ) -> str | None:
-        """Persist BackboneInterface fast-flapping options (RNS 1.3.9)."""
+        """Persist BackboneInterface fast-flapping options (RNS 1.4.0)."""
         err = InterfaceEditor.apply_yes_no_option(
             interface_details,
             data,

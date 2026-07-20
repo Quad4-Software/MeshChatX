@@ -3699,6 +3699,59 @@
                                         {{ $t("app.propagation_stamp_description") }}
                                     </div>
                                 </div>
+                                <label
+                                    v-if="config.lxmf_local_propagation_node_enabled"
+                                    class="setting-toggle"
+                                >
+                                    <Toggle
+                                        id="propagation-sequential-validation"
+                                        v-model="config.lxmf_propagation_sequential_validation"
+                                        @update:model-value="onLxmfPropagationSequentialValidationChange"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{
+                                            $t("app.propagation_sequential_validation")
+                                        }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("app.propagation_sequential_validation_description")
+                                        }}</span>
+                                    </span>
+                                </label>
+                                <label
+                                    v-if="config.lxmf_local_propagation_node_enabled"
+                                    class="setting-toggle"
+                                >
+                                    <Toggle
+                                        id="propagation-static-peers-bypass-sequential"
+                                        v-model="config.lxmf_propagation_static_peers_bypass_sequential"
+                                        @update:model-value="onLxmfPropagationStaticPeersBypassChange"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{
+                                            $t("app.propagation_static_peers_bypass_sequential")
+                                        }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("app.propagation_static_peers_bypass_sequential_description")
+                                        }}</span>
+                                    </span>
+                                </label>
+                                <div v-if="config.lxmf_local_propagation_node_enabled" class="space-y-2">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                        {{ $t("app.propagation_max_inbound_syncs") }}
+                                    </div>
+                                    <input
+                                        v-model.number="config.lxmf_propagation_max_inbound_syncs"
+                                        type="number"
+                                        min="1"
+                                        max="64"
+                                        placeholder="3"
+                                        class="input-field"
+                                        @input="onLxmfPropagationMaxInboundSyncsChange"
+                                    />
+                                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                                        {{ $t("app.propagation_max_inbound_syncs_description") }}
+                                    </div>
+                                </div>
                             </div>
                         </section>
 
@@ -3893,6 +3946,9 @@ export default {
                 lxmf_propagation_transfer_limit_in_bytes: 1000 * 256,
                 lxmf_propagation_sync_limit_in_bytes: 1000 * 10240,
                 lxmf_local_propagation_node_enabled: null,
+                lxmf_propagation_sequential_validation: true,
+                lxmf_propagation_static_peers_bypass_sequential: true,
+                lxmf_propagation_max_inbound_syncs: 3,
                 lxmf_preferred_propagation_node_destination_hash: null,
                 lxmf_preferred_propagation_node_auto_select: null,
                 archives_max_storage_gb: 1,
@@ -5349,6 +5405,30 @@ export default {
                     },
                     "propagation_stamp_cost_label"
                 );
+            }, 1000);
+        },
+        async onLxmfPropagationSequentialValidationChange(value) {
+            await this.updateConfig({
+                lxmf_propagation_sequential_validation: value,
+            });
+        },
+        async onLxmfPropagationStaticPeersBypassChange(value) {
+            await this.updateConfig({
+                lxmf_propagation_static_peers_bypass_sequential: value,
+            });
+        },
+        async onLxmfPropagationMaxInboundSyncsChange() {
+            if (this.saveTimeouts.propagation_max_inbound_syncs) {
+                clearTimeout(this.saveTimeouts.propagation_max_inbound_syncs);
+            }
+            this.saveTimeouts.propagation_max_inbound_syncs = setTimeout(async () => {
+                let v = Number(this.config.lxmf_propagation_max_inbound_syncs);
+                if (!v || v < 1) v = 1;
+                else if (v > 64) v = 64;
+                this.config.lxmf_propagation_max_inbound_syncs = v;
+                await this.updateConfig({
+                    lxmf_propagation_max_inbound_syncs: v,
+                });
             }, 1000);
         },
         async onLxmfFloodProtectionEnabledChange(value) {
