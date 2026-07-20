@@ -52,7 +52,9 @@ def test_filesync_rejects_identity_root_and_reserved(tmp_path):
     storage.mkdir()
     (storage / "identity").mkdir()
     (storage / "bots").mkdir()
-    handler = RnsFilesyncHandler(MagicMock(), SimpleNamespace(hash=b"\x11" * 16), str(storage))
+    handler = RnsFilesyncHandler(
+        MagicMock(), SimpleNamespace(hash=b"\x11" * 16), str(storage)
+    )
     assert handler._resolve_sync_directory(str(storage)) is None
     assert handler._resolve_sync_directory(str(storage / "identity")) is None
     assert handler._resolve_sync_directory(str(storage / "bots")) is None
