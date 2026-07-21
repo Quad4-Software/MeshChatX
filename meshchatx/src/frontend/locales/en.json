@@ -1637,6 +1637,8 @@
         "send_pathfinding_tooltip": "Finding path to peer (Reticulum is resolving a route). Your message sends as soon as the route is ready. Hover status icons in the bubble for details.",
         "outbound_on_propagation_node": "On propagation node",
         "outbound_sent_network": "Sent",
+        "outbound_delivered": "Delivered",
+        "outbound_delivered_propagated": "Delivered via propagation",
         "no_messages_in_conversation": "No messages in this conversation yet.",
         "say_hello": "Say hello!",
         "no_active_chat": "No Active Chat",

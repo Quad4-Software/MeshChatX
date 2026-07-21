@@ -309,17 +309,17 @@
                     </button>
                     <MaterialDesignIcon
                         v-if="entry.items[0].lxmf_message.state === 'delivered'"
-                        icon-name="check-all"
+                        :icon-name="cv.outboundBubbleStatusIconName(entry.items[0].lxmf_message)"
                         class="size-3"
                         :class="cv.outboundBubbleDeliveredIconClass(entry.items[0])"
-                        title="Delivered"
+                        :title="cv.outboundBubbleStatusTitle(entry.items[0].lxmf_message)"
                     />
                     <MaterialDesignIcon
                         v-else-if="['sent', 'propagated', 'unknown'].includes(entry.items[0].lxmf_message.state)"
-                        icon-name="check"
+                        :icon-name="cv.outboundBubbleStatusIconName(entry.items[0].lxmf_message)"
                         class="size-3"
                         :class="cv.outboundBubbleSentCheckIconClass(entry.items[0])"
-                        :title="cv.outboundSentStatusTitle(entry.items[0].lxmf_message)"
+                        :title="cv.outboundBubbleStatusTitle(entry.items[0].lxmf_message)"
                     />
                     <svg
                         v-if="cv.showRichOutboundPendingUi(entry.items[0]) && cv.isOutboundPendingForUi(entry.items[0])"
@@ -545,13 +545,15 @@
             <template v-if="chatItem.is_outbound">
                 <MaterialDesignIcon
                     v-if="chatItem.lxmf_message.state === 'delivered'"
-                    icon-name="check-all"
+                    :icon-name="cv.outboundBubbleStatusIconName(chatItem.lxmf_message)"
                     class="size-3 opacity-50"
+                    :title="cv.outboundBubbleStatusTitle(chatItem.lxmf_message)"
                 />
                 <MaterialDesignIcon
                     v-else-if="['sent', 'propagated', 'unknown'].includes(chatItem.lxmf_message.state)"
-                    icon-name="check"
+                    :icon-name="cv.outboundBubbleStatusIconName(chatItem.lxmf_message)"
                     class="size-3 opacity-50"
+                    :title="cv.outboundBubbleStatusTitle(chatItem.lxmf_message)"
                 />
                 <span
                     v-else-if="['failed', 'cancelled', 'rejected'].includes(chatItem.lxmf_message.state)"
@@ -1240,21 +1242,21 @@
                                 <MaterialDesignIcon icon-name="refresh" class="size-3 text-white" />
                             </button>
 
-                            <!-- delivered: double check -->
+                            <!-- delivered / sent: method-aware status icon -->
                             <MaterialDesignIcon
                                 v-if="chatItem.lxmf_message.state === 'delivered'"
-                                icon-name="check-all"
+                                :icon-name="cv.outboundBubbleStatusIconName(chatItem.lxmf_message)"
                                 class="size-3"
                                 :class="cv.outboundBubbleDeliveredIconClass(chatItem)"
-                                title="Delivered"
+                                :title="cv.outboundBubbleStatusTitle(chatItem.lxmf_message)"
                             />
-                            <!-- sent: single check (include unknown for initial outbound when server confirmed creation) -->
+                            <!-- sent: include unknown for initial outbound when server confirmed creation -->
                             <MaterialDesignIcon
                                 v-else-if="['sent', 'propagated', 'unknown'].includes(chatItem.lxmf_message.state)"
-                                icon-name="check"
+                                :icon-name="cv.outboundBubbleStatusIconName(chatItem.lxmf_message)"
                                 class="size-3"
                                 :class="cv.outboundBubbleSentCheckIconClass(chatItem)"
-                                :title="cv.outboundSentStatusTitle(chatItem.lxmf_message)"
+                                :title="cv.outboundBubbleStatusTitle(chatItem.lxmf_message)"
                             />
                             <svg
                                 v-if="cv.showRichOutboundPendingUi(chatItem) && cv.isOutboundPendingForUi(chatItem)"

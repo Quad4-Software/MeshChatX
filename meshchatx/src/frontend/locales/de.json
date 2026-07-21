@@ -1669,6 +1669,8 @@
         "send_pathfinding_tooltip": "Pfad zum Peer wird gesucht (Reticulum ermittelt eine Route). Ihre Nachricht wird gesendet, sobald die Route bereit ist. Fahren Sie für Details mit der Maus über die Statussymbole in der Sprechblase.",
         "outbound_on_propagation_node": "Auf dem Propagationsknoten",
         "outbound_sent_network": "Gesendet",
+        "outbound_delivered": "Zugestellt",
+        "outbound_delivered_propagated": "Über Propagation zugestellt",
         "more_actions": "Weitere Aktionen",
         "retry_failed": "Fehlgeschlagene erneut senden",
         "telemetry_history": "Telemetrie-Verlauf",

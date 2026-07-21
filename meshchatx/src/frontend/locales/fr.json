@@ -1637,6 +1637,8 @@
         "send_pathfinding_tooltip": "Recherche d'itinéraire vers le pair (Reticulum résout une route). Votre message sera envoyé dès que la route sera prête. Survolez les icônes d'état dans la bulle pour plus de détails.",
         "outbound_on_propagation_node": "Sur le nœud de propagation",
         "outbound_sent_network": "Envoyé",
+        "outbound_delivered": "Distribué",
+        "outbound_delivered_propagated": "Distribué via propagation",
         "no_messages_in_conversation": "Pas encore de messages dans cette conversation.",
         "say_hello": "Dis bonjour !",
         "no_active_chat": "Pas de chat actif",
