@@ -4968,8 +4968,43 @@ export default {
             return this.$t("messages.outbound_pending");
         },
         outboundSentStatusTitle(lxmfMessage) {
+            return this.outboundBubbleStatusTitle(lxmfMessage);
+        },
+        outboundBubbleStatusIconName(lxmfMessage) {
+            if (!lxmfMessage) {
+                return "check";
+            }
+            const state = lxmfMessage.state;
+            const method = lxmfMessage.method;
+            if (state === "delivered") {
+                if (method === "propagated") {
+                    return "email-check-outline";
+                }
+                if (method === "paper") {
+                    return "note-check-outline";
+                }
+                return "check-all";
+            }
+            if (["sent", "propagated", "unknown"].includes(state)) {
+                if (method === "propagated") {
+                    return "email-outline";
+                }
+                if (method === "paper") {
+                    return "note-outline";
+                }
+                return "check";
+            }
+            return "check";
+        },
+        outboundBubbleStatusTitle(lxmfMessage) {
             if (!lxmfMessage) {
                 return "";
+            }
+            if (lxmfMessage.state === "delivered") {
+                if (lxmfMessage.method === "propagated") {
+                    return this.$t("messages.outbound_delivered_propagated");
+                }
+                return this.$t("messages.outbound_delivered");
             }
             if (lxmfMessage.method === "propagated") {
                 return this.$t("messages.outbound_on_propagation_node");

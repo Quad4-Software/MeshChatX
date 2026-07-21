@@ -79,6 +79,43 @@ describe("ConversationViewer outbound propagation status", () => {
         expect(wrapper.vm.outboundSentStatusTitle(null)).toBe("");
     });
 
+    it("outboundBubbleStatusTitle uses delivered and method-aware copy", () => {
+        const wrapper = mountViewer();
+        expect(wrapper.vm.outboundBubbleStatusTitle({ method: "direct", state: "delivered" })).toBe(
+            "messages.outbound_delivered"
+        );
+        expect(wrapper.vm.outboundBubbleStatusTitle({ method: "propagated", state: "delivered" })).toBe(
+            "messages.outbound_delivered_propagated"
+        );
+        expect(wrapper.vm.outboundBubbleStatusTitle({ method: "propagated", state: "sent" })).toBe(
+            "messages.outbound_on_propagation_node"
+        );
+        expect(wrapper.vm.outboundBubbleStatusTitle({ method: "paper", state: "sent" })).toBe(
+            "messages.outbound_sent_network"
+        );
+        expect(wrapper.vm.outboundBubbleStatusTitle(null)).toBe("");
+    });
+
+    it("outboundBubbleStatusIconName maps method and state to icons", () => {
+        const wrapper = mountViewer();
+        expect(wrapper.vm.outboundBubbleStatusIconName({ method: "direct", state: "sent" })).toBe("check");
+        expect(wrapper.vm.outboundBubbleStatusIconName({ method: "direct", state: "delivered" })).toBe("check-all");
+        expect(wrapper.vm.outboundBubbleStatusIconName({ method: "opportunistic", state: "sent" })).toBe("check");
+        expect(wrapper.vm.outboundBubbleStatusIconName({ method: "opportunistic", state: "delivered" })).toBe(
+            "check-all"
+        );
+        expect(wrapper.vm.outboundBubbleStatusIconName({ method: "propagated", state: "sent" })).toBe("email-outline");
+        expect(wrapper.vm.outboundBubbleStatusIconName({ method: "propagated", state: "delivered" })).toBe(
+            "email-check-outline"
+        );
+        expect(wrapper.vm.outboundBubbleStatusIconName({ method: "paper", state: "sent" })).toBe("note-outline");
+        expect(wrapper.vm.outboundBubbleStatusIconName({ method: "paper", state: "delivered" })).toBe(
+            "note-check-outline"
+        );
+        expect(wrapper.vm.outboundBubbleStatusIconName({ method: "direct", state: "unknown" })).toBe("check");
+        expect(wrapper.vm.outboundBubbleStatusIconName(null)).toBe("check");
+    });
+
     it("outboundTransferProgressPercent and label track resource transfer", () => {
         const wrapper = mountViewer();
         expect(wrapper.vm.outboundTransferProgressPercent({ state: "sending", progress: 42.5 })).toBe(43);

@@ -1637,6 +1637,8 @@
         "send_pathfinding_tooltip": "正在查找到节点的路径（Reticulum 正在解析路由）。路由就绪后消息将立即发送。将鼠标悬停在气泡中的状态图标上可查看详情。",
         "outbound_on_propagation_node": "已在传播节点",
         "outbound_sent_network": "已发送",
+        "outbound_delivered": "已送达",
+        "outbound_delivered_propagated": "已通过传播送达",
         "no_messages_in_conversation": "对话中尚无消息",
         "say_hello": "打个招呼！",
         "no_active_chat": "无活动聊天",

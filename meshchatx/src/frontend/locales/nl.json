@@ -1637,6 +1637,8 @@
         "send_pathfinding_tooltip": "Pad naar peer zoeken (Reticulum zoekt een route). Uw bericht wordt verzonden zodra de route klaar is. Beweeg de muis over de statuspictogrammen in de bubbel voor details.",
         "outbound_on_propagation_node": "Op propagatieknooppunt",
         "outbound_sent_network": "Verzonden",
+        "outbound_delivered": "Afgeleverd",
+        "outbound_delivered_propagated": "Afgeleverd via propagatie",
         "no_messages_in_conversation": "Nog geen berichten in dit gesprek.",
         "say_hello": "Zeg hallo!",
         "no_active_chat": "Geen actief gesprek",

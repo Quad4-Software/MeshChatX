@@ -1669,6 +1669,8 @@
         "send_pathfinding_tooltip": "Поиск пути к узлу (Reticulum определяет маршрут). Сообщение будет отправлено, как только маршрут будет готов. Наведите курсор на значки статуса в пузыре для подробностей.",
         "outbound_on_propagation_node": "На узле распространения",
         "outbound_sent_network": "Отправлено",
+        "outbound_delivered": "Доставлено",
+        "outbound_delivered_propagated": "Доставлено через распространение",
         "more_actions": "Другие действия",
         "retry_failed": "Повторить неудачные",
         "telemetry_history": "История телеметрии",

@@ -1637,6 +1637,8 @@
         "send_pathfinding_tooltip": "Buscando ruta al par (Reticulum está resolviendo una ruta). Su mensaje se enviará en cuanto la ruta esté lista. Pase el cursor sobre los iconos de estado en la burbuja para más detalles.",
         "outbound_on_propagation_node": "En el nodo de propagación",
         "outbound_sent_network": "Enviado",
+        "outbound_delivered": "Entregado",
+        "outbound_delivered_propagated": "Entregado vía propagación",
         "no_messages_in_conversation": "Aún no hay mensajes en esta conversación.",
         "say_hello": "¡Saluda!",
         "no_active_chat": "Sin chat activo",

@@ -1637,6 +1637,8 @@
         "send_pathfinding_tooltip": "Etsitään polkua vertaisen luo (Reticulum etsii reittiä). Viestisi lähetetään heti kun polku on valmis. Kohdista kuplan tilakuvakkeisiin lisätietoja varten.",
         "outbound_on_propagation_node": "Levityssolmussa",
         "outbound_sent_network": "Lähetetty",
+        "outbound_delivered": "Toimitettu",
+        "outbound_delivered_propagated": "Toimitettu levityksen kautta",
         "no_messages_in_conversation": "Tässä keskustelussa ei ole viestejä.",
         "say_hello": "Sano hei!",
         "no_active_chat": "Ei valittua keskustelua",
