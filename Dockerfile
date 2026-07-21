@@ -1,7 +1,7 @@
 # Docker Build Stages:
 # 1. build-frontend: Build static frontend assets using Node
-# 2. builder: Install Python dependencies, build and collect backend files in a venv
-# 3. final image: Copy venv, install runtime deps, set up container user and config
+# 2. builder: Install third-party deps into /opt/venv-deps, then app overlay
+# 3. final image: runtime pkgs, deps layer, thin app overlay (better update pulls)
 #
 # LXST wheels ship glibc-tagged filterlib extensions only. On Alpine/musl, cffi
 # compiles at build time; scripts/docker-bake-lxst-filterlib-musl.py copies the
@@ -56,6 +56,7 @@ RUN pip install --no-cache-dir --upgrade "pip>=26.0" uv setuptools wheel "jaraco
 # Create the clean venv for our application dependencies
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv
 
 # Install essential runtime tools in the venv (cffi verify needs setuptools on Python 3.12+)
 RUN pip install --no-cache-dir --upgrade "pip>=26.0" "setuptools" "jaraco.context>=6.1.0"
@@ -63,31 +64,44 @@ RUN pip install --no-cache-dir --upgrade "pip>=26.0" "setuptools" "jaraco.contex
 COPY pyproject.toml uv.lock README.md CHANGELOG.md ./
 COPY logo ./logo
 COPY vendor ./vendor
-RUN uv sync --no-group dev --no-install-project && \
-    rm -rf /root/.cache/pip /root/.cache/uv
-
-COPY meshchatx ./meshchatx
 COPY scripts/docker-bake-lxst-filterlib-musl.py ./scripts/docker-bake-lxst-filterlib-musl.py
 COPY scripts/patch_lxst_pyogg_ogg_ctypes.py ./scripts/patch_lxst_pyogg_ogg_ctypes.py
 COPY scripts/patch_lxst_codec2_optional.py ./scripts/patch_lxst_codec2_optional.py
-COPY --from=build-frontend /src/meshchatx/public ./meshchatx/public
-
-RUN pip install --no-cache-dir . && \
+# Third-party deps layer: stable across app-only updates when uv.lock is unchanged.
+# --inexact keeps setuptools/jaraco.context already in the venv (cffi bake needs them).
+RUN uv sync --no-group dev --no-install-project --inexact && \
+    rm -rf /root/.cache/pip /root/.cache/uv && \
+    pip install --no-cache-dir --upgrade "setuptools" "jaraco.context>=6.1.0" && \
     python scripts/patch_lxst_pyogg_ogg_ctypes.py && \
     python scripts/patch_lxst_codec2_optional.py && \
     python scripts/docker-bake-lxst-filterlib-musl.py && \
     rm -rf /opt/venv/lib/python*/site-packages/LXST/Platforms/android && \
-    find /opt/venv -type d -name "tests" -exec rm -rf {} + && \
-    find /opt/venv -type d -name "test" -exec rm -rf {} + && \
-    find /opt/venv -type d -name "__pycache__" -exec rm -rf {} + && \
-    python -m compileall /opt/venv/lib/python3.14/site-packages
+    find /opt/venv -type d \( -name tests -o -name test -o -name __pycache__ \) -prune -exec rm -rf {} + && \
+    python -m compileall -q /opt/venv/lib/python3.14/site-packages && \
+    cp -a /opt/venv /opt/venv-deps
+
+COPY meshchatx ./meshchatx
+COPY --from=build-frontend /src/meshchatx/public ./meshchatx/public
+
+# App overlay: meshchatx + vendored packages + console scripts (changes often).
+RUN pip install --no-cache-dir . && \
+    PYVER="$(python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" && \
+    SP="/opt/venv/lib/python${PYVER}/site-packages" && \
+    OUT="/opt/app-overlay" && \
+    mkdir -p "${OUT}/lib/python${PYVER}/site-packages" "${OUT}/bin" && \
+    for pkg in meshchatx lxmfy rns_filesync; do \
+      cp -a "${SP}/${pkg}" "${OUT}/lib/python${PYVER}/site-packages/"; \
+    done && \
+    cp -a "${SP}"/reticulum_meshchatx*.dist-info "${OUT}/lib/python${PYVER}/site-packages/" && \
+    for cmd in meshchat meshchatx meshchatx-repository-http lxmfy rns-filesync; do \
+      cp -a "/opt/venv/bin/${cmd}" "${OUT}/bin/"; \
+    done && \
+    find "${OUT}" -type d -name __pycache__ -prune -exec rm -rf {} + && \
+    python -m compileall -q "${OUT}/lib/python${PYVER}/site-packages"
 
 # ---- STAGE 3: Final Image ----
+# Layer order matters for update pulls: base runtime, third-party venv, thin app overlay.
 FROM ${PYTHON_IMAGE}@${PYTHON_HASH}
-
-ARG OCI_REVISION=""
-ARG OCI_VERSION=""
-ARG OCI_CREATED=""
 
 RUN apk upgrade --no-cache && \
     apk add --no-cache opusfile libffi espeak-ng su-exec && \
@@ -96,9 +110,15 @@ RUN apk upgrade --no-cache && \
     addgroup -g 1000 meshchat && adduser -u 1000 -G meshchat -S meshchat && \
     mkdir -p /config && chown meshchat:meshchat /config
 
-COPY --from=builder --chown=meshchat:meshchat /opt/venv /opt/venv
+COPY --from=builder --chown=meshchat:meshchat /opt/venv-deps /opt/venv
+COPY --from=builder --chown=meshchat:meshchat /opt/app-overlay/ /opt/venv/
 COPY scripts/docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
+
+# Declare after COPY so per-build OCI values do not invalidate runtime or venv layers.
+ARG OCI_REVISION=""
+ARG OCI_VERSION=""
+ARG OCI_CREATED=""
 
 LABEL org.opencontainers.image.source="https://github.com/Quad4-Software/MeshChatX"
 LABEL org.opencontainers.image.description="MeshChatX is a all in one Reticulum client."

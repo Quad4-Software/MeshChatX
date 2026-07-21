@@ -49,34 +49,47 @@ RUN pip install --no-cache-dir --upgrade "pip>=26.0" uv setuptools wheel "jaraco
 
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
+ENV UV_PROJECT_ENVIRONMENT=/opt/venv
 
 RUN pip install --no-cache-dir --upgrade "pip>=26.0" "setuptools" "jaraco.context>=6.1.0"
 
 COPY pyproject.toml uv.lock README.md CHANGELOG.md ./
 COPY logo ./logo
 COPY vendor ./vendor
-RUN uv sync --no-group dev --no-install-project && \
-    rm -rf /root/.cache/pip /root/.cache/uv
-
-COPY meshchatx ./meshchatx
 COPY scripts/patch_lxst_pyogg_ogg_ctypes.py ./scripts/patch_lxst_pyogg_ogg_ctypes.py
 COPY scripts/patch_lxst_codec2_optional.py ./scripts/patch_lxst_codec2_optional.py
-COPY --from=build-frontend /src/meshchatx/public ./meshchatx/public
-
-RUN pip install --no-cache-dir . && \
+# Third-party deps layer: stable across app-only updates when uv.lock is unchanged.
+# --inexact keeps setuptools/jaraco.context already in the venv (cffi needs them).
+RUN uv sync --no-group dev --no-install-project --inexact && \
+    rm -rf /root/.cache/pip /root/.cache/uv && \
+    pip install --no-cache-dir --upgrade "setuptools" "jaraco.context>=6.1.0" && \
     python scripts/patch_lxst_pyogg_ogg_ctypes.py && \
     python scripts/patch_lxst_codec2_optional.py && \
     rm -rf /opt/venv/lib/python*/site-packages/LXST/Platforms/android && \
-    find /opt/venv -type d -name "tests" -exec rm -rf {} + && \
-    find /opt/venv -type d -name "test" -exec rm -rf {} + && \
-    find /opt/venv -type d -name "__pycache__" -exec rm -rf {} + && \
-    python -m compileall -q /opt/venv
+    find /opt/venv -type d \( -name tests -o -name test -o -name __pycache__ \) -prune -exec rm -rf {} + && \
+    python -m compileall -q /opt/venv && \
+    cp -a /opt/venv /opt/venv-deps
+
+COPY meshchatx ./meshchatx
+COPY --from=build-frontend /src/meshchatx/public ./meshchatx/public
+
+# App overlay: meshchatx + vendored packages + console scripts (changes often).
+RUN pip install --no-cache-dir . && \
+    PYVER="$(python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" && \
+    SP="/opt/venv/lib/python${PYVER}/site-packages" && \
+    OUT="/opt/app-overlay" && \
+    mkdir -p "${OUT}/lib/python${PYVER}/site-packages" "${OUT}/bin" && \
+    for pkg in meshchatx lxmfy rns_filesync; do \
+      cp -a "${SP}/${pkg}" "${OUT}/lib/python${PYVER}/site-packages/"; \
+    done && \
+    cp -a "${SP}"/reticulum_meshchatx*.dist-info "${OUT}/lib/python${PYVER}/site-packages/" && \
+    for cmd in meshchat meshchatx meshchatx-repository-http lxmfy rns-filesync; do \
+      cp -a "/opt/venv/bin/${cmd}" "${OUT}/bin/"; \
+    done && \
+    find "${OUT}" -type d -name __pycache__ -prune -exec rm -rf {} + && \
+    python -m compileall -q "${OUT}/lib/python${PYVER}/site-packages"
 
 FROM ${PYTHON_RUNTIME_IMAGE}
-
-ARG OCI_REVISION=""
-ARG OCI_VERSION=""
-ARG OCI_CREATED=""
 
 USER root
 RUN apk add --no-cache opus libffi shadow && \
@@ -87,8 +100,14 @@ RUN apk add --no-cache opus libffi shadow && \
         --shell /sbin/nologin meshchat && \
     mkdir -p /config && chown meshchat:meshchat /config
 
-COPY --from=builder --chown=meshchat:meshchat /opt/venv /opt/venv
+COPY --from=builder --chown=meshchat:meshchat /opt/venv-deps /opt/venv
+COPY --from=builder --chown=meshchat:meshchat /opt/app-overlay/ /opt/venv/
 COPY scripts/docker_entrypoint_chainguard.py /docker-entrypoint.py
+
+# Declare after COPY so per-build OCI values do not invalidate runtime or venv layers.
+ARG OCI_REVISION=""
+ARG OCI_VERSION=""
+ARG OCI_CREATED=""
 
 LABEL org.opencontainers.image.source="https://github.com/Quad4-Software/MeshChatX"
 LABEL org.opencontainers.image.description="MeshChatX is a all in one Reticulum client."
