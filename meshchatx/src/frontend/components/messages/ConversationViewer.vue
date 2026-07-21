@@ -1837,6 +1837,11 @@ import { findMapUriInContent, mapLinkKindFromMessage, parseMeshchatMapUri } from
 import { applyRelayShareLink, findRelayUriInContent, parseMeshchatRelayUri } from "../../js/relayLinkUtils.js";
 import { LXMF_REACTION_EMOJIS, mergeLxmfReactionRowsIntoMessages } from "../../js/lxmfReactions";
 import { createOutboundQueue } from "../../js/outboundSendQueue";
+import {
+    isOpportunisticDeferredDelivery as isOpportunisticDeferredDeliveryStatus,
+    outboundBubbleStatusIconName as resolveOutboundBubbleStatusIconName,
+    outboundBubbleStatusTitleKey as resolveOutboundBubbleStatusTitleKey,
+} from "../../js/outboundMessageStatus.js";
 import emojiPickerEnDataUrl from "emoji-picker-element-data/en/emojibase/data.json?url";
 import "emoji-picker-element";
 import StickerView from "../stickers/StickerView.vue";
@@ -4971,45 +4976,11 @@ export default {
             return this.outboundBubbleStatusTitle(lxmfMessage);
         },
         outboundBubbleStatusIconName(lxmfMessage) {
-            if (!lxmfMessage) {
-                return "check";
-            }
-            const state = lxmfMessage.state;
-            const method = lxmfMessage.method;
-            if (state === "delivered") {
-                if (method === "propagated") {
-                    return "email-check-outline";
-                }
-                if (method === "paper") {
-                    return "note-check-outline";
-                }
-                return "check-all";
-            }
-            if (["sent", "propagated", "unknown"].includes(state)) {
-                if (method === "propagated") {
-                    return "email-outline";
-                }
-                if (method === "paper") {
-                    return "note-outline";
-                }
-                return "check";
-            }
-            return "check";
+            return resolveOutboundBubbleStatusIconName(lxmfMessage);
         },
         outboundBubbleStatusTitle(lxmfMessage) {
-            if (!lxmfMessage) {
-                return "";
-            }
-            if (lxmfMessage.state === "delivered") {
-                if (lxmfMessage.method === "propagated") {
-                    return this.$t("messages.outbound_delivered_propagated");
-                }
-                return this.$t("messages.outbound_delivered");
-            }
-            if (lxmfMessage.method === "propagated") {
-                return this.$t("messages.outbound_on_propagation_node");
-            }
-            return this.$t("messages.outbound_sent_network");
+            const key = resolveOutboundBubbleStatusTitleKey(lxmfMessage);
+            return key ? this.$t(key) : "";
         },
         isOutboundWaitingBubble(chatItem) {
             return Boolean(chatItem?.is_outbound && chatItem?.lxmf_message?._pendingPathfinding);
@@ -5302,10 +5273,7 @@ export default {
             return this.$t("messages.failed_waiting_announce_tooltip");
         },
         isOpportunisticDeferredDelivery(lxmfMessage) {
-            if (!lxmfMessage) {
-                return false;
-            }
-            return lxmfMessage.method === "opportunistic" && lxmfMessage.state === "failed";
+            return isOpportunisticDeferredDeliveryStatus(lxmfMessage);
         },
         async warmPathToPeer() {
             await this.refreshPeerPath({ warm: true });
