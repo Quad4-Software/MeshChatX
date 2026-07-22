@@ -54,7 +54,7 @@ overrides:
     flatted: ">=3.4.2"
     tar: ">=7.5.16"
     tmp: ">=0.2.7"
-    undici: ">=7.28.0"
+    undici: "7.28.0"
     webpack: ">=5.104.0"
     y18n: ">=5.0.5"
     yargs-parser: ">=18.1.1"

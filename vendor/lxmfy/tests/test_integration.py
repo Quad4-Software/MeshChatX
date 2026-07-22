@@ -15,9 +15,9 @@ class TestClientBotCommunication:
         original_queue_put = test_bot.queue.put
         queued_messages = []
 
-        def capture_queue_put(message):
+        def capture_queue_put(message, *args, **kwargs):
             queued_messages.append(message)
-            return original_queue_put(message)
+            return original_queue_put(message, *args, **kwargs)
 
         test_bot.queue.put = capture_queue_put
 

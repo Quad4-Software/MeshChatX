@@ -174,6 +174,11 @@ class ConfigManager:
         self.auth_password_hash = self.StringConfig(self, "auth_password_hash", None)
         self.auth_session_secret = self.StringConfig(self, "auth_session_secret", None)
         self.privacy_mode_enabled = self.BoolConfig(self, "privacy_mode_enabled", False)
+        self.multi_session_warning_enabled = self.BoolConfig(
+            self,
+            "multi_session_warning_enabled",
+            True,
+        )
         self.gitea_base_url = self.StringConfig(
             self,
             "gitea_base_url",

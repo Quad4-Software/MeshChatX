@@ -10,17 +10,27 @@ All notable changes to this project will be documented in this file.
 - Bundled Bug Reports plugin and plugin i18n / UI slots / contribution registries
 - Map overlays from NomadNet and RNGit (KMZ/KML/GeoJSON) with cache and refresh
 - RNS Link WebSocket API for external apps (and plugin capabilities)
+- RNS File Sync for shared folders on the mesh, with an in-app file manager to browse, upload, download, and delete files in the sync folder
 - Settings: Reticulum instance/share controls, tabbed Settings nav, desktop close/tray behavior
 - Nomad favourites: per-identity section layout in the database
 - Optional pip-rns / rngit install path for RNS packages and docs
 - Message export and import with contacts and read state
+- Message maintenance in Settings: purge old local messages and clear duplicates
 - Host battery status on About and in the header (Electron, Android, Chromium)
-- RSM signing and verification for meshchatx.rsm (CI and pre-commit resign)
+- System resource monitoring for CPU and memory in the UI
+- RSM signing and verification for meshchatx.rsm
 - Notification sound settings
-- LXMFy 1.6.5 vendor refresh, wasmtime, mutation test tasks
+- LXMFy 2.0.1 vendor refresh with RRC hub client support for bots, plus wasmtime
 - Network visualiser WebGL + WASM renderer (vis-network fallback) and Settings renderer preference
 - Interfaces: internal mode, recursive path requests, announces-from-internal, discovery location command, and Backbone fast-flapping options (RNS 1.3.7 to 1.3.9)
-- Dependencies: **RNS** 1.4.0 and **LXMF** 1.1.0, with local propagation node controls for sequential stamp validation, static-peer bypass, max inbound syncs, transfer size reporting, and inbound delivery cancel
+- Reticulum interface module management from the UI
+- Reticulum 1.4.0 and LXMF 1.1.0, with propagation node options and cancel for incoming large message downloads from the header
+- Relay Chat room keys so hosts can require a key to join a room
+- Desktop privacy: Windows screen security to omit MeshChatX from screenshots, recording, and Recall
+- Android privacy options to block screenshots and clear the clipboard when backgrounded
+- Remote management allow-list for identities that may query this instance with rnstatus/rnpath
+- Post-install prompts for existing users after upgrades
+- Coolify-oriented Docker Compose with resource limits for deployments
 
 ### Changed
 
@@ -30,20 +40,19 @@ All notable changes to this project will be documented in this file.
 - Conversation list API omits contact image blobs and caps unbounded callers (Map, Network Visualiser)
 - Messages page conversation poll is slower and skips while the tab is hidden
 - Schema v51 message-flag backfill skips empty databases so fresh init stays fast
+- Outbound message status icons and titles reflect delivery method and state more clearly
 - Relay Chat: denser hub UI, announce interval, collapsed system lines, reconnect notices
 - Relay Chat: clickable Nomad and LXMF links plus basic markdown for code, bold, italic, and strikethrough
 - Low-memory cleanup and SQLite pragmas under memory pressure
-- CI benches use median-of-medians and quieter regression gates
-- Backend benchmarks cover slim conversation list, mark-as-read, call history, and missed-call notification paths
-- Benchmark gate fails when a full-suite run drops required benches or loses coverage vs baseline
-- Backend tests can run sharded in CI
+- Auto-resend keeps attachments and cleans duplicate outbound rows more reliably
+- Calls and audio work in Docker and headless setups via hostless LXST backends and the web audio bridge
+- Hardened identity path handling, stamp enforcement, plugin integrity, Nomad downloads, and local file path jails
 - Plugin strings live in plugin bundles, not main locale files
 - Docker frontend build installs Go, builds visualiser WASM, and fails if WASM artifacts are missing
 
 ### Fixed
 
-- SLSA provenance jobs compile the generic generator from source so attest no longer fails with a missing slsa-generator-generic-linux-amd64 binary
-- Android: lxmfy packaging, flock soft-lock, splash/logo clipping, emulator smoke, Landlock skipped on Android
+- Android: lxmfy packaging, flock soft-lock, splash/logo clipping, Landlock skipped on Android
 - Android RNode BLE/USB via Chaquopy
 - Startup check and disable unsupported interfaces
 - Nomad favourites: no more Unknown Node / lost custom sections
@@ -51,7 +60,6 @@ All notable changes to this project will be documented in this file.
 - Bots and RNSh work in frozen macOS/Windows builds
 - Sensitive config no longer mutable over WebSocket. Reticulum config repair on startup
 - Paper message URI encoding for non-ASCII title and content
-- Nightly releases and broader self-test / CI coverage
 - LXMA contact import works with current RNS public-key loading and remembers the peer key before announce
 - Android calls: overlay accept opens the phone tab so native audio attaches. Web-audio no longer permanently disabled after a bridge error
 - Android Codec2: reliable libcodec2 preload, Gradle fails without Codec2 wheels or jniLibs, and unavailable Codec2 profiles are hidden

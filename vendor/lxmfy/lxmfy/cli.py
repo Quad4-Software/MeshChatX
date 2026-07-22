@@ -20,7 +20,7 @@ from .colors import (
     print_success,
     print_warning,
 )
-from .templates import CogTestBot, EchoBot, NoteBot, ReminderBot
+from .templates import CogTestBot, EchoBot, NoteBot, ReminderBot, RRCBot
 
 
 def get_user_choice() -> str:
@@ -50,7 +50,7 @@ def get_bot_name() -> str:
 
 def get_template_choice() -> str:
     """Get template choice from user input."""
-    templates = ["basic", "echo", "reminder", "note", "cogtest"]
+    templates = ["basic", "echo", "reminder", "note", "cogtest", "rrc"]
     if Colors.is_colors_supported():
         print(f"\n{Colors.CYAN}Available templates:{Colors.ENDC}")
         for i, template in enumerate(templates, 1):
@@ -62,12 +62,12 @@ def get_template_choice() -> str:
 
     while True:
         if Colors.is_colors_supported():
-            choice = input(f"\n{Colors.CYAN}Select template (1-5): {Colors.ENDC}")
+            choice = input(f"\n{Colors.CYAN}Select template (1-6): {Colors.ENDC}")
         else:
-            choice = input("\nSelect template (1-5): ")
-        if choice in ["1", "2", "3", "4", "5"]:
+            choice = input("\nSelect template (1-6): ")
+        if choice in ["1", "2", "3", "4", "5", "6"]:
             return templates[int(choice) - 1]
-        print_error("Invalid choice. Please enter a number between 1 and 5.")
+        print_error("Invalid choice. Please enter a number between 1 and 6.")
 
 
 def interactive_create() -> None:
@@ -142,6 +142,7 @@ def interactive_run() -> None:
             "reminder": ReminderBot,
             "note": NoteBot,
             "cogtest": CogTestBot,
+            "rrc": RRCBot,
         }
 
         BotClass = template_map[template]
@@ -369,6 +370,7 @@ def create_from_template(template_name: str, output_path: str, bot_name: str) ->
             "reminder": ReminderBot,
             "note": NoteBot,
             "cogtest": CogTestBot,
+            "rrc": RRCBot,
         }
 
         if template_name not in template_map:
@@ -466,7 +468,7 @@ Examples:
         )
         parser.add_argument(
             "--template",
-            choices=["basic", "echo", "reminder", "note", "cogtest"],
+            choices=["basic", "echo", "reminder", "note", "cogtest", "rrc"],
             default="basic",
             help="Bot template to use for 'create' command (default: basic)",
         )
@@ -550,7 +552,7 @@ To add admin rights, edit {bot_path} and add your LXMF hash to the admins list.
             template_name = args.name
             if not template_name:
                 print_error(
-                    "Please specify a template name to run (echo, reminder, note, cogtest)",
+                    "Please specify a template name to run (echo, reminder, note, cogtest, rrc)",
                 )
                 sys.exit(1)
 
@@ -559,6 +561,7 @@ To add admin rights, edit {bot_path} and add your LXMF hash to the admins list.
                 "reminder": ReminderBot,
                 "note": NoteBot,
                 "cogtest": CogTestBot,
+                "rrc": RRCBot,
             }
 
             if template_name not in template_map:
@@ -571,6 +574,18 @@ To add admin rights, edit {bot_path} and add your LXMF hash to the admins list.
                 BotClass = template_map[template_name]
                 print_header(f"Starting {template_name} Bot")
                 bot_instance = BotClass()
+
+                if template_name == "rrc" and hasattr(bot_instance, "bot"):
+                    hubs = bot_instance.bot.config.rrc_hubs or []
+                    rooms = bot_instance.bot.config.rrc_rooms or []
+                    rns_dir = getattr(bot_instance.bot, "reticulum_config_dir", None)
+                    print_info(
+                        f"RRC hubs: {', '.join(hubs) if hubs else '(none)'}",
+                    )
+                    print_info(
+                        f"RRC rooms: {', '.join('#' + r for r in rooms) if rooms else '(none)'}",
+                    )
+                    print_info(f"Reticulum config: {rns_dir or '(default)'}")
 
                 custom_name = args.name_opt
                 if custom_name:

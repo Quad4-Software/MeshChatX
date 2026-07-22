@@ -105,6 +105,7 @@ WebSocket lxmf_message event on recipient UI
 - Enable **auto-announce** so your `lxmf.delivery` aspect stays visible on the mesh.
 - Check **Interfaces** if messages stall. No path to the peer means LXMF cannot deliver.
 - Review stamp settings before joining busy public meshes.
+- While a large message is downloading, the header shows **Cancel incoming**. That stops active LXMF delivery resource transfers (`cancel_all_inbound` / per-resource cancel). Outbound send cancel stays on each message menu.
 
 ## See also
 

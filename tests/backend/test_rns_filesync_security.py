@@ -13,7 +13,10 @@ import pytest
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
-from meshchatx.src.backend.rns_filesync_handler import RnsFilesyncHandler
+from meshchatx.src.backend.rns_filesync_handler import (
+    RnsFilesyncHandler,
+    _is_forbidden_entry_name,
+)
 from rns_filesync.paths import PathJailError, normalize_relpath
 
 _TRAVERSAL_PAYLOADS = (
@@ -378,3 +381,158 @@ def test_start_wires_callbacks_and_reuses_host_reticulum(mock_service_cls, handl
     assert mock_service_cls.call_args.kwargs["own_reticulum"] is False
     assert service.on_error is not None
     assert service.on_sync_progress is not None
+
+
+def test_manager_rejects_traversal_payloads(handler, tmp_path):
+    bait = tmp_path / "bait.txt"
+    bait.write_text("do-not-touch", encoding="utf-8")
+    identity_dir = os.path.join(handler.storage_dir, "identity")
+    os.makedirs(identity_dir, exist_ok=True)
+    secret = os.path.join(identity_dir, "secret.key")
+    with open(secret, "w", encoding="utf-8") as handle:
+        handle.write("private")
+
+    payloads = list(_TRAVERSAL_PAYLOADS) + [
+        str(bait),
+        secret,
+        os.path.join(handler.storage_dir, "identity"),
+        os.path.join(handler.storage_dir, "database.db"),
+        os.path.join(handler.storage_dir, "lxmf"),
+        handler.storage_dir,
+    ]
+    for payload in payloads:
+        tree = handler.list_tree(payload if str(payload).strip() else None)
+        if not str(payload).strip():
+            assert tree["ok"] is True
+            continue
+        assert tree["ok"] is False, payload
+
+        assert handler.manager_content(str(payload))["ok"] is False
+        assert handler.manager_delete(str(payload))["ok"] is False
+        assert handler.manager_mkdir(str(payload))["ok"] is False
+        assert (
+            handler.manager_upload(
+                filename="x.txt",
+                data=b"x",
+                subdir=str(payload),
+            )["ok"]
+            is False
+        )
+
+    assert bait.read_text(encoding="utf-8") == "do-not-touch"
+    with open(secret, encoding="utf-8") as handle:
+        assert handle.read() == "private"
+
+
+def test_manager_rejects_cross_identity_paths(tmp_path):
+    storage_a = tmp_path / "id_a"
+    storage_b = tmp_path / "id_b"
+    storage_a.mkdir()
+    storage_b.mkdir()
+    ha = RnsFilesyncHandler(
+        MagicMock(), SimpleNamespace(hash=b"\xaa" * 16), str(storage_a)
+    )
+    hb = RnsFilesyncHandler(
+        MagicMock(), SimpleNamespace(hash=b"\xbb" * 16), str(storage_b)
+    )
+
+    bait = os.path.join(hb._sync_directory, "peer_secret.txt")
+    with open(bait, "w", encoding="utf-8") as handle:
+        handle.write("b-only")
+
+    assert ha.list_tree(bait)["ok"] is False
+    assert ha.manager_content(bait)["ok"] is False
+    assert ha.manager_delete(bait)["ok"] is False
+    assert os.path.isfile(bait)
+    with open(bait, encoding="utf-8") as handle:
+        assert handle.read() == "b-only"
+
+
+@pytest.mark.skipif(os.name == "nt", reason="symlink tests require POSIX")
+def test_manager_rejects_symlink_escape(handler, tmp_path):
+    outside = tmp_path / "outside_secret.txt"
+    outside.write_text("escape-me", encoding="utf-8")
+    link_path = os.path.join(handler._sync_directory, "escape.txt")
+    os.symlink(str(outside), link_path)
+
+    assert handler.list_tree()["ok"] is True
+    names = {e["name"] for e in handler.list_tree()["entries"]}
+    assert "escape.txt" not in names
+
+    assert handler.manager_content("escape.txt")["ok"] is False
+    assert handler.manager_delete("escape.txt")["ok"] is False
+    assert (
+        handler.manager_upload(
+            filename="escape.txt",
+            data=b"overwrite",
+            subdir="",
+        )["ok"]
+        is False
+    )
+    assert outside.read_text(encoding="utf-8") == "escape-me"
+
+
+def test_manager_upload_rejects_malicious_filenames(handler):
+    for name in (
+        ".hidden",
+        ".rns-filesync.db",
+        "",
+        ".",
+        "..",
+        "x\x00y.txt",
+    ):
+        result = handler.manager_upload(filename=name, data=b"x")
+        assert result["ok"] is False, name
+
+    # Path segments in the client filename are stripped to a basename under sync root.
+    escaped = handler.manager_upload(filename="../evil.txt", data=b"safe")
+    assert escaped["ok"] is True
+    assert escaped["path"] == "evil.txt"
+    assert os.path.isfile(os.path.join(handler._sync_directory, "evil.txt"))
+    assert not os.path.exists(os.path.join(handler.storage_dir, "evil.txt"))
+
+
+def test_manager_refuses_delete_sync_root(handler):
+    assert handler.manager_delete("")["ok"] is False
+    assert handler.manager_delete(".")["ok"] is False
+    assert os.path.isdir(handler._sync_directory)
+
+
+@settings(
+    max_examples=60,
+    deadline=None,
+    suppress_health_check=[HealthCheck.too_slow, HealthCheck.function_scoped_fixture],
+)
+@given(
+    path=st.one_of(
+        st.sampled_from(
+            list(_TRAVERSAL_PAYLOADS) + ["ok.txt", "dir/file.bin", "nested/a/b"]
+        ),
+        st.text(min_size=0, max_size=40),
+    ),
+)
+def test_manager_path_oracle(handler, path):
+    """Oracle: manager resolve accepts only normalize_relpath-safe relative paths."""
+    cleaned = str(path or "").strip()
+    expect_ok = False
+    if cleaned and not os.path.isabs(cleaned) and not cleaned.startswith(("/", "\\")):
+        try:
+            safe = normalize_relpath(cleaned)
+            parts = safe.replace("\\", "/").split("/")
+            if not any(_is_forbidden_entry_name(part) for part in parts):
+                expect_ok = True
+        except PathJailError:
+            expect_ok = False
+
+    abspath, err = handler._resolve_manager_path(path, allow_root=False)
+    if expect_ok:
+        # Path may not exist yet. resolve without must_exist should succeed.
+        assert err is None, path
+        assert abspath is not None
+        assert abspath.startswith(handler._sync_root() + os.sep)
+    else:
+        if cleaned == "":
+            assert err == "path is required"
+        else:
+            assert abspath is None
+            assert err is not None

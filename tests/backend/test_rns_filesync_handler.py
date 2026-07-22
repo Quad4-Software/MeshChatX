@@ -171,3 +171,83 @@ def test_settings_reject_sync_dir_change_while_running(handler):
     result = handler.update_settings(sync_directory="/tmp/other")
     assert result["ok"] is False
     assert "stop filesync" in result["error"]
+
+
+def test_list_tree_while_stopped(handler):
+    sync = handler._sync_directory
+    nested = os.path.join(sync, "docs")
+    os.makedirs(nested, exist_ok=True)
+    with open(os.path.join(sync, "hello.txt"), "w", encoding="utf-8") as handle:
+        handle.write("hi")
+    with open(os.path.join(nested, "note.md"), "w", encoding="utf-8") as handle:
+        handle.write("note")
+
+    root = handler.list_tree()
+    assert root["ok"] is True
+    assert root["current"] == ""
+    names = {entry["name"] for entry in root["entries"]}
+    assert "hello.txt" in names
+    assert "docs" in names
+    assert handler.service is None
+
+    nested_list = handler.list_tree("docs")
+    assert nested_list["ok"] is True
+    assert nested_list["current"] == "docs"
+    assert any(e["name"] == "note.md" for e in nested_list["entries"])
+
+
+def test_manager_upload_mkdir_delete_roundtrip(handler):
+    mk = handler.manager_mkdir("photos")
+    assert mk["ok"] is True
+    assert mk["path"] == "photos"
+
+    uploaded = handler.manager_upload(
+        filename="shot.jpg",
+        data=b"jpeg-bytes",
+        subdir="photos",
+    )
+    assert uploaded["ok"] is True
+    assert uploaded["path"] == "photos/shot.jpg"
+    assert uploaded["size"] == len(b"jpeg-bytes")
+
+    tree = handler.list_tree("photos")
+    assert any(e["name"] == "shot.jpg" for e in tree["entries"])
+
+    content = handler.manager_content("photos/shot.jpg")
+    assert content["ok"] is True
+    assert content["filename"] == "shot.jpg"
+    with open(content["abspath"], "rb") as handle:
+        assert handle.read() == b"jpeg-bytes"
+
+    deleted = handler.manager_delete("photos/shot.jpg")
+    assert deleted["ok"] is True
+    assert not os.path.exists(
+        os.path.join(handler._sync_directory, "photos", "shot.jpg")
+    )
+
+    empty = handler.manager_delete("photos")
+    assert empty["ok"] is True
+
+
+def test_manager_delete_refuses_nonempty_dir(handler):
+    handler.manager_mkdir("keep")
+    handler.manager_upload(filename="a.txt", data=b"x", subdir="keep")
+    result = handler.manager_delete("keep")
+    assert result["ok"] is False
+    assert "not empty" in result["error"]
+    assert os.path.isdir(os.path.join(handler._sync_directory, "keep"))
+
+
+def test_manager_skips_dotfiles_in_tree(handler):
+    sync = handler._sync_directory
+    with open(os.path.join(sync, ".secret"), "w", encoding="utf-8") as handle:
+        handle.write("nope")
+    with open(os.path.join(sync, ".rns-filesync.db"), "w", encoding="utf-8") as handle:
+        handle.write("{}")
+    with open(os.path.join(sync, "visible.txt"), "w", encoding="utf-8") as handle:
+        handle.write("yes")
+    tree = handler.list_tree()
+    names = {e["name"] for e in tree["entries"]}
+    assert "visible.txt" in names
+    assert ".secret" not in names
+    assert ".rns-filesync.db" not in names

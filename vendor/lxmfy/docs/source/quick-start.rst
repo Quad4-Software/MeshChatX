@@ -5,8 +5,9 @@ Prerequisites
 -------------
 
 *   Python 3.11+
-*   Reticulum Network Stack (:code:`pip install rns`, version 1.3.5+)
+*   Reticulum Network Stack (:code:`pip install rns`, version 1.3.8+)
 *   LXMF (:code:`pip install lxmf`, version 1.0.1+; installed automatically with LXMFy)
+*   CBOR (:code:`cbor2`, installed automatically, required for RRC)
 *   LXMFy (:code:`pip install lxmfy` or install from source)
 
 Creating Your First Bot (Using the CLI)
@@ -112,6 +113,13 @@ Once you're comfortable with the basics, explore these advanced features:
 
 *   Configure :code:`direct_delivery_retries` in :code:`LXMFBot(...)` for automatic retry before propagation fallback
 *   Configure :code:`propagation_node` in bot config (or use :code:`bot.set_propagation_node(...)`) to route through a specific LXMF propagation node
+*   Outgoing queue persistence is on by default (:code:`message_persistence_enabled=True`) with a bounded queue (:code:`message_queue_size`)
+
+**Reticulum Relay Chat (RRC):**
+
+*   Join RRC hubs as a normal client with :code:`rrc_enabled=True` or the :code:`rrc` template
+*   Use the same Reticulum config as MeshChatX or your hub (:code:`reticulum_config_dir` or :code:`LXMFY_RETICULUM_CONFIG_DIR`, typically :code:`~/.reticulum`)
+*   See the `Creating Bots <creating-bots.html#reticulum-relay-chat-rrc>`_ guide for room bots and hub discovery
 
 **Security:**
 

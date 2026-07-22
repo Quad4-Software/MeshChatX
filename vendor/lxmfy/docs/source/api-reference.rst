@@ -34,7 +34,7 @@ The main bot class that handles message routing, command processing, and bot lif
         signature_verification_enabled=False,
         require_message_signatures=False,
         identity_pinning_enabled=False,
-        message_persistence_enabled=False,
+        message_persistence_enabled=True,
         dynamic_cogs_enabled=True,
         external_cogs_enabled=True,
         external_cogs_sandbox_enabled=True,
@@ -44,7 +44,16 @@ The main bot class that handles message routing, command processing, and bot lif
         nlp_enabled=False,
         nlp_threshold=0.5,
         link_support_enabled=False,
-        lxmf_commands_enabled=True
+        lxmf_commands_enabled=True,
+        message_queue_size=50,
+        reticulum_config_dir=None,  # or LXMFY_RETICULUM_CONFIG_DIR / "~/.reticulum"
+        rrc_enabled=False,
+        rrc_hubs=[],
+        rrc_rooms=[],
+        rrc_nick=None,
+        rrc_dest_name="rrc.hub",
+        rrc_auto_reconnect=True,
+        rrc_persist_sessions=True,
     )
 
 Key Methods
@@ -67,6 +76,10 @@ Key Methods
 - :code:`on_first_message()`: Decorator for handling first messages from users
 - :code:`on_message()`: Decorator for handling all messages (called before command processing)
 - :code:`validate()`: Run validation checks on the bot configuration
+- :code:`connect_rrc(hub_hash, rooms=None, nick=None, dest_name=None, auto_reconnect=None)`: Connect to an RRC hub as a client
+- :code:`disconnect_rrc(hub_hash=None)`: Disconnect one or all RRC hub sessions
+- :code:`on_rrc(callback=None)`: Decorator or register handler for RRC events (:code:`handler(event, client, payload)`)
+- :code:`rrc`: :code:`RRCManager` instance for multi-hub sessions
 
 Structured Commands via LXMF Fields
 -----------------------------------
@@ -422,12 +435,13 @@ The retry system tracks delivery attempts per destination and automatically retr
 Message Persistence
 ^^^^^^^^^^^^^^^^^^^
 
-Outgoing messages can be persisted to disk to ensure they are delivered even after a bot restart.
+Outgoing messages can be persisted to disk to ensure they are delivered even after a bot restart. Persistence is enabled by default. The in-memory outbound queue is bounded (:code:`message_queue_size`, default 50) and drops the oldest message when full. Invalid destination hashes are not restored.
 
 .. code-block:: python
 
     bot = LXMFBot(
-        message_persistence_enabled=True
+        message_persistence_enabled=True,
+        message_queue_size=50,
     )
 
 Message Handlers
@@ -471,6 +485,64 @@ Message handlers are called in this order:
 2. General message handlers (registered with :code:`on_message()`)
 3. Command processing (if message starts with command prefix)
 
+Reticulum Relay Chat (RRC)
+--------------------------
+
+Bots can join `RRC <https://rrc.kc1awv.net/>`_ hubs over RNS Links with CBOR envelopes. Package: :code:`lxmfy.rrc`.
+
+BotConfig options
+^^^^^^^^^^^^^^^^^
+
+*   :code:`rrc_enabled` (bool, default :code:`False`): Connect configured hubs on startup
+*   :code:`rrc_hubs` (list of hex hashes): Hub destination hashes
+*   :code:`rrc_rooms` (list of str): Rooms to auto-join after WELCOME
+*   :code:`rrc_nick` (str or None): Nickname on HELLO and room messages
+*   :code:`rrc_dest_name` (str, default :code:`"rrc.hub"`): Destination name used to build the hub destination
+*   :code:`rrc_auto_reconnect` (bool, default :code:`True`): Reconnect after link loss
+*   :code:`rrc_persist_sessions` (bool, default :code:`True`): Persist hubs and rooms across restarts
+*   :code:`reticulum_config_dir` (str or None): Reticulum config directory. Also set via :code:`LXMFY_RETICULUM_CONFIG_DIR`. Use the same config as MeshChatX (often :code:`~/.reticulum`) so hub announces are visible.
+
+Example
+^^^^^^^
+
+.. code-block:: python
+
+    from lxmfy import LXMFBot, RRCMessage
+
+    bot = LXMFBot(
+        name="RoomBot",
+        reticulum_config_dir="~/.reticulum",
+        rrc_enabled=True,
+        rrc_hubs=["664fc0e8d2e448658e37bb3f34e6c88f"],
+        rrc_rooms=["general"],
+        rrc_nick="RoomBot",
+    )
+
+    @bot.on_rrc
+    def on_rrc(event, client, payload):
+        if event == "msg" and isinstance(payload, RRCMessage) and payload.mention:
+            client.send_message(payload.room, f"Hi {payload.nick}")
+
+    # Runtime API
+    # bot.connect_rrc(hub_hash, rooms=["general"])
+    # bot.rrc.send_message("general", "hello")
+    # bot.rrc.send_notice("general", "notice")
+    # bot.rrc.send_action("general", "waves")
+    # bot.rrc.join("ops")
+    # bot.rrc.part("ops")
+    # bot.rrc.status()
+    # bot.disconnect_rrc()
+
+Exported types
+^^^^^^^^^^^^^^
+
+*   :code:`RRCClient`: Single-hub session
+*   :code:`RRCManager`: Multi-hub manager (:code:`bot.rrc`)
+*   :code:`RRCMessage`: Room event payload (:code:`kind`, :code:`room`, :code:`text`, :code:`nick`, :code:`src`, :code:`mention`, ...)
+*   :code:`RRC_VERSION`: Wire protocol version constant
+
+Common events passed to :code:`@bot.on_rrc` handlers include :code:`status`, :code:`welcome`, :code:`joined`, :code:`parted`, :code:`msg`, :code:`notice`, :code:`action`, :code:`motd`, :code:`error`, and :code:`rtt`.
+
 Templates
 =========
 
@@ -512,6 +584,23 @@ Reminder bot with SQLite storage:
     bot = ReminderBot()
     bot.run()
 
+RRCBot
+------
+
+RRC room bot that joins configured hubs and replies to :code:`@mentions`. Defaults to hub :code:`664fc0e8d2e448658e37bb3f34e6c88f`, room :code:`#general`, and :code:`~/.reticulum` when available.
+
+.. code-block:: python
+
+    from lxmfy.templates import RRCBot
+
+    bot = RRCBot(
+        hubs=["664fc0e8d2e448658e37bb3f34e6c88f"],
+        rooms=["general"],
+        nick="RRCBot",
+        reticulum_config_dir="~/.reticulum",
+    )
+    bot.run()
+
 CLI Tools
 =========
 
@@ -524,9 +613,11 @@ The framework provides command-line tools for bot management:
 
     # Create a bot from template
     lxmfy create --template echo mybot
+    lxmfy create --template rrc my_rrc_bot
 
     # Run a template bot
     lxmfy run echo
+    lxmfy run rrc
 
     # Test signature verification with a message
     lxmfy signatures test

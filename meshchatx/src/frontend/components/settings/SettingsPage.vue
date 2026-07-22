@@ -2989,6 +2989,22 @@
 
                                 <label class="setting-toggle">
                                     <Toggle
+                                        id="multi-session-warning-enabled"
+                                        v-model="config.multi_session_warning_enabled"
+                                        @update:model-value="onMultiSessionWarningChange"
+                                    />
+                                    <span class="setting-toggle__label">
+                                        <span class="setting-toggle__title">{{
+                                            $t("app.multi_session_warning_enabled")
+                                        }}</span>
+                                        <span class="setting-toggle__description">{{
+                                            $t("app.multi_session_warning_description")
+                                        }}</span>
+                                    </span>
+                                </label>
+
+                                <label class="setting-toggle">
+                                    <Toggle
                                         id="obfuscate-hops"
                                         v-model="reticulumInstance.local_hops_delta"
                                         :disabled="reticulumInstanceSaving"
@@ -4020,6 +4036,7 @@ export default {
                 local_message_auto_delete_value: 30,
                 local_message_auto_delete_unit: "days",
                 privacy_mode_enabled: false,
+                multi_session_warning_enabled: true,
             },
             serverSecurity: {
                 listen_host: null,
@@ -4884,6 +4901,9 @@ export default {
         },
         async onPrivacyModeChange(value) {
             await this.updateConfig({ privacy_mode_enabled: value }, "privacy_mode_enabled");
+        },
+        async onMultiSessionWarningChange(value) {
+            await this.updateConfig({ multi_session_warning_enabled: value }, "multi_session_warning_enabled");
         },
         onWebUiAllowlistChange() {
             if (this.saveTimeouts.webUiAllowlist) clearTimeout(this.saveTimeouts.webUiAllowlist);

@@ -27,5 +27,8 @@ test.describe("Acceptance: Settings privacy", () => {
         await expect(page.getByText("Privacy mode (block external HTTP/HTTPS)", { exact: true }).first()).toBeVisible({
             timeout: 20000,
         });
+        await expect(page.getByText("Warn when multiple sessions are connected", { exact: true }).first()).toBeVisible({
+            timeout: 20000,
+        });
     });
 });

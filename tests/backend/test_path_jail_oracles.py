@@ -63,6 +63,37 @@ def test_filesync_rejects_identity_root_and_reserved(tmp_path):
     assert ok.endswith("filesync/custom") or ok.endswith("filesync\\custom")
 
 
+def test_filesync_manager_resolve_never_leaves_sync_root(tmp_path):
+    storage = tmp_path / "id"
+    storage.mkdir()
+    (storage / "identity").mkdir()
+    outside = tmp_path / "OUTSIDE"
+    outside.mkdir()
+    (outside / "secret.txt").write_text("x", encoding="utf-8")
+    handler = RnsFilesyncHandler(
+        MagicMock(), SimpleNamespace(hash=b"\x22" * 16), str(storage)
+    )
+    sync_root = handler._sync_root()
+    payloads = [
+        "../identity",
+        "../../OUTSIDE/secret.txt",
+        str(outside / "secret.txt"),
+        str(storage / "identity"),
+        "/etc/passwd",
+        "ok/inside.txt",
+    ]
+    for payload in payloads:
+        abspath, err = handler._resolve_manager_path(payload, allow_root=False)
+        if abspath is not None:
+            assert abspath == sync_root or abspath.startswith(sync_root + os.sep)
+            assert err is None
+        else:
+            assert err is not None
+    root_abs, root_err = handler._resolve_manager_path("", allow_root=True)
+    assert root_err is None
+    assert root_abs == sync_root
+
+
 def test_restore_rejects_bad_backup_without_wiping_live_db(tmp_path):
     db_path = tmp_path / "main.db"
     db = Database(str(db_path))

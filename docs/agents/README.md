@@ -26,6 +26,7 @@ Optional editor rules (if present under `.cursor/rules/` or similar):
 | [conventions/core.md](conventions/core.md)                   | Always-on standards                   |
 | [conventions/frontend.md](conventions/frontend.md)           | Vue UI                                |
 | [conventions/backend.md](conventions/backend.md)             | Python / HTTP / SQLite                |
+| [conventions/path-jail.md](conventions/path-jail.md)         | Local FS APIs: jail, symlinks, tests  |
 | [conventions/android.md](conventions/android.md)             | Android WebView bridge                |
 | [conventions/tests.md](conventions/tests.md)                 | Test placement, oracles, verification |
 
@@ -62,6 +63,7 @@ Optional editor rules (if present under `.cursor/rules/` or similar):
 | Skill                                                              | Use when                                    |
 | ------------------------------------------------------------------ | ------------------------------------------- |
 | [auth-csrf-ws-security](skills/auth-csrf-ws-security/SKILL.md)     | CSRF, auth, WS mutator denylist             |
+| [path-jail-local-fs](skills/path-jail-local-fs/SKILL.md)           | Local file browse/upload/delete path jails  |
 | [plugin-install-security](skills/plugin-install-security/SKILL.md) | Plugin install, RSG, permissions, integrity |
 
 ### Platforms and boot

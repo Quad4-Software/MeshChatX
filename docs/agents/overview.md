@@ -205,6 +205,8 @@ Prefer bind `127.0.0.1`, HTTPS, and auth if other local users share the host.
 
 Sensitive config changes (for example auth enable / password hash) must use CSRF-protected HTTP endpoints, not unrestricted WebSocket mutators.
 
+Local filesystem browse/upload/download/delete APIs must path-jail to a feature or identity root. See `docs/agents/conventions/path-jail.md` and `docs/agents/skills/path-jail-local-fs/SKILL.md`.
+
 Password reset: `--reset-password` or `MESHCHAT_RESET_PASSWORD=true` clears the stored hash so a new password can be set in the UI.
 
 ### Plugins

@@ -4,6 +4,7 @@ import AboutPage from "@/components/about/AboutPage.vue";
 import ElectronUtils from "@/js/ElectronUtils";
 import DialogUtils from "@/js/DialogUtils";
 import ToastUtils from "@/js/ToastUtils";
+import { dispatchWsEvent } from "@/js/registries/wsEventRegistry.js";
 
 vi.mock("@/js/ToastUtils", () => ({
     default: {
@@ -111,12 +112,13 @@ describe("AboutPage.vue", () => {
         await wrapper.vm.$nextTick();
 
         expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/app/info");
-        expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/config");
+        expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/app/sessions");
 
         expect(wrapper.text()).toContain("about.app_name");
         expect(wrapper.text()).toContain("about.tagline_link");
-        expect(wrapper.text()).toContain("hash1");
-        expect(wrapper.text()).toContain("hash2");
+        expect(wrapper.text()).toContain("about.environment_information");
+        expect(wrapper.text()).toContain("/path/to/config");
+        expect(wrapper.text()).toContain("/path/to/db");
 
         expect(wrapper.text()).toContain("about.dependency_chain");
         expect(wrapper.text()).toContain("LXMFy");
@@ -206,13 +208,13 @@ describe("AboutPage.vue", () => {
         });
         mountAboutPage();
 
-        expect(axiosMock.get).toHaveBeenCalledTimes(5); // info, config, health, snapshots, backups
+        expect(axiosMock.get).toHaveBeenCalledTimes(5); // info, sessions, health, snapshots, backups
 
         vi.advanceTimersByTime(5000);
-        expect(axiosMock.get).toHaveBeenCalledTimes(6); // +1 from updateInterval
+        expect(axiosMock.get).toHaveBeenCalledTimes(7); // +info +sessions from updateInterval
 
         vi.advanceTimersByTime(5000);
-        expect(axiosMock.get).toHaveBeenCalledTimes(7); // +2 from updateInterval
+        expect(axiosMock.get).toHaveBeenCalledTimes(9); // +info +sessions again
     });
 
     it("handles vacuum database action and shows success toast", async () => {
@@ -426,99 +428,6 @@ describe("AboutPage.vue", () => {
         expect(wrapper.text()).toContain("about.path_unknown");
     });
 
-    it("shows landlock status on Linux when active", async () => {
-        axiosMock.get.mockImplementation((url) => {
-            if (url === "/api/v1/app/info")
-                return Promise.resolve({
-                    data: {
-                        app_info: {
-                            version: "1.0.0",
-                            host_platform: "linux",
-                            landlock_requested: true,
-                            landlock_active: true,
-                            landlock_kernel_supported: true,
-                            landlock_auto_enabled: true,
-                            landlock_disabled_by_env: false,
-                        },
-                    },
-                });
-            if (url === "/api/v1/config") return Promise.resolve({ data: { config: {} } });
-            if (url === "/api/v1/database/health") return Promise.resolve({ data: { database: {} } });
-            if (url === "/api/v1/database/snapshots") return Promise.resolve({ data: [] });
-            return Promise.reject(new Error("Not found"));
-        });
-
-        const wrapper = mountAboutPage();
-        await vi.runOnlyPendingTimers();
-        await wrapper.vm.$nextTick();
-        await wrapper.vm.$nextTick();
-
-        expect(wrapper.text()).toContain("app.landlock_status");
-        expect(wrapper.text()).toContain("app.landlock_active");
-        expect(wrapper.text()).not.toContain("app.landlock_kernel_unsupported");
-    });
-
-    it("shows landlock inactive reason on Linux", async () => {
-        axiosMock.get.mockImplementation((url) => {
-            if (url === "/api/v1/app/info")
-                return Promise.resolve({
-                    data: {
-                        app_info: {
-                            version: "1.0.0",
-                            host_platform: "linux",
-                            landlock_requested: false,
-                            landlock_active: false,
-                            landlock_kernel_supported: false,
-                            landlock_auto_enabled: false,
-                            landlock_disabled_by_env: false,
-                        },
-                    },
-                });
-            if (url === "/api/v1/config") return Promise.resolve({ data: { config: {} } });
-            if (url === "/api/v1/database/health") return Promise.resolve({ data: { database: {} } });
-            if (url === "/api/v1/database/snapshots") return Promise.resolve({ data: [] });
-            return Promise.reject(new Error("Not found"));
-        });
-
-        const wrapper = mountAboutPage();
-        await vi.runOnlyPendingTimers();
-        await wrapper.vm.$nextTick();
-        await wrapper.vm.$nextTick();
-
-        expect(wrapper.text()).toContain("app.landlock_inactive");
-        expect(wrapper.text()).toContain("app.landlock_kernel_unsupported");
-    });
-
-    it("hides landlock status on non-Linux platforms", async () => {
-        axiosMock.get.mockImplementation((url) => {
-            if (url === "/api/v1/app/info")
-                return Promise.resolve({
-                    data: {
-                        app_info: {
-                            version: "1.0.0",
-                            host_platform: "darwin",
-                            landlock_requested: false,
-                            landlock_active: false,
-                            landlock_kernel_supported: false,
-                            landlock_auto_enabled: false,
-                            landlock_disabled_by_env: false,
-                        },
-                    },
-                });
-            if (url === "/api/v1/config") return Promise.resolve({ data: { config: {} } });
-            if (url === "/api/v1/database/health") return Promise.resolve({ data: { database: {} } });
-            if (url === "/api/v1/database/snapshots") return Promise.resolve({ data: [] });
-            return Promise.reject(new Error("Not found"));
-        });
-
-        const wrapper = mountAboutPage();
-        await vi.runOnlyPendingTimers();
-        await wrapper.vm.$nextTick();
-        await wrapper.vm.$nextTick();
-
-        expect(wrapper.text()).not.toContain("app.landlock_status");
-    });
-
     it("shows MeshChatX usage insights from app info", async () => {
         axiosMock.get.mockImplementation((url) => {
             if (url === "/api/v1/app/info") {
@@ -612,5 +521,82 @@ describe("AboutPage.vue", () => {
         expect(wrapper.text()).toContain("about.battery_saver_on");
         expect(wrapper.text()).toContain("about.battery_saver_measures");
         expect(wrapper.vm.batterySaverActiveMeasures.length).toBeGreaterThan(0);
+    });
+
+    it("loads active sessions with IP and user agent and applies websocket updates", async () => {
+        axiosMock.get.mockImplementation((url) => {
+            if (url === "/api/v1/app/info") {
+                return Promise.resolve({ data: { app_info: { version: "1.0.0" } } });
+            }
+            if (url === "/api/v1/config") {
+                return Promise.resolve({ data: { config: {} } });
+            }
+            if (url === "/api/v1/app/sessions") {
+                return Promise.resolve({
+                    data: {
+                        count: 2,
+                        sessions: [
+                            {
+                                id: "sess-a",
+                                ip: "127.0.0.1",
+                                user_agent: "Browser/A",
+                                connected_at: 1700000000,
+                            },
+                            {
+                                id: "sess-b",
+                                ip: "10.0.0.2",
+                                user_agent: "Browser/B",
+                                connected_at: 1700000001,
+                            },
+                        ],
+                        warning: true,
+                        warning_enabled: true,
+                    },
+                });
+            }
+            if (url === "/api/v1/database/health") {
+                return Promise.resolve({ data: { database: {} } });
+            }
+            if (url === "/api/v1/database/snapshots") {
+                return Promise.resolve({ data: { snapshots: [], total: 0 } });
+            }
+            if (url === "/api/v1/database/backups") {
+                return Promise.resolve({ data: { backups: [], total: 0 } });
+            }
+            return Promise.reject(new Error("Not found"));
+        });
+
+        const wrapper = mountAboutPage();
+        await vi.runOnlyPendingTimers();
+        await wrapper.vm.$nextTick();
+        await wrapper.vm.$nextTick();
+
+        expect(axiosMock.get).toHaveBeenCalledWith("/api/v1/app/sessions");
+        expect(wrapper.text()).toContain("about.active_sessions");
+        expect(wrapper.text()).toContain("127.0.0.1");
+        expect(wrapper.text()).toContain("10.0.0.2");
+        expect(wrapper.text()).toContain("Browser/A");
+        expect(wrapper.text()).toContain("Browser/B");
+        expect(wrapper.vm.activeSessionCount).toBe(2);
+
+        await dispatchWsEvent("app.sessions.updated", {
+            count: 1,
+            sessions: [
+                {
+                    id: "sess-a",
+                    ip: "127.0.0.1",
+                    user_agent: "Browser/A",
+                    connected_at: 1700000000,
+                },
+            ],
+            warning: false,
+            warning_enabled: true,
+        });
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.vm.activeSessionCount).toBe(1);
+        expect(wrapper.text()).toContain("Browser/A");
+        expect(wrapper.text()).not.toContain("Browser/B");
+        expect(wrapper.text()).not.toContain("10.0.0.2");
     });
 });

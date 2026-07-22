@@ -13,7 +13,7 @@ import re
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
-from queue import Queue
+from queue import Full, Queue
 from typing import Any, Callable, cast
 from types import SimpleNamespace
 
@@ -32,9 +32,15 @@ from .middleware import MiddlewareContext, MiddlewareManager, MiddlewareType
 from .moderation import SpamProtection
 from .nlp import IntentClassifier
 from .permissions import DefaultPerms, PermissionManager
+from .reticulum_config import (
+    ensure_isolated_share_instance_disabled,
+    is_isolated_reticulum_dir,
+    resolve_reticulum_config_dir,
+)
 from .scheduler import TaskScheduler
 from .signatures import SignatureManager, sign_outgoing_message, verify_incoming_message
 from .storage import JSONStorage, MemoryStorage, SQLiteStorage, Storage
+from .rrc import DEFAULT_DEST_NAME, RRCManager, RRCMessage
 from .transport import Transport
 from .validation import format_validation_results, validate_bot
 
@@ -66,7 +72,8 @@ class LXMFBot:
         self.message_handlers = []
         self.delivery_callbacks = []
         self.receipts = []
-        self.queue = Queue(maxsize=50)
+        queue_size = max(1, int(getattr(self.config, "message_queue_size", 50) or 50))
+        self.queue = Queue(maxsize=queue_size)
         self.announce_time = 600
         self.router = None
         self.local = None
@@ -82,13 +89,18 @@ class LXMFBot:
             self.config_path = os.path.join(os.getcwd(), "config")
 
         os.makedirs(self.config_path, exist_ok=True)
-        if self.config.reticulum_config_dir:
-            self.reticulum_config_dir = os.path.abspath(
-                os.path.expanduser(self.config.reticulum_config_dir),
-            )
+        if self.config.test_mode and not self.config.reticulum_config_dir:
+            self.reticulum_config_dir = os.path.abspath(self.config_path)
         else:
-            self.reticulum_config_dir = self.config_path
+            self.reticulum_config_dir = resolve_reticulum_config_dir(
+                self.config.reticulum_config_dir,
+                self.config_path,
+            )
         os.makedirs(self.reticulum_config_dir, exist_ok=True)
+        if not self.config.test_mode and is_isolated_reticulum_dir(
+            self.reticulum_config_dir, self.config_path
+        ):
+            ensure_isolated_share_instance_disabled(self.reticulum_config_dir)
 
         if self.config.storage_type == "json":
             self.storage = Storage(JSONStorage(self.config.storage_path))
@@ -273,6 +285,63 @@ class LXMFBot:
 
         self.link_handlers = []
         self.links = {}  # {dest_hash: Link}
+
+        self.rrc_handlers = []
+        self.rrc = RRCManager(
+            identity=self.identity,
+            nick=self.config.rrc_nick or self.config.name,
+            dest_name=self.config.rrc_dest_name or DEFAULT_DEST_NAME,
+            auto_reconnect=self.config.rrc_auto_reconnect,
+            storage=self.storage,
+            persist_sessions=self.config.rrc_persist_sessions,
+        )
+        self.rrc.on_event(self._rrc_event)
+
+        if self.config.rrc_enabled and not self.config.test_mode:
+            config_rooms = list(self.config.rrc_rooms or [])
+            restored = 0
+            if self.config.rrc_persist_sessions:
+                try:
+                    restored = self.rrc.restore_sessions()
+                except Exception as e:
+                    self.logger.error("Failed to restore RRC sessions: %s", e)
+            for hub in self.config.rrc_hubs or []:
+                try:
+                    RNS.log(
+                        f"RRC connecting to hub {hub} rooms={config_rooms or ['(none)']}",
+                        RNS.LOG_INFO,
+                    )
+                    self.connect_rrc(hub, rooms=list(config_rooms))
+                except Exception as e:
+                    self.logger.error("Failed to connect RRC hub %s: %s", hub, e)
+                    RNS.log(f"RRC hub connect failed for {hub}: {e}", RNS.LOG_ERROR)
+            if restored:
+                RNS.log(f"Restored {restored} RRC hub session(s)", RNS.LOG_INFO)
+            # Ensure persisted hubs not listed in config still get config rooms
+            # when their saved room list was empty.
+            if config_rooms:
+                for client in list(self.rrc.clients.values()):
+                    with client._lock:
+                        planned = (
+                            set(client.rooms)
+                            | set(client._rejoin_rooms)
+                            | set(
+                                client._auto_join_rooms,
+                            )
+                        )
+                    if planned:
+                        continue
+                    try:
+                        self.connect_rrc(
+                            client.hub_hash.hex(),
+                            rooms=list(config_rooms),
+                        )
+                    except Exception as e:
+                        self.logger.error(
+                            "Failed to apply RRC rooms to hub %s: %s",
+                            client.hub_hash.hex(),
+                            e,
+                        )
 
         self.signature_manager = SignatureManager(
             self,
@@ -794,6 +863,7 @@ class LXMFBot:
         lxmf_fields: dict | None = None,
         stamp_cost: int | None = None,
         opportunistic: bool | None = None,
+        method=None,
     ):
         """Send a message to a destination, optionally with custom LXMF fields.
 
@@ -805,26 +875,31 @@ class LXMFBot:
             stamp_cost: Optional stamp cost override. If None, uses config.stamp_cost.
             opportunistic: Whether to use opportunistic sending (try direct, then prop).
                            If None, uses config.opportunistic_sending.
+            method: Optional explicit LXMF delivery method override for crash recovery.
 
         """
         if self.config.test_mode:
             # In test mode, just queue a mock message
             mock_message = SimpleNamespace()
+            try:
+                mock_message.destination_hash = bytes.fromhex(destination)
+            except ValueError:
+                mock_message.destination_hash = destination.encode("utf-8")
             mock_message.content = message.encode("utf-8")
             mock_message.title = title.encode("utf-8") if title else None
             mock_message.fields = lxmf_fields
-            self.queue.put(mock_message)
-            return
+            mock_message.desired_method = method
+            return self._enqueue_outbound(mock_message)
 
         try:
             dest_hash_bytes = bytes.fromhex(destination)
         except ValueError:
             RNS.log(f"Invalid destination hash format: {destination}", RNS.LOG_ERROR)
-            return
+            return False
 
         if len(dest_hash_bytes) != RNS.Reticulum.TRUNCATED_HASHLENGTH // 8:
             RNS.log(f"Invalid destination hash length for {destination}", RNS.LOG_ERROR)
-            return
+            return False
 
         identity_instance = RNS.Identity.recall(dest_hash_bytes)
         if identity_instance is None:
@@ -837,8 +912,7 @@ class LXMFBot:
                 "Path requested. If the network knows a path, you will receive an announce shortly.",
                 RNS.LOG_INFO,
             )
-            return
-
+            return False
         lxmf_destination_obj = RNS.Destination(
             identity_instance,
             RNS.Destination.OUT,
@@ -886,8 +960,15 @@ class LXMFBot:
                 f"Using propagation for {destination} after {attempts} failed direct attempts",
                 RNS.LOG_INFO,
             )
+        elif is_opportunistic:
+            # Packet delivery without requiring a Link first. Works much more
+            # reliably through public TCP/backbone entrypoints than DIRECT.
+            desired_method = LXMessage.OPPORTUNISTIC
         else:
             desired_method = LXMessage.DIRECT
+
+        if method is not None:
+            desired_method = method
 
         # Use provided stamp_cost or fall back to config
         final_stamp_cost = (
@@ -936,36 +1017,95 @@ class LXMFBot:
         # Sign the message (pass-through for LXMF's built-in signing)
         lxm = sign_outgoing_message(self, lxm)
 
-        # Set propagation fallback if enabled
+        # Set propagation fallback if enabled. Applies when starting with
+        # opportunistic or direct delivery and a propagation node is known.
         if (
-            desired_method == LXMessage.DIRECT
+            desired_method in (LXMessage.DIRECT, LXMessage.OPPORTUNISTIC)
             and (self.config.propagation_fallback_enabled or is_opportunistic)
             and has_prop_node
         ):
             setattr(lxm, "try_propagation_on_fail", True)
 
-        self.queue.put(lxm)
-        self._persist_queue()
+        if not self._enqueue_outbound(lxm):
+            RNS.log(
+                f"Failed to queue message for {destination}: outbound queue full",
+                RNS.LOG_ERROR,
+            )
+            return False
         RNS.log(
             f"Message queued for {destination} (method: {desired_method}, opportunistic: {is_opportunistic})",
             RNS.LOG_DEBUG,
         )
+        return True
+
+    @staticmethod
+    def _destination_hash_len() -> int:
+        return RNS.Reticulum.TRUNCATED_HASHLENGTH // 8
+
+    def _is_valid_destination_hex(self, destination: str) -> bool:
+        if not isinstance(destination, str) or not destination:
+            return False
+        try:
+            raw = bytes.fromhex(destination)
+        except ValueError:
+            return False
+        return len(raw) == self._destination_hash_len()
+
+    def _enqueue_outbound(self, lxm) -> bool:
+        """Enqueue an outbound message without blocking. Drops oldest if full."""
+        try:
+            self.queue.put_nowait(lxm)
+        except Full:
+            try:
+                dropped = self.queue.get_nowait()
+                self.logger.warning(
+                    "Outbound queue full (max=%s), dropped oldest message",
+                    self.queue.maxsize,
+                )
+                del dropped
+                self.queue.put_nowait(lxm)
+            except Exception as e:
+                self.logger.error("Failed to enqueue outbound message: %s", e)
+                return False
+        self._persist_queue()
+        return True
 
     def _persist_queue(self):
         """Persist the outgoing message queue to storage."""
         if getattr(self.config, "message_persistence_enabled", False) is not True:
             return
 
-        # Persist destination/content/title/fields/method; LXMessage is not trivially serializable.
-
+        max_items = max(1, int(self.queue.maxsize or 50))
+        max_content = 65536
         queued_messages = []
         for lxm in list(self.queue.queue):
+            if len(queued_messages) >= max_items:
+                break
             try:
-                msg_data = {
-                    "destination": RNS.hexrep(lxm.destination_hash, delimit=False),
-                    "content": lxm.content.decode("utf-8")
+                destination = RNS.hexrep(lxm.destination_hash, delimit=False)
+                if not self._is_valid_destination_hex(destination):
+                    self.logger.warning(
+                        "Skipping persist for invalid destination hash length: %s",
+                        destination,
+                    )
+                    continue
+                content = (
+                    lxm.content.decode("utf-8")
                     if isinstance(lxm.content, bytes)
-                    else lxm.content,
+                    else lxm.content
+                )
+                if (
+                    isinstance(content, str)
+                    and len(content.encode("utf-8")) > max_content
+                ):
+                    self.logger.warning(
+                        "Skipping persist for oversized message to %s",
+                        destination,
+                    )
+                    continue
+                msg_data = {
+                    "destination": destination,
+                    "content": content,
                     "title": lxm.title.decode("utf-8")
                     if isinstance(lxm.title, bytes)
                     else lxm.title,
@@ -986,21 +1126,58 @@ class LXMFBot:
         persisted = self.storage.get("persisted_queue", [])
         if not persisted:
             return
+        if not isinstance(persisted, list):
+            self.storage.set("persisted_queue", [])
+            return
+
+        max_items = max(1, int(self.queue.maxsize or 50))
+        if len(persisted) > max_items:
+            self.logger.warning(
+                "Truncating persisted queue from %s to %s messages",
+                len(persisted),
+                max_items,
+            )
+            persisted = persisted[-max_items:]
 
         RNS.log(f"Restoring {len(persisted)} messages from persistence", RNS.LOG_INFO)
+        deferred = []
         for msg_data in persisted:
-            try:
-                self.send(
-                    msg_data["destination"],
-                    msg_data["content"],
-                    title=msg_data.get("title"),
-                    lxmf_fields=msg_data.get("fields"),
+            if not isinstance(msg_data, dict):
+                continue
+            destination = msg_data.get("destination")
+            if not isinstance(destination, str) or not self._is_valid_destination_hex(
+                destination,
+            ):
+                self.logger.warning(
+                    "Dropping persisted message with invalid destination: %s",
+                    destination,
                 )
+                continue
+            title = msg_data.get("title")
+            try:
+                queued = self.send(
+                    destination,
+                    msg_data["content"],
+                    title=title if isinstance(title, str) else "Reply",
+                    lxmf_fields=msg_data.get("fields"),
+                    method=msg_data.get("method"),
+                )
+                if not queued:
+                    deferred.append(msg_data)
             except Exception as e:
                 self.logger.error("Failed to restore message from persistence: %s", e)
+                deferred.append(msg_data)
 
-        # Clear after loading to avoid duplicates if send() fails again
-        self.storage.set("persisted_queue", [])
+        # Keep successfully requeued messages on disk until outbound drain.
+        self._persist_queue()
+        if deferred:
+            current = self.storage.get("persisted_queue", [])
+            if not isinstance(current, list):
+                current = []
+            merged = list(current) + deferred
+            if len(merged) > max_items:
+                merged = merged[-max_items:]
+            self.storage.set("persisted_queue", merged)
 
     def send_with_attachment(
         self,
@@ -1047,11 +1224,19 @@ class LXMFBot:
                 # Process outgoing queue with a timeout to prevent hanging
                 while not self.queue.empty():
                     try:
-                        # Non-blocking get with a small timeout for safety
                         lxm = self.queue.get(block=False)
+                    except Exception:
+                        break
+                    try:
                         if self.router:
                             self.router.handle_outbound(lxm)
-                    except Exception:
+                        self._persist_queue()
+                    except Exception as e:
+                        self.logger.error("Outbound send failed, requeueing: %s", e)
+                        if not self._enqueue_outbound(lxm):
+                            self.logger.error(
+                                "Failed to requeue after outbound error",
+                            )
                         break
 
                 time.sleep(delay)
@@ -1096,6 +1281,15 @@ class LXMFBot:
     def cleanup(self):
         """Clean up resources."""
         RNS.log("Cleaning up LXMFBot...", RNS.LOG_DEBUG)
+        try:
+            self._persist_queue()
+        except Exception as e:
+            self.logger.error("Failed to persist queue during cleanup: %s", e)
+        if hasattr(self, "rrc") and self.rrc:
+            try:
+                self.rrc.shutdown()
+            except Exception as e:
+                self.logger.error("RRC shutdown failed: %s", e)
         self.transport.cleanup()
         self.thread_pool.shutdown(wait=False)
         self.scheduler.stop()
@@ -1348,6 +1542,85 @@ class LXMFBot:
                 handler(link)
             except Exception as e:
                 self.logger.error("Error in link handler: %s", e)
+
+    def connect_rrc(
+        self,
+        hub_hash: str,
+        rooms: list[str] | None = None,
+        nick: str | None = None,
+        dest_name: str | None = None,
+        auto_reconnect: bool | None = None,
+    ):
+        """Connect to an RRC hub as a client.
+
+        Args:
+            hub_hash: Hub destination hash as hex.
+            rooms: Optional rooms to join after WELCOME.
+            nick: Optional nickname override for this hub.
+            dest_name: Destination name (default rrc.hub).
+            auto_reconnect: Override auto-reconnect for this session.
+
+        Returns:
+            The RRCClient session.
+
+        """
+        if self.config.test_mode:
+            raise RuntimeError("RRC connections are unavailable in test_mode")
+        return self.rrc.connect(
+            hub_hash,
+            rooms=rooms,
+            nick=nick,
+            dest_name=dest_name,
+            auto_reconnect=auto_reconnect,
+        )
+
+    def disconnect_rrc(self, hub_hash: str | None = None) -> None:
+        """Disconnect one or all RRC hub sessions."""
+        self.rrc.disconnect(hub_hash)
+
+    def on_rrc(self, callback: Callable | None = None):
+        """Register a handler for RRC events.
+
+        Handler signature: ``handler(event, client, payload)``.
+        Payload is an RRCMessage for room events, or a dict for status/welcome.
+        """
+
+        def decorator(func):
+            self.rrc_handlers.append(func)
+            return func
+
+        if callback is not None:
+            return decorator(callback)
+        return decorator
+
+    def _rrc_event(self, event: str, client, payload) -> None:
+        """Fan RRC events to bot handlers and the event manager."""
+        event_data = {
+            "event": event,
+            "hub_hash": client.hub_hash.hex() if client else None,
+            "payload": payload,
+        }
+        if isinstance(payload, RRCMessage):
+            event_data.update(
+                {
+                    "kind": payload.kind,
+                    "room": payload.room,
+                    "text": payload.text,
+                    "nick": payload.nick,
+                    "src": payload.src.hex() if payload.src else None,
+                    "mention": payload.mention,
+                },
+            )
+        try:
+            self.events.dispatch(Event(f"rrc_{event}", event_data))
+        except Exception as e:
+            self.logger.error("Error dispatching RRC event: %s", e)
+
+        for handler in self.rrc_handlers:
+            try:
+                handler(event, client, payload)
+            except Exception as e:
+                self.logger.error("Error in RRC handler: %s", e)
 
     def on_first_message(self):
         """Decorator for registering first message handlers"""

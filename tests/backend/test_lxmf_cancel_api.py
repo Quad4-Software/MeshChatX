@@ -70,3 +70,41 @@ async def test_lxmf_cancel_endpoint_loads_updated_message_from_database(web_canc
     web_cancel_app.database.messages.get_lxmf_message_by_hash.assert_called_with(
         message_hash,
     )
+
+
+@pytest.mark.asyncio
+async def test_lxmf_cancel_inbound_all_endpoint(web_cancel_app):
+    web_cancel_app.message_router.cancel_all_inbound.return_value = 3
+    web_cancel_app.message_router.inbound_resources.return_value = []
+    aio_app = _build_aio_app(web_cancel_app)
+    async with TestClient(TestServer(aio_app)) as client:
+        response = await client.post(
+            "/api/v1/lxmf/propagation-node/cancel-inbound", json={}
+        )
+        assert response.status == 200
+        body = await response.json()
+        assert body["cancelled"] == 3
+        assert body["inbound_delivery_count"] == 0
+
+    web_cancel_app.message_router.cancel_all_inbound.assert_called_once_with()
+
+
+@pytest.mark.asyncio
+async def test_lxmf_cancel_inbound_one_endpoint(web_cancel_app):
+    resource_hash = "ee" * 16
+    web_cancel_app.message_router.cancel_inbound.return_value = True
+    web_cancel_app.message_router.inbound_resources.return_value = []
+    aio_app = _build_aio_app(web_cancel_app)
+    async with TestClient(TestServer(aio_app)) as client:
+        response = await client.post(
+            "/api/v1/lxmf/propagation-node/cancel-inbound",
+            json={"resource_hash": resource_hash},
+        )
+        assert response.status == 200
+        body = await response.json()
+        assert body["cancelled"] == 1
+        assert body["resource_hash"] == resource_hash
+
+    web_cancel_app.message_router.cancel_inbound.assert_called_once_with(
+        bytes.fromhex(resource_hash),
+    )

@@ -391,6 +391,8 @@ export const CORE_SETTINGS_SECTION_KEYWORDS = {
         "app.privacy_data_description",
         "app.privacy_mode_enabled",
         "app.privacy_mode_description",
+        "app.multi_session_warning_enabled",
+        "app.multi_session_warning_description",
         "app.screen_security_enabled",
         "app.screen_security_description",
         "app.screen_security_drm_eyebrow",

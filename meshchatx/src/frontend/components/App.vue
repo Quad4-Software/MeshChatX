@@ -148,6 +148,15 @@
                                     :class="{ 'animate-spin': isSyncingPropagationNode }"
                                 />
                             </button>
+                            <button
+                                v-if="inboundDeliveryCount > 0"
+                                type="button"
+                                class="sm:hidden rounded-full p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
+                                :title="$t('app.cancel_inbound_deliveries')"
+                                @click="cancelInboundDeliveries"
+                            >
+                                <MaterialDesignIcon icon-name="close-circle-outline" class="w-5 h-5" />
+                            </button>
                             <button type="button" class="hidden sm:flex rounded-full" @click="syncPropagationNode">
                                 <span
                                     class="flex text-gray-800 dark:text-zinc-100 bg-white dark:bg-zinc-800/80 border border-gray-200 dark:border-zinc-700 hover:border-blue-400 dark:hover:border-blue-400/60 px-3 py-1.5 rounded-full shadow-xs transition"
@@ -159,6 +168,21 @@
                                     />
                                     <span class="hidden sm:inline-block my-auto mx-1 text-sm font-medium">{{
                                         isSyncingPropagationNode ? $t("app.syncing") : $t("app.sync_messages")
+                                    }}</span>
+                                </span>
+                            </button>
+                            <button
+                                v-if="inboundDeliveryCount > 0"
+                                type="button"
+                                class="hidden sm:flex rounded-full"
+                                @click="cancelInboundDeliveries"
+                            >
+                                <span
+                                    class="flex text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/60 hover:border-amber-400 dark:hover:border-amber-500/60 px-3 py-1.5 rounded-full shadow-xs transition"
+                                >
+                                    <MaterialDesignIcon icon-name="close-circle-outline" class="size-6" />
+                                    <span class="hidden sm:inline-block my-auto mx-1 text-sm font-medium">{{
+                                        $t("app.cancel_inbound_deliveries_count", { count: inboundDeliveryCount })
                                     }}</span>
                                 </span>
                             </button>
@@ -646,6 +670,7 @@ import { postRequestPath } from "../js/reticulumPathfinding.js";
 import ToneGenerator from "../js/ToneGenerator";
 import { listNavItems } from "../js/registries/navRegistry.js";
 import { onWsEvent, offWsEvent } from "../js/registries/wsEventRegistry.js";
+import { shouldShowMultiSessionToast } from "../js/activeSessions.js";
 import { handleLxmIngestUriResult } from "../js/ingestUriResultNavigation.js";
 import { applyRelayShareLink, parseMeshchatRelayUri } from "../js/relayLinkUtils.js";
 import logoUrl from "../assets/images/logo.png";
@@ -740,6 +765,7 @@ export default {
             identitySwitchDedupeHash: null,
             identitySwitchDedupeAt: 0,
             shellWsHandlerCleanups: [],
+            multiSessionWarningActive: false,
         };
     },
     computed: {
@@ -781,6 +807,10 @@ export default {
                 "receiving",
                 "response_received",
             ].includes(this.propagationNodeStatus?.state);
+        },
+        inboundDeliveryCount() {
+            const count = this.propagationNodeStatus?.inbound_delivery_count;
+            return Number.isFinite(Number(count)) ? Math.max(0, Number(count)) : 0;
         },
         activeCallTab() {
             return GlobalState.activeCallTab;
@@ -1487,6 +1517,18 @@ export default {
                 this.shellWsHandlerCleanups.push(() => offWsEvent(type, bound));
             }
         },
+        handleActiveSessionsUpdated(json) {
+            const count = Number(json?.count ?? 0);
+            const warningEnabled =
+                json?.warning_enabled !== undefined
+                    ? json.warning_enabled !== false
+                    : this.config?.multi_session_warning_enabled !== false;
+            const decision = shouldShowMultiSessionToast(count, warningEnabled, this.multiSessionWarningActive);
+            this.multiSessionWarningActive = decision.warned;
+            if (decision.show) {
+                ToastUtils.warning(this.$t("app.multi_session_warning", { count }));
+            }
+        },
         unregisterShellWsHandlers() {
             for (const cleanup of this.shellWsHandlerCleanups) {
                 cleanup();
@@ -1502,6 +1544,9 @@ export default {
                         this.config = next;
                         this.displayName = next.display_name;
                     }
+                },
+                "app.sessions.updated": (json) => {
+                    this.handleActiveSessionsUpdated(json);
                 },
                 keyboard_shortcuts: (json) => {
                     KeyboardShortcuts.setShortcuts(json.shortcuts);
@@ -1993,6 +2038,31 @@ export default {
             this.userInitiatedPropagationSync = false;
             ToastUtils.dismiss(propagationSyncToastKey);
             await this.updatePropagationNodeStatus();
+        },
+        async cancelInboundDeliveries() {
+            const count = this.inboundDeliveryCount;
+            if (count <= 0) {
+                return;
+            }
+            if (!(await DialogUtils.confirm(this.$t("app.cancel_inbound_confirm", { count })))) {
+                return;
+            }
+            try {
+                const response = await window.api.post("/api/v1/lxmf/propagation-node/cancel-inbound", {});
+                const cancelled = response?.data?.cancelled ?? 0;
+                ToastUtils.success(this.$t("app.cancel_inbound_done", { count: cancelled }));
+                if (response?.data?.inbound_deliveries) {
+                    this.propagationNodeStatus = {
+                        ...(this.propagationNodeStatus || {}),
+                        inbound_delivery_count: response.data.inbound_delivery_count ?? 0,
+                        inbound_deliveries: response.data.inbound_deliveries,
+                    };
+                } else {
+                    await this.updatePropagationNodeStatus();
+                }
+            } catch (e) {
+                ToastUtils.error(e.response?.data?.message ?? this.$t("app.cancel_inbound_failed"));
+            }
         },
         async updatePropagationNodeStatus() {
             try {
