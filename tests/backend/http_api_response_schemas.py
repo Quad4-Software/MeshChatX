@@ -811,6 +811,31 @@ CHANGELOG_SCHEMA: dict = {
     "additionalProperties": True,
 }
 
+ACTIVE_SESSIONS_SCHEMA: dict = {
+    "type": "object",
+    "required": ["count", "sessions", "warning", "warning_enabled"],
+    "properties": {
+        "count": {"type": "integer", "minimum": 0},
+        "sessions": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["id", "ip", "user_agent", "connected_at"],
+                "properties": {
+                    "id": _STRING,
+                    "ip": _STRING,
+                    "user_agent": _STRING,
+                    "connected_at": _NUMBER,
+                },
+                "additionalProperties": True,
+            },
+        },
+        "warning": _BOOLEAN,
+        "warning_enabled": _BOOLEAN,
+    },
+    "additionalProperties": False,
+}
+
 TELEPHONE_STATUS_SCHEMA: dict = {
     "type": "object",
     "additionalProperties": True,
