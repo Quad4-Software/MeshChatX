@@ -60,7 +60,7 @@ class TestBenchmarkStats(unittest.TestCase):
         self.assertIn("noise floor", reason)
 
     def test_should_alert_skips_tiny_abs_delta(self):
-        # 3x ratio but only +0.4 ms absolute — not actionable
+        # 3x ratio but only +0.4 ms absolute: not actionable
         alert, reason = should_alert_regression(0.6, 0.2, noise_floor_ms=0.1)
         self.assertFalse(alert)
         self.assertIn("abs delta", reason)
@@ -72,7 +72,7 @@ class TestBenchmarkStats(unittest.TestCase):
         self.assertIn("slower", reason)
 
     def test_should_alert_within_adaptive_threshold(self):
-        # 1.8x on a 10 ms baseline — adaptive threshold is 2.0x
+        # 1.8x on a 10 ms baseline: adaptive threshold is 2.0x
         alert, reason = should_alert_regression(18.0, 10.0)
         self.assertFalse(alert)
         self.assertIn("within adaptive", reason)

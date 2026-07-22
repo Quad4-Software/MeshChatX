@@ -4,7 +4,7 @@
  */
 
 /**
- * Browsers set `false` on http://0.0.0.0 and similar; `undefined` in some test envs is treated as allowed.
+ * Browsers set `false` on http://0.0.0.0 and similar. `undefined` in some test envs is treated as allowed.
  * @returns {boolean}
  */
 export function isWindowSecureContext() {

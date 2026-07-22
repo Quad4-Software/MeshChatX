@@ -190,7 +190,7 @@ class TestConfigDAOFuzzing:
 
 
 # ===================================================================
-# MiscDAO — spam keywords, notifications, keyboard shortcuts
+# MiscDAO: spam keywords, notifications, keyboard shortcuts
 # ===================================================================
 
 
@@ -490,7 +490,7 @@ class TestMapDrawingsDAOFuzzing:
 
 
 # ===================================================================
-# MessageDAO — folders
+# MessageDAO: folders
 # ===================================================================
 
 
@@ -527,7 +527,7 @@ class TestMessageDAOFoldersFuzzing:
 
 
 # ===================================================================
-# MessageHandler — search
+# MessageHandler: search
 # ===================================================================
 
 
@@ -597,7 +597,7 @@ class TestMessageHandlerFuzzing:
 
 
 # ===================================================================
-# _safe_href — URL sanitization
+# _safe_href: URL sanitization
 # ===================================================================
 
 

@@ -1657,7 +1657,7 @@ export default {
                         userFacing,
                     };
 
-                    // Open peers are mark-as-read by ConversationViewer; still refresh for other peers.
+                    // Open peers are mark-as-read by ConversationViewer. Still refresh for other peers.
                     if (isIncoming && userFacing && !sourceOpen) {
                         this.updateUnreadConversationsCount();
                     }
@@ -2121,7 +2121,7 @@ export default {
                 this.ringtonePlayer.play().catch((e) => {
                     if (e?.name === "NotAllowedError") {
                         // Browser autoplay policy blocked playback until user gesture.
-                        // Stop retry spam; we retry once user interacts again.
+                        // Stop retry spam. We retry once user interacts again.
                         this.ringtoneAutoplayBlocked = true;
                         return;
                     }
@@ -2357,7 +2357,7 @@ export default {
                         return;
                     }
                 } catch {
-                    /* not a valid URL; continue */
+                    /* not a valid URL, continue */
                 }
                 if (/^(meshchatx|meshchat):\/\/map\b/i.test(normalizedUrl)) {
                     WebSocketConnection.send(

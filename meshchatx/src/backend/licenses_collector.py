@@ -42,7 +42,7 @@ def _license_from_metadata(meta: importlib.metadata.Metadata) -> str:
     for line in classifiers:
         if line.startswith("License ::"):
             return line.split("::", 1)[-1].strip()
-    return "—"
+    return "-"
 
 
 def _author_from_metadata(meta: importlib.metadata.Metadata) -> str:
@@ -55,7 +55,7 @@ def _author_from_metadata(meta: importlib.metadata.Metadata) -> str:
     m = (meta.get("Maintainer") or "").strip()
     if m:
         return m
-    return "—"
+    return "-"
 
 
 def _dist_for_requirement_name(name: str) -> importlib.metadata.Distribution | None:
@@ -161,8 +161,8 @@ def _bundled_vendor_license_row(
     if name != dist_name and name != lookup_name:
         return None
     version = proj.get("version")
-    version_s = version.strip() if isinstance(version, str) and version.strip() else "—"
-    author = "—"
+    version_s = version.strip() if isinstance(version, str) and version.strip() else "-"
+    author = "-"
     authors = proj.get("authors")
     if isinstance(authors, list) and authors:
         first = authors[0]
@@ -175,11 +175,11 @@ def _bundled_vendor_license_row(
                 author = an or ae
     lic = proj.get("license")
     if isinstance(lic, dict):
-        license_s = str(lic.get("text") or lic.get("file") or "—").strip() or "—"
+        license_s = str(lic.get("text") or lic.get("file") or "-").strip() or "-"
     elif isinstance(lic, str) and lic.strip():
         license_s = lic.strip()
     else:
-        license_s = "—"
+        license_s = "-"
     return {
         "name": dist_name,
         "version": version_s,
@@ -281,7 +281,7 @@ def _license_from_package_json(data: dict[str, Any]) -> str:
             t = first.get("type")
             if isinstance(t, str) and t.strip():
                 return t.strip()
-    return "—"
+    return "-"
 
 
 def _author_from_package_json(data: dict[str, Any]) -> str:
@@ -307,7 +307,7 @@ def _author_from_package_json(data: dict[str, Any]) -> str:
                 return f"{name} <{email}>"
             if name or email:
                 return name or email
-    return "—"
+    return "-"
 
 
 def _workspace_root_npm_identity(repo_root: Path) -> tuple[str | None, str | None]:
@@ -436,10 +436,10 @@ def _flatten_pnpm_licenses_json(data: dict[str, Any]) -> list[dict[str, Any]]:
             name = pkg.get("name") or "?"
             versions = pkg.get("versions") or []
             version = versions[0] if versions else "?"
-            author = pkg.get("author") or "—"
+            author = pkg.get("author") or "-"
             if not isinstance(author, str):
                 author = str(author)
-            lic = pkg.get("license") or _license_key or "—"
+            lic = pkg.get("license") or _license_key or "-"
             out.append(
                 {
                     "name": name,
@@ -552,8 +552,8 @@ def render_third_party_notices(payload: dict[str, Any]) -> str:
                 continue
             name = str(row.get("name", "?"))
             version = str(row.get("version", "?"))
-            author = str(row.get("author", "—"))
-            license_name = str(row.get("license", "—"))
+            author = str(row.get("author", "-"))
+            license_name = str(row.get("license", "-"))
             lines.append(f"{name} {version}")
             lines.append(f"  License: {license_name}")
             lines.append(f"  Author: {author}")

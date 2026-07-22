@@ -339,7 +339,7 @@ export default {
                 try {
                     await this._loadScript(lib);
                 } catch {
-                    // continue best-effort; loadVendorLibraries is best-effort and
+                    // continue best-effort. loadVendorLibraries is best-effort and
                     // missing assets surface later through clear error toasts
                 }
             }

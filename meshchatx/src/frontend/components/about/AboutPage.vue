@@ -1878,7 +1878,7 @@ export default {
         },
         formatRecoveryResult(value) {
             if (value === null || value === undefined) {
-                return "—";
+                return "-";
             }
             if (Array.isArray(value)) {
                 return value.join(", ");

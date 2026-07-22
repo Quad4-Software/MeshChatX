@@ -545,14 +545,14 @@ class BugReportManager:
         ):
             raise ValueError(
                 f"Invalid collector hash: '{dest_hex[:20]}{'...' if len(dest_hex) > 20 else ''}' "
-                f"must be 32–64 hex characters (even length).",
+                f"must be 32-64 hex characters (even length).",
             )
         try:
             dest_hash = bytes.fromhex(dest_hex)
         except ValueError as exc:
             raise ValueError(
                 f"Invalid collector hash: '{dest_hex[:20]}...' "
-                f"must be 32–64 hex characters (even length).",
+                f"must be 32-64 hex characters (even length).",
             ) from exc
 
         _payload, body = self._build_payload(args)

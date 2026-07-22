@@ -73,7 +73,7 @@ async function mountSettingsPage(api, router = { push: vi.fn() }) {
     return wrapper;
 }
 
-describe("SettingsPage — config persistence (PATCH and related)", () => {
+describe("SettingsPage: config persistence (PATCH and related)", () => {
     let serverConfigRef;
     let api;
 
@@ -486,7 +486,7 @@ describe("SettingsPage — config persistence (PATCH and related)", () => {
     });
 });
 
-describe("SettingsPage — transport mode (POST, not PATCH)", () => {
+describe("SettingsPage: transport mode (POST, not PATCH)", () => {
     let serverConfigRef;
     let api;
 
@@ -516,7 +516,7 @@ describe("SettingsPage — transport mode (POST, not PATCH)", () => {
     });
 });
 
-describe("SettingsPage — visualiser display prefs (localStorage + emitter)", () => {
+describe("SettingsPage: visualiser display prefs (localStorage + emitter)", () => {
     let serverConfigRef;
     let api;
 
@@ -578,7 +578,7 @@ describe("SettingsPage — visualiser display prefs (localStorage + emitter)", (
     });
 });
 
-describe("SettingsPage — maintenance, exports, telemetry trust, RNS reload", () => {
+describe("SettingsPage: maintenance, exports, telemetry trust, RNS reload", () => {
     let serverConfigRef;
     let api;
 

@@ -73,7 +73,7 @@ task build
 
 Примечания:
 
-- GitHub Actions собирает помеченные тегом релизы (Linux wheel/AppImage/deb/rpm, Windows, macOS, Flatpak, Android APK при теге на dev/master, SLSA, черновик релиза) в одном запуске: `.github/workflows/build-release.yml`; образ контейнера — `.github/workflows/docker.yml`. Android CI для веток и PR — `.github/workflows/android-build.yml`.
+- GitHub Actions собирает помеченные тегом релизы (Linux wheel/AppImage/deb/rpm, Windows, macOS, Flatpak, Android APK при теге на dev/master, SLSA, черновик релиза) в одном запуске: `.github/workflows/build-release.yml`. Образ контейнера: `.github/workflows/docker.yml`. Android CI для веток и PR: `.github/workflows/android-build.yml`.
 - AppImage + DEB для Linux `x64` и `arm64` собираются на GitHub; RPM собирается по возможности и выкладывается, если шаг дал артефакт.
 
 ## Docker
@@ -339,7 +339,7 @@ task test
 task build
 ```
 
-Цели `Makefile` — тонкие обёртки, делегирующие в `task` (те же команды, что выше):
+Цели `Makefile` - тонкие обёртки, делегирующие в `task` (те же команды, что выше):
 
 | Команда        | Делегирует в   | Описание                                   |
 | -------------- | -------------- | ------------------------------------------ |

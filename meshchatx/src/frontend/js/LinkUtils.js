@@ -79,7 +79,7 @@ export default class LinkUtils {
     /**
      * Detects and wraps Reticulum (NomadNet and LXMF) links in HTML.
      * Supports nomadnet://<hash>, nomadnet@<hash>, lxmf://<hash>, lxmf@<hash>, lxmf:<hash>,
-     * and bare <hash>:/path (NomadNet path form only — no bare hash without prefix).
+     * and bare <hash>:/path (NomadNet path form only, no bare hash without prefix).
      */
     static renderReticulumLinks(text) {
         if (!text) return "";

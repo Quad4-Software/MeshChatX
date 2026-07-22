@@ -8,7 +8,7 @@
     {
         "name": "aiohttp",
         "version": "3.14.1",
-        "author": "—",
+        "author": "-",
         "license": "Apache-2.0 AND MIT"
     },
     {
@@ -32,7 +32,7 @@
     {
         "name": "audioop-lts",
         "version": "0.2.2",
-        "author": "—",
+        "author": "-",
         "license": "PSF-2.0"
     },
     {
@@ -170,7 +170,7 @@
     {
         "name": "rns-filesync",
         "version": "1.0.0",
-        "author": "—",
+        "author": "-",
         "license": "BSD-2-Clause"
     },
     {

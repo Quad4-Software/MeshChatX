@@ -2074,7 +2074,7 @@ export default {
             const d = { ...this.rawMessageData };
             const c = d.content;
             if (typeof c === "string" && c.length > MESSAGE_BODY_MAX_DISPLAY_CHARS) {
-                d.content = `[Omitted ${c.length} characters — use Copy full text above]`;
+                d.content = `[Omitted ${c.length} characters. Use Copy full text above]`;
             }
             try {
                 return JSON.stringify(d, null, 2);
@@ -3117,8 +3117,8 @@ export default {
                 showFooter: Boolean(hasTr),
                 showOriginalLink: hasTr && !tr.showOriginal,
                 showTranslationLink: hasTr && tr.showOriginal,
-                fromCode: (tr && tr.resolvedSourceLang) || "–",
-                toCode: (tr && tr.targetLang) || "–",
+                fromCode: (tr && tr.resolvedSourceLang) || "-",
+                toCode: (tr && tr.targetLang) || "-",
                 messageHash: h,
                 singleEmoji,
             };
