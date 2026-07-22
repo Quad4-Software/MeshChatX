@@ -67,6 +67,7 @@ COPY vendor ./vendor
 COPY scripts/docker-bake-lxst-filterlib-musl.py ./scripts/docker-bake-lxst-filterlib-musl.py
 COPY scripts/patch_lxst_pyogg_ogg_ctypes.py ./scripts/patch_lxst_pyogg_ogg_ctypes.py
 COPY scripts/patch_lxst_codec2_optional.py ./scripts/patch_lxst_codec2_optional.py
+COPY meshchatx/src/backend/lxst_pyogg_ctypes_compat.py ./meshchatx/src/backend/lxst_pyogg_ctypes_compat.py
 # Third-party deps layer: stable across app-only updates when uv.lock is unchanged.
 # --inexact keeps setuptools/jaraco.context already in the venv (cffi bake needs them).
 RUN uv sync --no-group dev --no-install-project --inexact && \
