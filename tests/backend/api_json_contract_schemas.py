@@ -160,6 +160,11 @@ APP_INFO_BODY_SCHEMA: dict = {
         "landlock_auto_enabled": {"type": "boolean"},
         "landlock_disabled_by_env": {"type": "boolean"},
         "landlock_active": {"type": "boolean"},
+        "seccomp_kernel_supported": {"type": "boolean"},
+        "seccomp_requested": {"type": "boolean"},
+        "seccomp_auto_enabled": {"type": "boolean"},
+        "seccomp_disabled_by_env": {"type": "boolean"},
+        "seccomp_active": {"type": "boolean"},
     },
     "additionalProperties": True,
 }
@@ -175,6 +180,11 @@ _SERVER_BIND_STATUS_SCHEMA: dict = {
     "landlock_auto_enabled": {"type": "boolean"},
     "landlock_disabled_by_env": {"type": "boolean"},
     "landlock_active": {"type": "boolean"},
+    "seccomp_kernel_supported": {"type": "boolean"},
+    "seccomp_requested": {"type": "boolean"},
+    "seccomp_auto_enabled": {"type": "boolean"},
+    "seccomp_disabled_by_env": {"type": "boolean"},
+    "seccomp_active": {"type": "boolean"},
 }
 
 API_V1_STATUS_SCHEMA: dict = {

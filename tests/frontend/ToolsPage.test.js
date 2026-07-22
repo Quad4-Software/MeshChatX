@@ -83,6 +83,14 @@ describe("ToolsPage.vue", () => {
         expect(rnshRow?.text()).toContain("tools.alpha_badge");
     });
 
+    it("shows an alpha badge on the rns-filesync tool", () => {
+        const wrapper = mountToolsPage();
+        const filesync = wrapper.vm.tools.find((tool) => tool.name === "rns-filesync");
+        expect(filesync?.alpha).toBe(true);
+        const filesyncRow = wrapper.findAll(".tool-row").find((row) => row.text().includes("tools.rns_filesync.title"));
+        expect(filesyncRow?.text()).toContain("tools.alpha_badge");
+    });
+
     it("clears search query when close button is clicked", async () => {
         const wrapper = mountToolsPage();
         const searchInput = wrapper.find("input");

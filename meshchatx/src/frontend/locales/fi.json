@@ -515,7 +515,13 @@
         "cancel_inbound_deliveries_count": "Peruuta saapuvat ({count})",
         "cancel_inbound_confirm": "Perutaanko {count} saapuvaa LXMF-siirtoa? Suurten, juuri ladattavien viestien lataus pysähtyy.",
         "cancel_inbound_done": "Peruttiin {count} saapuvaa siirtoa.",
-        "cancel_inbound_failed": "Saapuvia siirtoja ei voitu perua"
+        "cancel_inbound_failed": "Saapuvia siirtoja ei voitu perua",
+        "seccomp_status": "Seccomp-BPF-hiekkalaatikko (Linux)",
+        "seccomp_active": "Aktiivinen",
+        "seccomp_inactive": "Ei aktiivinen",
+        "seccomp_auto_enabled": "Käytössä automaattisesti, kun libseccomp on saatavilla",
+        "seccomp_kernel_unsupported": "Seccomp-BPF ei ole käytettävissä (asenna libseccomp tai alusta ei tuettu)",
+        "seccomp_disabled_by_env": "Pois käytöstä MESHCHAT_SECCOMP=0"
     },
     "common": {
         "open": "Avaa",

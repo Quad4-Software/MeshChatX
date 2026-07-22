@@ -515,7 +515,13 @@
         "cancel_inbound_deliveries_count": "取消传入（{count}）",
         "cancel_inbound_confirm": "取消 {count} 个传入 LXMF 传输？正在下载的大消息将停止。",
         "cancel_inbound_done": "已取消 {count} 个传入传输。",
-        "cancel_inbound_failed": "无法取消传入投递"
+        "cancel_inbound_failed": "无法取消传入投递",
+        "seccomp_status": "Seccomp-BPF 沙箱（Linux）",
+        "seccomp_active": "已启用",
+        "seccomp_inactive": "未启用",
+        "seccomp_auto_enabled": "在提供 libseccomp 时自动启用",
+        "seccomp_kernel_unsupported": "Seccomp-BPF 不可用（请安装 libseccomp，或平台不支持）",
+        "seccomp_disabled_by_env": "已通过 MESHCHAT_SECCOMP=0 禁用"
     },
     "common": {
         "open": "打开",

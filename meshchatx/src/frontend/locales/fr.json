@@ -515,7 +515,13 @@
         "cancel_inbound_deliveries_count": "Annuler entrants ({count})",
         "cancel_inbound_confirm": "Annuler {count} transfert(s) entrant(s) LXMF ? Les grands messages en cours de téléchargement seront arrêtés.",
         "cancel_inbound_done": "{count} transfert(s) entrant(s) annulé(s).",
-        "cancel_inbound_failed": "Échec de l'annulation des livraisons entrantes"
+        "cancel_inbound_failed": "Échec de l'annulation des livraisons entrantes",
+        "seccomp_status": "Bac à sable Seccomp-BPF (Linux)",
+        "seccomp_active": "Actif",
+        "seccomp_inactive": "Inactif",
+        "seccomp_auto_enabled": "Activé automatiquement lorsque libseccomp est disponible",
+        "seccomp_kernel_unsupported": "Seccomp-BPF indisponible (installez libseccomp, ou plateforme non prise en charge)",
+        "seccomp_disabled_by_env": "Désactivé via MESHCHAT_SECCOMP=0"
     },
     "common": {
         "open": "Ouvrir",

@@ -32,6 +32,7 @@ All notable changes to this project will be documented in this file.
 - Post-install prompts for existing users after upgrades
 - Coolify-oriented Docker Compose with resource limits for deployments
 - LXST telephony half-duplex mode, live duplex switching, push-to-talk (packetizer squelch), and richer in-call stats (rates plus mute state on the active call)
+- Optional Linux seccomp-BPF syscall denylist (libseccomp) alongside Landlock, with auto-detect and `MESHCHAT_SECCOMP` fallback
 
 ### Changed
 

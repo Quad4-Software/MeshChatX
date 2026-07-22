@@ -40,4 +40,5 @@ For live stress, run Landlock in a **subprocess** (sandbox applies once per proc
 - `meshchatx/src/backend/memory_pressure.py`
 - `meshchatx/src/backend/message_handler.py`
 - `meshchatx/src/backend/landlock_sandbox.py`
+- `meshchatx/src/backend/seccomp_sandbox.py` (syscall denylist after Landlock)
 - `meshchatx/meshchat.py` (conversations/notifications error mapping)
