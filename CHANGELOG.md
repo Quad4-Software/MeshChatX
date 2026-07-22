@@ -36,6 +36,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Discovery map markers use dual-halo badge icons (peers, LXMF, discovered, tracking, stale) with banded cluster badges, zoom-gated labels, and cached styles for denser maps
+- Map default basemap is OpenStreetMap (OSM). Style presets list OSM first and identity config wins over stale cached tile URLs
 - UI opens sooner: HTTP binds first, Reticulum starts in the background
 - Conversations load faster: slim list and thread queries via fields_meta and attachment flags
 - Conversation list uses a per-peer summary table so refreshes no longer scan the full message history

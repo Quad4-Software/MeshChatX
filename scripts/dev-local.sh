@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Vite HMR (http://127.0.0.1:5173) + MeshChat backend (HTTPS on MESHCHAT_PORT).
+# Vite HMR (http://127.0.0.1:5173) plus MeshChat backend (HTTPS on MESHCHAT_PORT).
 # Vite proxies /api and /ws to https://127.0.0.1:$MESHCHAT_PORT.
 set -euo pipefail
 
@@ -51,7 +51,7 @@ while (( SECONDS < deadline )); do
     if ss -ltn "( sport = :${MESHCHAT_PORT} )" 2>/dev/null | grep -q LISTEN; then
         saw_listen=1
     fi
-    # Use /api/v1/status: it is exempt from auth and the "still starting" 503 gate
+    # Use /api/v1/status. It is exempt from auth and the still-starting 503 gate
     # so the Vite process can start while deferred network finishes.
     if curl -fsSk --max-time 2 "$BACKEND_URL" >/dev/null 2>&1; then
         echo "[dev] Backend ready."

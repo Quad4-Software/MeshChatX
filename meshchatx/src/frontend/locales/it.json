@@ -1449,7 +1449,7 @@
         "clear_cache": "Svuota Cache",
         "cache_cleared": "Cache tile svuotata",
         "tile_server_url": "URL Server Tile",
-        "tile_server_url_placeholder": "https://tiles.openfreemap.org/styles/bright",
+        "tile_server_url_placeholder": "https://tile.openstreetmap.org/{'{'}z{'}'}/{'{'}x{'}'}/{'{'}y{'}'}.png",
         "tile_server_url_hint": "Usa {z}, {x}, {y} per zoom, colonna, riga",
         "tile_server_saved": "URL server tile salvato",
         "tile_server_openstreetmap": "OpenStreetMap",

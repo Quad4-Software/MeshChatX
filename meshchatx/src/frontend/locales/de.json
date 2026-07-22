@@ -1449,7 +1449,7 @@
         "clear_cache": "Cache leeren",
         "cache_cleared": "Kachel-Cache geleert",
         "tile_server_url": "Kachel-Server-URL",
-        "tile_server_url_placeholder": "https://tiles.openfreemap.org/styles/bright",
+        "tile_server_url_placeholder": "https://tile.openstreetmap.org/{'{'}z{'}'}/{'{'}x{'}'}/{'{'}y{'}'}.png",
         "tile_server_url_hint": "Verwenden Sie {z}, {x}, {y} für Zoom, Spalte, Zeile",
         "tile_server_saved": "Kachel-Server-URL gespeichert",
         "tile_server_openstreetmap": "OpenStreetMap",

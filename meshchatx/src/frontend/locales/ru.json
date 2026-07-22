@@ -1449,7 +1449,7 @@
         "clear_cache": "Очистить кэш",
         "cache_cleared": "Кэш тайлов очищен",
         "tile_server_url": "URL сервера тайлов",
-        "tile_server_url_placeholder": "https://tiles.openfreemap.org/styles/bright",
+        "tile_server_url_placeholder": "https://tile.openstreetmap.org/{'{'}z{'}'}/{'{'}x{'}'}/{'{'}y{'}'}.png",
         "tile_server_url_hint": "Используйте {z}, {x}, {y} для масштаба, столбца, строки",
         "tile_server_saved": "URL сервера тайлов сохранен",
         "tile_server_openstreetmap": "OpenStreetMap",
