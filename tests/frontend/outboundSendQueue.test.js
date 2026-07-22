@@ -12,8 +12,12 @@ describe("outboundSendQueue", () => {
         const q = createOutboundQueue(processJob);
         q.enqueue({ id: "a" });
         q.enqueue({ id: "b" });
-        await new Promise((r) => setTimeout(r, 30));
-        expect(order).toEqual(["start:a", "end:a", "start:b", "end:b"]);
+        await vi.waitFor(
+            () => {
+                expect(order).toEqual(["start:a", "end:a", "start:b", "end:b"]);
+            },
+            { timeout: 500 }
+        );
         expect(processJob).toHaveBeenCalledTimes(2);
     });
 

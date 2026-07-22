@@ -19,25 +19,27 @@ Optional editor rules (if present under `.cursor/rules/` or similar):
 
 ## Layout
 
-| Path                                                         | Purpose                               |
-| ------------------------------------------------------------ | ------------------------------------- |
-| [overview.md](overview.md)                                   | Project brief and critical invariants |
-| [conventions/reticulum-zen.md](conventions/reticulum-zen.md) | Zen of Reticulum hard gates           |
-| [conventions/core.md](conventions/core.md)                   | Always-on standards                   |
-| [conventions/frontend.md](conventions/frontend.md)           | Vue UI                                |
-| [conventions/backend.md](conventions/backend.md)             | Python / HTTP / SQLite                |
-| [conventions/path-jail.md](conventions/path-jail.md)         | Local FS APIs: jail, symlinks, tests  |
-| [conventions/android.md](conventions/android.md)             | Android WebView bridge                |
-| [conventions/tests.md](conventions/tests.md)                 | Test placement, oracles, verification |
+| Path                                                         | Purpose                                   |
+| ------------------------------------------------------------ | ----------------------------------------- |
+| [overview.md](overview.md)                                   | Project brief and critical invariants     |
+| [module-ownership.md](module-ownership.md)                   | Domain to manager / HTTP / WS / tests map |
+| [conventions/reticulum-zen.md](conventions/reticulum-zen.md) | Zen of Reticulum hard gates               |
+| [conventions/core.md](conventions/core.md)                   | Always-on standards                       |
+| [conventions/frontend.md](conventions/frontend.md)           | Vue UI                                    |
+| [conventions/backend.md](conventions/backend.md)             | Python / HTTP / SQLite                    |
+| [conventions/path-jail.md](conventions/path-jail.md)         | Local FS APIs: jail, symlinks, tests      |
+| [conventions/android.md](conventions/android.md)             | Android WebView bridge                    |
+| [conventions/tests.md](conventions/tests.md)                 | Test placement, oracles, verification     |
 
 ## Skills
 
 ### UI and wiring
 
-| Skill                                                              | Use when                                               |
-| ------------------------------------------------------------------ | ------------------------------------------------------ |
-| [page-toast-tests](skills/page-toast-tests/SKILL.md)               | New pages, toasts, i18n, tests                         |
-| [contribution-registries](skills/contribution-registries/SKILL.md) | Nav, tools, commands, settings search, WS event wiring |
+| Skill                                                                        | Use when                                               |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------ |
+| [page-toast-tests](skills/page-toast-tests/SKILL.md)                         | New pages, toasts, i18n, tests                         |
+| [contribution-registries](skills/contribution-registries/SKILL.md)           | Nav, tools, commands, settings search, WS event wiring |
+| [meshchat-orchestration-split](skills/meshchat-orchestration-split/SKILL.md) | Extract HTTP/WS from meshchat.py, multi-file scanners  |
 
 ### Mesh protocols (RNS / LXMF / LXST / RRC)
 

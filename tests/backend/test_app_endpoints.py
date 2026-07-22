@@ -140,6 +140,8 @@ async def test_app_info_tolerates_missing_runtime_objects(mock_rns_minimal, temp
     def import_module_side_effect(name, package=None):
         if name == "RNS.Reticulum":
             return real_import_module(name, package)
+        if isinstance(name, str) and name.startswith("meshchatx.src.backend.http"):
+            return real_import_module(name, package)
         raise Exception
 
     with (

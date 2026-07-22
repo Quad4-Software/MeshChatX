@@ -108,17 +108,17 @@ describe("behavior contracts: user-visible wiring must stay connected", () => {
         });
 
         it("multipart upload path reaches add_file from meshchat handler", () => {
-            const meshchat = readSource("meshchatx/meshchat.py");
-            expect(meshchat).toContain("async def page_nodes_upload_file");
-            expect(meshchat).toContain("node.add_file(filename, file_data)");
+            const handler = readSources(["meshchatx/meshchat.py", "meshchatx/src/backend/http/routes/page_nodes.py"]);
+            expect(handler).toContain("async def page_nodes_upload_file");
+            expect(handler).toContain("node.add_file(filename, file_data)");
         });
 
         it("page node upload returns JSON errors instead of unhandled 500s", () => {
-            const meshchat = readSource("meshchatx/meshchat.py");
-            const start = meshchat.indexOf("async def page_nodes_upload_file");
+            const handler = readSources(["meshchatx/meshchat.py", "meshchatx/src/backend/http/routes/page_nodes.py"]);
+            const start = handler.indexOf("async def page_nodes_upload_file");
             expect(start).toBeGreaterThan(-1);
-            const end = meshchat.indexOf("async def page_nodes_delete_file", start);
-            const block = meshchat.slice(start, end);
+            const end = handler.indexOf("async def page_nodes_delete_file", start);
+            const block = handler.slice(start, end);
             expect(block).toContain("except ValueError as e:");
             expect(block).toContain("except OSError as e:");
             expect(block).toContain("Failed to write file:");
@@ -241,11 +241,15 @@ describe("behavior contracts: RNS Link API", () => {
 
 describe("behavior contracts: plugin install permissions", () => {
     it("previews ZIP installs and lists network endpoints before grant", () => {
-        const meshchat = readSource("meshchatx/meshchat.py");
-        expect(meshchat).toContain("/api/v1/plugins/preview");
-        expect(meshchat).toContain("granted_permissions");
-        expect(meshchat).toContain("/api/v1/plugins/trusted-publishers");
-        expect(meshchat).toContain("/api/v1/sideband-plugins");
+        const handler = readSources([
+            "meshchatx/meshchat.py",
+            "meshchatx/src/backend/http/routes/plugins.py",
+            "meshchatx/src/backend/http/routes/sideband.py",
+        ]);
+        expect(handler).toContain("/api/v1/plugins/preview");
+        expect(handler).toContain("granted_permissions");
+        expect(handler).toContain("/api/v1/plugins/trusted-publishers");
+        expect(handler).toContain("/api/v1/sideband-plugins");
         const section = readSource("meshchatx/src/frontend/components/settings/PluginsSettingsSection.vue");
         expect(section).toContain("PluginInstallDialog");
         expect(section).toContain("/api/v1/plugins/preview");

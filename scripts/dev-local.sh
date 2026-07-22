@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Vite dev server (HMR) + MeshChat Python backend. Open http://localhost:5173 (or VITE_DEV_PORT).
+# Vite HMR (http://127.0.0.1:5173) + MeshChat backend (HTTPS on MESHCHAT_PORT).
+# Vite proxies /api and /ws to https://127.0.0.1:$MESHCHAT_PORT.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -20,18 +21,38 @@ trap cleanup EXIT INT TERM
 uv run python -m meshchatx.meshchat --headless --host 127.0.0.1 --port "$MESHCHAT_PORT" &
 BE_PID=$!
 
-BACKEND_URL="https://127.0.0.1:${MESHCHAT_PORT}/api/v1/app/info"
+BACKEND_URL="https://127.0.0.1:${MESHCHAT_PORT}/api/v1/status"
 BACKEND_WAIT_SECS="${DEV_BACKEND_WAIT:-120}"
 BACKEND_POLL_INTERVAL="${DEV_BACKEND_POLL_INTERVAL:-0.5}"
 deadline=$((SECONDS + BACKEND_WAIT_SECS))
 
+tcp_connectable() {
+    # Returns 0 when a TCP handshake to 127.0.0.1:MESHCHAT_PORT completes.
+    python3 - "$MESHCHAT_PORT" <<'PY'
+import socket, sys
+port = int(sys.argv[1])
+try:
+    with socket.create_connection(("127.0.0.1", port), timeout=1.0):
+        raise SystemExit(0)
+except OSError:
+    raise SystemExit(1)
+PY
+}
+
 echo "[dev] Waiting for backend (HTTPS) on port ${MESHCHAT_PORT}..."
+echo "[dev] Probe: ${BACKEND_URL}"
+saw_listen=0
 while (( SECONDS < deadline )); do
     if ! kill -0 "$BE_PID" 2>/dev/null; then
         echo "[dev] Backend process exited before becoming ready." >&2
         wait "$BE_PID" 2>/dev/null || true
         exit 1
     fi
+    if ss -ltn "( sport = :${MESHCHAT_PORT} )" 2>/dev/null | grep -q LISTEN; then
+        saw_listen=1
+    fi
+    # Use /api/v1/status: it is exempt from auth and the "still starting" 503 gate
+    # so the Vite process can start while deferred network finishes.
     if curl -fsSk --max-time 2 "$BACKEND_URL" >/dev/null 2>&1; then
         echo "[dev] Backend ready."
         break
@@ -41,10 +62,16 @@ done
 
 if ! curl -fsSk --max-time 2 "$BACKEND_URL" >/dev/null 2>&1; then
     echo "[dev] Backend did not respond on ${BACKEND_URL} within ${BACKEND_WAIT_SECS}s." >&2
+    if (( saw_listen )) && ! tcp_connectable; then
+        echo "[dev] Port ${MESHCHAT_PORT} is LISTEN but TCP handshakes time out." >&2
+        echo "[dev] Something on this host is blackholing that port (firewall / Netbird / VPN)." >&2
+        echo "[dev] Retry with a free port, for example: MESHCHAT_PORT=8002 task dev" >&2
+    fi
     exit 1
 fi
 
 VITE_HOST="${VITE_DEV_HOST:-127.0.0.1}"
 VITE_PORT="${VITE_DEV_PORT:-5173}"
 
+echo "[dev] Starting Vite at http://${VITE_HOST}:${VITE_PORT} (API proxy -> ${BACKEND_URL%/api/v1/status})"
 pnpm run dev -- --host "$VITE_HOST" --port "$VITE_PORT"

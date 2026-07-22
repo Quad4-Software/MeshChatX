@@ -288,7 +288,11 @@ def test_source_keeps_auto_resend_and_duplicate_guards():
     from pathlib import Path
 
     root = Path(__file__).resolve().parents[2]
-    meshchat = (root / "meshchatx" / "meshchat.py").read_text(encoding="utf-8")
+    sources = [root / "meshchatx" / "meshchat.py"]
+    routes_dir = root / "meshchatx" / "src" / "backend" / "http" / "routes"
+    if routes_dir.is_dir():
+        sources.extend(sorted(routes_dir.glob("*.py")))
+    blob = "\n".join(p.read_text(encoding="utf-8") for p in sources if p.is_file())
     guard_src = (
         root / "meshchatx" / "src" / "backend" / "auto_resend_guard.py"
     ).read_text(encoding="utf-8")
@@ -305,14 +309,14 @@ def test_source_keeps_auto_resend_and_duplicate_guards():
         / "SettingsPage.vue"
     ).read_text(encoding="utf-8")
 
-    assert "AutoResendCoordinator" in meshchat
-    assert "try_claim_failed_message_for_auto_resend" in meshchat
-    assert "fields_have_attachments" in meshchat
-    assert "has_path(destination_hash)" in meshchat
+    assert "AutoResendCoordinator" in blob
+    assert "try_claim_failed_message_for_auto_resend" in blob
+    assert "fields_have_attachments" in blob
+    assert "has_path(destination_hash)" in blob
     assert "MAX_AUTO_RESEND_ATTEMPTS" in guard_src
     assert "delete_duplicate_lxmf_messages_by_content" in messages
     assert "clearDuplicateMessages" in settings
-    assert "/api/v1/maintenance/messages/duplicates" in meshchat
+    assert "/api/v1/maintenance/messages/duplicates" in blob
 
 
 def test_claim_reopens_after_cooldown_expires(db):

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: 0BSD
 
-"""Helpers for HTTP API route contract checks (meshchat.py vs frontend)."""
+"""Helpers for HTTP API route contract checks (meshchat.py and backend/http)."""
 
 from __future__ import annotations
 
@@ -14,11 +14,41 @@ _ROUTE_DECORATOR = re.compile(
 )
 
 
+def http_route_source_paths(repo_root: Path) -> list[Path]:
+    """Return source files that may declare aiohttp route decorators."""
+    paths: list[Path] = [repo_root / "meshchatx" / "meshchat.py"]
+    http_root = repo_root / "meshchatx" / "src" / "backend" / "http"
+    if http_root.is_dir():
+        paths.extend(sorted(http_root.rglob("*.py")))
+    return [p for p in paths if p.is_file()]
+
+
 def extract_meshchat_http_routes(meshchat_py: Path) -> list[dict[str, str]]:
-    text = meshchat_py.read_text(encoding="utf-8")
+    """Extract route method/path pairs from meshchat.py and backend/http.
+
+    meshchat_py may be the meshchat.py path or any path under the repo.
+    The repo root is derived from a meshchatx/ parent when present.
+    """
+    meshchat_py = Path(meshchat_py)
+    repo_root = meshchat_py
+    for parent in [meshchat_py, *meshchat_py.parents]:
+        if (parent / "meshchatx" / "meshchat.py").is_file():
+            repo_root = parent
+            break
+        if parent.name == "meshchatx" and (parent / "meshchat.py").is_file():
+            repo_root = parent.parent
+            break
+
     rows: list[dict[str, str]] = []
-    for m in _ROUTE_DECORATOR.finditer(text):
-        rows.append({"method": m.group(1).upper(), "path": m.group(2)})
+    seen: set[tuple[str, str]] = set()
+    for path in http_route_source_paths(repo_root):
+        text = path.read_text(encoding="utf-8")
+        for m in _ROUTE_DECORATOR.finditer(text):
+            key = (m.group(1).upper(), m.group(2))
+            if key in seen:
+                continue
+            seen.add(key)
+            rows.append({"method": key[0], "path": key[1]})
     rows.sort(key=lambda x: (x["path"], x["method"]))
     return rows
 
