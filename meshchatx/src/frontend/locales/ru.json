@@ -515,7 +515,13 @@
         "cancel_inbound_deliveries_count": "Отменить входящие ({count})",
         "cancel_inbound_confirm": "Отменить {count} входящую LXMF-передачу(и)? Крупные сообщения, которые сейчас загружаются, будут остановлены.",
         "cancel_inbound_done": "Отменено входящих передач: {count}.",
-        "cancel_inbound_failed": "Не удалось отменить входящие доставки"
+        "cancel_inbound_failed": "Не удалось отменить входящие доставки",
+        "seccomp_status": "Песочница Seccomp-BPF (Linux)",
+        "seccomp_active": "Активна",
+        "seccomp_inactive": "Не активна",
+        "seccomp_auto_enabled": "Включается автоматически при наличии libseccomp",
+        "seccomp_kernel_unsupported": "Seccomp-BPF недоступен (установите libseccomp или платформа не поддерживается)",
+        "seccomp_disabled_by_env": "Отключено через MESHCHAT_SECCOMP=0"
     },
     "common": {
         "open": "Открыть",

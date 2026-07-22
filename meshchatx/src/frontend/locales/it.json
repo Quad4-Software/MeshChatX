@@ -515,7 +515,13 @@
         "cancel_inbound_deliveries_count": "Annulla in arrivo ({count})",
         "cancel_inbound_confirm": "Annullare {count} trasferimento/i LXMF in arrivo? I messaggi grandi in download verranno interrotti.",
         "cancel_inbound_done": "Annullati {count} trasferimento/i in arrivo.",
-        "cancel_inbound_failed": "Impossibile annullare le consegne in arrivo"
+        "cancel_inbound_failed": "Impossibile annullare le consegne in arrivo",
+        "seccomp_status": "Sandbox Seccomp-BPF (Linux)",
+        "seccomp_active": "Attivo",
+        "seccomp_inactive": "Non attivo",
+        "seccomp_auto_enabled": "Abilitato automaticamente quando libseccomp è disponibile",
+        "seccomp_kernel_unsupported": "Seccomp-BPF non disponibile (installa libseccomp o piattaforma non supportata)",
+        "seccomp_disabled_by_env": "Disabilitato tramite MESHCHAT_SECCOMP=0"
     },
     "common": {
         "open": "Apri",

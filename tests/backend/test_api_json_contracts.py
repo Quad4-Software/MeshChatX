@@ -175,6 +175,11 @@ def test_status_schema_accepts_starting_and_failed_envelopes():
         "landlock_auto_enabled": False,
         "landlock_disabled_by_env": False,
         "landlock_active": False,
+        "seccomp_kernel_supported": False,
+        "seccomp_requested": False,
+        "seccomp_auto_enabled": False,
+        "seccomp_disabled_by_env": False,
+        "seccomp_active": False,
     }
     assert_matches_schema(starting, API_V1_STATUS_SCHEMA)
     failed = {

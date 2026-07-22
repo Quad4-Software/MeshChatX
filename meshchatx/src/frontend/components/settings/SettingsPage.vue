@@ -3165,6 +3165,23 @@
                                     }}
                                 </div>
                                 <div
+                                    v-if="serverSecurity.seccomp_requested !== undefined"
+                                    class="text-xs text-gray-600 dark:text-gray-400"
+                                >
+                                    {{ $t("app.seccomp_status") }}:
+                                    {{
+                                        serverSecurity.seccomp_active
+                                            ? serverSecurity.seccomp_auto_enabled
+                                                ? $t("app.seccomp_auto_enabled")
+                                                : $t("app.seccomp_active")
+                                            : serverSecurity.seccomp_kernel_supported === false
+                                              ? $t("app.seccomp_kernel_unsupported")
+                                              : serverSecurity.seccomp_disabled_by_env
+                                                ? $t("app.seccomp_disabled_by_env")
+                                                : $t("app.seccomp_inactive")
+                                    }}
+                                </div>
+                                <div
                                     v-if="serverSecurity.is_loopback_bind === false"
                                     class="rounded-md border border-amber-500/40 bg-amber-500/10 p-4 space-y-3"
                                 >
@@ -4050,6 +4067,11 @@ export default {
                 landlock_kernel_supported: false,
                 landlock_auto_enabled: false,
                 landlock_disabled_by_env: false,
+                seccomp_requested: false,
+                seccomp_active: false,
+                seccomp_kernel_supported: false,
+                seccomp_auto_enabled: false,
+                seccomp_disabled_by_env: false,
             },
             exposureAckFirewall: false,
             exposureAckVpn: false,

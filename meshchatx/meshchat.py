@@ -105,6 +105,13 @@ from meshchatx.src.backend.landlock_sandbox import (
     landlock_kernel_supported,
     landlock_requested,
 )
+from meshchatx.src.backend.seccomp_sandbox import (
+    apply_seccomp_sandbox,
+    seccomp_auto_enabled,
+    seccomp_disabled_by_env,
+    seccomp_kernel_supported,
+    seccomp_requested,
+)
 from meshchatx.src.backend.legacy_migrator import (
     assert_migration_context_paths,
     fresh_storage_at_target,
@@ -508,6 +515,7 @@ class ReticulumMeshChat:
         self.listen_port: int | None = None
         self.use_https: bool = True
         self.landlock_active: bool = False
+        self.seccomp_active: bool = False
         self._pending_identity = identity
         self._network_setup_lock = threading.Lock()
         self._network_ready_event = threading.Event()
@@ -4912,6 +4920,11 @@ class ReticulumMeshChat:
             "landlock_auto_enabled": landlock_auto_enabled(),
             "landlock_disabled_by_env": landlock_disabled_by_env(),
             "landlock_active": self.landlock_active,
+            "seccomp_kernel_supported": seccomp_kernel_supported(),
+            "seccomp_requested": seccomp_requested(),
+            "seccomp_auto_enabled": seccomp_auto_enabled(),
+            "seccomp_disabled_by_env": seccomp_disabled_by_env(),
+            "seccomp_active": self.seccomp_active,
         }
 
     def get_routes(self):
@@ -25036,6 +25049,8 @@ def main():
         public_dir=reticulum_meshchat.public_dir_override or get_file_path("public"),
         log_dir=resolve_log_dir(),
     )
+    # Apply after Landlock so landlock_* syscalls are not blocked by the filter.
+    reticulum_meshchat.seccomp_active = apply_seccomp_sandbox()
     reticulum_meshchat.run(
         args.host,
         args.port,

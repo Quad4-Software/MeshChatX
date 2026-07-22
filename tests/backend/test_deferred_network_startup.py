@@ -398,6 +398,11 @@ def test_status_schema_fuzz_valid_envelopes(status, stage, network_ready, error)
         "landlock_auto_enabled": False,
         "landlock_disabled_by_env": False,
         "landlock_active": False,
+        "seccomp_kernel_supported": False,
+        "seccomp_requested": False,
+        "seccomp_auto_enabled": False,
+        "seccomp_disabled_by_env": False,
+        "seccomp_active": False,
     }
     if error is not None:
         sample["error"] = error

@@ -28,7 +28,8 @@ describe("filesync packaging contracts", () => {
         const tools = readSource("meshchatx/src/frontend/js/registries/coreToolsEntries.js");
         expect(tools).toContain('name: "rns-filesync"');
         expect(tools).toContain('route: { name: "rns-filesync" }');
-        const block = tools.slice(tools.indexOf('name: "rns-filesync"'), tools.indexOf('name: "debug-logs"'));
+        const block = tools.slice(tools.indexOf('name: "rns-filesync"'), tools.indexOf('name: "rnsh"'));
         expect(block).not.toContain("comingSoon");
+        expect(block).toContain("alpha: true");
     });
 });

@@ -515,7 +515,13 @@
         "cancel_inbound_deliveries_count": "Inkomend annuleren ({count})",
         "cancel_inbound_confirm": "{count} inkomende LXMF-overdracht(en) annuleren? Grote berichten die nu worden gedownload stoppen.",
         "cancel_inbound_done": "{count} inkomende overdracht(en) geannuleerd.",
-        "cancel_inbound_failed": "Inkomende leveringen konden niet worden geannuleerd"
+        "cancel_inbound_failed": "Inkomende leveringen konden niet worden geannuleerd",
+        "seccomp_status": "Seccomp-BPF-sandbox (Linux)",
+        "seccomp_active": "Actief",
+        "seccomp_inactive": "Niet actief",
+        "seccomp_auto_enabled": "Automatisch ingeschakeld wanneer libseccomp beschikbaar is",
+        "seccomp_kernel_unsupported": "Seccomp-BPF niet beschikbaar (installeer libseccomp of platform niet ondersteund)",
+        "seccomp_disabled_by_env": "Uitgeschakeld via MESHCHAT_SECCOMP=0"
     },
     "common": {
         "open": "Openen",

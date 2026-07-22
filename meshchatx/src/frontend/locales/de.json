@@ -515,7 +515,13 @@
         "cancel_inbound_deliveries_count": "Eingehende abbrechen ({count})",
         "cancel_inbound_confirm": "{count} eingehende LXMF-Übertragung(en) abbrechen? Große Nachrichten, die gerade heruntergeladen werden, werden gestoppt.",
         "cancel_inbound_done": "{count} eingehende Übertragung(en) abgebrochen.",
-        "cancel_inbound_failed": "Eingehende Übertragungen konnten nicht abgebrochen werden"
+        "cancel_inbound_failed": "Eingehende Übertragungen konnten nicht abgebrochen werden",
+        "seccomp_status": "Seccomp-BPF-Sandbox (Linux)",
+        "seccomp_active": "Aktiv",
+        "seccomp_inactive": "Nicht aktiv",
+        "seccomp_auto_enabled": "Automatisch aktiviert, wenn libseccomp verfügbar ist",
+        "seccomp_kernel_unsupported": "Seccomp-BPF nicht verfügbar (libseccomp installieren oder Plattform nicht unterstützt)",
+        "seccomp_disabled_by_env": "Deaktiviert über MESHCHAT_SECCOMP=0"
     },
     "common": {
         "open": "Öffnen",

@@ -4,6 +4,13 @@ This page shows how to run **`meshchatx`** under **Firejail** or **Bubblewrap** 
 
 These tools do **not** replace a full virtual machine or hardware-enforced boundary. They reduce exposure of your home directory and other paths the process can write to, when you configure them with tight whitelists or bind mounts.
 
+MeshChatX also applies optional **in-process** Linux sandboxes when available:
+
+- **Landlock** for filesystem path rules (`MESHCHAT_LANDLOCK=0` to disable)
+- **Seccomp-BPF** syscall denylist via libseccomp (`MESHCHAT_SECCOMP=0` to disable)
+
+Those layers fall back cleanly when unsupported. Firejail and Bubblewrap remain useful as an outer wrapper.
+
 **Containers:** If you already run MeshChatX with Docker or Podman, that is a different isolation model, this document is aimed at **host-installed** `meshchatx` (or `meshchat`).
 
 ## Prerequisites
