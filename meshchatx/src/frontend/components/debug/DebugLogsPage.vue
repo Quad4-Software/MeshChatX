@@ -198,7 +198,7 @@
                             <span class="text-gray-500">IP</span> {{ row.client_ip }}
                         </div>
                         <div class="text-gray-600 dark:text-gray-400 break-all max-sm:text-[8px]">
-                            <span class="text-gray-500">UA</span> {{ row.user_agent || "—" }}
+                            <span class="text-gray-500">UA</span> {{ row.user_agent || "-" }}
                         </div>
                         <div v-if="row.detail" class="text-gray-500 max-sm:text-[8px] sm:text-[10px]">
                             {{ row.detail }}

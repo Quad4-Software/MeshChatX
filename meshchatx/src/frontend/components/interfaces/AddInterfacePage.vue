@@ -528,7 +528,7 @@
                                                 <input
                                                     v-model="newInterfaceNetworkDevice"
                                                     type="text"
-                                                    placeholder="e.g. eth0 (real OS interface; leave empty to use Listen IP only)"
+                                                    placeholder="e.g. eth0 (real OS interface, leave empty to use Listen IP only)"
                                                     class="input-field"
                                                 />
                                             </div>
@@ -1333,7 +1333,7 @@
                                             </div>
                                         </div>
 
-                                        <!-- LocalInterface: IPC path used internally by RNS; optional external module -->
+                                        <!-- LocalInterface: IPC path used internally by RNS. Optional external module -->
                                         <div v-if="newInterfaceType === 'LocalInterface'" class="space-y-4">
                                             <div class="text-sm text-gray-800 dark:text-zinc-200 leading-snug">
                                                 {{ $t("interfaces.loopback_local_title") }}

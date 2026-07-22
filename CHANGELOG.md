@@ -224,7 +224,7 @@ All notable changes to this project will be documented in this file.
 - **Banishment (UI)**: Blocked destinations page groups entries by identity and shows all blocked destination hashes per identity. Unblocking one unblocks the entire identity.
 - **Banishment (Reticulum)**: `blackhole_identity()` is always applied when available to drop packets before LXMF delivery callbacks reach the sender, preventing "phantom deliveries" to blocked peers.
 - **NomadNet file downloads**: Backtick-separated request data (e.g. ``/file/artifact`g=reticulum|r=lxmf|t=0.9.7``) is now parsed and forwarded as `var_*` request data dicts, matching upstream NomadNet behavior. Previously the raw string was passed and remote nodes could not resolve the artifact.
-- **NomadNet file downloads (cancel)**: Fixed `AttributeError` when cancelling a download — `RequestReceipt` has no `.cancel()`; we now cancel the underlying `Resource` if present, or mark the receipt `FAILED` and remove it from the link queue.
+- **NomadNet file downloads (cancel)**: Fixed `AttributeError` when cancelling a download. `RequestReceipt` has no `.cancel()`. We now cancel the underlying `Resource` if present, or mark the receipt `FAILED` and remove it from the link queue.
 - **NomadNet browser (links)**: Relative `/page/` and `/file/` URLs from the Micron parser (which include backtick parameters) are now parsed correctly so they no longer show "Unsupported URL".
 - **NomadNet browser (hover)**: Links with `data-destination` now show the full URL including backtick parameters in the browser hover title.
 - **Docker build**: `build-frontend` stage now installs `python3` so docs generation succeeds in `node:24-alpine`.
@@ -484,7 +484,7 @@ All notable changes to this project will be documented in this file.
 - **Config Editor Tool**: Added config editor tool to edit within app.
 - **Repository Server Tool**: New **Tool** for the optional local file shelf to redestribute reticulum and meshchatx python wheels locally or any file you upload. 
 - **Dangerous Links**: The app can warn you before you open links from people you don’t know, if you happen to click on it by mistake.
-- **Message Rules**: New sieve tool for simple patterns—matching stuff can land in the right folder, quiet the notification bell, or other actions you pick.
+- **Message Rules**: New sieve tool for simple patterns. Matching stuff can land in the right folder, quiet the notification bell, or other actions you pick.
 - **Chats, Images and Reactions**: Bigger chats load faster, images are grouped and sized better, styling improvements to reactions.
 - **Looks and Effects**: You can make parts of the UI transparent or enable a "glass effect" look, with clear settings to control these options.
 - **Simpler Internals**: The app’s settings and chat features were reorganized behind the scenes, making it easier to maintain and more stable.
@@ -681,7 +681,7 @@ All notable changes to this project will be documented in this file.
 - **WebSocket (`WebSocketConnection.js`)**: Heartbeat, backoff/reconnect, and **ping/pong** handling with shared helpers in **`wsConnectionSupport.js`**.
 - **Context menus (Vue)**: Shared **ContextMenuPanel**, **ContextMenuItem**, **ContextMenuDivider**, and **ContextMenuSectionLabel** (`components/contextmenu/`); styling tokens in **`style.css`**. Wired into **Contacts**, **Messages** sidebar, **ConversationViewer** message menu, **NomadNetwork** sidebar (favourites, sections, announces), and **Map** (optional **header** slot for the title row).
 - **LXMF emoji reactions (UI)**: **React** section in the message context menu (Columba-aligned emoji set); inbound/outbound websocket paths merge reactions onto the target message instead of a separate row; **`mergeLxmfReactionRowsIntoMessages`** when loading history; chips below the bubble with **`title`** tooltips via **`reactionReactorLabel`** (self, selected peer, sidebar conversations, else short hash).
-- **Vue lint**: **`vue/no-reserved-keys`** — internal **`data()`** fields renamed (peer header **ResizeObserver**, Nomad Micron partial scheduling **requestAnimationFrame** handle) so ESLint passes without reserved `_` prefixes.
+- **Vue lint**: **`vue/no-reserved-keys`**: internal **`data()`** fields renamed (peer header **ResizeObserver**, Nomad Micron partial scheduling **requestAnimationFrame** handle) so ESLint passes without reserved `_` prefixes.
 - **Map**: pop-out window.
 - **Tools**: list-style **ToolsPage**; refreshed **Bots**, **Paper message**, **RN path**, **RN path trace**, **RNode flasher**; **About**, **Interface**, **Settings**, **Contacts**, **App** polish (loading overlays, display names, license links). Many tool and settings pages use adjusted **backgrounds and padding** for alignment with the global shell.
 - **Electron**: default **context menu** for editable fields (cut/copy/paste, **spellcheck** suggestions, add to dictionary), links, and related actions; **pick file** / **pick directory** / **open path** / notifications and related **preload** helpers; loading screen refresh; CSP and **backend HTTP-only** IPC where applicable.

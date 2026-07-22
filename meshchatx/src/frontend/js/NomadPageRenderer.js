@@ -49,7 +49,7 @@ function normalizeMarkdownInput(md) {
     }
     let s = String(md);
     s = s.replace(/\r\n/g, "\n");
-    // CommonMark requires a space after # for ATX headings; "#Title" is not a heading
+    // CommonMark requires a space after # for ATX headings. "#Title" is not a heading
     s = s.replace(/^(\s{0,3})(#{1,6})([^\s#])/gm, "$1$2 $3");
     return s;
 }

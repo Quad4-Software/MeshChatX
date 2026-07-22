@@ -148,7 +148,7 @@ function colorFromNode(node) {
         if (rgb) return rgb;
     }
     if (c && typeof c === "object") {
-        // Border is the vivid badge color; background is a pale tint for vis-network.
+        // Border is the vivid badge color. Background is a pale tint for vis-network.
         const fill = c.border || c.background;
         const rgb = hexToRgb01(fill);
         if (rgb) return rgb;

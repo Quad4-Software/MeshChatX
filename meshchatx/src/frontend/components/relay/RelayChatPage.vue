@@ -1790,7 +1790,7 @@ export default {
         },
         formatUptime(seconds) {
             if (seconds == null || seconds < 0) {
-                return "—";
+                return "-";
             }
             let s = Math.floor(seconds);
             if (s < 60) {
@@ -2545,7 +2545,7 @@ export default {
             try {
                 await window.api.post(`/api/v1/rrc/hubs/${hubHash}/rooms/${this.encodeRoom(room)}/read`);
             } catch {
-                // GET messages already marks active/read on the server; ignore duplicate failures.
+                // GET messages already marks active/read on the server. Ignore duplicate failures.
             }
             if (refreshHubs) {
                 await this.fetchHubs();

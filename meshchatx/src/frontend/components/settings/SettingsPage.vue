@@ -3133,8 +3133,8 @@
                                             {{ $t("app.web_listen_address") }}
                                         </div>
                                         <div class="font-mono text-gray-900 dark:text-gray-100">
-                                            {{ serverSecurity.listen_host || "—" }}:{{
-                                                serverSecurity.listen_port ?? "—"
+                                            {{ serverSecurity.listen_host || "-" }}:{{
+                                                serverSecurity.listen_port ?? "-"
                                             }}
                                         </div>
                                     </div>
@@ -3564,7 +3564,7 @@
                                             $t("app.run_local_node_description")
                                         }}</span>
                                         <span class="setting-toggle__hint monospace-field">{{
-                                            config.lxmf_local_propagation_node_address_hash || "—"
+                                            config.lxmf_local_propagation_node_address_hash || "-"
                                         }}</span>
                                     </span>
                                 </label>

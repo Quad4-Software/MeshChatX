@@ -244,7 +244,7 @@
                                                     <span v-else-if="lxmfAddressFor(bot)">{{
                                                         $t("bots.never_announced")
                                                     }}</span>
-                                                    <span v-else>—</span>
+                                                    <span v-else>-</span>
                                                 </dd>
                                             </div>
                                         </dl>

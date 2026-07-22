@@ -30,7 +30,7 @@
                     {{ $t(row.labelKey) }}
                 </dt>
                 <dd class="font-mono text-gray-800 dark:text-zinc-200 break-all">
-                    {{ row.value || "—" }}
+                    {{ row.value || "-" }}
                 </dd>
             </div>
         </dl>

@@ -437,7 +437,7 @@
                 </div>
             </div>
 
-            <!-- scale line: bottom-right so it never stacks over the lat/lon readout (bottom-left); hidden on small screens -->
+            <!-- scale line: bottom-right so it never stacks over the lat/lon readout (bottom-left). Hidden on small screens -->
             <div
                 v-show="!isMobileScreen"
                 ref="scaleLineMount"
@@ -4673,7 +4673,7 @@ export default {
                     this.onVectorExchangeImport({ features, merge: true });
                 } catch (e) {
                     console.error("Map drop import failed:", e);
-                    ToastUtils.error(this.$t("map.vector_import_failed") + ` — ${file.name}`);
+                    ToastUtils.error(this.$t("map.vector_import_failed") + ` - ${file.name}`);
                 }
             }
         },

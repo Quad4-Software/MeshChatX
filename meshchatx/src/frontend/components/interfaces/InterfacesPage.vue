@@ -217,8 +217,8 @@
                                         >
                                     </div>
                                     <div class="text-sm text-gray-600 dark:text-gray-300">
-                                        Discovery runs continually; heard announces stay listed. Connected entries show
-                                        a green pill; disconnected entries are dimmed with a red label.
+                                        Discovery runs continually. Heard announces stay listed. Connected entries show
+                                        a green pill. Disconnected entries are dimmed with a red label.
                                     </div>
                                 </div>
                                 <div class="flex flex-wrap gap-2 items-center shrink-0 min-w-0">
@@ -900,7 +900,7 @@ export default {
         },
         discoveredEmptyMessage() {
             if (!this.isReticulumRunning) {
-                return "LXMF/Reticulum is not running; discovery cannot listen for announces.";
+                return "LXMF/Reticulum is not running. Discovery cannot listen for announces.";
             }
             if (!this.discoveryConfig.discover_interfaces) {
                 return "Discovery is disabled. Enable it to start listening for announces.";

@@ -158,9 +158,9 @@ class AutoPropagationManager:
                 except Exception:
                     pass
             if current_path_ok:
-                # Sync is likely making progress – let it finish.
+                # Sync is likely making progress. Let it finish.
                 return
-            # Current node is unreachable – stop the stuck sync so we can
+            # Current node is unreachable. Stop the stuck sync so we can
             # look for a working alternative.
             self.app.stop_propagation_node_sync(context=ctx)
             # Wait briefly for the router to settle back to idle before we

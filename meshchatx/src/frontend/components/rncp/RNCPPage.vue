@@ -627,7 +627,7 @@ export default {
             const f = event.target.files?.[0];
             event.target.value = "";
             if (!f) return;
-            // Browsers only expose the basename; require an explicit full path.
+            // Browsers only expose the basename. Require an explicit full path.
             this.sendFilePath = "";
             DialogUtils.alert(this.$t("rncp.web_path_hint"));
         },

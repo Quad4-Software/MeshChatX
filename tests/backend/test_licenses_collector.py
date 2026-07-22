@@ -26,7 +26,7 @@ def test_flatten_pnpm_licenses_json_maps_and_sorts():
         ],
         "Apache-2.0": [
             {"name": "alpha-pkg", "versions": ["1.0.0"], "author": "Alice"},
-            {"name": "no-version", "versions": [], "author": "—"},
+            {"name": "no-version", "versions": [], "author": "-"},
         ],
     }
     rows = _flatten_pnpm_licenses_json(data)

@@ -580,7 +580,7 @@ export default {
             return (bytes / (1024 * 1024)).toFixed(1) + " MB";
         },
         formatMeshUptime(seconds) {
-            if (seconds == null || seconds < 0) return "—";
+            if (seconds == null || seconds < 0) return "-";
             let s = Math.floor(seconds);
             if (s < 60) return `${s}s`;
             if (s < 3600) return `${Math.floor(s / 60)}m`;

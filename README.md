@@ -221,8 +221,8 @@ Also confirm the app is not muted in **Settings → System → Sound** and that 
 
 MeshChatX supports two levels of offline building:
 
-1. **Cached offline builds** — you already ran `make install` once and have `node_modules/`, `.venv/`, and local caches.
-2. **Air-gapped (zero-network) builds** — the machine has _never_ had internet. You create an offline bundle on a networked machine and transfer it.
+1. **Cached offline builds**: you already ran `make install` once and have `node_modules/`, `.venv/`, and local caches.
+2. **Air-gapped (zero-network) builds**: the machine has _never_ had internet. You create an offline bundle on a networked machine and transfer it.
 
 ### Cached Offline Builds
 

@@ -45,7 +45,7 @@ function writeJson(key, value) {
         }
         window.localStorage.setItem(key, JSON.stringify(value));
     } catch {
-        // persistence is best-effort; ignore quota or availability errors
+        // persistence is best-effort. Ignore quota or availability errors
     }
 }
 

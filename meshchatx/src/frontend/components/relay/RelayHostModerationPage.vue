@@ -881,7 +881,7 @@ export default {
         },
         formatUptime(seconds) {
             if (seconds == null || seconds < 0) {
-                return "—";
+                return "-";
             }
             let s = Math.floor(seconds);
             if (s < 60) {

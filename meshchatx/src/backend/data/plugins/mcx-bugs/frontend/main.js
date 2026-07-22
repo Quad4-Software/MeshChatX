@@ -13,7 +13,7 @@ function formatLabel(api, key, params = {}) {
 
 function shortHash(hash) {
     if (!hash || hash.length < 12) {
-        return hash || "—";
+        return hash || "-";
     }
     return `${hash.slice(0, 10)}…${hash.slice(-6)}`;
 }
@@ -205,7 +205,7 @@ export async function activate(api) {
                                                 {
                                                     type: "text",
                                                     variant: "caption",
-                                                    value: entry.name || "—",
+                                                    value: entry.name || "-",
                                                 },
                                                 {
                                                     type: "button",
@@ -319,7 +319,7 @@ export async function activate(api) {
                                                                   {
                                                                       type: "text",
                                                                       variant: "subtitle",
-                                                                      value: entry.title || "—",
+                                                                      value: entry.title || "-",
                                                                   },
                                                                   {
                                                                       type: "text",
@@ -335,7 +335,7 @@ export async function activate(api) {
                                                                           String(entry.description || "").slice(
                                                                               0,
                                                                               160
-                                                                          ) || "—",
+                                                                          ) || "-",
                                                                   },
                                                               ],
                                                           },

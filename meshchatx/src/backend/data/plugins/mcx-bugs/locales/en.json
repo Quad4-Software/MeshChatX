@@ -33,7 +33,7 @@
     "no_preview": "Preview logs to review what will be sent.",
     "preview_stats": "{lines} lines, {chars} characters",
     "send_ok": "Report sent ({bytes} bytes).",
-    "invalid_hash": "\"{value}\" is not a valid collector hash. Click 'Use my collector' to auto-fill, or paste a 32–64 character hex hash.",
+    "invalid_hash": "\"{value}\" is not a valid collector hash. Click 'Use my collector' to auto-fill, or paste a 32-64 character hex hash.",
     "collector_started": "Collector started.",
     "collector_stopped": "Collector stopped.",
     "announce_ok": "Collector announced as mcx-bugs-v1.",

@@ -230,11 +230,11 @@ class TestPerformanceHotPaths(unittest.TestCase):
         print("--- Seeding complete ---\n")
 
     # ===================================================================
-    # ANNOUNCES — load, search, count
+    # ANNOUNCES: load, search, count
     # ===================================================================
 
     def test_announce_load_filtered_latency(self):
-        """Load announces filtered by aspect with pagination — the NomadNet browser default view."""
+        """Load announces filtered by aspect with pagination: the NomadNet browser default view."""
         print("\n[Announce] Filtered load (aspect + pagination):")
         durations = []
         offsets = [0, 100, 500, 1000, 2000]
@@ -275,7 +275,7 @@ class TestPerformanceHotPaths(unittest.TestCase):
         self.assertLess(stats["p95"], 150, "Announce search p95 > 150ms")
 
     def test_announce_search_with_blocked(self):
-        """Search with a block-list — simulates real NomadNet browser filtering."""
+        """Search with a block-list: simulates real NomadNet browser filtering."""
         print("\n[Announce] Search with blocked list:")
         blocked = [secrets.token_hex(16) for _ in range(50)]
         durations = []
@@ -312,7 +312,7 @@ class TestPerformanceHotPaths(unittest.TestCase):
     # ===================================================================
 
     def test_favourites_load_latency(self):
-        """Load all favourites — typically displayed in sidebar."""
+        """Load all favourites: typically displayed in sidebar."""
         print("\n[Favourites] Load all:")
         durations = []
         for _ in range(50):
@@ -340,11 +340,11 @@ class TestPerformanceHotPaths(unittest.TestCase):
         self.assertGreater(stats["ops"], 500, "Favourite upsert < 500 ops/s")
 
     # ===================================================================
-    # CONVERSATIONS — load, search
+    # CONVERSATIONS: load, search
     # ===================================================================
 
     def test_conversations_load_latency(self):
-        """Load conversation list — the main messages sidebar query."""
+        """Load conversation list: the main messages sidebar query."""
         print("\n[Conversations] Load list (with JOINs):")
         durations = []
         for _ in range(20):
@@ -360,7 +360,7 @@ class TestPerformanceHotPaths(unittest.TestCase):
         self.assertLess(stats["p95"], 200, "Conversation list p95 > 200ms")
 
     def test_conversations_search_latency(self):
-        """Search conversations — LIKE across titles, content, peer hashes."""
+        """Search conversations: LIKE across titles, content, peer hashes."""
         print("\n[Conversations] Search:")
         terms = [
             "Message title 5",
@@ -399,7 +399,7 @@ class TestPerformanceHotPaths(unittest.TestCase):
         self.assertLess(stats["p95"], 300, "Paginated conversations p95 > 300ms")
 
     # ===================================================================
-    # MESSAGES — load, search, upsert (drafts)
+    # MESSAGES: load, search, upsert (drafts)
     # ===================================================================
 
     def test_message_load_latency(self):
@@ -422,7 +422,7 @@ class TestPerformanceHotPaths(unittest.TestCase):
         self.assertLess(stats["p99"], 50, "Message load p99 > 50ms")
 
     def test_message_search_latency(self):
-        """Search messages across all conversations — the global search."""
+        """Search messages across all conversations: the global search."""
         print("\n[Messages] Global search:")
         terms = [
             "Message title 100",
@@ -443,7 +443,7 @@ class TestPerformanceHotPaths(unittest.TestCase):
         self.assertLess(stats["p95"], 300, "Message search p95 > 300ms")
 
     def test_message_upsert_throughput(self):
-        """Measure message upsert throughput — simulates saving drafts rapidly."""
+        """Measure message upsert throughput: simulates saving drafts rapidly."""
         print("\n[Messages] Upsert throughput (draft saves):")
         durations = []
         peer = secrets.token_hex(16)
@@ -462,7 +462,7 @@ class TestPerformanceHotPaths(unittest.TestCase):
         self.assertLess(stats["p95"], 10, "Message upsert p95 > 10ms")
 
     def test_message_upsert_update_throughput(self):
-        """Measure message UPDATE throughput — re-saving existing messages (state changes)."""
+        """Measure message UPDATE throughput: re-saving existing messages (state changes)."""
         print("\n[Messages] Update existing messages:")
         peer = secrets.token_hex(16)
         msgs = []
@@ -487,7 +487,7 @@ class TestPerformanceHotPaths(unittest.TestCase):
         )
 
     # ===================================================================
-    # CONCURRENT WRITERS — contention stress
+    # CONCURRENT WRITERS: contention stress
     # ===================================================================
 
     def test_concurrent_message_writers(self):
@@ -584,7 +584,7 @@ class TestPerformanceHotPaths(unittest.TestCase):
         )
 
     def test_concurrent_read_write_contention(self):
-        """Writers inserting while readers query — simulates real app usage."""
+        """Writers inserting while readers query: simulates real app usage."""
         print("\n[Contention] Mixed read/write:")
         num_writers = 4
         num_readers = 4
@@ -673,7 +673,7 @@ class TestPerformanceHotPaths(unittest.TestCase):
         self.assertLess(ms_con, 50, "Contacts LIKE search > 50ms")
 
     # ===================================================================
-    # N+1 BATCH OPERATIONS — transaction wrapping regression tests
+    # N+1 BATCH OPERATIONS: transaction wrapping regression tests
     # ===================================================================
 
     def test_mark_conversations_as_read_batch(self):
@@ -732,7 +732,7 @@ class TestPerformanceHotPaths(unittest.TestCase):
         )
 
     # ===================================================================
-    # INDEX VERIFICATION — confirm new indexes are used
+    # INDEX VERIFICATION: confirm new indexes are used
     # ===================================================================
 
     def test_indexes_exist(self):
@@ -782,7 +782,7 @@ class TestPerformanceHotPaths(unittest.TestCase):
         self.assertLessEqual(cache_size, -8000)
 
     # ===================================================================
-    # QUERY PLAN CHECKS — confirm indexes are actually used
+    # QUERY PLAN CHECKS: confirm indexes are actually used
     # ===================================================================
 
     def test_query_plan_messages_by_peer(self):

@@ -115,7 +115,7 @@ def test_jni_libs_synced_for_all_abis():
     for abi in ("arm64-v8a", "armeabi-v7a", "x86_64"):
         lib = jni / abi / "libcodec2.so"
         if not lib.is_file():
-            pytest.skip(f"missing jniLibs {lib} — not an Android build")
+            pytest.skip(f"missing jniLibs {lib}: not an Android build")
         assert lib.stat().st_size > 100_000
 
 

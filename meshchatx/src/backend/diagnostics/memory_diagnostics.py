@@ -396,7 +396,7 @@ class MemoryDiagnostics:
         type_name: str,
         max_results: int = 20,
     ) -> list[dict[str, Any]]:
-        """Find referrers of objects of a given type — useful to trace who holds references."""
+        """Find referrers of objects of a given type. Useful to trace who holds references."""
         matches: list[Any] = []
         try:
             for obj in gc.get_objects():
