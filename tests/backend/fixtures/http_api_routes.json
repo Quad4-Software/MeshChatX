@@ -29,12 +29,12 @@
             "path": "/api/v1/app/info"
         },
         {
-            "method": "GET",
-            "path": "/api/v1/app/sessions"
-        },
-        {
             "method": "POST",
             "path": "/api/v1/app/integrity/acknowledge"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/app/sessions"
         },
         {
             "method": "POST",
@@ -1477,6 +1477,10 @@
             "path": "/api/v1/telephone/audio-profiles"
         },
         {
+            "method": "GET",
+            "path": "/api/v1/telephone/call-modes"
+        },
+        {
             "method": "POST",
             "path": "/api/v1/telephone/call/{identity_hash}"
         },
@@ -1537,6 +1541,10 @@
             "path": "/api/v1/telephone/mute-transmit"
         },
         {
+            "method": "POST",
+            "path": "/api/v1/telephone/ptt"
+        },
+        {
             "method": "GET",
             "path": "/api/v1/telephone/recordings"
         },
@@ -1583,6 +1591,10 @@
         {
             "method": "POST",
             "path": "/api/v1/telephone/switch-audio-profile/{profile_id}"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/telephone/switch-call-mode/{mode_id}"
         },
         {
             "method": "POST",
