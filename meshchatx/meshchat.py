@@ -10807,6 +10807,12 @@ class ReticulumMeshChat:
                         "profile",
                     )
                     else None,
+                    "call_mode_id": self.telephone_manager.get_active_mode_id(),
+                    "is_half_duplex": self.telephone_manager.is_half_duplex(),
+                    "is_ptt_active": bool(self.telephone_manager.ptt_active),
+                    "is_transmit_squelched": self.telephone_manager.is_transmit_squelched(),
+                    "is_mic_muted": self.telephone_manager.transmit_muted,
+                    "is_speaker_muted": self.telephone_manager.receive_muted,
                     "is_recording": self.telephone_manager.is_recording,
                     "is_voicemail": self.voicemail_manager.is_recording,
                     "call_start_time": self.telephone_manager.call_start_time,
@@ -10815,15 +10821,40 @@ class ReticulumMeshChat:
                     "rx_bytes": 0,
                     "tx_packets": 0,
                     "rx_packets": 0,
+                    "tx_bps": 0,
+                    "rx_bps": 0,
                     "path_hops": None,
                     "path_interface": None,
                 }
+                from LXST.Primitives.Telephony import Profiles
+
+                mode_id = active_call["call_mode_id"]
+                with contextlib.suppress(Exception):
+                    active_call["call_mode_name"] = Profiles.mode_name(mode_id)
+                    active_call["call_mode_abbrev"] = Profiles.mode_abbrevation(mode_id)
                 link = getattr(self.telephone_manager, "call_stats", {}).get("link")
                 if link:
                     active_call["tx_bytes"] = getattr(link, "txbytes", 0)
                     active_call["rx_bytes"] = getattr(link, "rxbytes", 0)
                     active_call["tx_packets"] = getattr(link, "tx", 0)
                     active_call["rx_packets"] = getattr(link, "rx", 0)
+                    started_at = getattr(self.telephone_manager, "call_stats", {}).get(
+                        "started_at",
+                    )
+                    if not started_at:
+                        started_at = self.telephone_manager.call_start_time
+                    elapsed = (
+                        max(0.001, time.time() - float(started_at))
+                        if started_at
+                        else 0.0
+                    )
+                    if elapsed > 0:
+                        active_call["tx_bps"] = int(
+                            (active_call["tx_bytes"] * 8) / elapsed,
+                        )
+                        active_call["rx_bps"] = int(
+                            (active_call["rx_bytes"] * 8) / elapsed,
+                        )
                     # Best-effort direct link metadata fallback.
                     if active_call["path_hops"] is None:
                         for hop_attr in ["hops", "hop_count", "path_hops"]:
@@ -10890,6 +10921,9 @@ class ReticulumMeshChat:
                     "active_call": active_call,
                     "is_mic_muted": self.telephone_manager.transmit_muted,
                     "is_speaker_muted": self.telephone_manager.receive_muted,
+                    "preferred_call_mode_id": self.telephone_manager.resolve_call_mode_id(
+                        self.telephone_manager.preferred_mode_id,
+                    ),
                     "missed_calls_unread_count": self.database.misc.get_unread_notification_count_by_type(
                         "telephone_missed_call",
                     ),
@@ -11029,6 +11063,87 @@ class ReticulumMeshChat:
         async def telephone_unmute_receive(request):
             await asyncio.to_thread(self.telephone_manager.unmute_receive)
             return web.json_response({"message": "Speaker unmuted"})
+
+        @routes.get("/api/v1/telephone/call-modes")
+        async def telephone_call_modes(request):
+            from LXST.Primitives.Telephony import Profiles
+
+            modes = [
+                {
+                    "id": mode_id,
+                    "name": Profiles.mode_name(mode_id),
+                    "abbrev": Profiles.mode_abbrevation(mode_id),
+                    "is_half_duplex": mode_id == Profiles.MODE_HALF_DUPLEX,
+                }
+                for mode_id in Profiles.available_modes()
+            ]
+            return web.json_response(
+                {
+                    "default_call_mode_id": Profiles.DEFAULT_MODE,
+                    "call_modes": modes,
+                },
+            )
+
+        @routes.post("/api/v1/telephone/switch-call-mode/{mode_id}")
+        async def telephone_switch_call_mode(request):
+            mode_id = request.match_info.get("mode_id")
+            try:
+                if self.telephone_manager.telephone is None:
+                    return web.json_response(
+                        {"message": "Telephone not initialized"},
+                        status=400,
+                    )
+                resolved = await asyncio.to_thread(
+                    self.telephone_manager.apply_preferred_mode,
+                    int(mode_id),
+                )
+                self.config.telephone_call_mode_id.set(resolved)
+                from LXST.Primitives.Telephony import Profiles
+
+                return web.json_response(
+                    {
+                        "message": f"Switched to mode {resolved}",
+                        "mode_id": resolved,
+                        "mode_name": Profiles.mode_name(resolved),
+                        "is_half_duplex": resolved == Profiles.MODE_HALF_DUPLEX,
+                        "is_ptt_active": bool(self.telephone_manager.ptt_active),
+                    },
+                )
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+
+        @routes.post("/api/v1/telephone/ptt")
+        async def telephone_ptt(request):
+            if self.telephone_manager.telephone is None:
+                return web.json_response(
+                    {"message": "Telephone not initialized"},
+                    status=400,
+                )
+            try:
+                data = await request.json()
+            except Exception:
+                data = {}
+            active = (
+                bool(data.get("active", False)) if isinstance(data, dict) else False
+            )
+            ok = await asyncio.to_thread(self.telephone_manager.set_ptt_active, active)
+            if not ok and active:
+                return web.json_response(
+                    {
+                        "message": "PTT requires an established half-duplex call",
+                        "is_ptt_active": bool(self.telephone_manager.ptt_active),
+                        "is_half_duplex": self.telephone_manager.is_half_duplex(),
+                    },
+                    status=400,
+                )
+            return web.json_response(
+                {
+                    "message": "ok",
+                    "is_ptt_active": bool(self.telephone_manager.ptt_active),
+                    "is_half_duplex": self.telephone_manager.is_half_duplex(),
+                    "is_transmit_squelched": self.telephone_manager.is_transmit_squelched(),
+                },
+            )
 
         # get call history
         @routes.get("/api/v1/telephone/history")
@@ -19688,6 +19803,17 @@ class ReticulumMeshChat:
                     profile_id,
                 )
 
+        if "telephone_call_mode_id" in data:
+            mode_id = self._coerce_int(data["telephone_call_mode_id"])
+            if mode_id is None:
+                mode_id = self.config.telephone_call_mode_id.get()
+            self.config.telephone_call_mode_id.set(mode_id)
+            if self.telephone_manager:
+                await asyncio.to_thread(
+                    self.telephone_manager.apply_preferred_mode,
+                    mode_id,
+                )
+
         if "telephone_web_audio_enabled" in data:
             self.config.telephone_web_audio_enabled.set(
                 self._parse_bool(data["telephone_web_audio_enabled"]),
@@ -21429,6 +21555,7 @@ class ReticulumMeshChat:
             "telephone_allow_calls_from_contacts_only": ctx.config.telephone_allow_calls_from_contacts_only.get(),
             "telephone_announce_enabled": ctx.config.telephone_announce_enabled.get(),
             "telephone_audio_profile_id": ctx.config.telephone_audio_profile_id.get(),
+            "telephone_call_mode_id": ctx.config.telephone_call_mode_id.get(),
             "telephone_web_audio_enabled": ctx.config.telephone_web_audio_enabled.get(),
             "telephone_web_audio_allow_fallback": ctx.config.telephone_web_audio_allow_fallback.get(),
             "call_recording_enabled": ctx.config.call_recording_enabled.get(),

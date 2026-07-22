@@ -197,8 +197,9 @@ class TestAudioProfilePassthroughRegression:
         tm.preferred_profile_id = Profiles.BANDWIDTH_LOW
         seen = {}
 
-        def capture_call(identity, profile=None):
+        def capture_call(identity, profile=None, mode=None):
             seen["profile"] = profile
+            seen["mode"] = mode
             tm.telephone.call_status = 0
 
         tm.telephone.call.side_effect = capture_call
@@ -222,6 +223,7 @@ class TestAudioProfilePassthroughRegression:
             await tm.initiate(destination_hash, timeout_seconds=1)
 
         assert seen["profile"] == Profiles.BANDWIDTH_LOW
+        assert seen["mode"] == Profiles.MODE_FULL_DUPLEX
 
     def test_init_does_not_rely_on_idle_switch_profile(self, tmp_path):
         cfg = MagicMock()

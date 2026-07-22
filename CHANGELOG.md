@@ -31,6 +31,7 @@ All notable changes to this project will be documented in this file.
 - Remote management allow-list for identities that may query this instance with rnstatus/rnpath
 - Post-install prompts for existing users after upgrades
 - Coolify-oriented Docker Compose with resource limits for deployments
+- LXST telephony half-duplex mode, live duplex switching, push-to-talk (packetizer squelch), and richer in-call stats (rates plus mute state on the active call)
 
 ### Changed
 

@@ -59,6 +59,16 @@ describe("CallPage.vue", () => {
                 }
                 if (url.includes("/api/v1/telephone/audio-profiles"))
                     return Promise.resolve({ data: { audio_profiles: [], default_audio_profile_id: null } });
+                if (url.includes("/api/v1/telephone/call-modes"))
+                    return Promise.resolve({
+                        data: {
+                            default_call_mode_id: 1,
+                            call_modes: [
+                                { id: 1, name: "Full Duplex", abbrev: "FDX", is_half_duplex: false },
+                                { id: 2, name: "Half Duplex", abbrev: "HDX", is_half_duplex: true },
+                            ],
+                        },
+                    });
                 if (url.includes("/api/v1/telephone/contacts/export")) {
                     return Promise.resolve({ data: { contacts: [] } });
                 }
@@ -130,6 +140,30 @@ describe("CallPage.vue", () => {
         expect(axiosMock.post).toHaveBeenCalledWith(expect.stringContaining("/api/v1/telephone/mute-transmit"));
     });
 
+    it("switches duplex mode and drives PTT squelch", async () => {
+        const wrapper = mountCallPage();
+        await flushPromises();
+
+        wrapper.vm.activeCall = {
+            status: 6,
+            is_half_duplex: false,
+            call_mode_id: 1,
+            is_ptt_active: false,
+        };
+        axiosMock.post.mockResolvedValueOnce({
+            data: { mode_id: 2, is_half_duplex: true, is_ptt_active: false },
+        });
+
+        await wrapper.vm.switchCallMode(2);
+        expect(axiosMock.post).toHaveBeenCalledWith(expect.stringContaining("/api/v1/telephone/switch-call-mode/2"));
+        expect(wrapper.vm.activeCall.is_half_duplex).toBe(true);
+
+        axiosMock.post.mockResolvedValueOnce({ data: { is_ptt_active: true } });
+        await wrapper.vm.setPttActive(true);
+        expect(axiosMock.post).toHaveBeenCalledWith("/api/v1/telephone/ptt", { active: true });
+        expect(wrapper.vm.localPttActive).toBe(true);
+    });
+
     it("renders tabs correctly", async () => {
         const wrapper = mountCallPage();
         await wrapper.vm.$nextTick();
@@ -185,14 +219,15 @@ describe("CallPage.vue", () => {
 
         expect(wrapper.text()).toContain("3 hops");
         expect(wrapper.text()).toContain("Default Interface");
-        expect(wrapper.text()).toContain("TX Pkts");
+        expect(wrapper.text()).toContain("call.tx_packets");
         expect(wrapper.text()).toContain("303");
-        expect(wrapper.text()).toContain("RX Pkts");
+        expect(wrapper.text()).toContain("call.rx_packets");
         expect(wrapper.text()).toContain("289");
-        expect(wrapper.text()).toContain("TX Data Out");
+        expect(wrapper.text()).toContain("call.tx_data");
         expect(wrapper.text()).toContain("35 KB");
-        expect(wrapper.text()).toContain("RX Data In");
+        expect(wrapper.text()).toContain("call.rx_data");
         expect(wrapper.text()).toContain("82 KB");
+        expect(wrapper.text()).toContain("call.full_duplex");
     });
 
     it("attempts to place a call when 'Call' button is clicked", async () => {

@@ -276,6 +276,11 @@ class ConfigManager:
             "telephone_audio_profile_id",
             64,  # LXST Profiles.DEFAULT_PROFILE (Medium Quality / Opus)
         )
+        self.telephone_call_mode_id = self.IntConfig(
+            self,
+            "telephone_call_mode_id",
+            1,  # LXST Profiles.MODE_FULL_DUPLEX
+        )
         self.telephone_web_audio_enabled = self.BoolConfig(
             self,
             "telephone_web_audio_enabled",
