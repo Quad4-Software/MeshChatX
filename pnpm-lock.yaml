@@ -47,7 +47,7 @@ overrides:
   undici: 7.28.0
   webpack: '>=5.104.0'
   y18n: '>=5.0.5'
-  yargs-parser: '>=18.1.1'
+  yargs-parser: 21.1.1
   '@isaacs/brace-expansion': '>=5.0.1'
   '@tootallnate/once': '>=3.0.1'
 
@@ -1419,10 +1419,6 @@ packages:
 
   callsites@3.1.0:
     resolution: {integrity: sha512-P8BjAsXvZS+VIDUI11hHCQEv74YT67YUi5JJFNWIqL235sBmjX4+qx9Muvls5ivyNENctx46xQLQ3aTuE7ssaQ==}
-    engines: {node: '>=6'}
-
-  camelcase@5.0.0:
-    resolution: {integrity: sha512-faqwZqnWxbxn+F1d399ygeamQNy3lPp/H9H6rNrqYh4FSVCtcY+3cub1MxA8o9mDd55mM8Aghuu/kuyYA6VTsA==}
     engines: {node: '>=6'}
 
   chai@6.2.2:
@@ -3815,9 +3811,9 @@ packages:
     engines: {node: '>= 14.6'}
     hasBin: true
 
-  yargs-parser@18.1.1:
-    resolution: {integrity: sha512-KRHEsOM16IX7XuLnMOqImcPNbLVXMNHYAoFc3BKR8Ortl5gzDbtXvvEoGx9imk5E+X1VeNKNlcHr8B8vi+7ipA==}
-    engines: {node: '>=6'}
+  yargs-parser@21.1.1:
+    resolution: {integrity: sha512-tVpsJW7DdjecAiFpbIB1e3qxIQsE6NoPc5/eTdrbbIC4h0LVsWhnoa3g+m2HclBIujHzsxZ4VJVA+GUuc2/LBw==}
+    engines: {node: '>=12'}
 
   yargs@12.0.5:
     resolution: {integrity: sha512-Lhz8TLaYnxq/2ObqHDql8dX8CJi97oHxrjUcYtzKbbykPtVW9WB+poxI+NM2UIzsMgNCZTIf0AQwsjK5yMAqZw==}
@@ -5024,8 +5020,6 @@ snapshots:
       function-bind: 1.1.2
 
   callsites@3.1.0: {}
-
-  camelcase@5.0.0: {}
 
   chai@6.2.2: {}
 
@@ -7354,10 +7348,7 @@ snapshots:
 
   yaml@2.9.0: {}
 
-  yargs-parser@18.1.1:
-    dependencies:
-      camelcase: 5.0.0
-      decamelize: 1.2.0
+  yargs-parser@21.1.1: {}
 
   yargs@12.0.5:
     dependencies:
@@ -7372,7 +7363,7 @@ snapshots:
       string-width: 2.0.0
       which-module: 2.0.0
       y18n: 5.0.5
-      yargs-parser: 18.1.1
+      yargs-parser: 21.1.1
 
   yargs@15.3.1:
     dependencies:
@@ -7386,7 +7377,7 @@ snapshots:
       string-width: 4.2.0
       which-module: 2.0.0
       y18n: 5.0.5
-      yargs-parser: 18.1.1
+      yargs-parser: 21.1.1
 
   yargs@17.6.2:
     dependencies:
@@ -7396,7 +7387,7 @@ snapshots:
       require-directory: 2.1.1
       string-width: 4.2.3
       y18n: 5.0.5
-      yargs-parser: 18.1.1
+      yargs-parser: 21.1.1
 
   yocto-queue@0.1.0: {}
 

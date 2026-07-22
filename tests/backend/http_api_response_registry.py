@@ -21,6 +21,7 @@ from tests.backend.api_json_contract_schemas import (
 from tests.backend.http_api_contract_runtime import HttpJsonContract
 from tests.backend.http_api_response_schemas import (
     ACCESS_ATTEMPTS_SCHEMA,
+    ACTIVE_SESSIONS_SCHEMA,
     ANNOUNCE_SINGLE_SCHEMA,
     ANNOUNCES_LIST_SCHEMA,
     BLACKHOLE_STATUS_SCHEMA,
@@ -137,6 +138,7 @@ HTTP_JSON_GET_CONTRACTS: tuple[HttpJsonContract, ...] = (
     HttpJsonContract("GET", "/api/v1/status", API_V1_STATUS_SCHEMA),
     HttpJsonContract("GET", "/api/v1/self-test", SELF_TEST_SCHEMA),
     HttpJsonContract("GET", "/api/v1/app/info", API_V1_APP_INFO_ENVELOPE_SCHEMA),
+    HttpJsonContract("GET", "/api/v1/app/sessions", ACTIVE_SESSIONS_SCHEMA),
     HttpJsonContract("GET", "/api/v1/app/changelog", CHANGELOG_SCHEMA),
     HttpJsonContract("GET", "/api/v1/auth/status", AUTH_STATUS_SCHEMA),
     HttpJsonContract("GET", "/api/v1/auth/csrf", CSRF_ENVELOPE_SCHEMA),
