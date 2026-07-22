@@ -23,7 +23,7 @@ overrides:
     strip-ansi: "6.0.1"
     "strip-ansi>ansi-regex": "5.0.1"
     braces: ">=3.0.3"
-    brace-expansion: ">=1.1.13"
+    brace-expansion: "5.0.2"
     browserslist: ">=4.16.5"
     cross-spawn: ">=7.0.5"
     debug: ">=4.3.1"
