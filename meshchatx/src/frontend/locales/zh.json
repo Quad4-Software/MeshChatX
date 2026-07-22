@@ -1397,7 +1397,7 @@
         "clear_cache": "清除缓存",
         "cache_cleared": "瓦片缓存已清除",
         "tile_server_url": "瓦片服务器 URL",
-        "tile_server_url_placeholder": "https://tiles.openfreemap.org/styles/bright",
+        "tile_server_url_placeholder": "https://tile.openstreetmap.org/{'{'}z{'}'}/{'{'}x{'}'}/{'{'}y{'}'}.png",
         "tile_server_url_hint": "使用 {z}、{x}、{y} 表示缩放、列、行",
         "tile_server_saved": "瓦片服务器 URL 已保存",
         "tile_server_openstreetmap": "OpenStreetMap",

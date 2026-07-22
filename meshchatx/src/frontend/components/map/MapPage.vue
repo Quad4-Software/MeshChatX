@@ -590,8 +590,8 @@
                         <div class="grid grid-cols-5 gap-1">
                             <button
                                 v-for="style in [
-                                    { id: 'openfreemap', label: 'OFM' },
                                     { id: 'osm', label: 'OSM' },
+                                    { id: 'openfreemap', label: 'OFM' },
                                     { id: 'carto-dark', label: 'Dark' },
                                     { id: 'carto-voyager', label: 'Voy' },
                                     { id: 'carto-light', label: 'Lite' },
@@ -1115,7 +1115,7 @@ import VectorSource from "ol/source/Vector";
 import Feature from "ol/Feature";
 import Point from "ol/geom/Point";
 import { getMdiIconPath } from "../../js/mdiIconNames.js";
-import { Style, Text, Fill, Stroke, Circle as CircleStyle, Icon } from "ol/style";
+import { Style, Fill, Stroke, Circle as CircleStyle } from "ol/style";
 import { shared as olIconCache } from "ol/style/IconImageCache";
 import { fromLonLat, toLonLat } from "ol/proj";
 import { defaults as defaultControls } from "ol/control";
@@ -1147,13 +1147,28 @@ import {
     dedupeDiscoveredMapNodes as dedupeDiscoveredMapNodesHelper,
     dedupeTelemetryMarkersForMap as dedupeTelemetryMarkersForMapHelper,
 } from "./internal/mapDedupe.js";
+import {
+    BADGE_SCALE_HOVER,
+    BADGE_SCALE_NORMAL,
+    DEFAULT_DISCOVERED_FACE,
+    DEFAULT_PEER_FACE,
+    DEFAULT_PEER_GLYPH,
+    getCachedClusterStyle,
+    getCachedPeerBadgeStyle,
+    shouldShowMarkerLabel,
+} from "./internal/markerStyles.js";
 import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ContextMenuItem from "../contextmenu/ContextMenuItem.vue";
 import ContextMenuPanel from "../contextmenu/ContextMenuPanel.vue";
 import DOMPurify from "dompurify";
 import ToastUtils from "../../js/ToastUtils";
 import TileCache from "../../js/TileCache";
-import { detectRasterTileProviderId, nextRasterTileProviderId, TILE_PROVIDER_URLS } from "../../js/mapTileProviders.js";
+import {
+    detectRasterTileProviderId,
+    nextRasterTileProviderId,
+    TILE_PROVIDER_URLS,
+    DEFAULT_TILE_SERVER_URL,
+} from "../../js/mapTileProviders.js";
 import {
     fetchTileBlobWithRetry,
     fetchJsonWithRetry,
@@ -1184,7 +1199,7 @@ import { styleFromMcxProperties } from "../../js/mapExchange/styleFromProperties
 import { computeSegmentMetrics, buildBearingOverlayHtml, buildBearingLiveTooltipHtml } from "../../js/mapGeodesy.js";
 
 const OPENFREEMAP_DEFAULT_STYLE = "https://tiles.openfreemap.org/styles/bright";
-const DEFAULT_OSM_RASTER = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+const DEFAULT_OSM_RASTER = DEFAULT_TILE_SERVER_URL;
 const OFFLINE_MB_TILES_URL = "/api/v1/map/tiles/{z}/{x}/{y}.png";
 const OFFLINE_TRANSPARENT_TILE_PNG =
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
@@ -1479,6 +1494,10 @@ export default {
             if (!newVal || !oldVal || newVal.telemetry?.destination_hash !== oldVal.telemetry?.destination_hash) {
                 this.isMiniChatOpen = false;
             }
+            // Re-evaluate zoom-gated labels when selection changes.
+            if (typeof this.markerLayer?.changed === "function") {
+                this.markerLayer.changed();
+            }
         },
         showSaveDrawingModal(val) {
             if (val) {
@@ -1527,7 +1546,8 @@ export default {
                 this.currentCenter = savedState.center || [0, 0];
                 this.currentZoom = savedState.zoom || 2;
                 if (savedState.offlineEnabled !== undefined) this.offlineEnabled = savedState.offlineEnabled;
-                if (savedState.tileServerUrl) this.tileServerUrl = savedState.tileServerUrl;
+                // Tile URL comes from identity config (defaults to OSM). Do not let a stale
+                // TileCache map-state override the configured basemap.
                 if (savedState.telemetry) this.telemetryList = savedState.telemetry;
 
                 // Temporarily store drawings to restore after map/source init
@@ -1837,13 +1857,14 @@ export default {
                     if (type === "note" || geomType === "Point") {
                         const isNote = type === "note";
                         return this.createMarkerStyle({
-                            iconColor: isNote ? "#f59e0b" : "#3b82f6",
-                            bgColor: "#ffffff",
+                            iconColor: DEFAULT_PEER_GLYPH,
+                            bgColor: isNote ? "#d97706" : "#2563eb",
                             label: isNote && feature.get("note") ? "Note" : "",
                             isStale: false,
                             iconPath: isNote
                                 ? "M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zM6 20V4h7v5h5v11H6z"
                                 : null,
+                            showLabel: Boolean(isNote && feature.get("note")),
                         });
                     }
                     return new Style({
@@ -1958,26 +1979,40 @@ export default {
 
                     if (feature.get("cluster")) {
                         const style = this.createClusterStyle(feature.get("clusterCount") || 0, isHovered);
-                        style.setZIndex(isHovered ? 1000 : 200);
+                        const z = isHovered ? 1000 : 200;
+                        if (Array.isArray(style)) {
+                            for (const s of style) s.setZIndex(z);
+                        } else {
+                            style.setZIndex(z);
+                        }
                         return style;
                     }
 
-                    const scale = isHovered ? 0.85 : 0.6;
+                    const scale = isHovered ? BADGE_SCALE_HOVER : BADGE_SCALE_NORMAL;
                     const zIndex = isHovered ? 1000 : 100;
-
+                    const zoom = this.map?.getView?.()?.getZoom?.();
+                    const selectedHash = this.selectedMarker?.telemetry?.destination_hash;
                     const t = feature.get("telemetry");
                     const peer = feature.get("peer");
                     const disc = feature.get("discovered");
+                    const isSelected = Boolean(
+                        (t && selectedHash && t.destination_hash === selectedHash) ||
+                        (disc && this.selectedMarker?.discovered && this.selectedMarker.discovered === disc)
+                    );
+                    const showLabel = shouldShowMarkerLabel({
+                        zoom,
+                        hovered: isHovered,
+                        selected: isSelected,
+                    });
 
                     let displayName = "";
                     let isStale = false;
-                    let iconColor = "#2563eb";
-                    let bgColor = "#ffffff";
+                    let iconColor = DEFAULT_PEER_GLYPH;
+                    let bgColor = DEFAULT_PEER_FACE;
                     let iconPath = null;
 
                     if (t) {
                         displayName = peer?.display_name || t.destination_hash.substring(0, 8);
-                        // Calculate staleness
                         const now = Date.now();
                         const updatedAt = t.updated_at
                             ? new Date(t.updated_at).getTime()
@@ -1995,12 +2030,13 @@ export default {
                         }
                     } else if (disc) {
                         displayName = disc.name;
-                        iconColor = "#10b981"; // emerald-500
-                        bgColor = "#d1fae5"; // emerald-100
+                        iconColor = DEFAULT_PEER_GLYPH;
+                        bgColor = DEFAULT_DISCOVERED_FACE;
                         iconPath = this.getMdiPath(this.getDiscoveredIconName(disc));
                     } else if (feature === this.queryMarker) {
                         displayName = "Search Result";
-                        iconColor = "#ef4444";
+                        iconColor = DEFAULT_PEER_GLYPH;
+                        bgColor = "#dc2626";
                     }
 
                     const style = this.createMarkerStyle({
@@ -2011,6 +2047,7 @@ export default {
                         iconPath,
                         scale,
                         isTracking: t ? t.is_tracking : false,
+                        showLabel,
                     });
                     style.setZIndex(zIndex);
                     return style;
@@ -2148,11 +2185,12 @@ export default {
             });
             feature.setStyle(
                 this.createMarkerStyle({
-                    iconColor: "#2563eb",
-                    bgColor: "#bfdbfe",
+                    iconColor: DEFAULT_PEER_GLYPH,
+                    bgColor: "#2563eb",
                     label: String(label),
                     isStale: false,
                     iconPath: null,
+                    showLabel: true,
                 })
             );
             this.queryMarker = feature;
@@ -4928,25 +4966,10 @@ export default {
             }
         },
         createClusterStyle(count, isHovered) {
-            const cacheKey = `cluster-${count}-${isHovered ? "h" : "n"}`;
-            if (this.styleCache[cacheKey]) return this.styleCache[cacheKey];
-
-            const radius = isHovered ? 20 : 18;
-            const style = new Style({
-                image: new CircleStyle({
-                    radius,
-                    fill: new Fill({ color: "rgba(37, 99, 235, 0.92)" }),
-                    stroke: new Stroke({ color: "#ffffff", width: 2 }),
-                }),
-                text: new Text({
-                    text: String(count),
-                    font: "bold 13px sans-serif",
-                    fill: new Fill({ color: "#ffffff" }),
-                    stroke: new Stroke({ color: "rgba(0,0,0,0.35)", width: 1 }),
-                }),
+            return getCachedClusterStyle(this.styleCache, {
+                count,
+                hovered: Boolean(isHovered),
             });
-            this.styleCache[cacheKey] = style;
-            return style;
         },
         buildClusterItems(feature) {
             return buildClusterItemsHelper(feature);
@@ -5068,67 +5091,26 @@ export default {
                 }
             });
         },
-        createMarkerStyle({ iconColor, bgColor, label, isStale, iconPath, scale = 0.6, isTracking = false }) {
-            const cacheKey = `${iconColor}-${bgColor}-${label}-${isStale}-${iconPath || "default"}-${scale}-${isTracking}`;
-            if (this.styleCache[cacheKey]) return this.styleCache[cacheKey];
-
-            const markerFill = isStale ? "#d1d5db" : bgColor;
-            const markerStroke = isStale ? "#9ca3af" : iconColor;
-            const path =
-                iconPath ||
-                "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7Zm0 11a2 2 0 1 1 0-4 2 2 0 0 1 0 4Z";
-
-            const baseSize = isTracking ? 32 : 24;
-            const renderSize = baseSize * 2;
-
-            let svg = "";
-            if (isTracking) {
-                svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${renderSize}" height="${renderSize}" viewBox="0 0 32 32">
-                    <circle cx="16" cy="16" r="10" fill="none" stroke="#3b82f6" stroke-width="2">
-                        <animate attributeName="r" from="10" to="15" dur="1.5s" repeatCount="indefinite" />
-                        <animate attributeName="stroke-opacity" from="1" to="0" dur="1.5s" repeatCount="indefinite" />
-                    </circle>
-                    <circle cx="16" cy="16" r="10" fill="#3b82f6" fill-opacity="0.2">
-                        <animate attributeName="r" from="8" to="12" dur="1.5s" repeatCount="indefinite" />
-                    </circle>
-                    <g transform="translate(4,4)">
-                        <path d="${path}" fill="${markerFill}" stroke="${markerStroke}" stroke-width="1.5"/>
-                    </g>
-                </svg>`;
-            } else {
-                svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${renderSize}" height="${renderSize}" viewBox="0 0 24 24"><path d="${path}" fill="${markerFill}" stroke="${markerStroke}" stroke-width="1.5"/></svg>`;
-            }
-
-            const svgBytes = new TextEncoder().encode(svg);
-            let svgBinary = "";
-            const chunkSize = 8192;
-            for (let i = 0; i < svgBytes.length; i += chunkSize) {
-                const sub = svgBytes.subarray(i, i + chunkSize);
-                svgBinary += String.fromCharCode(...sub);
-            }
-            const src = "data:image/svg+xml;base64," + btoa(svgBinary);
-
-            const displayHeight = renderSize * scale;
-            const labelOffset = -(displayHeight + 6);
-
-            const style = new Style({
-                image: new Icon({
-                    src: src,
-                    anchor: [0.5, 1],
-                    scale: scale,
-                    imgSize: [renderSize, renderSize],
-                }),
-                text: new Text({
-                    text: label,
-                    offsetY: labelOffset,
-                    font: "bold 12px sans-serif",
-                    fill: new Fill({ color: isStale ? "#6b7280" : "#111827" }),
-                    stroke: new Stroke({ color: "#ffffff", width: 3 }),
-                }),
+        createMarkerStyle({
+            iconColor,
+            bgColor,
+            label,
+            isStale,
+            iconPath,
+            scale = BADGE_SCALE_NORMAL,
+            isTracking = false,
+            showLabel = true,
+        }) {
+            return getCachedPeerBadgeStyle(this.styleCache, {
+                iconColor,
+                bgColor,
+                label,
+                isStale,
+                iconPath,
+                scale,
+                isTracking,
+                showLabel,
             });
-
-            this.styleCache[cacheKey] = style;
-            return style;
         },
         onMarkerClick(feature) {
             this.selectedMarker = {

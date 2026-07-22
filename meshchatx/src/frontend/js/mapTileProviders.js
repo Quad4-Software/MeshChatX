@@ -1,10 +1,12 @@
-/** Raster basemap providers tried in order when tiles fail to load. */
+/** Canonical default basemap (OpenStreetMap raster). */
+export const DEFAULT_TILE_SERVER_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 
+/** Raster basemap providers tried in order when tiles fail to load. */
 export const RASTER_TILE_PROVIDER_ORDER = ["osm", "openfreemap"];
 
 export const TILE_PROVIDER_URLS = {
+    osm: DEFAULT_TILE_SERVER_URL,
     openfreemap: "https://tiles.openfreemap.org/styles/bright",
-    osm: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
     "carto-dark": "https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
     "carto-voyager": "https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",
     "carto-light": "https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",

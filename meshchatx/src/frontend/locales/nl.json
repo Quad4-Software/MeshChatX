@@ -1397,7 +1397,7 @@
         "clear_cache": "Cache wissen",
         "cache_cleared": "Tegel cache gewist",
         "tile_server_url": "Tegelserver-URL",
-        "tile_server_url_placeholder": "https://tiles.openfreemap.org/styles/bright",
+        "tile_server_url_placeholder": "https://tile.openstreetmap.org/{'{'}z{'}'}/{'{'}x{'}'}/{'{'}y{'}'}.png",
         "tile_server_url_hint": "{z},{x},{y}gebruiken voor zoom, kolom, rij",
         "tile_server_saved": "Tegelserver-URL opgeslagen",
         "tile_server_openstreetmap": "OpenStreetMap",

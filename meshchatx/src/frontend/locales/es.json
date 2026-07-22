@@ -1397,7 +1397,7 @@
         "clear_cache": "Caché transparente",
         "cache_cleared": "Caché de azul claro",
         "tile_server_url": "URL del servidor",
-        "tile_server_url_placeholder": "https://tiles.openfreemap.org/styles/bright",
+        "tile_server_url_placeholder": "https://tile.openstreetmap.org/{'{'}z{'}'}/{'{'}x{'}'}/{'{'}y{'}'}.png",
         "tile_server_url_hint": "Utilice{z},{x},{y}para zoom, columna, fila",
         "tile_server_saved": "URL del servidor del azul",
         "tile_server_openstreetmap": "OpenStreetMap",
