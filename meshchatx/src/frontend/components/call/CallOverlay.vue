@@ -176,10 +176,30 @@
                     <MaterialDesignIcon icon-name="arrow-down" class="size-3" />
                     <span>{{ formatBytes(activeCall.rx_bytes || 0) }}</span>
                 </div>
+                <div class="col-span-2 text-center font-semibold uppercase tracking-wider">
+                    {{ localHalfDuplex ? $t("call.half_duplex") : $t("call.full_duplex") }}
+                    <span v-if="localHalfDuplex">
+                        · {{ localPttActive ? $t("call.ptt_transmitting") : $t("call.ptt_listening") }}
+                    </span>
+                </div>
             </div>
 
             <!-- Controls -->
             <div v-if="!isEnded && !wasDeclined" class="flex flex-wrap justify-center gap-2 px-2">
+                <!-- Duplex toggle -->
+                <button
+                    v-if="activeCall && activeCall.status === 6"
+                    type="button"
+                    :title="localHalfDuplex ? $t('call.switch_to_full_duplex') : $t('call.switch_to_half_duplex')"
+                    class="p-2.5 rounded-full transition-all duration-200 bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-300 hover:bg-gray-200 dark:hover:bg-zinc-700"
+                    @click="toggleDuplexMode"
+                >
+                    <MaterialDesignIcon
+                        :icon-name="localHalfDuplex ? 'access-point-network' : 'swap-horizontal'"
+                        class="size-5"
+                    />
+                </button>
+
                 <!-- Mute Mic -->
                 <button
                     type="button"
@@ -246,6 +266,20 @@
                     <MaterialDesignIcon icon-name="phone" class="size-5" />
                 </button>
             </div>
+
+            <button
+                v-if="activeCall && activeCall.status === 6 && localHalfDuplex && !isEnded"
+                type="button"
+                class="mt-3 w-full flex items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold text-white select-none touch-none"
+                :class="localPttActive ? 'bg-amber-500' : 'bg-blue-600'"
+                @pointerdown.prevent="setPttActive(true)"
+                @pointerup.prevent="setPttActive(false)"
+                @pointerleave="setPttActive(false)"
+                @pointercancel="setPttActive(false)"
+            >
+                <MaterialDesignIcon icon-name="microphone" class="size-5" />
+                <span>{{ localPttActive ? $t("call.ptt_transmitting") : $t("call.ptt_hold_to_talk") }}</span>
+            </button>
         </div>
 
         <!-- Ended State Voicemail Playback -->
@@ -362,6 +396,8 @@ export default {
             audioPlayer: null,
             localMicMuted: false,
             localSpeakerMuted: false,
+            localPttActive: false,
+            localHalfDuplex: false,
         };
     },
     computed: {
@@ -387,13 +423,24 @@ export default {
         },
     },
     watch: {
-        activeCall(newCall, oldCall) {
-            if (newCall) {
-                if (!oldCall || newCall.hash !== oldCall.hash) {
-                    this.localMicMuted = newCall.is_mic_muted;
-                    this.localSpeakerMuted = newCall.is_speaker_muted;
+        activeCall: {
+            immediate: true,
+            handler(newCall, oldCall) {
+                if (newCall) {
+                    if (!oldCall || newCall.hash !== oldCall.hash) {
+                        this.localMicMuted = Boolean(newCall.is_mic_muted);
+                        this.localSpeakerMuted = Boolean(newCall.is_speaker_muted);
+                        this.localPttActive = Boolean(newCall.is_ptt_active);
+                        this.localHalfDuplex = Boolean(newCall.is_half_duplex);
+                    } else {
+                        this.localPttActive = Boolean(newCall.is_ptt_active);
+                        this.localHalfDuplex = Boolean(newCall.is_half_duplex);
+                    }
+                } else {
+                    this.localPttActive = false;
+                    this.localHalfDuplex = false;
                 }
-            }
+            },
         },
     },
     mounted() {
@@ -491,6 +538,33 @@ export default {
                 // Revert on error
                 this.localSpeakerMuted = !this.localSpeakerMuted;
                 ToastUtils.error(this.$t("call.failed_to_toggle_speaker"));
+            }
+        },
+        async toggleDuplexMode() {
+            if (!this.activeCall || this.activeCall.status !== 6) return;
+            const nextMode = this.localHalfDuplex ? 1 : 2;
+            try {
+                const response = await window.api.post(`/api/v1/telephone/switch-call-mode/${nextMode}`);
+                this.localPttActive = Boolean(response.data?.is_ptt_active);
+                this.localHalfDuplex = Boolean(response.data?.is_half_duplex);
+            } catch {
+                ToastUtils.error(this.$t("call.failed_to_switch_call_mode"));
+            }
+        },
+        async setPttActive(active) {
+            if (!this.activeCall || this.activeCall.status !== 6 || !this.localHalfDuplex) {
+                if (active) return;
+            }
+            const wantActive = Boolean(active);
+            if (this.localPttActive === wantActive) return;
+            this.localPttActive = wantActive;
+            try {
+                await window.api.post("/api/v1/telephone/ptt", { active: wantActive });
+            } catch {
+                this.localPttActive = !wantActive;
+                if (wantActive) {
+                    ToastUtils.error(this.$t("call.failed_to_set_ptt"));
+                }
             }
         },
         async playLatestVoicemail() {

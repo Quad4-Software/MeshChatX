@@ -368,7 +368,7 @@
                                                             class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left"
                                                         >
                                                             <div class="text-[10px] text-gray-500 dark:text-zinc-400">
-                                                                TX Pkts
+                                                                {{ $t("call.tx_packets") }}
                                                             </div>
                                                             <div class="font-semibold text-gray-800 dark:text-zinc-100">
                                                                 {{ formatNumber(activeCall.tx_packets) }}
@@ -378,7 +378,7 @@
                                                             class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left"
                                                         >
                                                             <div class="text-[10px] text-gray-500 dark:text-zinc-400">
-                                                                RX Pkts
+                                                                {{ $t("call.rx_packets") }}
                                                             </div>
                                                             <div class="font-semibold text-gray-800 dark:text-zinc-100">
                                                                 {{ formatNumber(activeCall.rx_packets) }}
@@ -388,7 +388,7 @@
                                                             class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left"
                                                         >
                                                             <div class="text-[10px] text-gray-500 dark:text-zinc-400">
-                                                                TX Data Out
+                                                                {{ $t("call.tx_data") }}
                                                             </div>
                                                             <div class="font-semibold text-gray-800 dark:text-zinc-100">
                                                                 {{ formatBytes(activeCall.tx_bytes) }}
@@ -398,12 +398,50 @@
                                                             class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left"
                                                         >
                                                             <div class="text-[10px] text-gray-500 dark:text-zinc-400">
-                                                                RX Data In
+                                                                {{ $t("call.rx_data") }}
                                                             </div>
                                                             <div class="font-semibold text-gray-800 dark:text-zinc-100">
                                                                 {{ formatBytes(activeCall.rx_bytes) }}
                                                             </div>
                                                         </div>
+                                                        <div
+                                                            class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left"
+                                                        >
+                                                            <div class="text-[10px] text-gray-500 dark:text-zinc-400">
+                                                                {{ $t("call.tx_rate") }}
+                                                            </div>
+                                                            <div class="font-semibold text-gray-800 dark:text-zinc-100">
+                                                                {{ formatBitrate(activeCall.tx_bps) }}
+                                                            </div>
+                                                        </div>
+                                                        <div
+                                                            class="rounded-xl bg-gray-50 dark:bg-zinc-800/70 border border-gray-100 dark:border-zinc-700/70 px-2 py-1.5 text-left"
+                                                        >
+                                                            <div class="text-[10px] text-gray-500 dark:text-zinc-400">
+                                                                {{ $t("call.rx_rate") }}
+                                                            </div>
+                                                            <div class="font-semibold text-gray-800 dark:text-zinc-100">
+                                                                {{ formatBitrate(activeCall.rx_bps) }}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div
+                                                        v-if="activeCall && activeCall.status === 6"
+                                                        class="mt-2 text-[10px] font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-400"
+                                                    >
+                                                        {{
+                                                            activeCall.is_half_duplex
+                                                                ? $t("call.half_duplex")
+                                                                : $t("call.full_duplex")
+                                                        }}
+                                                        <span v-if="activeCall.is_half_duplex">
+                                                            ·
+                                                            {{
+                                                                localPttActive
+                                                                    ? $t("call.ptt_transmitting")
+                                                                    : $t("call.ptt_listening")
+                                                            }}
+                                                        </span>
                                                     </div>
                                                 </div>
                                             </template>
@@ -457,10 +495,25 @@
                                                 </option>
                                             </select>
 
+                                            <select
+                                                v-model="selectedCallModeId"
+                                                class="input-field rounded-xl! py-2! shadow-xs"
+                                                @change="switchCallMode(selectedCallModeId)"
+                                            >
+                                                <option
+                                                    v-for="callMode in callModes"
+                                                    :key="callMode.id"
+                                                    :value="callMode.id"
+                                                >
+                                                    {{ callMode.name }}
+                                                </option>
+                                            </select>
+
                                             <div class="flex justify-center gap-4">
                                                 <!-- mute/unmute mic -->
                                                 <button
                                                     type="button"
+                                                    :title="isMicMuted ? $t('call.unmute_mic') : $t('call.mute_mic')"
                                                     :class="[
                                                         isMicMuted
                                                             ? 'bg-red-500 text-white shadow-red-500/20'
@@ -478,6 +531,11 @@
                                                 <!-- mute/unmute speaker -->
                                                 <button
                                                     type="button"
+                                                    :title="
+                                                        isSpeakerMuted
+                                                            ? $t('call.unmute_speaker')
+                                                            : $t('call.mute_speaker')
+                                                    "
                                                     :class="[
                                                         isSpeakerMuted
                                                             ? 'bg-red-500 text-white shadow-red-500/20'
@@ -491,6 +549,38 @@
                                                         class="size-6"
                                                     />
                                                 </button>
+                                            </div>
+
+                                            <button
+                                                v-if="isHalfDuplexCall"
+                                                type="button"
+                                                class="w-full flex items-center justify-center gap-2 rounded-2xl py-5 text-base font-bold text-white shadow-xl transition-all duration-150 select-none touch-none"
+                                                :class="
+                                                    localPttActive
+                                                        ? 'bg-amber-500 shadow-amber-500/30 scale-[1.02]'
+                                                        : 'bg-blue-600 shadow-blue-600/20 hover:bg-blue-500'
+                                                "
+                                                :title="$t('call.ptt_hold_hint')"
+                                                @pointerdown.prevent="setPttActive(true)"
+                                                @pointerup.prevent="setPttActive(false)"
+                                                @pointerleave="setPttActive(false)"
+                                                @pointercancel="setPttActive(false)"
+                                            >
+                                                <MaterialDesignIcon
+                                                    :icon-name="localPttActive ? 'microphone' : 'access-point-network'"
+                                                    class="size-7"
+                                                />
+                                                <span>{{
+                                                    localPttActive
+                                                        ? $t("call.ptt_transmitting")
+                                                        : $t("call.ptt_hold_to_talk")
+                                                }}</span>
+                                            </button>
+                                            <div
+                                                v-if="isHalfDuplexCall"
+                                                class="text-center text-[11px] text-gray-500 dark:text-zinc-400"
+                                            >
+                                                {{ $t("call.ptt_spacebar_hint") }}
                                             </div>
                                         </div>
                                     </div>
@@ -721,6 +811,31 @@
                                                             :value="audioProfile.id"
                                                         >
                                                             {{ audioProfile.name }}
+                                                        </option>
+                                                    </select>
+                                                </div>
+                                                <div class="flex flex-col gap-1">
+                                                    <div
+                                                        class="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-1"
+                                                    >
+                                                        {{ $t("call.default_duplex") }}
+                                                    </div>
+                                                    <select
+                                                        v-if="config"
+                                                        v-model="config.telephone_call_mode_id"
+                                                        class="input-field min-w-0 rounded-lg! border-gray-200! py-1! px-2! text-xs! dark:border-zinc-800! lg:min-w-[120px]"
+                                                        @change="
+                                                            updateConfig({
+                                                                telephone_call_mode_id: config.telephone_call_mode_id,
+                                                            })
+                                                        "
+                                                    >
+                                                        <option
+                                                            v-for="callMode in callModes"
+                                                            :key="callMode.id"
+                                                            :value="callMode.id"
+                                                        >
+                                                            {{ callMode.name }}
                                                         </option>
                                                     </select>
                                                 </div>
@@ -2378,6 +2493,10 @@ export default {
             webAudioBridgeRequired: false,
             audioProfiles: [],
             selectedAudioProfileId: null,
+            callModes: [],
+            selectedCallModeId: 1,
+            localPttActive: false,
+            pttKeyHeld: false,
             destinationHash: "",
             callHistory: [],
             callHistorySearch: "",
@@ -2486,6 +2605,9 @@ export default {
         isSpeakerMuted() {
             return this.localSpeakerMuted;
         },
+        isHalfDuplexCall() {
+            return Boolean(this.activeCall && this.activeCall.status === 6 && this.activeCall.is_half_duplex);
+        },
         elapsedTime() {
             if (!this.activeCall?.call_start_time) {
                 return null;
@@ -2565,6 +2687,7 @@ export default {
     mounted() {
         this.getConfig();
         this.getAudioProfiles();
+        this.getCallModes();
         this.getStatus();
         this.getHistory();
         this.getVoicemails();
@@ -2601,6 +2724,10 @@ export default {
             this.$forceUpdate();
         }, 1000);
 
+        window.addEventListener("keydown", this.onPttKeyDown);
+        window.addEventListener("keyup", this.onPttKeyUp);
+        window.addEventListener("blur", this.onPttWindowBlur);
+
         // autofill destination hash and tab from query string
         const destinationHash = this.$route.query.destination_hash;
         if (destinationHash) {
@@ -2620,6 +2747,12 @@ export default {
         if (this.historyInterval) clearInterval(this.historyInterval);
         if (this.elapsedTimeInterval) clearInterval(this.elapsedTimeInterval);
         if (this.endedTimeout) clearTimeout(this.endedTimeout);
+        window.removeEventListener("keydown", this.onPttKeyDown);
+        window.removeEventListener("keyup", this.onPttKeyUp);
+        window.removeEventListener("blur", this.onPttWindowBlur);
+        if (this.localPttActive) {
+            this.setPttActive(false);
+        }
         this.stopAudioVisualizer();
         if (this.audioPlayer) {
             this.audioPlayer.pause();
@@ -2636,6 +2769,12 @@ export default {
         },
         formatNumber(value) {
             return Utils.formatNumber(value || 0);
+        },
+        formatBitrate(bps) {
+            const rate = Number(bps) || 0;
+            if (rate < 1000) return `${Math.round(rate)} bps`;
+            if (rate < 1000000) return `${(rate / 1000).toFixed(1)} kbps`;
+            return `${(rate / 1000000).toFixed(2)} Mbps`;
         },
         formatDateTime(timestamp) {
             return Utils.convertUnixMillisToLocalDateTimeString(timestamp);
@@ -3543,18 +3682,47 @@ export default {
                 console.log(e);
             }
         },
+        async getCallModes() {
+            try {
+                const response = await window.api.get("/api/v1/telephone/call-modes");
+                const modes = Array.isArray(response.data.call_modes) ? response.data.call_modes : [];
+                this.callModes = modes;
+                if (response.data.default_call_mode_id != null) {
+                    this.selectedCallModeId = response.data.default_call_mode_id;
+                }
+            } catch (e) {
+                console.log(e);
+            }
+        },
         async getStatus() {
             try {
                 const response = await window.api.get("/api/v1/telephone/status");
                 const oldCall = this.activeCall;
                 const newCall = response.data.active_call;
 
-                // Sync local mute state from backend
+                // Sync local mute / PTT / mode state from backend
                 if (newCall) {
                     if (!oldCall || newCall.hash !== oldCall.hash) {
-                        this.localMicMuted = newCall.is_mic_muted;
-                        this.localSpeakerMuted = newCall.is_speaker_muted;
+                        this.localMicMuted = Boolean(newCall.is_mic_muted);
+                        this.localSpeakerMuted = Boolean(newCall.is_speaker_muted);
+                        this.localPttActive = Boolean(newCall.is_ptt_active);
+                    } else if (!this.isMicMuting) {
+                        this.localMicMuted = Boolean(
+                            newCall.is_mic_muted ?? response.data.is_mic_muted ?? this.localMicMuted
+                        );
+                        this.localSpeakerMuted = Boolean(
+                            newCall.is_speaker_muted ?? response.data.is_speaker_muted ?? this.localSpeakerMuted
+                        );
+                        if (!this.pttKeyHeld) {
+                            this.localPttActive = Boolean(newCall.is_ptt_active);
+                        }
                     }
+                    if (newCall.call_mode_id != null) {
+                        this.selectedCallModeId = newCall.call_mode_id;
+                    }
+                } else {
+                    this.localPttActive = false;
+                    this.pttKeyHeld = false;
                 }
 
                 this.activeCall = newCall;
@@ -4401,6 +4569,78 @@ export default {
                 }
             } catch {
                 ToastUtils.error(this.$t("call.failed_to_switch_audio_profile"));
+            }
+        },
+        async switchCallMode(modeId) {
+            try {
+                const response = await window.api.post(`/api/v1/telephone/switch-call-mode/${modeId}`);
+                const resolved = response.data?.mode_id;
+                if (resolved != null) {
+                    this.selectedCallModeId = resolved;
+                }
+                this.localPttActive = Boolean(response.data?.is_ptt_active);
+                if (this.activeCall) {
+                    this.activeCall.call_mode_id = resolved;
+                    this.activeCall.is_half_duplex = Boolean(response.data?.is_half_duplex);
+                    this.activeCall.is_ptt_active = this.localPttActive;
+                }
+                if (this.config) {
+                    this.config.telephone_call_mode_id = resolved;
+                }
+            } catch {
+                ToastUtils.error(this.$t("call.failed_to_switch_call_mode"));
+            }
+        },
+        isEditableEventTarget(target) {
+            if (!target || !(target instanceof Element)) return false;
+            const tag = (target.tagName || "").toLowerCase();
+            if (tag === "input" || tag === "textarea" || tag === "select") return true;
+            return Boolean(target.isContentEditable);
+        },
+        onPttKeyDown(event) {
+            if (event.code !== "Space" && event.key !== " ") return;
+            if (event.repeat) return;
+            if (this.isEditableEventTarget(event.target)) return;
+            if (!this.isHalfDuplexCall) return;
+            event.preventDefault();
+            this.pttKeyHeld = true;
+            this.setPttActive(true);
+        },
+        onPttKeyUp(event) {
+            if (event.code !== "Space" && event.key !== " ") return;
+            if (!this.pttKeyHeld && !this.localPttActive) return;
+            event.preventDefault();
+            this.pttKeyHeld = false;
+            this.setPttActive(false);
+        },
+        onPttWindowBlur() {
+            this.pttKeyHeld = false;
+            if (this.localPttActive) {
+                this.setPttActive(false);
+            }
+        },
+        async setPttActive(active) {
+            if (!this.isHalfDuplexCall && active) {
+                return;
+            }
+            const wantActive = Boolean(active);
+            if (this.localPttActive === wantActive) {
+                return;
+            }
+            this.localPttActive = wantActive;
+            if (this.activeCall) {
+                this.activeCall.is_ptt_active = wantActive;
+            }
+            try {
+                await window.api.post("/api/v1/telephone/ptt", { active: wantActive });
+            } catch {
+                this.localPttActive = !wantActive;
+                if (this.activeCall) {
+                    this.activeCall.is_ptt_active = !wantActive;
+                }
+                if (wantActive) {
+                    ToastUtils.error(this.$t("call.failed_to_set_ptt"));
+                }
             }
         },
         async toggleMicrophone() {

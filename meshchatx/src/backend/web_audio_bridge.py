@@ -345,6 +345,20 @@ class WebAudioBridge:
                 return
             if getattr(self.telephone_manager, "is_voicemail_session_active", False):
                 return
+            # Do not feed PCM while mic is muted or half-duplex PTT is released.
+            if getattr(self.telephone_manager, "transmit_muted", False) is True:
+                return
+            is_squelched = getattr(
+                self.telephone_manager,
+                "is_transmit_squelched",
+                None,
+            )
+            if callable(is_squelched):
+                try:
+                    if is_squelched() is True:
+                        return
+                except Exception:
+                    pass
             if not self.tx_source:
                 # Hostless LineSource stand-in still accepts PCM until swap.
                 audio_in = getattr(tele, "audio_input", None)

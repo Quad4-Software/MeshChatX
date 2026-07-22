@@ -68,9 +68,10 @@ async def test_initiate_passes_preferred_profile_to_lxst_call(tm):
     tm.preferred_profile_id = Profiles.BANDWIDTH_LOW
     seen = {}
 
-    def capture_call(identity, profile=None):
+    def capture_call(identity, profile=None, mode=None):
         seen["identity"] = identity
         seen["profile"] = profile
+        seen["mode"] = mode
         tm.telephone.call_status = 0
 
     tm.telephone.call.side_effect = capture_call
@@ -93,6 +94,7 @@ async def test_initiate_passes_preferred_profile_to_lxst_call(tm):
         await tm.initiate(destination_hash, timeout_seconds=1)
 
     assert seen["profile"] == Profiles.BANDWIDTH_LOW
+    assert seen["mode"] == Profiles.MODE_FULL_DUPLEX
 
 
 def test_init_telephone_stores_preferred_profile_not_idle_switch(tmp_path):

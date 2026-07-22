@@ -865,6 +865,16 @@ TELEPHONE_AUDIO_PROFILES_SCHEMA: dict = {
     "additionalProperties": True,
 }
 
+TELEPHONE_CALL_MODES_SCHEMA: dict = {
+    "type": "object",
+    "required": ["call_modes"],
+    "properties": {
+        "call_modes": _ARRAY,
+        "default_call_mode_id": _INTEGER,
+    },
+    "additionalProperties": True,
+}
+
 TELEPHONE_CODEC2_STATUS_SCHEMA: dict = {
     "type": "object",
     "required": ["codec2_available"],

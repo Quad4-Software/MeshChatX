@@ -81,6 +81,9 @@ class TelephoneManager:
         # Manual mute overrides in case LXST internal muting is buggy
         self.transmit_muted = False
         self.receive_muted = False
+        # Half-duplex PTT state. LXST squelches the packetizer when TX is idle.
+        self.ptt_active = False
+        self.call_stats = {}
 
         self.initiation_status = None
         self.initiation_target_hash = None
@@ -90,6 +93,7 @@ class TelephoneManager:
         self._status_poll_interval_s = 0.1
         self.is_voicemail_session_active = False
         self.preferred_profile_id = None
+        self.preferred_mode_id = None
         self._caller_allowed = None
         self._blocked_identity_hashes = None
         # When True, LXST must not open PulseAudio LineSource/LineSink (Docker /
@@ -165,6 +169,120 @@ class TelephoneManager:
                 self.telephone.switch_profile(self.preferred_profile_id)
         return self.preferred_profile_id
 
+    def resolve_call_mode_id(self, mode_id=None):
+        """Return a valid LXST call mode id (full or half duplex)."""
+        from LXST.Primitives.Telephony import Profiles
+
+        available = set(Profiles.available_modes())
+        mid = mode_id
+        if mid is None and self.config_manager:
+            with contextlib.suppress(Exception):
+                mid = self.config_manager.telephone_call_mode_id.get()
+        try:
+            mid = int(mid) if mid is not None else None
+        except (TypeError, ValueError):
+            mid = None
+        if mid not in available:
+            mid = Profiles.DEFAULT_MODE
+        return mid
+
+    def apply_preferred_mode(self, mode_id=None):
+        """Store preferred duplex mode and apply it on an established call."""
+        self.preferred_mode_id = self.resolve_call_mode_id(mode_id)
+        if (
+            self.telephone
+            and self.telephone.active_call
+            and self.telephone.call_status == 6
+        ):
+            self.switch_mode(self.preferred_mode_id)
+        return self.preferred_mode_id
+
+    def switch_mode(self, mode_id):
+        """Switch live call duplex mode via LXST signalling and local squelch."""
+        from LXST.Primitives.Telephony import Profiles
+
+        resolved = self.resolve_call_mode_id(mode_id)
+        self.preferred_mode_id = resolved
+        if not (
+            self.telephone
+            and self.telephone.active_call
+            and self.telephone.call_status == 6
+        ):
+            return resolved
+        with contextlib.suppress(Exception):
+            self.telephone.switch_mode(resolved)
+        # Keep local view aligned even when LXST is mocked in tests.
+        with contextlib.suppress(Exception):
+            self.telephone.active_call.call_mode = resolved
+        # Half duplex starts listen-only. Full duplex keeps continuous TX open.
+        self.ptt_active = False
+        if resolved == Profiles.MODE_HALF_DUPLEX:
+            with contextlib.suppress(Exception):
+                self.telephone.squelch_transmit(True)
+        else:
+            with contextlib.suppress(Exception):
+                self.telephone.unsquelch_transmit(True)
+        return resolved
+
+    def get_active_mode_id(self):
+        """Return the active call mode, preferred mode, or LXST default."""
+        from LXST.Primitives.Telephony import Profiles
+
+        if self.telephone and self.telephone.active_call:
+            link_mode = getattr(self.telephone.active_call, "call_mode", None)
+            if link_mode in Profiles.available_modes():
+                return link_mode
+            mode = getattr(self.telephone, "active_mode", None)
+            if mode in Profiles.available_modes():
+                return mode
+        if self.preferred_mode_id in Profiles.available_modes():
+            return self.preferred_mode_id
+        return self.resolve_call_mode_id()
+
+    def is_half_duplex(self):
+        from LXST.Primitives.Telephony import Profiles
+
+        return self.get_active_mode_id() == Profiles.MODE_HALF_DUPLEX
+
+    def is_transmit_squelched(self):
+        """True when LXST packetizer is squelched (half-duplex idle / PTT up)."""
+        if not self.telephone or not self.telephone.active_call:
+            return False
+        packetizer = getattr(self.telephone.active_call, "packetizer", None)
+        if packetizer is not None:
+            return bool(getattr(packetizer, "squelched", False))
+        return self.is_half_duplex() and not self.ptt_active
+
+    def set_ptt_active(self, active: bool):
+        """Push-to-talk gate for half-duplex calls (unsquelch while held)."""
+        if not (
+            self.telephone
+            and self.telephone.active_call
+            and self.telephone.call_status == 6
+        ):
+            self.ptt_active = False
+            return False
+        if not self.is_half_duplex():
+            self.ptt_active = False
+            return False
+        want_active = bool(active)
+        try:
+            if want_active:
+                self.telephone.unsquelch_transmit(True)
+            else:
+                self.telephone.squelch_transmit(True)
+            self.ptt_active = want_active
+            return True
+        except Exception as e:
+            RNS.log(f"TelephoneManager: PTT squelch failed: {e}", RNS.LOG_ERROR)
+            return False
+
+    def _reset_call_audio_controls(self):
+        self.transmit_muted = False
+        self.receive_muted = False
+        self.ptt_active = False
+        self.call_stats = {}
+
     def init_telephone(self):
         if self.telephone is not None:
             return
@@ -187,9 +305,10 @@ class TelephoneManager:
         # Increase connection timeout for slower networks
         self.telephone.set_connect_timeout(30)
 
-        # LXST switch_profile is a no-op without an established call. Remember the
-        # preferred profile and pass it into telephone.call() on outbound dial.
+        # LXST switch_profile / switch_mode are no-ops without an established call.
+        # Remember preferred values and pass them into telephone.call() on dial.
         self.preferred_profile_id = self.resolve_audio_profile_id()
+        self.preferred_mode_id = self.resolve_call_mode_id()
 
         self._install_link_table_cleanup()
         self.refresh_call_policy()
@@ -311,11 +430,13 @@ class TelephoneManager:
         # Update start time to when it was actually established for duration calculation
         self.call_start_time = time.time()
         self.call_was_established = True
+        self.ptt_active = False
 
         # Track per-call stats from the active link (uses RNS Link counters)
         link = getattr(self.telephone, "active_call", None)
         self.call_stats = {
             "link": link,
+            "started_at": self.call_start_time,
         }
 
         if self.on_established_callback:
@@ -328,6 +449,7 @@ class TelephoneManager:
 
         # Ensure initiation status is cleared when call ends
         self._update_initiation_status(None, None)
+        self._reset_call_audio_controls()
 
         if self.on_ended_callback:
             self.on_ended_callback(caller_identity)
@@ -532,15 +654,18 @@ class TelephoneManager:
 
             profile_id = self.resolve_audio_profile_id(self.preferred_profile_id)
             self.preferred_profile_id = profile_id
+            mode_id = self.resolve_call_mode_id(self.preferred_mode_id)
+            self.preferred_mode_id = mode_id
 
             # Use a thread for the blocking LXST call, but monitor status for early exit
-            # if established elsewhere or timed out/hung up. Pass preferred profile so
-            # Codec2/Opus selection actually applies (switch_profile alone is a no-op idle).
+            # if established elsewhere or timed out/hung up. Pass preferred profile and
+            # duplex mode so Codec2/Opus and half-duplex actually apply on dial.
             call_task = asyncio.create_task(
                 asyncio.to_thread(
                     self.telephone.call,
                     destination_identity,
                     profile_id,
+                    mode_id,
                 ),
             )
 
