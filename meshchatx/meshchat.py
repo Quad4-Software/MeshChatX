@@ -42,9 +42,12 @@ from urllib.parse import urlparse
 import aiohttp
 import bcrypt
 import LXMF
-import LXST
 import psutil
 import RNS
+
+# meshchatx/__init__ already ensures pyogg ctypes aliases. Import LXST after
+# that package init so plain pip installs do not crash without the Docker patch.
+import LXST
 from aiohttp import WSCloseCode, WSMessage, WSMsgType, web
 from aiohttp_session import get_session
 from aiohttp_session import setup as setup_session
