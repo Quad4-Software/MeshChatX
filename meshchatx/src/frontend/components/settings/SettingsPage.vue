@@ -154,254 +154,38 @@
                         @select="selectSettingsTab"
                     />
                     <div class="settings-panel__content">
-                        <SettingsSectionBlock
-                            v-show="showSection('strangerProtection')"
-                            eyebrow="Security"
-                            :title="$t('app.stranger_protection')"
-                            :description="$t('app.stranger_protection_description')"
-                            body-class="space-y-4"
-                        >
-                            <label class="setting-toggle">
-                                <Toggle
-                                    id="block-attachments-from-strangers"
-                                    v-model="config.block_attachments_from_strangers"
-                                    @update:model-value="onStrangerAttachmentBlockChange"
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">{{
-                                        $t("app.block_stranger_attachments")
-                                    }}</span>
-                                    <span class="setting-toggle__description">{{
-                                        $t("app.block_stranger_attachments_description")
-                                    }}</span>
-                                </span>
-                            </label>
-                            <label class="setting-toggle">
-                                <Toggle
-                                    id="block-all-from-strangers"
-                                    v-model="config.block_all_from_strangers"
-                                    @update:model-value="onBlockAllFromStrangersChange"
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">{{ $t("app.block_all_from_strangers") }}</span>
-                                    <span class="setting-toggle__description">{{
-                                        $t("app.block_all_from_strangers_description")
-                                    }}</span>
-                                </span>
-                            </label>
-                            <label class="setting-toggle">
-                                <Toggle
-                                    id="show-unknown-contact-banner"
-                                    v-model="config.show_unknown_contact_banner"
-                                    @update:model-value="onShowUnknownContactBannerChange"
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">{{
-                                        $t("app.show_unknown_contact_banner")
-                                    }}</span>
-                                    <span class="setting-toggle__description">{{
-                                        $t("app.show_unknown_contact_banner_description")
-                                    }}</span>
-                                </span>
-                            </label>
-                            <label class="setting-toggle">
-                                <Toggle
-                                    id="warn-on-stranger-links"
-                                    v-model="config.warn_on_stranger_links"
-                                    @update:model-value="onWarnOnStrangerLinksChange"
-                                />
-                                <span class="setting-toggle__label">
-                                    <span class="setting-toggle__title">{{ $t("app.warn_on_stranger_links") }}</span>
-                                    <span class="setting-toggle__description">{{
-                                        $t("app.warn_on_stranger_links_description")
-                                    }}</span>
-                                </span>
-                            </label>
-                        </SettingsSectionBlock>
+                        <StrangerProtectionSettingsSection
+                            :visible="showSection('strangerProtection')"
+                            :config="config"
+                            @block-attachments-change="onStrangerAttachmentBlockChange"
+                            @block-all-change="onBlockAllFromStrangersChange"
+                            @unknown-banner-change="onShowUnknownContactBannerChange"
+                            @warn-links-change="onWarnOnStrangerLinksChange"
+                        />
 
-                        <section v-show="showSection('banishment')" class="settings-section break-inside-avoid">
-                            <header class="settings-section__header">
-                                <div>
-                                    <div class="settings-section__eyebrow">{{ $t("app.privacy_eyebrow") }}</div>
-                                    <h2>{{ $t("app.banishment") }}</h2>
-                                    <p>{{ $t("app.banishment_description") }}</p>
-                                </div>
-                            </header>
-                            <div class="settings-section__body space-y-4">
-                                <label class="setting-toggle">
-                                    <Toggle
-                                        id="banished-effect-enabled"
-                                        v-model="config.banished_effect_enabled"
-                                        @update:model-value="onBanishedEffectEnabledChange"
-                                    />
-                                    <span class="setting-toggle__label">
-                                        <span class="setting-toggle__title">{{
-                                            $t("app.banished_effect_enabled")
-                                        }}</span>
-                                        <span class="setting-toggle__description">{{
-                                            $t("app.banished_effect_description")
-                                        }}</span>
-                                    </span>
-                                </label>
+                        <BanishmentSettingsSection
+                            :visible="showSection('banishment')"
+                            :config="config"
+                            @enabled-change="onBanishedEffectEnabledChange"
+                            @text-change="onBanishedTextChange"
+                            @color-change="onBanishedColorChange"
+                        />
 
-                                <div v-if="config.banished_effect_enabled" class="space-y-4">
-                                    <div class="space-y-2">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                            {{ $t("app.banished_text_label") }}
-                                        </div>
-                                        <input
-                                            v-model="config.banished_text"
-                                            type="text"
-                                            class="input-field"
-                                            @input="onBanishedConfigChange"
-                                        />
-                                        <div class="text-xs text-gray-600 dark:text-gray-400">
-                                            {{ $t("app.banished_text_description") }}
-                                        </div>
-                                    </div>
+                        <StickersSettingsSection
+                            v-model:replace-duplicates="stickerImportReplaceDuplicates"
+                            :visible="showSection('stickers')"
+                            :sticker-count="stickerCount"
+                            @export="exportStickers"
+                            @import="importStickers"
+                        />
 
-                                    <div class="space-y-2">
-                                        <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                            {{ $t("app.banished_color_label") }}
-                                        </div>
-                                        <div class="flex gap-2">
-                                            <input
-                                                v-model="config.banished_color"
-                                                type="color"
-                                                class="w-12 h-10 rounded-xl border border-gray-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 cursor-pointer"
-                                                @input="onBanishedConfigChange"
-                                            />
-                                            <input
-                                                v-model="config.banished_color"
-                                                type="text"
-                                                class="input-field monospace-field"
-                                                @input="onBanishedConfigChange"
-                                            />
-                                        </div>
-                                        <div class="text-xs text-gray-600 dark:text-gray-400">
-                                            {{ $t("app.banished_color_description") }}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-
-                        <section v-show="showSection('stickers')" class="settings-section break-inside-avoid">
-                            <header class="settings-section__header">
-                                <div>
-                                    <div class="settings-section__eyebrow">Messages</div>
-                                    <h2>{{ $t("stickers.settings_title") }}</h2>
-                                    <p>{{ $t("stickers.settings_description") }}</p>
-                                </div>
-                            </header>
-                            <div class="settings-section__body space-y-4">
-                                <div class="text-sm text-gray-600 dark:text-gray-400">
-                                    {{ $t("stickers.count", { count: stickerCount }) }}
-                                </div>
-                                <label
-                                    class="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 cursor-pointer"
-                                >
-                                    <input
-                                        v-model="stickerImportReplaceDuplicates"
-                                        type="checkbox"
-                                        class="rounded-sm"
-                                    />
-                                    {{ $t("stickers.replace_duplicates") }}
-                                </label>
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <button
-                                        type="button"
-                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-amber-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-amber-500 transition group"
-                                        @click="exportStickers"
-                                    >
-                                        <MaterialDesignIcon
-                                            icon-name="export"
-                                            class="size-6 text-amber-500 group-hover:scale-110 transition"
-                                        />
-                                        <div class="text-sm font-bold">{{ $t("stickers.export") }}</div>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-teal-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-teal-500 transition group"
-                                        @click="triggerStickerImport"
-                                    >
-                                        <MaterialDesignIcon
-                                            icon-name="import"
-                                            class="size-6 text-teal-500 group-hover:scale-110 transition"
-                                        />
-                                        <div class="text-sm font-bold">{{ $t("stickers.import") }}</div>
-                                    </button>
-                                    <input
-                                        ref="stickerImportFile"
-                                        type="file"
-                                        accept=".json,application/json"
-                                        class="hidden"
-                                        @change="importStickers"
-                                    />
-                                </div>
-                                <div class="border-t border-gray-200 dark:border-zinc-700 pt-4">
-                                    <h3 class="text-sm font-semibold mb-2 text-gray-800 dark:text-zinc-100">
-                                        {{ $t("sticker_packs.section_title") }}
-                                    </h3>
-                                    <p class="text-xs text-gray-500 dark:text-zinc-400 mb-3">
-                                        {{ $t("sticker_packs.section_description") }}
-                                    </p>
-                                    <StickerPacksManager />
-                                </div>
-                            </div>
-                        </section>
-
-                        <section v-show="showSection('gifs')" class="settings-section break-inside-avoid">
-                            <header class="settings-section__header">
-                                <div>
-                                    <div class="settings-section__eyebrow">Messages</div>
-                                    <h2>{{ $t("gifs.settings_title") }}</h2>
-                                    <p>{{ $t("gifs.settings_description") }}</p>
-                                </div>
-                            </header>
-                            <div class="settings-section__body space-y-4">
-                                <div class="text-sm text-gray-600 dark:text-gray-400">
-                                    {{ $t("gifs.count", { count: gifCount }) }}
-                                </div>
-                                <label
-                                    class="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 cursor-pointer"
-                                >
-                                    <input v-model="gifImportReplaceDuplicates" type="checkbox" class="rounded-sm" />
-                                    {{ $t("gifs.replace_duplicates") }}
-                                </label>
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    <button
-                                        type="button"
-                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-amber-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-amber-500 transition group"
-                                        @click="exportGifs"
-                                    >
-                                        <MaterialDesignIcon
-                                            icon-name="export"
-                                            class="size-6 text-amber-500 group-hover:scale-110 transition"
-                                        />
-                                        <div class="text-sm font-bold">{{ $t("gifs.export") }}</div>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        class="flex flex-col items-center justify-center gap-2 p-4 rounded-2xl border border-teal-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-800/50 hover:border-teal-500 transition group"
-                                        @click="triggerGifImport"
-                                    >
-                                        <MaterialDesignIcon
-                                            icon-name="import"
-                                            class="size-6 text-teal-500 group-hover:scale-110 transition"
-                                        />
-                                        <div class="text-sm font-bold">{{ $t("gifs.import") }}</div>
-                                    </button>
-                                    <input
-                                        ref="gifImportFile"
-                                        type="file"
-                                        accept=".json,application/json"
-                                        class="hidden"
-                                        @change="importGifs"
-                                    />
-                                </div>
-                            </div>
-                        </section>
+                        <GifsSettingsSection
+                            v-model:replace-duplicates="gifImportReplaceDuplicates"
+                            :visible="showSection('gifs')"
+                            :gif-count="gifCount"
+                            @export="exportGifs"
+                            @import="importGifs"
+                        />
 
                         <!-- Maintenance & Data -->
                         <section v-show="showSection('maintenance')" class="settings-section break-inside-avoid">
@@ -926,121 +710,20 @@
 
                         <PluginsSettingsSection :visible="showSection('plugins')" />
 
-                        <!-- Telephony Settings -->
-                        <section v-show="showSection('telephony')" class="settings-section break-inside-avoid">
-                            <header class="settings-section__header">
-                                <div>
-                                    <div class="settings-section__eyebrow">Telephony</div>
-                                    <h2>Telephone (LXST)</h2>
-                                    <p>Enable or disable the integrated voice calling system.</p>
-                                </div>
-                            </header>
-                            <div class="settings-section__body space-y-4">
-                                <label class="setting-toggle">
-                                    <Toggle
-                                        id="telephone-enabled-toggle"
-                                        v-model="config.telephone_enabled"
-                                        @update:model-value="onTelephoneEnabledChange"
-                                    />
-                                    <span class="setting-toggle__label">
-                                        <span class="setting-toggle__title">Enable Telephone (LXST)</span>
-                                        <span class="setting-toggle__description">
-                                            Allow incoming and outgoing voice calls over the mesh network.
-                                        </span>
-                                        <span class="setting-toggle__hint">Disabling will end any active calls.</span>
-                                    </span>
-                                </label>
-                            </div>
-                        </section>
+                        <TelephonySettingsSection
+                            :visible="showSection('telephony')"
+                            :config="config"
+                            @enabled-change="onTelephoneEnabledChange"
+                        />
 
-                        <!-- Desktop / Electron Settings -->
-                        <section
-                            v-if="ElectronUtils.isElectron()"
-                            v-show="showSection('desktop')"
-                            class="settings-section break-inside-avoid"
-                        >
-                            <header class="settings-section__header">
-                                <div>
-                                    <div class="settings-section__eyebrow">Desktop</div>
-                                    <h2>App Behaviour</h2>
-                                    <p>Control how MeshChat behaves on your desktop.</p>
-                                </div>
-                            </header>
-                            <div class="settings-section__body space-y-4">
-                                <label class="setting-toggle opacity-50 cursor-not-allowed">
-                                    <Toggle
-                                        id="desktop-open-calls-in-separate-window"
-                                        :model-value="false"
-                                        :disabled="true"
-                                    />
-                                    <span class="setting-toggle__label">
-                                        <span class="setting-toggle__title">{{
-                                            $t("app.desktop_open_calls_in_separate_window")
-                                        }}</span>
-                                        <span class="setting-toggle__description">
-                                            {{ $t("app.desktop_open_calls_in_separate_window_description") }}
-                                            <span class="text-blue-500 font-bold block mt-1">(Phased out for now)</span>
-                                        </span>
-                                    </span>
-                                </label>
-
-                                <label class="setting-toggle">
-                                    <Toggle
-                                        id="desktop-hardware-acceleration-enabled"
-                                        v-model="config.desktop_hardware_acceleration_enabled"
-                                        @update:model-value="onDesktopHardwareAccelerationEnabledChange"
-                                    />
-                                    <span class="setting-toggle__label">
-                                        <span class="setting-toggle__title">{{
-                                            $t("app.desktop_hardware_acceleration_enabled")
-                                        }}</span>
-                                        <span class="setting-toggle__description">{{
-                                            $t("app.desktop_hardware_acceleration_enabled_description")
-                                        }}</span>
-                                        <span class="setting-toggle__hint">{{ $t("app.requires_restart") }}</span>
-                                    </span>
-                                </label>
-
-                                <label class="setting-toggle">
-                                    <Toggle
-                                        id="desktop-tray-enabled"
-                                        v-model="desktopCloseSettings.trayEnabled"
-                                        @update:model-value="onDesktopTrayEnabledChange"
-                                    />
-                                    <span class="setting-toggle__label">
-                                        <span class="setting-toggle__title">{{ $t("app.desktop_tray_enabled") }}</span>
-                                        <span class="setting-toggle__description">{{
-                                            $t("app.desktop_tray_enabled_description")
-                                        }}</span>
-                                    </span>
-                                </label>
-
-                                <label class="flex flex-col gap-2">
-                                    <span class="text-sm font-medium text-sem-fg">{{
-                                        $t("app.desktop_close_behavior")
-                                    }}</span>
-                                    <span class="text-xs text-sem-fg-muted">{{
-                                        $t("app.desktop_close_behavior_description")
-                                    }}</span>
-                                    <select
-                                        id="desktop-close-behavior"
-                                        v-model="desktopCloseSettings.closeBehavior"
-                                        class="input-field"
-                                        @change="onDesktopCloseBehaviorChange"
-                                    >
-                                        <option value="ask">{{ $t("app.desktop_close_behavior_ask") }}</option>
-                                        <option value="quit">{{ $t("app.desktop_close_behavior_quit") }}</option>
-                                        <option value="background">
-                                            {{
-                                                desktopCloseSettings.trayEnabled
-                                                    ? $t("app.desktop_close_behavior_background")
-                                                    : $t("app.desktop_close_behavior_background_no_tray")
-                                            }}
-                                        </option>
-                                    </select>
-                                </label>
-                            </div>
-                        </section>
+                        <DesktopSettingsSection
+                            :visible="showSection('desktop')"
+                            :config="config"
+                            :desktop-close-settings="desktopCloseSettings"
+                            @hardware-acceleration-change="onDesktopHardwareAccelerationEnabledChange"
+                            @tray-enabled-change="onDesktopTrayEnabledChange"
+                            @close-behavior-change="onDesktopCloseBehaviorChange"
+                        />
 
                         <section
                             v-if="isMeshChatXAndroid"
@@ -2364,23 +2047,11 @@
                         </section>
 
                         <!-- Language -->
-                        <section v-show="showSection('language')" class="settings-section break-inside-avoid">
-                            <header class="settings-section__header">
-                                <div>
-                                    <div class="settings-section__eyebrow">i18n</div>
-                                    <h2>{{ $t("app.language") }}</h2>
-                                    <p>{{ $t("app.select_language") }}</p>
-                                </div>
-                            </header>
-                            <div class="settings-section__body space-y-3">
-                                <select v-model="config.language" class="input-field" @change="onLanguageChange">
-                                    <option value="en">English</option>
-                                    <option value="de">Deutsch</option>
-                                    <option value="ru">Русский</option>
-                                    <option value="it">Italiano</option>
-                                </select>
-                            </div>
-                        </section>
+                        <LanguageSettingsSection
+                            :visible="showSection('language')"
+                            :language="config.language"
+                            @change="onLanguageSectionChange"
+                        />
 
                         <!-- Network Security -->
                         <section v-show="showSection('networkSecurity')" class="settings-section break-inside-avoid">
@@ -3891,11 +3562,17 @@ import Toggle from "../forms/Toggle.vue";
 import ManagementIdentityPicker from "../tools/ManagementIdentityPicker.vue";
 import ShortcutRecorder from "./ShortcutRecorder.vue";
 import SettingsSectionBlock from "./SettingsSectionBlock.vue";
+import LanguageSettingsSection from "./sections/LanguageSettingsSection.vue";
+import DesktopSettingsSection from "./sections/DesktopSettingsSection.vue";
+import StrangerProtectionSettingsSection from "./sections/StrangerProtectionSettingsSection.vue";
+import BanishmentSettingsSection from "./sections/BanishmentSettingsSection.vue";
+import StickersSettingsSection from "./sections/StickersSettingsSection.vue";
+import GifsSettingsSection from "./sections/GifsSettingsSection.vue";
+import TelephonySettingsSection from "./sections/TelephonySettingsSection.vue";
 import SettingsNav from "./SettingsNav.vue";
 import KeyboardShortcuts from "../../js/KeyboardShortcuts";
 import ElectronUtils from "../../js/ElectronUtils";
 import AndroidBridge from "../../js/rnode/AndroidBridge";
-import StickerPacksManager from "../stickers/StickerPacksManager.vue";
 import GlobalState from "../../js/GlobalState";
 import {
     numOrNull,
@@ -3948,8 +3625,14 @@ export default {
         ShortcutRecorder,
         SettingsSectionBlock,
         SettingsNav,
-        StickerPacksManager,
         PluginsSettingsSection,
+        LanguageSettingsSection,
+        DesktopSettingsSection,
+        StrangerProtectionSettingsSection,
+        BanishmentSettingsSection,
+        StickersSettingsSection,
+        GifsSettingsSection,
+        TelephonySettingsSection,
         MicronWasmUpdateModal,
         NotificationSoundSettings,
     },
@@ -4657,7 +4340,10 @@ export default {
                 ToastUtils.error(this.$t("common.save_failed"));
             }
         },
-        async onDesktopCloseBehaviorChange() {
+        async onDesktopCloseBehaviorChange(value) {
+            if (typeof value === "string" && value) {
+                this.desktopCloseSettings.closeBehavior = value;
+            }
             try {
                 const settings = await ElectronUtils.setCloseSettings({
                     closeBehavior: this.desktopCloseSettings.closeBehavior,
@@ -5233,6 +4919,10 @@ export default {
                 // ignore
             }
         },
+        async onLanguageSectionChange(language) {
+            this.config.language = language;
+            await this.onLanguageChange();
+        },
         async onLanguageChange() {
             await this.updateConfig(
                 {
@@ -5597,18 +5287,22 @@ export default {
             );
         },
         async onStrangerAttachmentBlockChange(value) {
+            if (!this.config) return;
             this.config.block_attachments_from_strangers = value;
             await this.updateConfig({ block_attachments_from_strangers: value }, "stranger_protection");
         },
         async onBlockAllFromStrangersChange(value) {
+            if (!this.config) return;
             this.config.block_all_from_strangers = value;
             await this.updateConfig({ block_all_from_strangers: value }, "stranger_protection");
         },
         async onShowUnknownContactBannerChange(value) {
+            if (!this.config) return;
             this.config.show_unknown_contact_banner = value;
             await this.updateConfig({ show_unknown_contact_banner: value }, "stranger_protection");
         },
         async onWarnOnStrangerLinksChange(value) {
+            if (!this.config) return;
             this.config.warn_on_stranger_links = value;
             await this.updateConfig({ warn_on_stranger_links: value }, "stranger_protection");
         },
@@ -5644,6 +5338,14 @@ export default {
                 },
                 "banishment"
             );
+        },
+        onBanishedTextChange(value) {
+            this.config.banished_text = value;
+            this.onBanishedConfigChange();
+        },
+        onBanishedColorChange(value) {
+            this.config.banished_color = value;
+            this.onBanishedConfigChange();
         },
         async onBanishedConfigChange() {
             if (this.saveTimeouts.banished) clearTimeout(this.saveTimeouts.banished);
@@ -5946,9 +5648,6 @@ export default {
                 ToastUtils.error(this.$t("stickers.import_failed"));
             }
         },
-        triggerStickerImport() {
-            this.$refs.stickerImportFile.click();
-        },
         async importStickers(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -6002,9 +5701,6 @@ export default {
             } catch {
                 ToastUtils.error(this.$t("gifs.import_failed"));
             }
-        },
-        triggerGifImport() {
-            this.$refs.gifImportFile.click();
         },
         async importGifs(event) {
             const file = event.target.files[0];

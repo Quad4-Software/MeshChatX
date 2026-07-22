@@ -15,9 +15,15 @@ From **Call** or a contact entry you can:
 - **Dial** another identity by hash
 - **Answer** or **decline** inbound rings
 - **Hang up** an active session
-- **Mute** transmit or receive paths
+- **Mute** microphone (transmit) or speaker (receive)
+- Switch **full duplex** or **half duplex** during a live call
+- Use **push-to-talk** while in half duplex (hold the PTT control or Space)
+
+Half duplex uses LXST packetizer squelch so idle airtime stays low on constrained links. Full duplex keeps both directions open.
 
 Call state changes arrive over the WebSocket (`telephone_ringing`, `telephone_call_established`, `telephone_call_ended`, and related events).
+
+While connected, the Call screen shows link stats (packets, bytes, approximate bitrates, path hops, and interface).
 
 ## Audio path
 

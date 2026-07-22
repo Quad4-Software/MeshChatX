@@ -57,7 +57,19 @@ Privacy mode does not disable Reticulum mesh traffic. It limits clearnet fetches
 
 ## Linux sandboxing
 
-Optional Landlock sandboxing on Linux restricts filesystem access for the backend. See **Linux sandboxing** in Platform guides for Firejail and Bubblewrap examples.
+On Linux, MeshChatX can enable two complementary in-process sandboxes when supported:
+
+- **Landlock** restricts filesystem paths the backend may use
+- **Seccomp-BPF** installs a syscall denylist (via libseccomp) that blocks kernel-admin and related calls a mesh client does not need
+
+Both auto-enable when available and fall back to a no-op when the platform, kernel, or libraries cannot support them. Override with:
+
+- `MESHCHAT_LANDLOCK=0` or `1`
+- `MESHCHAT_SECCOMP=0` or `1`
+
+Android never enables these in-process sandboxes (the Android app seccomp policy already constrains the process, and Landlock syscalls are blocked there).
+
+See **Linux sandboxing** in Platform guides for optional Firejail and Bubblewrap wrappers around the host install.
 
 ## Blocking and filtering
 

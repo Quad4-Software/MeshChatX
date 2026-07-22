@@ -31,6 +31,27 @@ Full skill: `docs/agents/skills/test-oracles/SKILL.md`.
 Path jail filesystem features: `docs/agents/skills/path-jail-local-fs/SKILL.md` and `docs/agents/conventions/path-jail.md`.
 Exploratory bug hunting: `docs/agents/skills/exploratory-testing/SKILL.md`.
 
+## HTTP and WS path-scanning contracts
+
+Route and WS manifests are discovered from source text:
+
+- HTTP: `tests/backend/http_api_contract_helpers.py` scans `meshchatx/meshchat.py` and `meshchatx/src/backend/http/**/*.py`
+- WS: `tests/backend/ws_contract_helpers.py` scans the same trees plus `rns_link_manager.py` for link events
+
+Fixtures:
+
+- `tests/backend/fixtures/http_api_routes.json`
+- `tests/backend/fixtures/ws_message_manifest.json`
+
+Refresh only when the inventory intentionally changes:
+
+```bash
+UPDATE_HTTP_API_ROUTES=1 uv run pytest tests/backend/test_http_api_contract.py -k meshchat_http_routes_match_fixture
+UPDATE_WS_MESSAGE_MANIFEST=1 uv run pytest tests/backend/test_ws_json_contracts.py -k manifest_matches_meshchat
+```
+
+JSON response schemas stay in `tests/backend/` (`api_json_contract_schemas.py`, `http_api_response_schemas.py`, registry files). See `docs/agents/module-ownership.md`.
+
 ## Extended Edge Case Tester (EECT) and Live Validation (LV)
 
 - EECT packs live under `tests/backend/eect/packs/` and use marker `eect`.
@@ -38,3 +59,16 @@ Exploratory bug hunting: `docs/agents/skills/exploratory-testing/SKILL.md`.
 - Replay a failure with `MESHCHAT_EECT_SEED=<seed>` (printed on assert failure).
 - Commands: `task test:eect`, `task test:lv:l0`, `MESHCHAT_LIVE_VALIDATION=1 task test:lv`.
 - LV L2/L3 are opt-in (`MESHCHAT_LIVE_VALIDATION=1` or `MESHCHAT_LIVE_RETICULUM=1`). L0/L1 stay CI-safe.
+
+## HTTP and WebSocket contract scanners
+
+- HTTP route inventory: `tests/backend/http_api_contract_helpers.py` scans
+  `meshchatx/meshchat.py` and all `meshchatx/src/backend/http/**/*.py`.
+- WS message inventory: `tests/backend/ws_contract_helpers.py` scans the same trees
+  (plus `rns_link_manager.py` for `rns.link.*` broadcasts).
+- Refresh HTTP fixture only when routes intentionally change:
+  `UPDATE_HTTP_API_ROUTES=1 uv run pytest tests/backend/test_http_api_contract.py -k meshchat_http_routes_match_fixture`
+- Refresh WS fixture only when message types intentionally change:
+  `UPDATE_WS_MESSAGE_MANIFEST=1 uv run pytest tests/backend/test_ws_json_contracts.py -k manifest_matches_meshchat`
+- Domain ownership for routes vs schemas: `docs/agents/module-ownership.md`.
+- Extraction workflow: `docs/agents/skills/meshchat-orchestration-split/SKILL.md`.

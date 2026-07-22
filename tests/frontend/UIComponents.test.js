@@ -423,6 +423,12 @@ describe("SettingsPage Component", () => {
                     ShortcutRecorder: { template: "<div></div>" },
                     RouterLink: { template: "<a><slot /></a>" },
                     SettingsSectionBlock: { template: '<div class="settings-section-block"><slot /></div>' },
+                    StickersSettingsSection: true,
+                    GifsSettingsSection: true,
+                    TelephonySettingsSection: true,
+                    DesktopSettingsSection: true,
+                    LanguageSettingsSection: true,
+                    PluginsSettingsSection: true,
                 },
                 mocks: {
                     $t: (key) => key,

@@ -19,8 +19,10 @@ One Python process owns the web server, Reticulum stack, and all per-identity ma
 ```
 ReticulumMeshChat (meshchat.py)
     |
-    +-- HTTP routes (/api/v1/*, static files)
-    +-- WebSocket (/ws, /ws/telephone/audio)
+    +-- HTTP package (src/backend/http/)
+    |       +-- middleware + register_all_routes
+    |       +-- routes/* (/api/v1/*, shell, static helpers)
+    |       +-- ws/* (dispatch and handlers)
     +-- IdentityContext (per active identity)
     |       +-- SQLite via database layer
     |       +-- LXMRouter
@@ -33,7 +35,7 @@ Optional **Electron** wraps the same backend binary and loads the UI from the lo
 
 ## Application shell
 
-`ReticulumMeshChat` in `meshchatx/meshchat.py` is the orchestration layer. It registers routes, starts and stops identity contexts, wires crash recovery, and coordinates shared process concerns.
+`ReticulumMeshChat` in `meshchatx/meshchat.py` is the orchestration layer. It wires HTTP via `meshchatx/src/backend/http/`, starts and stops identity contexts, wires crash recovery, and coordinates shared process concerns. Domain to route ownership is documented in `docs/agents/module-ownership.md`.
 
 Path helpers live in `meshchatx/src/path_utils.py`, `ssl_self_signed.py`, and `env_utils.py`. `meshchat.py` re-exports them for compatibility.
 
@@ -63,7 +65,8 @@ Feature behaviour lives in modules under `meshchatx/src/backend/`. Examples incl
 
 ## HTTP API
 
-Routes are registered explicitly on the aiohttp application. Categories include:
+Routes are registered through `backend/http/register.py` into aiohttp route tables
+(still discoverable as `@routes.<method>` for contract scanners). Categories include:
 
 - Application status and configuration
 - Authentication and session management

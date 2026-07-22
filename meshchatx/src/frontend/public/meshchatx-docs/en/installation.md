@@ -72,6 +72,8 @@ meshchatx --headless --host 127.0.0.1
 
 The `meshchat` command is a compatibility alias for the same entry point.
 
+On hosts where `libopus` is installed but `libogg` is not, LXST's vendored pyogg can raise `NameError: c_int_p` on import. MeshChatX applies a ctypes compatibility fix at startup (the same patch Docker runs after install). Optional telephony audio still needs the usual Opus/Ogg system libraries when you use those codecs.
+
 ## Linux AppImage and packages
 
 **AppImage**

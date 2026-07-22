@@ -415,7 +415,8 @@ tasks:
         desc: Run localization tests
         cmds:
             - "{{.NPM}} exec vitest run tests/frontend/i18n.test.js"
-            - "uv run pytest tests/backend/test_translator_handler.py"
+            # Keep temp-tests so a parallel task test:backend xdist run is not wiped.
+            - "MESHCHAT_TEST_KEEP_TEMP=1 uv run pytest --basetemp=temp-tests/pytest-lang tests/backend/test_translator_handler.py"
 
     test:integrity:
         desc: Run data integrity tests

@@ -69,7 +69,7 @@ def find_ogg_py() -> Path | None:
     for rel in dist.files or ():
         parts = rel.parts
         if len(parts) >= 2 and parts[-2] == "pyogg" and parts[-1] == "ogg.py":
-            return Path(dist.locate_file(rel))
+            return Path(str(dist.locate_file(rel)))
     return None
 
 
