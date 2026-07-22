@@ -581,6 +581,19 @@ FILESYNC_DIRECTORIES_SCHEMA: dict = {
     "additionalProperties": True,
 }
 
+FILESYNC_TREE_SCHEMA: dict = {
+    "type": "object",
+    "required": ["ok", "root", "current", "entries"],
+    "properties": {
+        "ok": _BOOLEAN,
+        "root": _STRING,
+        "current": _STRING,
+        "parent": {"type": ["string", "null"]},
+        "entries": _ARRAY,
+    },
+    "additionalProperties": True,
+}
+
 FILESYNC_ACL_SCHEMA: dict = {
     "type": "object",
     "required": ["enforce", "rules"],

@@ -28,6 +28,7 @@ Prefer:
 - Round-trip or shape invariants when the API is pure parsing
 
 Full skill: `docs/agents/skills/test-oracles/SKILL.md`.
+Path jail filesystem features: `docs/agents/skills/path-jail-local-fs/SKILL.md` and `docs/agents/conventions/path-jail.md`.
 Exploratory bug hunting: `docs/agents/skills/exploratory-testing/SKILL.md`.
 
 ## Extended Edge Case Tester (EECT) and Live Validation (LV)

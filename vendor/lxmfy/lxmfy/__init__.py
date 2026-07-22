@@ -20,6 +20,18 @@ from .help import HelpFormatter, HelpSystem
 from .lxmf_fields import FIELD_COMMANDS, FIELD_RESULTS, pack_result, unpack_commands
 from .middleware import MiddlewareContext, MiddlewareManager, MiddlewareType
 from .permissions import DefaultPerms, PermissionManager, Role
+from .rrc import (
+    DEFAULT_DEST_NAME,
+    RRCClient,
+    RRCManager,
+    RRCMessage,
+    RRC_VERSION,
+    decode_envelope,
+    encode_envelope,
+    make_envelope,
+    normalize_room,
+    validate_envelope,
+)
 from .scheduler import ScheduledTask, TaskScheduler
 from .storage import JSONStorage, SQLiteStorage, Storage
 from .validation import format_validation_results, validate_bot
@@ -29,6 +41,7 @@ __all__ = [
     "AttachmentType",
     "BotConfig",
     "Command",
+    "DEFAULT_DEST_NAME",
     "DefaultPerms",
     "Event",
     "EventManager",
@@ -46,19 +59,28 @@ __all__ = [
     "MiddlewareType",
     "PermissionManager",
     "Role",
+    "RRCClient",
+    "RRCManager",
+    "RRCMessage",
+    "RRC_VERSION",
     "SQLiteStorage",
     "ScheduledTask",
     "Storage",
     "TaskScheduler",
     "__version__",
     "command",
+    "decode_envelope",
+    "encode_envelope",
     "format_validation_results",
     "load_cogs_from_directory",
+    "make_envelope",
+    "normalize_room",
     "pack_attachment",
     "pack_icon_appearance_field",
     "pack_result",
     "unpack_commands",
     "validate_bot",
+    "validate_envelope",
 ]
 
 from .__version__ import __version__

@@ -260,37 +260,11 @@
                     </div>
 
                     <div v-else-if="activeTab === 'files'" class="space-y-4">
-                        <div class="flex flex-wrap items-center gap-2">
-                            <button
-                                type="button"
-                                class="secondary-chip px-3 py-1.5 text-sm"
-                                :disabled="busy"
-                                @click="refreshFiles"
-                            >
-                                {{ $t("rns_filesync.refresh") }}
-                            </button>
-                            <button
-                                type="button"
-                                class="secondary-chip px-3 py-1.5 text-sm"
-                                :disabled="busy || !syncDirectory"
-                                @click="openSyncFolder"
-                            >
-                                <MaterialDesignIcon icon-name="folder-open-outline" class="w-4 h-4" />
-                                {{ $t("rns_filesync.open_folder") }}
-                            </button>
-                        </div>
-                        <div v-if="files.length === 0" class="text-sm text-sem-fg-muted">
-                            {{ $t("rns_filesync.no_files") }}
-                        </div>
-                        <ul v-else class="space-y-2">
-                            <li v-for="file in files" :key="file.path" class="p-3 rounded-lg border border-sem-border">
-                                <div class="break-all text-sm text-sem-fg">{{ file.path }}</div>
-                                <div class="text-xs text-sem-fg-muted mt-1">
-                                    {{ formatFileSize(file.size) }}
-                                    <span v-if="file.hash" class="font-mono"> · {{ shortHash(file.hash) }}</span>
-                                </div>
-                            </li>
-                        </ul>
+                        <FilesyncFileManager
+                            ref="fileManager"
+                            :sync-directory="syncDirectory"
+                            @open-folder="openSyncFolder"
+                        />
                     </div>
 
                     <div v-else-if="activeTab === 'remote'" class="space-y-4">
@@ -407,6 +381,7 @@ import MaterialDesignIcon from "../MaterialDesignIcon.vue";
 import ToastUtils from "../../js/ToastUtils";
 import ToolsPageHeader from "../tools/ToolsPageHeader.vue";
 import FilesyncDirectoryBrowserModal from "./FilesyncDirectoryBrowserModal.vue";
+import FilesyncFileManager from "./FilesyncFileManager.vue";
 import ElectronUtils from "../../js/ElectronUtils";
 import Utils from "../../js/Utils";
 import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
@@ -417,6 +392,7 @@ export default {
         MaterialDesignIcon,
         ToolsPageHeader,
         FilesyncDirectoryBrowserModal,
+        FilesyncFileManager,
     },
     data() {
         return {
@@ -442,7 +418,6 @@ export default {
             monitor: true,
             connectHash: "",
             peers: [],
-            files: [],
             browsePeerId: "",
             remoteFiles: [],
             aclEnforce: false,
@@ -546,11 +521,11 @@ export default {
                 await this.refreshStatus();
             });
             bind("filesync.file.updated", async () => {
-                await this.refreshFiles();
+                await this.refreshFileManager();
                 ToastUtils.info(this.$t("rns_filesync.file_updated"));
             });
             bind("filesync.file.deleted", async () => {
-                await this.refreshFiles();
+                await this.refreshFileManager();
                 ToastUtils.info(this.$t("rns_filesync.file_deleted"));
             });
             bind("filesync.error", (payload) => {
@@ -560,13 +535,6 @@ export default {
         },
         formatFileSize(bytes) {
             return Utils.formatBytes(bytes || 0);
-        },
-        shortHash(hash) {
-            const value = String(hash || "");
-            if (value.length <= 12) {
-                return value;
-            }
-            return `${value.slice(0, 8)}...`;
         },
         peerStatusLabel(peer) {
             const raw = peer?.status;
@@ -606,7 +574,14 @@ export default {
             }
         },
         async refreshAll() {
-            await Promise.all([this.refreshStatus(), this.refreshPeers(), this.refreshFiles(), this.refreshAcl()]);
+            await Promise.all([this.refreshStatus(), this.refreshPeers(), this.refreshAcl()]);
+            await this.refreshFileManager();
+        },
+        async refreshFileManager() {
+            const manager = this.$refs.fileManager;
+            if (manager && typeof manager.refresh === "function") {
+                await manager.refresh();
+            }
         },
         async refreshStatus() {
             try {
@@ -631,15 +606,6 @@ export default {
                 const response = await window.api.get("/api/v1/filesync/peers");
                 const data = response?.data || {};
                 this.peers = Array.isArray(data.peers) ? data.peers : [];
-            } catch (err) {
-                ToastUtils.error(err?.message || this.$t("rns_filesync.error"));
-            }
-        },
-        async refreshFiles() {
-            try {
-                const response = await window.api.get("/api/v1/filesync/files");
-                const data = response?.data || {};
-                this.files = Array.isArray(data.files) ? data.files : [];
             } catch (err) {
                 ToastUtils.error(err?.message || this.$t("rns_filesync.error"));
             }

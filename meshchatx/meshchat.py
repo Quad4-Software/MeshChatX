@@ -152,11 +152,13 @@ from meshchatx.src.backend.map_overlay_sources import OverlaySourceParseError
 from meshchatx.src.backend.markdown_renderer import MarkdownRenderer
 from meshchatx.src.backend.memory_pressure import MemoryPressureManager, cache_stats
 from meshchatx.src.backend.meshchat_utils import (
+    cancel_inbound_deliveries,
     convert_db_favourite_to_dict,
     convert_propagation_node_state_to_string,
     has_attachments,
     hex_identifier_to_bytes,
     interval_action_due,
+    list_inbound_deliveries,
     message_fields_have_attachments,
     normalize_hex_identifier,
     normalize_identity_storage_hash,
@@ -211,6 +213,10 @@ from meshchatx.src.backend.page_node_manager import PageNodeManager
 from meshchatx.src.backend.persistent_log_handler import PersistentLogHandler
 from meshchatx.src.backend.plugin_guard import PluginSecurityError
 from meshchatx.src.backend.plugin_manager import PluginManager
+from meshchatx.src.backend.active_sessions import (
+    ActiveSessionTracker,
+    should_warn_multi_session,
+)
 from meshchatx.src.backend.privacy_mode import (
     OutboundHttpBlockedError,
     ensure_outbound_http_allowed,
@@ -496,6 +502,7 @@ class ReticulumMeshChat:
         self.gitea_base_url_override = gitea_base_url
         self._rns_loglevel_cli = rns_loglevel
         self.websocket_clients: list[web.WebSocketResponse] = []
+        self.active_sessions = ActiveSessionTracker()
         self._websocket_broadcast_lock = asyncio.Lock()
         self.listen_host: str | None = None
         self.listen_port: int | None = None
@@ -3904,6 +3911,7 @@ class ReticulumMeshChat:
                 ),
             ),
             "inbound_delivery_count": 0,
+            "inbound_deliveries": [],
             "max_inbound_syncs": int(
                 getattr(router, "propagation_max_inbound_syncs", 0) or 0,
             ),
@@ -3914,9 +3922,9 @@ class ReticulumMeshChat:
                 getattr(router, "propagation_static_peer_sequential", False),
             ),
         }
-        if hasattr(router, "inbound_count"):
-            with contextlib.suppress(Exception):
-                result["inbound_delivery_count"] = int(router.inbound_count() or 0)
+        inbound_deliveries = list_inbound_deliveries(router)
+        result["inbound_deliveries"] = inbound_deliveries
+        result["inbound_delivery_count"] = len(inbound_deliveries)
         return result
 
     def _get_reticulum_section(self):
@@ -7853,9 +7861,15 @@ class ReticulumMeshChat:
 
             # add client to connected clients list
             self.websocket_clients.append(websocket_response)
+            session = self.active_sessions.add(
+                ip=request.remote,
+                user_agent=request.headers.get("User-Agent"),
+            )
+            websocket_response._meshchatx_session_id = session["id"]
 
             # send config to all clients
             await self.send_config_to_websocket_clients()
+            await self.send_active_sessions_to_websocket_clients()
 
             # handle websocket messages until disconnected
             async for msg in websocket_response:
@@ -7877,7 +7891,9 @@ class ReticulumMeshChat:
                 self.websocket_clients.remove(websocket_response)
             except ValueError:
                 pass
+            self._detach_active_session(websocket_response)
             self._cancel_rns_link_tasks_for_client(websocket_response)
+            await self.send_active_sessions_to_websocket_clients()
 
             return websocket_response
 
@@ -7936,6 +7952,10 @@ class ReticulumMeshChat:
 
             self.web_audio_bridge.detach_client(websocket_response)
             return websocket_response
+
+        @routes.get("/api/v1/app/sessions")
+        async def app_sessions(_request):
+            return web.json_response(self.get_active_sessions_payload())
 
         # get app info
         @routes.get("/api/v1/app/info")
@@ -12663,9 +12683,10 @@ class ReticulumMeshChat:
             if isinstance(transfer_size, (int, float)) and transfer_size > 0:
                 transfer_size_bytes = int(transfer_size)
             inbound_delivery_count = 0
-            if router is not None and hasattr(router, "inbound_count"):
-                with contextlib.suppress(Exception):
-                    inbound_delivery_count = int(router.inbound_count() or 0)
+            inbound_deliveries = []
+            if router is not None:
+                inbound_deliveries = list_inbound_deliveries(router)
+                inbound_delivery_count = len(inbound_deliveries)
             return web.json_response(
                 {
                     "propagation_node_status": {
@@ -12675,6 +12696,7 @@ class ReticulumMeshChat:
                         "progress": progress_pct,
                         "transfer_size_bytes": transfer_size_bytes,
                         "inbound_delivery_count": inbound_delivery_count,
+                        "inbound_deliveries": inbound_deliveries,
                         "messages_received": last_result,
                         "messages_stored": sync_metrics["messages_stored"],
                         "delivery_confirmations": sync_metrics[
@@ -12728,26 +12750,41 @@ class ReticulumMeshChat:
         @routes.post("/api/v1/lxmf/propagation-node/cancel-inbound")
         async def propagation_node_cancel_inbound(request):
             router = self.message_router
-            if router is None or not hasattr(router, "cancel_all_inbound"):
+            data = {}
+            with contextlib.suppress(Exception):
+                data = await request.json()
+            if not isinstance(data, dict):
+                data = {}
+            resource_hash = data.get("resource_hash")
+            result = cancel_inbound_deliveries(router, resource_hash=resource_hash)
+            if not result.get("ok"):
+                status = 503 if "unavailable" in str(result.get("error") or "") else 400
                 return web.json_response(
                     {
-                        "message": "Inbound delivery cancellation is unavailable.",
+                        "message": result.get(
+                            "error",
+                            "Failed to cancel inbound deliveries",
+                        ),
+                        "cancelled": result.get("cancelled", 0),
                     },
-                    status=503,
+                    status=status,
                 )
-            try:
-                cancelled = int(router.cancel_all_inbound() or 0)
-            except Exception as exc:
-                return web.json_response(
-                    {
-                        "message": f"Failed to cancel inbound deliveries: {exc}",
-                    },
-                    status=500,
+            cancelled = int(result.get("cancelled") or 0)
+            if resource_hash:
+                message = (
+                    "Cancelled inbound delivery"
+                    if cancelled
+                    else "Inbound delivery was not active"
                 )
+            else:
+                message = f"Cancelled {cancelled} inbound deliveries"
             return web.json_response(
                 {
-                    "message": f"Cancelled {cancelled} inbound deliveries",
+                    "message": message,
                     "cancelled": cancelled,
+                    "resource_hash": result.get("resource_hash"),
+                    "inbound_delivery_count": len(list_inbound_deliveries(router)),
+                    "inbound_deliveries": list_inbound_deliveries(router),
                 },
             )
 
@@ -13883,6 +13920,149 @@ class ReticulumMeshChat:
             if not_ready is not None:
                 return not_ready
             return web.json_response({"files": self.rns_filesync_handler.list_files()})
+
+        @routes.get("/api/v1/filesync/tree")
+        async def filesync_tree(request):
+            not_ready = _filesync_require_handler()
+            if not_ready is not None:
+                return not_ready
+            path = request.rel_url.query.get("path")
+            try:
+                result = await asyncio.to_thread(
+                    self.rns_filesync_handler.list_tree,
+                    path,
+                )
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+            if not result.get("ok"):
+                return web.json_response(
+                    {"message": result.get("error", "list tree failed")},
+                    status=400,
+                )
+            return web.json_response(result)
+
+        @routes.post("/api/v1/filesync/mkdir")
+        async def filesync_mkdir(request):
+            not_ready = _filesync_require_handler()
+            if not_ready is not None:
+                return not_ready
+            data = await request.json()
+            if not isinstance(data, dict):
+                return web.json_response({"message": "Invalid JSON body"}, status=400)
+            try:
+                result = await asyncio.to_thread(
+                    self.rns_filesync_handler.manager_mkdir,
+                    data.get("path", ""),
+                )
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+            if not result.get("ok"):
+                return web.json_response(
+                    {"message": result.get("error", "mkdir failed")},
+                    status=400,
+                )
+            return web.json_response(result)
+
+        @routes.post("/api/v1/filesync/upload")
+        async def filesync_upload(request):
+            not_ready = _filesync_require_handler()
+            if not_ready is not None:
+                return not_ready
+            subdir = None
+            filename = None
+            file_data = None
+            try:
+                reader = await request.multipart()
+                while True:
+                    field = await reader.next()
+                    if field is None:
+                        break
+                    name = field.name or ""
+                    if name == "path":
+                        subdir = (await field.text()).strip() or None
+                    elif name == "file":
+                        filename = field.filename or "upload"
+                        file_data = await field.read()
+                    else:
+                        with contextlib.suppress(Exception):
+                            await field.read()
+            except Exception as e:
+                return web.json_response(
+                    {"message": f"Invalid upload request: {e}"},
+                    status=400,
+                )
+            if file_data is None:
+                return web.json_response({"message": "No file uploaded"}, status=400)
+            try:
+                result = await asyncio.to_thread(
+                    self.rns_filesync_handler.manager_upload,
+                    filename=filename,
+                    data=file_data,
+                    subdir=subdir,
+                )
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+            if not result.get("ok"):
+                return web.json_response(
+                    {"message": result.get("error", "upload failed")},
+                    status=400,
+                )
+            return web.json_response(result)
+
+        @routes.delete("/api/v1/filesync/entry")
+        async def filesync_entry_delete(request):
+            not_ready = _filesync_require_handler()
+            if not_ready is not None:
+                return not_ready
+            data = {}
+            with contextlib.suppress(Exception):
+                data = await request.json()
+            if not isinstance(data, dict):
+                data = {}
+            path = data.get("path", "")
+            try:
+                result = await asyncio.to_thread(
+                    self.rns_filesync_handler.manager_delete,
+                    path,
+                )
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+            if not result.get("ok"):
+                return web.json_response(
+                    {"message": result.get("error", "delete failed")},
+                    status=400,
+                )
+            return web.json_response(result)
+
+        @routes.get("/api/v1/filesync/content")
+        async def filesync_content(request):
+            not_ready = _filesync_require_handler()
+            if not_ready is not None:
+                return not_ready
+            path = request.rel_url.query.get("path", "")
+            try:
+                result = await asyncio.to_thread(
+                    self.rns_filesync_handler.manager_content,
+                    path,
+                )
+            except Exception as e:
+                return web.json_response({"message": str(e)}, status=500)
+            if not result.get("ok"):
+                return web.json_response(
+                    {"message": result.get("error", "content failed")},
+                    status=400,
+                )
+            abspath = result.get("abspath")
+            filename = result.get("filename") or "download"
+            if not abspath or not os.path.isfile(abspath):
+                return web.json_response({"message": "file not found"}, status=404)
+            safe_name = os.path.basename(str(filename)).replace('"', "")
+            return web.FileResponse(
+                abspath,
+                headers={
+                    "Content-Disposition": f'attachment; filename="{safe_name}"',
+                },
+            )
 
         @routes.get("/api/v1/filesync/directories")
         async def filesync_directories(request):
@@ -19006,6 +19186,11 @@ class ReticulumMeshChat:
                 self._parse_bool(data["privacy_mode_enabled"]),
             )
 
+        if "multi_session_warning_enabled" in data:
+            self.config.multi_session_warning_enabled.set(
+                self._parse_bool(data["multi_session_warning_enabled"]),
+            )
+
         # update map settings
         if "map_offline_enabled" in data:
             self.config.map_offline_enabled.set(
@@ -19557,6 +19742,8 @@ class ReticulumMeshChat:
 
         # send config to websocket clients
         await self.send_config_to_websocket_clients()
+        if "multi_session_warning_enabled" in data:
+            await self.send_active_sessions_to_websocket_clients()
 
     # converts nomadnetwork page variables from a string to a map
     # converts: "field1=123|field2=456"
@@ -21040,6 +21227,7 @@ class ReticulumMeshChat:
     async def websocket_broadcast(self, data):
         # Serialize: concurrent callers must not interleave. The second snapshot must run
         # only after the first broadcast has finished mutating the live client list.
+        sessions_changed = False
         async with self._websocket_broadcast_lock:
             dead = []
             # Iterate a copy: awaits allow other tasks to mutate self.websocket_clients.
@@ -21054,10 +21242,46 @@ class ReticulumMeshChat:
                     self.websocket_clients.remove(client)
                 except ValueError:
                     pass
+                if self._detach_active_session(client):
+                    sessions_changed = True
                 try:
                     await client.close(code=WSCloseCode.GOING_AWAY)
                 except Exception:
                     pass
+        if sessions_changed:
+            await self.send_active_sessions_to_websocket_clients()
+
+    def _detach_active_session(self, websocket_response) -> bool:
+        session_id = getattr(websocket_response, "_meshchatx_session_id", None)
+        if not session_id:
+            return False
+        try:
+            delattr(websocket_response, "_meshchatx_session_id")
+        except Exception:
+            pass
+        return self.active_sessions.remove(session_id)
+
+    def get_active_sessions_payload(self) -> dict:
+        snap = self.active_sessions.snapshot()
+        warning_enabled = True
+        try:
+            cfg = getattr(self, "config", None)
+            if cfg is not None and hasattr(cfg, "multi_session_warning_enabled"):
+                warning_enabled = bool(cfg.multi_session_warning_enabled.get())
+        except Exception:
+            warning_enabled = True
+        count = int(snap.get("count") or 0)
+        return {
+            "count": count,
+            "sessions": list(snap.get("sessions") or []),
+            "warning": should_warn_multi_session(count, warning_enabled),
+            "warning_enabled": warning_enabled,
+        }
+
+    async def send_active_sessions_to_websocket_clients(self):
+        payload = self.get_active_sessions_payload()
+        payload["type"] = "app.sessions.updated"
+        await self.websocket_broadcast(json.dumps(payload))
 
     # broadcasts config to all websocket clients
     async def send_config_to_websocket_clients(self, context=None):
@@ -21166,6 +21390,7 @@ class ReticulumMeshChat:
             "crawler_max_concurrent": ctx.config.crawler_max_concurrent.get(),
             "auth_enabled": self.auth_enabled,
             "privacy_mode_enabled": ctx.config.privacy_mode_enabled.get(),
+            "multi_session_warning_enabled": ctx.config.multi_session_warning_enabled.get(),
             "voicemail_enabled": ctx.config.voicemail_enabled.get(),
             "voicemail_greeting": ctx.config.voicemail_greeting.get(),
             "voicemail_auto_answer_delay_seconds": ctx.config.voicemail_auto_answer_delay_seconds.get(),

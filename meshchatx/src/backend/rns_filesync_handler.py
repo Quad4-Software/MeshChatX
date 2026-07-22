@@ -7,16 +7,20 @@ from __future__ import annotations
 import contextlib
 import json
 import os
+import tempfile
 import threading
 from collections.abc import Callable
 from typing import Any
 
 from rns_filesync.constants import ANNOUNCE_INTERVAL_DEFAULT
-from rns_filesync.paths import PathJailError, normalize_relpath
+from rns_filesync.paths import PathJailError, normalize_relpath, relative_to_root
 from rns_filesync.permissions import PermissionStore
 from rns_filesync.service import FileSyncService
 
 _ALL_ALIASES = frozenset({"all", "a", "everyone", "*"})
+
+# Cap for in-app sync-tree uploads (local control plane only).
+MANAGER_UPLOAD_MAX_BYTES = 64 * 1024 * 1024
 
 
 def _normalize_peer_hash(value: str | None) -> str | None:
@@ -32,6 +36,33 @@ def _normalize_peer_hash(value: str | None) -> str | None:
     except ValueError:
         return None
     return cleaned
+
+
+def _is_forbidden_entry_name(name: str) -> bool:
+    """Reject hidden and protocol sidecar names in the file manager."""
+    cleaned = str(name or "")
+    if not cleaned or cleaned in (".", ".."):
+        return True
+    if cleaned.startswith("."):
+        return True
+    if cleaned == ".rns-filesync.db" or cleaned.startswith(".rns-filesync"):
+        return True
+    if cleaned.startswith(".rns-xfer"):
+        return True
+    return False
+
+
+def _sanitize_upload_basename(filename: str | None) -> str | None:
+    """Keep only a safe basename for uploads. Fail closed on escape tricks."""
+    raw = str(filename or "").strip()
+    if not raw or "\x00" in raw:
+        return None
+    base = os.path.basename(raw.replace("\\", "/"))
+    if not base or base in (".", "..") or _is_forbidden_entry_name(base):
+        return None
+    if "/" in base or "\\" in base:
+        return None
+    return base
 
 
 _RESERVED_SYNC_TOP = frozenset(
@@ -110,6 +141,359 @@ class RnsFilesyncHandler:
         if first in _RESERVED_SYNC_TOP or first.endswith(".db"):
             return None
         return resolved
+
+    def _sync_root(self) -> str:
+        """Real path of the configured sync directory (file manager jail base)."""
+        os.makedirs(self._sync_directory, exist_ok=True)
+        return os.path.realpath(self._sync_directory)
+
+    def _is_under_sync_root(self, candidate: str) -> bool:
+        root = self._sync_root()
+        real = os.path.realpath(candidate)
+        return real == root or real.startswith(root + os.sep)
+
+    def _resolve_manager_path(
+        self,
+        path: str | None,
+        *,
+        allow_root: bool = False,
+        must_exist: bool = False,
+    ) -> tuple[str | None, str | None]:
+        """Resolve a path for the sync-root file manager.
+
+        Returns (abspath, error). Fail closed with a generic error string.
+        Empty path with allow_root returns the sync root itself.
+        """
+        root = self._sync_root()
+        cleaned = str(path or "").strip()
+        if not cleaned:
+            if allow_root:
+                return root, None
+            return None, "path is required"
+
+        # Absolute client paths are never accepted for the manager.
+        if "\x00" in cleaned:
+            return None, "path not allowed"
+        if os.path.isabs(cleaned) or cleaned.startswith(("/", "\\")):
+            return None, "path not allowed"
+        if len(cleaned) >= 2 and cleaned[1] == ":":
+            return None, "path not allowed"
+
+        try:
+            safe_rel = normalize_relpath(cleaned)
+        except PathJailError:
+            return None, "path not allowed"
+
+        parts = safe_rel.replace("\\", "/").split("/")
+        if any(_is_forbidden_entry_name(part) for part in parts):
+            return None, "path not allowed"
+
+        joined = os.path.join(root, safe_rel)
+        # Reject symlink parents that escape before realpath of missing leaves.
+        parent = os.path.dirname(joined)
+        if parent != root and not self._is_under_sync_root(parent):
+            return None, "path not allowed"
+        if os.path.lexists(joined) and os.path.islink(joined):
+            real = os.path.realpath(joined)
+            if real != root and not real.startswith(root + os.sep):
+                return None, "path not allowed"
+            if must_exist and not os.path.exists(real):
+                return None, "path not found"
+            return real, None
+
+        if must_exist and not os.path.lexists(joined):
+            return None, "path not found"
+
+        try:
+            real = os.path.realpath(joined)
+        except OSError:
+            return None, "path not allowed"
+
+        if real != root and not real.startswith(root + os.sep):
+            return None, "path not allowed"
+        if not allow_root and real == root:
+            return None, "path not allowed"
+        return real, None
+
+    def _relpath_under_sync(self, abspath: str) -> str | None:
+        try:
+            return relative_to_root(self._sync_root(), abspath)
+        except PathJailError:
+            return None
+
+    def _nudge_inventory(self, relpath: str | None = None) -> None:
+        if self.service is None:
+            return
+        inventory = getattr(self.service, "inventory", None)
+        if inventory is None:
+            return
+        with contextlib.suppress(Exception):
+            if relpath:
+                inventory.update_from_path(relpath)
+            else:
+                inventory.scan()
+
+    def list_tree(self, path: str | None = None) -> dict[str, Any]:
+        """List files and directories under a relative path inside the sync root."""
+        with self._lock:
+            target, err = self._resolve_manager_path(path, allow_root=True)
+            if err or target is None:
+                return {"ok": False, "error": err or "path not allowed"}
+            if not os.path.isdir(target):
+                return {"ok": False, "error": "not a directory"}
+
+            root = self._sync_root()
+            entries: list[dict[str, Any]] = []
+            try:
+                names = sorted(os.listdir(target), key=str.lower)
+            except OSError as exc:
+                return {"ok": False, "error": str(exc)}
+
+            for name in names:
+                if _is_forbidden_entry_name(name):
+                    continue
+                full = os.path.join(target, name)
+                if os.path.islink(full):
+                    real = os.path.realpath(full)
+                    if real != root and not real.startswith(root + os.sep):
+                        continue
+                else:
+                    real = os.path.realpath(full)
+                    if real != root and not real.startswith(root + os.sep):
+                        continue
+
+                is_dir = os.path.isdir(real) and not os.path.islink(full)
+                # Treat in-jail symlinks to dirs as dirs for navigation only when target stays inside.
+                if os.path.islink(full) and os.path.isdir(real):
+                    is_dir = True
+                rel = self._relpath_under_sync(real)
+                if rel is None and real == root:
+                    continue
+                if rel is None:
+                    continue
+                item: dict[str, Any] = {
+                    "name": name,
+                    "path": rel,
+                    "type": "dir" if is_dir else "file",
+                }
+                if not is_dir:
+                    try:
+                        item["size"] = os.path.getsize(real)
+                    except OSError:
+                        item["size"] = 0
+                entries.append(item)
+
+            current_rel = ""
+            if target != root:
+                current_rel = self._relpath_under_sync(target) or ""
+            parent_rel = None
+            if target != root:
+                parent_abs = os.path.dirname(target)
+                if parent_abs == root:
+                    parent_rel = ""
+                else:
+                    parent_rel = self._relpath_under_sync(parent_abs)
+
+            return {
+                "ok": True,
+                "root": root,
+                "current": current_rel,
+                "parent": parent_rel,
+                "entries": entries,
+            }
+
+    def manager_mkdir(self, path: str) -> dict[str, Any]:
+        """Create a directory under the sync root (relative path)."""
+        with self._lock:
+            cleaned = str(path or "").strip()
+            if not cleaned:
+                return {"ok": False, "error": "path is required"}
+            # Resolve parent and create leaf so we do not require the leaf to exist.
+            try:
+                safe_rel = normalize_relpath(cleaned)
+            except PathJailError:
+                return {"ok": False, "error": "path not allowed"}
+            parts = safe_rel.replace("\\", "/").split("/")
+            if any(_is_forbidden_entry_name(part) for part in parts):
+                return {"ok": False, "error": "path not allowed"}
+            leaf = parts[-1]
+            parent_rel = "/".join(parts[:-1]) if len(parts) > 1 else ""
+            parent_abs, err = self._resolve_manager_path(
+                parent_rel if parent_rel else None,
+                allow_root=True,
+                must_exist=True,
+            )
+            if err or parent_abs is None:
+                return {"ok": False, "error": err or "path not allowed"}
+            if not os.path.isdir(parent_abs):
+                return {"ok": False, "error": "parent is not a directory"}
+            if os.path.islink(parent_abs):
+                return {"ok": False, "error": "path not allowed"}
+
+            new_path = os.path.join(parent_abs, leaf)
+            if not self._is_under_sync_root(os.path.dirname(new_path)):
+                return {"ok": False, "error": "path not allowed"}
+            if os.path.lexists(new_path):
+                return {"ok": False, "error": "already exists"}
+            try:
+                os.mkdir(new_path)
+            except OSError as exc:
+                return {"ok": False, "error": str(exc)}
+            real = os.path.realpath(new_path)
+            if not self._is_under_sync_root(real):
+                with contextlib.suppress(OSError):
+                    os.rmdir(new_path)
+                return {"ok": False, "error": "path not allowed"}
+            rel = self._relpath_under_sync(real) or safe_rel
+            return {"ok": True, "path": rel}
+
+    def manager_upload(
+        self,
+        *,
+        filename: str | None,
+        data: bytes,
+        subdir: str | None = None,
+    ) -> dict[str, Any]:
+        """Write an uploaded file under the sync root."""
+        with self._lock:
+            if not isinstance(data, (bytes, bytearray)):
+                return {"ok": False, "error": "invalid upload data"}
+            if len(data) > MANAGER_UPLOAD_MAX_BYTES:
+                return {"ok": False, "error": "upload too large"}
+            base = _sanitize_upload_basename(filename)
+            if base is None:
+                return {"ok": False, "error": "invalid filename"}
+
+            parent_abs, err = self._resolve_manager_path(
+                subdir,
+                allow_root=True,
+                must_exist=True,
+            )
+            if err or parent_abs is None:
+                return {"ok": False, "error": err or "path not allowed"}
+            if not os.path.isdir(parent_abs) or os.path.islink(parent_abs):
+                return {"ok": False, "error": "path not allowed"}
+
+            dest = os.path.join(parent_abs, base)
+            if os.path.islink(dest):
+                return {"ok": False, "error": "path not allowed"}
+            if os.path.lexists(dest):
+                real_existing = os.path.realpath(dest)
+                if not self._is_under_sync_root(real_existing):
+                    return {"ok": False, "error": "path not allowed"}
+
+            tmp_path = None
+            try:
+                fd, tmp_path = tempfile.mkstemp(
+                    prefix=".upload-",
+                    suffix=".tmp",
+                    dir=parent_abs,
+                )
+                try:
+                    with os.fdopen(fd, "wb") as handle:
+                        handle.write(data)
+                except Exception:
+                    with contextlib.suppress(OSError):
+                        os.close(fd)
+                    raise
+                if not self._is_under_sync_root(tmp_path):
+                    with contextlib.suppress(OSError):
+                        os.unlink(tmp_path)
+                    return {"ok": False, "error": "path not allowed"}
+                os.replace(tmp_path, dest)
+                tmp_path = None
+            except OSError as exc:
+                if tmp_path:
+                    with contextlib.suppress(OSError):
+                        os.unlink(tmp_path)
+                return {"ok": False, "error": str(exc)}
+
+            real = os.path.realpath(dest)
+            if not self._is_under_sync_root(real) or not os.path.isfile(real):
+                with contextlib.suppress(OSError):
+                    os.unlink(dest)
+                return {"ok": False, "error": "path not allowed"}
+            rel = self._relpath_under_sync(real)
+            if rel is None:
+                with contextlib.suppress(OSError):
+                    os.unlink(dest)
+                return {"ok": False, "error": "path not allowed"}
+            self._nudge_inventory(rel)
+            return {"ok": True, "path": rel, "size": len(data)}
+
+    def manager_delete(self, path: str) -> dict[str, Any]:
+        """Delete a file or empty directory under the sync root."""
+        with self._lock:
+            root = self._sync_root()
+            try:
+                safe_rel = normalize_relpath(str(path or "").strip())
+            except PathJailError:
+                return {"ok": False, "error": "path not allowed"}
+            lex_path = os.path.join(root, safe_rel)
+            if os.path.islink(lex_path):
+                return {"ok": False, "error": "path not allowed"}
+
+            target, err = self._resolve_manager_path(
+                path,
+                allow_root=False,
+                must_exist=True,
+            )
+            if err or target is None:
+                return {"ok": False, "error": err or "path not allowed"}
+            if target == root:
+                return {"ok": False, "error": "path not allowed"}
+
+            rel = self._relpath_under_sync(target)
+            if rel is None:
+                return {"ok": False, "error": "path not allowed"}
+
+            try:
+                if os.path.isdir(target):
+                    try:
+                        os.rmdir(target)
+                    except OSError:
+                        return {"ok": False, "error": "directory is not empty"}
+                elif os.path.isfile(target):
+                    os.unlink(target)
+                else:
+                    return {"ok": False, "error": "path not found"}
+            except OSError as exc:
+                return {"ok": False, "error": str(exc)}
+
+            self._nudge_inventory(rel)
+            return {"ok": True, "path": rel}
+
+    def manager_content(self, path: str) -> dict[str, Any]:
+        """Resolve a file under the sync root for download streaming."""
+        with self._lock:
+            root = self._sync_root()
+            try:
+                safe_rel = normalize_relpath(str(path or "").strip())
+            except PathJailError:
+                return {"ok": False, "error": "path not allowed"}
+            lex_path = os.path.join(root, safe_rel)
+            if os.path.islink(lex_path):
+                return {"ok": False, "error": "path not allowed"}
+
+            target, err = self._resolve_manager_path(
+                path,
+                allow_root=False,
+                must_exist=True,
+            )
+            if err or target is None:
+                return {"ok": False, "error": err or "path not allowed"}
+            if not os.path.isfile(target):
+                return {"ok": False, "error": "not a file"}
+            rel = self._relpath_under_sync(target)
+            if rel is None:
+                return {"ok": False, "error": "path not allowed"}
+            return {
+                "ok": True,
+                "abspath": target,
+                "path": rel,
+                "filename": os.path.basename(target),
+                "size": os.path.getsize(target),
+            }
 
     def _load_settings(self) -> None:
         os.makedirs(self._root, exist_ok=True)

@@ -71,6 +71,22 @@ test.describe("MeshChatX E2E (Vite + Python backend)", () => {
         expect(String(body.app_info.version).length).toBeGreaterThan(0);
     });
 
+    test("backend /api/v1/app/sessions returns active session list", async ({ request }) => {
+        const res = await request.get(`${E2E_BACKEND_ORIGIN}/api/v1/app/sessions`);
+        expect(res.ok()).toBeTruthy();
+        const body = await res.json();
+        expect(typeof body.count).toBe("number");
+        expect(Array.isArray(body.sessions)).toBeTruthy();
+        expect(typeof body.warning).toBe("boolean");
+        expect(typeof body.warning_enabled).toBe("boolean");
+        for (const session of body.sessions) {
+            expect(session).toHaveProperty("id");
+            expect(session).toHaveProperty("ip");
+            expect(session).toHaveProperty("user_agent");
+            expect(session).toHaveProperty("connected_at");
+        }
+    });
+
     test("document title, shell, and app name in header", async ({ page }) => {
         await page.goto("/");
         await expect(page).toHaveTitle(/Reticulum MeshChatX/);
@@ -87,6 +103,9 @@ test.describe("MeshChatX E2E (Vite + Python backend)", () => {
         await expect(page).toHaveURL(/#\/about/);
         await expect(page.getByText("MeshChatX", { exact: true }).first()).toBeVisible({ timeout: 30000 });
         await expect(page.locator("#app")).toBeVisible();
+        await expect(page.getByText("Active sessions", { exact: true }).first()).toBeVisible({
+            timeout: 30000,
+        });
     });
 
     test("settings route loads profile section", async ({ page }) => {

@@ -155,7 +155,7 @@ class TestInputFunctions:
     @patch("lxmfy.cli.print_error")
     def test_get_template_choice_invalid_then_valid(self, mock_print_error, mock_input):
         """Test get_template_choice with invalid then valid input."""
-        mock_input.side_effect = ["6", "3"]  # Invalid then reminder
+        mock_input.side_effect = ["7", "3"]  # Invalid then reminder
         result = get_template_choice()
         assert result == "reminder"
         mock_print_error.assert_called_once()

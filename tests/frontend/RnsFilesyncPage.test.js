@@ -25,6 +25,18 @@ vi.mock("@/js/ElectronUtils", () => ({
     },
 }));
 
+vi.mock("@/js/DialogUtils", () => ({
+    default: {
+        confirm: vi.fn().mockResolvedValue(true),
+    },
+}));
+
+vi.mock("@/js/DownloadUtils", () => ({
+    default: {
+        downloadFromApiResponse: vi.fn().mockResolvedValue(undefined),
+    },
+}));
+
 describe("RnsFilesyncPage.vue", () => {
     let apiMock;
 
@@ -33,6 +45,7 @@ describe("RnsFilesyncPage.vue", () => {
             get: vi.fn(),
             post: vi.fn(),
             patch: vi.fn(),
+            delete: vi.fn(),
         };
         window.api = apiMock;
 
@@ -52,6 +65,16 @@ describe("RnsFilesyncPage.vue", () => {
             }
             if (url === "/api/v1/filesync/peers") {
                 return Promise.resolve({ data: { peers: [] } });
+            }
+            if (url === "/api/v1/filesync/tree") {
+                return Promise.resolve({
+                    data: {
+                        ok: true,
+                        current: "",
+                        parent: null,
+                        entries: [{ name: "hello.txt", path: "hello.txt", type: "file", size: 4 }],
+                    },
+                });
             }
             if (url === "/api/v1/filesync/files") {
                 return Promise.resolve({ data: { files: [] } });
@@ -74,6 +97,7 @@ describe("RnsFilesyncPage.vue", () => {
         });
         apiMock.post.mockResolvedValue({ data: { ok: true } });
         apiMock.patch.mockResolvedValue({ data: { ok: true } });
+        apiMock.delete.mockResolvedValue({ data: { ok: true } });
     });
 
     afterEach(() => {
@@ -101,6 +125,13 @@ describe("RnsFilesyncPage.vue", () => {
                         props: ["open", "initialPath"],
                         emits: ["close", "select"],
                     },
+                    FilesyncFileManager: {
+                        template: "<div class='file-manager-stub'></div>",
+                        props: ["syncDirectory"],
+                        methods: {
+                            refresh: vi.fn().mockResolvedValue(undefined),
+                        },
+                    },
                 },
             },
         });
@@ -110,6 +141,14 @@ describe("RnsFilesyncPage.vue", () => {
         await vi.waitFor(() => expect(apiMock.get).toHaveBeenCalledWith("/api/v1/filesync/status"));
         expect(wrapper.text()).toContain("rns_filesync.title");
         expect(wrapper.vm.syncDirectory).toBe("/tmp/sync");
+    });
+
+    it("files tab mounts file manager", async () => {
+        const wrapper = mountPage();
+        await vi.waitFor(() => expect(wrapper.vm.syncDirectory).toBe("/tmp/sync"));
+        wrapper.vm.activeTab = "files";
+        await wrapper.vm.$nextTick();
+        expect(wrapper.find(".file-manager-stub").exists()).toBe(true);
     });
 
     it("uses themed input-field classes", async () => {
@@ -257,5 +296,59 @@ describe("FilesyncDirectoryBrowserModal.vue", () => {
         await wrapper.vm.confirmSelection();
         expect(wrapper.emitted("select")[0]).toEqual(["/tmp/filesync"]);
         expect(wrapper.emitted("close")).toBeTruthy();
+    });
+});
+
+describe("FilesyncFileManager.vue", () => {
+    let apiMock;
+
+    beforeEach(() => {
+        apiMock = {
+            get: vi.fn().mockResolvedValue({
+                data: {
+                    ok: true,
+                    current: "",
+                    parent: null,
+                    entries: [
+                        { name: "docs", path: "docs", type: "dir" },
+                        { name: "a.txt", path: "a.txt", type: "file", size: 3 },
+                    ],
+                },
+            }),
+            post: vi.fn().mockResolvedValue({ data: { ok: true, path: "a.txt" } }),
+            delete: vi.fn().mockResolvedValue({ data: { ok: true } }),
+        };
+        window.api = apiMock;
+    });
+
+    afterEach(() => {
+        delete window.api;
+        vi.clearAllMocks();
+    });
+
+    it("loads tree and uploads via window.api", async () => {
+        const { default: FilesyncFileManager } = await import("@/components/filesync/FilesyncFileManager.vue");
+        const wrapper = mount(FilesyncFileManager, {
+            props: { syncDirectory: "/tmp/sync" },
+            global: {
+                mocks: {
+                    $t: (key, params) => (params ? `${key}:${JSON.stringify(params)}` : key),
+                },
+                stubs: {
+                    MaterialDesignIcon: {
+                        template: "<div></div>",
+                        props: ["iconName"],
+                    },
+                },
+            },
+        });
+        await vi.waitFor(() => expect(apiMock.get).toHaveBeenCalledWith("/api/v1/filesync/tree", expect.any(Object)));
+        expect(wrapper.vm.entries).toHaveLength(2);
+
+        await wrapper.vm.onUploadSelected({
+            target: { files: [new File(["hi"], "hi.txt")], value: "x" },
+        });
+        expect(apiMock.post).toHaveBeenCalledWith("/api/v1/filesync/upload", expect.any(FormData));
+        expect(ToastUtils.success).toHaveBeenCalledWith("rns_filesync.upload_done");
     });
 });

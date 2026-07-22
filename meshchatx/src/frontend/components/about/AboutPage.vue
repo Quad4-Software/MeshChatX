@@ -358,6 +358,69 @@
                         </div>
                     </div>
 
+                    <!-- Active sessions -->
+                    <div class="about-section">
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+                            <div
+                                class="text-xs font-black text-blue-500 uppercase tracking-[0.2em] flex items-center gap-2"
+                            >
+                                <v-icon icon="mdi-monitor-multiple" size="14"></v-icon>
+                                {{ $t("about.active_sessions") }}
+                            </div>
+                            <span
+                                class="text-[11px] font-black uppercase tracking-wider text-gray-500 dark:text-zinc-400"
+                            >
+                                {{ $t("about.active_sessions_count", { count: activeSessionCount }) }}
+                            </span>
+                        </div>
+                        <p class="text-[11px] leading-relaxed text-gray-500 dark:text-gray-400 mb-4">
+                            {{ $t("about.active_sessions_description") }}
+                        </p>
+                        <div v-if="!activeSessions.length" class="text-sm text-gray-600 dark:text-zinc-300">
+                            {{ $t("about.active_sessions_empty") }}
+                        </div>
+                        <ul v-else class="space-y-3 list-none">
+                            <li
+                                v-for="session in activeSessions"
+                                :key="session.id"
+                                class="rounded-xl border border-gray-200 dark:border-zinc-800 bg-gray-50/70 dark:bg-zinc-900/40 p-3 min-w-0"
+                            >
+                                <div class="grid gap-2 text-[11px] sm:grid-cols-2">
+                                    <div class="min-w-0">
+                                        <div
+                                            class="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-zinc-500 mb-1"
+                                        >
+                                            {{ $t("about.active_session_ip") }}
+                                        </div>
+                                        <div class="font-mono text-gray-900 dark:text-white break-all">
+                                            {{ session.ip || "unknown" }}
+                                        </div>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div
+                                            class="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-zinc-500 mb-1"
+                                        >
+                                            {{ $t("about.active_session_connected") }}
+                                        </div>
+                                        <div class="text-gray-900 dark:text-white">
+                                            {{ formatSessionConnectedAt(session.connected_at) }}
+                                        </div>
+                                    </div>
+                                    <div class="min-w-0 sm:col-span-2">
+                                        <div
+                                            class="text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-zinc-500 mb-1"
+                                        >
+                                            {{ $t("about.active_session_user_agent") }}
+                                        </div>
+                                        <div class="font-mono text-gray-700 dark:text-zinc-200 break-all">
+                                            {{ session.user_agent || "unknown" }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+
                     <!-- Advanced Tech Info -->
                     <div v-if="appInfo" class="about-section">
                         <div
@@ -366,7 +429,7 @@
                             <v-icon icon="mdi-server" size="14"></v-icon>
                             {{ $t("about.environment_information") }}
                         </div>
-                        <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 text-sm min-w-0">
+                        <div class="grid gap-8 sm:grid-cols-2 text-sm min-w-0">
                             <div>
                                 <div class="glass-label text-[10px]! mb-2 opacity-50">
                                     {{ $t("about.reticulum_config") }}
@@ -404,111 +467,6 @@
                                     <v-icon icon="mdi-database-search" start size="14"></v-icon>
                                     {{ $t("about.reveal_database_file") }}
                                 </button>
-                            </div>
-                            <div
-                                class="flex flex-col justify-center space-y-3 py-2 sm:py-3 border-t sm:border border-gray-200/60 dark:border-zinc-800/80 sm:rounded-xl sm:p-4 sm:bg-black/2 dark:sm:bg-white/2"
-                            >
-                                <div
-                                    v-if="config"
-                                    class="space-y-3 mb-2 pb-3 border-b border-zinc-100 dark:border-zinc-800"
-                                >
-                                    <div class="flex flex-col">
-                                        <span class="text-[9px] font-black text-blue-500 uppercase tracking-wider">{{
-                                            $t("about.identity_hash")
-                                        }}</span>
-                                        <span class="font-mono text-[10px] break-all opacity-70">{{
-                                            config.identity_hash
-                                        }}</span>
-                                    </div>
-                                    <div class="flex flex-col">
-                                        <span class="text-[9px] font-black text-blue-500 uppercase tracking-wider">{{
-                                            $t("about.lxmf_address")
-                                        }}</span>
-                                        <span class="font-mono text-[10px] break-all opacity-70">{{
-                                            config.lxmf_address_hash
-                                        }}</span>
-                                    </div>
-                                </div>
-                                <div class="flex items-center justify-between">
-                                    <span class="text-[10px] font-black text-blue-500 uppercase tracking-wider">{{
-                                        $t("about.env_python")
-                                    }}</span>
-                                    <span class="font-mono text-xs font-bold"
-                                        >v{{ appInfo.python_version || $t("about.path_unknown") }}</span
-                                    >
-                                </div>
-                                <div class="flex items-center justify-between">
-                                    <span class="text-[10px] font-black text-purple-500 uppercase tracking-wider">{{
-                                        $t("about.env_lxmf")
-                                    }}</span>
-                                    <span class="font-mono text-xs font-bold"
-                                        >v{{ appInfo.lxmf_version || $t("about.path_unknown") }}</span
-                                    >
-                                </div>
-                                <div class="flex items-center justify-between">
-                                    <span class="text-[10px] font-black text-indigo-500 uppercase tracking-wider">{{
-                                        $t("about.env_rns")
-                                    }}</span>
-                                    <span class="font-mono text-xs font-bold"
-                                        >v{{ appInfo.rns_version || $t("about.path_unknown") }}</span
-                                    >
-                                </div>
-                                <div class="flex items-center justify-between">
-                                    <span class="text-[10px] font-black text-emerald-500 uppercase tracking-wider">{{
-                                        $t("about.env_platform")
-                                    }}</span>
-                                    <span class="font-mono text-xs font-bold">{{ environmentInfo.platform }}</span>
-                                </div>
-                                <div
-                                    v-if="isLinuxHost && appInfo.landlock_requested !== undefined"
-                                    class="flex flex-col gap-1"
-                                >
-                                    <div class="flex items-center justify-between gap-3">
-                                        <span class="text-[10px] font-black text-teal-500 uppercase tracking-wider">{{
-                                            $t("app.landlock_status")
-                                        }}</span>
-                                        <span
-                                            class="font-mono text-xs font-bold shrink-0"
-                                            :class="
-                                                appInfo.landlock_active
-                                                    ? 'text-green-600 dark:text-green-400'
-                                                    : 'text-amber-600 dark:text-amber-400'
-                                            "
-                                        >
-                                            {{
-                                                appInfo.landlock_active
-                                                    ? $t("app.landlock_active")
-                                                    : $t("app.landlock_inactive")
-                                            }}
-                                        </span>
-                                    </div>
-                                    <p
-                                        v-if="!appInfo.landlock_active && landlockInactiveReason"
-                                        class="text-[10px] leading-snug opacity-70"
-                                    >
-                                        {{ landlockInactiveReason }}
-                                    </p>
-                                </div>
-                                <div class="flex items-center justify-between">
-                                    <span class="text-[10px] font-black text-amber-500 uppercase tracking-wider">{{
-                                        $t("about.env_language")
-                                    }}</span>
-                                    <span class="font-mono text-xs font-bold">{{ environmentInfo.language }}</span>
-                                </div>
-                                <div class="flex items-center justify-between">
-                                    <span class="text-[10px] font-black text-fuchsia-500 uppercase tracking-wider">{{
-                                        $t("about.env_backend_url")
-                                    }}</span>
-                                    <span class="font-mono text-xs font-bold">{{ environmentInfo.backendUrl }}</span>
-                                </div>
-                                <div class="flex flex-col gap-1 pt-2 border-t border-zinc-100 dark:border-zinc-800">
-                                    <span class="text-[10px] font-black text-slate-500 uppercase tracking-wider">{{
-                                        $t("about.env_user_agent")
-                                    }}</span>
-                                    <span class="font-mono text-[10px] break-all opacity-70">{{
-                                        environmentInfo.userAgent
-                                    }}</span>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -1241,6 +1199,7 @@ import DialogUtils from "../../js/DialogUtils";
 import ToastUtils from "../../js/ToastUtils";
 import DownloadUtils from "../../js/DownloadUtils";
 import GlobalEmitter from "../../js/GlobalEmitter";
+import { onWsEvent, offWsEvent } from "../../js/registries/wsEventRegistry.js";
 import {
     appBatteryUsageToneClass,
     batteryStatusIconName,
@@ -1266,7 +1225,6 @@ export default {
             appInfo: {
                 version: "unknown",
             },
-            config: null,
             updateInterval: null,
             healthInterval: null,
             databaseHealth: null,
@@ -1307,6 +1265,9 @@ export default {
             developerLxmfAlternate: "43d3309adf27fc446556121b553b56a6",
             moneroDonateAddress:
                 "83SUg6mmkkVGwCycckLEgRfdmXNm7H9XtVjbGXp5kko71N6pTefYURJeS7WdEGHrz2aagmt4nF3dWg6mHcYs6yu4EokwhTh",
+            activeSessions: [],
+            activeSessionCount: 0,
+            sessionsWsHandler: null,
         };
     },
     computed: {
@@ -1331,21 +1292,6 @@ export default {
             } catch {
                 return "";
             }
-        },
-        isLinuxHost() {
-            return this.appInfo && this.appInfo.host_platform === "linux";
-        },
-        landlockInactiveReason() {
-            if (!this.appInfo || this.appInfo.landlock_active) {
-                return null;
-            }
-            if (this.appInfo.landlock_kernel_supported === false) {
-                return this.$t("app.landlock_kernel_unsupported");
-            }
-            if (this.appInfo.landlock_disabled_by_env) {
-                return this.$t("app.landlock_disabled_by_env");
-            }
-            return this.$t("app.landlock_inactive");
         },
         batteryStatusIcon() {
             return batteryStatusIconName(this.batteryStatus);
@@ -1440,43 +1386,10 @@ export default {
             }
             return "";
         },
-        environmentInfo() {
-            const ua = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
-            let platform = typeof navigator !== "undefined" && navigator.platform ? navigator.platform : "";
-            if (
-                !platform &&
-                typeof navigator !== "undefined" &&
-                navigator.userAgentData &&
-                navigator.userAgentData.platform
-            ) {
-                platform = navigator.userAgentData.platform;
-            }
-            if (!platform && /Android/i.test(ua)) {
-                platform = "Android";
-            }
-            if (!platform && this.appInfo && this.appInfo.host_platform) {
-                platform = this.appInfo.host_platform;
-            }
-            if (!platform) {
-                platform = "unknown";
-            }
-            const language =
-                typeof navigator !== "undefined" && navigator.language
-                    ? navigator.language
-                    : typeof navigator !== "undefined" && navigator.languages && navigator.languages[0]
-                      ? navigator.languages[0]
-                      : "unknown";
-            return {
-                platform,
-                language,
-                userAgent: ua || "unknown",
-                backendUrl: typeof window !== "undefined" && window.location ? window.location.origin : "unknown",
-            };
-        },
     },
     mounted() {
         this.getAppInfo();
-        this.getConfig();
+        this.getActiveSessions();
         this.getDatabaseHealth();
         this.listSnapshots();
         this.listAutoBackups();
@@ -1485,6 +1398,10 @@ export default {
             this.restartAboutPollIntervals();
         };
         GlobalEmitter.on(BATTERY_SAVER_CHANGED_EVENT, this._batterySaverPrefsHandler);
+        this.sessionsWsHandler = (payload) => {
+            this.applyActiveSessionsPayload(payload);
+        };
+        onWsEvent("app.sessions.updated", this.sessionsWsHandler);
         this.restartAboutPollIntervals();
     },
     beforeUnmount() {
@@ -1496,6 +1413,10 @@ export default {
         }
         if (this._batterySaverPrefsHandler) {
             GlobalEmitter.off(BATTERY_SAVER_CHANGED_EVENT, this._batterySaverPrefsHandler);
+        }
+        if (this.sessionsWsHandler) {
+            offWsEvent("app.sessions.updated", this.sessionsWsHandler);
+            this.sessionsWsHandler = null;
         }
     },
     methods: {
@@ -1510,6 +1431,7 @@ export default {
             this.updateInterval = setInterval(
                 () => {
                     this.getAppInfo();
+                    this.getActiveSessions();
                 },
                 applyBackgroundPollInterval(5000, prefs)
             );
@@ -1668,6 +1590,31 @@ export default {
                 console.log(e);
             }
         },
+        applyActiveSessionsPayload(payload) {
+            const sessions = Array.isArray(payload?.sessions) ? payload.sessions : [];
+            this.activeSessions = sessions;
+            const count = Number(payload?.count);
+            this.activeSessionCount = Number.isFinite(count) ? count : sessions.length;
+        },
+        async getActiveSessions() {
+            try {
+                const response = await window.api.get("/api/v1/app/sessions");
+                this.applyActiveSessionsPayload(response?.data || {});
+            } catch (e) {
+                console.log(e);
+            }
+        },
+        formatSessionConnectedAt(value) {
+            const ts = Number(value);
+            if (!Number.isFinite(ts) || ts <= 0) {
+                return "unknown";
+            }
+            try {
+                return new Date(ts * 1000).toLocaleString();
+            } catch {
+                return "unknown";
+            }
+        },
         async refreshBatteryStatus() {
             try {
                 this.batteryStatus = await getDeviceBatteryStatus();
@@ -1816,15 +1763,6 @@ export default {
                 console.log(e);
             } finally {
                 this.databaseActionInProgress = false;
-            }
-        },
-        async getConfig() {
-            try {
-                const response = await window.api.get("/api/v1/config");
-                this.config = response.data.config;
-            } catch (e) {
-                // do nothing if failed to load config
-                console.log(e);
             }
         },
         async copyValue(value, labelKey) {

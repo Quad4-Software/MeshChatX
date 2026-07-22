@@ -4,12 +4,12 @@ Easily create LXMF bots for the Reticulum Network with this extensible framework
 
 [Docs](https://lxmfy.quad4.io)
 
-## Features
+## Feature
 
 | Category | Key Capabilities |
 | :--- | :--- |
 | **Core** | Interactive CLI, Command Prefixes, Cron-style Task Scheduler, Middleware & Event Systems |
-| **Connectivity** | Direct Delivery & Propagation Fallback, Auto-Peering, RNS Link Support, Opportunistic Sending |
+| **Connectivity** | Direct Delivery & Propagation Fallback, Auto-Peering, RNS Link Support, Opportunistic Sending, **RRC (Reticulum Relay Chat) hub client** |
 | **Security** | Spam Protection, Role-based Permissions, Identity Pinning, Message Signing/Verification, Landlock LSM Filesystem Sandbox (Linux) |
 | **NLP** | Local NLP Intent Classification (Offline/Private), Type-hinted Argument Parsing |
 | **Extensions** | Python Cogs, External Script Cogs (Bash, Go, C, etc.), Linux Sandboxing (Landlock LSM, `bwrap`/`firejail`) |
@@ -19,7 +19,7 @@ Easily create LXMF bots for the Reticulum Network with this extensible framework
 
 ## Installation
 
-**Requirements:** Python 3.11+, [RNS](https://pypi.org/project/rns/) 1.4.0+, [LXMF](https://pypi.org/project/lxmf/) 1.1.0+ (installed automatically with LXMFy).
+**Requirements:** Python 3.11+, [RNS](https://pypi.org/project/rns/) 1.3.8+, [LXMF](https://pypi.org/project/lxmf/) 1.0.1+, [cbor2](https://pypi.org/project/cbor2/) 5.4.0+ (installed automatically with LXMFy).
 
 There are many ways to install LXMFy, you pick:
 
@@ -153,6 +153,33 @@ def echo(ctx, message: str):
 
 bot.run()
 ```
+
+## RRC (Reticulum Relay Chat)
+
+Bots can join [RRC](https://rrc.kc1awv.net/) hubs as ordinary clients over RNS Links with CBOR envelopes:
+
+```python
+from lxmfy import LXMFBot, RRCMessage
+
+bot = LXMFBot(
+    name="RoomBot",
+    rrc_enabled=True,
+    rrc_hubs=["your_rrc_hub_destination_hash"],
+    rrc_rooms=["lobby"],
+    rrc_nick="RoomBot",
+)
+
+@bot.on_rrc
+def on_rrc(event, client, payload):
+    if event == "msg" and isinstance(payload, RRCMessage) and payload.mention:
+        client.send_message(payload.room, f"Heard you, {payload.nick}")
+
+bot.run()
+```
+
+Or connect at runtime with `bot.connect_rrc(hub_hash, rooms=["lobby"])`.
+
+Hub sessions persist across restarts by default (`rrc_persist_sessions=True`). Outgoing LXMF messages are also persisted by default (`message_persistence_enabled=True`) so a crash mid-queue does not drop them. The outbound queue is bounded (`message_queue_size`, default 50) and drops the oldest message when full.
 
 ## Propagation Node Configuration
 

@@ -33,6 +33,9 @@ _MUTATING_SAMPLES = (
     ("POST", "/api/v1/filesync/download", {"peer_id": "bb" * 16, "path": "a.txt"}),
     ("POST", "/api/v1/filesync/acl", {"enforce": False}),
     ("PATCH", "/api/v1/filesync/settings", {"monitor": True}),
+    ("POST", "/api/v1/filesync/mkdir", {"path": "folder"}),
+    ("DELETE", "/api/v1/filesync/entry", {"path": "a.txt"}),
+    ("POST", "/api/v1/lxmf/propagation-node/cancel-inbound", {}),
 )
 
 
@@ -70,6 +73,19 @@ def _stub_filesync_handler(mock_app):
         "monitor": True,
         "announce_interval": 300,
         "running": False,
+    }
+    handler.manager_mkdir.return_value = {"ok": True, "path": "folder"}
+    handler.manager_delete.return_value = {"ok": True, "path": "a.txt"}
+    handler.manager_upload.return_value = {"ok": True, "path": "a.txt", "size": 1}
+    handler.list_tree.return_value = {
+        "ok": True,
+        "current": "",
+        "parent": None,
+        "entries": [],
+    }
+    handler.manager_content.return_value = {
+        "ok": False,
+        "error": "path not allowed",
     }
 
 

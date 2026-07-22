@@ -8,7 +8,7 @@
     {
         "name": "aiohttp",
         "version": "3.14.1",
-        "author": "\u2014",
+        "author": "—",
         "license": "Apache-2.0 AND MIT"
     },
     {
@@ -32,7 +32,7 @@
     {
         "name": "audioop-lts",
         "version": "0.2.2",
-        "author": "\u2014",
+        "author": "—",
         "license": "PSF-2.0"
     },
     {
@@ -50,7 +50,7 @@
     {
         "name": "cbor2",
         "version": "6.1.1",
-        "author": "Alex Gr\u00f6nholm <alex.gronholm@nextday.fi>",
+        "author": "Alex Grönholm <alex.gronholm@nextday.fi>",
         "license": "MIT"
     },
     {
@@ -91,15 +91,9 @@
     },
     {
         "name": "lxmfy",
-        "version": "1.6.5",
+        "version": "2.0.1",
         "author": "Quad4 <team@quad4.io>",
         "license": "BSD-0-Clause"
-    },
-    {
-        "name": "rns-filesync",
-        "version": "1.0.0",
-        "author": "Sudo-Ivan / Quad4.io",
-        "license": "BSD-2-Clause"
     },
     {
         "name": "lxst",
@@ -172,6 +166,12 @@
         "version": "1.4.0",
         "author": "Mark Qvist",
         "license": "Reticulum License"
+    },
+    {
+        "name": "rns-filesync",
+        "version": "1.0.0",
+        "author": "—",
+        "license": "BSD-2-Clause"
     },
     {
         "name": "wasmtime",

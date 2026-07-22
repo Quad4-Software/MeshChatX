@@ -75,6 +75,12 @@ LXMFy provides several templates for common bot types. You can use the CLI to ge
     # Create a cog test bot (tests cog loading features)
     lxmfy create --template cogtest my_cog_test_bot
 
+    # Create an RRC room bot (joins hubs and replies to @mentions)
+    lxmfy create --template rrc my_rrc_bot
+
+    # Or run the template directly
+    lxmfy run rrc
+
 Running these commands creates a Python file (e.g., :code:`my_echo_bot.py`) that imports and runs the chosen template. You can then modify the generated file or the template code itself (:code:`lxmfy/templates/...`).
 
 **Example generated file (:code:`my_cog_test_bot.py`):**
@@ -651,3 +657,87 @@ The retry system:
 - Retries failed direct deliveries up to :code:`direct_delivery_retries`
 - Resets the retry counter on successful delivery
 - Logs retry attempts and failures for debugging
+
+Reticulum Relay Chat (RRC)
+--------------------------
+
+LXMFy bots can join `RRC <https://rrc.kc1awv.net/>`_ hubs as ordinary clients over RNS Links using CBOR envelopes. This is compatible with NomadNet and rrcd style hubs (including MeshChatX when it hosts or joins the same hub).
+
+Reticulum config matters
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+The bot must use the **same** Reticulum network as the hub. MeshChatX typically uses :code:`~/.reticulum` with backbone or TCP interfaces. The project-local :code:`config/` directory often uses an isolated instance name and AutoInterface only, so hub announces never arrive and you see :code:`Hub identity unknown`.
+
+Prefer one of:
+
+*   Set :code:`reticulum_config_dir` to your user config (usually :code:`~/.reticulum`)
+*   Or export :code:`LXMFY_RETICULUM_CONFIG_DIR=~/.reticulum`
+*   Keep MeshChatX or :code:`rnsd` running so the shared instance is up before the bot starts
+
+The :code:`rrc` template defaults to :code:`~/.reticulum` when that directory exists.
+
+Quick start with the template
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: bash
+
+    lxmfy run rrc
+
+Defaults:
+
+*   Hub: :code:`664fc0e8d2e448658e37bb3f34e6c88f`
+*   Room: :code:`#general`
+*   Reticulum config: :code:`~/.reticulum` (or :code:`LXMFY_RETICULUM_CONFIG_DIR`)
+
+You should see logs for hub connect, welcome, auto-join, and :code:`RRC joined #general`.
+
+Programmatic RRC bot
+^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: python
+
+    from lxmfy import LXMFBot, RRCMessage
+
+    bot = LXMFBot(
+        name="RoomBot",
+        reticulum_config_dir="~/.reticulum",
+        rrc_enabled=True,
+        rrc_hubs=["your_rrc_hub_destination_hash"],
+        rrc_rooms=["general"],
+        rrc_nick="RoomBot",
+        rrc_auto_reconnect=True,
+        rrc_persist_sessions=True,
+    )
+
+    @bot.on_rrc
+    def on_rrc(event, client, payload):
+        if event == "welcome":
+            bot.logger.info("Welcomed by hub")
+            return
+        if event != "msg" or not isinstance(payload, RRCMessage):
+            return
+        if payload.mention and payload.room:
+            client.send_message(
+                payload.room,
+                f"Heard you, {payload.nick}",
+            )
+
+    bot.run()
+
+Or connect at runtime:
+
+.. code-block:: python
+
+    bot.connect_rrc("hub_destination_hash", rooms=["general"])
+    bot.rrc.send_message("general", "hello room")
+    bot.rrc.send_action("general", "waves")
+    bot.disconnect_rrc()
+
+Session behavior
+^^^^^^^^^^^^^^^^
+
+*   HELLO / WELCOME, JOIN / PART, MSG / NOTICE / ACTION, PING / PONG, ERROR, RESOURCE_ENVELOPE
+*   Auto-reconnect with room re-join after WELCOME
+*   Client-side hub limit and rate-limit enforcement
+*   Session persistence across restarts (:code:`rrc_persist_sessions`, default on)
+*   Outgoing LXMF queue persistence is separate (:code:`message_persistence_enabled`)

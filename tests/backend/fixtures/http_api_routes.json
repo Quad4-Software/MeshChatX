@@ -29,6 +29,10 @@
             "path": "/api/v1/app/info"
         },
         {
+            "method": "GET",
+            "path": "/api/v1/app/sessions"
+        },
+        {
             "method": "POST",
             "path": "/api/v1/app/integrity/acknowledge"
         },
@@ -322,6 +326,10 @@
         },
         {
             "method": "GET",
+            "path": "/api/v1/filesync/content"
+        },
+        {
+            "method": "GET",
             "path": "/api/v1/filesync/directories"
         },
         {
@@ -337,8 +345,16 @@
             "path": "/api/v1/filesync/download"
         },
         {
+            "method": "DELETE",
+            "path": "/api/v1/filesync/entry"
+        },
+        {
             "method": "GET",
             "path": "/api/v1/filesync/files"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/filesync/mkdir"
         },
         {
             "method": "GET",
@@ -359,6 +375,14 @@
         {
             "method": "POST",
             "path": "/api/v1/filesync/stop"
+        },
+        {
+            "method": "GET",
+            "path": "/api/v1/filesync/tree"
+        },
+        {
+            "method": "POST",
+            "path": "/api/v1/filesync/upload"
         },
         {
             "method": "GET",

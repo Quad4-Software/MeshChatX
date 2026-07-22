@@ -50,6 +50,95 @@ def create_lxmf_router(
         return LXMF.LXMRouter(**kwargs)
 
 
+def list_inbound_deliveries(router) -> list[dict]:
+    """Serialize active inbound LXMF delivery resources (LXMF 1.1+ / RNS 1.4+)."""
+    if router is None or not hasattr(router, "inbound_resources"):
+        return []
+    items: list[dict] = []
+    try:
+        resources = router.inbound_resources() or []
+    except Exception:
+        return []
+    for resource in resources:
+        try:
+            resource_hash = getattr(resource, "hash", None)
+            if resource_hash is None and hasattr(resource, "get_hash"):
+                resource_hash = resource.get_hash()
+            if resource_hash is None:
+                continue
+            if isinstance(resource_hash, (bytes, bytearray)):
+                hash_hex = bytes(resource_hash).hex()
+            else:
+                hash_hex = str(resource_hash)
+            size = None
+            transfer_size = None
+            progress = None
+            with contextlib.suppress(Exception):
+                size = int(resource.get_data_size() or 0)
+            with contextlib.suppress(Exception):
+                transfer_size = int(resource.get_transfer_size() or 0)
+            with contextlib.suppress(Exception):
+                progress_raw = float(resource.get_progress() or 0.0)
+                progress = max(0.0, min(100.0, progress_raw * 100.0))
+            items.append(
+                {
+                    "hash": hash_hex,
+                    "size_bytes": size,
+                    "transfer_size_bytes": transfer_size,
+                    "progress": progress,
+                }
+            )
+        except Exception:
+            continue
+    return items
+
+
+def cancel_inbound_deliveries(router, resource_hash: str | None = None) -> dict:
+    """Cancel one or all active inbound LXMF delivery resources.
+
+    Returns a result dict with ok, cancelled count, and optional error.
+    """
+    if router is None:
+        return {"ok": False, "error": "router unavailable", "cancelled": 0}
+
+    cleaned = str(resource_hash or "").strip().lower().replace(":", "")
+    if cleaned:
+        if not hasattr(router, "cancel_inbound"):
+            return {
+                "ok": False,
+                "error": "inbound delivery cancellation is unavailable",
+                "cancelled": 0,
+            }
+        try:
+            hash_bytes = bytes.fromhex(cleaned)
+        except ValueError:
+            return {"ok": False, "error": "invalid resource_hash", "cancelled": 0}
+        if not hash_bytes:
+            return {"ok": False, "error": "invalid resource_hash", "cancelled": 0}
+        try:
+            ok = bool(router.cancel_inbound(hash_bytes))
+        except Exception as exc:
+            return {"ok": False, "error": str(exc), "cancelled": 0}
+        return {
+            "ok": ok,
+            "cancelled": 1 if ok else 0,
+            "resource_hash": cleaned,
+            "error": None if ok else "resource not active",
+        }
+
+    if not hasattr(router, "cancel_all_inbound"):
+        return {
+            "ok": False,
+            "error": "inbound delivery cancellation is unavailable",
+            "cancelled": 0,
+        }
+    try:
+        cancelled = int(router.cancel_all_inbound() or 0)
+    except Exception as exc:
+        return {"ok": False, "error": str(exc), "cancelled": 0}
+    return {"ok": True, "cancelled": cancelled}
+
+
 def parse_bool_query_param(value: str | None) -> bool:
     if value is None:
         return False
