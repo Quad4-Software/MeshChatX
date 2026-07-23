@@ -10,6 +10,9 @@ crashes when an older Profiles class is present.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import Any, cast
+
 # Match LXST 0.5+ Profiles constants when the installed package lacks them.
 MODE_FULL_DUPLEX = 0x01
 MODE_HALF_DUPLEX = 0x02
@@ -58,7 +61,8 @@ def available_modes(profiles=None) -> list[int]:
     Profiles = profiles if profiles is not None else import_profiles()
     native = getattr(Profiles, "available_modes", None)
     if callable(native):
-        return list(native())
+        modes = cast(Callable[[], Any], native)()
+        return [int(mode_id) for mode_id in modes]
     # Pre-duplex LXST: full duplex only. Half duplex needs switch_mode / squelch.
     return [mode_full_duplex(Profiles)]
 
@@ -67,7 +71,7 @@ def mode_name(mode_id, profiles=None) -> str:
     Profiles = profiles if profiles is not None else import_profiles()
     native = getattr(Profiles, "mode_name", None)
     if callable(native):
-        return str(native(mode_id))
+        return str(cast(Callable[[Any], Any], native)(mode_id))
     return _MODE_NAMES.get(int(mode_id), "Default")
 
 
@@ -75,5 +79,5 @@ def mode_abbreviation(mode_id, profiles=None) -> str:
     Profiles = profiles if profiles is not None else import_profiles()
     native = getattr(Profiles, "mode_abbrevation", None)
     if callable(native):
-        return str(native(mode_id))
+        return str(cast(Callable[[Any], Any], native)(mode_id))
     return _MODE_ABBREVS.get(int(mode_id), "DFLT")
