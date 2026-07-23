@@ -18,6 +18,7 @@ import { registerCoreContributions } from "./js/registries/registerCoreContribut
 import { installWsEventBridge } from "./js/registries/wsEventBridge.js";
 import { pluginHost } from "./js/plugins/PluginHost.js";
 import GlobalState from "./js/GlobalState.js";
+import { recoveryRouteForNetworkError } from "./js/networkRecovery.js";
 import "./js/HeapMonitor.js";
 
 registerCoreContributions();
@@ -360,7 +361,7 @@ const networkReady = await waitForNetworkReady({
     onErrorState: markBootSplashError,
     onDegraded: (error) => {
         GlobalState.networkDegraded = true;
-        GlobalState.networkDegradedError = error || "Mesh network unavailable";
+        GlobalState.networkDegradedError = error || "RNS unavailable";
         GlobalState.networkStarting = false;
         GlobalState.networkReady = false;
     },
@@ -491,7 +492,7 @@ if (networkReady) {
                 onLine: () => {},
                 onDegraded: (error) => {
                     GlobalState.networkDegraded = true;
-                    GlobalState.networkDegradedError = error || "Mesh network unavailable";
+                    GlobalState.networkDegradedError = error || "RNS unavailable";
                     GlobalState.networkStarting = false;
                     GlobalState.networkReady = false;
                 },
@@ -510,16 +511,18 @@ if (networkReady) {
                     GlobalState.networkStarting = false;
                     GlobalState.networkReady = false;
                     GlobalState.networkDegraded = true;
-                    GlobalState.networkDegradedError =
-                        GlobalState.networkDegradedError || "Mesh network startup timed out";
+                    GlobalState.networkDegradedError = GlobalState.networkDegradedError || "RNS startup timed out";
                 }
             });
         }
         if (GlobalState.networkDegraded) {
-            try {
-                router.replace({ name: "interfaces" });
-            } catch {
-                // Route may not exist yet during early boot, but the banner still guides the user.
+            const recoveryRoute = recoveryRouteForNetworkError(GlobalState.networkDegradedError);
+            if (recoveryRoute) {
+                try {
+                    router.replace({ name: recoveryRoute });
+                } catch {
+                    // Route may not exist yet during early boot, but the banner still guides the user.
+                }
             }
         }
     }

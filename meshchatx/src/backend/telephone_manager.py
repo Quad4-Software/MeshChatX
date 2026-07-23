@@ -171,9 +171,9 @@ class TelephoneManager:
 
     def resolve_call_mode_id(self, mode_id=None):
         """Return a valid LXST call mode id (full or half duplex)."""
-        from LXST.Primitives.Telephony import Profiles
+        from meshchatx.src.backend import lxst_profiles_compat as lxst_modes
 
-        available = set(Profiles.available_modes())
+        available = set(lxst_modes.available_modes())
         mid = mode_id
         if mid is None and self.config_manager:
             with contextlib.suppress(Exception):
@@ -183,7 +183,7 @@ class TelephoneManager:
         except (TypeError, ValueError):
             mid = None
         if mid not in available:
-            mid = Profiles.DEFAULT_MODE
+            mid = lxst_modes.default_mode()
         return mid
 
     def apply_preferred_mode(self, mode_id=None):
@@ -199,7 +199,7 @@ class TelephoneManager:
 
     def switch_mode(self, mode_id):
         """Switch live call duplex mode via LXST signalling and local squelch."""
-        from LXST.Primitives.Telephony import Profiles
+        from meshchatx.src.backend import lxst_profiles_compat as lxst_modes
 
         resolved = self.resolve_call_mode_id(mode_id)
         self.preferred_mode_id = resolved
@@ -216,7 +216,7 @@ class TelephoneManager:
             self.telephone.active_call.call_mode = resolved
         # Half duplex starts listen-only. Full duplex keeps continuous TX open.
         self.ptt_active = False
-        if resolved == Profiles.MODE_HALF_DUPLEX:
+        if resolved == lxst_modes.mode_half_duplex():
             with contextlib.suppress(Exception):
                 self.telephone.squelch_transmit(True)
         else:
@@ -226,23 +226,24 @@ class TelephoneManager:
 
     def get_active_mode_id(self):
         """Return the active call mode, preferred mode, or LXST default."""
-        from LXST.Primitives.Telephony import Profiles
+        from meshchatx.src.backend import lxst_profiles_compat as lxst_modes
 
+        available = set(lxst_modes.available_modes())
         if self.telephone and self.telephone.active_call:
             link_mode = getattr(self.telephone.active_call, "call_mode", None)
-            if link_mode in Profiles.available_modes():
+            if link_mode in available:
                 return link_mode
             mode = getattr(self.telephone, "active_mode", None)
-            if mode in Profiles.available_modes():
+            if mode in available:
                 return mode
-        if self.preferred_mode_id in Profiles.available_modes():
+        if self.preferred_mode_id in available:
             return self.preferred_mode_id
         return self.resolve_call_mode_id()
 
     def is_half_duplex(self):
-        from LXST.Primitives.Telephony import Profiles
+        from meshchatx.src.backend import lxst_profiles_compat as lxst_modes
 
-        return self.get_active_mode_id() == Profiles.MODE_HALF_DUPLEX
+        return self.get_active_mode_id() == lxst_modes.mode_half_duplex()
 
     def is_transmit_squelched(self):
         """True when LXST packetizer is squelched (half-duplex idle / PTT up)."""
